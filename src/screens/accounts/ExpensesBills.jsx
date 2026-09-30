@@ -1,45 +1,59 @@
 'use client';
-// ExpensesBills — every taka that leaves the business and is not a move between the shop's own
-// accounts, in one place: expenses, salaries, supplier payments, the owner's withdrawals (and money
-// the owner puts in), and what gateways and couriers keep as fees.
-//   KPI row      spent this month, supplier bills still to pay, owner withdrawals, gateway & COD fees
-//   Money out    the ledger rows of those kinds, filtered by type, month and a search
-//   Side         spend by category (bars) and the supplier bills to pay next, each with a Pay link
-//   Dialogs      Record expense (posts 'expense' or 'salary') and Owner withdraw / investment
-// Front end only: rows come from src/lib/ledger.js, bills from src/lib/supplierBills.js and payout
-// fees from src/lib/settlements.js. Everything re-reads when money moves (useBooks).
+// ExpensesBills — "Income & expenses": every taka that went out and every taka that came in that is
+// not a sale, in one place: expenses, salaries, sales commission, affiliate payouts, promotions,
+// supplier payments, the owner's withdrawals (and money the owner puts in), what gateways and
+// couriers keep as fees, and other income (supplier bonuses, bank interest, scrap sales …).
+//   KPI row      spent this month, other income this month, owed now (liabilities), partner fees
+//   Table        the ledger rows of those kinds, filtered by type, month and a search; each cost
+//                shows the sales channel it counts under (categories.js homeOf)
+//   Side         spend by category (bars, labelled with their channel) and links to Dues / Liabilities
+//   Dialogs      Record expense (category list from categories.js; posts 'expense' or 'salary'),
+//                Record income (posts 'income'; a supplier bonus can instead be taken as credit on
+//                their bills, supplierBills.js addCredit, with no money moving) and Owner withdraw /
+//                investment. ?add=expense|income|owner opens one.
+// Front end only: rows come from src/lib/ledger.js, owed amounts from src/lib/liabilities.js and
+// payout fees from src/lib/settlements.js. Everything re-reads when money moves (useBooks).
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
-import { Dialog, EmptyState, StatusBadge } from '@/components/ui';
+import { Dialog, EmptyState } from '@/components/ui';
 import { BrandLogo } from '@/components/BrandLogo';
 import { formatTime } from '@/lib/format';
 import { KIND_LABEL, balanceOf, getEntries, postEntry } from '@/lib/ledger';
-import { getBills, getSuppliers, supplierById, billLeft, billStatus, daysFrom, dayStart } from '@/lib/supplierBills';
+import { getSuppliers, payableOf, addCredit } from '@/lib/supplierBills';
+import { getCategories, homeOf } from '@/lib/categories';
+import { getLiabilities, leftOf, liabStatus } from '@/lib/liabilities';
 import { clockNow, getPayouts, dayKey, fromKey } from '@/lib/settlements';
 import { AccPage, AccountSelect, money, signed, shortDate, accName, accBrand, useBooks } from './accShared';
 
-// ---- what counts as money going out --------------------------------------------------------------
+// ---- what counts: money going out, and money in that is not a sale -------------------------------
 const GROUPS = [
   ['all', 'All'],
   ['expense', 'Expenses'],
+  ['income', 'Income'],
   ['salary', 'Salaries'],
+  ['commission', 'Commission & affiliates'],
+  ['promotion', 'Promotions'],
   ['supplier', 'Supplier payments'],
   ['owner', 'Owner & investment'],
   ['fees', 'Partner fees'],
 ];
 const GROUP_KINDS = {
   expense: ['expense'],
+  income: ['income'],
   salary: ['salary'],
+  commission: ['commission', 'affiliate payout'],
+  promotion: ['promotion'],
   supplier: ['supplier payment'],
   owner: ['owner withdraw', 'investment'],
   fees: ['partner fee', 'courier charge', 'settlement difference'],
 };
 const OUT_KINDS = new Set([...Object.values(GROUP_KINDS).flat(), 'paid out']);
-const SPEND_KINDS = new Set(['expense', 'salary']);
-const CATEGORIES = ['Rent', 'Utilities', 'Salary', 'Transport', 'Marketing', 'Packaging', 'Internet & phone', 'Repairs', 'Office', 'Other'];
+// costs that count against a channel's profit (spend KPI, category card, channel line)
+const SPEND_KINDS = new Set(['expense', 'salary', 'commission', 'affiliate payout', 'promotion', 'paid out']);
+const BONUS_ID = 'supplier-bonus';
 const MONTHS = [['this', 'This month'], ['last', 'Last month'], ['all', 'All time']];
 const PAGE = 50;
 const DAY = 864e5;
@@ -53,7 +67,18 @@ function monthRange(now, back = 0) {
 }
 const inRange = (t, [a, b]) => t >= a && t < b;
 const monthName = (t) => new Date(t).toLocaleString('en', { month: 'long', year: 'numeric' });
-const catOf = (e) => e.cat || (e.kind === 'salary' ? 'Salary' : 'Other');
+const catOf = (e) => e.cat || (e.kind === 'salary' ? 'Salary' : e.kind === 'paid out' ? 'Paid out at the counter' : KIND_LABEL[e.kind] || 'Other');
+/** Where a cost counts: the channel on its liability line (commission, affiliates, promotions), else its category's. */
+function channelOf(e, liabs) {
+  if (e.liab) {
+    const l = liabs.find((x) => x.id === e.liab);
+    const ln = l && l.lines.find((x) => x.name === e.party);
+    const ch = (ln && ln.channel) || (l && l.channel);
+    if (ch) return ch;
+  }
+  return homeOf(catOf(e));
+}
+const channelText = (ch) => (ch === 'Shared' ? 'Shared by the whole shop' : ch === 'Several' ? 'Split across channels' : `Counts under ${ch}`);
 const spentOf = (list) => r2(list.reduce((a, e) => a - e.amount, 0));
 
 const CSS = `
@@ -71,16 +96,19 @@ const CSS = `
 .eb-cat{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px var(--space-3);font-size:var(--text-sm)}
 .eb-cat span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-body)}
 .eb-cat small{font-size:var(--text-xs);color:var(--text-muted);margin-left:6px}
+.eb-cat em{display:block;font-style:normal;font-size:var(--text-xs);color:var(--text-muted)}
 .eb-track{grid-column:1 / -1;height:6px;border-radius:var(--radius-full);background:var(--surface-subtle);overflow:hidden}
 .eb-fill{height:100%;border-radius:var(--radius-full);background:var(--primary)}
-.eb-bills{list-style:none;margin:0;padding:0}
-.eb-bill{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:var(--space-1) var(--space-3);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle)}
-.eb-bill .ac-strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.eb-bill-side{display:flex;flex-direction:column;align-items:flex-end;gap:var(--space-1)}
-.eb-bill-meta{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);margin-top:2px}
-.eb-foot{display:flex;justify-content:flex-end;padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle)}
-.eb-link{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;gap:4px}
-.eb-link:hover{text-decoration:underline}
+.eb-dues{list-style:none;margin:0;padding:0}
+.eb-due{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle);text-decoration:none;color:inherit}
+.eb-due:hover,.eb-due:focus-visible{background:var(--surface-subtle)}
+.eb-due > span:nth-child(2){flex:1;min-width:0}
+.eb-due b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--primary)}
+.eb-due small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
+.eb-due-ico{display:grid;place-items:center;width:36px;height:36px;flex:none;border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary)}
+.eb-kpi-link{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--primary);text-decoration:none;white-space:nowrap}
+.eb-kpi-link:hover{text-decoration:underline}
+.eb-help{margin:var(--space-2) 0 0}
 .eb-wait{padding:var(--space-8) var(--space-5);text-align:center;font-size:var(--text-xs);color:var(--text-muted)}
 `;
 
@@ -91,7 +119,7 @@ export default function ExpensesBills() {
   const [month, setMonth] = useState('this');
   const [query, setQuery] = useState('');
   const [limit, setLimit] = useState(PAGE);
-  const [dialog, setDialog] = useState(null);   // 'expense' | 'owner'
+  const [dialog, setDialog] = useState(null);   // 'expense' | 'income' | 'owner'
 
   const data = useMemo(() => {
     if (!ready) return null;
@@ -99,27 +127,24 @@ export default function ExpensesBills() {
     const thisM = monthRange(now, 0), lastM = monthRange(now, -1);
     const out = getEntries().filter((e) => OUT_KINDS.has(e.kind)).sort((a, b) => b.at - a.at);
     const spend = out.filter((e) => SPEND_KINDS.has(e.kind) && e.amount < 0);
-    const owner = out.filter((e) => e.kind === 'owner withdraw');
-    const invest = out.filter((e) => e.kind === 'investment');
+    const income = out.filter((e) => e.kind === 'income');
+    const liabs = getLiabilities();
+    const owed = liabs.filter((l) => leftOf(l) > 0);
     // gateway & COD fees: fee + delivery charge of every payout received this month
     const received = getPayouts(now).filter((p) => p.status === 'received' || p.status === 'review');
     const feesIn = (range) => received.filter((p) => inRange(p.at || p.date, range));
     const feeSum = (list) => r2(list.reduce((a, p) => a + p.fee + p.charge, 0));
-    // supplier bills still to pay
-    const today = dayStart(now);
-    const suppliers = getSuppliers();
-    const open = getBills().filter((b) => billLeft(b) > 0).sort((a, b) => a.due - b.due)
-      .map((b) => ({ ...b, left: billLeft(b), state: billStatus(b, today), days: daysFrom(b.due, today), sup: supplierById(b.supplier, suppliers) }));
+    const gotOf = (list) => r2(list.reduce((a, e) => a + e.amount, 0));
     return {
-      now, thisM, lastM, out, spend, open,
+      now, thisM, lastM, out, spend, liabs,
       kpi: {
         spent: spentOf(spend.filter((e) => inRange(e.at, thisM))),
         spentLast: spentOf(spend.filter((e) => inRange(e.at, lastM))),
-        billsDue: r2(open.reduce((a, b) => a + b.left, 0)),
-        overdue: open.filter((b) => b.state === 'Overdue'),
-        owner: spentOf(owner.filter((e) => inRange(e.at, thisM))),
-        ownerLast: spentOf(owner.filter((e) => inRange(e.at, lastM))),
-        investIn: r2(invest.filter((e) => inRange(e.at, thisM)).reduce((a, e) => a + e.amount, 0)),
+        income: gotOf(income.filter((e) => inRange(e.at, thisM))),
+        incomeLast: gotOf(income.filter((e) => inRange(e.at, lastM))),
+        owed: r2(owed.reduce((a, l) => a + leftOf(l), 0)),
+        owedCount: owed.length,
+        overdue: owed.filter((l) => liabStatus(l, now) === 'Overdue').length,
         fees: feeSum(feesIn(thisM)),
         feePayouts: feesIn(thisM).length,
         feesLast: feeSum(feesIn(lastM)),
@@ -133,10 +158,10 @@ export default function ExpensesBills() {
     if (!data || picked.current) return;
     picked.current = true;
     if (!data.out.some((e) => inRange(e.at, data.thisM))) setMonth('last');
-    // ?add=expense|owner (from the Accounts overview) opens that form
+    // ?add=expense|income|owner (from the Accounts overview) opens that form
     const u = new URL(window.location.href);
     const add = u.searchParams.get('add');
-    if (add === 'expense' || add === 'owner') {
+    if (add === 'expense' || add === 'income' || add === 'owner') {
       setDialog(add);
       u.searchParams.delete('add');
       window.history.replaceState(window.history.state, '', u.pathname + u.search);
@@ -156,14 +181,18 @@ export default function ExpensesBills() {
   const rowsTotal = r2(rows.reduce((a, e) => a + e.amount, 0));
 
   const cats = useMemo(() => {
-    const by = {};
-    inMonth.filter((e) => SPEND_KINDS.has(e.kind) && e.amount < 0).forEach((e) => { by[catOf(e)] = r2((by[catOf(e)] || 0) - e.amount); });
-    const list = Object.entries(by).sort((a, b) => b[1] - a[1]);
+    const by = {}, homes = {};
+    inMonth.filter((e) => SPEND_KINDS.has(e.kind) && e.amount < 0).forEach((e) => {
+      const c = catOf(e);
+      by[c] = r2((by[c] || 0) - e.amount);
+      (homes[c] = homes[c] || new Set()).add(channelOf(e, data.liabs));
+    });
+    const list = Object.entries(by).sort((a, b) => b[1] - a[1]).map(([name, amt]) => [name, amt, homes[name].size > 1 ? 'Several' : [...homes[name]][0]]);
     const total = r2(list.reduce((a, [, v]) => a + v, 0));
     const top = list.slice(0, 6);
     const rest = r2(list.slice(6).reduce((a, [, v]) => a + v, 0));
-    return { top: rest ? [...top, ['Everything else', rest]] : top, total, max: top.length ? top[0][1] : 0 };
-  }, [inMonth]);
+    return { top: rest ? [...top, ['Everything else', rest, '']] : top, total, max: top.length ? top[0][1] : 0 };
+  }, [inMonth, data]);
 
   const periodText = !data ? '' : month === 'this' ? monthName(data.thisM[0]) : month === 'last' ? monthName(data.lastM[0]) : 'All time';
   const k = data && data.kpi;
@@ -172,19 +201,21 @@ export default function ExpensesBills() {
   const actions = (
     <>
       <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setDialog('owner')}><Icon name="hand-coins" width="18" height="18" aria-hidden="true" /> Owner withdraw / investment</button>
+      <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setDialog('income')}><Icon name="arrow-down-left" width="18" height="18" aria-hidden="true" /> Record income</button>
       <button type="button" className="gc-btn gc-btn--solid" onClick={() => setDialog('expense')}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Record expense</button>
     </>
   );
 
   return (
-    <AccPage screen="ExpensesBills" active="acc-spend" page="Expenses & bills" title="Expenses & bills" css={CSS}
-      description="All money going out in one place: expenses, salaries, supplier payments, owner withdrawals and partner fees. Moves between your own accounts are not counted here."
+    <AccPage screen="ExpensesBills" active="acc-spend" page="Income & expenses" title="Income & expenses" css={CSS}
+      description="Every taka that went out and every taka that came in that isn't a sale: expenses, salaries, commission, affiliates, promotions, supplier payments, owner, and other income."
       actions={actions}>
 
       <div className="gc-kpis gc-kpis--tight">
         <Kpi icon="receipt" tone="primary" label="Spent this month" value={k ? money(k.spent) : '—'} sub={k ? `Last month ${money(k.spentLast)}` : ''} />
-        <Kpi icon="file-clock" tone={k && k.overdue.length ? 'error' : 'warning'} label="Bills to pay" value={k ? money(k.billsDue) : '—'} sub={k ? (k.overdue.length ? `${plural(k.overdue.length, 'bill')} overdue` : 'Nothing overdue') : ''} />
-        <Kpi icon="piggy-bank" tone="info" label="Owner took, this month" value={k ? money(k.owner) : '—'} sub={k ? (k.investIn ? `${money(k.investIn)} put in this month` : `Last month ${money(k.ownerLast)}`) : ''} />
+        <Kpi icon="arrow-down-left" tone="success" label="Other income this month" value={k ? money(k.income) : '—'} sub={k ? `Last month ${money(k.incomeLast)}` : ''} />
+        <Kpi icon="file-clock" tone={k && k.overdue ? 'error' : 'warning'} label="Owed now" value={k ? money(k.owed) : '—'}
+          sub={k ? <Link className="eb-kpi-link" href="/liabilities">{k.overdue ? `${plural(k.overdue, 'item')} overdue · ` : ''}Salaries, commission and more</Link> : ''} />
         <Kpi icon="percent" tone="slate" label="Partner fees, this month" value={k ? money(k.fees) : '—'} sub={k ? (k.feePayouts ? `From ${plural(k.feePayouts, 'payout')} received` : `Last month ${money(k.feesLast)}`) : ''} />
       </div>
 
@@ -193,8 +224,8 @@ export default function ExpensesBills() {
         <section className="gc-card ac-card" aria-labelledby="eb-out-title">
           <div className="ac-head">
             <div>
-              <h2 id="eb-out-title">Money out</h2>
-              <p>{data ? `${periodText} · ${plural(rows.length, 'payment')} · ${rowsTotal < 0 ? '−' : ''}${money(rowsTotal)} net` : 'Loading'}</p>
+              <h2 id="eb-out-title">Money out and other income</h2>
+              <p>{data ? `${periodText} · ${plural(rows.length, 'entry', 'entries')} · ${rowsTotal < 0 ? '−' : ''}${money(rowsTotal)} net · sales and moves between your own accounts are not here` : 'Loading'}</p>
             </div>
           </div>
           <div className="eb-bar">
@@ -212,7 +243,7 @@ export default function ExpensesBills() {
               </select>
               <div className="gc-field__wrap">
                 <span className="gc-field__icon"><Icon name="search" width="18" height="18" aria-hidden="true" /></span>
-                <input type="search" className="gc-input gc-input--with-icon" placeholder="Search who, what or note" aria-label="Search money out" value={query} onChange={(e) => setQuery(e.target.value)} />
+                <input type="search" className="gc-input gc-input--with-icon" placeholder="Search who, what or note" aria-label="Search income and expenses" value={query} onChange={(e) => setQuery(e.target.value)} />
               </div>
             </div>
           </div>
@@ -222,7 +253,7 @@ export default function ExpensesBills() {
               <div className="gc-table-wrap">
                 <table className="gc-table gc-table--compact gc-table--hoverable">
                   <thead>
-                    <tr><th scope="col">Date</th><th scope="col">What</th><th scope="col">Paid from</th><th scope="col" className="ac-num">Amount</th></tr>
+                    <tr><th scope="col">Date</th><th scope="col">What</th><th scope="col">Account</th><th scope="col" className="ac-num">Amount</th></tr>
                   </thead>
                   <tbody>
                     {rows.slice(0, limit).map((e) => (
@@ -231,6 +262,7 @@ export default function ExpensesBills() {
                         <td className="eb-what">
                           <span className="ac-strong">{e.cat || KIND_LABEL[e.kind] || e.kind}</span>
                           <span className="ac-sub">{[e.cat ? KIND_LABEL[e.kind] : '', e.party, e.note].filter(Boolean).filter((x, i, a) => a.indexOf(x) === i).join(' · ') || '—'}</span>
+                          {SPEND_KINDS.has(e.kind) && e.amount < 0 ? <span className="ac-sub"><Icon name="store" width="12" height="12" aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} />{channelText(channelOf(e, data.liabs))}</span> : null}
                         </td>
                         <td><span className="eb-acc"><BrandLogo brand={accBrand(e.account)} size={24} decorative />{accName(e.account)}</span></td>
                         <td className={'ac-num ac-fig ' + (e.amount < 0 ? 'ac-out' : 'ac-in')}>{signed(e.amount)}</td>
@@ -246,7 +278,7 @@ export default function ExpensesBills() {
             </>
           ) : (
             <EmptyState icon={query ? 'search-x' : 'receipt'}
-              title={query ? 'Nothing matches that search' : `No money out ${month === 'all' ? 'yet' : 'in ' + periodText}`}
+              title={query ? 'Nothing matches that search' : `Nothing recorded ${month === 'all' ? 'yet' : 'in ' + periodText}`}
               body={query ? 'Try another word, or clear the search.' : month === 'this' ? 'Nothing has been paid this month yet. Look at last month, or record an expense.' : 'Record an expense when you pay for something.'}
               actionLabel={query ? 'Clear search' : month === 'this' ? 'Show last month' : 'Record expense'}
               onAction={() => (query ? setQuery('') : month === 'this' ? setMonth('last') : setDialog('expense'))} />
@@ -259,55 +291,52 @@ export default function ExpensesBills() {
             <div className="ac-head">
               <div>
                 <h2 id="eb-cat-title">Spend by category</h2>
-                <p>{data ? `${periodText} · expenses and salaries · ${money(cats.total)}` : 'Loading'}</p>
+                <p>{data ? `${periodText} · expenses, staff and promotions · ${money(cats.total)}` : 'Loading'}</p>
               </div>
             </div>
             {!data ? null : cats.top.length ? (
               <ul className="eb-cats">
-                {cats.top.map(([name, amt]) => (
+                {cats.top.map(([name, amt, home]) => (
                   <li key={name} className="eb-cat">
-                    <span>{name}<small>{cats.total ? Math.round((amt / cats.total) * 100) : 0}%</small></span>
+                    <span>{name}<small>{cats.total ? Math.round((amt / cats.total) * 100) : 0}%</small>{home ? <em>{channelText(home)}</em> : null}</span>
                     <b className="ac-fig ac-strong">{money(amt)}</b>
                     <div className="eb-track" aria-hidden="true"><div className="eb-fill" style={{ width: `${cats.max ? Math.max(2, Math.min(100, (amt / cats.max) * 100)) : 0}%` }} /></div>
                   </li>
                 ))}
               </ul>
-            ) : <EmptyState icon="chart-bar" title="No spending yet" body={`No expenses or salaries in ${periodText === 'All time' ? 'the books' : periodText}.`} />}
+            ) : <EmptyState icon="chart-bar" title="No spending yet" body={`No expenses, salaries or promotions in ${periodText === 'All time' ? 'the books' : periodText}.`} />}
           </section>
 
-          {/* ---- bills to pay ---- */}
-          <section className="gc-card ac-card" aria-labelledby="eb-bills-title">
+          {/* ---- bills and dues (their own pages) ---- */}
+          <section className="gc-card ac-card" aria-labelledby="eb-dues-title">
             <div className="ac-head">
               <div>
-                <h2 id="eb-bills-title">Bills to pay</h2>
-                <p>{data ? (data.open.length ? `${plural(data.open.length, 'open bill')} · ${money(k.billsDue)} left` : 'All supplier bills are paid') : 'Loading'}</p>
+                <h2 id="eb-dues-title">Bills and dues</h2>
+                <p>What you owe and what you are owed are on their own pages.</p>
               </div>
             </div>
-            {!data ? null : data.open.length ? (
-              <ul className="eb-bills">
-                {data.open.slice(0, 6).map((b) => (
-                  <li key={b.no} className="eb-bill">
-                    <div style={{ minWidth: 0 }}>
-                      <span className="ac-strong">{b.sup ? b.sup.name : b.supplier}</span>
-                      <div className="eb-bill-meta">
-                        <span className="ac-id">{b.no}</span>
-                        <DueBadge days={b.days} />
-                      </div>
-                    </div>
-                    <div className="eb-bill-side">
-                      <span className="ac-fig ac-strong">{money(b.left)}</span>
-                      <Link className="gc-btn gc-btn--xs gc-btn--soft" href={`/suppliers?pay=${encodeURIComponent(b.supplier)}`} aria-label={`Pay ${b.sup ? b.sup.name : b.supplier}, bill ${b.no}`}>Pay</Link>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : <EmptyState icon="circle-check" title="No bills to pay" body="Bills appear here when you receive goods from a supplier on credit." />}
-            <div className="eb-foot"><Link className="eb-link" href="/suppliers">All suppliers <Icon name="chevron-right" width="14" height="14" aria-hidden="true" /></Link></div>
+            <ul className="eb-dues">
+              <li>
+                <Link className="eb-due" href="/dues">
+                  <span className="eb-due-ico" aria-hidden="true"><Icon name="file-clock" width="18" height="18" /></span>
+                  <span><b>Supplier bills and customer dues</b><small>Pay suppliers, collect from wholesale customers</small></span>
+                  <Icon name="chevron-right" width="16" height="16" aria-hidden="true" style={{ color: 'var(--text-muted)', flex: 'none' }} />
+                </Link>
+              </li>
+              <li>
+                <Link className="eb-due" href="/liabilities">
+                  <span className="eb-due-ico" aria-hidden="true"><Icon name="users" width="18" height="18" /></span>
+                  <span><b>Salaries, commission, affiliates</b><small>{k ? (k.owedCount ? `${money(k.owed)} owed on ${plural(k.owedCount, 'item')}` : 'Nothing owed right now') : 'Promotions too'}</small></span>
+                  <Icon name="chevron-right" width="16" height="16" aria-hidden="true" style={{ color: 'var(--text-muted)', flex: 'none' }} />
+                </Link>
+              </li>
+            </ul>
           </section>
         </div>
       </div>
 
       {dialog === 'expense' ? <ExpenseDialog onClose={close} /> : null}
+      {dialog === 'income' ? <IncomeDialog onClose={close} /> : null}
       {dialog === 'owner' ? <OwnerDialog onClose={close} /> : null}
     </AccPage>
   );
@@ -316,6 +345,7 @@ export default function ExpensesBills() {
 // ---- small pieces --------------------------------------------------------------------------------
 const TONES = {
   primary: ['var(--fill-primary-soft)', 'var(--primary)'],
+  success: ['var(--fill-success-soft)', 'var(--text-success)'],
   info: ['var(--fill-info-soft)', 'var(--text-info)'],
   warning: ['var(--fill-warning-soft)', 'var(--text-warning)'],
   error: ['var(--fill-error-soft)', 'var(--text-danger)'],
@@ -329,16 +359,10 @@ function Kpi({ icon, tone, label, value, sub }) {
       <div className="gc-kpi__text">
         <p className="gc-kpi__label" title={label}>{label}</p>
         <p className="gc-kpi__value ac-fig">{value}</p>
-        {sub ? <span className="ac-sub" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={sub}>{sub}</span> : null}
+        {sub ? <span className="ac-sub" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={typeof sub === 'string' ? sub : undefined}>{sub}</span> : null}
       </div>
     </div>
   );
-}
-
-function DueBadge({ days }) {
-  if (days < 0) return <StatusBadge tone="error">Overdue {plural(-days, 'day')}</StatusBadge>;
-  if (days === 0) return <StatusBadge tone="warning">Due today</StatusBadge>;
-  return <StatusBadge tone={days <= 3 ? 'warning' : 'neutral'} icon="calendar">Due in {plural(days, 'day')}</StatusBadge>;
 }
 
 const cleanAmount = (v) => v.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
@@ -346,6 +370,7 @@ const cleanAmount = (v) => v.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
 // ---- record expense ------------------------------------------------------------------------------
 function ExpenseDialog({ onClose }) {
   const today = dayKey(clockNow());
+  const categories = useMemo(() => getCategories('expense'), []);
   const [cat, setCat] = useState('');
   const [party, setParty] = useState('');
   const [amount, setAmount] = useState('');
@@ -356,6 +381,8 @@ function ExpenseDialog({ onClose }) {
 
   const amt = r2(amount);
   const balance = balanceOf(account);
+  const picked = categories.find((c) => c.name === cat);
+  const isSalary = !!picked && picked.id === 'salary';
   const errors = {
     cat: cat ? '' : 'Choose what the money was for.',
     amount: amt > 0 ? '' : 'Enter the amount paid.',
@@ -368,7 +395,7 @@ function ExpenseDialog({ onClose }) {
     setTried(true);
     if (Object.values(errors).some(Boolean)) return;
     const row = postEntry({
-      account, amount: -amt, kind: cat === 'Salary' ? 'salary' : 'expense', cat,
+      account, amount: -amt, kind: isSalary ? 'salary' : 'expense', cat,
       party: party.trim() || cat, note: note.trim(), by: 'Staff',
       ...(date !== today ? { at: fromKey(date) + 12 * 3600e3 } : {}),
     });
@@ -384,15 +411,16 @@ function ExpenseDialog({ onClose }) {
         <div className="ac-two">
           <div>
             <label className="gc-label" htmlFor="eb-cat">Category</label>
-            <select id="eb-cat" className={'gc-input gc-select' + (show('cat') ? ' gc-input--error' : '')} value={cat} onChange={(e) => setCat(e.target.value)} aria-invalid={!!show('cat')} aria-describedby={show('cat') ? 'eb-cat-err' : undefined} data-autofocus>
+            <select id="eb-cat" className={'gc-input gc-select' + (show('cat') ? ' gc-input--error' : '')} value={cat} onChange={(e) => setCat(e.target.value)} aria-invalid={!!show('cat')} aria-describedby={show('cat') ? 'eb-cat-err' : picked ? 'eb-cat-help' : undefined} data-autofocus>
               <option value="">Choose…</option>
-              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              {categories.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
             </select>
-            {show('cat') ? <p id="eb-cat-err" className="gc-help gc-help--error">{errors.cat}</p> : null}
+            {show('cat') ? <p id="eb-cat-err" className="gc-help gc-help--error">{errors.cat}</p>
+              : picked ? <p id="eb-cat-help" className="gc-help eb-help">{channelText(picked.home || 'Shared')} · <Link href="/account-setup?tab=categories" className="eb-kpi-link">Change</Link></p> : null}
           </div>
           <div>
             <label className="gc-label" htmlFor="eb-party">Paid to</label>
-            <input id="eb-party" className="gc-input" value={party} onChange={(e) => setParty(e.target.value)} placeholder={cat === 'Salary' ? 'Staff name' : 'Shop, person or company'} />
+            <input id="eb-party" className="gc-input" value={party} onChange={(e) => setParty(e.target.value)} placeholder={isSalary ? 'Staff name' : 'Shop, person or company'} />
           </div>
         </div>
         <div className="ac-two">
@@ -417,6 +445,127 @@ function ExpenseDialog({ onClose }) {
             <input id="eb-note" className="gc-input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional, e.g. October rent" />
           </div>
         </div>
+      </form>
+    </Dialog>
+  );
+}
+
+// ---- record other income -------------------------------------------------------------------------
+function IncomeDialog({ onClose }) {
+  const today = dayKey(clockNow());
+  const categories = useMemo(() => getCategories('income'), []);
+  const suppliers = useMemo(() => getSuppliers().slice().sort((a, b) => a.name.localeCompare(b.name)), []);
+  const [catId, setCatId] = useState('');
+  const [party, setParty] = useState('');
+  const [supplier, setSupplier] = useState('');
+  const [recv, setRecv] = useState('money');   // supplier bonus: 'money' into an account | 'credit' on their bills
+  const [amount, setAmount] = useState('');
+  const [account, setAccount] = useState('brac');
+  const [date, setDate] = useState(today);
+  const [note, setNote] = useState('');
+  const [tried, setTried] = useState(false);
+
+  const picked = categories.find((c) => c.id === catId);
+  const bonus = catId === BONUS_ID;
+  const credit = bonus && recv === 'credit';
+  const sup = bonus ? suppliers.find((x) => x.id === supplier) : null;
+  const owe = sup ? payableOf(sup.id) : 0;
+  const amt = r2(amount);
+  const errors = {
+    cat: catId ? '' : 'Choose what the money is.',
+    supplier: bonus && !supplier ? 'Choose the supplier who gave the bonus.' : '',
+    amount: amt > 0 ? '' : 'Enter the amount.',
+    date: credit ? '' : !date ? 'Pick the day it came in.' : date > today ? 'The date can’t be in the future.' : '',
+  };
+  const show = (f) => (tried ? errors[f] : '');
+
+  const save = (e) => {
+    e.preventDefault();
+    setTried(true);
+    if (Object.values(errors).some(Boolean)) return;
+    const who = bonus ? sup.name : party.trim() || picked.name;
+    if (credit) {
+      // no money moves: the bonus comes off what the shop owes this supplier
+      addCredit({ supplier: sup.id, amount: amt, note: 'Bonus' + (note.trim() ? ' · ' + note.trim() : '') });
+      toast(`${money(amt)} credit on ${sup.name} — it lowers what you owe`);
+      onClose();
+      return;
+    }
+    const row = postEntry({
+      account, amount: amt, kind: 'income', cat: picked.name, party: who, note: note.trim(), by: 'Staff',
+      ...(date !== today ? { at: fromKey(date) + 12 * 3600e3 } : {}),
+    });
+    if (!row) { toast('That account could not be found', { tone: 'error' }); return; }
+    toast(`${money(amt)} ${picked.name.toLowerCase()} recorded into ${accName(account)}`);
+    onClose();
+  };
+
+  return (
+    <Dialog open title="Record income" onClose={onClose} width={560}
+      footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={onClose}>Cancel</button><button type="submit" form="eb-inc-form" className="gc-btn gc-btn--solid">{credit ? 'Save credit' : 'Save income'}</button></>}>
+      <form id="eb-inc-form" className="ac-form" onSubmit={save} noValidate>
+        <p className="gc-help" style={{ margin: 0 }}>Money that comes in and is not a sale. Sales are recorded at the counter and on orders.</p>
+        <div className="ac-two">
+          <div>
+            <label className="gc-label" htmlFor="eb-inc-cat">Category</label>
+            <select id="eb-inc-cat" className={'gc-input gc-select' + (show('cat') ? ' gc-input--error' : '')} value={catId} onChange={(e) => setCatId(e.target.value)} aria-invalid={!!show('cat')} aria-describedby={show('cat') ? 'eb-inc-cat-err' : picked && picked.help ? 'eb-inc-cat-help' : undefined} data-autofocus>
+              <option value="">Choose…</option>
+              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            {show('cat') ? <p id="eb-inc-cat-err" className="gc-help gc-help--error">{errors.cat}</p>
+              : picked && picked.help ? <p id="eb-inc-cat-help" className="gc-help eb-help">{picked.help}</p> : null}
+          </div>
+          {bonus ? (
+            <div>
+              <label className="gc-label" htmlFor="eb-inc-sup">Supplier</label>
+              <select id="eb-inc-sup" className={'gc-input gc-select' + (show('supplier') ? ' gc-input--error' : '')} value={supplier} onChange={(e) => setSupplier(e.target.value)} aria-invalid={!!show('supplier')} aria-describedby={show('supplier') ? 'eb-inc-sup-err' : sup ? 'eb-inc-sup-help' : undefined}>
+                <option value="">Choose…</option>
+                {suppliers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+              </select>
+              {show('supplier') ? <p id="eb-inc-sup-err" className="gc-help gc-help--error">{errors.supplier}</p>
+                : sup ? <p id="eb-inc-sup-help" className="gc-help eb-help">{owe ? `You owe them ${money(owe)} now` : 'You owe them nothing now'}</p> : null}
+            </div>
+          ) : (
+            <div>
+              <label className="gc-label" htmlFor="eb-inc-party">Who paid</label>
+              <input id="eb-inc-party" className="gc-input" value={party} onChange={(e) => setParty(e.target.value)} placeholder="Bank, company or person" />
+            </div>
+          )}
+        </div>
+        {bonus ? (
+          <fieldset className="ac-form" style={{ border: 0, margin: 0, padding: 0, minWidth: 0, gap: 'var(--space-2)' }}>
+            <legend className="gc-label" style={{ padding: 0 }}>Received as</legend>
+            <div className="ac-seg" role="group" aria-label="Received as" style={{ alignSelf: 'flex-start', flexWrap: 'wrap' }}>
+              <button type="button" aria-pressed={recv === 'money'} onClick={() => setRecv('money')}>Money into an account</button>
+              <button type="button" aria-pressed={recv === 'credit'} onClick={() => setRecv('credit')}>Credit on their bills</button>
+            </div>
+            <p className="gc-help" style={{ margin: 0 }}>{credit ? 'No money moves. The bonus comes off what you owe this supplier, oldest bill first; anything left waits for their next bill.' : 'The supplier paid the bonus in cash, by bank or by wallet.'}</p>
+          </fieldset>
+        ) : null}
+        <div className="ac-two">
+          <div>
+            <label className="gc-label" htmlFor="eb-inc-amount">Amount (৳)</label>
+            <input id="eb-inc-amount" className={'gc-input ac-fig' + (show('amount') ? ' gc-input--error' : '')} inputMode="decimal" value={amount} onChange={(e) => setAmount(cleanAmount(e.target.value))} aria-invalid={!!show('amount')} aria-describedby={show('amount') ? 'eb-inc-amount-err' : undefined} />
+            {show('amount') ? <p id="eb-inc-amount-err" className="gc-help gc-help--error">{errors.amount}</p> : null}
+          </div>
+          {credit ? null : <AccountSelect id="eb-inc-account" label="Received into" value={account} onChange={setAccount} />}
+        </div>
+        <div className="ac-two">
+          {credit ? null : (
+            <div>
+              <label className="gc-label" htmlFor="eb-inc-date">Received on</label>
+              <input id="eb-inc-date" type="date" className={'gc-input' + (show('date') ? ' gc-input--error' : '')} value={date} max={today} onChange={(e) => setDate(e.target.value)} aria-invalid={!!show('date')} aria-describedby={show('date') ? 'eb-inc-date-err' : undefined} />
+              {show('date') ? <p id="eb-inc-date-err" className="gc-help gc-help--error">{errors.date}</p> : null}
+            </div>
+          )}
+          <div>
+            <label className="gc-label" htmlFor="eb-inc-note">Note</label>
+            <input id="eb-inc-note" className="gc-input" value={note} onChange={(e) => setNote(e.target.value)} placeholder={bonus ? 'Optional, e.g. target bonus · September' : 'Optional'} />
+          </div>
+        </div>
+        {credit && sup && amt > owe ? (
+          <div className="ac-note ac-note--info" role="status"><Icon name="info" width="16" height="16" aria-hidden="true" /><span><b>{money(amt - owe)} more than you owe {sup.name} now.</b> The rest comes off their next bill.</span></div>
+        ) : null}
       </form>
     </Dialog>
   );

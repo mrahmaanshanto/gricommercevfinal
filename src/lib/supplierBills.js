@@ -114,7 +114,7 @@ const read = () => {
   } catch { /* ignore */ }
   return fromOld(seedDb());
 };
-const write = (db) => { try { window.localStorage.setItem(KEY, JSON.stringify(db)); } catch { /* ignore */ } return db; };
+const write = (db) => { try { window.localStorage.setItem(KEY, JSON.stringify(db)); window.dispatchEvent(new CustomEvent('gc:ledger')); } catch { /* ignore */ } return db; };
 
 /** Everything at once: { suppliers (demo + added), bills, payments, credits, returns }. The demo rows on the server. */
 export function getDb() {

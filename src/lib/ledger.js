@@ -36,6 +36,7 @@ export const KIND_LABEL = {
   expense: 'Expense', transfer: 'Transfer', collected: 'Collected by partner', settlement: 'Payout',
   'partner fee': 'Gateway / COD fee', 'courier charge': 'Delivery charge', 'settlement difference': 'Payout difference',
   withdraw: 'Withdraw', 'owner withdraw': 'Owner withdraw', investment: 'Investment', salary: 'Salary',
+  income: 'Other income', commission: 'Sales commission', 'affiliate payout': 'Affiliate payout', promotion: 'Promotion',
 };
 export const accountBy = (idOrName) => ACCOUNTS.find((a) => a.id === idOrName || a.name === idOrName) || null;
 

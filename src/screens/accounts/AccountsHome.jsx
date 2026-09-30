@@ -13,6 +13,10 @@ import { BrandLogo } from '@/components/BrandLogo';
 import { OWN_ACCOUNTS, getEntries, balanceOf, KIND_LABEL } from '@/lib/ledger';
 import { getPayouts, getWallets, getPartners, heldBy, clockNow, startOfDay, getConfig } from '@/lib/settlements';
 import { getBills, billLeft, findSupplier } from '@/lib/supplierBills';
+import { getLiabilities, leftOf } from '@/lib/liabilities';
+import { getInvoices } from '@/lib/invoices';
+import { profitByChannel } from '@/lib/profit';
+import { CHANNELS } from '@/lib/categories';
 import { AccPage, PayoutDialog, WithdrawDialog, useBooks, money, signed, dayLabel, dayWords, shortDate, daysText, accName } from './accShared';
 
 const CSS = `
@@ -24,6 +28,16 @@ const CSS = `
 .ov-bal__fig{font-family:var(--font-data);font-size:var(--text-xl);font-weight:var(--weight-semibold);color:var(--text-heading);font-variant-numeric:tabular-nums;line-height:1.2}
 .ov-bal__logos{display:flex;align-items:center;gap:6px;min-height:24px;font-size:var(--text-xs);color:var(--text-muted)}
 .ov-bal.is-way{background:linear-gradient(135deg,var(--fill-primary-soft),var(--surface-card) 70%)}
+.ov-ch{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--border-subtle);border-top:1px solid var(--border-subtle)}
+.ov-ch > div{background:var(--surface-card);padding:var(--space-3) var(--space-5)}
+.ov-ch span{display:block;font-size:var(--text-xs);color:var(--text-muted)}
+.ov-ch b{display:block;font-family:var(--font-data);font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.ov-ch em{font-style:normal;font-size:var(--text-xs);font-family:var(--font-data)}
+.ov-dues{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border-subtle);border-top:1px solid var(--border-subtle)}
+.ov-dues > div{background:var(--surface-card);padding:var(--space-3) var(--space-5)}
+.ov-dues span{display:block;font-size:var(--text-xs);color:var(--text-muted)}
+.ov-dues b{display:block;font-family:var(--font-data);font-size:var(--text-lg);font-weight:var(--weight-semibold)}
+@media (max-width:640px){.ov-ch,.ov-dues{grid-template-columns:1fr}}
 .ov-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:var(--space-5);align-items:start}
 .ov-task{display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle)}
 .ov-task b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
@@ -90,6 +104,21 @@ export default function AccountsHome() {
     if (moreBills.length) tasks.push({ key: 'bills', tone: 'amber', icon: 'receipt', title: `${moreBills.length} more supplier bill${moreBills.length === 1 ? '' : 's'} · ${money(moreBills.reduce((a, b) => a + b.left, 0))}`, sub: urgent.length > 4 ? 'Overdue or due this week' : 'Due in the next 3 days', href: '/expenses-bills', act: ['See bills'] });
     if (drawer > 50000) tasks.push({ key: 'drawer', tone: 'amber', icon: 'inbox', title: `Counter drawers hold ${money(drawer)}`, sub: 'Move it to the safe or the bank at closing', href: '/money?do=transfer&from=drawer', act: ['Move'] });
 
+    // salaries, commission, affiliates and promotions owed now or within 3 days
+    const liabs = tick ? getLiabilities().filter((l) => leftOf(l) > 0 && startOfDay(l.due) <= today + 3 * 864e5).sort((a, b) => a.due - b.due) : [];
+    liabs.slice(0, 3).forEach((l) => { const days = Math.round((startOfDay(l.due) - today) / 864e5); tasks.push({ key: l.id, tone: days < 0 ? 'red' : 'amber', icon: 'file-clock', title: `${l.title} · ${money(leftOf(l))} ${days < 0 ? `overdue ${-days} day${days === -1 ? '' : 's'}` : days === 0 ? 'due today' : `due in ${days} day${days === 1 ? '' : 's'}`}`, sub: `${l.party} · ${l.lines.length} ${l.lines.length === 1 ? 'payment' : 'people'}`, href: '/liabilities?id=' + l.id, act: ['Pay'] }); });
+    if (liabs.length > 3) tasks.push({ key: 'liabs', tone: 'amber', icon: 'file-clock', title: `${liabs.length - 3} more to pay · ${money(liabs.slice(3).reduce((a, l) => a + leftOf(l), 0))}`, sub: 'Salaries, commission, affiliates and promotions', href: '/liabilities', act: ['See all'] });
+
+    // sales and profit by channel: this month, or last month early in a month
+    const m0 = new Date(now); m0.setDate(1); m0.setHours(0, 0, 0, 0);
+    const lm0 = new Date(m0); lm0.setMonth(lm0.getMonth() - 1);
+    let pr = tick ? profitByChannel(m0.getTime(), now + 1) : null;
+    let prLabel = m0.toLocaleString('en', { month: 'long' }) + ' so far';
+    if (pr && pr.all.net < 1000) { pr = profitByChannel(lm0.getTime(), m0.getTime()); prLabel = lm0.toLocaleString('en', { month: 'long', year: 'numeric' }); }
+    // dues: what the shop will get and what it owes
+    const get = tick ? getInvoices().reduce((a, i) => a + Math.max(0, i.due), 0) + partners.reduce((a, p) => a + heldBy(p.id), 0) : 0;
+    const owe = tick ? getBills().reduce((a, b) => a + billLeft(b), 0) + getLiabilities().reduce((a, l) => a + leftOf(l), 0) : 0;
+
     // coming in: the next payout days
     const days = [];
     open.filter((p) => !p.late && p.due >= today).forEach((p) => { let g = days.find((x) => x.due === p.due); if (!g) { g = { due: p.due, list: [] }; days.push(g); } g.list.push(p); });
@@ -99,6 +128,7 @@ export default function AccountsHome() {
     const byKind = {};
     moves.forEach((e) => { byKind[e.kind] = (byKind[e.kind] || 0) + e.amount; });
     return {
+      pr, prLabel, get, owe,
       now, cash: group('Cash'), bank: group('Bank'), mobile: group('Mobile'), partners, held: partners.reduce((s, p) => s + heldBy(p.id), 0),
       todayIn: dueToday.reduce((s, p) => s + p.net, 0), tasks, days: days.slice(0, 5), late,
       moneyIn: moves.filter((e) => e.amount > 0).reduce((s, e) => s + e.amount, 0), moneyOut: moves.filter((e) => e.amount < 0).reduce((s, e) => s - e.amount, 0),
@@ -136,6 +166,23 @@ export default function AccountsHome() {
           <span className="ov-bal__fig">{money(d.held)}</span>
           <span className="ov-bal__logos">{d.partners.slice(0, 5).map((p) => <BrandLogo key={p.id} brand={p.brand} size={22} decorative />)}<span>{d.todayIn ? `${money(d.todayIn)} due today` : `${d.partners.length} partners`}</span></span>
         </Link>
+      </div>
+
+      <div className="ov-grid gc-split">
+        <section className="gc-card ac-card" aria-labelledby="ov-profit">
+          <div className="ac-head"><div><h2 id="ov-profit">Sales and profit by channel</h2><p>{d.prLabel} · net profit {money(d.pr.net)} ({(d.pr.netMargin * 100).toFixed(1)}% of sales)</p></div><Link href="/sales-profit" className="gc-btn gc-btn--sm gc-btn--neutral">Sales & profit</Link></div>
+          <div className="ov-ch">
+            {CHANNELS.map((ch) => { const c = d.pr.channels[ch]; return <div key={ch}><span>{ch}</span><b>{money(c.net)}</b><em className={c.profit < 0 ? 'ac-out' : 'ac-in'}>{c.profit < 0 ? '−' : ''}{money(c.profit)} profit · {(c.profitMargin * 100).toFixed(0)}%</em></div>; })}
+          </div>
+        </section>
+        <section className="gc-card ac-card" aria-labelledby="ov-dues">
+          <div className="ac-head"><div><h2 id="ov-dues">Dues</h2><p>Customers and partners owe you; you owe suppliers, staff and others</p></div><Link href="/dues" className="gc-btn gc-btn--sm gc-btn--neutral">Dues</Link></div>
+          <div className="ov-dues">
+            <div><span>You will get</span><b className="ac-in">{money(d.get)}</b></div>
+            <div><span>You owe</span><b className="ac-out">{money(d.owe)}</b></div>
+            <div><span>Net</span><b className={d.get - d.owe < 0 ? 'ac-out' : 'ac-in'}>{d.get - d.owe < 0 ? '−' : ''}{money(d.get - d.owe)}</b></div>
+          </div>
+        </section>
       </div>
 
       <div className="ov-grid gc-split">

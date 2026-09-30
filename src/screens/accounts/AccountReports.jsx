@@ -1,8 +1,11 @@
 'use client';
 // AccountReports — Accounts › Reports: how the shop did over a period, in plain words.
-//   Profit & loss  money in from sales minus what was spent (cash basis: counted when money moved),
-//                  compared with the period before. Moves between the shop's own accounts and
-//                  partner payouts are left out; money the owner took is shown under the result.
+//   Profit & loss  money in from sales plus other income (supplier bonuses, interest, scrap …) minus
+//                  what was spent: stock, expenses, salaries, sales commission, affiliate payouts,
+//                  promotions and partner fees (cash basis: counted when money moved), compared with
+//                  the period before. Moves between the shop's own accounts and partner payouts are
+//                  left out; money the owner took is shown under the result. Profit by channel, counted
+//                  when owed, is on Sales & profit (/sales-profit).
 //   Cash flow      each account (cash, bank, mobile wallets, partners) from opening to closing, and
 //                  a day-by-day in/out chart of the shop's own accounts.
 //   Partner fees   what each gateway and courier collected and what it kept (fee + delivery charge).
@@ -62,6 +65,10 @@ function profitOf(entries, from, to) {
   const sales = SALE_KINDS.map(([k, label]) => ({ key: 'in:' + k, label, value: sum((e) => e.kind === k && e.amount > 0) }));
   const refunds = sum((e) => e.kind === 'refund');   // negative
   const salesIn = r2(sales.reduce((a, s) => a + s.value, 0) + refunds);
+  // money in that is not a sale, by its income category
+  const income = {};
+  list.filter((e) => e.kind === 'income').forEach((e) => { const c = e.cat || 'Other income'; income[c] = r2((income[c] || 0) + e.amount); });
+  const otherIn = r2(Object.values(income).reduce((a, v) => a + v, 0));
   const cats = {};
   list.filter((e) => e.kind === 'expense' || e.kind === 'paid out').forEach((e) => {
     const c = e.cat || (e.kind === 'paid out' ? 'Paid out at the counter' : 'Other');
@@ -69,13 +76,16 @@ function profitOf(entries, from, to) {
   });
   const stock = -sum((e) => e.kind === 'supplier payment');
   const salary = -sum((e) => e.kind === 'salary');
+  const commission = -sum((e) => e.kind === 'commission');
+  const affiliate = -sum((e) => e.kind === 'affiliate payout');
+  const promotion = -sum((e) => e.kind === 'promotion');
   const fees = -sum((e) => e.kind === 'partner fee' && isHolding(e));
   const charges = -sum((e) => e.kind === 'courier charge' && isHolding(e));
   const diff = -sum((e) => e.kind === 'settlement difference' && isHolding(e));
-  const costs = r2(stock + salary + fees + charges + diff + Object.values(cats).reduce((a, v) => a + v, 0));
+  const costs = r2(stock + salary + commission + affiliate + promotion + fees + charges + diff + Object.values(cats).reduce((a, v) => a + v, 0));
   return {
-    sales, refunds, salesIn, cats, stock, salary, fees, charges, diff, costs,
-    profit: r2(salesIn - costs),
+    sales, refunds, salesIn, income, otherIn, cats, stock, salary, commission, affiliate, promotion, fees, charges, diff, costs,
+    profit: r2(salesIn + otherIn - costs),
     ownerOut: -sum((e) => e.kind === 'owner withdraw'),
     ownerIn: sum((e) => e.kind === 'investment'),
     count: list.length,
@@ -89,12 +99,21 @@ function statementRows(cur, prev) {
   rows.push({ key: 'h-in', label: 'Money in from sales', type: 'head' });
   cur.sales.forEach((s, i) => { if (s.value || prev.sales[i].value) line(s.key, s.label, s.value, prev.sales[i].value, 'up'); });
   if (cur.refunds || prev.refunds) line('refunds', 'Refunds paid back', cur.refunds, prev.refunds, 'up');
-  rows.push({ key: 'salesIn', label: 'Total money in', cur: cur.salesIn, prev: prev.salesIn, good: 'up', type: 'sub' });
+  rows.push({ key: 'salesIn', label: 'Total money in from sales', cur: cur.salesIn, prev: prev.salesIn, good: 'up', type: 'sub' });
+  if (cur.otherIn || prev.otherIn) {
+    rows.push({ key: 'h-other', label: 'Other income', type: 'head' });
+    const inc = [...new Set([...Object.keys(cur.income), ...Object.keys(prev.income)])].sort((a, b) => (cur.income[b] || 0) - (cur.income[a] || 0));
+    inc.forEach((c) => line('inc:' + c, c, cur.income[c] || 0, prev.income[c] || 0, 'up', { help: 'Not a sale' }));
+    rows.push({ key: 'otherIn', label: 'Total other income', cur: cur.otherIn, prev: prev.otherIn, good: 'up', type: 'sub' });
+  }
   rows.push({ key: 'h-out', label: 'Costs', type: 'head' });
   if (cur.stock || prev.stock) line('stock', 'Paid for stock', -cur.stock, -prev.stock, 'down', { help: 'Supplier payments' });
   const cats = [...new Set([...Object.keys(cur.cats), ...Object.keys(prev.cats)])].sort((a, b) => (cur.cats[b] || 0) - (cur.cats[a] || 0));
   cats.forEach((c) => line('cat:' + c, c, -(cur.cats[c] || 0), -(prev.cats[c] || 0), 'down', { help: 'Expense' }));
   if (cur.salary || prev.salary) line('salary', 'Salaries', -cur.salary, -prev.salary, 'down');
+  if (cur.commission || prev.commission) line('commission', 'Sales commission', -cur.commission, -prev.commission, 'down', { help: 'Paid to sales staff' });
+  if (cur.affiliate || prev.affiliate) line('affiliate', 'Affiliate payouts', -cur.affiliate, -prev.affiliate, 'down');
+  if (cur.promotion || prev.promotion) line('promotion', 'Promotions', -cur.promotion, -prev.promotion, 'down', { help: 'Influencers, agencies, printing, stalls' });
   if (cur.fees || prev.fees) line('fees', 'Gateway and COD fees', -cur.fees, -prev.fees, 'down', { help: 'Counted when the payout arrives' });
   if (cur.charges || prev.charges) line('charges', 'Delivery charges', -cur.charges, -prev.charges, 'down', { help: 'Kept by couriers from COD money' });
   if (cur.diff || prev.diff) line('diff', 'Payout differences', -cur.diff, -prev.diff, 'down', { help: 'Payouts that came short or extra' });
@@ -243,6 +262,8 @@ const CSS = `
 .ar-vat .is-key dd{color:var(--primary)}
 .ar-pad{padding:0 var(--space-5) var(--space-4)}
 .ac-card tfoot th,.ac-card tfoot td{font-weight:var(--weight-semibold);color:var(--text-heading);background:var(--surface-subtle)}
+.ar-link{color:var(--primary);font-weight:var(--weight-medium);text-decoration:none}
+.ar-link:hover{text-decoration:underline}
 .ar-grouprow th{font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-muted);background:var(--surface-subtle);text-align:left}
 @media print{
   gc-sidebar,gc-topbar,.ar-noprint,.gc-pagehead__actions{display:none!important}
@@ -299,7 +320,9 @@ export default function AccountReports() {
     if (tab === 'pnl') {
       body = [['Compared with', prevText], [], ['Item', 'This period (BDT)', 'Previous period (BDT)', 'Change'],
         ...rows.map((r) => (r.type === 'head' ? [r.label] : [r.label, r2(r.cur), r2(r.prev), deltaOf(r.cur, r.prev, r.good).text])),
-        [], ['Taken by the owner', r2(-cur.ownerOut), r2(-prev.ownerOut)], ['Put in by the owner', r2(cur.ownerIn), r2(prev.ownerIn)]];
+        [], ['Taken by the owner', r2(-cur.ownerOut), r2(-prev.ownerOut)], ['Put in by the owner', r2(cur.ownerIn), r2(prev.ownerIn)],
+        ['Left in the business', r2(cur.profit - cur.ownerOut + cur.ownerIn), r2(prev.profit - prev.ownerOut + prev.ownerIn)],
+        [], ['Cash basis: counted when money moved. Profit by channel, counted when owed, is on Sales & profit.']];
     } else if (tab === 'cash') {
       body = [[], ['Account', 'Type', 'Opening (BDT)', 'Money in (BDT)', 'Money out (BDT)', 'Closing (BDT)'],
         ...flow.accounts.map((a) => [accName(a.id), TYPES.find((t) => t[0] === a.type)[1], a.opening, a.inn, a.out, a.closing]),
@@ -351,8 +374,8 @@ export default function AccountReports() {
       </div>
 
       <div className="gc-kpis gc-kpis--tight">
-        {kpi('arrow-down-left', 'var(--fill-success-soft)', 'var(--text-success)', 'Money in from sales', money(cur.salesIn), 'after refunds')}
-        {kpi('arrow-up-right', 'var(--fill-error-soft)', 'var(--text-danger)', 'Costs', money(cur.costs), 'stock, expenses, fees')}
+        {kpi('arrow-down-left', 'var(--fill-success-soft)', 'var(--text-success)', 'Money in from sales', money(cur.salesIn), cur.otherIn ? `+ ${money(cur.otherIn)} other income` : 'after refunds')}
+        {kpi('arrow-up-right', 'var(--fill-error-soft)', 'var(--text-danger)', 'Costs', money(cur.costs), 'stock, expenses, staff, fees')}
         {kpi(cur.profit < 0 ? 'trending-down' : 'trending-up', cur.profit < 0 ? 'var(--fill-error-soft)' : 'var(--fill-primary-soft)', cur.profit < 0 ? 'var(--text-danger)' : 'var(--primary)', cur.profit < 0 ? 'Loss' : 'Profit', fig(cur.profit), profitDelta.tone === 'flat' ? 'no earlier figures' : profitDelta.text + ' vs before', cur.profit < 0 ? 'ar-neg' : '')}
         {kpi('hand-coins', 'var(--fill-warning-soft)', 'var(--text-warning)', 'With partners now', money(withPartners), 'to be paid out')}
       </div>
@@ -392,7 +415,11 @@ function ProfitPanel({ rows, cur, prev, periodText, prevText }) {
   return (
     <>
       <div className="ac-head">
-        <div><h2>Profit & loss</h2><p>Counted when money moved, {periodText}. Moves between your own accounts and partner payouts are left out.</p></div>
+        <div>
+          <h2>Profit & loss</h2>
+          <p>Cash basis: counted when money moved, {periodText}. Moves between your own accounts and partner payouts are left out.</p>
+          <p className="ar-noprint">By channel and counted when owed: see <Link href="/sales-profit" className="ar-link">Sales & profit</Link></p>
+        </div>
       </div>
       {empty ? <EmptyState icon="file-bar-chart" title="No money moved in this period" body="Pick another period above, or record sales and expenses first." /> : (
         <>

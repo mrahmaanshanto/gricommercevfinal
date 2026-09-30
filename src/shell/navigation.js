@@ -67,7 +67,10 @@ export const NAV = [
     { id: 'acc-home', icon: 'layout-dashboard', label: 'Overview', to: 'accounts/AccountsHome.dc.html' },
     { id: 'acc-money', icon: 'wallet', label: 'Money', to: 'accounts/Money.dc.html' },
     { id: 'acc-settle', icon: 'hourglass', label: 'Settlements', to: 'accounts/Settlements.dc.html' },
-    { id: 'acc-spend', icon: 'receipt', label: 'Expenses & bills', to: 'accounts/ExpensesBills.dc.html' },
+    { id: 'acc-sales', icon: 'chart-column', label: 'Sales & profit', to: 'accounts/SalesProfit.dc.html' },
+    { id: 'acc-spend', icon: 'receipt', label: 'Income & expenses', to: 'accounts/ExpensesBills.dc.html' },
+    { id: 'acc-dues', icon: 'scale', label: 'Dues', to: 'accounts/Dues.dc.html' },
+    { id: 'acc-liab', icon: 'file-clock', label: 'Liabilities', to: 'accounts/Liabilities.dc.html' },
     { id: 'acc-reports', icon: 'file-bar-chart', label: 'Reports', to: 'accounts/AccountReports.dc.html' },
     { id: 'acc-setup', icon: 'sliders-horizontal', label: 'Setup', to: 'accounts/AccountSetup.dc.html' }
   ] },

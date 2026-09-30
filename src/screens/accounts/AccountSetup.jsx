@@ -2,13 +2,17 @@
 // AccountSetup — the settings behind Accounts, in plain words for a shop owner:
 //   Payment partners  each gateway's fee, each courier's COD % and delivery charge per zone, when
 //                     they pay out, into which account, and the days they don't pay
+//   Categories        expense categories (each belongs to a sales channel or is shared by the whole
+//                     shop, which Sales & profit uses for profit by channel) and income categories;
+//                     add, rename, archive / restore, with this month's money in each
 //   Banks & wallets   the shop's own cash, bank and mobile wallet accounts (add one here), and the
 //                     money partners are holding (read-only, handled in Settlements)
 //   Holidays          public holidays payouts skip (add, remove, restore the defaults)
 //   Evening check     when the app asks whether today's payouts arrived, and browser notifications
 //   Advanced          chart of accounts, journals, VAT, and resetting the demo money data
-// ?tab=partners|accounts|holidays|check|advanced opens a tab.
-// Front end only: settings are kept in this browser (settlements.js getConfig/saveConfig, ledger.js addAccount).
+// ?tab=partners|categories|accounts|holidays|check|advanced opens a tab.
+// Front end only: settings are kept in this browser (settlements.js getConfig/saveConfig, ledger.js addAccount,
+// categories.js for the categories).
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -19,9 +23,10 @@ import { BrandLogo } from '@/components/BrandLogo';
 import { GatewaySetup } from '@/components/GatewaySetup';
 import { OWN_ACCOUNTS, HOLDING_ACCOUNTS, balanceOf, getEntries, addAccount } from '@/lib/ledger';
 import { PARTNERS, DEFAULT_CONFIG, getConfig, saveConfig, getPartners, getAllPartners, ruleText, feeText, weekendText, holidaysOf, HOLIDAYS_2026, WEEKDAYS, DEFAULT_WEEKEND, COURIER_RATES, heldBy, clockNow, dayKey, fromKey } from '@/lib/settlements';
+import { getCategories, addCategory, editCategory, archiveCategory, COST_HOMES, DEFAULT_EXPENSE, DEFAULT_INCOME } from '@/lib/categories';
 import { AccPage, AccountSelect, useBooks, money, shortDate, accName, accBrand } from './accShared';
 
-const TABS = [['partners', 'Payment partners'], ['accounts', 'Banks & wallets'], ['holidays', 'Holidays'], ['check', 'Evening check'], ['advanced', 'Advanced']];
+const TABS = [['partners', 'Payment partners'], ['categories', 'Categories'], ['accounts', 'Banks & wallets'], ['holidays', 'Holidays'], ['check', 'Evening check'], ['advanced', 'Advanced']];
 const ZONES = Object.keys(COURIER_RATES);
 const HOURS = [17, 18, 19, 20, 21, 22, 23];
 const hourText = (h) => `${h > 12 ? h - 12 : h} PM`;
@@ -34,6 +39,19 @@ const MONEY_KEYS = ['gc.ledger', 'gc.settle.items', 'gc.settle.payouts', 'gc.set
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : NaN; };
 const clean = (v) => String(v).replace(/[^\d.]/g, '');
 const logoOf = (a) => a.brand || a.name;
+const HOME_TEXT = { Shared: 'Shared by the whole shop', Online: 'Counts under Online', Retail: 'Counts under Retail', Wholesale: 'Counts under Wholesale' };
+const homeToast = (name, home) => (home === 'Shared' ? `${name} is now shared by the whole shop` : `${name} now counts under ${home}`);
+const SPEND_KINDS = ['expense', 'salary'];
+/** Money in each category for one month: { expense: { name: ৳ }, income: { name: ৳ } }. */
+function monthSums(entries, from, to) {
+  const expense = {}, income = {};
+  entries.forEach((e) => {
+    if (e.at < from || e.at >= to) return;
+    if (SPEND_KINDS.includes(e.kind) && e.amount < 0) { const c = e.cat || (e.kind === 'salary' ? 'Salary' : 'Other'); expense[c] = (expense[c] || 0) - e.amount; }
+    else if (e.kind === 'income') { const c = e.cat || 'Other income'; income[c] = (income[c] || 0) + e.amount; }
+  });
+  return { expense, income, any: Object.keys(expense).length + Object.keys(income).length > 0 };
+}
 
 const CSS = `
 .as-bar{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--space-3);padding:0 var(--space-4);border-bottom:1px solid var(--border-subtle)}
@@ -76,6 +94,21 @@ const CSS = `
 .as-ico{display:grid;place-items:center;width:40px;height:40px;flex:none;border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary)}
 .as-danger{border:1px solid var(--fill-error-soft)}
 .as-danger .as-ico{background:var(--fill-error-soft);color:var(--text-danger)}
+.as-catgrid{align-items:start}
+.as-catcard{border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card);min-width:0;overflow:hidden}
+.as-catcard > .ac-head{border-bottom:1px solid var(--border-subtle)}
+.as-cats{list-style:none;margin:0;padding:0}
+.as-cat{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle)}
+.as-cat:first-child{border-top:0}
+.as-cat .as-ico{width:36px;height:36px}
+.as-cat__name{flex:1 1 150px;min-width:0}
+.as-cat__name b{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.as-cat__name small{display:block;margin-top:2px;font-size:var(--text-xs);color:var(--text-muted);line-height:1.5}
+.as-cat__tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:var(--space-2);margin-left:auto}
+.as-cat__tools .gc-select{width:auto;min-width:132px}
+.as-cat.is-archived .as-cat__name b{color:var(--text-muted)}
+.as-cat.is-archived .as-ico{background:var(--surface-subtle);color:var(--text-muted)}
+.as-inlink{color:inherit;font-weight:var(--weight-semibold);text-decoration:underline}
 @media (max-width:900px){.as-grid3{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:640px){.as-three{grid-template-columns:1fr}.as-add{grid-template-columns:1fr}.as-inline .gc-input{max-width:none}}
 `;
@@ -105,6 +138,7 @@ export default function AccountSetup() {
   const [acc, setAcc] = useState(null);        // new account form
   const [hol, setHol] = useState({ date: '', name: '' });
   const [perm, setPerm] = useState('');
+  const [catForm, setCatForm] = useState(null);   // add / rename a category: { mode, kind, id, name, home, help }
 
   useEffect(() => {
     const want = new URLSearchParams(window.location.search).get('tab');
@@ -131,6 +165,22 @@ export default function AccountSetup() {
       holding: tick ? HOLDING_ACCOUNTS().map((a) => ({ ...a, held: heldBy(a.partner) })) : [],
       nextHoliday: tick ? holidays.find(([k]) => k >= today) : null,
     };
+  }, [tick]);
+
+  // categories with this month's money in each (last month's on a month that has just started)
+  const cats = useMemo(() => {
+    if (!tick) return { expense: [], income: [], when: '' };
+    const d = new Date(clockNow());
+    const start = (back) => new Date(d.getFullYear(), d.getMonth() + back, 1).getTime();
+    const entries = getEntries();
+    let sums = monthSums(entries, start(0), start(1)), when = 'this month';
+    if (!sums.any) { sums = monthSums(entries, start(-1), start(0)); when = 'in ' + new Date(start(-1)).toLocaleString('en', { month: 'long' }); }
+    // entries keep the name they were saved with, so a renamed built-in also counts its original name
+    const withSum = (kind, defaults) => getCategories(kind, { withArchived: true }).map((c) => {
+      const names = [...new Set([c.name, c.builtIn ? (defaults.find((x) => x.id === c.id) || {}).name : ''].filter(Boolean))];
+      return { ...c, sum: Math.round(names.reduce((a, n) => a + (sums[kind][n] || 0), 0) * 100) / 100 };
+    }).sort((a, b) => Number(a.archived) - Number(b.archived));
+    return { expense: withSum('expense', DEFAULT_EXPENSE), income: withSum('income', DEFAULT_INCOME), when };
   }, [tick]);
   const { cfg } = data;
   const changed = Object.keys(cfg.partners || {}).filter((id) => PARTNERS.some((p) => p.id === id));
@@ -231,6 +281,34 @@ export default function AccountSetup() {
     toast('Default holidays restored');
   };
 
+  // ---- categories --------------------------------------------------------------------------------
+  const setHome = (c, home) => { editCategory('expense', c.id, { home }); toast(homeToast(c.name, home)); };
+  const openAddCat = (kind) => setCatForm({ mode: 'add', kind, id: '', name: '', home: 'Shared', help: '' });
+  const openRename = (kind, c) => setCatForm({ mode: 'rename', kind, id: c.id, name: c.name, home: c.home || 'Shared', help: c.help || '' });
+  const saveCat = (e) => {
+    e.preventDefault();
+    const { mode, kind, id } = catForm;
+    const name = catForm.name.trim();
+    if (!name) { toast('Give the category a name', { tone: 'error' }); return; }
+    const clash = getCategories(kind, { withArchived: true }).find((c) => c.id !== id && c.name.toLowerCase() === name.toLowerCase());
+    if (clash) { toast(clash.archived ? `${clash.name} already exists and is archived. Restore it instead.` : `There is already a category called ${clash.name}`, { tone: 'error' }); return; }
+    if (mode === 'add') {
+      addCategory(kind, { name, home: catForm.home, help: catForm.help.trim() });
+      toast(kind === 'expense' ? `${name} added · ${HOME_TEXT[catForm.home].toLowerCase()}` : `${name} added to income categories`);
+    } else {
+      const old = (getCategories(kind, { withArchived: true }).find((c) => c.id === id) || {}).name;
+      if (old === name) { setCatForm(null); return; }
+      editCategory(kind, id, { name });
+      toast(`${old} renamed to ${name} · entries already recorded keep the old name`);
+    }
+    setCatForm(null);
+  };
+  const toggleArchive = (kind, c) => {
+    const on = !c.archived;
+    archiveCategory(kind, c.id, on);
+    toast(on ? `${c.name} archived · it is hidden from the lists, past entries keep it` : `${c.name} restored`, { undo: () => archiveCategory(kind, c.id, !on) });
+  };
+
   // ---- evening check -----------------------------------------------------------------------------
   const setCheck = (patch, msg) => { saveConfig({ ...getConfig(), ...patch }); toast(msg); };
   const allowNotes = async () => {
@@ -258,7 +336,7 @@ export default function AccountSetup() {
   const ep = edit && edit.p;
   return (
     <AccPage screen="AccountSetup" active="acc-setup" page="Setup" title="Accounts setup" css={CSS}
-      description="Payment partners, your banks and wallets, holidays and the evening payout check.">
+      description="Payment partners, expense and income categories, your banks and wallets, holidays and the evening payout check.">
       <div className="gc-kpis gc-kpis--tight">
         <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="handshake" width="22" height="22" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Payment partners</p><p className="gc-kpi__value">{data.partners.length}<small>{changed.length ? `${changed.length} changed by you` : 'default rates'}</small></p></div></div>
         <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="landmark" width="22" height="22" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Banks & wallets</p><p className="gc-kpi__value">{data.own.length}<small>{tick ? money(ownTotal) + ' in total' : ''}</small></p></div></div>
@@ -301,6 +379,21 @@ export default function AccountSetup() {
                   );
                 })}
               </div>
+            </div>
+          ) : null}
+
+          {tab === 'categories' ? (
+            <div className="as-body">
+              <div className="ac-note ac-note--info"><Icon name="info" width="16" height="16" aria-hidden="true" /><span>Each expense category belongs to a sales channel or is shared by the whole shop. Sales & profit uses this to work out each channel’s profit. <Link href="/sales-profit" className="as-inlink">Open Sales & profit</Link></span></div>
+              <div className="as-grid gc-cols-2 as-catgrid">
+                <CategoryCard kind="expense" title="Expense categories" when={cats.when} list={cats.expense} ready={!!tick}
+                  help="What money is spent on, and which channel carries the cost."
+                  onAdd={() => openAddCat('expense')} onRename={(c) => openRename('expense', c)} onArchive={(c) => toggleArchive('expense', c)} onHome={setHome} />
+                <CategoryCard kind="income" title="Income categories" when={cats.when} list={cats.income} ready={!!tick}
+                  help="Money that comes in and is not a sale."
+                  onAdd={() => openAddCat('income')} onRename={(c) => openRename('income', c)} onArchive={(c) => toggleArchive('income', c)} />
+              </div>
+              <p className="gc-help" style={{ margin: 0 }}>Archived categories are hidden when you record money; entries already filed under them keep their name. Built-in categories can be archived but not deleted.</p>
             </div>
           ) : null}
 
@@ -543,6 +636,70 @@ export default function AccountSetup() {
           </form>
         ) : null}
       </Dialog>
+
+      {/* add or rename a category */}
+      <Dialog open={!!catForm} title={catForm ? (catForm.mode === 'add' ? (catForm.kind === 'expense' ? 'Add expense category' : 'Add income category') : 'Rename category') : 'Category'} onClose={() => setCatForm(null)} width={480}
+        footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setCatForm(null)}>Cancel</button><button type="submit" form="as-cat-form" className="gc-btn gc-btn--solid">{catForm && catForm.mode === 'rename' ? 'Save name' : 'Add category'}</button></>}>
+        {catForm ? (
+          <form id="as-cat-form" className="ac-form" onSubmit={saveCat}>
+            <div><label className="gc-label" htmlFor="as-cat-name">Name *</label><input id="as-cat-name" className="gc-input" aria-required="true" data-autofocus placeholder={catForm.kind === 'expense' ? 'For example: Cleaning' : 'For example: Display rent from brands'} value={catForm.name} onChange={(e) => setCatForm({ ...catForm, name: e.target.value })} /></div>
+            {catForm.mode === 'add' && catForm.kind === 'expense' ? (
+              <div>
+                <label className="gc-label" htmlFor="as-cat-home">Belongs to</label>
+                <select id="as-cat-home" className="gc-input gc-select" value={catForm.home} onChange={(e) => setCatForm({ ...catForm, home: e.target.value })} aria-describedby="as-cat-home-help">
+                  {COST_HOMES.map((h) => <option key={h} value={h}>{h}</option>)}
+                </select>
+                <p id="as-cat-home-help" className="gc-help" style={{ margin: 'var(--space-2) 0 0' }}>Pick a channel when only that channel causes the cost (packaging for online orders). Pick Shared for costs of the whole shop.</p>
+              </div>
+            ) : null}
+            {catForm.mode === 'add' && catForm.kind === 'income' ? (
+              <div><label className="gc-label" htmlFor="as-cat-help">What it is for</label><input id="as-cat-help" className="gc-input" placeholder="Optional, shown when you record income" value={catForm.help} onChange={(e) => setCatForm({ ...catForm, help: e.target.value })} /></div>
+            ) : null}
+            {catForm.mode === 'rename' ? <p className="gc-help" style={{ margin: 0 }}>Money already recorded keeps the old name; new entries use the new one.</p> : null}
+          </form>
+        ) : null}
+      </Dialog>
     </AccPage>
+  );
+}
+
+/** One card of categories: a row each with its icon, money this month and actions. */
+function CategoryCard({ kind, title, help, when, list, ready, onAdd, onRename, onArchive, onHome }) {
+  const live = list.filter((c) => !c.archived).length;
+  const archived = list.length - live;
+  const total = list.reduce((a, c) => a + c.sum, 0);
+  return (
+    <section className="as-catcard" aria-labelledby={'as-cat-' + kind}>
+      <div className="ac-head">
+        <div><h2 id={'as-cat-' + kind}>{title}</h2><p>{help} {ready ? `${live} in use${archived ? ` · ${archived} archived` : ''} · ${money(total)} ${when}` : ''}</p></div>
+        <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={onAdd}><Icon name="plus" width="16" height="16" aria-hidden="true" /> Add category</button>
+      </div>
+      {!ready ? null : (
+        <ul className="as-cats">
+          {list.map((c) => (
+            <li key={c.id} className={'as-cat' + (c.archived ? ' is-archived' : '')}>
+              <span className="as-ico" aria-hidden="true"><Icon name={c.icon || 'tag'} width="18" height="18" /></span>
+              <span className="as-cat__name">
+                <b>{c.name}{c.archived ? <span className="gc-badge gc-badge--slate">Archived</span> : null}{c.builtIn ? null : <span className="gc-badge gc-badge--primary">Added by you</span>}</b>
+                {kind === 'income' && c.help ? <small>{c.help}</small> : null}
+                <small>{c.sum ? <><span className="ac-fig">{money(c.sum)}</span> {kind === 'income' ? 'came in' : 'spent'} {when}</> : `Nothing ${when}`}</small>
+              </span>
+              <span className="as-cat__tools">
+                {kind === 'expense' ? (
+                  <>
+                    <label className="sr-only" htmlFor={'as-home-' + c.id}>{c.name} belongs to</label>
+                    <select id={'as-home-' + c.id} className="gc-input gc-select" value={c.home || 'Shared'} disabled={c.archived} onChange={(e) => onHome(c, e.target.value)} title="Belongs to">
+                      {COST_HOMES.map((h) => <option key={h} value={h}>{h}</option>)}
+                    </select>
+                  </>
+                ) : null}
+                <button type="button" className="gc-btn gc-btn--xs gc-btn--neutral" onClick={() => onRename(c)} aria-label={`Rename ${c.name}`}>Rename</button>
+                <button type="button" className="gc-btn gc-btn--xs gc-btn--neutral" onClick={() => onArchive(c)} aria-label={`${c.archived ? 'Restore' : 'Archive'} ${c.name}`}>{c.archived ? 'Restore' : 'Archive'}</button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

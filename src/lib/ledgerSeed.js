@@ -41,7 +41,13 @@ rows.push(
   E(15, 12, 'citybank', -42500, 'supplier payment', 'Sunrise Distributors', 'PAY-0144', { ref: 'BILL-0921' }),
   E(26, 12, 'brac', -28000, 'supplier payment', 'Bengal Packaging', 'PAY-0149', { ref: 'BILL-0930' }),
   E(20, 19, 'brac', -30000, 'owner withdraw', 'Mehedi Rahman', 'Owner draw'),
-  E(30, 17, 'brac', -118000, 'salary', 'Staff salaries', 'September salaries · 9 staff', { cat: 'Salary' }),
+  // August salaries were paid on 1 Sep (a liability of August); September's are owed, paid on 1 Oct (liabilities.js)
+  E(1, 11, 'brac', -294180, 'salary', 'Staff salaries', 'August salaries · 13 staff', { cat: 'Salary', liab: 'LB-AUG' }),
+  E(18, 14, 'bkash', -5000, 'promotion', 'Nabila Style', 'Influencer shoot · Eid collection · advance', { cat: 'Promotion', liab: 'LB-0005', ref: 'LB-0005' }),
+  // money that is not from sales
+  E(11, 13, 'brac', 12500, 'income', 'Sunrise Distributors', 'Target bonus · August', { cat: 'Bonus from suppliers' }),
+  E(19, 17, 'cash-shop', 1850, 'income', 'Kabari shop', 'Old cartons and packing', { cat: 'Scrap and carton sale' }),
+  E(25, 10, 'dbbl', 1573, 'income', 'Dutch-Bangla Bank', 'Savings interest · Q3', { cat: 'Bank interest' }),
   E(30, 16, 'brac', 4442.35, 'settlement', 'bKash Payment Gateway', 'From bKash', { ref: 'bkash-pgw:2026-09-30' }),
   E(30, 17, 'citybank', 3108.38, 'settlement', 'Steadfast Courier', 'From Steadfast', { ref: 'steadfast:2026-09-30' }),
   E(30, 18, 'citybank', 19467.9, 'settlement', 'Pathao Courier', 'From Pathao · ৳180 short, check it', { ref: 'pathao:2026-09-30' }),
