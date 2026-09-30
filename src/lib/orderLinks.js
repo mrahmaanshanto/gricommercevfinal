@@ -49,7 +49,7 @@ const stamp = (d) => {
 
 /** Adds an order row (the shape the orders list uses) and returns it. The lines are kept so the
  *  order page can show them: [{ name, qty, price, variant }]. */
-export function addOrder({ lines, customer, phone, zone, total, status = 'Pending', payment = 'COD', channel = 'Manual order', address = '', shipping = 0 }) {
+export function addOrder({ lines, customer, phone, zone, total, status = 'Pending', payment = 'COD', channel = 'Manual order', address = '', shipping = 0, paid }) {
   const list = read(ORDERS, []);
   const count = lines.reduce((n, l) => n + l.qty, 0);
   const now = new Date();
@@ -62,6 +62,7 @@ export function addOrder({ lines, customer, phone, zone, total, status = 'Pendin
     itemTitle: lines[0].name + (lines.length > 1 ? ` + ${lines.length - 1} more` : ''),
     itemMeta: `${count} item${count > 1 ? 's' : ''} · ${formatBDT(lines.reduce((s, l) => s + l.price * l.qty, 0))}`,
     courier: 'Not assigned', consignment: '—', status, payment, total: formatBDT(total),
+    ...(paid != null ? { paid } : {}),
   };
   write(ORDERS, [row, ...list]);
   return row;

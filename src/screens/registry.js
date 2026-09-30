@@ -2587,6 +2587,72 @@ export const SCREENS = [
     "interactive": true
   },
   {
+    "name": "AccountsHome",
+    "route": "/accounts-home",
+    "folder": "accounts",
+    "title": "Accounts overview",
+    "description": "Accounts \u2014 where the money is, what needs you today (late or short payouts, wallets to withdraw, bills due) and what is coming in.",
+    "canvasPage": "24 · Accounts",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "Money",
+    "route": "/money",
+    "folder": "accounts",
+    "title": "Money",
+    "description": "Accounts \u2014 every cash, bank and mobile wallet account with its balance and every money movement, with add, take out and move money.",
+    "canvasPage": "24 · Accounts",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "Settlements",
+    "route": "/settlements",
+    "folder": "accounts",
+    "title": "Settlements",
+    "description": "Accounts \u2014 money gateways, the card machine and couriers hold for the shop: expected payouts by working day, reconcile, delays and withdrawals.",
+    "canvasPage": "24 · Accounts",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "ExpensesBills",
+    "route": "/expenses-bills",
+    "folder": "accounts",
+    "title": "Expenses & bills",
+    "description": "Accounts \u2014 expenses, salaries, supplier payments, owner withdraw and partner fees in one list, with bills to pay.",
+    "canvasPage": "24 · Accounts",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "AccountReports",
+    "route": "/account-reports",
+    "folder": "accounts",
+    "title": "Account reports",
+    "description": "Accounts \u2014 profit and loss, cash flow, partner fees and VAT for a period.",
+    "canvasPage": "24 · Accounts",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "AccountSetup",
+    "route": "/account-setup",
+    "folder": "accounts",
+    "title": "Accounts setup",
+    "description": "Accounts \u2014 payment partner rules, banks and wallets, holidays, the evening payout check, and advanced pages.",
+    "canvasPage": "24 · Accounts",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
     "name": "MoneyBook",
     "route": "/money-book",
     "folder": "accounts",

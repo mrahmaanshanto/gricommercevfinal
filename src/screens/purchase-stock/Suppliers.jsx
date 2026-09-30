@@ -101,6 +101,16 @@ export default function Suppliers() {
     const ticks = Object.fromEntries((only ? mine.filter(only) : mine.slice(0, 1)).map((b) => [b.no, true]));
     setPay({ sup: r, ticks, amount: '', method: 'Cash', account: accountsFor('Cash')[0].id, by: EMPLOYEES[2].name, ref: '' });
   };
+  // ?pay=<supplier id> (from Accounts) opens the pay window for that supplier once the books are read
+  useEffect(() => {
+    const want = new URLSearchParams(window.location.search).get('pay');
+    if (!want || !entries.length) return;
+    const r = rows.find((x) => x.id === want);
+    const u = new URL(window.location.href); u.searchParams.delete('pay');
+    window.history.replaceState(window.history.state, '', u.pathname + u.search);
+    if (r && r.owe) openPay(r);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries]);
   const payBills = pay ? billsOf(pay.sup.id) : [];
   const ticked = payBills.filter((b) => pay.ticks[b.no]);
   const tickSum = ticked.reduce((a, b) => a + b.left, 0);

@@ -64,35 +64,12 @@ export const NAV = [
     { id: 'stock-labels', icon: 'scan-barcode', label: 'Barcode labels', to: 'purchase-stock/BarcodeLabels.dc.html' },
   ] },
   { label: 'Accounts', items: [
-    { id: 'acc-coa', icon: 'list-tree', label: 'Chart of accounts', to: 'accounts/ChartOfAccounts.dc.html' },
-    { id: 'acc-gl', icon: 'book-open', label: 'Transactions', to: 'accounts/Transactions.dc.html' },
-    { id: 'acc-journals', icon: 'notebook-pen', label: 'Journals', to: 'accounts/Journals.dc.html' },
-    { id: 'acc-rec', icon: 'git-compare', label: 'Reconciliation', count: 2, to: 'accounts/Reconciliation.dc.html' },
-    { id: 'acc-cashbook', icon: 'notebook', label: 'Cash book', to: 'accounts/CashBook.dc.html' },
-    { id: 'acc-moneybook', icon: 'book-open', label: 'Money book', to: 'accounts/MoneyBook.dc.html' },
-    { id: 'acc-money', icon: 'arrow-down-up', label: 'Money in & out', to: 'accounts/MoneyInOut.dc.html' },
-    { id: 'acc-vat', icon: 'percent', label: 'VAT', to: 'accounts/Vat.dc.html' },
-    { id: 'acc-reports', icon: 'file-bar-chart', label: 'Reports', to: 'accounts/Reports.dc.html' },
-    { id: 'acc-bank', icon: 'landmark', label: 'Banks', to: 'accounts/Banks.dc.html', children: [
-      { id: 'acc-banks', icon: 'landmark', label: 'Banks', to: 'accounts/Banks.dc.html' },
-      { id: 'acc-bankaccts', icon: 'credit-card', label: 'Bank accounts', to: 'accounts/BankAccounts.dc.html' },
-      { id: 'acc-deposit', icon: 'piggy-bank', label: 'Bank deposits', to: 'accounts/BankDeposits.dc.html' }
-    ] },
-    { id: 'acc-mfs', icon: 'smartphone', label: 'Mobile banking', to: 'accounts/MfsAccounts.dc.html', children: [
-      { id: 'acc-mfsprov', icon: 'building-2', label: 'Providers', to: 'accounts/MfsProviders.dc.html' },
-      { id: 'acc-mfsacct', icon: 'smartphone', label: 'Accounts', to: 'accounts/MfsAccounts.dc.html' }
-    ] },
-    { id: 'acc-move', icon: 'arrow-left-right', label: 'Money movement', to: 'accounts/FundTransfers.dc.html', children: [
-      { id: 'acc-transfer', icon: 'arrow-left-right', label: 'Fund transfers', to: 'accounts/FundTransfers.dc.html' },
-      { id: 'acc-sessions', icon: 'monitor-check', label: 'Payment sessions', count: 2, to: 'accounts/PaymentSessions.dc.html' }
-    ] },
-    { id: 'acc-entries', icon: 'receipt', label: 'Entries', to: 'accounts/Expenses.dc.html', children: [
-      { id: 'acc-expense', icon: 'receipt', label: 'Expenses', to: 'accounts/Expenses.dc.html' },
-      { id: 'acc-invest', icon: 'trending-up', label: 'Investment', to: 'accounts/Investment.dc.html' },
-      { id: 'acc-withdraw', icon: 'hand-coins', label: 'Owner withdraw', to: 'accounts/OwnerWithdraw.dc.html' },
-      { id: 'acc-liab', icon: 'scale', label: 'Liability settlement', to: 'accounts/LiabilitySettlement.dc.html' },
-      { id: 'acc-comm', icon: 'percent', label: 'Commissions', to: 'accounts/Commissions.dc.html' }
-    ] }
+    { id: 'acc-home', icon: 'layout-dashboard', label: 'Overview', to: 'accounts/AccountsHome.dc.html' },
+    { id: 'acc-money', icon: 'wallet', label: 'Money', to: 'accounts/Money.dc.html' },
+    { id: 'acc-settle', icon: 'hourglass', label: 'Settlements', to: 'accounts/Settlements.dc.html' },
+    { id: 'acc-spend', icon: 'receipt', label: 'Expenses & bills', to: 'accounts/ExpensesBills.dc.html' },
+    { id: 'acc-reports', icon: 'file-bar-chart', label: 'Reports', to: 'accounts/AccountReports.dc.html' },
+    { id: 'acc-setup', icon: 'sliders-horizontal', label: 'Setup', to: 'accounts/AccountSetup.dc.html' }
   ] },
   { label: 'Staff & HR', items: [
     { id: 'hr-home', icon: 'layout-grid', label: 'HR dashboard', to: 'staff-hr/HrDashboard.dc.html' },

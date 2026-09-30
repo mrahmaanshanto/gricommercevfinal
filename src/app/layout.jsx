@@ -2,6 +2,7 @@ import '@/styles/globals.css';
 import { NavigationBridge } from '@/shell/Shell';
 import { Overlays } from '@/components/ui';
 import { GridAi } from '@/components/ui/GridAi';
+import { EveningCheck } from '@/components/EveningCheck';
 
 export const metadata = {
   title: { default: 'GridCommerce', template: '%s · GridCommerce' },
@@ -23,6 +24,7 @@ export default function RootLayout({ children }) {
         <NavigationBridge />
         <Overlays />
         <GridAi />
+        <EveningCheck />
       </body>
     </html>
   );

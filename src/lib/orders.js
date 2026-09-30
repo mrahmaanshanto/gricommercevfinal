@@ -18,6 +18,7 @@ import { getHolds, addHolds, closeHold, holdsFor, endHoldsFor } from './stockHol
 import { productBy, addMove, stockAt } from './stock';
 import { DAMAGED_PLACE } from './locations';
 import { addReturn } from './returns';
+import { collectCod, removeItem } from './settlements';
 
 const STATUS_KEY = 'gc.orders.status';
 const EDITS_KEY = 'gc.orders.edits';
@@ -208,12 +209,16 @@ export function deliverOrder(o, by = 'Staff') {
   const ended = endHoldsFor(o.id, 'delivered', 'Delivered to the customer');
   ended.forEach((h) => { const p = productBy(h.product); if (p) addMove({ sku: p.sku, place: h.place, qty: -h.qty, kind: 'sale', reason: 'Online order delivered', by, ref: o.id }); });
   setOrderStatus(o, 'Delivered');
-  logOrder(o.id, 'package-check', 'Marked as delivered', by);
+  // cash on delivery: the courier has the money now and pays it out later (Accounts › Settlements)
+  const cod = collectCod(o, by);
+  if (cod) patchOrder(o, { payment: 'Paid', paid: o.amount });
+  logOrder(o.id, 'package-check', 'Marked as delivered', (cod ? `${formatBDT(cod.amount)} COD with ${o.courier} · ` : '') + by);
 }
 /** The courier is bringing the parcel back. The held stock stays held until it is received. */
 export function markReturned(o, reason, by = 'Staff') {
   patchOrder(o, { rtoReason: reason });
   setOrderStatus(o, 'Returned');
+  removeItem(o.id, 'Parcel returned by the courier');   // not in the courier's next payout any more
   logOrder(o.id, 'undo-2', 'Courier is returning the parcel', `${reason} · ${by}`);
 }
 /** Move the duplicate's lines into the other order, then cancel the duplicate. */

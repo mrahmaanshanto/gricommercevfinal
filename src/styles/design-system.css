@@ -589,6 +589,9 @@ html.dark .gc-navitem--active .gc-navitem__count{background:var(--navy-750);colo
 html.dark .gc-table th{color:var(--navy-100)}
 .gc-table th:first-child{border-top-left-radius:var(--radius-lg)}
 .gc-table th:last-child{border-top-right-radius:var(--radius-lg)}
+/* row headers in the body and footer read like cells, not like the column header row */
+.gc-table tbody th,.gc-table tfoot th{padding:var(--table-cell-y) var(--card-padding-lg);border-bottom:1px solid var(--border-subtle);vertical-align:middle;background:none;text-transform:none;letter-spacing:0;font-size:var(--text-sm);font-weight:var(--weight-regular);color:var(--text-body);white-space:normal;border-radius:0}
+.gc-table tfoot th{font-weight:var(--weight-medium);color:var(--text-heading)}
 .gc-table td{white-space:nowrap;padding:var(--table-cell-y) var(--card-padding-lg);border-bottom:1px solid var(--border-subtle);vertical-align:middle}
 .gc-table--compact td{padding-top:var(--space-3);padding-bottom:var(--space-3)}
 .gc-table--hoverable tbody tr{transition:background-color var(--duration-base) var(--ease-out)}

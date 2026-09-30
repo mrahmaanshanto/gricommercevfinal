@@ -129,6 +129,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       this._doc = (e) => { if (this._open && !e.composedPath().includes(this)) { this._open = ''; this.render(); } };
       this._loc = () => this.render();
       window.addEventListener('gc:locale', this._loc);
+      window.addEventListener('gc:settle', this._loc);
       this._key = (e) => {
         if (e.key === 'Escape' && this._open) { this.close(true); }
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); const i = this.root.querySelector('input'); if (i) i.focus(); }
@@ -136,7 +137,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       if (!this._navBound) { this._navBound = true; this.root.addEventListener('click', (e) => { const a = e.composedPath().find((el) => el.matches && el.matches('a[href^="/"]')); if (a && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) { e.preventDefault(); this._open = ''; navigate(a.getAttribute('href')); } }); }
       document.addEventListener('pointerdown', this._doc); document.addEventListener('keydown', this._key);
     }
-    disconnectedCallback() { document.removeEventListener('pointerdown', this._doc); document.removeEventListener('keydown', this._key); window.removeEventListener('gc:locale', this._loc); }
+    disconnectedCallback() { document.removeEventListener('pointerdown', this._doc); document.removeEventListener('keydown', this._key); window.removeEventListener('gc:locale', this._loc); window.removeEventListener('gc:settle', this._loc); }
     /** Closes the open popover; from the keyboard, focus goes back to the button that opened it. */
     close(refocus) { const k = this._open; this._open = ''; this.render(); if (refocus && k) { const el = this.root.querySelector(k === 'search' ? 'input' : `[data-act="${k}"]`); if (el) el.focus(); } }
     attributeChangedCallback() { if (this.isConnected) this.render(); }
@@ -166,8 +167,12 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       const filesPop = `<div class="ph">Recent files <a href="${routeOf('settings-console/SetMedia.dc.html')}">File manager</a></div>
         ${[['file', 'products-import-sep.csv', 'Product import · 412 rows', '1 h'], ['image', 'eid-banner-1200x400.jpg', 'Storefront banner', 'Yesterday'], ['file', 'INV-2026-0930.pdf', 'Invoice · Rahim Traders', 'Yesterday'], ['file', 'stock-count-18-sep.xlsx', 'Stock count export', '2 days']].map((r) => `<a class="it" href="${routeOf('settings-console/SetMedia.dc.html')}"><span class="ico">${ic(r[0], 16)}</span><span><b>${r[1]}</b><small>${r[2]}</small></span><span class="t">${r[3]}</span></a>`).join('')}
         <div class="hr"></div><button class="it" data-act="upload"><span class="ico">${ic('plus', 16, 2.2)}</span><span><b>Upload a file</b><small>Images, PDF, CSV or Excel · up to 20 MB</small></span></button>`;
+      // payouts waiting for the evening check (components/EveningCheck.jsx)
+      const settle = (typeof window !== 'undefined' && window.__gcSettle) || { count: 0 };
+      const settleNote = settle.count ? `<a class="it note unread" href="/settlements?check=1"><span class="ico">${ic('wallet', 16)}</span><span><b>${esc(settle.text)}</b><small>Did the expected money reach your bank? Tap to answer.</small></span><span class="t">Now</span><i class="dot" role="img" aria-label="Unread"></i></a>` : '';
+      const unread = this._unread + (settle.count ? 1 : 0);
       const notePop = `<div class="ph">${L('Notifications')} <button data-act="readall">${L('Mark all read')}</button></div>
-        ${NOTES.map((n, i) => { const un = n.u && i < this._unread; return `<a class="it note${un ? ' unread' : ''}" href="${routeOf('merchant-orders/MerchantOrders.dc.html')}"><span class="ico">${ic(n.i, 16)}</span><span><b>${n.t}</b><small>${n.d}</small></span><span class="t">${n.w}</span><i class="dot"${un ? ' role="img" aria-label="Unread"' : ' aria-hidden="true"'}></i></a>`; }).join('')}
+        ${settleNote}${NOTES.map((n, i) => { const un = n.u && i < this._unread; return `<a class="it note${un ? ' unread' : ''}" href="${routeOf('merchant-orders/MerchantOrders.dc.html')}"><span class="ico">${ic(n.i, 16)}</span><span><b>${n.t}</b><small>${n.d}</small></span><span class="t">${n.w}</span><i class="dot"${un ? ' role="img" aria-label="Unread"' : ' aria-hidden="true"'}></i></a>`; }).join('')}
         <a class="foot" href="${routeOf('merchant-inbox/MerchantInbox.dc.html')}">${L('View all notifications')}</a>`;
       const mePop = `<div style="display:flex;align-items:center;gap:10px;padding:8px"><span class="av">MR<i></i></span><span><span class="mn" style="display:block">Mehedi Rahman</span><span class="mr">mehedi@gridshop.com.bd</span></span></div>
         <div class="hr"></div>
@@ -197,7 +202,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
   </div>
   <span class="sep" aria-hidden="true"></span>
   <a class="store" href="${routeOf('storefront/Offers.dc.html')}" aria-label="View store (opens the storefront)">${ic('store', 16)}<span>${L('View store')}</span>${ic('ext', 13)}</a>
-  <span class="wrap"><button class="ib" data-act="notes" ${exp('notes')} aria-label="${L('Notifications')}${this._unread ? ', ' + this._unread + ' unread' : ''}">${ic('bell')}${this._unread ? `<span class="badge">${this._unread}</span>` : ''}<span class="tip">${L('Notifications')}</span></button>${pop('notes', notePop, 'right:-8px;width:360px')}</span>
+  <span class="wrap"><button class="ib" data-act="notes" ${exp('notes')} aria-label="${L('Notifications')}${unread ? ', ' + unread + ' unread' : ''}">${ic('bell')}${unread ? `<span class="badge">${unread}</span>` : ''}<span class="tip">${L('Notifications')}</span></button>${pop('notes', notePop, 'right:-8px;width:360px')}</span>
   <span class="wrap" style="margin-left:auto"><button class="me" data-act="me" ${exp('me')} aria-label="${L('Account menu')}, Mehedi Rahman"><span class="av">MR<i></i></span><span class="mnm"><span class="mn" style="display:block">Mehedi Rahman</span><span class="mr">${L('Store owner')}</span></span><span class="chev">${ic('chev', 16)}</span></button>${pop('me', mePop, 'right:0;width:300px')}</span>
 </div>`;
       const on = (sel, ev, fn) => this.root.querySelectorAll(sel).forEach((el) => el.addEventListener(ev, fn));

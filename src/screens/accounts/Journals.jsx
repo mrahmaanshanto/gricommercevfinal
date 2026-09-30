@@ -259,7 +259,7 @@ export default class JournalsScreen extends Component {
       <div className="dc-screen ds" data-screen="Journals">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
-          <__Sidebar sticky="" active="acc-journals" />
+          <__Sidebar sticky="" active="acc-setup" />
           <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
             <__Topbar crumb="Accounts" page="Journals" placeholder="Search" />
             <div className="pgc gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "22px" }}>

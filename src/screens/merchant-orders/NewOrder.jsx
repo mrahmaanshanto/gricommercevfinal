@@ -136,7 +136,7 @@ export default function NewOrder() {
   const [terms, setTerms] = useState('cod');            // cod | partial | full
   const [advance, setAdvance] = useState('');
   const [link, setLink] = useState(null);               // the order link made from the current products
-  const [method, setMethod] = useState('bKash');
+  const [method, setMethod] = useState('bKash online');
   const [status, setStatus] = useState('approved');     // a hand-made order is already confirmed with the customer
   const [holdPlace, setHoldPlace] = useState('Central Warehouse');   // where an approved order's stock is held
   const [note, setNote] = useState('');
@@ -275,7 +275,7 @@ export default function NewOrder() {
     const adv = Number(advance);
     if (terms === 'partial' && !(adv > 0 && adv < total)) { setErrors({ advance: `Enter an advance between ৳1 and ${formatBDT(total - 1)}.` }); return; }
     const label = orderStatus(status).label;
-    const row = addOrder({ lines, customer: customer.name, phone: customer.phone, zone: delivery ? delivery.label : 'Not set', total, status: label, payment: PAYMENT_LABEL[terms], address: customer.address || '', shipping: deliveryFee });
+    const row = addOrder({ lines, customer: customer.name, phone: customer.phone, zone: delivery ? delivery.label : 'Not set', total, status: label, payment: PAYMENT_LABEL[terms], address: customer.address || '', shipping: deliveryFee, paid: terms === 'full' ? total : terms === 'partial' ? adv : 0 });
     // money taken now (advance or full payment) goes into the account for its method
     const takenNow = terms === 'full' ? total : terms === 'partial' ? Number(advance) : 0;
     if (takenNow > 0) postEntry({ account: accountForMethod(method, false), amount: takenNow, kind: 'order payment', ref: row.id, party: customer.name, note: terms === 'full' ? 'Paid in full with the order' : 'Advance with the order' });
@@ -407,7 +407,7 @@ export default function NewOrder() {
                       {terms === 'partial' ? (
                         <div style={{ flex: '1 1 140px' }}><label className="gc-label" htmlFor="no-advance">Advance received (৳) *</label><input id="no-advance" className={'gc-input' + (errors.advance ? ' gc-input--error' : '')} style={{ borderRadius: 'var(--radius-lg)' }} type="number" min="1" aria-required="true" aria-invalid={errors.advance ? 'true' : undefined} value={advance} onChange={(e) => { setAdvance(e.target.value); setErrors((er) => ({ ...er, advance: undefined })); }} /></div>
                       ) : null}
-                      <div style={{ flex: '1 1 140px' }}><label className="gc-label" htmlFor="no-method">Paid by</label><select id="no-method" className="gc-input gc-select" style={{ borderRadius: 'var(--radius-lg)' }} value={method} onChange={(e) => setMethod(e.target.value)}><option>bKash</option><option>Nagad</option><option>Cash</option><option>Card</option><option>Bank transfer</option></select></div>
+                      <div style={{ flex: '1 1 140px' }}><label className="gc-label" htmlFor="no-method">Paid by</label><select id="no-method" className="gc-input gc-select" style={{ borderRadius: 'var(--radius-lg)' }} value={method} onChange={(e) => setMethod(e.target.value)}><optgroup label="Online payment (paid out later)"><option>bKash online</option><option>Nagad online</option><option>SSLCOMMERZ</option><option>EPS</option></optgroup><optgroup label="Straight to your account"><option>bKash</option><option>Nagad</option><option>Cash</option><option>Card</option><option>Bank transfer</option></optgroup></select></div>
                     </div>
                   ) : null}
                   {errors.advance ? <p className="no-err" role="alert">{errors.advance}</p> : null}

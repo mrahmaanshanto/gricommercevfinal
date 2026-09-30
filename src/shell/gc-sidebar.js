@@ -100,6 +100,14 @@ nav{display:block}
   const COLLAPSE_KEY = 'gc.sidebar.collapsed';
   const hrefOf = (it) => (it.to ? routeOf(it.to) + (it.q ? '?' + it.q : '') : '#');
   const ALL = NAV.flatMap((g) => g.items.flatMap((it) => [it, ...(it.children || [])]));
+  // Every page draws its own menu, so where the menu was scrolled to and which groups were folded are
+  // kept for the whole visit (this tab): moving to another page leaves the menu where it was.
+  const SCROLL_KEY = 'gc.sidebar.scroll';
+  const CLOSED_KEY = 'gc.sidebar.closed';
+  const session = {
+    get(k, fb) { try { const v = JSON.parse(window.sessionStorage.getItem(k)); return v == null ? fb : v; } catch { return fb; } },
+    set(k, v) { try { window.sessionStorage.setItem(k, JSON.stringify(v)); } catch { /* ignore */ } },
+  };
 
   class GcSidebar extends HTMLElement {
     static get observedAttributes() { return ['active', 'base', 'sticky', 'theme', 'collapsed']; }
@@ -112,7 +120,8 @@ nav{display:block}
         this.shadowRoot.addEventListener('mouseout', (e) => this.tip(e, false));
         this.shadowRoot.addEventListener('focusout', (e) => this.tip(e, false));
       }
-      this.closed = {};
+      this.closed = session.get(CLOSED_KEY, {});
+      this.firstPaint = true;   // bring the current page's item into view once, if it is off screen
       this.open = false;       // drawer
       this.railOpen = false;   // rail widths: expanded by hand for this page
       this.userCollapsed = readFlag(COLLAPSE_KEY);
@@ -208,7 +217,7 @@ nav{display:block}
         if (this.drill === parent.id && parent.to && !here) { this.open = false; navigate(hrefOf(parent)); }
       }
       else if (back) { e.preventDefault(); this.drill = null; this.render(); this.focusFirst(); }
-      else if (group) { e.preventDefault(); this.closed[group.dataset.group] = !this.closed[group.dataset.group]; this.render(); }
+      else if (group) { e.preventDefault(); this.closed[group.dataset.group] = !this.closed[group.dataset.group]; session.set(CLOSED_KEY, this.closed); this.render(); }
       else if (toggle) {
         e.preventDefault();
         if (this.mode === 'drawer') this.open = false;
@@ -258,6 +267,25 @@ nav{display:block}
     }
 
     render() {
+      // keep the menu's scroll position through the redraw (and from the page before)
+      const was = this.shadowRoot.querySelector('.gc-sidebar__body');
+      const top = was ? was.scrollTop : session.get(SCROLL_KEY, 0);
+      this.paint();
+      const nav = this.shadowRoot.querySelector('.gc-sidebar__body');
+      if (!nav) return;
+      nav.scrollTop = top;
+      nav.addEventListener('scroll', () => session.set(SCROLL_KEY, nav.scrollTop), { passive: true });
+      if (this.firstPaint) {
+        this.firstPaint = false;
+        const on = nav.querySelector('.gc-navitem--active');
+        if (on) {
+          const a = on.getBoundingClientRect(), b = nav.getBoundingClientRect();
+          if (b.height && (a.top < b.top || a.bottom > b.bottom)) { on.scrollIntoView({ block: 'nearest' }); session.set(SCROLL_KEY, nav.scrollTop); }
+        }
+      }
+    }
+
+    paint() {
       const locale = getLocale();
       const L = (s) => t(s, locale);
       const active = this.activeId();

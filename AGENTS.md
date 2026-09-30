@@ -52,7 +52,13 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   (`stockAt`) and stock moves (`addMove`); `src/lib/stockHolds.js` holds; `src/lib/orders.js` orders;
   `src/lib/invoices.js` invoices, payments, credit, deliveries; `src/lib/returns.js` return history;
   `src/components/ManagerPin.jsx` manager approval (demo PIN 1234). `/return-exchange` is the only return flow.
-  Money: `src/lib/ledger.js` (accounts + every movement; post where money actually moves, shown in Accounts › Money book);
+  Money: `src/lib/ledger.js` (accounts + every movement; post where money actually moves; demo September in
+  `ledgerSeed.js`). Gateways (bKash/Nagad online, SSLCOMMERZ, EPS), the card machine and couriers hold money in
+  `Holding` accounts; posting into one also queues it for that partner's payout. `src/lib/settlements.js` has the
+  partner rules (fee, payout days, weekend + BD holidays), expected payouts, confirm / delay / withdraw and the
+  evening check (`components/EveningCheck.jsx`, 8 PM). Accounts is six pages (`/accounts-home`, `/money`,
+  `/settlements`, `/expenses-bills`, `/account-reports`, `/account-setup`) sharing `screens/accounts/accShared.jsx`;
+  old Accounts addresses redirect in `next.config.mjs`. `gc.clock.offset` (ms, localStorage) moves the check's clock for testing.
   suppliers: `src/lib/supplierBills.js` (bills from receiving, payments, credit notes). `docs/GridCommerce-flows.pdf` maps the flows.
 - Reference pages (UI kit, flows, site map, storyboards) are under `/dev/…`. They and the POS /
   settings screen switchers only show in a production build when `NEXT_PUBLIC_SHOW_STORYBOARD=true`.

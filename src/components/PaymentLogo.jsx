@@ -9,6 +9,8 @@ const LOGOS = {
   rocket: { name: 'Rocket', full: '/assets/payments/rocket.png', mark: '/assets/payments/rocket-mark.png', small: '/assets/payments/rocket-plane.png' },
   eps: { name: 'EPS', full: '/assets/payments/eps.png', mark: '/assets/payments/eps-mark.png' },
   sslcommerz: { name: 'SSLCOMMERZ', full: '/assets/payments/sslcommerz.png', mark: '/assets/payments/sslcommerz-mark.png', fill: true },
+  bkash: { name: 'bKash', full: '/assets/brands/bkash.svg', mark: '/assets/brands/bkash.svg' },
+  nagad: { name: 'Nagad', full: '/assets/brands/nagad.svg', mark: '/assets/brands/nagad.svg' },
 };
 
 const FALLBACK = {
