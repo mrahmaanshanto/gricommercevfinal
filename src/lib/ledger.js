@@ -37,6 +37,8 @@ export const KIND_LABEL = {
   'partner fee': 'Gateway / COD fee', 'courier charge': 'Delivery charge', 'settlement difference': 'Payout difference',
   withdraw: 'Withdraw', 'owner withdraw': 'Owner withdraw', investment: 'Investment', salary: 'Salary',
   income: 'Other income', commission: 'Sales commission', 'affiliate payout': 'Affiliate payout', promotion: 'Promotion',
+  'staff loan': 'Staff loan / advance', 'loan repayment': 'Loan repaid by staff',
+  'wallet top-up': 'Customer wallet top-up', 'wallet refund': 'Wallet paid back', 'loyalty reward': 'Loyalty reward', 'referral reward': 'Referral reward',
 };
 export const accountBy = (idOrName) => ACCOUNTS.find((a) => a.id === idOrName || a.name === idOrName) || null;
 
