@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script><script src="../_shell/gc-topbar.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><script src="./ds-base.js"></script><script src="/_blob/1840c8d9327e1d872bcd8bc9a4590a5a"></script></helmet>
+<div style="width:100%;display:flex;flex-direction:column;gap:16px;font-family:Poppins,'Hind Siliguri',ui-sans-serif,system-ui,sans-serif;color:#475569">
+<section style="display:flex;flex-direction:column;gap:14px;border-radius:8px;background:#fff;padding:18px 20px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)">
+<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+<div style="flex:1;min-width:200px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:600;letter-spacing:.025em;color:#1e293b">{{ t.title }}</h2><p style="margin:2px 0 0;font-size:12.5px;color:#64748b">{{ t.meta }}</p></div>
+<button type="button" style="display:inline-flex;align-items:center;gap:7px;height:36px;border:none;border-radius:8px;background:#003087;padding:0 15px;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;color:#fff;cursor:pointer" style-hover="background:#002a77"><i data-lucide="upload" width="16" height="16"></i>{{ t.upload }}</button>
+</div>
+<ul style="margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+<li style="display:flex;align-items:center;gap:13px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:14px 15px">
+<span style="display:grid;place-items:center;width:40px;height:40px;flex:none;border-radius:8px;background:rgba(0,48,135,.1);color:#003087"><i data-lucide="file-text" width="19" height="19"></i></span>
+<div style="flex:1;min-width:0">
+<p style="margin:0;font-size:13.5px;font-weight:600;letter-spacing:.025em;color:#1e293b;text-wrap:pretty">{{ t.doc1 }}</p>
+<p style="margin:2px 0 0;font-size:12px;color:#64748b">{{ t.doc1Meta }}</p>
+<span style="display:inline-flex;align-items:center;gap:5px;margin-top:6px;height:22px;border-radius:9999px;background:rgba(16,185,129,.12);padding:0 9px;font-size:11.5px;font-weight:600;color:#047857"><i data-lucide="check" width="12" height="12"></i>{{ t.verified }}</span>
+</div>
+<span style="display:flex;align-items:center;gap:4px;flex:none">
+<button type="button" aria-label="{{ t.view }} — {{ t.doc1 }}" title="{{ t.view }}" style="width:32px;height:32px;display:grid;place-items:center;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#64748b;cursor:pointer" style-hover="background:#f1f5f9;color:#1e293b"><i data-lucide="eye" width="15" height="15"></i></button>
+<button type="button" aria-label="{{ t.download }} — {{ t.doc1 }}" title="{{ t.download }}" style="width:32px;height:32px;display:grid;place-items:center;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#64748b;cursor:pointer" style-hover="background:#f1f5f9;color:#1e293b"><i data-lucide="download" width="15" height="15"></i></button>
+</span>
+</li>
+<li style="display:flex;align-items:center;gap:13px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:14px 15px">
+<span style="display:grid;place-items:center;width:40px;height:40px;flex:none;border-radius:8px;background:rgba(0,156,222,.12);color:#0089c3"><i data-lucide="id-card" width="19" height="19"></i></span>
+<div style="flex:1;min-width:0">
+<p style="margin:0;font-size:13.5px;font-weight:600;letter-spacing:.025em;color:#1e293b;text-wrap:pretty">{{ t.doc2 }}</p>
+<p style="margin:2px 0 0;font-size:12px;color:#64748b">{{ t.doc2Meta }}</p>
+<span style="display:inline-flex;align-items:center;gap:5px;margin-top:6px;height:22px;border-radius:9999px;background:rgba(16,185,129,.12);padding:0 9px;font-size:11.5px;font-weight:600;color:#047857"><i data-lucide="check" width="12" height="12"></i>{{ t.verified }}</span>
+</div>
+<span style="display:flex;align-items:center;gap:4px;flex:none">
+<button type="button" aria-label="{{ t.view }} — {{ t.doc2 }}" title="{{ t.view }}" style="width:32px;height:32px;display:grid;place-items:center;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#64748b;cursor:pointer" style-hover="background:#f1f5f9;color:#1e293b"><i data-lucide="eye" width="15" height="15"></i></button>
+<button type="button" aria-label="{{ t.download }} — {{ t.doc2 }}" title="{{ t.download }}" style="width:32px;height:32px;display:grid;place-items:center;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#64748b;cursor:pointer" style-hover="background:#f1f5f9;color:#1e293b"><i data-lucide="download" width="15" height="15"></i></button>
+</span>
+</li>
+<li style="display:flex;align-items:center;gap:13px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:14px 15px">
+<span style="display:grid;place-items:center;width:40px;height:40px;flex:none;border-radius:8px;background:rgba(16,185,129,.12);color:#047857"><i data-lucide="graduation-cap" width="19" height="19"></i></span>
+<div style="flex:1;min-width:0">
+<p style="margin:0;font-size:13.5px;font-weight:600;letter-spacing:.025em;color:#1e293b;text-wrap:pretty">{{ t.doc3 }}</p>
+<p style="margin:2px 0 0;font-size:12px;color:#64748b">{{ t.doc3Meta }}</p>
+<span style="display:inline-flex;align-items:center;gap:5px;margin-top:6px;height:22px;border-radius:9999px;background:rgba(16,185,129,.12);padding:0 9px;font-size:11.5px;font-weight:600;color:#047857"><i data-lucide="check" width="12" height="12"></i>{{ t.verified }}</span>
+</div>
+<span style="display:flex;align-items:center;gap:4px;flex:none">
+<button type="button" aria-label="{{ t.view }} — {{ t.doc3 }}" title="{{ t.view }}" style="width:32px;height:32px;display:grid;place-items:center;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#64748b;cursor:pointer" style-hover="background:#f1f5f9;color:#1e293b"><i data-lucide="eye" width="15" height="15"></i></button>
+<button type="button" aria-label="{{ t.download }} — {{ t.doc3 }}" title="{{ t.download }}" style="width:32px;height:32px;display:grid;place-items:center;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#64748b;cursor:pointer" style-hover="background:#f1f5f9;color:#1e293b"><i data-lucide="download" width="15" height="15"></i></button>
+</span>
+</li>
+<li style="display:flex;align-items:center;gap:13px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:14px 15px">
+<span style="display:grid;place-items:center;width:40px;height:40px;flex:none;border-radius:8px;background:rgba(240,0,185,.08);color:#a21caf"><i data-lucide="award" width="19" height="19"></i></span>
+<div style="flex:1;min-width:0">
+<p style="margin:0;font-size:13.5px;font-weight:600;letter-spacing:.025em;color:#1e293b;text-wrap:pretty">{{ t.doc4 }}</p>
+<p style="margin:2px 0 0;font-size:12px;color:#64748b">{{ t.doc4Meta }}</p>
+<span style="display:inline-flex;align-items:center;gap:5px;margin-top:6px;height:22px;border-radius:9999px;background:rgba(16,185,129,.12);padding:0 9px;font-size:11.5px;font-weight:600;color:#047857"><i data-lucide="check" width="12" height="12"></i>{{ t.verified }}</span>
+</div>
+<span style="display:flex;align-items:center;gap:4px;flex:none">
+<button type="button" aria-label="{{ t.view }} — {{ t.doc4 }}" title="{{ t.view }}" style="width:32px;height:32px;display:grid;place-items:center;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#64748b;cursor:pointer" style-hover="background:#f1f5f9;color:#1e293b"><i data-lucide="eye" width="15" height="15"></i></button>
+<button type="button" aria-label="{{ t.download }} — {{ t.doc4 }}" title="{{ t.download }}" style="width:32px;height:32px;display:grid;place-items:center;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#64748b;cursor:pointer" style-hover="background:#f1f5f9;color:#1e293b"><i data-lucide="download" width="15" height="15"></i></button>
+</span>
+</li>
+<li style="display:flex;align-items:center;gap:13px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:14px 15px">
+<span style="display:grid;place-items:center;width:40px;height:40px;flex:none;border-radius:8px;background:rgba(255,152,0,.14);color:#b45309"><i data-lucide="landmark" width="19" height="19"></i></span>
+<div style="flex:1;min-width:0">
+<p style="margin:0;font-size:13.5px;font-weight:600;letter-spacing:.025em;color:#1e293b;text-wrap:pretty">{{ t.doc5 }}</p>
+<p style="margin:2px 0 0;font-size:12px;color:#64748b">{{ t.doc5Meta }}</p>
+<span style="display:inline-flex;align-items:center;gap:5px;margin-top:6px;height:22px;border-radius:9999px;background:rgba(255,152,0,.14);padding:0 9px;font-size:11.5px;font-weight:600;color:#b45309"><i data-lucide="clock" width="12" height="12"></i>{{ t.awaiting }}</span>
+</div>
+<span style="display:flex;align-items:center;gap:4px;flex:none">
+<button type="button" aria-label="{{ t.view }} — {{ t.doc5 }}" title="{{ t.view }}" style="width:32px;height:32px;display:grid;place-items:center;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#64748b;cursor:pointer" style-hover="background:#f1f5f9;color:#1e293b"><i data-lucide="eye" width="15" height="15"></i></button>
+<button type="button" aria-label="{{ t.download }} — {{ t.doc5 }}" title="{{ t.download }}" style="width:32px;height:32px;display:grid;place-items:center;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#64748b;cursor:pointer" style-hover="background:#f1f5f9;color:#1e293b"><i data-lucide="download" width="15" height="15"></i></button>
+</span>
+</li>
+<li>
+<button type="button" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;width:100%;height:100%;min-height:96px;border:2px dashed #cbd5e1;border-radius:8px;background:#f8fafc;padding:16px;font-family:inherit;cursor:pointer" style-hover="border-color:#003087;background:rgba(0,48,135,.04)">
+<i data-lucide="upload-cloud" width="22" height="22" style="color:#64748b"></i>
+<span style="font-size:13px;font-weight:500;letter-spacing:.025em;color:#1e293b">{{ t.dropTitle }}</span>
+<span style="font-size:12px;color:#64748b;text-wrap:pretty">{{ t.dropBody }}</span>
+</button>
+</li>
+</ul>
+</section>
+<section style="display:flex;align-items:flex-start;gap:11px;border-radius:8px;background:#fff;padding:16px 20px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)">
+<span style="display:grid;place-items:center;width:32px;height:32px;flex:none;border-radius:8px;background:rgba(255,152,0,.12);color:#b45309"><i data-lucide="shield-alert" width="17" height="17"></i></span>
+<div style="flex:1;min-width:0">
+<p style="margin:0;font-size:13.5px;font-weight:600;color:#1e293b">{{ t.missingTitle }}</p>
+<p style="margin:2px 0 0;font-size:12.5px;line-height:19px;color:#64748b;text-wrap:pretty">{{ t.missingBody }}</p>
+</div>
+<button type="button" style="flex:none;height:32px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:0 12px;font-family:inherit;font-size:12.5px;font-weight:500;letter-spacing:.025em;color:#475569;cursor:pointer" style-hover="background:#f1f5f9">{{ t.remind }}</button>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:600},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;en&quot;,&quot;bn&quot;],&quot;default&quot;:&quot;en&quot;,&quot;tsType&quot;:&quot;'en' | 'bn'&quot;}}">
+class Component extends DCLogic {
+  componentDidMount() { this.paint(); }
+  componentDidUpdate() { this.paint(); }
+  paint() {
+    const go = () => { if (window.lucide && window.lucide.createIcons) window.lucide.createIcons({ attrs: { 'stroke-width': 1.75 } }); };
+    go(); setTimeout(go, 200); setTimeout(go, 700); setTimeout(go, 2000);
+  }
+  renderVals() {
+    const bn = (this.props.lang ?? 'en') === 'bn';
+    const L = (en, b) => bn ? b : en;
+    return {
+      t: {
+        title: L('Documents', 'কাগজপত্র'), meta: L('5 files · 8.4 MB · visible to owner, manager and HR only', '৫টি ফাইল · ৮.৪ MB · শুধু মালিক, ম্যানেজার ও এইচআর দেখতে পারেন'),
+        upload: L('Upload document', 'ডকুমেন্ট আপলোড'), view: L('Preview', 'প্রিভিউ'), download: L('Download', 'ডাউনলোড'),
+        verified: L('Verified', 'যাচাইকৃত'), awaiting: L('Awaiting review', 'পর্যালোচনার অপেক্ষায়'),
+        doc1: L('Employment contract', 'নিয়োগ চুক্তি'), doc1Meta: L('PDF · 1.2 MB · uploaded 02 Mar 2026 by Ashiq Khan', 'PDF · ১.২ MB · আপলোড ০২ মার্চ ২০২৬, আশিক খান'),
+        doc2: L('National ID (NID) copy', 'জাতীয় পরিচয়পত্র (NID)'), doc2Meta: L('JPG · 2.8 MB · uploaded 02 Mar 2026 · NID 19XX XXXX XXXX', 'JPG · ২.৮ MB · আপলোড ০২ মার্চ ২০২৬ · NID 19XX XXXX XXXX'),
+        doc3: L('SSC certificate', 'এসএসসি সার্টিফিকেট'), doc3Meta: L('PDF · 900 KB · uploaded 04 Mar 2026', 'PDF · ৯০০ KB · আপলোড ০৪ মার্চ ২০২৬'),
+        doc4: L('POS handling training', 'POS প্রশিক্ষণ'), doc4Meta: L('PDF · 1.1 MB · uploaded 18 Mar 2026 · in-house course', 'PDF · ১.১ MB · আপলোড ১৮ মার্চ ২০২৬ · অভ্যন্তরীণ কোর্স'),
+        doc5: L('Bank and bKash details form', 'ব্যাংক ও বিকাশ তথ্য ফর্ম'), doc5Meta: L('JPG · 2.4 MB · uploaded 11 Sep 2026 · replaces the March copy', 'JPG · ২.৪ MB · আপলোড ১১ সেপ ২০২৬ · মার্চের কপির বদলে'),
+        dropTitle: L('Drop a file here', 'ফাইল এখানে ছাড়ুন'), dropBody: L('PDF, JPG or PNG up to 10 MB', 'PDF, JPG বা PNG সর্বোচ্চ ১০ MB'),
+        missingTitle: L('Trade licence copy is missing', 'ট্রেড লাইসেন্সের কপি নেই'),
+        missingBody: L('Not required for a cashier, but the shop\u2019s HR checklist marks it pending for staff who handle cash above ৳20,000 a day.', 'ক্যাশিয়ারের জন্য বাধ্যতামূলক নয়, তবে দিনে ৳২০,০০০-এর বেশি ক্যাশ হ্যান্ডেল করলে এইচআর চেকলিস্টে অপেক্ষমাণ দেখায়।'),
+        remind: L('Send a reminder', 'স্মারক পাঠান')
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

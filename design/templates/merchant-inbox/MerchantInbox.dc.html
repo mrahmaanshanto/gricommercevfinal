@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Merchant inbox" description="Omnichannel inbox — Instagram, Facebook, WhatsApp, TikTok, LinkedIn and Telegram conversations in one thread view with a CRM panel, plus a public-comment moderation side." -->
+<helmet><script src="./ds-base.js"></script><script src="../_shell/gc-sidebar.js"></script><script src="../_shell/gc-topbar.js"></script><script src="/_blob/1840c8d9327e1d872bcd8bc9a4590a5a"></script><style>body{margin:0;background:#eef2f7;font-family:Poppins,ui-sans-serif,system-ui,sans-serif;color:#475569}a{color:#003087;text-decoration:none}a:hover{color:#002a77}input,select,textarea{font-family:inherit}::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:9999px}</style></helmet>
+<div style="display:flex;gap:12px;padding:12px;height:100vh;box-sizing:border-box;overflow:hidden;background:#eef2f7">
+<gc-sidebar sticky="" active="inbox" base="../"></gc-sidebar>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;border:1px solid #e2e8f0;border-radius:16px;background:#f8fafc;overflow:hidden">
+<gc-topbar crumb="Customers" page="Inbox" base="../"></gc-topbar>
+<header style="z-index:90;display:flex;height:72px;flex:none;align-items:center;gap:16px;padding:0 28px;background:#fff;border-bottom:1px solid #e2e8f0">
+<span style="display:inline-flex;border-radius:9999px;background:#e9eef5;padding:3px">
+<sc-if value="{{ isInbox }}" hint-placeholder-val="{{ true }}">
+<button onClick="{{ openInbox }}" style="height:30px;display:inline-flex;align-items:center;gap:8px;border:none;border-radius:9999px;padding:0 14px;font-family:inherit;font-size:13px;font-weight:500;letter-spacing:.025em;cursor:pointer;background:#fff;color:#003087;box-shadow:0 1px 2px 0 rgba(48,46,56,.08)"><i data-lucide="message-square" width="15" height="15"></i>Conversations<span style="font-variant-numeric:tabular-nums;color:#94a3b8">18</span></button>
+<button onClick="{{ openComments }}" style="height:30px;display:inline-flex;align-items:center;gap:8px;border:none;border-radius:9999px;padding:0 14px;font-family:inherit;font-size:13px;font-weight:500;letter-spacing:.025em;cursor:pointer;background:transparent;color:#475569"><i data-lucide="at-sign" width="15" height="15"></i>Public comments<span style="font-variant-numeric:tabular-nums;color:#94a3b8">39</span></button>
+</sc-if>
+<sc-if value="{{ isComments }}" hint-placeholder-val="{{ false }}">
+<button onClick="{{ openInbox }}" style="height:30px;display:inline-flex;align-items:center;gap:8px;border:none;border-radius:9999px;padding:0 14px;font-family:inherit;font-size:13px;font-weight:500;letter-spacing:.025em;cursor:pointer;background:transparent;color:#475569"><i data-lucide="message-square" width="15" height="15"></i>Conversations<span style="font-variant-numeric:tabular-nums;color:#94a3b8">18</span></button>
+<button onClick="{{ openComments }}" style="height:30px;display:inline-flex;align-items:center;gap:8px;border:none;border-radius:9999px;padding:0 14px;font-family:inherit;font-size:13px;font-weight:500;letter-spacing:.025em;cursor:pointer;background:#fff;color:#003087;box-shadow:0 1px 2px 0 rgba(48,46,56,.08)"><i data-lucide="at-sign" width="15" height="15"></i>Public comments<span style="font-variant-numeric:tabular-nums;color:#94a3b8">39</span></button>
+</sc-if>
+</span>
+<span style="position:relative;display:inline-block;width:260px"><input type="search" placeholder="Search people, messages, order IDs…" style="width:100%;box-sizing:border-box;height:32px;border:none;border-radius:9999px;background:#e9eef5;padding:0 16px 0 36px;font-size:13px;color:#1e293b"><span style="position:absolute;left:0;top:0;display:flex;width:36px;height:100%;align-items:center;justify-content:center;color:#94a3b8;pointer-events:none"><i data-lucide="search" width="16" height="16"></i></span></span>
+<div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+<span style="display:inline-flex;align-items:center;gap:8px;height:28px;border-radius:9999px;background:rgba(16,185,129,.1);padding:0 12px;font-size:13px;font-weight:500;color:#0f7a5a"><span style="width:7px;height:7px;border-radius:9999px;background:#10b981"></span>6 channels connected</span>
+<sc-if value="{{ english }}" hint-placeholder-val="{{ true }}"><span style="display:inline-flex;border-radius:9999px;background:#e9eef5;padding:3px">
+<button onClick="{{ setEn }}" style="height:26px;border:none;border-radius:9999px;padding:0 12px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;background:#fff;color:#003087">EN</button>
+<button onClick="{{ setBn }}" style="height:26px;border:none;border-radius:9999px;padding:0 12px;font-family:'Hind Siliguri',Poppins,sans-serif;font-size:13px;font-weight:500;cursor:pointer;background:transparent;color:#475569">বাংলা</button>
+</span></sc-if>
+<sc-if value="{{ bangla }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;border-radius:9999px;background:#e9eef5;padding:3px">
+<button onClick="{{ setEn }}" style="height:26px;border:none;border-radius:9999px;padding:0 12px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;background:transparent;color:#475569">EN</button>
+<button onClick="{{ setBn }}" style="height:26px;border:none;border-radius:9999px;padding:0 12px;font-family:'Hind Siliguri',Poppins,sans-serif;font-size:13px;font-weight:500;cursor:pointer;background:#fff;color:#003087">বাংলা</button>
+</span></sc-if>
+<button onClick="{{ toggleCrm }}" style="width:32px;height:32px;display:grid;place-items:center;border:none;border-radius:9999px;background:none;color:#94a3b8;cursor:pointer" style-hover="background:rgba(203,213,225,.2);color:#475569" aria-label="Toggle customer panel"><i data-lucide="panel-right"></i></button>
+
+
+</div>
+</header>
+<div style="flex:1;min-height:0;display:flex">
+<sc-if value="{{ isComments }}" hint-placeholder-val="{{ false }}">
+<section style="width:328px;flex:none;display:flex;flex-direction:column;background:#fff;border-right:1px solid #e2e8f0">
+<div style="flex:none;padding:16px 16px 12px">
+<div style="display:flex;align-items:center;justify-content:space-between">
+<h1 style="margin:0;font-size:15px;font-weight:600;letter-spacing:.025em;color:#1e293b">Posts and reels</h1>
+<button style="height:28px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:9999px;background:#e9eef5;color:#334155;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef"><i data-lucide="refresh-cw" width="14" height="14"></i>Sync</button>
+</div>
+<p style="margin:4px 0 0;font-size:13px;color:#94a3b8">39 unanswered comments across 6 channels</p>
+<sc-if value="{{ bangla }}" hint-placeholder-val="{{ false }}"><p style="margin:2px 0 0;font-family:'Hind Siliguri',Poppins,sans-serif;font-size:15px;color:#94a3b8">৬টি চ্যানেলে ৩৯টি মন্তব্যের উত্তর বাকি</p></sc-if>
+<div style="display:flex;gap:6px;margin-top:14px">
+<button style="flex:none;height:32px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:9999px;background:rgba(0,48,135,.1);color:#003087;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer">All<span style="font-variant-numeric:tabular-nums">39</span></button>
+<button title="Instagram" style="width:32px;height:32px;display:grid;place-items:center;border:none;border-radius:9999px;background:rgba(240,0,185,.1);cursor:pointer" style-hover="background:rgba(240,0,185,.2)"><img src="/_blob/2059102e8af8150fddf31a9c65d3cbc7" alt="" style="width:19px;height:19px"></button>
+<button title="Facebook" style="width:32px;height:32px;display:grid;place-items:center;border:none;border-radius:9999px;background:rgba(0,48,135,.1);cursor:pointer" style-hover="background:rgba(0,48,135,.2)"><img src="/_blob/17dfdfcb88d830b24dda236b7fce7488" alt="" style="width:19px;height:19px"></button>
+<button title="TikTok" style="width:32px;height:32px;display:grid;place-items:center;border:none;border-radius:9999px;background:rgba(30,41,59,.1);cursor:pointer" style-hover="background:rgba(30,41,59,.18)"><img src="/_blob/cfed82fd2598f2fb3d4fb3f6c87606e5" alt="" style="width:19px;height:19px"></button>
+<button title="LinkedIn" style="width:32px;height:32px;display:grid;place-items:center;border:none;border-radius:9999px;background:rgba(0,156,222,.12);color:#0089c3;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer" style-hover="background:rgba(0,156,222,.22)">LI</button>
+</div>
+<select style="width:100%;box-sizing:border-box;height:32px;margin-top:10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 8px;font-size:13px;color:#475569"><option>Sort: most unanswered</option><option>Sort: newest post</option><option>Sort: most comments</option><option>Sort: attributed sales</option></select>
+</div>
+<div style="flex:1;min-height:0;overflow-y:auto;border-top:1px solid #e2e8f0">
+<div style="display:flex;gap:12px;padding:12px 16px;background:rgba(0,48,135,.06);border-left:3px solid #003087;cursor:pointer">
+<span style="position:relative;flex:none"><span style="width:44px;height:44px;border-radius:8px;background:rgba(240,0,185,.08);color:#c1008f;display:grid;place-items:center;font-size:10px;font-weight:600">POST</span><img src="/_blob/2059102e8af8150fddf31a9c65d3cbc7" alt="Instagram" style="position:absolute;bottom:-4px;right:-4px;width:18px;height:18px;border-radius:9999px;background:#fff;border:2px solid #fff"></span>
+<span style="flex:1;min-width:0">
+<span style="display:flex;align-items:baseline;gap:8px"><p style="margin:0;flex:1;min-width:0;font-size:14px;font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Eid collection drop</p><span style="font-size:12px;color:#94a3b8">4 Sep</span></span>
+<p style="margin:2px 0 0;font-size:13px;color:#475569">84 comments · ৳86,400 attributed</p>
+<span style="display:inline-flex;height:20px;align-items:center;margin-top:6px;border-radius:4px;background:rgba(255,152,0,.12);padding:0 6px;font-size:11px;font-weight:500;color:#a15f00">9 unanswered</span>
+</span>
+</div>
+<div style="display:flex;gap:12px;padding:12px 16px;cursor:pointer" style-hover="background:#f8fafc">
+<span style="position:relative;flex:none"><span style="width:44px;height:44px;border-radius:8px;background:rgba(0,48,135,.08);color:#003087;display:grid;place-items:center;font-size:10px;font-weight:600">POST</span><img src="/_blob/17dfdfcb88d830b24dda236b7fce7488" alt="Facebook" style="position:absolute;bottom:-4px;right:-4px;width:18px;height:18px;border-radius:9999px;background:#fff;border:2px solid #fff"></span>
+<span style="flex:1;min-width:0">
+<span style="display:flex;align-items:baseline;gap:8px"><p style="margin:0;flex:1;min-width:0;font-size:14px;font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Free delivery in Dhaka</p><span style="font-size:12px;color:#94a3b8">3 Sep</span></span>
+<p style="margin:2px 0 0;font-size:13px;color:#475569">41 comments · ৳22,100 attributed</p>
+<span style="display:inline-flex;height:20px;align-items:center;margin-top:6px;border-radius:4px;background:rgba(255,152,0,.12);padding:0 6px;font-size:11px;font-weight:500;color:#a15f00">3 unanswered</span>
+</span>
+</div>
+<div style="display:flex;gap:12px;padding:12px 16px;cursor:pointer" style-hover="background:#f8fafc">
+<span style="position:relative;flex:none"><span style="width:44px;height:44px;border-radius:8px;background:rgba(30,41,59,.08);color:#1e293b;display:grid;place-items:center;font-size:10px;font-weight:600">REEL</span><img src="/_blob/cfed82fd2598f2fb3d4fb3f6c87606e5" alt="TikTok" style="position:absolute;bottom:-4px;right:-4px;width:18px;height:18px;border-radius:9999px;background:#fff;border:2px solid #fff"></span>
+<span style="flex:1;min-width:0">
+<span style="display:flex;align-items:baseline;gap:8px"><p style="margin:0;flex:1;min-width:0;font-size:14px;font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Jamdani weaving, behind the scenes</p><span style="font-size:12px;color:#94a3b8">2 Sep</span></span>
+<p style="margin:2px 0 0;font-size:13px;color:#475569">213 comments · 41k views</p>
+<span style="display:inline-flex;height:20px;align-items:center;margin-top:6px;border-radius:4px;background:rgba(255,87,36,.12);padding:0 6px;font-size:11px;font-weight:500;color:#c23a12">27 unanswered</span>
+</span>
+</div>
+<div style="display:flex;gap:12px;padding:12px 16px;cursor:pointer" style-hover="background:#f8fafc">
+<span style="position:relative;flex:none"><span style="width:44px;height:44px;border-radius:8px;background:rgba(0,48,135,.08);color:#003087;display:grid;place-items:center;font-size:10px;font-weight:600">LIVE</span><img src="/_blob/17dfdfcb88d830b24dda236b7fce7488" alt="Facebook" style="position:absolute;bottom:-4px;right:-4px;width:18px;height:18px;border-radius:9999px;background:#fff;border:2px solid #fff"></span>
+<span style="flex:1;min-width:0">
+<span style="display:flex;align-items:baseline;gap:8px"><p style="margin:0;flex:1;min-width:0;font-size:14px;font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Live sale replay — Friday 9 PM</p><span style="font-size:12px;color:#94a3b8">29 Aug</span></span>
+<p style="margin:2px 0 0;font-size:13px;color:#475569">66 comments · ৳1,14,800 attributed</p>
+<span style="display:inline-flex;height:20px;align-items:center;margin-top:6px;border-radius:4px;background:rgba(16,185,129,.1);padding:0 6px;font-size:11px;font-weight:500;color:#0f7a5a">All answered</span>
+</span>
+</div>
+<div style="display:flex;gap:12px;padding:12px 16px;cursor:pointer" style-hover="background:#f8fafc">
+<span style="position:relative;flex:none"><span style="width:44px;height:44px;border-radius:8px;background:rgba(0,156,222,.1);color:#0089c3;display:grid;place-items:center;font-size:10px;font-weight:600">POST</span><span style="position:absolute;bottom:-4px;right:-4px;width:18px;height:18px;border-radius:9999px;background:#009cde;color:#fff;display:grid;place-items:center;font-size:8px;font-weight:600;border:2px solid #fff">LI</span></span>
+<span style="flex:1;min-width:0">
+<span style="display:flex;align-items:baseline;gap:8px"><p style="margin:0;flex:1;min-width:0;font-size:14px;font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Hiring two fulfilment leads</p><span style="font-size:12px;color:#94a3b8">27 Aug</span></span>
+<p style="margin:2px 0 0;font-size:13px;color:#475569">18 comments · 6 applications</p>
+<span style="display:inline-flex;height:20px;align-items:center;margin-top:6px;border-radius:4px;background:rgba(255,152,0,.12);padding:0 6px;font-size:11px;font-weight:500;color:#a15f00">2 unanswered</span>
+</span>
+</div>
+</div>
+</section>
+</sc-if>
+<sc-if value="{{ isInbox }}" hint-placeholder-val="{{ true }}">
+<section style="width:328px;flex:none;display:flex;flex-direction:column;background:#fff;border-right:1px solid #e2e8f0">
+<div style="flex:none;padding:16px 16px 12px">
+<div style="display:flex;align-items:center;justify-content:space-between">
+<h1 style="margin:0;font-size:15px;font-weight:600;letter-spacing:.025em;color:#1e293b">Shared inbox</h1>
+<button style="height:28px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:9999px;background:rgba(0,48,135,.1);color:#003087;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;letter-spacing:.025em;cursor:pointer" style-hover="background:rgba(0,48,135,.2)"><i data-lucide="plus" width="14" height="14"></i>New</button>
+</div>
+<p style="margin:4px 0 0;font-size:13px;color:#94a3b8">18 open — 4 waiting on you</p>
+<sc-if value="{{ bangla }}" hint-placeholder-val="{{ false }}"><p style="margin:2px 0 0;font-family:'Hind Siliguri',Poppins,sans-serif;font-size:15px;color:#94a3b8">১৮টি খোলা — ৪টি আপনার উত্তরের অপেক্ষায়</p></sc-if>
+<div style="display:flex;gap:6px;margin-top:14px">
+<button style="flex:none;height:32px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:9999px;background:rgba(0,48,135,.1);color:#003087;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer">All<span style="font-variant-numeric:tabular-nums">18</span></button>
+<button title="Instagram" style="width:32px;height:32px;position:relative;display:grid;place-items:center;border:none;border-radius:9999px;background:rgba(240,0,185,.1);color:#c1008f;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer" style-hover="background:rgba(240,0,185,.2)"><img src="/_blob/2059102e8af8150fddf31a9c65d3cbc7" alt="" style="width:19px;height:19px"><span style="position:absolute;top:-1px;right:-1px;width:8px;height:8px;border-radius:9999px;background:#ff5724;border:2px solid #fff"></span></button>
+<button title="Facebook" style="width:32px;height:32px;display:grid;place-items:center;border:none;border-radius:9999px;background:rgba(0,48,135,.1);color:#003087;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer" style-hover="background:rgba(0,48,135,.2)"><img src="/_blob/17dfdfcb88d830b24dda236b7fce7488" alt="" style="width:19px;height:19px"></button>
+<button title="WhatsApp" style="width:32px;height:32px;position:relative;display:grid;place-items:center;border:none;border-radius:9999px;background:rgba(16,185,129,.12);color:#0f7a5a;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer" style-hover="background:rgba(16,185,129,.22)"><img src="/_blob/c55e357bc2f730b6740093422e5af4ca" alt="" style="width:19px;height:19px"><span style="position:absolute;top:-1px;right:-1px;width:8px;height:8px;border-radius:9999px;background:#ff5724;border:2px solid #fff"></span></button>
+<button title="TikTok" style="width:32px;height:32px;display:grid;place-items:center;border:none;border-radius:9999px;background:rgba(30,41,59,.1);color:#1e293b;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer" style-hover="background:rgba(30,41,59,.18)"><img src="/_blob/cfed82fd2598f2fb3d4fb3f6c87606e5" alt="" style="width:19px;height:19px"></button>
+<button title="LinkedIn" style="width:32px;height:32px;display:grid;place-items:center;border:none;border-radius:9999px;background:rgba(0,156,222,.12);color:#0089c3;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer" style-hover="background:rgba(0,156,222,.22)">LI</button>
+<button title="Telegram" style="width:32px;height:32px;display:grid;place-items:center;border:none;border-radius:9999px;background:rgba(14,165,233,.12);color:#0272a8;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer" style-hover="background:rgba(14,165,233,.22)">TG</button>
+</div>
+<div style="display:flex;gap:6px;margin-top:10px">
+<button style="height:26px;border:none;border-radius:9999px;background:#e9eef5;color:#334155;padding:0 10px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer">Unassigned 5</button>
+<button style="height:26px;border:none;border-radius:9999px;background:none;color:#475569;padding:0 10px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer" style-hover="background:#f1f5f9">Mine 7</button>
+<button style="height:26px;border:none;border-radius:9999px;background:none;color:#475569;padding:0 10px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer" style-hover="background:#f1f5f9">SLA risk 2</button>
+</div>
+</div>
+<div style="flex:1;min-height:0;overflow-y:auto;border-top:1px solid #e2e8f0">
+<div style="display:flex;gap:12px;padding:12px 16px;background:rgba(0,48,135,.06);border-left:3px solid #003087;cursor:pointer">
+<span style="position:relative;flex:none"><img src="/_blob/9f66d32bb99031029a6fbcfd91e221f2" alt="Nusrat Jahan" style="width:40px;height:40px;border-radius:9999px;object-fit:cover;object-position:52% 22%"><img src="/_blob/2059102e8af8150fddf31a9c65d3cbc7" alt="Instagram" style="position:absolute;bottom:-2px;right:-2px;width:18px;height:18px;border-radius:9999px;background:#fff;border:2px solid #fff"></span>
+<span style="flex:1;min-width:0">
+<span style="display:flex;align-items:baseline;gap:8px"><p style="margin:0;flex:1;min-width:0;font-size:14px;font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Nusrat Jahan</p><span style="font-size:12px;color:#94a3b8">2m</span></span>
+<span style="display:flex;align-items:center;gap:8px;margin-top:2px"><p style="margin:0;flex:1;min-width:0;font-size:13px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Saree ta ki stock e ache? Ami 3 pcs nite chai</p><span style="flex:none;min-width:18px;height:18px;border-radius:9999px;background:#003087;color:#fff;font-size:11px;font-weight:600;display:grid;place-items:center;padding:0 5px">3</span></span>
+<span style="display:flex;gap:6px;margin-top:6px"><span style="display:inline-flex;height:20px;align-items:center;border-radius:4px;background:#e9eef5;padding:0 6px;font-size:11px;font-weight:500;color:#475569;font-family:ui-monospace,SFMono-Regular,Menlo,monospace">GC-10482</span><span style="display:inline-flex;height:20px;align-items:center;gap:4px;border-radius:4px;background:rgba(255,152,0,.12);padding:0 6px;font-size:11px;font-weight:500;color:#a15f00">Reply in 12m</span></span>
+</span>
+</div>
+<div style="display:flex;gap:12px;padding:12px 16px;cursor:pointer" style-hover="background:#f8fafc">
+<span style="position:relative;flex:none"><span style="width:40px;height:40px;border-radius:9999px;background:rgba(16,185,129,.12);color:#0f7a5a;display:grid;place-items:center;font-size:14px;font-weight:500">RH</span><img src="/_blob/c55e357bc2f730b6740093422e5af4ca" alt="WhatsApp" style="position:absolute;bottom:-2px;right:-2px;width:18px;height:18px;border-radius:9999px;background:#fff;border:2px solid #fff"></span>
+<span style="flex:1;min-width:0">
+<span style="display:flex;align-items:baseline;gap:8px"><p style="margin:0;flex:1;min-width:0;font-size:14px;font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Rakib Hasan</p><span style="font-size:12px;color:#94a3b8">9m</span></span>
+<span style="display:flex;align-items:center;gap:8px;margin-top:2px"><p style="margin:0;flex:1;min-width:0;font-size:13px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Payment done — bKash trxn 8FJ2K4LP</p><span style="flex:none;min-width:18px;height:18px;border-radius:9999px;background:#003087;color:#fff;font-size:11px;font-weight:600;display:grid;place-items:center;padding:0 5px">1</span></span>
+<span style="display:flex;gap:6px;margin-top:6px"><span style="display:inline-flex;height:20px;align-items:center;border-radius:4px;background:rgba(16,185,129,.1);padding:0 6px;font-size:11px;font-weight:500;color:#0f7a5a">Payment claim</span></span>
+</span>
+</div>
+<div style="display:flex;gap:12px;padding:12px 16px;cursor:pointer" style-hover="background:#f8fafc">
+<span style="position:relative;flex:none"><img src="/_blob/48a47ed6468079a61846b91934211c40" alt="Sadia Ferdous" style="width:40px;height:40px;border-radius:9999px;object-fit:cover;object-position:55% 18%"><img src="/_blob/17dfdfcb88d830b24dda236b7fce7488" alt="Facebook" style="position:absolute;bottom:-2px;right:-2px;width:18px;height:18px;border-radius:9999px;background:#fff;border:2px solid #fff"></span>
+<span style="flex:1;min-width:0">
+<span style="display:flex;align-items:baseline;gap:8px"><p style="margin:0;flex:1;min-width:0;font-size:14px;font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Sadia Ferdous</p><span style="font-size:12px;color:#94a3b8">24m</span></span>
+<span style="display:flex;align-items:center;gap:8px;margin-top:2px"><p style="margin:0;flex:1;min-width:0;font-size:13px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Do you deliver to Cumilla? COD ache?</p></span>
+<span style="display:flex;gap:6px;margin-top:6px"><span style="display:inline-flex;height:20px;align-items:center;border-radius:4px;background:#e9eef5;padding:0 6px;font-size:11px;font-weight:500;color:#475569">Unassigned</span></span>
+</span>
+</div>
+<div style="display:flex;gap:12px;padding:12px 16px;cursor:pointer" style-hover="background:#f8fafc">
+<span style="position:relative;flex:none"><span style="width:40px;height:40px;border-radius:9999px;background:rgba(30,41,59,.08);color:#1e293b;display:grid;place-items:center;font-size:14px;font-weight:500">TR</span><img src="/_blob/cfed82fd2598f2fb3d4fb3f6c87606e5" alt="TikTok" style="position:absolute;bottom:-2px;right:-2px;width:18px;height:18px;border-radius:9999px;background:#fff;border:2px solid #fff"></span>
+<span style="flex:1;min-width:0">
+<span style="display:flex;align-items:baseline;gap:8px"><p style="margin:0;flex:1;min-width:0;font-size:14px;font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@tanvir.rides</p><span style="font-size:12px;color:#94a3b8">1h</span></span>
+<span style="display:flex;align-items:center;gap:8px;margin-top:2px"><p style="margin:0;flex:1;min-width:0;font-size:13px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Price koto vai? Link den</p></span>
+<span style="display:flex;gap:6px;margin-top:6px"><span style="display:inline-flex;height:20px;align-items:center;border-radius:4px;background:rgba(14,165,233,.1);padding:0 6px;font-size:11px;font-weight:500;color:#0272a8">From a comment</span></span>
+</span>
+</div>
+<div style="display:flex;gap:12px;padding:12px 16px;cursor:pointer" style-hover="background:#f8fafc">
+<span style="position:relative;flex:none"><img src="/_blob/25e820cfa3e50978f934abe93e0c3db7" alt="Farhana Jahan" style="width:40px;height:40px;border-radius:9999px;object-fit:cover;object-position:50% 20%"><span style="position:absolute;bottom:-2px;right:-2px;width:18px;height:18px;border-radius:9999px;background:#0ea5e9;color:#fff;display:grid;place-items:center;font-size:8px;font-weight:600;border:2px solid #fff">TG</span></span>
+<span style="flex:1;min-width:0">
+<span style="display:flex;align-items:baseline;gap:8px"><p style="margin:0;flex:1;min-width:0;font-size:14px;font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Farhana Jahan</p><span style="font-size:12px;color:#94a3b8">2h</span></span>
+<span style="display:flex;align-items:center;gap:8px;margin-top:2px"><p style="margin:0;flex:1;min-width:0;font-size:13px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Refund status for GC-10190?</p><span style="flex:none;min-width:18px;height:18px;border-radius:9999px;background:#003087;color:#fff;font-size:11px;font-weight:600;display:grid;place-items:center;padding:0 5px">2</span></span>
+<span style="display:flex;gap:6px;margin-top:6px"><span style="display:inline-flex;height:20px;align-items:center;border-radius:4px;background:rgba(240,0,185,.1);padding:0 6px;font-size:11px;font-weight:500;color:#c1008f">Refund</span><span style="display:inline-flex;height:20px;align-items:center;border-radius:4px;background:rgba(255,87,36,.12);padding:0 6px;font-size:11px;font-weight:500;color:#c23a12">Overdue 40m</span></span>
+</span>
+</div>
+<div style="display:flex;gap:12px;padding:12px 16px;cursor:pointer" style-hover="background:#f8fafc">
+<span style="position:relative;flex:none"><span style="width:40px;height:40px;border-radius:9999px;background:rgba(0,156,222,.12);color:#0089c3;display:grid;place-items:center;font-size:14px;font-weight:500">IR</span><span style="position:absolute;bottom:-2px;right:-2px;width:18px;height:18px;border-radius:9999px;background:#009cde;color:#fff;display:grid;place-items:center;font-size:8px;font-weight:600;border:2px solid #fff">LI</span></span>
+<span style="flex:1;min-width:0">
+<span style="display:flex;align-items:baseline;gap:8px"><p style="margin:0;flex:1;min-width:0;font-size:14px;font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Imran Rahman</p><span style="font-size:12px;color:#94a3b8">Tue</span></span>
+<span style="display:flex;align-items:center;gap:8px;margin-top:2px"><p style="margin:0;flex:1;min-width:0;font-size:13px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Wholesale enquiry — 200 pcs for staff kits</p></span>
+<span style="display:flex;gap:6px;margin-top:6px"><span style="display:inline-flex;height:20px;align-items:center;border-radius:4px;background:#e9eef5;padding:0 6px;font-size:11px;font-weight:500;color:#475569">B2B lead</span></span>
+</span>
+</div>
+<div style="display:flex;gap:12px;padding:12px 16px;cursor:pointer" style-hover="background:#f8fafc">
+<span style="position:relative;flex:none"><span style="width:40px;height:40px;border-radius:9999px;background:rgba(105,122,155,.15);color:#697a9b;display:grid;place-items:center;font-size:14px;font-weight:500">KW</span><img src="/_blob/c55e357bc2f730b6740093422e5af4ca" alt="WhatsApp" style="position:absolute;bottom:-2px;right:-2px;width:18px;height:18px;border-radius:9999px;background:#fff;border:2px solid #fff"></span>
+<span style="flex:1;min-width:0">
+<span style="display:flex;align-items:baseline;gap:8px"><p style="margin:0;flex:1;min-width:0;font-size:14px;font-weight:500;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Katrina West</p><span style="font-size:12px;color:#94a3b8">Tue</span></span>
+<span style="display:flex;align-items:center;gap:8px;margin-top:2px"><p style="margin:0;flex:1;min-width:0;font-size:13px;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Parcel received, thank you</p></span>
+<span style="display:flex;gap:6px;margin-top:6px"><span style="display:inline-flex;height:20px;align-items:center;gap:4px;border-radius:4px;background:rgba(16,185,129,.1);padding:0 6px;font-size:11px;font-weight:500;color:#0f7a5a">Resolved by Rina</span></span>
+</span>
+</div>
+</div>
+</section>
+</sc-if>
+<sc-if value="{{ isInbox }}" hint-placeholder-val="{{ true }}">
+<section style="flex:1;min-width:0;display:flex;flex-direction:column;background:#f8fafc">
+<div style="flex:none;display:flex;align-items:center;gap:12px;min-height:72px;padding:14px 24px;background:#fff;border-bottom:1px solid #e2e8f0">
+<span style="position:relative;flex:none"><img src="/_blob/9f66d32bb99031029a6fbcfd91e221f2" alt="Nusrat Jahan" style="width:38px;height:38px;border-radius:9999px;object-fit:cover;object-position:52% 22%"><img src="/_blob/2059102e8af8150fddf31a9c65d3cbc7" alt="Instagram" style="position:absolute;bottom:-2px;right:-2px;width:17px;height:17px;border-radius:9999px;background:#fff;border:2px solid #fff"></span>
+<span style="flex:1;min-width:0">
+<p style="margin:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:15px;font-weight:600;letter-spacing:.025em;color:#1e293b"><span style="white-space:nowrap">Nusrat Jahan</span><span style="display:inline-flex;align-items:center;gap:4px;height:20px;border-radius:9999px;background:rgba(255,152,0,.14);padding:0 8px;font-size:11px;font-weight:600;letter-spacing:.04em;color:#a15f00;white-space:nowrap"><i data-lucide="crown" width="11" height="11"></i>VIP</span><span style="display:inline-flex;align-items:center;height:20px;border-radius:9999px;background:rgba(14,165,233,.12);padding:0 8px;font-size:11px;font-weight:600;letter-spacing:.04em;color:#0272a8;white-space:nowrap">Repeat buyer</span></p>
+<p style="margin:1px 0 0;font-size:13px;color:#94a3b8">Instagram DM · @nusrat.wears · active 4m ago</p>
+</span>
+<button style="height:32px;display:inline-flex;align-items:center;gap:8px;border:1px solid #cbd5e1;border-radius:9999px;background:#fff;padding:0 6px 0 10px;font-family:inherit;font-size:13px;font-weight:500;color:#334155;cursor:pointer" style-hover="background:#f8fafc"><span style="width:20px;height:20px;border-radius:9999px;background:rgba(0,48,135,.1);color:#003087;display:grid;place-items:center;font-size:10px;font-weight:600">RA</span>Rina Ahmed<i data-lucide="chevron-down" width="15" height="15"></i></button>
+<button title="Call this customer" style="height:32px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:8px;background:rgba(16,185,129,.12);color:#0f7a5a;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;letter-spacing:.025em;cursor:pointer" style-hover="background:rgba(16,185,129,.22)"><i data-lucide="phone" width="15" height="15"></i>Call</button>
+<button onClick="{{ openTicket }}" style="height:32px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:8px;background:rgba(0,48,135,.1);color:#003087;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;letter-spacing:.025em;cursor:pointer" style-hover="background:rgba(0,48,135,.2)"><i data-lucide="life-buoy" width="15" height="15"></i>Ticket</button>
+<button style="width:32px;height:32px;display:grid;place-items:center;border:none;border-radius:9999px;background:none;color:#94a3b8;cursor:pointer" style-hover="background:rgba(203,213,225,.2);color:#475569" aria-label="More actions"><i data-lucide="more-vertical"></i></button>
+</div>
+<sc-if value="{{ ticketOpen }}" hint-placeholder-val="{{ false }}">
+<div style="flex:none;padding:16px 24px;background:rgba(0,48,135,.04);border-bottom:1px solid #e2e8f0">
+<div style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:8px;background:rgba(0,48,135,.1);color:#003087;display:grid;place-items:center"><i data-lucide="life-buoy" width="16" height="16"></i></span><p style="margin:0;flex:1;font-size:14px;font-weight:600;color:#1e293b">New ticket from this conversation</p><button onClick="{{ closeTicket }}" style="width:28px;height:28px;display:grid;place-items:center;border:none;border-radius:9999px;background:none;color:#94a3b8;cursor:pointer" style-hover="background:rgba(203,213,225,.2);color:#475569" aria-label="Close"><i data-lucide="x" width="16" height="16"></i></button></div>
+<div style="display:grid;grid-template-columns:1fr 190px 160px;gap:10px;margin-top:12px">
+<input value="Add one more saree to GC-10482 before dispatch" style="box-sizing:border-box;height:36px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 12px;font-size:14px;color:#1e293b">
+<select style="box-sizing:border-box;height:36px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 8px;font-size:14px;color:#475569"><option>Order change</option><option>Refund</option><option>Delivery</option><option>Product question</option></select>
+<select style="box-sizing:border-box;height:36px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 8px;font-size:14px;color:#475569"><option>Priority: Urgent</option><option>Priority: High</option><option>Priority: Normal</option></select>
+</div>
+<div style="display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap">
+<span style="display:inline-flex;align-items:center;gap:6px;height:28px;border-radius:9999px;background:#e9eef5;padding:0 10px;font-size:13px;color:#334155"><i data-lucide="message-square" width="14" height="14"></i>4 messages attached</span>
+<span style="display:inline-flex;align-items:center;gap:6px;height:28px;border-radius:9999px;background:#e9eef5;padding:0 10px;font-size:13px;color:#334155;font-family:ui-monospace,SFMono-Regular,Menlo,monospace">GC-10482</span>
+<span style="display:inline-flex;align-items:center;gap:6px;height:28px;border-radius:9999px;background:#e9eef5;padding:0 10px;font-size:13px;color:#334155"><span style="width:18px;height:18px;border-radius:9999px;background:rgba(0,48,135,.1);color:#003087;display:grid;place-items:center;font-size:9px;font-weight:600">RA</span>Assign to me</span>
+<span style="margin-left:auto;display:flex;gap:8px"><button onClick="{{ closeTicket }}" style="height:34px;border:none;border-radius:8px;background:#e9eef5;color:#334155;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef">Cancel</button><button onClick="{{ closeTicket }}" style="height:34px;border:none;border-radius:8px;background:#003087;color:#fff;padding:0 14px;font-family:inherit;font-size:13px;font-weight:500;letter-spacing:.025em;cursor:pointer" style-hover="background:#002a77">Create ticket</button></span>
+</div>
+</div>
+</sc-if>
+<div style="flex:1;min-height:0;overflow-y:auto;padding:28px 40px;display:flex;flex-direction:column;gap:20px">
+<p style="margin:0;text-align:center;font-size:12px;font-weight:500;letter-spacing:.025em;color:#94a3b8">Today · Asia/Dhaka</p>
+<div style="display:flex;justify-content:center"><span style="display:inline-flex;align-items:center;gap:8px;border-radius:9999px;background:#e9eef5;padding:5px 12px;font-size:12px;color:#475569"><i data-lucide="corner-up-right" width="14" height="14"></i>Started from a comment on “Eid collection drop” — moved to DM by Rina</span></div>
+<div style="display:flex;gap:10px;max-width:78%">
+<img src="/_blob/9f66d32bb99031029a6fbcfd91e221f2" alt="Nusrat Jahan" style="width:28px;height:28px;flex:none;border-radius:9999px;object-fit:cover;object-position:52% 22%;align-self:flex-end">
+<span><span style="display:block;border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:12px 14px;font-size:14px;color:#1e293b">Apu, saree ta ki stock e ache? Ami 3 pcs nite chai — Dhanmondi te deliver hobe?</span><span style="display:block;margin-top:4px;font-size:12px;color:#94a3b8">10:02 AM · Instagram</span></span>
+</div>
+<div style="display:flex;gap:10px;max-width:78%;align-self:flex-end;flex-direction:row-reverse">
+<span style="width:28px;height:28px;flex:none;border-radius:9999px;background:rgba(0,48,135,.1);color:#003087;display:grid;place-items:center;font-size:11px;font-weight:500;align-self:flex-end">RA</span>
+<span style="text-align:right"><span style="display:block;border-radius:8px;background:rgba(0,48,135,.1);padding:12px 14px;font-size:14px;color:#0d2352;text-align:left">Assalamu alaikum. Ji, 3 pcs stock e ache. Dhanmondi te next day delivery — COD o nite paren.</span><span style="display:block;margin-top:4px;font-size:12px;color:#94a3b8">10:04 AM · Rina Ahmed · <span style="color:#0f7a5a">Seen</span></span></span>
+</div>
+<div style="display:flex;gap:10px;max-width:78%;align-self:flex-end;flex-direction:row-reverse">
+<span style="width:28px;height:28px;flex:none;border-radius:9999px;background:rgba(0,48,135,.1);color:#003087;display:grid;place-items:center;font-size:11px;font-weight:500;align-self:flex-end">RA</span>
+<span><span style="display:flex;gap:12px;border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:12px;width:280px;text-align:left"><span style="width:64px;height:64px;flex:none;border-radius:6px;background:rgba(0,48,135,.08);color:#003087;display:grid;place-items:center;font-size:15px;font-weight:600">JS</span><span style="min-width:0"><p style="margin:0;font-size:14px;font-weight:500;color:#1e293b">Jamdani cotton saree</p><p style="margin:2px 0 0;font-size:13px;color:#94a3b8">SKU JAM-114 · 6 in stock</p><p style="margin:6px 0 0;font-size:15px;font-weight:600;color:#003087;font-variant-numeric:tabular-nums">৳2,425</p></span></span><span style="display:block;margin-top:4px;font-size:12px;color:#94a3b8;text-align:right">10:05 AM · Product card sent</span></span>
+</div>
+<div style="display:flex;gap:10px;max-width:78%">
+<img src="/_blob/9f66d32bb99031029a6fbcfd91e221f2" alt="Nusrat Jahan" style="width:28px;height:28px;flex:none;border-radius:9999px;object-fit:cover;object-position:52% 22%;align-self:flex-end">
+<span><span style="display:block;border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:12px 14px;font-size:14px;color:#1e293b">Order korlam. bKash e payment diyechi — screenshot ta pathaLam. WhatsApp e update diben?</span><span style="display:block;margin-top:4px;font-size:12px;color:#94a3b8">10:11 AM · Instagram</span></span>
+</div>
+<div style="display:flex;gap:10px;max-width:78%;padding-left:38px">
+<span style="display:block;border-radius:8px;border:1px dashed #ffb951;background:rgba(255,152,0,.08);padding:10px 12px"><p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.025em;color:#a15f00">INTERNAL NOTE — not sent to customer</p><p style="margin:4px 0 0;font-size:14px;color:#475569">Payment verified against bKash statement. Asked warehouse to pack today; courier pickup 5 PM.</p><p style="margin:6px 0 0;font-size:12px;color:#94a3b8">10:14 AM · Rina Ahmed</p></span>
+</div>
+<div style="display:flex;justify-content:center"><span style="display:inline-flex;align-items:center;gap:8px;border-radius:9999px;background:rgba(16,185,129,.1);padding:5px 12px;font-size:12px;color:#0f7a5a"><i data-lucide="link" width="14" height="14"></i>Same customer also messages on WhatsApp — threads merged</span></div>
+</div>
+<div style="flex:none;background:#fff;border-top:1px solid #e2e8f0;padding:18px 40px 16px">
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+<span style="display:inline-flex;border-radius:9999px;background:#e9eef5;padding:3px">
+<sc-if value="{{ isReply }}" hint-placeholder-val="{{ true }}">
+<button onClick="{{ setReply }}" style="height:26px;border:none;border-radius:9999px;padding:0 12px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;background:#fff;color:#003087">Reply</button>
+<button onClick="{{ setNote }}" style="height:26px;border:none;border-radius:9999px;padding:0 12px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;background:transparent;color:#475569">Internal note</button>
+</sc-if>
+<sc-if value="{{ isNote }}" hint-placeholder-val="{{ false }}">
+<button onClick="{{ setReply }}" style="height:26px;border:none;border-radius:9999px;padding:0 12px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;background:transparent;color:#475569">Reply</button>
+<button onClick="{{ setNote }}" style="height:26px;border:none;border-radius:9999px;padding:0 12px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;background:#fff;color:#a15f00">Internal note</button>
+</sc-if>
+</span>
+</div>
+<sc-if value="{{ isNote }}" hint-placeholder-val="{{ false }}"><textarea rows="3" placeholder="Note for your team — the customer will not see this." style="width:100%;box-sizing:border-box;margin-top:10px;border:1px solid #ffb951;border-radius:8px;background:rgba(255,152,0,.06);padding:10px 12px;font-size:14px;color:#1e293b;resize:none"></textarea></sc-if>
+<sc-if value="{{ isReply }}" hint-placeholder-val="{{ true }}"><textarea rows="3" placeholder="Write a reply — press Enter to send, Shift+Enter for a new line" style="width:100%;box-sizing:border-box;margin-top:10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:10px 12px;font-size:14px;color:#1e293b;resize:none"></textarea></sc-if>
+<div style="display:flex;align-items:center;gap:6px;margin-top:8px">
+<button style="width:32px;height:32px;display:grid;place-items:center;border:none;border-radius:9999px;background:none;color:#94a3b8;cursor:pointer" style-hover="background:rgba(203,213,225,.2);color:#475569" aria-label="Attach file"><i data-lucide="paperclip" width="18" height="18"></i></button>
+<button style="width:32px;height:32px;display:grid;place-items:center;border:none;border-radius:9999px;background:none;color:#94a3b8;cursor:pointer" style-hover="background:rgba(203,213,225,.2);color:#475569" aria-label="Attach image"><i data-lucide="image" width="18" height="18"></i></button>
+<button style="width:32px;height:32px;display:grid;place-items:center;border:none;border-radius:9999px;background:none;color:#94a3b8;cursor:pointer" style-hover="background:rgba(203,213,225,.2);color:#475569" aria-label="Insert product"><i data-lucide="package" width="18" height="18"></i></button>
+<button style="width:32px;height:32px;display:grid;place-items:center;border:none;border-radius:9999px;background:none;color:#94a3b8;cursor:pointer" style-hover="background:rgba(203,213,225,.2);color:#475569" aria-label="Saved replies"><i data-lucide="zap" width="18" height="18"></i></button>
+<button style="width:32px;height:32px;display:grid;place-items:center;border:none;border-radius:9999px;background:none;color:#94a3b8;cursor:pointer" style-hover="background:rgba(203,213,225,.2);color:#475569" aria-label="Translate to Bangla"><i data-lucide="languages" width="18" height="18"></i></button>
+<span style="margin-left:auto;display:flex;align-items:center;gap:10px">
+<span style="font-size:12px;color:#94a3b8">Instagram allows replies for 7 days after the last message</span>
+<button style="height:36px;display:inline-flex;align-items:center;gap:8px;border:none;border-radius:8px;background:#003087;color:#fff;padding:0 16px;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer" style-hover="background:#002a77">Send<i data-lucide="send" width="16" height="16"></i></button>
+</span>
+</div>
+</div>
+</section>
+</sc-if>
+<sc-if value="{{ isComments }}" hint-placeholder-val="{{ false }}">
+<section style="flex:1;min-width:0;display:flex;flex-direction:column;background:#f8fafc">
+<div style="flex:none;display:flex;align-items:center;gap:12px;min-height:72px;padding:14px 24px;background:#fff;border-bottom:1px solid #e2e8f0">
+<span style="flex:1;min-width:0"><p style="margin:0;font-size:15px;font-weight:600;letter-spacing:.025em;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Eid collection drop — 12 new sarees</p><p style="margin:1px 0 0;font-size:13px;color:#94a3b8">Instagram post · 4 Sep 2026, 6:40 PM · 84 comments · 9 unanswered</p></span>
+<span style="display:flex;gap:6px">
+<button style="height:30px;border:none;border-radius:9999px;background:rgba(0,48,135,.1);color:#003087;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer">Unanswered 9</button>
+<button style="height:30px;border:none;border-radius:9999px;background:none;color:#475569;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#f1f5f9">Questions 14</button>
+<button style="height:30px;border:none;border-radius:9999px;background:none;color:#475569;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#f1f5f9">Negative 3</button>
+<button style="height:30px;border:none;border-radius:9999px;background:none;color:#475569;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#f1f5f9">Hidden 5</button>
+</span>
+<button style="width:32px;height:32px;display:grid;place-items:center;border:none;border-radius:9999px;background:none;color:#94a3b8;cursor:pointer" style-hover="background:rgba(203,213,225,.2);color:#475569" aria-label="Open post"><i data-lucide="external-link"></i></button>
+</div>
+<div style="flex:1;min-height:0;overflow-y:auto;padding:20px 24px 24px;display:grid;gap:16px;align-content:start">
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+<div style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:22px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><p style="margin:0;font-size:20px;font-weight:600;color:#334155;font-variant-numeric:tabular-nums">39</p><span style="color:#ff9800"><i data-lucide="message-circle-question"></i></span></div><div style="display:flex;align-items:center;gap:8px;margin-top:4px"><p style="margin:0;font-size:13px;color:#94a3b8">Unanswered</p><span style="font-size:12px;font-weight:500;color:#ff5724">▲ 8</span></div></div>
+<div style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:22px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><p style="margin:0;font-size:20px;font-weight:600;color:#334155;font-variant-numeric:tabular-nums">14m</p><span style="color:#003087"><i data-lucide="timer"></i></span></div><div style="display:flex;align-items:center;gap:8px;margin-top:4px"><p style="margin:0;font-size:13px;color:#94a3b8">Median first reply</p><span style="font-size:12px;font-weight:500;color:#10b981">▼ 6m</span></div></div>
+<div style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:22px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><p style="margin:0;font-size:20px;font-weight:600;color:#334155;font-variant-numeric:tabular-nums">23</p><span style="color:#10b981"><i data-lucide="shopping-bag"></i></span></div><div style="display:flex;align-items:center;gap:8px;margin-top:4px"><p style="margin:0;font-size:13px;color:#94a3b8">Comments to orders</p><span style="font-size:12px;font-weight:500;color:#10b981">▲ 5</span></div></div>
+<div style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:22px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><p style="margin:0;font-size:20px;font-weight:600;color:#334155;font-variant-numeric:tabular-nums">17</p><span style="color:#697a9b"><i data-lucide="eye-off"></i></span></div><div style="display:flex;align-items:center;gap:8px;margin-top:4px"><p style="margin:0;font-size:13px;color:#94a3b8">Hidden by rules</p><span style="font-size:12px;color:#94a3b8">this week</span></div></div>
+</div>
+<div style="display:flex;gap:16px;border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:22px">
+<span style="width:88px;height:88px;flex:none;border-radius:12px;background:rgba(240,0,185,.08);color:#c1008f;display:grid;place-items:center;font-size:12px;font-weight:600;letter-spacing:.025em">POST</span>
+<span style="flex:1;min-width:0">
+<p style="margin:0;font-size:14px;color:#1e293b">Twelve new Jamdani and cotton sarees, woven in Narayanganj. Free delivery inside Dhaka until Friday. Sizes and prices in the comments.</p>
+<span style="display:flex;gap:26px;margin-top:12px">
+<span><p style="margin:0;font-size:18px;font-weight:600;color:#334155;font-variant-numeric:tabular-nums">2,140</p><p style="margin:0;font-size:13px;color:#94a3b8">Reactions</p></span>
+<span><p style="margin:0;font-size:18px;font-weight:600;color:#334155;font-variant-numeric:tabular-nums">84</p><p style="margin:0;font-size:13px;color:#94a3b8">Comments</p></span>
+<span><p style="margin:0;font-size:18px;font-weight:600;color:#334155;font-variant-numeric:tabular-nums">61</p><p style="margin:0;font-size:13px;color:#94a3b8">Shares</p></span>
+<span><p style="margin:0;font-size:18px;font-weight:600;color:#003087;font-variant-numeric:tabular-nums">৳86,400</p><p style="margin:0;font-size:13px;color:#94a3b8">Attributed sales</p></span>
+</span>
+</span>
+</div>
+<div style="display:flex;align-items:center;gap:10px;border-radius:8px;background:#e9eef5;padding:8px 12px">
+<span style="font-size:13px;font-weight:500;color:#334155">3 selected</span>
+<button style="height:28px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:8px;background:#fff;color:#334155;padding:0 10px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#f8fafc"><i data-lucide="zap" width="14" height="14"></i>Saved reply</button>
+<button style="height:28px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:8px;background:#fff;color:#334155;padding:0 10px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#f8fafc"><i data-lucide="eye-off" width="14" height="14"></i>Hide</button>
+<button style="height:28px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:8px;background:#fff;color:#c23a12;padding:0 10px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#f8fafc"><i data-lucide="trash-2" width="14" height="14"></i>Delete</button>
+<span style="margin-left:auto;font-size:13px;color:#475569">Auto-hide rules: phone numbers, competitor links</span>
+</div>
+<div style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:22px">
+<div style="display:flex;gap:12px">
+<span style="width:36px;height:36px;flex:none;border-radius:9999px;background:rgba(240,0,185,.1);color:#c1008f;display:grid;place-items:center;font-size:13px;font-weight:500">TR</span>
+<div style="flex:1;min-width:0">
+<div style="display:flex;align-items:baseline;gap:8px"><p style="margin:0;font-size:14px;font-weight:600;color:#1e293b">@tanvir.rides</p><span style="display:inline-flex;height:20px;align-items:center;border-radius:9999px;padding:0 8px;font-size:12px;font-weight:500;background:rgba(255,152,0,.12);color:#a15f00">Question</span><span style="font-size:12px;color:#94a3b8">18m ago</span></div>
+<p style="margin:6px 0 0;font-size:14px;color:#1e293b">Price koto vai? Ar Cumilla te COD ache ki?</p>
+<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+<button style="height:28px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:9999px;background:rgba(0,48,135,.1);color:#003087;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:rgba(0,48,135,.2)"><i data-lucide="corner-up-left" width="14" height="14"></i>Reply publicly</button>
+<button style="height:28px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:9999px;background:#e9eef5;color:#334155;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef"><i data-lucide="send" width="14" height="14"></i>Move to DM</button>
+<button style="height:28px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:9999px;background:#e9eef5;color:#334155;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef"><i data-lucide="shopping-bag" width="14" height="14"></i>Create order</button>
+<button style="height:28px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:9999px;background:none;color:#475569;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#f1f5f9"><i data-lucide="eye-off" width="14" height="14"></i>Hide</button>
+</div>
+<div style="margin-top:12px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;padding:10px 12px">
+<p style="margin:0;font-size:13px;color:#94a3b8">Replying publicly as GridCommerce · Shopno Fashion</p>
+<textarea rows="2" placeholder="Answer the question, then invite them to DM for size and stock…" style="width:100%;box-sizing:border-box;margin-top:6px;border:none;padding:0;font-size:14px;color:#1e293b;resize:none;outline:none"></textarea>
+<div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+<button style="height:26px;border:none;border-radius:9999px;background:#e9eef5;color:#334155;padding:0 10px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef">Price + COD</button>
+<button style="height:26px;border:none;border-radius:9999px;background:#e9eef5;color:#334155;padding:0 10px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef">Bangla version</button>
+<span style="margin-left:auto;display:flex;gap:8px"><button style="height:30px;border:none;border-radius:8px;background:#e9eef5;color:#334155;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef">Reply and DM</button><button style="height:30px;border:none;border-radius:8px;background:#003087;color:#fff;padding:0 14px;font-family:inherit;font-size:13px;font-weight:500;letter-spacing:.025em;cursor:pointer" style-hover="background:#002a77">Post reply</button></span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:22px">
+<div style="display:flex;gap:12px">
+<span style="width:36px;height:36px;flex:none;border-radius:9999px;background:rgba(16,185,129,.12);color:#0f7a5a;display:grid;place-items:center;font-size:13px;font-weight:500">MA</span>
+<div style="flex:1;min-width:0">
+<div style="display:flex;align-items:baseline;gap:8px"><p style="margin:0;font-size:14px;font-weight:600;color:#1e293b">Mahmuda Alam</p><span style="display:inline-flex;height:20px;align-items:center;border-radius:9999px;padding:0 8px;font-size:12px;font-weight:500;background:rgba(16,185,129,.1);color:#0f7a5a">Answered</span><span style="font-size:12px;color:#94a3b8">42m ago</span></div>
+<p style="margin:6px 0 0;font-size:14px;color:#1e293b">Ordered last week, parcel came in two days. Kapor quality onek valo.</p>
+<div style="display:flex;gap:12px;margin-top:10px;align-items:center"><span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#94a3b8"><i data-lucide="heart" width="14" height="14"></i>Liked by page</span><span style="font-size:13px;color:#94a3b8">·</span><span style="font-size:13px;color:#94a3b8">2 replies</span></div>
+<div style="margin-top:12px;padding-left:14px;border-left:2px solid #e2e8f0;display:grid;gap:10px">
+<div style="display:flex;gap:10px"><span style="width:28px;height:28px;flex:none;border-radius:9999px;background:rgba(0,48,135,.1);color:#003087;display:grid;place-items:center;font-size:11px;font-weight:500">SF</span><span><p style="margin:0;font-size:13px;color:#1e293b"><span style="font-weight:600">Shopno Fashion</span> <span style="color:#94a3b8">· page reply · 38m ago</span></p><p style="margin:2px 0 0;font-size:14px;color:#475569">Dhonnobad Mahmuda apa. Eid collection ta o dekhte paren — free delivery Friday porjonto.</p></span></div>
+<div style="display:flex;gap:10px"><span style="width:28px;height:28px;flex:none;border-radius:9999px;background:rgba(105,122,155,.15);color:#697a9b;display:grid;place-items:center;font-size:11px;font-weight:500">RS</span><span><p style="margin:0;font-size:13px;color:#1e293b"><span style="font-weight:600">@rumana.s</span> <span style="color:#94a3b8">· 21m ago</span></p><p style="margin:2px 0 0;font-size:14px;color:#475569">Ami o nite chai. Inbox e size chart ta diben?</p></span></div>
+</div>
+</div>
+</div>
+</div>
+<div style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:22px">
+<div style="display:flex;gap:12px">
+<span style="width:36px;height:36px;flex:none;border-radius:9999px;background:rgba(255,87,36,.12);color:#c23a12;display:grid;place-items:center;font-size:13px;font-weight:500">AK</span>
+<div style="flex:1;min-width:0">
+<div style="display:flex;align-items:baseline;gap:8px"><p style="margin:0;font-size:14px;font-weight:600;color:#1e293b">Arif Karim</p><span style="display:inline-flex;height:20px;align-items:center;border-radius:9999px;padding:0 8px;font-size:12px;font-weight:500;background:rgba(255,87,36,.12);color:#c23a12">Complaint</span><span style="display:inline-flex;height:20px;align-items:center;border-radius:9999px;padding:0 8px;font-size:12px;font-weight:500;background:#e9eef5;color:#475569">Order GC-10190</span><span style="font-size:12px;color:#94a3b8">1h ago</span></div>
+<p style="margin:6px 0 0;font-size:14px;color:#1e293b">Refund ta ekhono paini. Ei niye 3 bar likhlam.</p>
+<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+<button style="height:28px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:9999px;background:rgba(0,48,135,.1);color:#003087;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:rgba(0,48,135,.2)"><i data-lucide="send" width="14" height="14"></i>Move to DM and apologise</button>
+<button onClick="{{ openTicket }}" style="height:28px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:9999px;background:#e9eef5;color:#334155;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef"><i data-lucide="life-buoy" width="14" height="14"></i>Create ticket</button>
+<button style="height:28px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:9999px;background:none;color:#475569;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#f1f5f9"><i data-lucide="sticky-note" width="14" height="14"></i>Add internal note</button>
+</div>
+</div>
+</div>
+</div>
+<div style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:16px;opacity:.75">
+<div style="display:flex;gap:12px">
+<span style="width:36px;height:36px;flex:none;border-radius:9999px;background:rgba(105,122,155,.15);color:#697a9b;display:grid;place-items:center;font-size:13px;font-weight:500">SP</span>
+<div style="flex:1;min-width:0">
+<div style="display:flex;align-items:baseline;gap:8px"><p style="margin:0;font-size:14px;font-weight:600;color:#1e293b">@shop_promo_bd</p><span style="display:inline-flex;height:20px;align-items:center;border-radius:9999px;padding:0 8px;font-size:12px;font-weight:500;background:#e9eef5;color:#475569">Hidden by rule</span><span style="font-size:12px;color:#94a3b8">2h ago</span></div>
+<p style="margin:6px 0 0;font-size:14px;color:#475569">Cheaper saree available, call 017xxxxxxxx</p>
+<div style="display:flex;gap:8px;margin-top:10px"><button style="height:28px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:9999px;background:#e9eef5;color:#334155;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef"><i data-lucide="eye" width="14" height="14"></i>Unhide</button><button style="height:28px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:9999px;background:none;color:#c23a12;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#f1f5f9"><i data-lucide="ban" width="14" height="14"></i>Block author</button></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</sc-if>
+<sc-if value="{{ showCrm }}" hint-placeholder-val="{{ true }}">
+<aside style="width:320px;flex:none;overflow-y:auto;background:#fff;border-left:1px solid #e2e8f0;padding:20px 16px 28px">
+<sc-if value="{{ isComments }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:12px">
+<span style="position:relative;flex:none"><span style="width:44px;height:44px;border-radius:9999px;background:rgba(30,41,59,.08);color:#1e293b;display:grid;place-items:center;font-size:15px;font-weight:600">TR</span><img src="/_blob/cfed82fd2598f2fb3d4fb3f6c87606e5" alt="TikTok" style="position:absolute;bottom:-2px;right:-2px;width:18px;height:18px;border-radius:9999px;background:#fff;border:2px solid #fff"></span>
+<span style="flex:1;min-width:0"><p style="margin:0;font-size:15px;font-weight:600;letter-spacing:.025em;color:#1e293b">@tanvir.rides</p><p style="margin:1px 0 0;font-size:13px;color:#94a3b8">First comment · not a customer yet</p></span>
+</div>
+<div style="display:flex;gap:8px;margin-top:12px">
+<button style="flex:1;height:32px;border:none;border-radius:8px;background:rgba(0,48,135,.1);color:#003087;font-family:inherit;font-size:13px;font-weight:500;letter-spacing:.025em;cursor:pointer" style-hover="background:rgba(0,48,135,.2)">Move to DM</button>
+<button style="flex:1;height:32px;border:none;border-radius:8px;background:#e9eef5;color:#334155;font-family:inherit;font-size:13px;font-weight:500;letter-spacing:.025em;cursor:pointer" style-hover="background:#dde5ef">Add customer</button>
+</div>
+<h2 style="margin:20px 0 8px;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.025em;color:#1e293b">Sentiment this week</h2>
+<span style="display:flex;height:8px;border-radius:9999px;overflow:hidden;background:#e9eef5"><span style="width:68%;background:#10b981"></span><span style="width:24%;background:#697a9b"></span><span style="width:8%;background:#ff5724"></span></span>
+<div style="display:flex;justify-content:space-between;margin-top:12px;font-size:13px"><span style="display:inline-flex;align-items:center;gap:8px;color:#475569"><span style="width:8px;height:8px;border-radius:9999px;background:#10b981"></span>Positive</span><span style="font-weight:600;color:#1e293b">68%</span></div>
+<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:13px"><span style="display:inline-flex;align-items:center;gap:8px;color:#475569"><span style="width:8px;height:8px;border-radius:9999px;background:#697a9b"></span>Neutral</span><span style="font-weight:600;color:#1e293b">24%</span></div>
+<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:13px"><span style="display:inline-flex;align-items:center;gap:8px;color:#475569"><span style="width:8px;height:8px;border-radius:9999px;background:#ff5724"></span>Negative</span><span style="font-weight:600;color:#1e293b">8%</span></div>
+<h2 style="margin:20px 0 10px;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.025em;color:#1e293b">What people ask</h2>
+<div style="display:grid;gap:10px">
+<div><div style="display:flex;justify-content:space-between;font-size:13px;color:#475569"><span>Price</span><span style="font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">31</span></div><span style="display:block;height:6px;margin-top:4px;border-radius:9999px;background:#e9eef5"><span style="display:block;width:100%;height:6px;border-radius:9999px;background:#003087"></span></span></div>
+<div><div style="display:flex;justify-content:space-between;font-size:13px;color:#475569"><span>Delivery and COD</span><span style="font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">24</span></div><span style="display:block;height:6px;margin-top:4px;border-radius:9999px;background:#e9eef5"><span style="display:block;width:77%;height:6px;border-radius:9999px;background:#009cde"></span></span></div>
+<div><div style="display:flex;justify-content:space-between;font-size:13px;color:#475569"><span>Size and stock</span><span style="font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">18</span></div><span style="display:block;height:6px;margin-top:4px;border-radius:9999px;background:#e9eef5"><span style="display:block;width:58%;height:6px;border-radius:9999px;background:#10b981"></span></span></div>
+<div><div style="display:flex;justify-content:space-between;font-size:13px;color:#475569"><span>Refund status</span><span style="font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">7</span></div><span style="display:block;height:6px;margin-top:4px;border-radius:9999px;background:#e9eef5"><span style="display:block;width:23%;height:6px;border-radius:9999px;background:#ff9800"></span></span></div>
+</div>
+<h2 style="margin:20px 0 8px;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.025em;color:#1e293b">By channel</h2>
+<div style="display:grid;gap:6px">
+<div style="display:flex;align-items:center;gap:10px;border-radius:8px;background:#f8fafc;padding:8px 10px"><img src="/_blob/cfed82fd2598f2fb3d4fb3f6c87606e5" alt="TikTok" style="width:20px;height:20px;flex:none"><span style="flex:1;min-width:0;font-size:13px;color:#1e293b">TikTok</span><span style="font-size:13px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">27</span></div>
+<div style="display:flex;align-items:center;gap:10px;border-radius:8px;background:#f8fafc;padding:8px 10px"><img src="/_blob/2059102e8af8150fddf31a9c65d3cbc7" alt="Instagram" style="width:20px;height:20px;flex:none"><span style="flex:1;min-width:0;font-size:13px;color:#1e293b">Instagram</span><span style="font-size:13px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">9</span></div>
+<div style="display:flex;align-items:center;gap:10px;border-radius:8px;background:#f8fafc;padding:8px 10px"><img src="/_blob/17dfdfcb88d830b24dda236b7fce7488" alt="Facebook" style="width:20px;height:20px;flex:none"><span style="flex:1;min-width:0;font-size:13px;color:#1e293b">Facebook</span><span style="font-size:13px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">3</span></div>
+<div style="display:flex;align-items:center;gap:10px;border-radius:8px;background:#f8fafc;padding:8px 10px"><span style="width:20px;height:20px;flex:none;border-radius:9999px;background:#009cde;color:#fff;display:grid;place-items:center;font-size:9px;font-weight:600">LI</span><span style="flex:1;min-width:0;font-size:13px;color:#1e293b">LinkedIn</span><span style="font-size:13px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">2</span></div>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;margin:20px 0 8px"><h2 style="margin:0;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.025em;color:#1e293b">Auto-moderation</h2><a href="#" style="font-size:13px;font-weight:500">Edit</a></div>
+<div style="display:grid;gap:10px">
+<label style="display:flex;align-items:center;gap:10px;font-size:14px;color:#1e293b;cursor:pointer"><span style="width:34px;height:20px;flex:none;border-radius:9999px;background:#003087;position:relative"><span style="position:absolute;top:2px;left:16px;width:16px;height:16px;border-radius:9999px;background:#fff"></span></span>Hide phone numbers</label>
+<label style="display:flex;align-items:center;gap:10px;font-size:14px;color:#1e293b;cursor:pointer"><span style="width:34px;height:20px;flex:none;border-radius:9999px;background:#003087;position:relative"><span style="position:absolute;top:2px;left:16px;width:16px;height:16px;border-radius:9999px;background:#fff"></span></span>Hide competitor links</label>
+<label style="display:flex;align-items:center;gap:10px;font-size:14px;color:#1e293b;cursor:pointer"><span style="width:34px;height:20px;flex:none;border-radius:9999px;background:#003087;position:relative"><span style="position:absolute;top:2px;left:16px;width:16px;height:16px;border-radius:9999px;background:#fff"></span></span>Hide abusive language</label>
+<label style="display:flex;align-items:center;gap:10px;font-size:14px;color:#475569;cursor:pointer"><span style="width:34px;height:20px;flex:none;border-radius:9999px;background:#cbd5e1;position:relative"><span style="position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:9999px;background:#fff"></span></span>Auto-answer price questions</label>
+</div>
+<h2 style="margin:20px 0 8px;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.025em;color:#1e293b">Saved replies</h2>
+<div style="display:grid;gap:6px">
+<div style="display:flex;align-items:center;gap:10px;border-radius:8px;background:#f8fafc;padding:8px 10px"><span style="flex:1;min-width:0"><p style="margin:0;font-size:13px;color:#1e293b">Price + COD (Bangla)</p><p style="margin:0;font-size:12px;color:#94a3b8">Used 128 times</p></span><button style="height:26px;border:none;border-radius:9999px;background:#e9eef5;color:#334155;padding:0 10px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef">Use</button></div>
+<div style="display:flex;align-items:center;gap:10px;border-radius:8px;background:#f8fafc;padding:8px 10px"><span style="flex:1;min-width:0"><p style="margin:0;font-size:13px;color:#1e293b">Check your inbox</p><p style="margin:0;font-size:12px;color:#94a3b8">Used 74 times</p></span><button style="height:26px;border:none;border-radius:9999px;background:#e9eef5;color:#334155;padding:0 10px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef">Use</button></div>
+<div style="display:flex;align-items:center;gap:10px;border-radius:8px;background:#f8fafc;padding:8px 10px"><span style="flex:1;min-width:0"><p style="margin:0;font-size:13px;color:#1e293b">Refund timeline</p><p style="margin:0;font-size:12px;color:#94a3b8">Used 31 times</p></span><button style="height:26px;border:none;border-radius:9999px;background:#e9eef5;color:#334155;padding:0 10px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef">Use</button></div>
+</div>
+</sc-if>
+<sc-if value="{{ isInbox }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;align-items:center;gap:12px">
+<img src="/_blob/9f66d32bb99031029a6fbcfd91e221f2" alt="Nusrat Jahan" style="width:44px;height:44px;flex:none;border-radius:9999px;object-fit:cover;object-position:52% 22%">
+<span style="flex:1;min-width:0"><p style="margin:0;display:flex;align-items:center;gap:6px;font-size:15px;font-weight:600;letter-spacing:.025em;color:#1e293b">Nusrat Jahan<span style="display:inline-flex;align-items:center;gap:4px;height:20px;border-radius:9999px;background:rgba(255,152,0,.14);padding:0 8px;font-size:11px;font-weight:600;letter-spacing:.04em;color:#a15f00"><i data-lucide="crown" width="11" height="11"></i>VIP</span><span style="display:inline-flex;align-items:center;height:20px;border-radius:9999px;background:rgba(16,185,129,.12);padding:0 8px;font-size:11px;font-weight:600;letter-spacing:.04em;color:#0f7a5a">14 orders</span><span style="display:inline-flex;align-items:center;height:20px;border-radius:9999px;background:rgba(0,48,135,.08);padding:0 8px;font-size:11px;font-weight:600;letter-spacing:.04em;color:#003087">৳68k LTV</span><span style="display:inline-flex;align-items:center;height:20px;border-radius:9999px;background:rgba(14,165,233,.12);padding:0 8px;font-size:11px;font-weight:600;letter-spacing:.04em;color:#0272a8">Repeat buyer</span></p><p style="margin:1px 0 0;font-size:13px;color:#94a3b8">Customer since Mar 2024</p></span>
+<button style="width:28px;height:28px;display:grid;place-items:center;border:none;border-radius:9999px;background:none;color:#94a3b8;cursor:pointer" style-hover="background:rgba(203,213,225,.2);color:#475569" aria-label="Edit customer"><i data-lucide="pencil" width="16" height="16"></i></button>
+</div>
+<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+<span style="display:inline-flex;height:20px;align-items:center;border-radius:9999px;padding:0 8px;font-size:12px;font-weight:500;background:rgba(240,0,185,.1);color:#c1008f">VIP</span>
+<span style="display:inline-flex;height:20px;align-items:center;border-radius:9999px;padding:0 8px;font-size:12px;font-weight:500;background:rgba(16,185,129,.1);color:#0f7a5a">Repeat</span>
+<span style="display:inline-flex;height:20px;align-items:center;border-radius:9999px;padding:0 8px;font-size:12px;font-weight:500;background:#e9eef5;color:#475569">Dhaka metro</span>
+</div>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:16px">
+<div style="border-radius:12px;background:#f1f5f9;padding:12px"><p style="margin:0;font-size:17px;font-weight:600;color:#334155;font-variant-numeric:tabular-nums">৳84,600</p><p style="margin:2px 0 0;font-size:12px;color:#94a3b8">Lifetime value</p></div>
+<div style="border-radius:12px;background:#f1f5f9;padding:12px"><p style="margin:0;font-size:17px;font-weight:600;color:#334155;font-variant-numeric:tabular-nums">14</p><p style="margin:2px 0 0;font-size:12px;color:#94a3b8">Orders</p></div>
+<div style="border-radius:12px;background:#f1f5f9;padding:12px"><p style="margin:0;font-size:17px;font-weight:600;color:#334155;font-variant-numeric:tabular-nums">৳6,043</p><p style="margin:2px 0 0;font-size:12px;color:#94a3b8">Avg. order</p></div>
+<div style="border-radius:12px;background:#f1f5f9;padding:12px"><p style="margin:0;font-size:17px;font-weight:600;color:#334155;font-variant-numeric:tabular-nums">1</p><p style="margin:2px 0 0;font-size:12px;color:#94a3b8">Returns</p></div>
+</div>
+<h2 style="margin:20px 0 8px;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.025em;color:#1e293b">Contact</h2>
+<div style="display:grid;gap:8px">
+<div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#1e293b"><span style="color:#94a3b8"><i data-lucide="phone" width="16" height="16"></i></span><span style="font-variant-numeric:tabular-nums">+880 1712 345 678</span></div>
+<div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#1e293b"><span style="color:#94a3b8"><i data-lucide="mail" width="16" height="16"></i></span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">nusrat.jahan@gmail.com</span></div>
+<div style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:#1e293b"><span style="color:#94a3b8;padding-top:2px"><i data-lucide="map-pin" width="16" height="16"></i></span><span>House 14, Road 7, Dhanmondi<br>Dhaka 1205</span></div>
+</div>
+<h2 style="margin:20px 0 8px;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.025em;color:#1e293b">Linked channels</h2>
+<div style="display:grid;gap:6px">
+<div style="display:flex;align-items:center;gap:10px;border-radius:8px;background:#f8fafc;padding:8px 10px"><img src="/_blob/2059102e8af8150fddf31a9c65d3cbc7" alt="Instagram" style="width:20px;height:20px;flex:none"><span style="flex:1;min-width:0;font-size:13px;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@nusrat.wears</span><span style="font-size:12px;color:#94a3b8">Primary</span></div>
+<div style="display:flex;align-items:center;gap:10px;border-radius:8px;background:#f8fafc;padding:8px 10px"><img src="/_blob/c55e357bc2f730b6740093422e5af4ca" alt="WhatsApp" style="width:20px;height:20px;flex:none"><span style="flex:1;min-width:0;font-size:13px;color:#1e293b">+880 1712 345 678</span></div>
+<div style="display:flex;align-items:center;gap:10px;border-radius:8px;background:#f8fafc;padding:8px 10px"><img src="/_blob/17dfdfcb88d830b24dda236b7fce7488" alt="Facebook" style="width:20px;height:20px;flex:none"><span style="flex:1;min-width:0;font-size:13px;color:#1e293b">Nusrat Jahan</span></div>
+<button style="display:flex;align-items:center;justify-content:center;gap:6px;height:32px;border:1px dashed #cbd5e1;border-radius:8px;background:none;font-family:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer" style-hover="border-color:#003087;color:#003087">Link another profile</button>
+</div>
+<h2 style="margin:20px 0 8px;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.025em;color:#1e293b">Recent orders</h2>
+<div style="display:grid;gap:6px">
+<div style="display:flex;align-items:center;gap:10px;border-radius:8px;background:#f8fafc;padding:8px 10px"><span style="flex:1;min-width:0"><p style="margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;color:#003087">GC-10482</p><p style="margin:0;font-size:12px;color:#94a3b8">4 Sep 2026 · ৳4,850</p></span><span style="display:inline-flex;height:20px;align-items:center;border-radius:9999px;padding:0 8px;font-size:12px;font-weight:500;background:rgba(14,165,233,.12);color:#0272a8">Shipped</span></div>
+<div style="display:flex;align-items:center;gap:10px;border-radius:8px;background:#f8fafc;padding:8px 10px"><span style="flex:1;min-width:0"><p style="margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;color:#003087">GC-10344</p><p style="margin:0;font-size:12px;color:#94a3b8">18 Aug 2026 · ৳12,400</p></span><span style="display:inline-flex;height:20px;align-items:center;border-radius:9999px;padding:0 8px;font-size:12px;font-weight:500;background:rgba(16,185,129,.1);color:#0f7a5a">Delivered</span></div>
+</div>
+<h2 style="margin:20px 0 8px;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.025em;color:#1e293b">Internal note</h2>
+<textarea rows="3" placeholder="Anything the next agent should know…" style="width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:8px;padding:10px 12px;font-size:14px;color:#1e293b;resize:none">Prefers Bangla replies. Asked about bulk pricing for 20+ pieces — follow up before Eid.</textarea>
+<div style="display:flex;gap:8px;margin-top:14px">
+<button style="flex:1;height:36px;border:none;border-radius:8px;background:rgba(0,48,135,.1);color:#003087;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer" style-hover="background:rgba(0,48,135,.2)">New order</button>
+<button style="flex:1;height:36px;border:none;border-radius:8px;background:#e9eef5;color:#334155;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer" style-hover="background:#dde5ef">Full profile</button>
+</div>
+</sc-if>
+</aside>
+</sc-if>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1512,&quot;height&quot;:940},&quot;view&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;inbox&quot;,&quot;comments&quot;],&quot;default&quot;:&quot;inbox&quot;,&quot;tsType&quot;:&quot;'inbox' | 'comments'&quot;,&quot;section&quot;:&quot;Behaviour&quot;},&quot;language&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;en&quot;,&quot;bn&quot;],&quot;default&quot;:&quot;en&quot;,&quot;tsType&quot;:&quot;'en' | 'bn'&quot;,&quot;section&quot;:&quot;Behaviour&quot;},&quot;ticketForm&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behaviour&quot;},&quot;customerPanel&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behaviour&quot;}}">
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { view: props.view === 'comments' ? 'comments' : 'inbox', lang: props.language === 'bn' ? 'bn' : 'en', crm: props.customerPanel !== false, composer: 'reply', ticket: props.ticketForm === true };
+  }
+  componentDidMount() { this.paint(); }
+  componentDidUpdate() { this.paint(); }
+  paint() {
+    const go = () => { if (window.lucide && window.lucide.createIcons) window.lucide.createIcons({ attrs: { width: 20, height: 20, 'stroke-width': 1.75 } }); };
+    go(); setTimeout(go, 400); setTimeout(go, 1200);
+  }
+  renderVals() {
+    const inbox = this.state.view === 'inbox', bn = this.state.lang === 'bn', reply = this.state.composer === 'reply';
+    return {
+      isInbox: inbox, isComments: !inbox, bangla: bn, english: !bn, showCrm: this.state.crm, isReply: reply, isNote: !reply, ticketOpen: this.state.ticket,
+      openTicket: () => this.setState({ view: 'inbox', ticket: true }),
+      closeTicket: () => this.setState({ ticket: false }),
+      openInbox: () => this.setState({ view: 'inbox' }),
+      openComments: () => this.setState({ view: 'comments' }),
+      setEn: () => this.setState({ lang: 'en' }), setBn: () => this.setState({ lang: 'bn' }),
+      setReply: () => this.setState({ composer: 'reply' }), setNote: () => this.setState({ composer: 'note' }),
+      toggleCrm: () => this.setState(s => ({ crm: !s.crm }))
+    };
+  }
+}
+</script>
+</body>
+</html>

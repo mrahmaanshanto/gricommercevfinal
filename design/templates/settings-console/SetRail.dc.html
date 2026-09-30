@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script><script src="../_shell/gc-topbar.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><script src="./ds-base.js"></script><script src="/_blob/1840c8d9327e1d872bcd8bc9a4590a5a"></script></helmet>
+<nav aria-label="Settings sections" style="width:272px;flex:none;height:100%;display:flex;flex-direction:column;border-right:1px solid #e2e8f0;background:#fff;font-family:Poppins,ui-sans-serif,system-ui,sans-serif">
+<div style="flex:none;display:flex;flex-direction:column;gap:10px;padding:16px 14px 12px"> <a href="../merchant-overview/MerchantOverview.dc.html" style="display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px;margin-left:-6px;border-radius:8px;font-size:13px;font-weight:500;color:#003087;text-decoration:none;align-self:flex-start" style-hover="background:rgba(0,48,135,.06)"><i data-lucide="arrow-left" width="15" height="15"></i>Back to dashboard</a>
+<div style="display:flex;align-items:center;gap:8px">
+<span style="font-size:15px;font-weight:600;letter-spacing:.015em;color:#1e293b">Settings</span>
+<button aria-label="Collapse settings nav" style="margin-left:auto;width:28px;height:28px;flex:none;display:grid;place-items:center;border:none;border-radius:7px;background:none;color:#94a3b8;cursor:pointer" style-hover="background:#f1f5f9;color:#475569"><i data-lucide="panel-left-close" width="16" height="16"></i></button>
+</div>
+<label style="display:flex;align-items:center;gap:8px;height:38px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 10px;color:#94a3b8;cursor:text" style-hover="border-color:#94a3b8"><i data-lucide="search" width="16" height="16"></i><span style="flex:1;font-size:13px">Search all settings</span><span style="display:inline-flex;height:20px;align-items:center;border-radius:5px;border:1px solid #e2e8f0;background:#f8fafc;padding:0 5px;font-size:10.5px;font-weight:500;color:#64748b">⌘/</span></label>
+<span style="font-size:11.5px;line-height:16px;color:#64748b">Matches individual fields across all 23 tabs — try “timezone”, “bKash” or “S3”.</span>
+</div>
+<div ref="{{ scroller }}" style="flex:1;min-height:0;overflow:auto;padding:0 10px 12px">
+<sc-for list="{{ groups }}" as="g" hint-placeholder-count="5">
+<div style="display:flex;flex-direction:column;gap:1px;padding-bottom:10px">
+<button style="display:flex;align-items:center;gap:5px;height:28px;border:none;background:none;padding:0 6px;font-family:inherit;font-size:10.5px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:#94a3b8;cursor:pointer" style-hover="color:#475569"><i data-lucide="chevron-down" width="13" height="13"></i>{{ g.label }}<span style="margin-left:auto;letter-spacing:.02em;font-weight:500;color:#cbd5e1">{{ g.count }}</span></button>
+<sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+<sc-if value="{{ it.inactive }}" hint-placeholder-val="{{ true }}">
+<a href="#" data-row="{{ it.id }}" style="display:flex;align-items:center;gap:9px;height:32px;border-radius:8px;padding:0 9px;font-size:13px;font-weight:400;letter-spacing:.005em;text-decoration:none;background:none;color:#475569" style-hover="background:#f1f5f9;color:#1e293b"><sc-if value="{{ it.ok }}" hint-placeholder-val="{{ true }}"><span style="flex:none;width:7px;height:7px;border-radius:9999px;background:#10b981"></span></sc-if><sc-if value="{{ it.warn }}" hint-placeholder-val="{{ false }}"><span style="flex:none;width:7px;height:7px;border-radius:9999px;background:#ff9800"></span></sc-if><sc-if value="{{ it.quiet }}" hint-placeholder-val="{{ false }}"><span style="flex:none;box-sizing:border-box;width:7px;height:7px;border-radius:9999px;border:1.5px solid #cbd5e1"></span></sc-if><sc-if value="{{ it.none }}" hint-placeholder-val="{{ false }}"><span style="flex:none;width:7px;height:7px"></span></sc-if><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ it.name }}</span><sc-if value="{{ it.badge }}" hint-placeholder-val="{{ false }}"><span style="flex:none;display:inline-flex;height:18px;align-items:center;border-radius:9999px;background:rgba(255,152,0,.16);padding:0 6px;font-size:10px;font-weight:600;color:#b36a00">{{ it.badge }}</span></sc-if></a>
+</sc-if>
+<sc-if value="{{ it.active }}" hint-placeholder-val="{{ false }}">
+<a href="#" data-row="{{ it.id }}" style="display:flex;align-items:center;gap:9px;height:32px;border-radius:8px;padding:0 9px;font-size:13px;font-weight:600;letter-spacing:.005em;text-decoration:none;background:rgba(0,48,135,.1);color:#003087"><sc-if value="{{ it.ok }}" hint-placeholder-val="{{ true }}"><span style="flex:none;width:7px;height:7px;border-radius:9999px;background:#10b981"></span></sc-if><sc-if value="{{ it.warn }}" hint-placeholder-val="{{ false }}"><span style="flex:none;width:7px;height:7px;border-radius:9999px;background:#ff9800"></span></sc-if><sc-if value="{{ it.quiet }}" hint-placeholder-val="{{ false }}"><span style="flex:none;box-sizing:border-box;width:7px;height:7px;border-radius:9999px;border:1.5px solid #cbd5e1"></span></sc-if><sc-if value="{{ it.none }}" hint-placeholder-val="{{ false }}"><span style="flex:none;width:7px;height:7px"></span></sc-if><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ it.name }}</span><sc-if value="{{ it.badge }}" hint-placeholder-val="{{ false }}"><span style="flex:none;display:inline-flex;height:18px;align-items:center;border-radius:9999px;background:rgba(255,152,0,.16);padding:0 6px;font-size:10px;font-weight:600;color:#b36a00">{{ it.badge }}</span></sc-if></a>
+</sc-if>
+</sc-for>
+</div>
+</sc-for>
+</div>
+<div style="flex:none;display:flex;flex-wrap:wrap;gap:4px 12px;border-top:1px solid #e2e8f0;padding:10px 14px;font-size:11px;color:#64748b">
+<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:9999px;background:#10b981"></span>Configured</span>
+<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:9999px;background:#ff9800"></span>Needs setup</span>
+<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:9999px;border:1.5px solid #cbd5e1"></span>Turned off</span>
+</div>
+</nav>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:272,&quot;height&quot;:880},&quot;active&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;general&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  constructor(p) { super(p); this.scroller = React.createRef(); }
+  componentDidMount() { this.paint(); this.reveal(); }
+  componentDidUpdate() { this.paint(); }
+  paint() {
+    const go = () => { if (window.lucide && window.lucide.createIcons) window.lucide.createIcons({ attrs: { 'stroke-width': 1.75 } }); };
+    go(); setTimeout(go, 300); setTimeout(go, 900); setTimeout(go, 2500);
+  }
+  reveal() {
+    const run = () => {
+      const box = this.scroller.current; if (!box) return;
+      const row = box.querySelector('[data-row="' + (this.props.active || 'general') + '"]');
+      if (row) box.scrollTop = Math.max(0, row.offsetTop - 150);
+    };
+    setTimeout(run, 120); setTimeout(run, 600);
+  }
+  renderVals() {
+    const active = this.props.active || 'general';
+    const raw = [
+      ['Store', [['general', 'General', 'ok'], ['preference', 'Preference', 'ok'], ['pos', 'POS', 'ok'], ['report', 'Report Settings', 'none']]],
+      ['Commerce', [['payment', 'Payment Gateway', 'ok'], ['delivery', 'Delivery Settings', 'ok'], ['courier', 'Courier Settings', 'warn', '1']]],
+      ['Communication', [['mail', 'Mail', 'ok'], ['sms', 'SMS', 'warn', '1'], ['push', 'Push Notifications', 'off'], ['social', 'Social Integrations', 'ok'], ['ai', 'AI Auto-Reply', 'ok'], ['rules', 'Auto-Reply Rules', 'ok'], ['usage', 'AI Usage', 'none']]],
+      ['Discovery', [['seo', 'SEO', 'ok'], ['smart', 'Smart Search', 'ok'], ['imgsearch', 'Image Search', 'off']]],
+      ['Platform', [['storage', 'Storage', 'warn', '1'], ['realtime', 'Realtime (Websocket)', 'ok'], ['apisec', 'API Security', 'ok'], ['recaptcha', 'Recaptcha', 'off'], ['dbbackup', 'Database Backup', 'ok'], ['filebackup', 'File Backup', 'warn', '1']]]
+    ];
+    return {
+      scroller: this.scroller,
+      groups: raw.map(([label, items]) => ({
+        label, count: items.length,
+        items: items.map(([id, name, dot, badge]) => ({
+          id, name, badge: badge || false,
+          ok: dot === 'ok', warn: dot === 'warn', quiet: dot === 'off', none: dot === 'none',
+          active: id === active, inactive: id !== active
+        }))
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

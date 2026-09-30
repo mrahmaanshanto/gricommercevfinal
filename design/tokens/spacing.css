@@ -1,0 +1,48 @@
+/* 4px base unit — v2 "airy" rhythm. Roomier padding, wider gaps, taller controls.
+   Page gutter, shell widths and nav metrics are variables that respond to breakpoint. */
+:root{
+  --space-0:0;
+  --space-1:4px;
+  --space-1-5:6px;
+  --space-2:8px;
+  --space-2-5:10px;
+  --space-3:12px;
+  --space-3-5:14px;
+  --space-4:16px;
+  --space-5:20px;
+  --space-6:24px;
+  --space-7:28px;
+  --space-8:32px;
+  --space-10:40px;
+  --space-12:48px;
+  --space-16:64px;
+  --space-20:80px;
+  --space-24:96px;
+
+  /* application shell — two floating cards on a desk */
+  --shell-inset:12px;            /* desk gutter + gap between sidebar and main card */
+  --main-sidebar-width:76px;     /* collapsed icon rail */
+  --sidebar-panel-width:280px;   /* expanded nav panel */
+  --sidebar-panel-min-width:76px;
+  --header-height:72px;
+  --margin-x:24px;               /* page gutter inside the main card */
+
+  /* sidebar nav metrics */
+  --nav-pad-x:12px;              /* sidebar card inner gutter */
+  --nav-row-height:40px;
+  --nav-row-gap:2px;
+  --nav-group-gap:28px;
+  --nav-icon:18px;
+
+  /* component rhythm */
+  --card-padding:24px;
+  --card-padding-lg:28px;
+  --grid-gap:20px;
+  --grid-gap-lg:28px;
+  --section-gap:40px;            /* vertical rhythm between page sections */
+  --stack-gap:24px;              /* between cards inside a section */
+  --control-height:44px;         /* input / select / textarea row */
+  --table-cell-y:16px;
+}
+@media (min-width:48rem){:root{--margin-x:36px}}
+@media (min-width:80rem){:root{--margin-x:64px}}

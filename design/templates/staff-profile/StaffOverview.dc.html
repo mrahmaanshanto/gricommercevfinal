@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script><script src="../_shell/gc-topbar.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><script src="./ds-base.js"></script><script src="/_blob/1840c8d9327e1d872bcd8bc9a4590a5a"></script></helmet>
+<div style="width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start;font-family:Poppins,'Hind Siliguri',ui-sans-serif,system-ui,sans-serif;color:#475569">
+<section style="grid-column:span 2;display:flex;flex-direction:column;gap:14px;border-radius:8px;background:#fff;padding:18px 20px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)">
+<div style="display:flex;align-items:center;gap:10px">
+<h2 style="margin:0;flex:1;font-size:15px;line-height:22px;font-weight:600;letter-spacing:.025em;color:#1e293b">{{ t.accessTitle }}</h2>
+<button type="button" onClick="{{ toAccess }}" style="display:inline-flex;align-items:center;gap:6px;height:30px;border:none;border-radius:8px;background:rgba(0,48,135,.1);padding:0 11px;font-family:inherit;font-size:12.5px;font-weight:500;letter-spacing:.025em;color:#003087;cursor:pointer" style-hover="background:rgba(0,48,135,.2)">{{ t.manage }}<i data-lucide="arrow-right" width="14" height="14"></i></button>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+<div style="border-radius:8px;background:#f8fafc;padding:11px 12px"><p style="margin:0;font-size:12px;font-weight:500;letter-spacing:.025em;color:#64748b">{{ t.role }}</p><p style="margin:3px 0 0;font-size:13.5px;font-weight:600;color:#1e293b">{{ t.cashier }}</p></div>
+<div style="border-radius:8px;background:#f8fafc;padding:11px 12px"><p style="margin:0;font-size:12px;font-weight:500;letter-spacing:.025em;color:#64748b">{{ t.branchScope }}</p><p style="margin:3px 0 0;font-size:13.5px;font-weight:600;color:#1e293b">{{ t.oneBranch }}</p></div>
+<div style="border-radius:8px;background:#f8fafc;padding:11px 12px"><p style="margin:0;font-size:12px;font-weight:500;letter-spacing:.025em;color:#64748b">{{ t.twoFactor }}</p><p style="margin:3px 0 0;display:flex;align-items:center;gap:5px;font-size:13.5px;font-weight:600;color:#047857"><i data-lucide="shield-check" width="14" height="14"></i>{{ t.on }}</p></div>
+<div style="border-radius:8px;background:#f8fafc;padding:11px 12px"><p style="margin:0;font-size:12px;font-weight:500;letter-spacing:.025em;color:#64748b">{{ t.overrides }}</p><p style="margin:3px 0 0;font-size:13.5px;font-weight:600;color:#1e293b">{{ t.twoOverrides }}</p></div>
+</div>
+</section>
+<section style="display:flex;flex-direction:column;gap:12px;border-radius:8px;background:#fff;padding:18px 20px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:600;letter-spacing:.025em;color:#1e293b">{{ t.shiftToday }}</h2>
+<div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:22px;font-weight:700;letter-spacing:-.025em;color:#1e293b">10:00 – 18:00</span><span style="font-size:13px;font-weight:500;color:#64748b">{{ t.morning }}</span></div>
+<dl style="margin:0;display:flex;flex-direction:column;gap:8px;font-size:13px">
+<div style="display:flex;align-items:center;gap:8px"><dt style="margin:0;flex:1;color:#64748b">{{ t.grace }}</dt><dd style="margin:0;font-weight:500;color:#1e293b">{{ t.tenMin }}</dd></div>
+<div style="display:flex;align-items:center;gap:8px"><dt style="margin:0;flex:1;color:#64748b">{{ t.weeklyOff }}</dt><dd style="margin:0;font-weight:500;color:#1e293b">{{ t.friday }}</dd></div>
+<div style="display:flex;align-items:center;gap:8px"><dt style="margin:0;flex:1;color:#64748b">{{ t.checkInMethod }}</dt><dd style="margin:0;font-weight:500;color:#1e293b">{{ t.posPin }}</dd></div>
+<div style="display:flex;align-items:center;gap:8px"><dt style="margin:0;flex:1;color:#64748b">{{ t.breakTime }}</dt><dd style="margin:0;font-weight:500;color:#1e293b">13:30 – 14:00</dd></div>
+</dl>
+<button type="button" onClick="{{ toAttendance }}" style="display:inline-flex;align-items:center;justify-content:center;gap:7px;height:36px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;font-family:inherit;font-size:13.5px;font-weight:500;letter-spacing:.025em;color:#475569;cursor:pointer" style-hover="background:#f1f5f9"><i data-lucide="repeat" width="15" height="15"></i>{{ t.changeShift }}</button>
+</section>
+<section style="grid-column:span 2;display:flex;flex-direction:column;gap:14px;border-radius:8px;background:#fff;padding:18px 20px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)">
+<div style="display:flex;align-items:center;gap:10px">
+<h2 style="margin:0;flex:1;font-size:15px;line-height:22px;font-weight:600;letter-spacing:.025em;color:#1e293b">{{ t.attTitle }}</h2>
+<span style="font-size:12.5px;font-weight:500;color:#64748b">01 – 16 Sep 2026</span>
+</div>
+<sc-if value="{{ hasData }}" hint-placeholder-val="{{ true }}">
+<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px">
+<div style="display:flex;flex-direction:column;gap:5px;border-radius:8px;background:#f8fafc;padding:12px 13px">
+<span style="display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(16,185,129,.12);color:#047857"><i data-lucide="check" width="15" height="15"></i></span>
+<span style="font-size:20px;font-weight:700;letter-spacing:-.02em;color:#1e293b;font-variant-numeric:tabular-nums">12</span>
+<span style="font-size:12px;font-weight:500;letter-spacing:.025em;color:#64748b">{{ t.present }}</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:5px;border-radius:8px;background:#f8fafc;padding:12px 13px">
+<span style="display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(255,152,0,.14);color:#b45309"><i data-lucide="clock" width="15" height="15"></i></span>
+<span style="font-size:20px;font-weight:700;letter-spacing:-.02em;color:#1e293b;font-variant-numeric:tabular-nums">1</span>
+<span style="font-size:12px;font-weight:500;letter-spacing:.025em;color:#64748b">{{ t.late }}</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:5px;border-radius:8px;background:#f8fafc;padding:12px 13px">
+<span style="display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(255,87,36,.1);color:#c2410c"><i data-lucide="x" width="15" height="15"></i></span>
+<span style="font-size:20px;font-weight:700;letter-spacing:-.02em;color:#1e293b;font-variant-numeric:tabular-nums">0</span>
+<span style="font-size:12px;font-weight:500;letter-spacing:.025em;color:#64748b">{{ t.absent }}</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:5px;border-radius:8px;background:#f8fafc;padding:12px 13px">
+<span style="display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(0,156,222,.12);color:#0089c3"><i data-lucide="palmtree" width="15" height="15"></i></span>
+<span style="font-size:20px;font-weight:700;letter-spacing:-.02em;color:#1e293b;font-variant-numeric:tabular-nums">1</span>
+<span style="font-size:12px;font-weight:500;letter-spacing:.025em;color:#64748b">{{ t.leaveWord }}</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:5px;border-radius:8px;background:#f8fafc;padding:12px 13px">
+<span style="display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(0,48,135,.1);color:#003087"><i data-lucide="timer" width="15" height="15"></i></span>
+<span style="font-size:20px;font-weight:700;letter-spacing:-.02em;color:#1e293b;font-variant-numeric:tabular-nums">3.5</span>
+<span style="font-size:12px;font-weight:500;letter-spacing:.025em;color:#64748b">{{ t.overtimeHours }}</span>
+</div>
+</div>
+<div>
+<div style="display:flex;align-items:center;gap:4px;overflow:auto;padding-bottom:2px">
+<div title="{{ t.present }} · 01 Sep" style="display:flex;flex-direction:column;align-items:center;gap:4px;width:34px;flex:none;border-radius:8px;background:rgba(16,185,129,.08);padding:6px 0"><span style="font-size:10.5px;font-weight:500;color:#94a3b8">Tu</span><span style="font-size:12.5px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">01</span><i data-lucide="check" width="13" height="13" style="color:#047857"></i></div>
+<div title="{{ t.present }} · 02 Sep" style="display:flex;flex-direction:column;align-items:center;gap:4px;width:34px;flex:none;border-radius:8px;background:rgba(16,185,129,.08);padding:6px 0"><span style="font-size:10.5px;font-weight:500;color:#94a3b8">We</span><span style="font-size:12.5px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">02</span><i data-lucide="check" width="13" height="13" style="color:#047857"></i></div>
+<div title="{{ t.late }} · 03 Sep" style="display:flex;flex-direction:column;align-items:center;gap:4px;width:34px;flex:none;border-radius:8px;background:rgba(255,152,0,.1);padding:6px 0"><span style="font-size:10.5px;font-weight:500;color:#94a3b8">Th</span><span style="font-size:12.5px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">03</span><i data-lucide="clock" width="13" height="13" style="color:#b45309"></i></div>
+<div title="{{ t.weeklyOffWord }} · 04 Sep" style="display:flex;flex-direction:column;align-items:center;gap:4px;width:34px;flex:none;border-radius:8px;background:#f8fafc;padding:6px 0"><span style="font-size:10.5px;font-weight:500;color:#94a3b8">Fr</span><span style="font-size:12.5px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">04</span><i data-lucide="minus" width="13" height="13" style="color:#94a3b8"></i></div>
+<div title="{{ t.present }} · 05 Sep" style="display:flex;flex-direction:column;align-items:center;gap:4px;width:34px;flex:none;border-radius:8px;background:rgba(16,185,129,.08);padding:6px 0"><span style="font-size:10.5px;font-weight:500;color:#94a3b8">Sa</span><span style="font-size:12.5px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">05</span><i data-lucide="check" width="13" height="13" style="color:#047857"></i></div>
+<div title="{{ t.present }} · 06 Sep" style="display:flex;flex-direction:column;align-items:center;gap:4px;width:34px;flex:none;border-radius:8px;background:rgba(16,185,129,.08);padding:6px 0"><span style="font-size:10.5px;font-weight:500;color:#94a3b8">Su</span><span style="font-size:12.5px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">06</span><i data-lucide="check" width="13" height="13" style="color:#047857"></i></div>
+<div title="{{ t.present }} · 07 Sep" style="display:flex;flex-direction:column;align-items:center;gap:4px;width:34px;flex:none;border-radius:8px;background:rgba(16,185,129,.08);padding:6px 0"><span style="font-size:10.5px;font-weight:500;color:#94a3b8">Mo</span><span style="font-size:12.5px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">07</span><i data-lucide="check" width="13" height="13" style="color:#047857"></i></div>
+<div title="{{ t.present }} · 08 Sep" style="display:flex;flex-direction:column;align-items:center;gap:4px;width:34px;flex:none;border-radius:8px;background:rgba(16,185,129,.08);padding:6px 0"><span style="font-size:10.5px;font-weight:500;color:#94a3b8">Tu</span><span style="font-size:12.5px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">08</span><i data-lucide="check" width="13" height="13" style="color:#047857"></i></div>
+<div title="{{ t.leaveWord }} · 09 Sep" style="display:flex;flex-direction:column;align-items:center;gap:4px;width:34px;flex:none;border-radius:8px;background:rgba(0,156,222,.1);padding:6px 0"><span style="font-size:10.5px;font-weight:500;color:#94a3b8">We</span><span style="font-size:12.5px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">09</span><i data-lucide="palmtree" width="13" height="13" style="color:#0089c3"></i></div>
+<div title="{{ t.present }} · 10 Sep" style="display:flex;flex-direction:column;align-items:center;gap:4px;width:34px;flex:none;border-radius:8px;background:rgba(16,185,129,.08);padding:6px 0"><span style="font-size:10.5px;font-weight:500;color:#94a3b8">Th</span><span style="font-size:12.5px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">10</span><i data-lucide="check" width="13" height="13" style="color:#047857"></i></div>
+<div title="{{ t.weeklyOffWord }} · 11 Sep" style="display:flex;flex-direction:column;align-items:center;gap:4px;width:34px;flex:none;border-radius:8px;background:#f8fafc;padding:6px 0"><span style="font-size:10.5px;font-weight:500;color:#94a3b8">Fr</span><span style="font-size:12.5px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">11</span><i data-lucide="minus" width="13" height="13" style="color:#94a3b8"></i></div>
+<div title="{{ t.present }} · 12 Sep" style="display:flex;flex-direction:column;align-items:center;gap:4px;width:34px;flex:none;border-radius:8px;background:rgba(16,185,129,.08);padding:6px 0"><span style="font-size:10.5px;font-weight:500;color:#94a3b8">Sa</span><span style="font-size:12.5px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">12</span><i data-lucide="check" width="13" height="13" style="color:#047857"></i></div>
+<div title="{{ t.present }} · 13 Sep" style="display:flex;flex-direction:column;align-items:center;gap:4px;width:34px;flex:none;border-radius:8px;background:rgba(16,185,129,.08);padding:6px 0"><span style="font-size:10.5px;font-weight:500;color:#94a3b8">Su</span><span style="font-size:12.5px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">13</span><i data-lucide="check" width="13" height="13" style="color:#047857"></i></div>
+<div title="{{ t.present }} · 14 Sep" style="display:flex;flex-direction:column;align-items:center;gap:4px;width:34px;flex:none;border-radius:8px;background:rgba(16,185,129,.08);padding:6px 0"><span style="font-size:10.5px;font-weight:500;color:#94a3b8">Mo</span><span style="font-size:12.5px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">14</span><i data-lucide="check" width="13" height="13" style="color:#047857"></i></div>
+<div title="{{ t.present }} · 15 Sep" style="display:flex;flex-direction:column;align-items:center;gap:4px;width:34px;flex:none;border-radius:8px;background:rgba(16,185,129,.08);padding:6px 0"><span style="font-size:10.5px;font-weight:500;color:#94a3b8">Tu</span><span style="font-size:12.5px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">15</span><i data-lucide="check" width="13" height="13" style="color:#047857"></i></div>
+<div title="{{ t.present }} · 16 Sep" style="display:flex;flex-direction:column;align-items:center;gap:4px;width:34px;flex:none;border-radius:8px;background:rgba(16,185,129,.08);padding:6px 0"><span style="font-size:10.5px;font-weight:500;color:#94a3b8">We</span><span style="font-size:12.5px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">16</span><i data-lucide="check" width="13" height="13" style="color:#047857"></i></div>
+</div>
+<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:10px">
+<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#64748b"><i data-lucide="check" width="13" height="13" style="color:#047857"></i>{{ t.present }}</span>
+<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#64748b"><i data-lucide="clock" width="13" height="13" style="color:#b45309"></i>{{ t.late }}</span>
+<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#64748b"><i data-lucide="x" width="13" height="13" style="color:#c2410c"></i>{{ t.absent }}</span>
+<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#64748b"><i data-lucide="palmtree" width="13" height="13" style="color:#0089c3"></i>{{ t.leaveWord }}</span>
+<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#64748b"><i data-lucide="minus" width="13" height="13" style="color:#94a3b8"></i>{{ t.weeklyOffWord }}</span>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ noData }}">
+<div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:34px 12px;text-align:center">
+<span style="display:grid;place-items:center;width:56px;height:56px;border-radius:16px;background:#f1f5f9;color:#94a3b8"><i data-lucide="calendar-off" width="26" height="26"></i></span>
+<p style="margin:0;font-size:14px;font-weight:600;color:#1e293b">{{ t.emptyAttTitle }}</p>
+<p style="margin:0;max-width:380px;font-size:13px;line-height:20px;color:#64748b;text-wrap:pretty">{{ t.emptyAttBody }}</p>
+<button type="button" onClick="{{ toAttendance }}" style="height:36px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:0 14px;font-family:inherit;font-size:13.5px;font-weight:500;letter-spacing:.025em;color:#475569;cursor:pointer" style-hover="background:#f1f5f9">{{ t.assignShift }}</button>
+</div>
+</sc-if>
+</section>
+<section style="display:flex;flex-direction:column;gap:14px;border-radius:8px;background:#fff;padding:18px 20px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)">
+<div style="display:flex;align-items:center;gap:10px">
+<h2 style="margin:0;flex:1;font-size:15px;line-height:22px;font-weight:600;letter-spacing:.025em;color:#1e293b">{{ t.leaveTitle }}</h2>
+<span style="font-size:12px;font-weight:500;color:#64748b">2026</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:11px">
+<div>
+<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:5px"><span style="flex:1;font-size:13px;font-weight:500;color:#1e293b">{{ t.casual }}</span><span style="font-size:12.5px;font-weight:600;color:#475569;font-variant-numeric:tabular-nums">{{ t.casualLeft }}</span></div>
+<div style="height:7px;border-radius:9999px;background:#e9eef5;overflow:hidden"><div style="height:100%;width:60%;border-radius:9999px;background:#003087"></div></div>
+</div>
+<div>
+<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:5px"><span style="flex:1;font-size:13px;font-weight:500;color:#1e293b">{{ t.sick }}</span><span style="font-size:12.5px;font-weight:600;color:#475569;font-variant-numeric:tabular-nums">{{ t.sickLeft }}</span></div>
+<div style="height:7px;border-radius:9999px;background:#e9eef5;overflow:hidden"><div style="height:100%;width:86%;border-radius:9999px;background:#009CDE"></div></div>
+</div>
+<div>
+<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:5px"><span style="flex:1;font-size:13px;font-weight:500;color:#1e293b">{{ t.annual }}</span><span style="font-size:12.5px;font-weight:600;color:#475569;font-variant-numeric:tabular-nums">{{ t.annualLeft }}</span></div>
+<div style="height:7px;border-radius:9999px;background:#e9eef5;overflow:hidden"><div style="height:100%;width:100%;border-radius:9999px;background:#10b981"></div></div>
+</div>
+</div>
+<div style="height:1px;background:#e2e8f0"></div>
+<p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.025em;color:#64748b">{{ t.pending }}</p>
+<sc-if value="{{ hasPending }}">
+<div style="border-radius:8px;background:#f8fafc;padding:12px 13px">
+<p style="margin:0;font-size:13px;font-weight:600;color:#1e293b">{{ t.reqDates }}</p>
+<p style="margin:2px 0 0;font-size:12.5px;color:#64748b;text-wrap:pretty">{{ t.reqDetail }}</p>
+<sc-if value="{{ reqOpen }}">
+<div style="display:flex;align-items:center;gap:8px;margin-top:10px">
+<button type="button" onClick="{{ approve }}" style="flex:1;height:32px;border:none;border-radius:8px;background:#003087;font-family:inherit;font-size:13px;font-weight:500;letter-spacing:.025em;color:#fff;cursor:pointer" style-hover="background:#002a77">{{ t.approve }}</button>
+<button type="button" onClick="{{ reject }}" style="flex:1;height:32px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;font-family:inherit;font-size:13px;font-weight:500;letter-spacing:.025em;color:#475569;cursor:pointer" style-hover="background:#f1f5f9">{{ t.reject }}</button>
+</div>
+</sc-if>
+<sc-if value="{{ reqApproved }}">
+<span style="display:inline-flex;align-items:center;gap:5px;margin-top:10px;height:24px;border-radius:9999px;background:rgba(16,185,129,.12);padding:0 9px;font-size:12px;font-weight:600;color:#047857"><i data-lucide="check" width="13" height="13"></i>{{ t.approved }}</span>
+</sc-if>
+<sc-if value="{{ reqRejected }}">
+<span style="display:inline-flex;align-items:center;gap:5px;margin-top:10px;height:24px;border-radius:9999px;background:rgba(255,87,36,.1);padding:0 9px;font-size:12px;font-weight:600;color:#c2410c"><i data-lucide="x" width="13" height="13"></i>{{ t.rejected }}</span>
+</sc-if>
+</div>
+</sc-if>
+<sc-if value="{{ noPending }}">
+<div style="display:flex;align-items:center;gap:10px;border-radius:8px;background:#f8fafc;padding:14px 13px">
+<i data-lucide="inbox" width="20" height="20" style="flex:none;color:#94a3b8"></i>
+<p style="margin:0;font-size:12.5px;line-height:18px;color:#64748b;text-wrap:pretty">{{ t.emptyLeave }}</p>
+</div>
+</sc-if>
+</section>
+<section style="display:flex;flex-direction:column;gap:14px;border-radius:8px;background:#fff;padding:18px 20px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)">
+<div style="display:flex;align-items:center;gap:10px">
+<h2 style="margin:0;flex:1;font-size:15px;line-height:22px;font-weight:600;letter-spacing:.025em;color:#1e293b">{{ t.salaryTitle }}</h2>
+<sc-if value="{{ locked }}"><span style="display:inline-flex;align-items:center;gap:5px;height:22px;border-radius:9999px;background:#e9eef5;padding:0 9px;font-size:11.5px;font-weight:600;color:#475569"><i data-lucide="lock" width="12" height="12"></i>{{ t.restricted }}</span></sc-if>
+</div>
+<sc-if value="{{ unlocked }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;align-items:flex-end;gap:14px">
+<div><p style="margin:0;font-size:12px;font-weight:500;letter-spacing:.025em;color:#64748b">{{ t.gross }}</p><p style="margin:2px 0 0;font-size:24px;font-weight:700;letter-spacing:-.025em;color:#1e293b;font-variant-numeric:tabular-nums">৳22,000</p></div>
+<div style="padding-bottom:4px"><p style="margin:0;font-size:12px;font-weight:500;letter-spacing:.025em;color:#64748b">{{ t.net }}</p><p style="margin:2px 0 0;font-size:16px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">৳20,150</p></div>
+</div>
+<dl style="margin:0;display:flex;flex-direction:column;gap:8px;font-size:13px">
+<div style="display:flex;align-items:center;gap:8px"><dt style="margin:0;flex:1;color:#64748b">{{ t.nextPay }}</dt><dd style="margin:0;font-weight:500;color:#1e293b">01 Oct 2026</dd></div>
+<div style="display:flex;align-items:center;gap:8px"><dt style="margin:0;flex:1;color:#64748b">{{ t.method }}</dt><dd style="margin:0;display:flex;align-items:center;gap:6px;font-weight:500;color:#1e293b"><i data-lucide="smartphone" width="14" height="14" style="color:#64748b"></i>bKash · 01712-XXXXXX</dd></div>
+<div style="display:flex;align-items:center;gap:8px"><dt style="margin:0;flex:1;color:#64748b">{{ t.advance }}</dt><dd style="margin:0;font-weight:500;color:#b45309;font-variant-numeric:tabular-nums">৳4,000 · ৳1,000/{{ t.mo }}</dd></div>
+</dl>
+<button type="button" onClick="{{ toSalary }}" style="display:inline-flex;align-items:center;justify-content:center;gap:7px;height:36px;border:none;border-radius:8px;background:rgba(0,48,135,.1);font-family:inherit;font-size:13.5px;font-weight:500;letter-spacing:.025em;color:#003087;cursor:pointer" style-hover="background:rgba(0,48,135,.2)">{{ t.openPayroll }}<i data-lucide="arrow-right" width="15" height="15"></i></button>
+</div>
+</sc-if>
+<sc-if value="{{ locked }}">
+<div style="display:flex;flex-direction:column;align-items:center;gap:9px;border-radius:8px;background:#f8fafc;padding:26px 16px;text-align:center">
+<span style="display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:#e9eef5;color:#64748b"><i data-lucide="lock" width="21" height="21"></i></span>
+<p style="margin:0;font-size:13.5px;font-weight:600;color:#1e293b">{{ t.lockTitle }}</p>
+<p style="margin:0;max-width:260px;font-size:12.5px;line-height:19px;color:#64748b;text-wrap:pretty">{{ t.lockBody }}</p>
+<button type="button" style="height:32px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:0 13px;font-family:inherit;font-size:12.5px;font-weight:500;letter-spacing:.025em;color:#475569;cursor:pointer" style-hover="background:#f1f5f9">{{ t.requestAccess }}</button>
+</div>
+</sc-if>
+</section>
+<section style="display:flex;flex-direction:column;gap:14px;border-radius:8px;background:#fff;padding:18px 20px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)">
+<div style="display:flex;align-items:center;gap:10px">
+<h2 style="margin:0;flex:1;font-size:15px;line-height:22px;font-weight:600;letter-spacing:.025em;color:#1e293b">{{ t.perfTitle }}</h2>
+<span style="font-size:12px;font-weight:500;color:#64748b">{{ t.vsLast }}</span>
+</div>
+<div style="display:flex;flex-direction:column">
+<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #e2e8f0">
+<span style="flex:1;font-size:13px;color:#64748b">{{ t.ordersConfirmed }}</span>
+<span style="font-size:13.5px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">184</span>
+<span style="display:inline-flex;align-items:center;gap:3px;width:74px;justify-content:flex-end;font-size:12px;font-weight:600;color:#047857;font-variant-numeric:tabular-nums">▲ 9%<span style="font-weight:500;color:#94a3b8">169</span></span>
+</div>
+<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #e2e8f0">
+<span style="flex:1;font-size:13px;color:#64748b">{{ t.salesValue }}</span>
+<span style="font-size:13.5px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">৳3,42,600</span>
+<span style="display:inline-flex;align-items:center;gap:3px;width:74px;justify-content:flex-end;font-size:12px;font-weight:600;color:#047857;font-variant-numeric:tabular-nums">▲ 12%</span>
+</div>
+<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #e2e8f0">
+<span style="flex:1;font-size:13px;color:#64748b">{{ t.discountsGiven }}</span>
+<span style="font-size:13.5px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">৳8,450</span>
+<span style="display:inline-flex;align-items:center;gap:3px;width:74px;justify-content:flex-end;font-size:12px;font-weight:600;color:#047857;font-variant-numeric:tabular-nums">▼ 4%</span>
+</div>
+<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #e2e8f0">
+<span style="flex:1;font-size:13px;color:#64748b">{{ t.collections }}</span>
+<span style="font-size:13.5px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">৳3,38,100</span>
+<span style="display:inline-flex;align-items:center;gap:3px;width:74px;justify-content:flex-end;font-size:12px;font-weight:600;color:#047857;font-variant-numeric:tabular-nums">▲ 11%</span>
+</div>
+<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #e2e8f0">
+<span style="flex:1;font-size:13px;color:#64748b">{{ t.returnRate }}</span>
+<span style="font-size:13.5px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">1.6%</span>
+<span style="display:inline-flex;align-items:center;gap:3px;width:74px;justify-content:flex-end;font-size:12px;font-weight:600;color:#c2410c;font-variant-numeric:tabular-nums">▲ 0.3</span>
+</div>
+</div>
+</section>
+<section style="display:flex;flex-direction:column;gap:14px;border-radius:8px;background:#fff;padding:18px 20px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)">
+<div style="display:flex;align-items:center;gap:10px">
+<h2 style="margin:0;flex:1;font-size:15px;line-height:22px;font-weight:600;letter-spacing:.025em;color:#1e293b">{{ t.recentTitle }}</h2>
+<button type="button" onClick="{{ toActivity }}" style="border:none;background:none;padding:0;font-family:inherit;font-size:12.5px;font-weight:500;letter-spacing:.025em;color:#003087;cursor:pointer;text-decoration:underline;text-underline-offset:3px">{{ t.viewAll }}</button>
+</div>
+<ol style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px">
+<li style="display:flex;align-items:flex-start;gap:10px">
+<span style="display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:8px;background:rgba(0,48,135,.1);color:#003087"><i data-lucide="receipt" width="14" height="14"></i></span>
+<div style="flex:1;min-width:0"><p style="margin:0;font-size:13px;font-weight:500;color:#1e293b;text-wrap:pretty">{{ t.act1 }}</p><p style="margin:1px 0 0;font-size:11.5px;color:#94a3b8">{{ t.act1When }}</p></div>
+</li>
+<li style="display:flex;align-items:flex-start;gap:10px">
+<span style="display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:8px;background:rgba(255,152,0,.14);color:#b45309"><i data-lucide="percent" width="14" height="14"></i></span>
+<div style="flex:1;min-width:0"><p style="margin:0;font-size:13px;font-weight:500;color:#1e293b;text-wrap:pretty">{{ t.act2 }}</p><p style="margin:1px 0 0;font-size:11.5px;color:#94a3b8">{{ t.act2When }}</p></div>
+</li>
+<li style="display:flex;align-items:flex-start;gap:10px">
+<span style="display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:8px;background:rgba(0,156,222,.12);color:#0089c3"><i data-lucide="user-plus" width="14" height="14"></i></span>
+<div style="flex:1;min-width:0"><p style="margin:0;font-size:13px;font-weight:500;color:#1e293b;text-wrap:pretty">{{ t.act3 }}</p><p style="margin:1px 0 0;font-size:11.5px;color:#94a3b8">{{ t.act3When }}</p></div>
+</li>
+<li style="display:flex;align-items:flex-start;gap:10px">
+<span style="display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:8px;background:rgba(16,185,129,.12);color:#047857"><i data-lucide="wallet" width="14" height="14"></i></span>
+<div style="flex:1;min-width:0"><p style="margin:0;font-size:13px;font-weight:500;color:#1e293b;text-wrap:pretty">{{ t.act4 }}</p><p style="margin:1px 0 0;font-size:11.5px;color:#94a3b8">{{ t.act4When }}</p></div>
+</li>
+<li style="display:flex;align-items:flex-start;gap:10px">
+<span style="display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:8px;background:rgba(240,0,185,.08);color:#a21caf"><i data-lucide="rotate-ccw" width="14" height="14"></i></span>
+<div style="flex:1;min-width:0"><p style="margin:0;font-size:13px;font-weight:500;color:#1e293b;text-wrap:pretty">{{ t.act5 }}</p><p style="margin:1px 0 0;font-size:11.5px;color:#94a3b8">{{ t.act5When }}</p></div>
+</li>
+</ol>
+<div style="display:flex;align-items:center;gap:9px;border-radius:8px;background:#f8fafc;padding:11px 12px">
+<i data-lucide="monitor-smartphone" width="17" height="17" style="flex:none;color:#64748b"></i>
+<p style="margin:0;font-size:12.5px;line-height:18px;color:#475569;text-wrap:pretty">{{ t.lastLogin }}</p>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;en&quot;,&quot;bn&quot;],&quot;default&quot;:&quot;en&quot;,&quot;tsType&quot;:&quot;'en' | 'bn'&quot;},&quot;locked&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;empty&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;hr&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;goTab&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(tab: string) =&gt; void&quot;}}">
+class Component extends DCLogic {
+  state = { req: 'open' };
+  componentDidMount() { this.paint(); }
+  componentDidUpdate() { this.paint(); }
+  paint() {
+    const go = () => { if (window.lucide && window.lucide.createIcons) window.lucide.createIcons({ attrs: { 'stroke-width': 1.75 } }); };
+    go(); setTimeout(go, 200); setTimeout(go, 700); setTimeout(go, 2000);
+  }
+  renderVals() {
+    const bn = (this.props.lang ?? 'en') === 'bn';
+    const L = (en, b) => bn ? b : en;
+    const empty = !!this.props.empty;
+    const locked = !!this.props.locked;
+    const go = this.props.goTab || (() => {});
+    const req = this.state.req;
+    return {
+      t: {
+        accessTitle: L('Access summary', 'অ্যাক্সেস সংক্ষেপ'), manage: L('Manage', 'পরিচালনা'),
+        role: L('Role', 'রোল'), cashier: L('Cashier', 'ক্যাশিয়ার'), branchScope: L('Branch scope', 'শাখা'), oneBranch: L('Dhanmondi only', 'শুধু ধানমন্ডি'),
+        twoFactor: L('Two-factor', 'দুই স্তর'), on: L('On', 'চালু'), overrides: L('Overrides', 'ওভাররাইড'), twoOverrides: L('2 on role', 'রোলে ২টি'),
+        shiftToday: L('Shift today', 'আজকের শিফট'), morning: L('Morning shift', 'সকালের শিফট'),
+        grace: L('Grace time', 'গ্রেস সময়'), tenMin: L('10 minutes', '১০ মিনিট'), weeklyOff: L('Weekly off', 'সাপ্তাহিক ছুটি'), friday: L('Friday', 'শুক্রবার'),
+        checkInMethod: L('Check-in method', 'চেক-ইন পদ্ধতি'), posPin: L('POS PIN', 'POS পিন'), breakTime: L('Break', 'বিরতি'), changeShift: L('Change shift', 'শিফট বদলান'),
+        attTitle: L('This month\u2019s attendance', 'এ মাসের হাজিরা'),
+        present: L('Present', 'উপস্থিত'), late: L('Late', 'দেরি'), absent: L('Absent', 'অনুপস্থিত'), leaveWord: L('Leave', 'ছুটি'),
+        overtimeHours: L('Overtime hours', 'ওভারটাইম'), weeklyOffWord: L('Weekly off', 'সাপ্তাহিক ছুটি'),
+        leaveTitle: L('Leave balance', 'ছুটির ব্যালেন্স'), pending: L('PENDING REQUESTS', 'অপেক্ষমাণ আবেদন'), approve: L('Approve', 'অনুমোদন'), reject: L('Reject', 'নাকচ'),
+        approved: L('Approved', 'অনুমোদিত'), rejected: L('Rejected', 'নাকচ'),
+        casual: L('Casual', 'নৈমিত্তিক'), casualLeft: L('6 of 10 left', '১০-এর মধ্যে ৬ বাকি'),
+        sick: L('Sick', 'অসুস্থতা'), sickLeft: L('12 of 14 left', '১৪-এর মধ্যে ১২ বাকি'),
+        annual: L('Annual', 'বার্ষিক'), annualLeft: L('12 of 12 left', '১২-এর মধ্যে ১২ বাকি'),
+        reqDates: L('24 – 25 Sep 2026 · Casual · 2 days', '২৪ – ২৫ সেপ ২০২৬ · নৈমিত্তিক · ২ দিন'),
+        reqDetail: L('Family wedding in Cumilla. Applied 11 Sep. Nusrat Jahan is the approver.', 'কুমিল্লায় পারিবারিক বিয়ে। ১১ সেপ আবেদন। অনুমোদনকারী নুসরাত জাহান।'),
+        emptyLeave: L('No leave requests. Sadia has not applied for leave this year — apply on her behalf from the Leave tab.', 'কোনো ছুটির আবেদন নেই। এ বছর সাদিয়া ছুটির আবেদন করেননি — ছুটি ট্যাব থেকে তাঁর পক্ষে আবেদন করুন।'),
+        emptyAttTitle: L('No attendance recorded yet', 'এখনো হাজিরা নেই'),
+        emptyAttBody: L('Check-ins appear here once Sadia has a shift assigned and signs in at the POS register.', 'সাদিয়ার শিফট নির্ধারিত হয়ে POS-এ সাইন ইন করলেই চেক-ইন এখানে দেখাবে।'),
+        assignShift: L('Assign a shift', 'শিফট নির্ধারণ'),
+        salaryTitle: L('Salary snapshot', 'বেতন সংক্ষেপ'), restricted: L('Restricted', 'সীমাবদ্ধ'),
+        gross: L('Gross monthly', 'মাসিক গ্রস'), net: L('Net this month', 'এ মাসের নিট'), nextPay: L('Next pay date', 'পরের বেতন'), method: L('Payment method', 'পেমেন্ট'),
+        advance: L('Advance outstanding', 'অগ্রিম বাকি'), mo: L('mo', 'মাস'), openPayroll: L('Open payroll', 'পে-রোল খুলুন'),
+        lockTitle: L('Salary data is hidden for you', 'বেতনের তথ্য আপনার জন্য লুকানো'),
+        lockBody: L('Your role does not include salary visibility. The shop owner or an accountant can grant it.', 'আপনার রোলে বেতন দেখার অনুমতি নেই। মালিক বা হিসাবরক্ষক অনুমতি দিতে পারেন।'),
+        requestAccess: L('Request access', 'অনুমতি চান'),
+        perfTitle: L('Performance', 'পারফরম্যান্স'), vsLast: L('Sep vs Aug', 'সেপ vs আগ'),
+        ordersConfirmed: L('Orders confirmed', 'অর্ডার নিশ্চিত'), salesValue: L('Sales value', 'বিক্রয় মূল্য'),
+        discountsGiven: L('Discounts given', 'ছাড় দেওয়া'), collections: L('Collections', 'আদায়'), returnRate: L('Return rate', 'ফেরতের হার'),
+        recentTitle: L('Recent activity', 'সাম্প্রতিক কার্যক্রম'), viewAll: L('View all', 'সব দেখুন'),
+        act1: L('Confirmed counter sale #GC-24118 · ৳2,340', 'কাউন্টার বিক্রি #GC-24118 নিশ্চিত · ৳২,৩৪০'), act1When: L('16 Sep, 12:04 PM', '১৬ সেপ, ১২:০৪ PM'),
+        act2: L('Applied 5% discount on #GC-24116', '#GC-24116-এ ৫% ছাড়'), act2When: L('16 Sep, 11:41 AM', '১৬ সেপ, ১১:৪১ AM'),
+        act3: L('Added customer Rafiq Hasan', 'কাস্টমার রফিক হাসান যোগ'), act3When: L('16 Sep, 10:52 AM', '১৬ সেপ, ১০:৫২ AM'),
+        act4: L('Opened cash drawer · ৳5,000 float', 'ক্যাশ ড্রয়ার খোলা · ৳৫,০০০ ফ্লোট'), act4When: L('16 Sep, 9:58 AM', '১৬ সেপ, ৯:৫৮ AM'),
+        act5: L('Refund request sent for approval · ৳1,200', 'ফেরতের অনুরোধ অনুমোদনে · ৳১,২০০'), act5When: L('15 Sep, 5:22 PM', '১৫ সেপ, ৫:২২ PM'),
+        lastLogin: L('Last login 16 Sep, 9:56 AM · POS Dhanmondi-1 · Android app · IP 103.108.x.x', 'শেষ লগইন ১৬ সেপ, ৯:৫৬ AM · POS ধানমন্ডি-১ · অ্যান্ড্রয়েড অ্যাপ · IP 103.108.x.x')
+      },
+      toAccess: () => go('access'), toAttendance: () => go('attendance'), toSalary: () => go('salary'), toActivity: () => go('activity'),
+      hasData: !empty, noData: empty, locked, unlocked: !locked,
+      hasPending: !empty, noPending: empty,
+      reqOpen: !empty && req === 'open',
+      reqApproved: !empty && req === 'approved',
+      reqRejected: !empty && req === 'rejected',
+      approve: () => this.setState({ req: 'approved' }),
+      reject: () => this.setState({ req: 'rejected' })
+    };
+  }
+}
+</script>
+</body>
+</html>

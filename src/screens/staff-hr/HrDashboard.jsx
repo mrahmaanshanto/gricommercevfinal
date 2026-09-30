@@ -1,0 +1,355 @@
+'use client';
+// Generated from design/templates/staff-hr/HrDashboard.dc.html by scripts/convert-design.mjs.
+// HR dashboard — Staff & HR — HR dashboard.
+// Edit freely: this file is now the source for the screen.
+
+import React from 'react';
+import __Link from 'next/link';
+import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+
+// ---- logic (from the design's <script type="text/x-dc">) ----
+
+function bdt(n) { var neg = n < 0; var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return (neg ? '−' : '') + '৳' + s; }
+var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
+function mkTabs(self, list, cur, key, counts) { return list.map(function (x) { var on = x.k === cur; var c = counts ? counts[x.k] : null; return { label: x.label, on: on, cls: on ? 'tab on' : 'tab', hasCount: c != null, count: c, countBg: on ? 'rgba(255,255,255,0.2)' : '#e9eef5', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
+function mkChips(self, list, cur, key) { return list.map(function (x) { var on = x.k === cur; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
+function pTabs(self, list, cur, key, counts) { return mkTabs(self, list, cur, key, counts).map(function (x) { x.pcls = x.on ? 'ptab on' : 'ptab'; return x; }); }
+function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
+function stepN(self, key, def, step, min, max) { var s = self.state || {}; var v = s[key] == null ? def : s[key]; return { v: v, dec: function () { var p = {}; p[key] = Math.max(min, +(v - step).toFixed(2)); self.setState(p); }, inc: function () { var p = {}; p[key] = Math.min(max, +(v + step).toFixed(2)); self.setState(p); } }; }
+var CHN = { sms: ['SMS', '#e7f8f1', '#047857'], wa: ['WhatsApp', '#dcfce7', '#166534'], email: ['Email', '#e0f2fe', '#075985'] };
+function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
+function toast(self, m, bad) { clearTimeout(self.t); self.setState({ msg: m, bad: !!bad }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 2800); }
+function msgV(s) { return { hasMsg: !!s.msg, msg: s.msg || '', msgBg: s.bad ? '#fff4e0' : '#e7f8f1', msgFg: s.bad ? '#7a3b04' : '#065f46' }; }
+function segv(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#0b1733' : 'transparent', fg: on ? '#fff' : '#475569', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
+// [code, name, designation, department, branch, shift, basic(gross), type, status, phone, joined, role]
+var STAFF = [
+  ['EMP-0118', 'Rakib Hasan', 'Branch manager', 'Store operations', 'Dhanmondi branch', 'morning', 38000, 'Full-time', 'active', '01712-XX4410', '3 Feb 2022', 'Manager'],
+  ['EMP-0142', 'Sadia Akter', 'Cashier', 'Store operations', 'Dhanmondi branch', 'morning', 22000, 'Full-time', 'active', '01712-XX8821', '12 Mar 2024', 'Cashier'],
+  ['EMP-0151', 'Rafi Ahmed', 'Sales associate', 'Store operations', 'Dhanmondi branch', 'evening', 16000, 'Full-time', 'active', '01819-XX2207', '8 Jan 2025', 'Sales staff'],
+  ['EMP-0121', 'Nabila Rahman', 'Branch manager', 'Store operations', 'Mirpur branch', 'morning', 35000, 'Full-time', 'active', '01715-XX6630', '19 Jun 2022', 'Manager'],
+  ['EMP-0149', 'Moumita Das', 'Cashier', 'Store operations', 'Mirpur branch', 'evening', 20000, 'Full-time', 'leave', '01911-XX0194', '2 Sep 2024', 'Cashier'],
+  ['EMP-0160', 'Arif Rahman', 'Sales associate', 'Store operations', 'Mirpur branch', 'morning', 16000, 'Probation', 'probation', '01633-XX5582', '1 Jul 2026', 'Sales staff'],
+  ['EMP-0133', 'Tareq Aziz', 'Stock keeper', 'Warehouse', 'Central Warehouse', 'warehouse', 18000, 'Full-time', 'active', '01556-XX7713', '14 Oct 2023', 'Stock staff'],
+  ['EMP-0155', 'Sabbir Hossain', 'Packer', 'Warehouse', 'Central Warehouse', 'warehouse', 14000, 'Full-time', 'active', '01798-XX3301', '5 May 2025', 'Stock staff'],
+  ['EMP-0145', 'Jahid Hasan', 'Delivery rider', 'Delivery', 'Central Warehouse', 'warehouse', 15000, 'Full-time', 'active', '01877-XX9046', '21 Nov 2024', 'Rider'],
+  ['EMP-0163', 'Sohel Rana', 'Security guard', 'Warehouse', 'Central Warehouse', 'night', 12500, 'Contract', 'active', '01309-XX1128', '10 Feb 2026', 'No login'],
+  ['EMP-0137', 'Lamia Sultana', 'Customer care', 'Customer care', 'Head office', 'office', 20000, 'Full-time', 'active', '01521-XX4467', '7 Aug 2023', 'Support'],
+  ['EMP-0158', 'Rumana Islam', 'Accountant', 'Accounts', 'Head office', 'office', 40000, 'Full-time', 'active', '01711-XX0625', '15 Jan 2023', 'Accounts'],
+  ['EMP-0161', 'Jannatul Ferdous', 'Social media executive', 'Marketing', 'Head office', 'office', 12000, 'Part-time', 'active', '01404-XX8872', '3 Aug 2026', 'Marketing'],
+  ['EMP-0112', 'Kamrul Islam', 'Senior sales associate', 'Store operations', 'Dhanmondi branch', 'evening', 19000, 'Full-time', 'suspended', '01670-XX2254', '11 Apr 2021', 'Sales staff']
+];
+var SHIFTS = { morning: ['Morning', '9:00 am – 5:00 pm', '#e0f3fb', '#075985'], evening: ['Evening', '1:00 pm – 9:00 pm', '#f3e8ff', '#6d28d9'], warehouse: ['Warehouse', '8:00 am – 4:00 pm', '#fff4e0', '#a14f06'], office: ['Office', '9:30 am – 6:00 pm', '#e7f8f1', '#047857'], night: ['Night guard', '9:00 pm – 7:00 am', '#e2e8f0', '#334155'] };
+var AV = [['#e0f3fb', '#075985'], ['#f3e8ff', '#6d28d9'], ['#fff4e0', '#a14f06'], ['#e7f8f1', '#047857'], ['#ffece6', '#b83210'], ['#e0e7ff', '#3730a3']];
+function ini(n) { var p = n.split(' '); return (p[0].charAt(0) + (p[1] || '').charAt(0)).toUpperCase(); }
+function av(n, i) { var c = AV[i % AV.length]; return { ini: ini(n), ab: c[0], af: c[1] }; }
+var PROFILE = '../staff-profile/StaffProfile.dc.html';
+var TODAY = { 'EMP-0118': ['in', '8:52 am'], 'EMP-0142': ['in', '8:57 am'], 'EMP-0151': ['late', '1:24 pm · 24 min late'], 'EMP-0121': ['in', '8:49 am'], 'EMP-0149': ['leave', 'Sick leave · till 21 Sep'], 'EMP-0160': ['late', '9:18 am · 18 min late'], 'EMP-0133': ['in', '7:55 am'], 'EMP-0155': ['in', '8:03 am'], 'EMP-0145': ['in', '8:10 am'], 'EMP-0163': ['in', 'Night shift · out 7:02 am'], 'EMP-0137': ['in', '9:26 am'], 'EMP-0158': ['in', '9:31 am'], 'EMP-0161': ['wait', 'Part-time · starts 2:00 pm'], 'EMP-0112': ['off', 'Suspended'] };
+class Component extends DCLogic {
+  componentWillUnmount() { clearTimeout(this.t); }
+  renderVals() {
+    var self = this, s = this.state || {};
+    var done = s.done || {};
+    var people = function (k) { return STAFF.map(function (r, i) { return [r, i]; }).filter(function (x) { return (TODAY[x[0][0]] || [])[0] === k; }).map(function (x) { var t = TODAY[x[0][0]]; return assign(av(x[0][1], x[1]), { n: x[0][1], m: t[1], mc: k === 'late' ? '#b45309' : '#64748b', link: PROFILE }); }); };
+    var APPR = [['LV', '#e0f3fb', '#075985', 'Casual leave · Rafi Ahmed', '2 days · 24–25 Sep · family event. Dhanmondi has 2 others off that week.'], ['AD', '#fff4e0', '#a14f06', 'Salary advance · Tareq Aziz', '৳5,000 · recover from October salary in 2 parts'], ['OT', '#f3e8ff', '#6d28d9', 'Overtime · Sabbir Hossain', '3 h 20 min on 17 Sep · stock count night'], ['FX', '#e7f8f1', '#047857', 'Attendance fix · Arif Rahman', 'Forgot to punch out on 16 Sep · says 5:05 pm'], ['LV', '#e0f3fb', '#075985', 'Sick leave · Moumita Das', '3 days · 19–21 Sep · doctor note attached']];
+    var v = {
+      greet: 'Good morning, Ashiq',
+      today: [['11', 'Present', '#86efac'], ['2', 'Late', '#fcd34d'], ['1', 'On leave', '#93c5fd'], ['0', 'Absent', '#fca5a5']].map(function (x) { return { n: x[0], l: x[1], c: x[2] }; }),
+      cols: [['in', 'Present', '#10b981'], ['late', 'Late', '#f59e0b'], ['leave', 'On leave', '#3b82f6'], ['wait', 'Not in yet', '#94a3b8']].map(function (c) { var p = people(c[0]); return { l: c[1], c: c[2], n: p.length, people: p.slice(0, 5) }; }),
+      appr: APPR.map(function (a, i) { var d = done[i]; return { tag: a[0], tb: a[1], tf: a[2], t: a[3], s: a[4], open: !d, done: !!d, dt: d === 'y' ? 'Approved' : 'Rejected', dc: d === 'y' ? '#047857' : '#b83210', bg: d ? '#f8fafc' : '#fff',
+        yes: function () { var n = assign({}, done); n[i] = 'y'; self.setState({ done: n }); toast(self, a[3] + ' approved. Staff told by SMS.'); },
+        no: function () { var n = assign({}, done); n[i] = 'n'; self.setState({ done: n }); toast(self, a[3] + ' rejected.', true); } }; }),
+      nAppr: APPR.filter(function (_, i) { return !done[i]; }).length,
+      pSteps: [['Attendance', '#10b981'], ['Salary sheet', '#f59e0b'], ['Approve', '#e2e8f0'], ['Pay', '#e2e8f0'], ['Payslips', '#e2e8f0']].map(function (x) { return { l: x[0], c: x[1] }; }),
+      hc: [['Dhanmondi branch', 4], ['Mirpur branch', 3], ['Central Warehouse', 4], ['Head office', 3]].map(function (x) { return { l: x[0], n: x[1], w: x[1] / 4 * 100 + '%' }; }),
+      types: [['11', 'full-time'], ['1', 'part-time'], ['1', 'contract'], ['1', 'on probation']].map(function (x) { return { n: x[0], l: x[1] }; }),
+      upc: [['22', 'Sep', 'Birthday · Lamia Sultana', 'Customer care · Head office', 'B', '#ffece6', '#b83210'], ['30', 'Sep', 'Probation ends · Arif Rahman', '3 months done — confirm or extend', 'P', '#fff4e0', '#a14f06'], ['1', 'Oct', 'Pay day', 'September salary for 13 staff', '৳', '#e7f8f1', '#047857'], ['10', 'Oct', 'Contract renewal · Sohel Rana', 'Security contract ends in 3 weeks', 'C', '#e2e8f0', '#334155'], ['12', 'Oct', '5 years · Kamrul Islam', 'Work anniversary', '5', '#f3e8ff', '#6d28d9'], ['16', 'Dec', 'Victory Day', 'Public holiday · all branches', 'H', '#e0f3fb', '#075985']].map(function (x) { return { d: x[0], m: x[1], t: x[2], s: x[3], i: x[4], tb: x[5], tf: x[6] }; })
+    };
+    return assign(v, msgV(s));
+  }
+}
+
+// ---- styles (from the design's <helmet>) ----
+
+const CSS = `
+body{margin:0;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:#003087}a:hover{color:#002a77}
+.card{background:#ffffff;border-radius:12px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
+.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:8px;color:#475569;font-size:14px;font-weight:500;letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
+.nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
+.nav.on{background:rgba(0,48,135,.08);color:#003087}
+.navh{font-size:11px;line-height:16px;font-weight:600;letter-spacing:.08em;color:#64748b;padding:18px 12px 6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:8px;border:0;font:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
+.btn:hover{text-decoration:none}
+.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
+.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
+.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
+.line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
+.warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
+.big{height:52px;padding:0 24px;font-size:15px}
+.sm{height:36px;padding:0 12px;font-size:13px}
+.ib{width:40px;height:40px;border-radius:999px;border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
+.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font:inherit;font-size:14px;color:#1e293b;transition:border-color 200ms}
+.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
+.inp::placeholder{color:#64748b}
+.lbl{font-size:13px;line-height:18px;font-weight:500;color:#334155}
+.tab{height:40px;padding:0 14px;border-radius:999px;border:0;background:transparent;font:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
+.tab:hover{background:#f1f5f9;color:#0f172a}
+.tab.on{background:#003087;color:#fff}
+.chip{height:40px;padding:0 14px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:13px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
+.chip:hover{border-color:#94a3b8}
+.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
+.th{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:14px;line-height:20px;vertical-align:middle}
+.row{transition:background-color 200ms}.row:hover{background:#f8fafc}
+.badge{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.badge::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
+.b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
+.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
+.b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.02em}
+.fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
+@keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.flash{animation:gcFlash 900ms ease-out}
+@keyframes gcFlash{from{background:#e7f8f1}to{background:transparent}}
+.scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
+@keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
+
+.sw{position:relative;width:48px;height:28px;border-radius:999px;border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
+.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
+.sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
+.b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
+.t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
+.actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
+.bn{font-family:'Hind Siliguri','Poppins',sans-serif}
+.pulse{animation:gcPulse 1.6s ease-in-out infinite}
+@keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
+.psec{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#64748b}
+.num{font-variant-numeric:tabular-nums}
+.ai{height:30px;padding:0 10px;border-radius:8px;border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
+.ai:hover{border-color:#a78bfa;box-shadow:0 4px 12px -6px rgba(91,33,182,.5)}
+.ai:focus-visible{outline:3px solid rgba(124,58,237,.4);outline-offset:2px}
+.abtn{height:32px;padding:0 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:12.5px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.abtn:hover{background:#f1f5f9}
+.ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0}
+.ptab{position:relative;height:48px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:13.5px;font-weight:500;color:#64748b;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:600}
+.ptab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2.5px;border-radius:3px 3px 0 0;background:#003087}
+.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#eef2f6;color:#475569;font-size:11px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+.ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
+.thumb{width:44px;height:44px;flex-shrink:0;border-radius:10px;border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#003087}
+`;
+
+// ---- markup ----
+
+export default class HrDashboardScreen extends Component {
+  render() {
+    const v = this.renderVals() || {};
+    return (
+      <div className="dc-screen ds" data-screen="HrDashboard">
+        <style dangerouslySetInnerHTML={{ __html: CSS }} />
+        <div style={{ width: "1440px", height: "1480px", background: "#eef2f7", padding: "12px", display: "flex", gap: "12px", overflow: "hidden" }}>
+          <__Sidebar sticky="" active="hr-home" />
+          <main style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "16px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <__Topbar crumb={"Staff & HR"} page="HR dashboard" placeholder="Search staff by name, phone or code" />
+            <div style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
+              <section style={{ borderRadius: "18px", background: "#0b1733", color: "#fff", padding: "24px 26px", display: "flex", gap: "28px", alignItems: "center" }}>
+                <div style={{ flexGrow: "1" }}>
+                  <div style={{ fontSize: "13px", opacity: ".7" }}>Saturday, 19 Sep 2026 · Asia/Dhaka</div>
+                  <h2 style={{ margin: "4px 0 0", fontSize: "26px", fontWeight: "700", letterSpacing: "-.02em" }}>{v.greet}</h2>
+                  <p style={{ margin: "6px 0 0", fontSize: "14px", opacity: ".8" }} className="bn">আজ ১৪ জনের মধ্যে ১১ জন কাজে এসেছেন।</p>
+                  <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+                    <__Link href="/attendance" className="btn" style={{ background: "#fff", color: "#0b1733" }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 6v6l4 2" />
+                      </svg>
+                      <span>Open attendance</span>
+                    </__Link>
+                    <__Link href="/payroll" className="btn" style={{ background: "rgba(255,255,255,.12)", color: "#fff" }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <rect width="20" height="12" x="2" y="6" rx="2" />
+                        <circle cx="12" cy="12" r="2" />
+                        <path d="M6 12h.01M18 12h.01" />
+                      </svg>
+                      <span>September payroll</span>
+                    </__Link>
+                    <__Link href="/staff-profile" className="btn" style={{ background: "rgba(255,255,255,.12)", color: "#fff" }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M5 12h14" />
+                        <path d="M12 5v14" />
+                      </svg>
+                      <span>Add staff</span>
+                    </__Link>
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 120px)", gap: "10px" }}>
+                  {__list(v.today).map((td, $index) => (<React.Fragment key={$index}>
+                      <div style={{ padding: "14px", borderRadius: "14px", background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.12)" }}>
+                        <div style={__sx(`font-size: 28px; font-weight: 700; color: ${td?.c ?? ""};`)}>{td?.n}</div>
+                        <div style={{ fontSize: "12.5px", opacity: ".85" }}>{td?.l}</div>
+                      </div>
+                    </React.Fragment>))}
+                </div>
+              </section>
+              {v.hasMsg ? (<>
+                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: 14px; font-weight: 500;`)}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="m9 12 2 2 4-4" />
+                  </svg>
+                  <span>{v.msg}</span>
+                </div>
+              </>) : null}
+              <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.65fr) minmax(0, 1fr)", gap: "18px", alignItems: "start" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+                  <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div style={{ flexGrow: "1" }}>
+                        <h2 style={{ margin: "0", fontSize: "16px", lineHeight: "24px", fontWeight: "600", color: "#0f172a" }}>Who is in today</h2>
+                        <p style={{ margin: "2px 0 0", fontSize: "13px", color: "#64748b" }}>Live from device punches, POS log-ins and the staff app</p>
+                      </div>
+                      <__Link href="/attendance" className="abtn" style={{ textDecoration: "none" }}>Full attendance <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <path d="m9 18 6-6-6-6" />
+</svg></__Link>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "12px" }}>
+                      {__list(v.cols).map((co, $index) => (<React.Fragment key={$index}>
+                          <div style={{ borderRadius: "14px", background: "#f7f9fc", border: "1px solid #e6eaf0", padding: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                              <span style={__sx(`width: 8px; height: 8px; border-radius: 999px; background: ${co?.c ?? ""};`)} />
+                              <span style={{ flexGrow: "1", fontSize: "13px", fontWeight: "600" }}>{co?.l}</span>
+                              <span className="pcnt">{co?.n}</span>
+                            </div>
+                            {__list(co?.people).map((pp, $index) => (<React.Fragment key={$index}>
+                                <__A href={pp?.link} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px", borderRadius: "10px", background: "#fff", textDecoration: "none", color: "inherit" }}>
+                                  <span style={__sx(`width: 30px; height: 30px; flex-shrink: 0; border-radius: 999px; background: ${pp?.ab ?? ""}; color: ${pp?.af ?? ""}; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;`)}>{pp?.ini}</span>
+                                  <span style={{ flexGrow: "1", minWidth: "0" }}>
+                                    <span style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{pp?.n}</span>
+                                    <span style={__sx(`display: block; font-size: 11.5px; color: ${pp?.mc ?? ""};`)}>{pp?.m}</span>
+                                  </span>
+                                </__A>
+                              </React.Fragment>))}
+                          </div>
+                        </React.Fragment>))}
+                    </div>
+                  </section>
+                  <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div style={{ flexGrow: "1" }}>
+                        <h2 style={{ margin: "0", fontSize: "16px", lineHeight: "24px", fontWeight: "600", color: "#0f172a" }}>Needs your approval</h2>
+                      </div>
+                      <span className="pcnt">{v.nAppr}</span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      {__list(v.appr).map((ap, $index) => (<React.Fragment key={$index}>
+                          <div style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; border: 1px solid #eef2f6; background: ${ap?.bg ?? ""};`)}>
+                            <span style={__sx(`width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px; background: ${ap?.tb ?? ""}; color: ${ap?.tf ?? ""}; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;`)}>{ap?.tag}</span>
+                            <div style={{ flexGrow: "1", minWidth: "0" }}>
+                              <div style={{ fontSize: "13.5px", fontWeight: "600", color: "#0f172a" }}>{ap?.t}</div>
+                              <div style={{ fontSize: "12.5px", color: "#64748b" }}>{ap?.s}</div>
+                            </div>
+                            {ap?.open ? (<>
+                              <button type="button" className="abtn" onClick={ap?.no}>Reject</button>
+                              <button type="button" className="btn solid sm" onClick={ap?.yes}>Approve</button>
+                            </>) : null}
+                            {ap?.done ? (<>
+                              <span style={__sx(`font-size: 12.5px; font-weight: 600; color: ${ap?.dc ?? ""};`)}>{ap?.dt}</span>
+                            </>) : null}
+                          </div>
+                        </React.Fragment>))}
+                    </div>
+                  </section>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+                  <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div style={{ flexGrow: "1" }}>
+                        <h2 style={{ margin: "0", fontSize: "16px", lineHeight: "24px", fontWeight: "600", color: "#0f172a" }}>September payroll</h2>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
+                      <span style={{ fontSize: "30px", fontWeight: "700", color: "#0f172a" }} className="num">৳2,84,771</span>
+                      <span style={{ fontSize: "13px", color: "#64748b" }}>estimated · pay day 1 Oct 2026</span>
+                    </div>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      {__list(v.pSteps).map((ps, $index) => (<React.Fragment key={$index}>
+                          <div style={{ flex: "1" }}>
+                            <div style={__sx(`height: 6px; border-radius: 999px; background: ${ps?.c ?? ""};`)} />
+                            <div style={{ fontSize: "11.5px", color: "#64748b", marginTop: "6px" }}>{ps?.l}</div>
+                          </div>
+                        </React.Fragment>))}
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", fontSize: "13px" }}>
+                      <div style={{ padding: "12px", borderRadius: "12px", background: "#f7f9fc" }}>
+                        <div style={{ color: "#64748b" }}>August (paid)</div>
+                        <div style={{ fontWeight: "700", fontSize: "16px" }}>৳2,94,180</div>
+                      </div>
+                      <div style={{ padding: "12px", borderRadius: "12px", background: "#f7f9fc" }}>
+                        <div style={{ color: "#64748b" }}>Staff cost / sales</div>
+                        <div style={{ fontWeight: "700", fontSize: "16px" }}>11.8%</div>
+                      </div>
+                    </div>
+                    <__Link href="/payroll" className="btn solid">Review salary sheet</__Link>
+                  </section>
+                  <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div style={{ flexGrow: "1" }}>
+                        <h2 style={{ margin: "0", fontSize: "16px", lineHeight: "24px", fontWeight: "600", color: "#0f172a" }}>Headcount</h2>
+                      </div>
+                      <__Link href="/all-staff" className="abtn" style={{ textDecoration: "none" }}>All staff</__Link>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                      {__list(v.hc).map((hq, $index) => (<React.Fragment key={$index}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13px" }}>
+                            <span style={{ width: "130px" }}>{hq?.l}</span>
+                            <div style={{ flexGrow: "1", height: "10px", borderRadius: "999px", background: "#eef2f6", overflow: "hidden" }}>
+                              <div style={__sx(`width: ${hq?.w ?? ""}; height: 100%; border-radius: 999px; background: #0a5bd0;`)} />
+                            </div>
+                            <span className="num" style={{ width: "24px", textAlign: "right", fontWeight: "700" }}>{hq?.n}</span>
+                          </div>
+                        </React.Fragment>))}
+                    </div>
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                      {__list(v.types).map((ty, $index) => (<React.Fragment key={$index}>
+                          <span style={{ height: "28px", padding: "0 10px", borderRadius: "999px", background: "#f1f5f9", fontSize: "12.5px", display: "inline-flex", alignItems: "center", gap: "6px" }}><b>{ty?.n}</b>{ty?.l}</span>
+                        </React.Fragment>))}
+                    </div>
+                  </section>
+                  <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div style={{ flexGrow: "1" }}>
+                        <h2 style={{ margin: "0", fontSize: "16px", lineHeight: "24px", fontWeight: "600", color: "#0f172a" }}>Coming up</h2>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      {__list(v.upc).map((uc, $index) => (<React.Fragment key={$index}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 0", borderBottom: "1px solid #eef2f6" }}>
+                            <span style={{ width: "44px", textAlign: "center", flexShrink: "0" }}>
+                              <span style={{ display: "block", fontSize: "18px", fontWeight: "700", color: "#0f172a", lineHeight: "20px" }}>{uc?.d}</span>
+                              <span style={{ display: "block", fontSize: "11px", color: "#64748b", textTransform: "uppercase" }}>{uc?.m}</span>
+                            </span>
+                            <span style={__sx(`width: 32px; height: 32px; border-radius: 10px; background: ${uc?.tb ?? ""}; color: ${uc?.tf ?? ""}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;`)}>{uc?.i}</span>
+                            <div style={{ flexGrow: "1" }}>
+                              <div style={{ fontSize: "13.5px", fontWeight: "600" }}>{uc?.t}</div>
+                              <div style={{ fontSize: "12.5px", color: "#64748b" }}>{uc?.s}</div>
+                            </div>
+                          </div>
+                        </React.Fragment>))}
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+}

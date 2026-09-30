@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Abandoned carts</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Abandoned carts" description="Abandoned carts — contact list with Call, WhatsApp and SMS, plus one auto-reminder switch." -->
+<helmet><script src="./ds-base.js"></script><script src="../_shell/gc-sidebar.js"></script><script src="../_shell/gc-topbar.js"></script><script src="/_blob/1840c8d9327e1d872bcd8bc9a4590a5a"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Hind+Siliguri:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:#003087}a:hover{color:#002a77}
+.card{background:#ffffff;border-radius:12px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
+.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:8px;color:#475569;font-size:14px;font-weight:500;letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
+.nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
+.nav.on{background:rgba(0,48,135,.08);color:#003087}
+.navh{font-size:11px;line-height:16px;font-weight:600;letter-spacing:.08em;color:#64748b;padding:18px 12px 6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:8px;border:0;font:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
+.btn:hover{text-decoration:none}
+.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
+.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
+.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
+.line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
+.warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
+.big{height:52px;padding:0 24px;font-size:15px}
+.sm{height:36px;padding:0 12px;font-size:13px}
+.ib{width:40px;height:40px;border-radius:999px;border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
+.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font:inherit;font-size:14px;color:#1e293b;transition:border-color 200ms}
+.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
+.inp::placeholder{color:#64748b}
+.lbl{font-size:13px;line-height:18px;font-weight:500;color:#334155}
+.tab{height:40px;padding:0 14px;border-radius:999px;border:0;background:transparent;font:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
+.tab:hover{background:#f1f5f9;color:#0f172a}
+.tab.on{background:#003087;color:#fff}
+.chip{height:40px;padding:0 14px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:13px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
+.chip:hover{border-color:#94a3b8}
+.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
+.th{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:14px;line-height:20px;vertical-align:middle}
+.row{transition:background-color 200ms}.row:hover{background:#f8fafc}
+.badge{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.badge::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
+.b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
+.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
+.b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.02em}
+.fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
+@keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.flash{animation:gcFlash 900ms ease-out}
+@keyframes gcFlash{from{background:#e7f8f1}to{background:transparent}}
+.scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
+@keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
+
+.sw{position:relative;width:48px;height:28px;border-radius:999px;border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
+.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
+.sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
+.b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
+.t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
+.actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
+.bn{font-family:'Hind Siliguri','Poppins',sans-serif}
+.pulse{animation:gcPulse 1.6s ease-in-out infinite}
+@keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1400px; background: #eef2f7; padding: 12px; display: flex; gap: 12px; overflow: hidden;">
+<gc-sidebar sticky active="orders-carts" base="../"></gc-sidebar>
+<main style="flex-grow: 1; min-width: 0; background: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; overflow: hidden;">
+<gc-topbar crumb="Orders" page="Abandoned carts" placeholder="Search customer by name or phone" base="../"></gc-topbar>
+<div style="flex-grow: 1; padding: 28px; display: flex; flex-direction: column; gap: 20px;">
+<div style="display: flex; gap: 16px;"><div class="card" style="flex-grow: 1; flex-basis: 0; padding: 20px; display: flex; align-items: center; gap: 16px;"><span style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 12px; background: #e0f3fb; color: #0089c3; display: flex; align-items: center; justify-content: center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg></span><div><div style="font-size: 26px; line-height: 34px; font-weight: 700; color: #0f172a;">{{kLeft}}</div><div style="font-size: 13px; line-height: 18px; color: #475569;">Carts left this week</div><div style="font-size: 12px; line-height: 16px; color: #64748b;">people added items but did not order</div></div></div><div class="card" style="flex-grow: 1; flex-basis: 0; padding: 20px; display: flex; align-items: center; gap: 16px;"><span style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 12px; background: #fff4e0; color: #a14f06; display: flex; align-items: center; justify-content: center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path></svg></span><div><div style="font-size: 26px; line-height: 34px; font-weight: 700; color: #a14f06;">{{kWaiting}}</div><div style="font-size: 13px; line-height: 18px; color: #475569;">Money waiting</div><div style="font-size: 12px; line-height: 16px; color: #64748b;">in open carts</div></div></div><div class="card" style="flex-grow: 1; flex-basis: 0; padding: 20px; display: flex; align-items: center; gap: 16px;"><span style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 12px; background: #e7f8f1; color: #047857; display: flex; align-items: center; justify-content: center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 17 13.5 8.5 8.5 13.5 2 7"></path><path d="M16 17h6v-6"></path></svg></span><div><div style="font-size: 26px; line-height: 34px; font-weight: 700; color: #047857;">{{kBack}}</div><div style="font-size: 13px; line-height: 18px; color: #475569;">Came back and ordered</div><div style="font-size: 12px; line-height: 16px; color: #64748b;">this week</div></div></div></div>
+<section class="card" style="padding: 18px 20px; display: flex; align-items: center; gap: 16px;">
+<span style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; background: rgba(0,48,135,.08); color: #003087; display: flex; align-items: center; justify-content: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></svg></span>
+<div style="flex-grow: 1; min-width: 0;"><div style="font-size: 15px; line-height: 22px; font-weight: 600; color: #0f172a;">Send an automatic reminder</div><div style="font-size: 13px; line-height: 18px; color: #475569;">{{autoNote}}</div></div>
+<a href="AutoReminders.dc.html" style="font-size: 13px; font-weight: 500; white-space: nowrap;">Edit message</a>
+<button type="button" class="{{autoCls}}" role="switch" aria-checked="{{autoOn}}" aria-label="Automatic reminder" onClick="{{toggleAuto}}"></button>
+</section>
+<section class="card" style="overflow: hidden; flex-grow: 1; display: flex; flex-direction: column;">
+<div style="display: flex; align-items: center; gap: 8px; padding: 14px 16px; border-bottom: 1px solid #e2e8f0;"><sc-for list="{{chips}}" as="c" hint-placeholder-count="4"><button type="button" class="{{c.cls}}" aria-pressed="{{c.on}}" onClick="{{c.pick}}">{{c.label}}<span style="min-width: 22px; height: 20px; padding: 0 6px; border-radius: 999px; background: #eef2f6; color: #475569; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center;">{{c.count}}</span></button></sc-for><div style="flex-grow: 1;"></div><span style="font-size: 12px; color: #64748b;">Newest first</span></div>
+<sc-if value="{{hasMsg}}" hint-placeholder-val="{{ false }}"><div style="padding: 14px 16px 0;"><div class="fade" role="status" style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; background: #e7f8f1; color: #065f46; font-size: 14px; font-weight: 500;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg><span>{{msg}}</span></div></div></sc-if>
+<table style="width: 100%; border-collapse: collapse;"><thead><tr><th class="th">Customer</th><th class="th">In the cart</th><th class="th" style="text-align: right;">Amount</th><th class="th">Left</th><th class="th">Last contact</th><th class="th" style="text-align: right;">Contact</th></tr></thead><tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="7"><tr class="row">
+<td class="td"><a href="CustomerProfile.dc.html" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit;"><span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 999px; background: {{r.avBg}}; color: {{r.avFg}}; display: flex; align-items: center; justify-content: center; font-weight: 600;">{{r.initial}}</span><span><span style="display: block; font-weight: 500;">{{r.name}}</span><span class="mono" style="display: block; font-size: 12px; line-height: 16px; color: #64748b;">{{r.phone}}</span></span></a></td>
+<td class="td"><div style="font-weight: 500;">{{r.items}}</div><div style="font-size: 12px; line-height: 16px; color: #64748b;">{{r.more}}</div></td>
+<td class="td" style="text-align: right; font-size: 16px; font-weight: 700; white-space: nowrap;">{{r.value}}</td>
+<td class="td" style="white-space: nowrap; color: #475569;">{{r.ago}}</td>
+<td class="td"><span class="{{r.lastCls}}">{{r.last}}</span></td>
+<td class="td" style="text-align: right; white-space: nowrap;"><sc-if value="{{r.open}}" hint-placeholder-val="{{ true }}"><div style="display: inline-flex; gap: 6px;"><button type="button" class="btn solid sm" onClick="{{r.call}}" aria-label="{{r.callLabel}}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg><span>Call</span></button><button type="button" class="btn line sm" onClick="{{r.wa}}" aria-label="{{r.waLabel}}" style="color: #166534;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path></svg><span>WhatsApp</span></button><button type="button" class="btn line sm" onClick="{{r.sms}}" aria-label="{{r.smsLabel}}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg><span>SMS</span></button></div></sc-if><sc-if value="{{r.won}}" hint-placeholder-val="{{ false }}"><span class="badge b-received">Ordered</span></sc-if></td>
+</tr></sc-for></tbody></table>
+<sc-if value="{{empty}}" hint-placeholder-val="{{ false }}"><div style="padding: 40px; text-align: center; font-size: 14px; color: #64748b;">No carts here.</div></sc-if>
+</section>
+</div>
+</main>
+</div></x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1400}}'>
+function bdt(n) { var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return '৳' + s; }
+var CARTS = [
+  { id: 1, name: 'Nusrat Jahan', phone: '01552-3X1-907', items: 'Sunscreen SPF 50 · 50ml', more: '+ 2 more items', v: 3240, ago: '35 min ago', last: null },
+  { id: 2, name: 'Guest', phone: '01716-4X8-220', items: 'Denim Jeans · Blue · 32', more: '+ 1 more item', v: 2180, ago: '2 hours ago', last: 'Auto SMS · 1 hr ago' },
+  { id: 3, name: 'Rafiq Uddin', phone: '01911-7X3-608', items: 'Gaming Laptop RTX Edition', more: '1 item', v: 124500, ago: '3 hours ago', last: null },
+  { id: 4, name: 'Sabrina Chowdhury', phone: '01511-5X3-770', items: 'Men’s Polo Shirt · Navy · M', more: '+ 3 more items', v: 5860, ago: '5 hours ago', last: 'WhatsApp by Rupa · 3 hr ago' },
+  { id: 5, name: 'Tanvir Ahmed', phone: '01914-6X2-045', items: 'Rice Water Cleanser 150ml', more: '1 item', v: 1540, ago: 'Yesterday', last: 'Called by Shanto', won: true },
+  { id: 6, name: 'Guest', phone: '01822-1X5-947', items: '5G Smartphone 128GB', more: '1 item', v: 32990, ago: 'Yesterday', last: 'Auto SMS · yesterday' },
+  { id: 7, name: 'Mahmudul Islam', phone: '01733-8X0-614', items: 'Premium Miniket Rice 5kg', more: '+ 4 more items', v: 1320, ago: '2 days ago', last: null },
+  { id: 8, name: 'Farzana Akter', phone: '01711-2X4-518', items: 'Aloe Vera Soothing Gel 300ml', more: '+ 1 more item', v: 1890, ago: '2 days ago', last: 'Auto SMS · 2 days ago', won: true }
+];
+var CHIPS = [{ k: 'all', label: 'All' }, { k: 'new', label: 'Not contacted' }, { k: 'done', label: 'Contacted' }, { k: 'won', label: 'Ordered' }];
+var VERB = { call: 'Called', wa: 'WhatsApp', sms: 'SMS' };
+class Component extends DCLogic {
+  componentWillUnmount() { clearTimeout(this.t); }
+  renderVals() {
+    var self = this, s = this.state || {}, f = s.f || 'all', act = s.act || {};
+    var autoOn = s.auto != null ? s.auto : true;
+    var lastOf = function (c) { return act[c.id] ? VERB[act[c.id]] + ' by you · just now' : c.last; };
+    var stOf = function (c) { return c.won ? 'won' : (lastOf(c) ? 'done' : 'new'); };
+    var doAct = function (c, k) {
+      var a = {}; for (var x in act) a[x] = act[x]; a[c.id] = k;
+      var m = k === 'call' ? 'Calling ' + c.phone + ' … logged as called.' : k === 'wa' ? 'WhatsApp opened for ' + c.phone + ' with the cart link filled in.' : 'SMS sent to ' + c.phone + ' with a link that brings the cart back.';
+      clearTimeout(self.t); self.setState({ act: a, msg: m }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 2800);
+    };
+    var list = CARTS.filter(function (c) { return f === 'all' || stOf(c) === f; });
+    var rows = list.map(function (c) {
+      var guest = c.name === 'Guest', l = lastOf(c);
+      return { name: c.name, phone: c.phone, initial: guest ? '?' : c.name.charAt(0), avBg: guest ? '#eef2f6' : '#e0f3fb', avFg: guest ? '#64748b' : '#003087',
+        items: c.items, more: c.more, value: bdt(c.v), ago: c.ago,
+        last: l || 'Not contacted', lastCls: l ? 'badge b-approved' : 'badge b-draft',
+        open: !c.won, won: !!c.won,
+        callLabel: 'Call ' + c.name, waLabel: 'WhatsApp ' + c.name, smsLabel: 'SMS ' + c.name,
+        call: function () { doAct(c, 'call'); }, wa: function () { doAct(c, 'wa'); }, sms: function () { doAct(c, 'sms'); } };
+    });
+    var cnt = { all: CARTS.length }; CARTS.forEach(function (c) { var k = stOf(c); cnt[k] = (cnt[k] || 0) + 1; });
+    var chips = CHIPS.map(function (x) { var on = x.k === f; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', count: String(cnt[x.k] || 0), pick: function () { self.setState({ f: x.k }); } }; });
+    var waiting = CARTS.filter(function (c) { return !c.won; }).reduce(function (a, c) { return a + c.v; }, 0);
+    return {
+      kLeft: String(CARTS.length), kWaiting: bdt(waiting), kBack: String(CARTS.filter(function (c) { return c.won; }).length),
+      autoOn: autoOn, autoCls: autoOn ? 'sw on' : 'sw',
+      autoNote: autoOn ? 'On — one SMS goes out 1 hour after a customer leaves, with a link back to their cart.' : 'Off — no reminder is sent. Contact customers from the list below.',
+      toggleAuto: function () { self.setState({ auto: !autoOn }); },
+      chips: chips, rows: rows, empty: !rows.length,
+      hasMsg: !!s.msg, msg: s.msg || ''
+    };
+  }
+}
+</script>
+</body>
+</html>

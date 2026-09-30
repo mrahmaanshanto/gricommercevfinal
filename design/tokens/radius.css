@@ -1,0 +1,9 @@
+/* 8px is the house radius. When in doubt, --radius-lg. */
+:root{
+  --radius-sm:4px;   /* tiny chips, inner marks */
+  --radius-md:6px;   /* checkbox, small controls */
+  --radius-lg:8px;   /* DEFAULT — cards, buttons, inputs, modals, tiles */
+  --radius-xl:12px;  /* image thumbnails, product cards */
+  --radius-2xl:16px; /* large media panels */
+  --radius-full:9999px; /* badges, avatars, pills, segmented controls, icon buttons */
+}

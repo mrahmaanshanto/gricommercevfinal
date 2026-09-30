@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Landing page builder" description="Single-product landing page builder — product picker, section library, drag-and-drop canvas with live mobile preview, per-field AI copy generation, COD order form settings and the publish checklist." -->
+<helmet><script src="./ds-base.js"></script><script src="../_shell/gc-sidebar.js"></script><script src="../_shell/gc-topbar.js"></script><script src="/_blob/1840c8d9327e1d872bcd8bc9a4590a5a"></script><style>body{margin:0;background:#eef2f7;font-family:Poppins,ui-sans-serif,system-ui,sans-serif;color:#475569}a{color:#003087;text-decoration:none}a:hover{color:#002a77}input,select,textarea,button{font-family:inherit}::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:9999px}.bn{font-family:'Hind Siliguri',Poppins,sans-serif}</style></helmet>
+<div style="display:flex;gap:12px;padding:12px;height:100vh;box-sizing:border-box;overflow:hidden;background:#eef2f7">
+<gc-sidebar collapsed sticky="" active="storefront-pages" base="../"></gc-sidebar>
+
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;position:relative;overflow-x:auto;border:1px solid #e2e8f0;border-radius:16px;background:#f8fafc;overflow:hidden">
+
+<sc-if value="{{ isPick }}" hint-placeholder-val="{{ false }}">
+<gc-topbar crumb="Marketing" page="Landing pages" base="../"></gc-topbar>
+<header style="display:flex;height:72px;flex:none;align-items:center;gap:12px;padding:0 32px;background:#fff;border-bottom:1px solid #e2e8f0">
+<button style="width:32px;height:32px;display:grid;place-items:center;border:none;border-radius:9999px;background:none;color:#94a3b8;cursor:pointer" style-hover="background:rgba(203,213,225,.2);color:#475569" aria-label="Back to landing pages"><i data-lucide="arrow-left"></i></button>
+<div><h1 style="margin:0;font-size:15px;font-weight:600;letter-spacing:.025em;color:#1e293b">New landing page</h1><p style="margin:1px 0 0;font-size:13px;color:#94a3b8">Step 1 of 2 — pick the product this page sells</p></div>
+</header>
+<div style="flex:1;min-height:0;overflow-y:auto;padding:32px 32px 40px">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:26px;max-width:1240px">
+<section style="background:#fff;border-radius:8px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:26px">
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+<h2 style="margin:0;font-size:15px;font-weight:600;letter-spacing:.025em;color:#1e293b">Your products</h2>
+<span style="font-size:13px;color:#94a3b8">240 in catalogue</span>
+<span style="position:relative;display:inline-block;width:250px;margin-left:auto"><input type="search" placeholder="Search products or SKU…" style="width:100%;box-sizing:border-box;height:32px;border:none;border-radius:9999px;background:#e9eef5;padding:0 16px 0 36px;font-size:13px;color:#1e293b"><span style="position:absolute;left:0;top:0;display:flex;width:36px;height:100%;align-items:center;justify-content:center;color:#94a3b8;pointer-events:none"><i data-lucide="search" width="16" height="16"></i></span></span>
+</div>
+<div style="display:flex;gap:6px;margin-top:14px;flex-wrap:wrap">
+<button style="height:28px;border:none;border-radius:9999px;background:rgba(0,48,135,.1);color:#003087;padding:0 12px;font-size:13px;font-weight:500;letter-spacing:.025em;cursor:pointer">Recently added</button>
+<button style="height:28px;border:none;border-radius:9999px;background:#e9eef5;color:#475569;padding:0 12px;font-size:13px;font-weight:500;letter-spacing:.025em;cursor:pointer" style-hover="background:#dde5ef">Best selling</button>
+<button style="height:28px;border:none;border-radius:9999px;background:#e9eef5;color:#475569;padding:0 12px;font-size:13px;font-weight:500;letter-spacing:.025em;cursor:pointer" style-hover="background:#dde5ef">In stock</button>
+<button style="height:28px;border:none;border-radius:9999px;background:#e9eef5;color:#475569;padding:0 12px;font-size:13px;font-weight:500;letter-spacing:.025em;cursor:pointer" style-hover="background:#dde5ef">No page yet</button>
+</div>
+<div style="margin-top:16px;display:grid;gap:8px">
+<div style="display:flex;gap:12px;align-items:center;border:2px solid #003087;border-radius:8px;padding:10px 12px;background:rgba(0,48,135,.04);cursor:pointer">
+<span style="flex:none;width:44px;height:44px;border-radius:12px;background:rgba(0,48,135,.08);color:#003087;display:grid;place-items:center;font-size:13px;font-weight:600">WB</span>
+<span style="flex:1;min-width:0"><p style="margin:0;font-size:14px;font-weight:600;color:#1e293b">Winter blanket — 4kg</p><p style="margin:2px 0 0;font-size:13px;color:#475569">৳1,290 · was ৳1,590 · 3 variants · 42 in stock · 18 reviews</p></span>
+<span style="flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:9999px;background:#003087;color:#fff"><i data-lucide="check" width="14" height="14"></i></span>
+</div>
+<div style="display:flex;gap:12px;align-items:center;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;cursor:pointer" style-hover="border-color:#cbd5e1;background:#f8fafc">
+<span style="flex:none;width:44px;height:44px;border-radius:12px;background:rgba(0,156,222,.1);color:#0089c3;display:grid;place-items:center;font-size:13px;font-weight:600">HO</span>
+<span style="flex:1;min-width:0"><p style="margin:0;font-size:14px;font-weight:600;color:#1e293b">Hair oil 200ml</p><p style="margin:2px 0 0;font-size:13px;color:#475569">৳540 · 1 variant · <span style="color:#c23a12;font-weight:500">0 in stock</span></p></span>
+<span style="flex:none;display:inline-flex;height:22px;align-items:center;border-radius:4px;background:rgba(255,87,36,.12);padding:0 8px;font-size:11px;font-weight:500;color:#c23a12">Out of stock</span>
+</div>
+<div style="display:flex;gap:12px;align-items:center;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;cursor:pointer" style-hover="border-color:#cbd5e1;background:#f8fafc">
+<span style="flex:none;width:44px;height:44px;border-radius:12px;background:rgba(16,185,129,.1);color:#0f7a5a;display:grid;place-items:center;font-size:13px;font-weight:600">KH</span>
+<span style="flex:1;min-width:0"><p style="margin:0;font-size:14px;font-weight:600;color:#1e293b">Kids hoodie</p><p style="margin:2px 0 0;font-size:13px;color:#475569">৳890 · 4 variants · 128 in stock</p></span>
+<span style="flex:none;display:inline-flex;height:22px;align-items:center;border-radius:4px;background:#e9eef5;padding:0 8px;font-size:11px;font-weight:500;color:#475569">1 page</span>
+</div>
+<div style="display:flex;gap:12px;align-items:center;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;cursor:pointer" style-hover="border-color:#cbd5e1;background:#f8fafc">
+<span style="flex:none;width:44px;height:44px;border-radius:12px;background:rgba(255,152,0,.12);color:#a15f00;display:grid;place-items:center;font-size:13px;font-weight:600">JS</span>
+<span style="flex:1;min-width:0"><p style="margin:0;font-size:14px;font-weight:600;color:#1e293b">Jamdani saree</p><p style="margin:2px 0 0;font-size:13px;color:#475569">৳4,750 · 6 variants · 11 in stock</p></span>
+<span style="flex:none;display:inline-flex;height:22px;align-items:center;border-radius:4px;background:rgba(255,152,0,.12);padding:0 8px;font-size:11px;font-weight:500;color:#a15f00">Low stock</span>
+</div>
+</div>
+<p style="margin:16px 0 0;font-size:13px;color:#94a3b8">A landing page always sells a product from your catalogue, so price, stock and variants stay correct by themselves. <a href="#">Add a new product</a></p>
+</section>
+<aside style="display:grid;gap:16px;align-content:start">
+<div style="background:#fff;border-radius:8px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:26px">
+<h2 style="margin:0 0 2px;font-size:15px;font-weight:600;letter-spacing:.025em;color:#1e293b">Fills the page automatically</h2>
+<p style="margin:0 0 14px;font-size:13px;color:#94a3b8">Winter blanket — 4kg</p>
+<div style="display:grid;gap:9px">
+<div style="display:flex;gap:10px;align-items:flex-start"><span style="flex:none;color:#009cde;margin-top:1px"><i data-lucide="type" width="16" height="16"></i></span><span style="font-size:13px;color:#475569"><b style="color:#1e293b;font-weight:600">Name</b> — heading, page title, order confirmation</span></div>
+<div style="display:flex;gap:10px;align-items:flex-start"><span style="flex:none;color:#009cde;margin-top:1px"><i data-lucide="image" width="16" height="16"></i></span><span style="font-size:13px;color:#475569"><b style="color:#1e293b;font-weight:600">4 photos</b> — hero, gallery and variant images</span></div>
+<div style="display:flex;gap:10px;align-items:flex-start"><span style="flex:none;color:#009cde;margin-top:1px"><i data-lucide="tag" width="16" height="16"></i></span><span style="font-size:13px;color:#475569"><b style="color:#1e293b;font-weight:600">৳1,290, was ৳1,590</b> — price part and order total</span></div>
+<div style="display:flex;gap:10px;align-items:flex-start"><span style="flex:none;color:#009cde;margin-top:1px"><i data-lucide="percent" width="16" height="16"></i></span><span style="font-size:13px;color:#475569"><b style="color:#1e293b;font-weight:600">20% off</b> — offer part and savings line</span></div>
+<div style="display:flex;gap:10px;align-items:flex-start"><span style="flex:none;color:#009cde;margin-top:1px"><i data-lucide="layers" width="16" height="16"></i></span><span style="font-size:13px;color:#475569"><b style="color:#1e293b;font-weight:600">3 sizes</b> — variant chips and order form</span></div>
+<div style="display:flex;gap:10px;align-items:flex-start"><span style="flex:none;color:#009cde;margin-top:1px"><i data-lucide="boxes" width="16" height="16"></i></span><span style="font-size:13px;color:#475569"><b style="color:#1e293b;font-weight:600">42 in stock</b> — urgency part and maximum quantity</span></div>
+</div>
+<p style="margin:14px 0 0;font-size:13px;color:#94a3b8">Change these in the product, not on the page. <a href="#">Edit product</a></p>
+</div>
+<div style="background:#fff;border-radius:8px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:26px">
+<h2 style="margin:0 0 2px;font-size:15px;font-weight:600;letter-spacing:.025em;color:#1e293b">Starting point</h2>
+<p style="margin:0 0 14px;font-size:13px;color:#94a3b8">Step 2 of 2 — every template arrives already filled in</p>
+<div style="display:grid;gap:8px">
+<button onClick="{{ startBuild }}" style="display:flex;gap:10px;align-items:center;text-align:left;border:2px solid #003087;border-radius:8px;background:rgba(0,48,135,.04);padding:10px 12px;cursor:pointer"><span style="flex:none;width:36px;height:36px;border-radius:8px;background:rgba(0,48,135,.1);color:#003087;display:grid;place-items:center"><i data-lucide="banknote" width="18" height="18"></i></span><span><span style="display:block;font-size:14px;font-weight:600;color:#1e293b">COD single product</span><span style="display:block;font-size:13px;color:#475569">11 parts · order form near the top</span></span></button>
+<button onClick="{{ startBuild }}" style="display:flex;gap:10px;align-items:center;text-align:left;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:10px 12px;cursor:pointer" style-hover="border-color:#cbd5e1;background:#f8fafc"><span style="flex:none;width:36px;height:36px;border-radius:8px;background:#e9eef5;color:#475569;display:grid;place-items:center"><i data-lucide="scroll-text" width="18" height="18"></i></span><span><span style="display:block;font-size:14px;font-weight:600;color:#1e293b">Long-form offer</span><span style="display:block;font-size:13px;color:#475569">17 parts · benefits, reviews, FAQ, countdown</span></span></button>
+<button onClick="{{ startBuild }}" style="display:flex;gap:10px;align-items:center;text-align:left;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:10px 12px;cursor:pointer" style-hover="border-color:#cbd5e1;background:#f8fafc"><span style="flex:none;width:36px;height:36px;border-radius:8px;background:#e9eef5;color:#475569;display:grid;place-items:center"><i data-lucide="play-circle" width="18" height="18"></i></span><span><span style="display:block;font-size:14px;font-weight:600;color:#1e293b">Video first</span><span style="display:block;font-size:13px;color:#475569">9 parts · video, then order form</span></span></button>
+<button onClick="{{ startBuild }}" style="display:flex;gap:10px;align-items:center;text-align:left;border:1px dashed #cbd5e1;border-radius:8px;background:#fff;padding:10px 12px;cursor:pointer" style-hover="border-color:#94a3b8;background:#f8fafc"><span style="flex:none;width:36px;height:36px;border-radius:8px;background:#e9eef5;color:#475569;display:grid;place-items:center"><i data-lucide="plus" width="18" height="18"></i></span><span><span style="display:block;font-size:14px;font-weight:600;color:#1e293b">Blank page</span><span style="display:block;font-size:13px;color:#475569">Start with 3 suggested parts</span></span></button>
+</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:16px">
+<button onClick="{{ startBuild }}" style="height:36px;flex:1;border:none;border-radius:8px;background:#003087;color:#fff;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer" style-hover="background:#002a77">Start building</button>
+<select style="height:36px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 8px;font-size:13px;color:#475569"><option>বাংলা + English</option><option>বাংলা</option><option>English</option></select>
+</div>
+</div>
+</aside>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isBuild }}" hint-placeholder-val="{{ true }}">
+<header style="display:flex;height:72px;flex:none;align-items:center;gap:10px;padding:0 16px;background:#fff;border-bottom:1px solid #e2e8f0;min-width:0">
+<button onClick="{{ backToPick }}" style="width:32px;height:32px;display:grid;place-items:center;border:none;border-radius:9999px;background:none;color:#94a3b8;cursor:pointer" style-hover="background:rgba(203,213,225,.2);color:#475569" aria-label="Back to landing pages"><i data-lucide="arrow-left"></i></button>
+<div style="flex:none"><h1 style="margin:0;font-size:15px;font-weight:600;letter-spacing:.025em;color:#1e293b;white-space:nowrap">Winter blanket — landing page</h1><p style="margin:1px 0 0;font-size:13px;color:#94a3b8;white-space:nowrap">gridcommerce.shop/rina/winter-blanket</p></div>
+<span style="flex:none;white-space:nowrap;display:inline-flex;height:22px;align-items:center;border-radius:4px;background:#e9eef5;padding:0 8px;font-size:11px;font-weight:500;color:#475569;letter-spacing:.025em">Draft</span>
+<span style="flex:none;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;height:26px;border-radius:9999px;background:rgba(16,185,129,.1);padding:0 10px;font-size:12px;font-weight:500;color:#0f7a5a"><i data-lucide="check" width="13" height="13"></i>Saved · <span class="bn" style="font-size:13px">সেভ হয়েছে</span></span>
+<div style="display:flex;gap:2px;margin-left:6px">
+<button style="width:32px;height:32px;display:grid;place-items:center;border:none;border-radius:9999px;background:none;color:#475569;cursor:pointer" style-hover="background:rgba(203,213,225,.2)" aria-label="Undo"><i data-lucide="undo-2" width="18" height="18"></i></button>
+<button style="width:32px;height:32px;display:grid;place-items:center;border:none;border-radius:9999px;background:none;color:#cbd5e1;cursor:not-allowed" aria-label="Redo"><i data-lucide="redo-2" width="18" height="18"></i></button>
+</div>
+<button onClick="{{ openAiPage }}" style="flex:none;white-space:nowrap;height:32px;display:inline-flex;align-items:center;gap:7px;border:none;border-radius:8px;background:rgba(0,156,222,.12);color:#0089c3;padding:0 12px;font-size:13px;font-weight:500;letter-spacing:.025em;cursor:pointer" style-hover="background:rgba(0,156,222,.22)"><i data-lucide="sparkles" width="15" height="15"></i>Write page with AI</button>
+<div style="margin-left:auto;flex:none;display:flex;align-items:center;gap:8px">
+<span style="flex:none;display:inline-flex;border-radius:9999px;background:#e9eef5;padding:3px">
+<sc-if value="{{ isMobile }}" hint-placeholder-val="{{ true }}">
+<button onClick="{{ setMobile }}" style="flex:none;white-space:nowrap;height:26px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:9999px;padding:0 12px;font-size:12px;font-weight:500;cursor:pointer;background:#fff;color:#003087;box-shadow:0 1px 2px 0 rgba(48,46,56,.08)"><i data-lucide="smartphone" width="14" height="14"></i>Mobile</button>
+<button onClick="{{ setDesktop }}" style="flex:none;white-space:nowrap;height:26px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:9999px;padding:0 12px;font-size:12px;font-weight:500;cursor:pointer;background:transparent;color:#475569"><i data-lucide="monitor" width="14" height="14"></i>Desktop</button>
+</sc-if>
+<sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ false }}">
+<button onClick="{{ setMobile }}" style="flex:none;white-space:nowrap;height:26px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:9999px;padding:0 12px;font-size:12px;font-weight:500;cursor:pointer;background:transparent;color:#475569"><i data-lucide="smartphone" width="14" height="14"></i>Mobile</button>
+<button onClick="{{ setDesktop }}" style="flex:none;white-space:nowrap;height:26px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:9999px;padding:0 12px;font-size:12px;font-weight:500;cursor:pointer;background:#fff;color:#003087;box-shadow:0 1px 2px 0 rgba(48,46,56,.08)"><i data-lucide="monitor" width="14" height="14"></i>Desktop</button>
+</sc-if>
+</span>
+<button style="flex:none;white-space:nowrap;height:32px;display:inline-flex;align-items:center;gap:7px;border:none;border-radius:8px;background:rgba(0,48,135,.1);color:#003087;padding:0 12px;font-size:13px;font-weight:500;letter-spacing:.025em;cursor:pointer" style-hover="background:rgba(0,48,135,.2)"><i data-lucide="qr-code" width="15" height="15"></i>Open on my phone</button>
+<button onClick="{{ openPublish }}" style="flex:none;white-space:nowrap;height:36px;display:inline-flex;align-items:center;gap:7px;border:none;border-radius:8px;background:#003087;color:#fff;padding:0 16px;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer" style-hover="background:#002a77"><i data-lucide="rocket" width="16" height="16"></i>Publish</button>
+</div>
+</header>
+
+<div style="flex:1;min-height:0;display:flex;min-width:1240px">
+<section style="width:236px;flex:none;flex-shrink:0;display:flex;flex-direction:column;background:#fff;border-right:1px solid #e2e8f0">
+<div style="flex:none;padding:14px 14px 10px">
+<h2 style="margin:0 0 10px;font-size:13px;font-weight:600;letter-spacing:.025em;color:#1e293b">Add a part</h2>
+<span style="position:relative;display:block"><input type="search" placeholder="Search parts…" style="width:100%;box-sizing:border-box;height:32px;border:none;border-radius:9999px;background:#e9eef5;padding:0 12px 0 34px;font-size:13px;color:#1e293b"><span style="position:absolute;left:0;top:0;display:flex;width:34px;height:100%;align-items:center;justify-content:center;color:#94a3b8;pointer-events:none"><i data-lucide="search" width="15" height="15"></i></span></span>
+<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:10px">
+<button style="height:24px;border:none;border-radius:9999px;background:rgba(0,48,135,.1);color:#003087;padding:0 9px;font-size:12px;font-weight:500;cursor:pointer">Product</button>
+<button style="height:24px;border:none;border-radius:9999px;background:#e9eef5;color:#475569;padding:0 9px;font-size:12px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef">Conversion</button>
+<button style="height:24px;border:none;border-radius:9999px;background:#e9eef5;color:#475569;padding:0 9px;font-size:12px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef">Social proof</button>
+<button style="height:24px;border:none;border-radius:9999px;background:#e9eef5;color:#475569;padding:0 9px;font-size:12px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef">Offers</button>
+<button style="height:24px;border:none;border-radius:9999px;background:#e9eef5;color:#475569;padding:0 9px;font-size:12px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef">Checkout</button>
+<button style="height:24px;border:none;border-radius:9999px;background:#e9eef5;color:#475569;padding:0 9px;font-size:12px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef">Information</button>
+<button style="height:24px;border:none;border-radius:9999px;background:#e9eef5;color:#475569;padding:0 9px;font-size:12px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef">My parts</button>
+</div>
+</div>
+<div style="flex:1;min-height:0;overflow-y:auto;border-top:1px solid #e2e8f0;padding:10px 10px 16px">
+<p style="margin:2px 0 8px 4px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8">Product · 6</p>
+<div style="display:grid;gap:4px">
+<button style="display:flex;gap:9px;align-items:center;width:100%;text-align:left;border:1px solid transparent;border-radius:8px;background:none;padding:7px 8px;font-size:13px;color:#334155;cursor:grab" style-hover="border-color:#e2e8f0;background:#f8fafc"><span style="color:#94a3b8"><i data-lucide="grip-vertical" width="14" height="14"></i></span>Hero / product intro</button>
+<button style="display:flex;gap:9px;align-items:center;width:100%;text-align:left;border:1px solid transparent;border-radius:8px;background:none;padding:7px 8px;font-size:13px;color:#334155;cursor:grab" style-hover="border-color:#e2e8f0;background:#f8fafc"><span style="color:#94a3b8"><i data-lucide="grip-vertical" width="14" height="14"></i></span>Image gallery</button>
+<button style="display:flex;gap:9px;align-items:center;width:100%;text-align:left;border:1px solid transparent;border-radius:8px;background:none;padding:7px 8px;font-size:13px;color:#334155;cursor:grab" style-hover="border-color:#e2e8f0;background:#f8fafc"><span style="color:#94a3b8"><i data-lucide="grip-vertical" width="14" height="14"></i></span>Product benefits</button>
+<button style="display:flex;gap:9px;align-items:center;width:100%;text-align:left;border:1px solid transparent;border-radius:8px;background:none;padding:7px 8px;font-size:13px;color:#334155;cursor:grab" style-hover="border-color:#e2e8f0;background:#f8fafc"><span style="color:#94a3b8"><i data-lucide="grip-vertical" width="14" height="14"></i></span>Features / specifications</button>
+<button style="display:flex;gap:9px;align-items:center;width:100%;text-align:left;border:1px solid transparent;border-radius:8px;background:none;padding:7px 8px;font-size:13px;color:#334155;cursor:grab" style-hover="border-color:#e2e8f0;background:#f8fafc"><span style="color:#94a3b8"><i data-lucide="grip-vertical" width="14" height="14"></i></span>Video</button>
+<div style="display:flex;gap:9px;align-items:center;border-radius:8px;padding:7px 8px;font-size:13px;color:#94a3b8"><span><i data-lucide="grip-vertical" width="14" height="14"></i></span>Variant selection<span style="margin-left:auto;font-size:11px">on page</span></div>
+</div>
+<p style="margin:14px 0 8px 4px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8">Conversion · 5</p>
+<div style="display:grid;gap:4px">
+<button style="display:flex;gap:9px;align-items:center;width:100%;text-align:left;border:1px solid transparent;border-radius:8px;background:none;padding:7px 8px;font-size:13px;color:#334155;cursor:grab" style-hover="border-color:#e2e8f0;background:#f8fafc"><span style="color:#94a3b8"><i data-lucide="grip-vertical" width="14" height="14"></i></span>Why buy this product</button>
+<button style="display:flex;gap:9px;align-items:center;width:100%;text-align:left;border:1px solid transparent;border-radius:8px;background:none;padding:7px 8px;font-size:13px;color:#334155;cursor:grab" style-hover="border-color:#e2e8f0;background:#f8fafc"><span style="color:#94a3b8"><i data-lucide="grip-vertical" width="14" height="14"></i></span>Before / after</button>
+<button style="display:flex;gap:9px;align-items:center;width:100%;text-align:left;border:1px solid transparent;border-radius:8px;background:none;padding:7px 8px;font-size:13px;color:#334155;cursor:grab" style-hover="border-color:#e2e8f0;background:#f8fafc"><span style="color:#94a3b8"><i data-lucide="grip-vertical" width="14" height="14"></i></span>Stock urgency</button>
+</div>
+<p style="margin:14px 0 8px 4px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8">Social proof · 1</p>
+<button style="display:flex;gap:9px;align-items:center;width:100%;text-align:left;border:1px solid transparent;border-radius:8px;background:none;padding:7px 8px;font-size:13px;color:#334155;cursor:grab" style-hover="border-color:#e2e8f0;background:#f8fafc"><span style="color:#94a3b8"><i data-lucide="grip-vertical" width="14" height="14"></i></span>Customer reviews</button>
+<p style="margin:14px 0 8px 4px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8">Offers · 4</p>
+<div style="display:grid;gap:4px">
+<button style="display:flex;gap:9px;align-items:center;width:100%;text-align:left;border:1px solid transparent;border-radius:8px;background:none;padding:7px 8px;font-size:13px;color:#334155;cursor:grab" style-hover="border-color:#e2e8f0;background:#f8fafc"><span style="color:#94a3b8"><i data-lucide="grip-vertical" width="14" height="14"></i></span>Bundle / quantity discount</button>
+<button style="display:flex;gap:9px;align-items:center;width:100%;text-align:left;border:1px solid transparent;border-radius:8px;background:none;padding:7px 8px;font-size:13px;color:#334155;cursor:grab" style-hover="border-color:#e2e8f0;background:#f8fafc"><span style="color:#94a3b8"><i data-lucide="grip-vertical" width="14" height="14"></i></span>Related / upsell product</button>
+</div>
+<div style="margin-top:16px;border-radius:8px;background:#f8fafc;padding:10px"><p style="margin:0;font-size:13px;color:#475569">Drag a part onto the page, or tap it to add below the selected part.</p></div>
+</div>
+</section>
+
+<section style="width:222px;flex:none;display:flex;flex-direction:column;background:#fff;border-right:1px solid #e2e8f0">
+<div style="flex:none;display:flex;align-items:center;justify-content:space-between;padding:14px 14px 10px">
+<h2 style="margin:0;font-size:13px;font-weight:600;letter-spacing:.025em;color:#1e293b">Page parts</h2>
+<span style="font-size:12px;color:#94a3b8">11</span>
+</div>
+<div style="flex:1;min-height:0;overflow-y:auto;padding:0 10px 16px">
+<div style="display:grid;gap:4px">
+<button onClick="{{ selHeroFn }}" style="display:flex;gap:7px;align-items:center;width:100%;text-align:left;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:8px;font-size:13px;color:#334155;cursor:pointer" style-hover="border-color:#cbd5e1"><span style="color:#cbd5e1;cursor:grab"><i data-lucide="grip-vertical" width="14" height="14"></i></span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Hero / product intro</span><span style="color:#94a3b8"><i data-lucide="eye" width="14" height="14"></i></span></button>
+<button style="display:flex;gap:7px;align-items:center;width:100%;text-align:left;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:8px;font-size:13px;color:#334155;cursor:pointer" style-hover="border-color:#cbd5e1"><span style="color:#cbd5e1;cursor:grab"><i data-lucide="grip-vertical" width="14" height="14"></i></span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Image gallery</span><span style="color:#94a3b8"><i data-lucide="eye" width="14" height="14"></i></span></button>
+<button onClick="{{ selPriceFn }}" style="display:flex;gap:7px;align-items:center;width:100%;text-align:left;border:2px solid #003087;border-radius:8px;background:rgba(0,48,135,.06);padding:7px;font-size:13px;font-weight:500;color:#003087;cursor:pointer"><span style="color:#003087;cursor:grab"><i data-lucide="grip-vertical" width="14" height="14"></i></span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Price &amp; offer</span><span><i data-lucide="eye" width="14" height="14"></i></span></button>
+<button style="display:flex;gap:7px;align-items:center;width:100%;text-align:left;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:8px;font-size:13px;color:#334155;cursor:pointer" style-hover="border-color:#cbd5e1"><span style="color:#cbd5e1;cursor:grab"><i data-lucide="grip-vertical" width="14" height="14"></i></span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Variant selection</span><span style="color:#94a3b8"><i data-lucide="eye" width="14" height="14"></i></span></button>
+<button style="display:flex;gap:7px;align-items:center;width:100%;text-align:left;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:8px;font-size:13px;color:#334155;cursor:pointer" style-hover="border-color:#cbd5e1"><span style="color:#cbd5e1;cursor:grab"><i data-lucide="grip-vertical" width="14" height="14"></i></span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Product benefits</span><span style="color:#a15f00"><i data-lucide="alert-circle" width="14" height="14"></i></span></button>
+<div style="display:flex;align-items:center;gap:7px;border-top:2px dashed #009cde;padding:5px 2px 2px;font-size:11px;font-weight:500;color:#0089c3">Drop here — Customer reviews</div>
+<button onClick="{{ selDeliveryFn }}" style="display:flex;gap:7px;align-items:center;width:100%;text-align:left;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:8px;font-size:13px;color:#334155;cursor:pointer" style-hover="border-color:#cbd5e1"><span style="color:#cbd5e1;cursor:grab"><i data-lucide="grip-vertical" width="14" height="14"></i></span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Delivery charge</span><span style="color:#94a3b8"><i data-lucide="eye" width="14" height="14"></i></span></button>
+<button style="display:flex;gap:7px;align-items:center;width:100%;text-align:left;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:8px;font-size:13px;color:#334155;cursor:pointer" style-hover="border-color:#cbd5e1"><span style="color:#cbd5e1;cursor:grab"><i data-lucide="grip-vertical" width="14" height="14"></i></span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Cash on delivery</span><span style="color:#94a3b8"><i data-lucide="eye" width="14" height="14"></i></span></button>
+<button onClick="{{ selFormFn }}" style="display:flex;gap:7px;align-items:center;width:100%;text-align:left;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;padding:8px;font-size:13px;color:#334155;cursor:pointer" style-hover="border-color:#cbd5e1"><span style="color:#cbd5e1;cursor:grab"><i data-lucide="grip-vertical" width="14" height="14"></i></span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Order form</span><span style="color:#94a3b8" title="Required — can be hidden, not deleted"><i data-lucide="lock" width="13" height="13"></i></span></button>
+<button style="display:flex;gap:7px;align-items:center;width:100%;text-align:left;border:1px dashed #cbd5e1;border-radius:8px;background:#fff;padding:8px;font-size:13px;color:#94a3b8;cursor:pointer" style-hover="border-color:#94a3b8"><span style="cursor:grab"><i data-lucide="grip-vertical" width="14" height="14"></i></span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Countdown · hidden</span><span><i data-lucide="eye-off" width="14" height="14"></i></span></button>
+<button style="display:flex;gap:7px;align-items:center;width:100%;text-align:left;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:8px;font-size:13px;color:#334155;cursor:pointer" style-hover="border-color:#cbd5e1"><span style="color:#cbd5e1;cursor:grab"><i data-lucide="grip-vertical" width="14" height="14"></i></span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">FAQ</span><span style="color:#94a3b8"><i data-lucide="eye" width="14" height="14"></i></span></button>
+<button style="display:flex;gap:7px;align-items:center;width:100%;text-align:left;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:8px;font-size:13px;color:#334155;cursor:pointer" style-hover="border-color:#cbd5e1"><span style="color:#cbd5e1;cursor:grab"><i data-lucide="grip-vertical" width="14" height="14"></i></span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Footer / contact</span><span style="color:#94a3b8"><i data-lucide="eye" width="14" height="14"></i></span></button>
+</div>
+<div style="margin-top:10px;display:flex;gap:6px">
+<button style="flex:1;height:32px;display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px dashed #cbd5e1;border-radius:8px;background:#fff;font-size:13px;font-weight:500;color:#475569;cursor:pointer" style-hover="border-color:#003087;color:#003087"><i data-lucide="plus" width="14" height="14"></i>Add part</button>
+</div>
+<p style="margin:12px 4px 0;font-size:12px;color:#94a3b8">Drag to reorder, or use <i data-lucide="chevron-up" width="12" height="12"></i> <i data-lucide="chevron-down" width="12" height="12"></i> on a part. Hidden parts keep their settings.</p>
+</div>
+</section>
+
+<section style="flex:1;min-width:430px;display:flex;flex-direction:column;background:#f1f5f9">
+<div style="flex:none;display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid #e2e8f0;background:#fff">
+<span style="flex:none;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;height:26px;border-radius:9999px;background:rgba(0,48,135,.1);padding:0 10px;font-size:12px;font-weight:500;color:#003087"><i data-lucide="pencil" width="13" height="13"></i>Edit mode</span>
+<span style="flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;color:#94a3b8">Tap any part on the page to change it</span>
+<span style="margin-left:auto;flex:none;white-space:nowrap;display:flex;align-items:center;gap:6px;font-size:13px;color:#475569"><i data-lucide="smartphone" width="14" height="14"></i>390 px · what 94% of your buyers see</span>
+</div>
+<div style="flex:1;min-height:0;overflow-y:auto;display:flex;justify-content:center;padding:20px 16px 40px">
+<div style="width:390px;flex:none;border-radius:16px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);overflow:hidden">
+<div style="display:flex;align-items:center;justify-content:space-between;height:26px;padding:0 12px;background:#f8fafc;font-size:10px;color:#94a3b8"><span>9:41</span><span>rina.gridcommerce.shop</span></div>
+<div style="border:1px dashed #e2e8f0;margin:8px;border-radius:12px;padding:10px 12px;cursor:pointer" style-hover="border-color:#009cde">
+<div style="height:150px;border-radius:8px;background:repeating-linear-gradient(115deg,#f8fafc,#f8fafc 10px,#eef2f7 10px,#eef2f7 20px);display:grid;place-items:center;font-size:11px;color:#94a3b8">product photo 1 of 4</div>
+<p class="bn" style="margin:12px 0 0;font-size:21px;line-height:1.3;font-weight:600;color:#1e293b;letter-spacing:-.01em">শীতের জন্য নরম, আরামদায়ক কম্বল</p>
+<p style="margin:5px 0 0;font-size:14px;color:#475569">Winter blanket — 4kg, king size</p>
+</div>
+<div style="position:relative;border:2px solid #003087;margin:8px;border-radius:12px;padding:12px;background:rgba(0,48,135,.03)">
+<span style="position:absolute;top:-11px;left:10px;display:inline-flex;align-items:center;gap:6px;height:22px;border-radius:9999px;background:#003087;color:#fff;padding:0 4px 0 9px;font-size:11px;font-weight:500">Price &amp; offer
+<span style="display:inline-flex;gap:1px;margin-left:3px"><span style="width:18px;height:18px;display:grid;place-items:center;border-radius:9999px;background:rgba(255,255,255,.16)"><i data-lucide="grip-vertical" width="11" height="11"></i></span><span style="width:18px;height:18px;display:grid;place-items:center;border-radius:9999px;background:rgba(255,255,255,.16)"><i data-lucide="eye" width="11" height="11"></i></span><span style="width:18px;height:18px;display:grid;place-items:center;border-radius:9999px;background:rgba(255,255,255,.16)"><i data-lucide="copy" width="11" height="11"></i></span><span style="width:18px;height:18px;display:grid;place-items:center;border-radius:9999px;background:rgba(255,255,255,.16)"><i data-lucide="more-vertical" width="11" height="11"></i></span></span></span>
+<div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:26px;font-weight:700;color:#1e293b;letter-spacing:-.025em">৳1,290</span><span style="font-size:15px;color:#94a3b8;text-decoration:line-through">৳1,590</span><span style="display:inline-flex;height:22px;align-items:center;border-radius:4px;background:rgba(240,0,185,.1);padding:0 8px;font-size:12px;font-weight:600;color:#c1008f">20% off</span></div>
+<p class="bn" style="margin:6px 0 0;font-size:15px;color:#475569">২০% ছাড় — আজকের অর্ডারে ৳৩০০ সেভ</p>
+</div>
+<div style="border:1px dashed #e2e8f0;margin:8px;border-radius:12px;padding:10px 12px;cursor:pointer" style-hover="border-color:#009cde">
+<p class="bn" style="margin:0 0 8px;font-size:14px;font-weight:600;color:#1e293b">সাইজ বাছুন</p>
+<div style="display:flex;gap:6px;flex-wrap:wrap"><span style="display:inline-flex;height:32px;align-items:center;border:1px solid #003087;border-radius:8px;background:rgba(0,48,135,.06);padding:0 12px;font-size:13px;font-weight:500;color:#003087">Double</span><span style="display:inline-flex;height:32px;align-items:center;border:1px solid #cbd5e1;border-radius:8px;padding:0 12px;font-size:13px;color:#475569">Semi-double</span><span style="display:inline-flex;height:32px;align-items:center;border:1px solid #e2e8f0;border-radius:8px;padding:0 12px;font-size:13px;color:#cbd5e1;text-decoration:line-through">Single</span></div>
+<div style="display:flex;align-items:center;gap:10px;margin-top:12px"><p class="bn" style="margin:0;font-size:14px;font-weight:600;color:#1e293b">পরিমাণ</p><span style="display:inline-flex;align-items:center;gap:12px;border:1px solid #cbd5e1;border-radius:8px;padding:4px 10px;font-size:14px;color:#1e293b"><span style="color:#94a3b8">−</span>1<span style="color:#003087">+</span></span><span class="bn" style="font-size:13px;color:#a15f00">স্টক শেষ হয়ে যাচ্ছে — ৪২টি বাকি</span></div>
+</div>
+<div style="border:1px dashed #e2e8f0;margin:8px;border-radius:12px;padding:10px 12px;cursor:pointer" style-hover="border-color:#009cde">
+<div style="display:flex;justify-content:space-between;font-size:14px;color:#475569"><span class="bn">ডেলিভারি চার্জ — ঢাকার ভিতরে</span><span style="font-weight:600;color:#1e293b">৳70</span></div>
+<div style="display:flex;justify-content:space-between;font-size:14px;color:#94a3b8;margin-top:4px"><span class="bn">ঢাকার বাইরে</span><span>৳130</span></div>
+<div style="display:flex;align-items:center;gap:8px;margin-top:10px;border-radius:8px;background:rgba(16,185,129,.1);padding:8px 10px"><span style="color:#0f7a5a"><i data-lucide="hand-coins" width="16" height="16"></i></span><p class="bn" style="margin:0;font-size:14px;color:#0f7a5a">ক্যাশ অন ডেলিভারি — পণ্য হাতে পেয়ে টাকা দিন</p></div>
+</div>
+<div style="border:1px dashed #e2e8f0;margin:8px;border-radius:12px;padding:10px 12px;cursor:pointer" style-hover="border-color:#009cde">
+<p class="bn" style="margin:0 0 10px;font-size:15px;font-weight:600;color:#1e293b">অর্ডার করতে নিচের তথ্য দিন</p>
+<div style="display:grid;gap:7px">
+<div style="height:38px;border:1px solid #cbd5e1;border-radius:8px;display:flex;align-items:center;padding:0 10px;font-size:13px;color:#94a3b8" class="bn">আপনার নাম *</div>
+<div style="height:38px;border:1px solid #cbd5e1;border-radius:8px;display:flex;align-items:center;padding:0 10px;font-size:13px;color:#94a3b8" class="bn">মোবাইল নম্বর * — 01XXXXXXXXX</div>
+<div style="height:52px;border:1px solid #cbd5e1;border-radius:8px;display:flex;align-items:flex-start;padding:8px 10px;font-size:13px;color:#94a3b8" class="bn">সম্পূর্ণ ঠিকানা *</div>
+<div style="display:flex;gap:7px"><div style="flex:1;height:38px;border:1px solid #cbd5e1;border-radius:8px;display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:13px;color:#475569" class="bn">ঢাকা<span style="color:#94a3b8"><i data-lucide="chevron-down" width="14" height="14"></i></span></div><div style="flex:1;height:38px;border:1px solid #e2e8f0;border-radius:8px;display:flex;align-items:center;padding:0 10px;font-size:13px;color:#cbd5e1" class="bn">এলাকা</div></div>
+</div>
+<div style="display:flex;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:15px;font-weight:600;color:#1e293b"><span class="bn">সর্বমোট</span><span>৳1,360</span></div>
+<div style="margin-top:10px;height:46px;border-radius:8px;background:#003087;color:#fff;display:grid;place-items:center;font-size:16px;font-weight:600" class="bn">অর্ডার কনফার্ম করুন</div>
+<p style="margin:8px 0 0;font-size:12px;color:#94a3b8;text-align:center">4 fields · no account · no OTP</p>
+</div>
+<div style="border:1px dashed #cbd5e1;margin:8px;border-radius:12px;padding:14px;text-align:center;font-size:13px;color:#94a3b8">FAQ · Footer / contact · WhatsApp button</div>
+<div style="position:sticky;bottom:0;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:#fff;border-top:1px solid #e2e8f0"><span style="font-size:14px;font-weight:600;color:#1e293b">৳1,360</span><span class="bn" style="flex:1;height:40px;border-radius:8px;background:#003087;color:#fff;display:grid;place-items:center;font-size:15px;font-weight:600">অর্ডার করুন</span></div>
+</div>
+</div>
+</section>
+
+<section style="width:340px;flex:none;display:flex;flex-direction:column;background:#fff;border-left:1px solid #e2e8f0">
+<sc-if value="{{ aiClosed }}" hint-placeholder-val="{{ true }}">
+<div style="flex:none;padding:14px 16px 12px;border-bottom:1px solid #e2e8f0">
+<div style="display:flex;align-items:center;gap:8px"><h2 style="margin:0;font-size:15px;font-weight:600;letter-spacing:.025em;color:#1e293b">Price &amp; offer</h2><span style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;height:22px;border-radius:4px;background:rgba(0,156,222,.12);padding:0 7px;font-size:11px;font-weight:500;color:#0089c3"><i data-lucide="link" width="12" height="12"></i>auto from product</span></div>
+<p style="margin:4px 0 0;font-size:13px;color:#94a3b8">৳1,290 · was ৳1,590 · 20% off — change these in the product</p>
+<div style="display:flex;gap:6px;margin-top:12px">
+<button onClick="{{ openAiField }}" style="height:30px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:8px;background:rgba(0,156,222,.12);color:#0089c3;padding:0 10px;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:rgba(0,156,222,.22)"><i data-lucide="sparkles" width="14" height="14"></i>Fill this part with AI</button>
+<button style="height:30px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:8px;background:#e9eef5;color:#475569;padding:0 10px;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef"><i data-lucide="rotate-ccw" width="14" height="14"></i>Reset</button>
+</div>
+</div>
+<div style="flex:1;min-height:0;overflow-y:auto;padding:14px 16px 24px">
+<label style="display:block;font-size:13px;font-weight:600;color:#334155">Offer line</label>
+<div style="position:relative;margin-top:6px"><textarea rows="2" style="width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:8px;padding:8px 42px 8px 10px;font-size:14px;line-height:1.45;color:#1e293b;resize:vertical" class="bn">২০% ছাড় — আজকের অর্ডারে ৳৩০০ সেভ</textarea><button onClick="{{ openAiField }}" style="position:absolute;top:6px;right:6px;height:24px;display:inline-flex;align-items:center;gap:4px;border:1px solid #009cde;border-radius:4px;background:#fff;color:#0089c3;padding:0 7px;font-size:11px;font-weight:500;cursor:pointer" style-hover="background:#009cde;color:#fff"><i data-lucide="sparkles" width="11" height="11"></i>AI</button></div>
+<p style="margin:5px 0 0;font-size:12px;color:#94a3b8">Shown under the price. Keep it under 8 words on mobile.</p>
+<div style="height:1px;background:#e2e8f0;margin:16px 0"></div>
+<label style="display:block;font-size:13px;font-weight:600;color:#334155">Note under price</label>
+<div style="position:relative;margin-top:6px"><input value="ডেলিভারি চার্জ আলাদা" style="width:100%;box-sizing:border-box;height:38px;border:1px solid #cbd5e1;border-radius:8px;padding:0 42px 0 10px;font-size:14px;color:#1e293b" class="bn"><button onClick="{{ openAiField }}" style="position:absolute;top:7px;right:6px;height:24px;display:inline-flex;align-items:center;gap:4px;border:1px solid #009cde;border-radius:4px;background:#fff;color:#0089c3;padding:0 7px;font-size:11px;font-weight:500;cursor:pointer" style-hover="background:#009cde;color:#fff"><i data-lucide="sparkles" width="11" height="11"></i>AI</button></div>
+<div style="height:1px;background:#e2e8f0;margin:16px 0"></div>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span><span style="display:block;font-size:13px;font-weight:600;color:#334155">Show the old price</span><span style="display:block;font-size:12px;color:#94a3b8">৳1,590 struck through</span></span><span style="flex:none;width:40px;height:22px;border-radius:9999px;background:#003087;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><span style="width:16px;height:16px;border-radius:9999px;background:#fff"></span></span></div>
+<div style="height:1px;background:#e2e8f0;margin:16px 0"></div>
+<span style="display:block;font-size:13px;font-weight:600;color:#334155;margin-bottom:7px">Savings shown as</span>
+<div style="display:flex;gap:6px"><button style="height:30px;border:none;border-radius:9999px;background:rgba(0,48,135,.1);color:#003087;padding:0 12px;font-size:13px;font-weight:500;cursor:pointer">৳300 saved</button><button style="height:30px;border:none;border-radius:9999px;background:#e9eef5;color:#475569;padding:0 12px;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef">20% off</button><button style="height:30px;border:none;border-radius:9999px;background:#e9eef5;color:#475569;padding:0 12px;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef">Both</button></div>
+<div style="height:1px;background:#e2e8f0;margin:16px 0"></div>
+<div style="border-radius:8px;background:#f8fafc;padding:12px"><p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#1e293b">Price, stock and variants have no AI</p><p style="margin:0;font-size:13px;color:#475569">They come straight from your product so a buyer can never see a wrong price.</p></div>
+<div style="display:flex;gap:6px;margin-top:16px"><button style="height:32px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:8px;background:#e9eef5;color:#475569;padding:0 10px;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef"><i data-lucide="bookmark" width="14" height="14"></i>Save to my parts</button><button style="height:32px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:8px;background:rgba(255,87,36,.1);color:#c23a12;padding:0 10px;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:rgba(255,87,36,.2)"><i data-lucide="eye-off" width="14" height="14"></i>Hide part</button></div>
+</div>
+</sc-if>
+<sc-if value="{{ aiOpen }}" hint-placeholder-val="{{ false }}">
+<div style="flex:none;display:flex;align-items:center;gap:8px;padding:14px 16px 12px;border-bottom:1px solid #e2e8f0">
+<span style="width:28px;height:28px;display:grid;place-items:center;border-radius:8px;background:rgba(0,156,222,.12);color:#0089c3"><i data-lucide="sparkles" width="16" height="16"></i></span>
+<div style="min-width:0"><h2 style="margin:0;font-size:15px;font-weight:600;letter-spacing:.025em;color:#1e293b">AI · Offer line</h2><p style="margin:1px 0 0;font-size:12px;color:#94a3b8">Price &amp; offer part</p></div>
+<button onClick="{{ closeAi }}" style="margin-left:auto;width:28px;height:28px;display:grid;place-items:center;border:none;border-radius:9999px;background:none;color:#94a3b8;cursor:pointer" style-hover="background:rgba(203,213,225,.2);color:#475569" aria-label="Close AI"><i data-lucide="x" width="16" height="16"></i></button>
+</div>
+<div style="flex:1;min-height:0;overflow-y:auto;padding:14px 16px 24px">
+<div style="border:1px solid #e2e8f0;border-radius:8px;padding:10px"><p style="margin:0 0 4px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8">Your text now</p><p class="bn" style="margin:0;font-size:14px;color:#475569">২০% ছাড় — আজকের অর্ডারে ৳৩০০ সেভ</p></div>
+<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:12px">
+<button style="height:28px;border:none;border-radius:9999px;background:#003087;color:#fff;padding:0 11px;font-size:12px;font-weight:500;cursor:pointer">Rewrite</button>
+<button style="height:28px;border:none;border-radius:9999px;background:#e9eef5;color:#475569;padding:0 11px;font-size:12px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef">Generate</button>
+<button style="height:28px;border:none;border-radius:9999px;background:#e9eef5;color:#475569;padding:0 11px;font-size:12px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef">Shorten</button>
+<button class="bn" style="height:28px;border:none;border-radius:9999px;background:#e9eef5;color:#475569;padding:0 11px;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef">বাংলা</button>
+<button style="height:28px;border:none;border-radius:9999px;background:#e9eef5;color:#475569;padding:0 11px;font-size:12px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef">English</button>
+<button class="bn" style="height:28px;border:none;border-radius:9999px;background:#e9eef5;color:#475569;padding:0 11px;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef">বাংলা + English</button>
+</div>
+<p style="margin:12px 0 0;font-size:12px;color:#94a3b8">Using your product: Winter blanket · ৳1,290 · 20% off · 3 sizes · 42 in stock · 18 reviews</p>
+<div style="display:grid;gap:8px;margin-top:12px">
+<button style="text-align:left;border:2px solid #003087;border-radius:8px;background:rgba(0,48,135,.04);padding:10px;cursor:pointer"><span class="bn" style="display:block;font-size:14px;color:#1e293b">আজকের অর্ডারে ৳৩০০ সেভ — ২০% ছাড়</span><span style="display:block;margin-top:5px;font-size:11px;color:#003087;font-weight:500">Shown on the page now · 6 words</span></button>
+<button style="text-align:left;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:10px;cursor:pointer" style-hover="border-color:#cbd5e1;background:#f8fafc"><span class="bn" style="display:block;font-size:14px;color:#1e293b">২০% ছাড়ে ৳১,২৯০ — শীত শেষ হওয়ার আগেই</span><span style="display:block;margin-top:5px;font-size:11px;color:#94a3b8">8 words</span></button>
+<button style="text-align:left;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:10px;cursor:pointer" style-hover="border-color:#cbd5e1;background:#f8fafc"><span style="display:block;font-size:14px;color:#1e293b">Save ৳300 today — 20% off the 4kg blanket</span><span style="display:block;margin-top:5px;font-size:11px;color:#94a3b8">English · 8 words</span></button>
+</div>
+<div style="display:flex;gap:6px;margin-top:14px">
+<button onClick="{{ closeAi }}" style="height:36px;flex:1;border:none;border-radius:8px;background:#003087;color:#fff;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer" style-hover="background:#002a77">Use this text</button>
+<button style="height:36px;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:8px;background:#e9eef5;color:#475569;padding:0 12px;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef"><i data-lucide="refresh-cw" width="14" height="14"></i>Again</button>
+<button onClick="{{ closeAi }}" style="height:36px;border:none;border-radius:8px;background:none;color:#475569;padding:0 10px;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#f1f5f9">Keep mine</button>
+</div>
+<div style="margin-top:16px;border-radius:8px;background:#f8fafc;padding:12px"><p style="margin:0;font-size:13px;color:#475569">Nothing changes on your page until you tap <b style="color:#1e293b;font-weight:600">Use this text</b> — and undo brings your words back.</p></div>
+<p style="margin:14px 0 6px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8">Earlier in this session</p>
+<div style="display:grid;gap:6px"><span class="bn" style="font-size:13px;color:#475569;border-left:2px solid #e2e8f0;padding-left:8px">শীতের সেরা অফার — ২০% ছাড়</span><span style="font-size:13px;color:#475569;border-left:2px solid #e2e8f0;padding-left:8px">20% off — limited winter stock</span></div>
+</div>
+</sc-if>
+</section>
+</div>
+</sc-if>
+
+<sc-if value="{{ isPublish }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;z-index:200;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:24px">
+<div style="width:560px;max-width:100%;max-height:100%;overflow-y:auto;border-radius:8px;background:#fff;box-shadow:0 20px 40px -12px rgba(15,23,42,.35)">
+<div style="display:flex;align-items:center;gap:10px;padding:18px 20px;border-bottom:1px solid #e2e8f0">
+<span style="width:32px;height:32px;display:grid;place-items:center;border-radius:8px;background:rgba(0,48,135,.1);color:#003087"><i data-lucide="rocket" width="18" height="18"></i></span>
+<div><h2 style="margin:0;font-size:15px;font-weight:600;letter-spacing:.025em;color:#1e293b">Publish this page</h2><p style="margin:1px 0 0;font-size:13px;color:#94a3b8">Two things must be fixed first</p></div>
+<button onClick="{{ closePublish }}" style="margin-left:auto;width:32px;height:32px;display:grid;place-items:center;border:none;border-radius:9999px;background:none;color:#94a3b8;cursor:pointer" style-hover="background:rgba(203,213,225,.2);color:#475569" aria-label="Close"><i data-lucide="x" width="18" height="18"></i></button>
+</div>
+<div style="padding:18px 20px 20px">
+<p style="margin:0 0 8px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#c23a12">Must fix</p>
+<div style="display:grid;gap:8px">
+<div style="display:flex;gap:10px;align-items:center;border-radius:8px;background:rgba(255,87,36,.08);padding:10px 12px"><span style="flex:none;color:#c23a12"><i data-lucide="alert-circle" width="18" height="18"></i></span><span style="flex:1;font-size:14px;color:#334155">Delivery charge for <b style="color:#1e293b;font-weight:600">outside Dhaka</b> is empty</span><button style="flex:none;height:30px;border:none;border-radius:8px;background:#fff;color:#c23a12;padding:0 12px;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:rgba(255,255,255,.6)">Set ৳130</button></div>
+<div style="display:flex;gap:10px;align-items:center;border-radius:8px;background:rgba(255,87,36,.08);padding:10px 12px"><span style="flex:none;color:#c23a12"><i data-lucide="link-2" width="18" height="18"></i></span><span style="flex:1;font-size:14px;color:#334155">The link <b style="color:#1e293b;font-weight:600">/blanket</b> is already used</span><button style="flex:none;height:30px;border:none;border-radius:8px;background:#fff;color:#c23a12;padding:0 12px;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:rgba(255,255,255,.6)">Use /winter-blanket</button></div>
+</div>
+<p style="margin:18px 0 8px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#a15f00">Worth checking — will not stop you</p>
+<div style="display:grid;gap:8px">
+<div style="display:flex;gap:10px;align-items:center;border-radius:8px;background:#f8fafc;padding:10px 12px"><span style="flex:none;color:#a15f00"><i data-lucide="sparkles" width="18" height="18"></i></span><span style="flex:1;font-size:14px;color:#334155">2 benefit rows are still empty</span><button style="flex:none;height:30px;border:none;border-radius:8px;background:rgba(0,156,222,.12);color:#0089c3;padding:0 12px;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:rgba(0,156,222,.22)">Fill with AI</button></div>
+<div style="display:flex;gap:10px;align-items:center;border-radius:8px;background:#f8fafc;padding:10px 12px"><span style="flex:none;color:#a15f00"><i data-lucide="arrow-up" width="18" height="18"></i></span><span style="flex:1;font-size:14px;color:#334155">Order form is 5 parts down on mobile</span><button style="flex:none;height:30px;border:none;border-radius:8px;background:#e9eef5;color:#475569;padding:0 12px;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:#dde5ef">Move it up</button></div>
+</div>
+<div style="height:1px;background:#e2e8f0;margin:18px 0"></div>
+<label style="display:block;font-size:13px;font-weight:600;color:#334155">Page link</label>
+<div style="display:flex;align-items:center;gap:0;margin-top:6px"><span style="height:38px;display:inline-flex;align-items:center;border:1px solid #cbd5e1;border-right:none;border-radius:8px 0 0 8px;background:#f8fafc;padding:0 10px;font-size:13px;color:#94a3b8">gridcommerce.shop/rina/</span><input value="winter-blanket" style="flex:1;min-width:0;box-sizing:border-box;height:38px;border:1px solid #cbd5e1;border-radius:0 8px 8px 0;padding:0 10px;font-size:14px;color:#1e293b"></div>
+<div style="display:flex;align-items:center;gap:10px;margin-top:18px">
+<button onClick="{{ closePublish }}" style="height:36px;display:inline-flex;align-items:center;gap:7px;border:none;border-radius:8px;background:#003087;color:#fff;padding:0 16px;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer" style-hover="background:#002a77"><i data-lucide="rocket" width="16" height="16"></i>Publish page</button>
+<button onClick="{{ closePublish }}" style="height:36px;display:inline-flex;align-items:center;gap:7px;border:none;border-radius:8px;background:rgba(0,48,135,.1);color:#003087;padding:0 14px;font-size:14px;font-weight:500;cursor:pointer" style-hover="background:rgba(0,48,135,.2)"><i data-lucide="smartphone" width="16" height="16"></i>Check on my phone first</button>
+<span style="margin-left:auto;font-size:13px;color:#94a3b8">Orders go to your orders list</span>
+</div>
+</div>
+</div>
+</div>
+</sc-if>
+
+</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;screen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;builder&quot;,&quot;product&quot;,&quot;publish&quot;],&quot;default&quot;:&quot;builder&quot;,&quot;tsType&quot;:&quot;'builder'|'product'|'publish'&quot;,&quot;section&quot;:&quot;Screen&quot;},&quot;device&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;mobile&quot;,&quot;desktop&quot;],&quot;default&quot;:&quot;mobile&quot;,&quot;tsType&quot;:&quot;'mobile'|'desktop'&quot;,&quot;section&quot;:&quot;Screen&quot;},&quot;aiPanel&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Screen&quot;}}">
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { screen: props.screen === 'product' ? 'pick' : (props.screen === 'publish' ? 'publish' : 'build'), device: props.device === 'desktop' ? 'desktop' : 'mobile', ai: props.aiPanel === true };
+  }
+  componentDidMount() { this.paint(); }
+  componentDidUpdate() { this.paint(); }
+  paint() {
+    const go = () => { if (window.lucide && window.lucide.createIcons) window.lucide.createIcons({ attrs: { width: 20, height: 20, 'stroke-width': 1.75 } }); };
+    go(); setTimeout(go, 400); setTimeout(go, 1200);
+  }
+  renderVals() {
+    const s = this.state;
+    return {
+      isPick: s.screen === 'pick',
+      isBuild: s.screen === 'build' || s.screen === 'publish',
+      isPublish: s.screen === 'publish',
+      isMobile: s.device !== 'desktop',
+      isDesktop: s.device === 'desktop',
+      aiOpen: s.ai === true,
+      aiClosed: s.ai !== true,
+      startBuild: () => this.setState({ screen: 'build' }),
+      backToPick: () => this.setState({ screen: 'pick' }),
+      openPublish: () => this.setState({ screen: 'publish' }),
+      closePublish: () => this.setState({ screen: 'build' }),
+      openAiField: () => this.setState({ ai: true }),
+      openAiPage: () => this.setState({ screen: 'build', ai: true }),
+      closeAi: () => this.setState({ ai: false }),
+      setMobile: () => this.setState({ device: 'mobile' }),
+      setDesktop: () => this.setState({ device: 'desktop' }),
+      selHeroFn: () => this.setState({ ai: false }),
+      selPriceFn: () => this.setState({ ai: false }),
+      selDeliveryFn: () => this.setState({ ai: false }),
+      selFormFn: () => this.setState({ ai: false })
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script><script src="../_shell/gc-topbar.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><script src="./ds-base.js"></script><script src="/_blob/1840c8d9327e1d872bcd8bc9a4590a5a"></script></helmet>
+<div style="width:100%;font-family:Poppins,'Hind Siliguri',ui-sans-serif,system-ui,sans-serif;color:#475569">
+<sc-if value="{{ locked }}">
+<section style="display:flex;flex-direction:column;align-items:center;gap:13px;border-radius:8px;background:#fff;padding:64px 24px;text-align:center;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)">
+<span style="display:grid;place-items:center;width:64px;height:64px;border-radius:16px;background:#e9eef5;color:#475569"><i data-lucide="lock" width="30" height="30"></i></span>
+<h2 style="margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em;color:#1e293b">{{ t.lockTitle }}</h2>
+<p style="margin:0;max-width:440px;font-size:13.5px;line-height:21px;color:#64748b;text-wrap:pretty">{{ t.lockBody }}</p>
+<div style="display:flex;align-items:center;gap:8px">
+<button type="button" style="height:36px;border:none;border-radius:8px;background:#003087;padding:0 15px;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;color:#fff;cursor:pointer" style-hover="background:#002a77">{{ t.requestAccess }}</button>
+<button type="button" style="height:36px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:0 15px;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;color:#475569;cursor:pointer" style-hover="background:#f1f5f9">{{ t.whoCanSee }}</button>
+</div>
+<div style="display:flex;align-items:flex-start;gap:9px;max-width:460px;border-radius:8px;background:#f8fafc;padding:12px 14px;text-align:left">
+<i data-lucide="info" width="17" height="17" style="flex:none;margin-top:1px;color:#64748b"></i>
+<p style="margin:0;font-size:12.5px;line-height:19px;color:#475569;text-wrap:pretty">{{ t.lockNote }}</p>
+</div>
+</section>
+</sc-if>
+<sc-if value="{{ unlocked }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:16px">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start">
+<section style="border-radius:8px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);overflow:hidden">
+<div style="display:flex;align-items:center;gap:10px;padding:18px 20px 12px">
+<div style="flex:1"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:600;letter-spacing:.025em;color:#1e293b">{{ t.structure }}</h2><p style="margin:2px 0 0;font-size:12.5px;color:#64748b">{{ t.structureMeta }}</p></div>
+<button type="button" style="display:inline-flex;align-items:center;gap:6px;height:32px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:0 12px;font-family:inherit;font-size:12.5px;font-weight:500;letter-spacing:.025em;color:#475569;cursor:pointer" style-hover="background:#f1f5f9"><i data-lucide="pencil" width="14" height="14"></i>{{ t.editStructure }}</button>
+</div>
+<table style="width:100%;border-collapse:collapse">
+<caption style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">{{ t.structureCaption }}</caption>
+<thead><tr>
+<th scope="col" style="padding:8px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:left">{{ t.component }}</th>
+<th scope="col" style="padding:8px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:left">{{ t.basis }}</th>
+<th scope="col" style="padding:8px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:right">{{ t.amount }}</th>
+</tr></thead>
+<tbody>
+<sc-for list="{{ structure }}" as="s" hint-placeholder-count="9">
+<sc-if value="{{ s.isTotal }}">
+<tr style="background:#f8fafc">
+<td style="padding:11px 20px;border-bottom:1px solid #e2e8f0;font-size:13px;font-weight:700;color:#1e293b">{{ s.label }}</td>
+<td style="padding:11px 20px;border-bottom:1px solid #e2e8f0;font-size:12.5px;color:#64748b">{{ s.basis }}</td>
+<td style="padding:11px 20px;border-bottom:1px solid #e2e8f0;text-align:right;font-size:13.5px;font-weight:700;color:#1e293b;font-variant-numeric:tabular-nums">{{ s.amount }}</td>
+</tr>
+</sc-if>
+<sc-if value="{{ s.isDeduct }}">
+<tr style="background:#fff">
+<td style="padding:11px 20px;border-bottom:1px solid #e2e8f0;font-size:13px;font-weight:500;color:#475569">{{ s.label }}</td>
+<td style="padding:11px 20px;border-bottom:1px solid #e2e8f0;font-size:12.5px;color:#64748b">{{ s.basis }}</td>
+<td style="padding:11px 20px;border-bottom:1px solid #e2e8f0;text-align:right;font-size:13.5px;font-weight:500;color:#c2410c;font-variant-numeric:tabular-nums">{{ s.amount }}</td>
+</tr>
+</sc-if>
+<sc-if value="{{ s.isPlain }}">
+<tr style="background:#fff">
+<td style="padding:11px 20px;border-bottom:1px solid #e2e8f0;font-size:13px;font-weight:500;color:#475569">{{ s.label }}</td>
+<td style="padding:11px 20px;border-bottom:1px solid #e2e8f0;font-size:12.5px;color:#64748b">{{ s.basis }}</td>
+<td style="padding:11px 20px;border-bottom:1px solid #e2e8f0;text-align:right;font-size:13.5px;font-weight:500;color:#1e293b;font-variant-numeric:tabular-nums">{{ s.amount }}</td>
+</tr>
+</sc-if>
+</sc-for>
+</tbody>
+</table>
+</section>
+<div style="display:flex;flex-direction:column;gap:16px">
+<section style="display:flex;flex-direction:column;gap:12px;border-radius:8px;background:#fff;padding:18px 20px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:600;letter-spacing:.025em;color:#1e293b">{{ t.payment }}</h2>
+<div style="display:flex;align-items:center;gap:11px;border-radius:8px;background:#f8fafc;padding:12px 13px">
+<span style="display:grid;place-items:center;width:34px;height:34px;flex:none;border-radius:8px;background:rgba(240,0,185,.08);color:#a21caf"><i data-lucide="smartphone" width="18" height="18"></i></span>
+<div style="flex:1;min-width:0"><p style="margin:0;font-size:13.5px;font-weight:600;color:#1e293b">bKash</p><p style="margin:1px 0 0;font-size:12.5px;color:#64748b">01712-XXXXXX · {{ t.verified }}</p></div>
+<button type="button" aria-label="{{ t.changeMethod }}" title="{{ t.changeMethod }}" style="width:30px;height:30px;flex:none;display:grid;place-items:center;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#64748b;cursor:pointer" style-hover="background:#f1f5f9;color:#1e293b"><i data-lucide="pencil" width="15" height="15"></i></button>
+</div>
+<dl style="margin:0;display:flex;flex-direction:column;gap:9px;font-size:13px">
+<div style="display:flex;align-items:center;gap:8px"><dt style="margin:0;flex:1;color:#64748b">{{ t.payDay }}</dt><dd style="margin:0;font-weight:500;color:#1e293b">{{ t.firstOfMonth }}</dd></div>
+<div style="display:flex;align-items:center;gap:8px"><dt style="margin:0;flex:1;color:#64748b">{{ t.nextPay }}</dt><dd style="margin:0;font-weight:500;color:#1e293b">01 Oct 2026</dd></div>
+<div style="display:flex;align-items:center;gap:8px"><dt style="margin:0;flex:1;color:#64748b">{{ t.payrollGroup }}</dt><dd style="margin:0;font-weight:500;color:#1e293b">{{ t.dhanmondiMonthly }}</dd></div>
+</dl>
+</section>
+<section style="display:flex;flex-direction:column;gap:12px;border-radius:8px;background:#fff;padding:18px 20px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:600;letter-spacing:.025em;color:#1e293b">{{ t.commission }}</h2>
+<div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:24px;font-weight:700;letter-spacing:-.025em;color:#1e293b;font-variant-numeric:tabular-nums">৳1,713</span><span style="display:inline-flex;align-items:center;gap:3px;font-size:12.5px;font-weight:600;color:#047857">▲ 9%</span></div>
+<p style="margin:0;font-size:12.5px;line-height:19px;color:#64748b;text-wrap:pretty">{{ t.commissionBody }}</p>
+<div style="height:7px;border-radius:9999px;background:#e9eef5;overflow:hidden"><div style="height:100%;width:68%;border-radius:9999px;background:#009CDE"></div></div>
+<p style="margin:0;font-size:12px;color:#94a3b8">{{ t.commissionTarget }}</p>
+</section>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start">
+<section style="display:flex;flex-direction:column;gap:13px;border-radius:8px;background:#fff;padding:18px 20px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)">
+<div style="display:flex;align-items:center;gap:10px">
+<h2 style="margin:0;flex:1;font-size:15px;line-height:22px;font-weight:600;letter-spacing:.025em;color:#1e293b">{{ t.loans }}</h2>
+<button type="button" style="display:inline-flex;align-items:center;gap:6px;height:32px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:0 12px;font-family:inherit;font-size:12.5px;font-weight:500;letter-spacing:.025em;color:#475569;cursor:pointer" style-hover="background:#f1f5f9"><i data-lucide="plus" width="14" height="14"></i>{{ t.addAdvance }}</button>
+</div>
+<div style="display:flex;align-items:center;gap:14px;border-radius:8px;background:rgba(255,152,0,.1);padding:13px 14px">
+<div style="flex:1;min-width:0"><p style="margin:0;font-size:12px;font-weight:500;letter-spacing:.025em;color:#b45309">{{ t.advanceTaken }}</p><p style="margin:2px 0 0;font-size:13px;font-weight:500;color:#1e293b;text-wrap:pretty">{{ t.advanceBody }}</p></div>
+<div style="text-align:right;flex:none"><p style="margin:0;font-size:12px;font-weight:500;color:#b45309">{{ t.outstanding }}</p><p style="margin:2px 0 0;font-size:20px;font-weight:700;letter-spacing:-.02em;color:#1e293b;font-variant-numeric:tabular-nums">৳4,000</p></div>
+</div>
+<table style="width:100%;border-collapse:collapse">
+<caption style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">{{ t.instalmentCaption }}</caption>
+<thead><tr>
+<th scope="col" style="padding:7px 10px 7px 0;border-bottom:1px solid #e2e8f0;font-size:11px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:left">{{ t.instalment }}</th>
+<th scope="col" style="padding:7px 10px;border-bottom:1px solid #e2e8f0;font-size:11px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:left">{{ t.month }}</th>
+<th scope="col" style="padding:7px 10px;border-bottom:1px solid #e2e8f0;font-size:11px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:right">{{ t.amount }}</th>
+<th scope="col" style="padding:7px 0 7px 10px;border-bottom:1px solid #e2e8f0;font-size:11px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:left">{{ t.status }}</th>
+</tr></thead>
+<tbody>
+<sc-for list="{{ instalments }}" as="i" hint-placeholder-count="6">
+<tr>
+<td style="padding:10px 10px 10px 0;border-bottom:1px solid #e2e8f0;font-size:13px;font-weight:500;color:#1e293b;font-variant-numeric:tabular-nums">{{ i.n }}</td>
+<td style="padding:10px;border-bottom:1px solid #e2e8f0;font-size:13px;color:#475569">{{ i.month }}</td>
+<td style="padding:10px;border-bottom:1px solid #e2e8f0;text-align:right;font-size:13px;color:#475569;font-variant-numeric:tabular-nums">{{ i.amount }}</td>
+<td style="padding:10px 0 10px 10px;border-bottom:1px solid #e2e8f0">
+<sc-if value="{{ i.isPaid }}"><span style="display:inline-flex;align-items:center;gap:5px;height:22px;border-radius:9999px;padding:0 9px;font-size:11.5px;font-weight:600;background:rgba(16,185,129,.12);color:#047857"><i data-lucide="check" width="12" height="12"></i>{{ t.recovered }}</span></sc-if>
+<sc-if value="{{ i.isDue }}"><span style="display:inline-flex;align-items:center;gap:5px;height:22px;border-radius:9999px;padding:0 9px;font-size:11.5px;font-weight:600;background:rgba(255,152,0,.14);color:#b45309"><i data-lucide="clock" width="12" height="12"></i>{{ t.thisMonth }}</span></sc-if>
+<sc-if value="{{ i.isSched }}"><span style="display:inline-flex;align-items:center;gap:5px;height:22px;border-radius:9999px;padding:0 9px;font-size:11.5px;font-weight:600;background:#e9eef5;color:#475569"><i data-lucide="calendar" width="12" height="12"></i>{{ t.scheduled }}</span></sc-if>
+</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</section>
+<section style="display:flex;flex-direction:column;gap:13px;border-radius:8px;background:#fff;padding:18px 20px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)">
+<div style="display:flex;align-items:center;gap:10px">
+<h2 style="margin:0;flex:1;font-size:15px;line-height:22px;font-weight:600;letter-spacing:.025em;color:#1e293b">{{ t.payslips }}</h2>
+<span style="font-size:12.5px;font-weight:500;color:#64748b">{{ t.since }} Mar 2026</span>
+</div>
+<ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column">
+<sc-for list="{{ payslips }}" as="p" hint-placeholder-count="6">
+<li style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #e2e8f0">
+<span style="display:grid;place-items:center;width:32px;height:32px;flex:none;border-radius:8px;background:#f1f5f9;color:#475569"><i data-lucide="file-text" width="16" height="16"></i></span>
+<div style="flex:1;min-width:0"><p style="margin:0;font-size:13px;font-weight:500;color:#1e293b">{{ p.month }}</p><p style="margin:1px 0 0;font-size:11.5px;color:#94a3b8">{{ p.meta }}</p></div>
+<span style="font-size:13.5px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">{{ p.net }}</span>
+<span style="display:flex;align-items:center;gap:4px;flex:none">
+<button type="button" aria-label="{{ p.dlAria }}" title="{{ t.download }}" style="width:30px;height:30px;display:grid;place-items:center;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#64748b;cursor:pointer" style-hover="background:#f1f5f9;color:#1e293b"><i data-lucide="download" width="15" height="15"></i></button>
+<button type="button" aria-label="{{ p.shAria }}" title="{{ t.share }}" style="width:30px;height:30px;display:grid;place-items:center;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#64748b;cursor:pointer" style-hover="background:#f1f5f9;color:#1e293b"><i data-lucide="share-2" width="15" height="15"></i></button>
+</span>
+</li>
+</sc-for>
+</ul>
+<p style="margin:0;font-size:12px;color:#94a3b8;text-wrap:pretty">{{ t.payslipNote }}</p>
+</section>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:1100},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;en&quot;,&quot;bn&quot;],&quot;default&quot;:&quot;en&quot;,&quot;tsType&quot;:&quot;'en' | 'bn'&quot;},&quot;locked&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  componentDidMount() { this.paint(); }
+  componentDidUpdate() { this.paint(); }
+  paint() {
+    const go = () => { if (window.lucide && window.lucide.createIcons) window.lucide.createIcons({ attrs: { 'stroke-width': 1.75 } }); };
+    go(); setTimeout(go, 200); setTimeout(go, 700); setTimeout(go, 2000);
+  }
+  renderVals() {
+    const bn = (this.props.lang ?? 'en') === 'bn';
+    const L = (en, b) => bn ? b : en;
+    const locked = !!this.props.locked;
+    const row = (label, basis, amount, kind) => ({
+      label, basis, amount,
+      isTotal: kind === 'total', isDeduct: kind === 'deduct', isPlain: !kind
+    });
+    return {
+      locked, unlocked: !locked,
+      t: {
+        lockTitle: L('Salary and payroll are hidden for you', 'বেতন ও পে-রোল আপনার জন্য লুকানো'),
+        lockBody: L('Your role does not include salary visibility, so this tab shows nothing about Sadia\u2019s pay, advances or payslips. Everything else on her profile stays available.', 'আপনার রোলে বেতন দেখার অনুমতি নেই, তাই এই ট্যাবে সাদিয়ার বেতন, অগ্রিম বা পে-স্লিপ দেখাবে না। প্রোফাইলের বাকি সব দেখা যাবে।'),
+        requestAccess: L('Request salary access', 'বেতন দেখার অনুমতি চান'), whoCanSee: L('Who can see salary?', 'কারা বেতন দেখতে পারেন?'),
+        lockNote: L('The shop owner and the accountant can see salary data. An owner can grant it per person under Access and permissions › Data visibility.', 'মালিক ও হিসাবরক্ষক বেতনের তথ্য দেখতে পারেন। মালিক অ্যাক্সেস ও অনুমতি › ডেটা দৃশ্যমানতা থেকে ব্যক্তিভিত্তিক অনুমতি দিতে পারেন।'),
+        structure: L('Salary structure', 'বেতন কাঠামো'), structureMeta: L('Monthly · effective 01 Jul 2026', 'মাসিক · ০১ জুলাই ২০২৬ থেকে'),
+        editStructure: L('Edit structure', 'কাঠামো সম্পাদনা'),
+        structureCaption: L('Monthly salary structure for Sadia Akter', 'সাদিয়া আক্তারের মাসিক বেতন কাঠামো'),
+        component: L('Component', 'উপাদান'), basis: L('Basis', 'ভিত্তি'), amount: L('Amount', 'পরিমাণ'),
+        payment: L('Payment', 'পেমেন্ট'), verified: L('verified 04 Mar 2026', 'যাচাই ০৪ মার্চ ২০২৬'), changeMethod: L('Change payment method', 'পেমেন্ট পদ্ধতি বদলান'),
+        payDay: L('Pay day', 'বেতনের দিন'), firstOfMonth: L('1st of each month', 'প্রতি মাসের ১ তারিখ'), nextPay: L('Next pay date', 'পরের বেতন'),
+        payrollGroup: L('Payroll group', 'পে-রোল গ্রুপ'), dhanmondiMonthly: L('Dhanmondi · monthly', 'ধানমন্ডি · মাসিক'),
+        commission: L('Commission this month', 'এ মাসের কমিশন'),
+        commissionBody: L('0.5% of her own counter sales of ৳3,42,600, paid with September salary.', 'নিজের কাউন্টার বিক্রি ৳৩,৪২,৬০০-এর ০.৫%, সেপ্টেম্বরের বেতনের সাথে।'),
+        commissionTarget: L('68% of the ৳2,500 monthly commission ceiling', 'মাসিক ৳২,৫০০ কমিশন সীমার ৬৮%'),
+        loans: L('Loans and advances', 'ঋণ ও অগ্রিম'), addAdvance: L('Add advance', 'অগ্রিম যোগ'),
+        advanceTaken: L('ADVANCE TAKEN 05 AUG 2026', 'অগ্রিম নেওয়া ০৫ আগ ২০২৬'),
+        advanceBody: L('৳6,000 for a family medical bill · recovered at ৳1,000 a month', '৳৬,০০০ পারিবারিক চিকিৎসার জন্য · মাসে ৳১,০০০ কেটে আদায়'),
+        outstanding: L('Outstanding', 'বাকি'),
+        instalmentCaption: L('Advance recovery schedule', 'অগ্রিম আদায়ের সূচি'),
+        instalment: L('No.', 'নং'), month: L('Month', 'মাস'), status: L('Status', 'স্ট্যাটাস'),
+        recovered: L('Recovered', 'আদায়'), thisMonth: L('This month', 'এ মাসে'), scheduled: L('Scheduled', 'নির্ধারিত'),
+        payslips: L('Payslip history', 'পে-স্লিপ ইতিহাস'), since: L('since', 'থেকে'),
+        download: L('Download payslip', 'পে-স্লিপ ডাউনলোড'), share: L('Share by SMS or email', 'SMS বা ইমেইলে পাঠান'),
+        payslipNote: L('Payslips are generated on the 1st and shared to her bKash number as a PDF link.', 'পে-স্লিপ ১ তারিখে তৈরি হয় এবং তাঁর বিকাশ নম্বরে PDF লিংক পাঠানো হয়।')
+      },
+      structure: [
+        row(L('Basic', 'মূল বেতন'), L('60% of gross', 'গ্রসের ৬০%'), '৳13,200'),
+        row(L('House rent', 'বাড়ি ভাড়া'), L('25% of gross', 'গ্রসের ২৫%'), '৳5,500'),
+        row(L('Medical', 'চিকিৎসা'), L('Fixed', 'নির্দিষ্ট'), '৳1,500'),
+        row(L('Conveyance', 'যাতায়াত'), L('Fixed', 'নির্দিষ্ট'), '৳1,200'),
+        row(L('Mobile allowance', 'মোবাইল ভাতা'), L('Fixed', 'নির্দিষ্ট'), '৳600'),
+        row(L('Gross', 'গ্রস'), L('Sum of earnings', 'আয়ের যোগফল'), '৳22,000', 'total'),
+        row(L('Advance recovery', 'অগ্রিম কেটে নেওয়া'), L('৳1,000 × 6 months', '৳১,০০০ × ৬ মাস'), '− ৳1,000', 'deduct'),
+        row(L('Late deduction', 'দেরির কাটা'), L('1 late over grace · 14 min', 'গ্রেসের বেশি ১ দিন · ১৪ মিনিট'), '− ৳150', 'deduct'),
+        row(L('Overtime', 'ওভারটাইম'), L('3.5 h × ৳100', '৩.৫ ঘণ্টা × ৳১০০'), '+ ৳350'),
+        row(L('Commission', 'কমিশন'), L('0.5% of own sales', 'নিজের বিক্রির ০.৫%'), '+ ৳1,713'),
+        row(L('Net payable', 'নিট প্রদেয়'), L('September 2026', 'সেপ্টেম্বর ২০২৬'), '৳22,913', 'total')
+      ],
+      instalments: [
+        ['1', L('Aug 2026', 'আগ ২০২৬'), '৳1,000', 'paid'], ['2', L('Sep 2026', 'সেপ ২০২৬'), '৳1,000', 'due'],
+        ['3', L('Oct 2026', 'অক্টো ২০২৬'), '৳1,000', 'sched'], ['4', L('Nov 2026', 'নভে ২০২৬'), '৳1,000', 'sched'],
+        ['5', L('Dec 2026', 'ডিসে ২০২৬'), '৳1,000', 'sched'], ['6', L('Jan 2027', 'জানু ২০২৭'), '৳1,000', 'sched']
+      ].map(([n, month, amount, st]) => ({ n, month, amount, isPaid: st === 'paid', isDue: st === 'due', isSched: st === 'sched' })),
+      payslips: [
+        [L('August 2026', 'আগস্ট ২০২৬'), L('Paid 01 Sep · bKash', 'পরিশোধ ০১ সেপ · বিকাশ'), '৳21,340'],
+        [L('July 2026', 'জুলাই ২০২৬'), L('Paid 01 Aug · bKash', 'পরিশোধ ০১ আগ · বিকাশ'), '৳20,900'],
+        [L('June 2026', 'জুন ২০২৬'), L('Paid 01 Jul · bKash · Eid bonus', 'পরিশোধ ০১ জুলাই · বিকাশ · ঈদ বোনাস'), '৳32,000'],
+        [L('May 2026', 'মে ২০২৬'), L('Paid 01 Jun · bKash', 'পরিশোধ ০১ জুন · বিকাশ'), '৳20,150'],
+        [L('April 2026', 'এপ্রিল ২০২৬'), L('Paid 01 May · bKash', 'পরিশোধ ০১ মে · বিকাশ'), '৳20,150'],
+        [L('March 2026', 'মার্চ ২০২৬'), L('Paid 01 Apr · pro-rata from 02 Mar', 'পরিশোধ ০১ এপ্রিল · ০২ মার্চ থেকে আনুপাতিক'), '৳19,400']
+      ].map(([month, meta, net]) => ({ month, meta, net, dlAria: L('Download payslip for ' + month, month + ' পে-স্লিপ ডাউনলোড'), shAria: L('Share payslip for ' + month, month + ' পে-স্লিপ শেয়ার') }))
+    };
+  }
+}
+</script>
+</body>
+</html>

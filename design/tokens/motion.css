@@ -1,0 +1,17 @@
+/* 200ms ease-out is the default. Nav and sidebar move slower (300ms ease-in-out). */
+:root{
+  --duration-fast:150ms; /* @kind other */
+  --duration-base:200ms; /* @kind other */
+  --duration-nav:300ms; /* @kind other */
+  --ease-out:cubic-bezier(0,0,.2,1); /* @kind other */
+  --ease-in-out:cubic-bezier(.4,0,.2,1); /* @kind other */
+  --transition-colors:color var(--duration-base) var(--ease-out),background-color var(--duration-base) var(--ease-out),border-color var(--duration-base) var(--ease-out); /* @kind other */
+  --transition-base:all var(--duration-base) var(--ease-out); /* @kind other */
+}
+@media (prefers-reduced-motion:reduce){
+  :root{
+    --duration-fast:1ms; /* @kind other */
+    --duration-base:1ms; /* @kind other */
+    --duration-nav:1ms; /* @kind other */
+  }
+}

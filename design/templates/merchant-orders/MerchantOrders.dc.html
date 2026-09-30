@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Merchant orders" description="All-orders workspace — status tabs with live counts, filter bar, bulk actions, dense order table with courier and payment columns, pagination." -->
+<helmet><script src="./ds-base.js"></script><script src="../_shell/gc-sidebar.js"></script><script src="../_shell/gc-topbar.js"></script><script src="/_blob/1840c8d9327e1d872bcd8bc9a4590a5a"></script><style>body{margin:0;background:#eef2f7;font-family:Poppins,ui-sans-serif,system-ui,sans-serif;color:#475569}a{color:#003087;text-decoration:none}a:hover{color:#002a77}table{border-collapse:collapse}</style></helmet>
+<div style="display:flex;gap:12px;padding:12px;height:100vh;box-sizing:border-box;overflow:hidden;background:#eef2f7">
+<gc-sidebar sticky="" active="orders-all" base="../"></gc-sidebar>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;border:1px solid #e2e8f0;border-radius:16px;background:#f8fafc;overflow-y:auto">
+<gc-topbar crumb="Orders" page="All orders" base="../"></gc-topbar>
+<header style="flex:none;position:sticky;top:64px;z-index:90;display:flex;flex-wrap:nowrap;overflow:hidden;height:72px;align-items:center;gap:10px;padding:0 32px;background:rgba(255,255,255,.85);backdrop-filter:blur(8px);border-bottom:1px solid #e2e8f0">
+<span style="position:relative;display:inline-block;flex:1 1 160px;min-width:0;max-width:340px"><input type="search" placeholder="Search order ID, phone, customer…" style="width:100%;height:32px;border:none;border-radius:9999px;background:#e9eef5;padding:0 16px 0 36px;font-family:inherit;font-size:13px;color:#1e293b"><span style="position:absolute;left:0;top:0;display:flex;width:36px;height:100%;align-items:center;justify-content:center;color:#94a3b8;pointer-events:none"><i data-lucide="search" width="16" height="16"></i></span></span>
+<div style="margin-left:auto;flex:none;display:flex;align-items:center;gap:8px">
+<span style="display:inline-flex;align-items:center;gap:6px;border-radius:9999px;background:rgba(16,185,129,.1);padding:5px 12px;font-size:12px;font-weight:600;color:#047857"><span style="width:7px;height:7px;border-radius:9999px;background:#10b981"></span>Live</span>
+<button style="display:inline-flex;height:36px;align-items:center;gap:8px;border:none;border-radius:8px;background:#003087;padding:0 14px;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;color:#fff;cursor:pointer;white-space:nowrap" style-hover="background:#002a77"><i data-lucide="plus" width="18" height="18"></i>New order</button>
+
+
+</div>
+</header>
+<main style="padding:28px 32px 40px;display:grid;grid-template-columns:minmax(0,1fr);gap:16px">
+<div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px;justify-content:space-between">
+<div>
+<h1 style="margin:0;font-size:24px;font-weight:700;letter-spacing:-.025em;color:#0f172a">All orders</h1>
+<p style="margin:4px 0 0;font-size:13px;color:#94a3b8">696 orders · ৳8,42,310 booked · updated a moment ago</p>
+</div>
+<div style="display:flex;align-items:center;gap:8px">
+<button style="display:inline-flex;height:36px;align-items:center;gap:8px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 14px;font-family:inherit;font-size:14px;font-weight:500;color:#475569;cursor:pointer" style-hover="border-color:#94a3b8"><i data-lucide="calendar" width="18" height="18"></i>Last 30 days</button>
+<button style="display:inline-flex;height:36px;align-items:center;gap:8px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 14px;font-family:inherit;font-size:14px;font-weight:500;color:#475569;cursor:pointer" style-hover="border-color:#94a3b8"><i data-lucide="download" width="18" height="18"></i>Export CSV</button>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px">
+<div style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:14px 18px"><div style="display:flex;align-items:center;justify-content:space-between"><p style="margin:0;font-size:13px;font-weight:500;color:#697a9b">Awaiting action</p><span style="color:#ff9800"><i data-lucide="clock" width="18" height="18"></i></span></div><p style="margin:6px 0 0;font-size:26px;font-weight:700;letter-spacing:-.025em;color:#0f172a;font-variant-numeric:tabular-nums">128</p><p style="margin:2px 0 0;font-size:12px;color:#94a3b8">42 unconfirmed over 6h</p></div>
+<div style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:14px 18px"><div style="display:flex;align-items:center;justify-content:space-between"><p style="margin:0;font-size:13px;font-weight:500;color:#697a9b">In courier hands</p><span style="color:#009cde"><i data-lucide="truck" width="18" height="18"></i></span></div><p style="margin:6px 0 0;font-size:26px;font-weight:700;letter-spacing:-.025em;color:#0f172a;font-variant-numeric:tabular-nums">243</p><p style="margin:2px 0 0;font-size:12px;color:#94a3b8">4 couriers active</p></div>
+<div style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:14px 18px"><div style="display:flex;align-items:center;justify-content:space-between"><p style="margin:0;font-size:13px;font-weight:500;color:#697a9b">Delivery success</p><span style="color:#10b981"><i data-lucide="badge-check" width="18" height="18"></i></span></div><p style="margin:6px 0 0;font-size:26px;font-weight:700;letter-spacing:-.025em;color:#0f172a;font-variant-numeric:tabular-nums">87.4%</p><p style="margin:2px 0 0;font-size:12px;color:#94a3b8">▲ 2.1% vs last month</p></div>
+<div style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:14px 18px"><div style="display:flex;align-items:center;justify-content:space-between"><p style="margin:0;font-size:13px;font-weight:500;color:#697a9b">Cash to collect</p><span style="color:#003087"><i data-lucide="wallet" width="18" height="18"></i></span></div><p style="margin:6px 0 0;font-size:26px;font-weight:700;letter-spacing:-.025em;color:#0f172a;font-variant-numeric:tabular-nums">৳2,14,900</p><p style="margin:2px 0 0;font-size:12px;color:#94a3b8">COD across 243 parcels</p></div>
+</div>
+<div style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)">
+<div style="display:flex;flex-wrap:wrap;gap:4px;padding:10px 16px;border-bottom:1px solid #e2e8f0">
+<sc-for list="{{ tabs }}" as="t" hint-placeholder-count="7">
+<sc-if value="{{ t.on }}" hint-placeholder-val="{{ false }}"><button onClick="{{ t.onClick }}" style="display:inline-flex;height:32px;align-items:center;gap:8px;border:none;border-radius:9999px;background:rgba(0,48,135,.1);padding:0 14px;font-family:inherit;font-size:13px;font-weight:600;letter-spacing:.025em;color:#003087;cursor:pointer">{{ t.label }}<span style="font-variant-numeric:tabular-nums;opacity:.75">{{ t.count }}</span></button></sc-if>
+<sc-if value="{{ t.off }}" hint-placeholder-val="{{ true }}"><button onClick="{{ t.onClick }}" style="display:inline-flex;height:32px;align-items:center;gap:8px;border:none;border-radius:9999px;background:none;padding:0 14px;font-family:inherit;font-size:13px;font-weight:500;letter-spacing:.025em;color:#475569;cursor:pointer" style-hover="background:rgba(203,213,225,.25)">{{ t.label }}<span style="font-variant-numeric:tabular-nums;color:#94a3b8">{{ t.count }}</span></button></sc-if>
+</sc-for>
+</div>
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid #e2e8f0">
+<select style="height:34px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 10px;font-family:inherit;font-size:13px;color:#475569"><option>All couriers</option><option>Steadfast</option><option>Pathao</option><option>Carrybee</option><option>RedX</option></select>
+<select style="height:34px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 10px;font-family:inherit;font-size:13px;color:#475569"><option>Any payment</option><option>Paid</option><option>Unpaid</option><option>Partially paid</option></select>
+<select style="height:34px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 10px;font-family:inherit;font-size:13px;color:#475569"><option>All zones</option><option>Inside Dhaka</option><option>Sub-Dhaka</option><option>Outside Dhaka</option></select>
+<button style="display:inline-flex;height:34px;align-items:center;gap:6px;border:1px dashed #cbd5e1;border-radius:8px;background:#fff;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer" style-hover="border-color:#94a3b8"><i data-lucide="sliders-horizontal" width="15" height="15"></i>More filters</button>
+<span style="margin-left:auto;display:inline-flex;align-items:center;gap:8px"><span style="font-size:13px;color:#94a3b8">{{ selectionLabel }}</span><sc-if value="{{ hasSelection }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;gap:6px"><button style="height:34px;border:none;border-radius:8px;background:rgba(0,48,135,.1);padding:0 12px;font-family:inherit;font-size:13px;font-weight:600;color:#003087;cursor:pointer">Send to courier</button><button style="height:34px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer">Print labels</button><button onClick="{{ clearSelection }}" style="height:34px;border:none;border-radius:8px;background:none;padding:0 8px;font-family:inherit;font-size:13px;color:#94a3b8;cursor:pointer">Clear</button></span></sc-if></span>
+</div>
+<div style="min-width:0;overflow-x:auto">
+<table style="width:100%;min-width:1060px;text-align:left;font-size:14px">
+<thead><tr>
+<th style="background:#e2e8f0;padding:10px 16px;width:36px"><input type="checkbox" checked="{{ allChecked }}" onChange="{{ toggleAll }}" style="width:15px;height:15px;accent-color:#003087"></th>
+<th style="background:#e2e8f0;padding:10px 16px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.025em;color:#1e293b">Order</th>
+<th style="background:#e2e8f0;padding:10px 16px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.025em;color:#1e293b">Customer</th>
+<th style="background:#e2e8f0;padding:10px 16px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.025em;color:#1e293b">Items</th>
+<th style="background:#e2e8f0;padding:10px 16px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.025em;color:#1e293b">Courier</th>
+<th style="background:#e2e8f0;padding:10px 16px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.025em;color:#1e293b">Status</th>
+<th style="background:#e2e8f0;padding:10px 16px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.025em;color:#1e293b">Payment</th>
+<th style="background:#e2e8f0;padding:10px 16px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.025em;color:#1e293b;text-align:right">Total</th>
+<th style="background:#e2e8f0;padding:10px 16px;width:56px"></th>
+</tr></thead>
+<tbody><sc-for list="{{ rows }}" as="o" hint-placeholder-count="8">
+<tr style-hover="background:#f1f5f9">
+<td style="padding:12px 16px;border-bottom:1px solid #e2e8f0"><input type="checkbox" checked="{{ o.checked }}" onChange="{{ o.onToggle }}" style="width:15px;height:15px;accent-color:#003087"></td>
+<td style="padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap"><a href="../order-detail/OrderDetail.dc.html" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;font-weight:600;color:#003087">{{ o.id }}</a><p style="margin:2px 0 0;font-size:12px;color:#94a3b8">{{ o.placed }} · {{ o.channel }}</p></td>
+<td style="padding:12px 16px;border-bottom:1px solid #e2e8f0"><span style="display:inline-flex;align-items:center;gap:10px"><span style="width:30px;height:30px;flex:none;border-radius:9999px;background:rgba(0,48,135,.1);color:#003087;display:grid;place-items:center;font-size:11px;font-weight:600">{{ o.initials }}</span><span><span style="display:block;color:#1e293b">{{ o.customer }}</span><span style="display:block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#94a3b8">{{ o.phone }} · {{ o.zone }}</span></span></span></td>
+<td style="padding:12px 16px;border-bottom:1px solid #e2e8f0"><span style="display:block;font-size:13px;color:#475569">{{ o.itemTitle }}</span><span style="display:block;font-size:12px;color:#94a3b8">{{ o.itemMeta }}</span></td>
+<td style="padding:12px 16px;border-bottom:1px solid #e2e8f0"><span style="display:block;font-size:13px;color:#475569">{{ o.courier }}</span><span style="display:block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#94a3b8">{{ o.consignment }}</span></td>
+<td style="padding:12px 16px;border-bottom:1px solid #e2e8f0">
+<sc-if value="{{ o.isPending }}" hint-placeholder-val="{{ true }}"><span style="display:inline-flex;height:23px;align-items:center;border-radius:9999px;padding:0 10px;font-size:12px;font-weight:600;background:rgba(255,152,0,.12);color:#9a5b00">Pending</span></sc-if>
+<sc-if value="{{ o.isApproved }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;height:23px;align-items:center;border-radius:9999px;padding:0 10px;font-size:12px;font-weight:600;background:rgba(0,48,135,.1);color:#003087">Approved</span></sc-if>
+<sc-if value="{{ o.isReady }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;height:23px;align-items:center;border-radius:9999px;padding:0 10px;font-size:12px;font-weight:600;background:rgba(14,165,233,.12);color:#0271a6">Ready to ship</span></sc-if>
+<sc-if value="{{ o.isShipped }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;height:23px;align-items:center;border-radius:9999px;padding:0 10px;font-size:12px;font-weight:600;background:rgba(0,156,222,.12);color:#0089c3">Shipped</span></sc-if>
+<sc-if value="{{ o.isDelivered }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;height:23px;align-items:center;border-radius:9999px;padding:0 10px;font-size:12px;font-weight:600;background:rgba(16,185,129,.12);color:#047857">Delivered</span></sc-if>
+<sc-if value="{{ o.isCancelled }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;height:23px;align-items:center;border-radius:9999px;padding:0 10px;font-size:12px;font-weight:600;background:rgba(255,87,36,.12);color:#b8330f">Cancelled</span></sc-if>
+<sc-if value="{{ o.isReturned }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;height:23px;align-items:center;border-radius:9999px;padding:0 10px;font-size:12px;font-weight:600;background:#e9eef5;color:#54617a">Returned</span></sc-if>
+</td>
+<td style="padding:12px 16px;border-bottom:1px solid #e2e8f0">
+<sc-if value="{{ o.isPaid }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;height:23px;align-items:center;border-radius:9999px;padding:0 10px;font-size:12px;font-weight:600;background:rgba(16,185,129,.12);color:#047857">Paid</span></sc-if>
+<sc-if value="{{ o.isUnpaid }}" hint-placeholder-val="{{ true }}"><span style="display:inline-flex;height:23px;align-items:center;border-radius:9999px;padding:0 10px;font-size:12px;font-weight:600;background:rgba(255,87,36,.12);color:#b8330f">Unpaid</span></sc-if>
+<sc-if value="{{ o.isPartial }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;height:23px;align-items:center;border-radius:9999px;padding:0 10px;font-size:12px;font-weight:600;background:rgba(255,152,0,.12);color:#9a5b00">Partial</span></sc-if>
+<sc-if value="{{ o.isCod }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;height:23px;align-items:center;border-radius:9999px;padding:0 10px;font-size:12px;font-weight:600;background:#e9eef5;color:#54617a">COD</span></sc-if>
+</td>
+<td style="padding:12px 16px;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:600;color:#334155;font-variant-numeric:tabular-nums;white-space:nowrap">{{ o.total }}</td>
+<td style="padding:12px 16px;border-bottom:1px solid #e2e8f0;text-align:right"><span style="display:inline-flex;gap:2px"><a href="../order-detail/OrderDetail.dc.html" style="width:28px;height:28px;display:grid;place-items:center;border-radius:8px;color:#94a3b8" style-hover="background:rgba(203,213,225,.3);color:#003087" aria-label="Open order"><i data-lucide="eye" width="16" height="16"></i></a><button style="width:28px;height:28px;display:grid;place-items:center;border:none;border-radius:8px;background:none;color:#94a3b8;cursor:pointer" style-hover="background:rgba(203,213,225,.3);color:#475569" aria-label="More"><i data-lucide="more-vertical" width="16" height="16"></i></button></span></td>
+</tr>
+</sc-for></tbody>
+</table>
+</div>
+<sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><p style="margin:0;padding:32px 16px;text-align:center;font-size:13px;color:#697a9b">No orders in this status right now.</p></sc-if>
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px">
+<span style="font-size:13px;color:#94a3b8">{{ countLabel }}</span>
+<span style="display:inline-flex;align-items:center;gap:4px">
+<button style="height:32px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 12px;font-family:inherit;font-size:13px;color:#94a3b8;cursor:pointer">Previous</button>
+<button style="width:32px;height:32px;border:none;border-radius:8px;background:#003087;font-family:inherit;font-size:13px;font-weight:600;color:#fff;cursor:pointer">1</button>
+<button style="width:32px;height:32px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font-family:inherit;font-size:13px;color:#475569;cursor:pointer">2</button>
+<button style="width:32px;height:32px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font-family:inherit;font-size:13px;color:#475569;cursor:pointer">3</button>
+<span style="padding:0 6px;font-size:13px;color:#94a3b8">…</span>
+<button style="height:32px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 12px;font-family:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer">Next</button>
+</span>
+</div>
+</div>
+<p style="margin:0;text-align:center;font-size:13px;color:#94a3b8">GridCommerce · All Together. More Commerce.</p>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { tab: 'All', sel: {} };
+  componentDidMount() { this.paint(); }
+  componentDidUpdate() { this.paint(); }
+  paint() {
+    const go = () => { if (window.lucide && window.lucide.createIcons) window.lucide.createIcons({ attrs: { width: 20, height: 20, 'stroke-width': 1.75 } }); };
+    go(); setTimeout(go, 400); setTimeout(go, 1200);
+  }
+  tone(s) {
+    const t = {
+      Pending: ['rgba(255,152,0,.12)', '#9a5b00'],
+      Approved: ['rgba(0,48,135,.1)', '#003087'],
+      'Ready to ship': ['rgba(14,165,233,.12)', '#0271a6'],
+      Shipped: ['rgba(0,156,222,.12)', '#0089c3'],
+      Delivered: ['rgba(16,185,129,.12)', '#047857'],
+      Cancelled: ['rgba(255,87,36,.12)', '#b8330f'],
+      Returned: ['#e9eef5', '#54617a']
+    };
+    return t[s] || ['#e9eef5', '#54617a'];
+  }
+  payTone(p) {
+    const t = { Paid: ['rgba(16,185,129,.12)', '#047857'], Unpaid: ['rgba(255,87,36,.12)', '#b8330f'], Partial: ['rgba(255,152,0,.12)', '#9a5b00'], COD: ['#e9eef5', '#54617a'] };
+    return t[p] || ['#e9eef5', '#54617a'];
+  }
+  renderVals() {
+    const all = [
+      { id: '#136779', placed: '7 Sep, 8:48 PM', channel: 'Online store', customer: 'Nusrat Jahan', initials: 'NJ', phone: '01553-336655', zone: 'Inside Dhaka', itemTitle: 'Shockproof Bumper Case — 16 Pro Max', itemMeta: '1 item · ৳1,000', courier: 'Not assigned', consignment: '—', status: 'Pending', payment: 'Unpaid', total: '৳1,070' },
+      { id: '#136778', placed: '7 Sep, 7:12 PM', channel: 'Online store', customer: 'Mostafizur Rahman', initials: 'MR', phone: '01711-902244', zone: 'Chattogram', itemTitle: 'Daily Care Shampoo 400ml + 2 more', itemMeta: '3 items · ৳1,860', courier: 'Steadfast', consignment: 'SF-9920841', status: 'Ready to ship', payment: 'COD', total: '৳1,990' },
+      { id: '#136776', placed: '7 Sep, 4:03 PM', channel: 'POS · Bashundhara', customer: 'Walk-in customer', initials: 'WC', phone: '—', zone: 'Inside Dhaka', itemTitle: 'Tablet 10.4" 64GB Gray', itemMeta: '1 item · ৳18,400', courier: 'Store pickup', consignment: '—', status: 'Delivered', payment: 'Paid', total: '৳18,400' },
+      { id: '#136771', placed: '6 Sep, 11:40 AM', channel: 'Online store', customer: 'Tanvir Hasan', initials: 'TH', phone: '01822-771190', zone: 'Sub-Dhaka', itemTitle: 'Antibacterial Hand Wash — Lemon 500ml', itemMeta: '2 items · ৳412', courier: 'Pathao', consignment: 'PT-4471203', status: 'Shipped', payment: 'COD', total: '৳482' },
+      { id: '#136764', placed: '6 Sep, 9:05 AM', channel: 'Online store', customer: 'Sadia Afrin', initials: 'SA', phone: '01966-330012', zone: 'Outside Dhaka', itemTitle: 'Budget Android Phone 6GB/128GB', itemMeta: '1 item · ৳14,900', courier: 'RedX', consignment: 'RX-1180553', status: 'Approved', payment: 'Partial', total: '৳15,030' },
+      { id: '#136750', placed: '5 Sep, 6:22 PM', channel: 'Online store', customer: 'Imran Kabir', initials: 'IK', phone: '01533-889001', zone: 'Inside Dhaka', itemTitle: 'Wireless Earbuds Pro', itemMeta: '1 item · ৳2,450', courier: 'Carrybee', consignment: 'CB-7729014', status: 'Cancelled', payment: 'Unpaid', total: '৳2,510' },
+      { id: '#136742', placed: '5 Sep, 1:15 PM', channel: 'Online store', customer: 'Farhana Islam', initials: 'FI', phone: '01744-556677', zone: 'Sylhet', itemTitle: 'Kitchen Blender 600W', itemMeta: '1 item · ৳3,900', courier: 'Steadfast', consignment: 'SF-9918770', status: 'Returned', payment: 'Paid', total: '৳4,030' },
+      { id: '#136737', placed: '4 Sep, 10:48 AM', channel: 'Online store', customer: 'Rakib Uddin', initials: 'RU', phone: '01677-220945', zone: 'Inside Dhaka', itemTitle: 'Smart Watch Series 4 — Black', itemMeta: '1 item · ৳5,600', courier: 'Pathao', consignment: 'PT-4469881', status: 'Delivered', payment: 'Paid', total: '৳5,660' }
+    ];
+    const counts = { All: 696, Pending: 128, Approved: 74, 'Ready to ship': 61, Shipped: 182, Delivered: 208, Cancelled: 33, Returned: 10 };
+    const keys = ['All', 'Pending', 'Approved', 'Ready to ship', 'Shipped', 'Delivered', 'Cancelled', 'Returned'];
+    const tab = this.state.tab;
+    const rows = tab === 'All' ? all : all.filter(o => o.status === tab);
+    const sel = this.state.sel;
+    const selCount = rows.filter(o => sel[o.id]).length;
+    const icons = { All: 'inbox', Pending: 'clock', Approved: 'check-circle-2', 'Ready to ship': 'package-check', Shipped: 'truck', Delivered: 'badge-check', Cancelled: 'x-circle', Returned: 'rotate-ccw' };
+    return {
+      tabs: keys.map(k => ({ label: k, count: counts[k], on: tab === k, off: tab !== k, onClick: () => this.setState({ tab: k }) })),
+      navItems: keys.map(k => ({ label: k === 'All' ? 'All orders' : k, icon: icons[k], count: counts[k], on: tab === k, off: tab !== k, onClick: (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ tab: k }); } })),
+      empty: rows.length === 0,
+      countLabel: 'Showing ' + rows.length + ' of ' + counts[tab] + ' ' + (tab === 'All' ? 'orders' : tab.toLowerCase() + ' orders'),
+      selectionLabel: selCount ? selCount + ' selected' : 'Select rows for bulk actions',
+      hasSelection: selCount > 0,
+      allChecked: rows.length > 0 && selCount === rows.length,
+      toggleAll: () => {
+        const on = !(rows.length > 0 && selCount === rows.length);
+        const next = { ...sel };
+        rows.forEach(o => { next[o.id] = on; });
+        this.setState({ sel: next });
+      },
+      clearSelection: () => this.setState({ sel: {} }),
+      rows: rows.map(o => ({
+        ...o,
+        isPending: o.status === 'Pending',
+        isApproved: o.status === 'Approved',
+        isReady: o.status === 'Ready to ship',
+        isShipped: o.status === 'Shipped',
+        isDelivered: o.status === 'Delivered',
+        isCancelled: o.status === 'Cancelled',
+        isReturned: o.status === 'Returned',
+        isPaid: o.payment === 'Paid',
+        isUnpaid: o.payment === 'Unpaid',
+        isPartial: o.payment === 'Partial',
+        isCod: o.payment === 'COD',
+        checked: !!sel[o.id],
+        onToggle: () => this.setState(s => ({ sel: { ...s.sel, [o.id]: !s.sel[o.id] } }))
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

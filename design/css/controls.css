@@ -1,0 +1,116 @@
+/* GridCommerce control recipes — buttons, badges, form fields.
+   These are 1:1 translations of the Tailwind recipe strings in the brand's UI design doc.
+   Light + dark ship together: dark values come from the semantic aliases in tokens/colors.css
+   plus explicit html.dark overrides where primary must become accent. */
+
+/* ---------- Button ---------- */
+.gc-btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--space-2);height:40px;padding:0 var(--space-5);border:1px solid transparent;border-radius:var(--radius-lg);background:none;color:inherit;font-family:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);line-height:1;white-space:nowrap;cursor:pointer;transition:var(--transition-base)}
+.gc-btn:disabled,.gc-btn[aria-disabled="true"]{pointer-events:none;opacity:.5}
+.gc-btn--xs{height:30px;padding:0 var(--space-3);font-size:var(--text-xs)}
+.gc-btn--sm{height:34px;padding:0 var(--space-4);font-size:var(--text-xs-plus)}
+.gc-btn--lg{height:48px;padding:0 var(--space-8);font-size:var(--text-base)}
+.gc-btn--block{width:100%}
+.gc-btn--pill{border-radius:var(--radius-full)}
+
+.gc-btn--solid{background:var(--primary);color:#fff}
+.gc-btn--solid:hover,.gc-btn--solid:focus{background:var(--primary-focus)}
+.gc-btn--solid:active{background:color-mix(in srgb,var(--primary-focus) 90%,transparent)}
+.gc-btn--soft{background:var(--fill-primary-soft);color:var(--primary)}
+.gc-btn--soft:hover,.gc-btn--soft:focus{background:var(--fill-primary-soft-hover)}
+.gc-btn--outlined{border-color:var(--primary);color:var(--primary)}
+.gc-btn--outlined:hover,.gc-btn--outlined:focus{background:var(--primary);color:#fff}
+.gc-btn--bordered-soft{border-color:color-mix(in srgb,var(--primary) 30%,transparent);background:var(--fill-primary-soft);color:var(--primary)}
+.gc-btn--bordered-soft:hover{background:var(--fill-primary-soft-hover)}
+.gc-btn--flat{color:var(--primary)}
+.gc-btn--flat:hover,.gc-btn--flat:focus{background:var(--fill-primary-soft)}
+.gc-btn--neutral{background:var(--slate-150);color:var(--slate-800)}
+.gc-btn--neutral:hover,.gc-btn--neutral:focus{background:var(--slate-200)}
+html.dark .gc-btn--neutral{background:var(--navy-500);color:var(--navy-50)}
+html.dark .gc-btn--neutral:hover{background:var(--navy-450)}
+html.dark .gc-btn--soft,html.dark .gc-btn--bordered-soft{color:var(--accent-light)}
+html.dark .gc-btn--flat{color:var(--accent-light)}
+html.dark .gc-btn--outlined{border-color:var(--accent);color:var(--accent-light)}
+html.dark .gc-btn--outlined:hover{background:var(--accent);color:#fff}
+
+/* marketing CTA: sky pill with a soft glow. Pair with --pill and --lg. */
+.gc-btn--accent{background:var(--accent);color:#fff;box-shadow:0 12px 26px -10px rgba(0,156,222,.75)}
+.gc-btn--accent:hover,.gc-btn--accent:focus{background:var(--accent-focus)}
+.gc-btn--accent.gc-btn--outlined{border-color:var(--accent-300);background:var(--surface-card);color:var(--primary);box-shadow:none}
+
+/* destructive: swap the brand ramp for error */
+.gc-btn--error.gc-btn--solid{background:var(--error);color:#fff}
+.gc-btn--error.gc-btn--solid:hover{background:var(--error-focus)}
+.gc-btn--error.gc-btn--soft{background:var(--fill-error-soft);color:var(--error)}
+.gc-btn--error.gc-btn--soft:hover{background:color-mix(in srgb,var(--error) 20%,transparent)}
+.gc-btn--error.gc-btn--outlined{border-color:var(--error);color:var(--error)}
+.gc-btn--error.gc-btn--outlined:hover{background:var(--error);color:#fff}
+.gc-btn--error.gc-btn--flat{color:var(--error)}
+.gc-btn--error.gc-btn--flat:hover{background:var(--fill-error-soft)}
+.gc-btn--success.gc-btn--solid{background:var(--success);color:#fff}
+.gc-btn--success.gc-btn--solid:hover{background:var(--success-focus)}
+
+/* icon-only */
+.gc-iconbtn{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;padding:0;border:none;border-radius:var(--radius-full);background:none;color:var(--text-muted);cursor:pointer;transition:var(--transition-base)}
+.gc-iconbtn:hover,.gc-iconbtn:focus{background:color-mix(in srgb,var(--slate-300) 20%,transparent);color:var(--text-body)}
+html.dark .gc-iconbtn:hover{background:color-mix(in srgb,var(--navy-300) 20%,transparent)}
+.gc-iconbtn--lg{width:40px;height:40px}
+.gc-iconbtn--xl{width:44px;height:44px;border-radius:var(--radius-lg)}
+.gc-iconbtn--active{background:var(--fill-primary-soft);color:var(--primary)}
+html.dark .gc-iconbtn--active{background:var(--navy-600);color:var(--accent-light)}
+
+/* ---------- Badge ---------- */
+.gc-badge{display:inline-flex;height:22px;align-items:center;justify-content:center;gap:4px;border:1px solid transparent;border-radius:var(--radius-full);padding:0 var(--space-2);font-size:var(--text-xs);font-weight:var(--weight-medium);line-height:1;white-space:nowrap}
+.gc-badge--square{border-radius:var(--radius-sm)}
+.gc-badge--lg{height:26px;padding:0 var(--space-3)}
+.gc-badge--primary{background:var(--fill-primary-soft);color:var(--primary)}
+html.dark .gc-badge--primary{color:var(--accent-light)}
+.gc-badge--success{background:var(--fill-success-soft);color:var(--success)}
+.gc-badge--warning{background:var(--fill-warning-soft);color:var(--warning)}
+.gc-badge--error{background:var(--fill-error-soft);color:var(--error)}
+.gc-badge--info{background:var(--fill-info-soft);color:var(--info)}
+.gc-badge--secondary{background:var(--fill-secondary-soft);color:var(--secondary)}
+.gc-badge--slate{background:var(--surface-subtle);color:var(--text-body)}
+.gc-badge--solid.gc-badge--primary{background:var(--primary);color:#fff}
+.gc-badge--solid.gc-badge--success{background:var(--success);color:#fff}
+.gc-badge--solid.gc-badge--warning{background:var(--warning);color:#fff}
+.gc-badge--solid.gc-badge--error{background:var(--error);color:#fff}
+.gc-badge--outlined{background:none}
+.gc-badge--outlined.gc-badge--success{border-color:var(--success)}
+.gc-badge--outlined.gc-badge--warning{border-color:var(--warning)}
+.gc-badge--outlined.gc-badge--error{border-color:var(--error)}
+.gc-badge--outlined.gc-badge--primary{border-color:var(--primary)}
+
+/* payment / presence: dot + text, never a filled pill */
+.gc-statusdot{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs-plus)}
+.gc-statusdot__dot{width:8px;height:8px;border-radius:var(--radius-full);flex:none}
+
+/* ---------- Form controls ---------- */
+.gc-label{display:block;margin-bottom:var(--space-2);font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--text-body)}
+html.dark .gc-label{color:var(--navy-100)}
+.gc-input{width:100%;height:var(--control-height);padding:0 var(--space-4);border:1px solid var(--border-field);border-radius:var(--radius-xl);background:transparent;color:var(--text-heading);font-family:inherit;font-size:var(--text-sm);transition:var(--transition-colors)}
+textarea.gc-input{height:auto;padding:var(--space-3) var(--space-4);line-height:1.5;resize:vertical}
+.gc-input::placeholder{color:color-mix(in srgb,var(--text-muted) 70%,transparent)}
+.gc-input:hover{border-color:var(--border-field-hover)}
+.gc-input:focus{outline:none;border-color:var(--border-field-focus);box-shadow:none}
+.gc-input--error{border-color:var(--error)}
+.gc-input--error:focus{border-color:var(--error)}
+.gc-input--with-icon{padding-left:44px}
+.gc-field{display:block}
+.gc-field__icon{position:absolute;left:0;top:0;display:flex;width:44px;height:100%;align-items:center;justify-content:center;color:var(--text-muted);pointer-events:none}
+.gc-field__wrap{position:relative}
+.gc-help{margin-top:var(--space-2);font-size:var(--text-xs);color:var(--text-muted)}
+.gc-help--error{color:var(--error)}
+.gc-select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--text-muted) 50%),linear-gradient(135deg,var(--text-muted) 50%,transparent 50%);background-position:calc(100% - 18px) 20px,calc(100% - 13px) 20px;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:var(--space-8)}
+.gc-check{width:20px;height:20px;margin:0;border-radius:var(--radius-md);border:1px solid color-mix(in srgb,var(--slate-400) 70%,transparent);accent-color:var(--primary);cursor:pointer}
+.gc-check--radio{border-radius:var(--radius-full)}
+html.dark .gc-check{border-color:var(--navy-400)}
+.gc-switch{position:relative;display:inline-flex;width:40px;height:20px;flex:none;align-items:center;border-radius:var(--radius-full);border:none;background:var(--slate-300);padding:0;cursor:pointer;transition:background-color var(--duration-base) var(--ease-out)}
+html.dark .gc-switch{background:var(--navy-400)}
+.gc-switch[aria-checked="true"]{background:var(--primary)}
+.gc-switch__knob{position:absolute;left:2px;width:16px;height:16px;border-radius:var(--radius-full);background:#fff;transition:transform var(--duration-base) var(--ease-out)}
+.gc-switch[aria-checked="true"] .gc-switch__knob{transform:translateX(20px)}
+.gc-search{height:40px;border:none;border-radius:var(--radius-full);background:var(--slate-150);padding:0 var(--space-5) 0 44px;color:var(--text-heading);font-family:inherit;font-size:var(--text-xs-plus);transition:var(--transition-base)}
+.gc-search:hover{background:var(--slate-200)}
+.gc-search:focus{outline:none;box-shadow:0 0 0 3px var(--focus-ring)}
+html.dark .gc-search{background:color-mix(in srgb,var(--navy-900) 90%,transparent);color:var(--navy-50)}
+.gc-dropzone{border:2px dashed var(--border-strong);border-radius:var(--radius-xl);padding:var(--space-10);text-align:center;color:var(--text-muted)}

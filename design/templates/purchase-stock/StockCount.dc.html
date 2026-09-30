@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stock count</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Stock count" description="Purchase & Stock module — Stock count." -->
+<helmet><style data-fix="layout">section.card th{white-space:normal}</style><script src="./ds-base.js"></script><script src="../_shell/gc-sidebar.js"></script><script src="../_shell/gc-topbar.js"></script><script src="/_blob/1840c8d9327e1d872bcd8bc9a4590a5a"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:#003087}a:hover{color:#002a77}
+.card{background:#ffffff;border-radius:12px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
+.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:8px;color:#475569;font-size:14px;font-weight:500;letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
+.nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
+.nav.on{background:rgba(0,48,135,.08);color:#003087}
+.navh{font-size:11px;line-height:16px;font-weight:600;letter-spacing:.08em;color:#64748b;padding:18px 12px 6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:8px;border:0;font:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
+.btn:hover{text-decoration:none}
+.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
+.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
+.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
+.line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
+.warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
+.big{height:52px;padding:0 24px;font-size:15px}
+.sm{height:36px;padding:0 12px;font-size:13px}
+.ib{width:40px;height:40px;border-radius:999px;border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
+.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font:inherit;font-size:14px;color:#1e293b;transition:border-color 200ms}
+.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
+.inp::placeholder{color:#64748b}
+.lbl{font-size:13px;line-height:18px;font-weight:500;color:#334155}
+.tab{height:40px;padding:0 14px;border-radius:999px;border:0;background:transparent;font:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
+.tab:hover{background:#f1f5f9;color:#0f172a}
+.tab.on{background:#003087;color:#fff}
+.chip{height:40px;padding:0 14px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:13px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
+.chip:hover{border-color:#94a3b8}
+.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
+.th{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:14px;line-height:20px;vertical-align:middle}
+.row{transition:background-color 200ms}.row:hover{background:#f8fafc}
+.badge{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.badge::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
+.b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
+.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
+.b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.02em}
+.fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
+@keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.flash{animation:gcFlash 900ms ease-out}
+@keyframes gcFlash{from{background:#e7f8f1}to{background:transparent}}
+.scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
+@keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1350px; background: #eef2f7; padding: 12px; display: flex; gap: 12px; overflow: hidden;">
+<gc-sidebar sticky="" active="stock-count" base="../"></gc-sidebar>
+<main style="flex-grow: 1; min-width: 0; background: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; overflow: hidden;">
+<gc-topbar crumb="Stock" page="Stock count" placeholder="Search or scan any barcode" base="../"></gc-topbar>
+<div style="flex-grow: 1; padding: 28px; display: flex; flex-direction: column; gap: 24px;">
+<section class="card" style="padding: 20px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+<span class="lbl" style="font-size: 14px; font-weight: 600; color: #0f172a;">What are you counting?</span>
+<button type="button" class="chip"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"></path><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"></path><path d="M2 7h20"></path></svg><span>Central Warehouse</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+<sc-for list="{{areas}}" as="a" hint-placeholder-count="4"><button type="button" class="{{a.cls}}" aria-pressed="{{a.on}}" onClick="{{a.pick}}">{{a.label}}</button></sc-for>
+<div style="flex-grow: 1;"></div>
+<span style="font-size: 13px; color: #475569;">Started 18 Sep 2026, 10:40 AM by Karim</span>
+</section>
+<div style="display: flex; gap: 24px; align-items: flex-start;">
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 20px;">
+<section class="card" style="padding: 24px; display: flex; gap: 24px; align-items: stretch;">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 14px;">
+<h2 style="margin: 0; font-size: 20px; line-height: 28px; font-weight: 700; color: #0f172a;">Scan every item on the shelf</h2>
+<p style="margin: 0; font-size: 14px; line-height: 22px; color: #475569;">Each beep counts one. For a full box, scan once and type the number. Don’t look at the system number — just count.</p>
+<div style="display: flex; gap: 12px;">
+<label style="position: relative; flex-grow: 1;"><span style="position: absolute; left: 16px; top: 15px; color: #003087;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M8 7v10"></path><path d="M12 7v10"></path><path d="M17 7v10"></path></svg></span><input class="inp" type="search" placeholder="Ready — scan a barcode" aria-label="Ready — scan a barcode" style="height: 54px; padding-left: 50px; font-size: 15px; border: 2px solid #003087;"></label>
+<button type="button" class="btn solid big" onClick="{{scan}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></svg><span>Scan with camera</span></button>
+</div>
+<sc-if value="{{hasMsg}}" hint-placeholder-val="{{ false }}"><div class="fade" role="status" style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; background: {{msgBg}}; color: {{msgFg}}; font-size: 14px; line-height: 20px; font-weight: 500;"><span style="flex-shrink: 0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M8 7v10"></path><path d="M12 7v10"></path><path d="M17 7v10"></path></svg></span><span>{{msg}}</span></div></sc-if>
+</div>
+<div style="width: 220px; flex-shrink: 0; border-radius: 12px; background: #012169; color: #ffffff; padding: 20px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; text-align: center;">
+<div style="font-size: 12px; font-weight: 600; letter-spacing: .08em; color: #7fcff0;">PRODUCTS COUNTED</div>
+<div style="font-size: 52px; line-height: 60px; font-weight: 700;">{{done}}<span style="font-size: 22px; color: rgba(255,255,255,.7);">/{{all}}</span></div>
+<div style="width: 100%; height: 8px; margin-top: 8px; border-radius: 999px; background: rgba(255,255,255,.16); overflow: hidden;"><div style="height: 8px; border-radius: 999px; background: #10b981; width: {{pct}}; transition: width 300ms ease-out;"></div></div>
+</div>
+</section>
+<section class="card" style="overflow: hidden;">
+<table style="width: 100%; border-collapse: collapse;"><thead><tr><th class="th">Product</th><th class="th">Rack</th><th class="th" style="text-align: center;">System says</th><th class="th" style="text-align: center;">You counted</th><th class="th" style="text-align: center;">Difference</th><th class="th" style="text-align: right;">Value</th></tr></thead><tbody>
+<sc-for list="{{lines}}" as="r" hint-placeholder-count="7"><tr class="{{r.rowCls}}">
+<td class="td"><div style="display: flex; align-items: center; gap: 12px;"><span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 10px; background: #e0f3fb; color: #003087; display: flex; align-items: center; justify-content: center; font-weight: 600;">{{r.initial}}</span><div><div style="font-weight: 500;">{{r.name}}</div><div class="mono" style="font-size: 12px; line-height: 16px; color: #64748b;">{{r.code}}</div></div></div></td><td class="td">{{r.rack}}</td><td class="td" style="text-align: center; color: #475569;">{{r.sys}}</td>
+<td class="td" style="text-align: center;"><sc-if value="{{r.counted}}" hint-placeholder-val="{{ true }}"><div style="display: inline-flex; align-items: center; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: #fff;"><button type="button" class="ib" aria-label="Less " onClick="{{r.dec}}" style="border-radius: 0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path></svg></button><span style="min-width: 44px; text-align: center; font-weight: 600;">{{r.qty}}</span><button type="button" class="ib" aria-label="More " onClick="{{r.inc}}" style="border-radius: 0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></button></div></sc-if><sc-if value="{{r.notCounted}}" hint-placeholder-val="{{ false }}"><button type="button" class="btn line sm" onClick="{{r.start}}">Not counted yet</button></sc-if></td>
+<td class="td" style="text-align: center;"><span class="{{r.dBadge}}">{{r.diff}}</span></td>
+<td class="td" style="text-align: right; font-weight: 600; color: {{r.vColor}};">{{r.value}}</td>
+</tr></sc-for></tbody></table></section>
+</div>
+<aside style="width: 340px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px;">
+<sc-if value="{{notFinished}}" hint-placeholder-val="{{ true }}">
+<section class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 12px;">
+<div><h2 style="margin: 0; font-size: 17px; line-height: 24px; font-weight: 600; color: #0f172a;">Count summary</h2></div>
+<div style="display: flex; justify-content: space-between; font-size: 14px;"><span style="color: #475569;">Match</span><span style="font-weight: 600; color: #047857;">{{match}} products</span></div>
+<div style="display: flex; justify-content: space-between; font-size: 14px;"><span style="color: #475569;">Missing</span><span style="font-weight: 600; color: #b83210;">{{miss}}</span></div>
+<div style="display: flex; justify-content: space-between; font-size: 14px;"><span style="color: #475569;">Extra</span><span style="font-weight: 600; color: #047857;">{{extra}}</span></div>
+<div style="display: flex; justify-content: space-between; font-size: 14px;"><span style="color: #475569;">Not counted yet</span><span style="font-weight: 600;">{{left}}</span></div>
+<div style="height: 1px; background: #e2e8f0;"></div>
+<div style="display: flex; justify-content: space-between; align-items: baseline;"><span style="font-size: 14px; font-weight: 600;">Net difference</span><span style="font-size: 26px; line-height: 34px; font-weight: 700; color: {{netColor}};">{{net}}</span></div>
+<p style="margin: 0; font-size: 13px; line-height: 19px; color: #475569;">When you finish, differences are saved as stock changes with the reason “Count difference”. Products not counted stay as they are.</p>
+<button type="button" class="btn solid big" style="width: 100%;" onClick="{{finish}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg><span>Finish count</span></button>
+<button type="button" class="btn line" style="width: 100%;">Save and continue later</button>
+</section>
+</sc-if>
+<sc-if value="{{finished}}" hint-placeholder-val="{{ false }}"><section class="card fade" style="padding: 28px 24px; display: flex; flex-direction: column; gap: 14px; align-items: center; text-align: center;">
+<span style="width: 64px; height: 64px; border-radius: 999px; background: #e7f8f1; color: #10b981; display: flex; align-items: center; justify-content: center;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span>
+<h2 style="margin: 0; font-size: 20px; line-height: 28px; font-weight: 700; color: #0f172a;">Count finished</h2>
+<p style="margin: 0; font-size: 14px; line-height: 22px; color: #475569;">{{doneText}}</p>
+<a class="btn line" href="Stock.dc.html" style="width: 100%;">Back to stock list</a>
+</section></sc-if>
+</aside>
+</div>
+</div>
+</main>
+</div></x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1350}}'>
+function bdt(n) { var neg = n < 0; var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return (neg ? '−' : '') + '৳' + s; }
+var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
+function mkTabs(self, list, cur, key, counts) { return list.map(function (x) { var on = x.k === cur; var c = counts ? counts[x.k] : null; return { label: x.label, on: on, cls: on ? 'tab on' : 'tab', hasCount: c != null, count: c, countBg: on ? 'rgba(255,255,255,0.2)' : '#e9eef5', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
+function mkChips(self, list, cur, key) { return list.map(function (x) { var on = x.k === cur; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
+function flashMsg(self, msg, bad, patch) { clearTimeout(self.t); var p = patch || {}; p.msg = msg; p.bad = !!bad; self.setState(p); self.t = setTimeout(function () { self.setState({ flash: null }); }, 900); }
+function msgVals(s) { return { hasMsg: !!s.msg, msg: s.msg || '', msgBg: s.bad ? '#ffece6' : '#e7f8f1', msgFg: s.bad ? '#8a2a0c' : '#065f46' }; }
+function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
+var CP = [
+  { name: 'Aloe Vera Soothing Gel 300ml', code: '8941100500112', rack: 'A-1', sys: 24, cost: 332.8 },
+  { name: 'Sunscreen SPF 50 · 50ml', code: '8941100500235', rack: 'A-2', sys: 18, cost: 561.6 },
+  { name: 'Rice Water Cleanser 150ml', code: '8941100500341', rack: 'A-6', sys: 88, cost: 426.1 },
+  { name: 'Lip Balm Strawberry 4g', code: '8941100500563', rack: 'A-9', sys: 30, cost: 98.7 },
+  { name: 'Cotton Face Towel (pack of 3)', code: '8941100500457', rack: 'A-10', sys: 40, cost: 187.2 },
+  { name: 'Hydrating Toner 200ml', code: '8941100500679', rack: 'A-3', sys: 16, cost: 455 },
+  { name: 'Vitamin C Serum 30ml', code: '8941100500785', rack: 'A-4', sys: 12, cost: 690 }
+];
+var AREAS = [{ k: 'all', label: 'Whole warehouse' }, { k: 'A', label: 'Rack A · skin care' }, { k: 'C', label: 'Rack C · clothing' }, { k: 'pick', label: 'Choose products' }];
+class Component extends DCLogic {
+  componentWillUnmount() { clearTimeout(this.t); }
+  renderVals() {
+    var self = this, s = this.state || {};
+    var c = s.c || [24, 15, 88, 31, null, null, null], area = s.area || 'A', fin = !!s.fin;
+    var setC = function (i, v, extra) { var x = c.slice(); x[i] = v; self.setState(assign({ c: x }, extra || {})); };
+    var done = 0, match = 0, missP = 0, missV = 0, exP = 0, exV = 0;
+    var lines = CP.map(function (p, i) {
+      var v = c[i], counted = v !== null && v !== undefined;
+      var d = counted ? v - p.sys : 0;
+      if (counted) { done++; if (d === 0) match++; else if (d < 0) { missP -= d; missV -= d * p.cost; } else { exP += d; exV += d * p.cost; } }
+      return { name: p.name, code: p.code, initial: p.name.charAt(0), rack: p.rack, sys: p.sys, qty: v, counted: counted, notCounted: !counted,
+        diff: !counted ? '—' : (d === 0 ? 'Match' : (d > 0 ? '+' + d : '−' + Math.abs(d))),
+        dBadge: !counted ? '' : (d === 0 ? 'badge b-received' : (d > 0 ? 'badge b-approved' : 'badge b-cancelled')),
+        value: !counted || d === 0 ? '—' : (d > 0 ? '+' : '−') + '৳' + Math.round(Math.abs(d) * p.cost).toLocaleString('en-IN'),
+        vColor: d < 0 ? '#b83210' : (d > 0 ? '#047857' : '#64748b'), rowCls: s.flash === i ? 'row flash' : 'row',
+        start: function () { setC(i, 0); }, inc: function () { setC(i, (v || 0) + 1); }, dec: function () { setC(i, Math.max(0, (v || 0) - 1)); } };
+    });
+    var net = exV - missV;
+    return assign({
+      areas: mkChips(this, AREAS, area, 'area'), lines: lines, done: done, all: CP.length, pct: Math.round(done / CP.length * 100) + '%',
+      scan: function () {
+        var n = s.n || 0; var i = [4, 4, 5, 6, 4, 1][n % 6];
+        flashMsg(self, 'Beep — +1 ' + CP[i].name, false, { c: (function () { var x = c.slice(); x[i] = (x[i] || 0) + 1; return x; })(), n: n + 1, flash: i });
+      },
+      match: match, miss: missP + ' pcs · ৳' + Math.round(missV).toLocaleString('en-IN'), extra: exP + ' pcs · ৳' + Math.round(exV).toLocaleString('en-IN'), left: (CP.length - done) + ' products',
+      net: (net < 0 ? '−' : '+') + '৳' + Math.round(Math.abs(net)).toLocaleString('en-IN'), netColor: net < 0 ? '#b83210' : '#047857',
+      notFinished: !fin, finished: fin, finish: function () { self.setState({ fin: true }); },
+      doneText: done + ' products counted. ' + (missP + exP) + ' pieces of difference saved as stock changes. Stock is now correct for Rack A.'
+    }, msgVals(s));
+  }
+}
+</script>
+</body>
+</html>

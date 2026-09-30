@@ -1,0 +1,26 @@
+{
+  "name": "gridcommerce-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GridCommerce merchant web app — front-end only (Next.js). Screens are converted from the GridCommerce · Merged design canvas.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "convert": "node scripts/convert-design.mjs"
+  },
+  "dependencies": {
+    "lucide": "^0.469.0",
+    "next": "^16.3.7",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "htmlparser2": "^12.0.0",
+    "typescript": "^7.0.2"
+  }
+}

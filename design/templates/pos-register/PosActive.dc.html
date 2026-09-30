@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><style data-fix="layout">input,select{box-sizing:border-box}</style><script src="./pos-nav.js"></script><script src="../_shell/gc-sidebar.js"></script><script src="./pos-fit.js"></script><style>html,body{height:100%}</style><script src="./ds-base.js"></script><script src="/_blob/1840c8d9327e1d872bcd8bc9a4590a5a"></script><style>@keyframes scanring{0%,100%{box-shadow:0 0 0 3px rgba(0,48,135,.5)}50%{box-shadow:0 0 0 5px rgba(0,48,135,.28)}}@keyframes scanringdark{0%,100%{box-shadow:0 0 0 3px rgba(0,156,222,.5)}50%{box-shadow:0 0 0 5px rgba(0,156,222,.28)}}</style></helmet>
+<div data-pos-fit="1380x880" style="width:100%;min-width:1380px;height:100vh;min-height:880px;max-height:100%;display:flex;gap:12px;padding:12px;overflow:hidden;background:#eef2f7;font-family:Poppins,ui-sans-serif,system-ui,sans-serif;color:#475569">
+<gc-sidebar collapsed="" fill="" active="pos" base="../"></gc-sidebar>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;border:1px solid #e2e8f0;border-radius:16px;background:#f8fafc">
+<header style="height:61px;flex:none;display:flex;align-items:center;gap:14px;padding:0 20px;background:#fff;border-bottom:1px solid #e2e8f0">
+<button aria-label="Expand navigation" style="width:36px;height:36px;display:grid;place-items:center;border:none;border-radius:9999px;background:none;color:#64748b;cursor:pointer" style-hover="background:rgba(203,213,225,.2);color:#475569"><i data-lucide="panel-left"></i></button>
+<h1 style="margin:0;font-size:15px;font-weight:600;letter-spacing:.025em;color:#1e293b;white-space:nowrap">Point of sale</h1>
+<span style="width:1px;height:24px;background:#e2e8f0"></span>
+<div style="display:flex;align-items:center;gap:0;height:30px;border-radius:9999px;background:#f1f5f9;padding:0 4px;white-space:nowrap">
+<span style="display:inline-flex;height:30px;align-items:center;gap:6px;padding:0 8px;font-size:12px;font-weight:500;color:#475569"><span style="width:7px;height:7px;flex:none;border-radius:9999px;background:#10b981"></span><i data-lucide="wifi" width="14" height="14"></i>Online</span>
+<span style="width:1px;height:14px;background:#cbd5e1"></span>
+<span style="display:inline-flex;height:30px;align-items:center;gap:6px;padding:0 8px;font-size:12px;font-weight:500;color:#475569"><span style="width:7px;height:7px;flex:none;border-radius:9999px;background:#10b981"></span><i data-lucide="printer" width="14" height="14"></i>Printer</span>
+<span style="width:1px;height:14px;background:#cbd5e1"></span>
+<span style="display:inline-flex;height:30px;align-items:center;gap:6px;padding:0 8px;font-size:12px;font-weight:500;color:#475569"><span style="width:7px;height:7px;flex:none;border-radius:9999px;background:#64748b"></span><i data-lucide="inbox" width="14" height="14"></i>Drawer closed</span>
+</div>
+<div style="margin-left:auto;display:flex;align-items:center;gap:6px">
+<button style="display:inline-flex;height:36px;align-items:center;gap:7px;border:none;border-radius:8px;background:#f1f5f9;padding:0 11px;font-family:inherit;font-size:13px;font-weight:500;letter-spacing:.025em;color:#1e293b;cursor:pointer;white-space:nowrap" style-hover="background:#e9eef5"><i data-lucide="pause" width="16" height="16"></i>Held sales<span style="display:inline-flex;height:18px;min-width:18px;align-items:center;justify-content:center;border-radius:9999px;background:#003087;padding:0 5px;font-size:11px;font-weight:600;color:#fff">3</span></button>
+<button style="display:inline-flex;height:36px;align-items:center;gap:7px;border:none;border-radius:8px;background:#f1f5f9;padding:0 11px;font-family:inherit;font-size:13px;font-weight:500;letter-spacing:.025em;color:#1e293b;cursor:pointer;white-space:nowrap" style-hover="background:#e9eef5"><i data-lucide="receipt-text" width="16" height="16"></i>Recent sales</button>
+<button style="display:inline-flex;height:36px;align-items:center;gap:7px;border:none;border-radius:8px;background:#f1f5f9;padding:0 11px;font-family:inherit;font-size:13px;font-weight:500;letter-spacing:.025em;color:#1e293b;cursor:pointer;white-space:nowrap" style-hover="background:#e9eef5"><i data-lucide="rotate-ccw" width="16" height="16"></i>Exchange / return</button>
+<span style="width:1px;height:24px;background:#e2e8f0;margin:0 2px"></span>
+<span style="display:flex;padding:2px;border-radius:9999px;background:#e9eef5">
+<button style="height:28px;border:none;border-radius:9999px;background:#fff;padding:0 12px;font-family:inherit;font-size:12px;font-weight:600;color:#1e293b;cursor:pointer;box-shadow:0 1px 2px rgba(48,46,56,.1)">EN</button>
+<button style="height:28px;border:none;border-radius:9999px;background:none;padding:0 12px;font-family:inherit;font-size:12px;font-weight:500;color:#475569;cursor:pointer">বাংলা</button>
+</span>
+<button aria-label="Apps" style="width:36px;height:36px;display:grid;place-items:center;border:none;border-radius:9999px;background:none;color:#64748b;cursor:pointer" style-hover="background:rgba(203,213,225,.2);color:#475569"><i data-lucide="layout-grid"></i></button>
+<button aria-label="Notifications" style="position:relative;width:36px;height:36px;display:grid;place-items:center;border:none;border-radius:9999px;background:none;color:#64748b;cursor:pointer" style-hover="background:rgba(203,213,225,.2);color:#475569"><i data-lucide="bell"></i><span style="position:absolute;top:7px;right:8px;width:7px;height:7px;border-radius:9999px;background:#ff5724;border:1.5px solid #fff"></span></button>
+<button aria-label="Dark mode" style="width:36px;height:36px;display:grid;place-items:center;border:none;border-radius:9999px;background:none;color:#64748b;cursor:pointer" style-hover="background:rgba(203,213,225,.2);color:#475569"><i data-lucide="moon"></i></button>
+<button style="display:flex;align-items:center;gap:8px;height:36px;border:none;border-radius:9999px;background:none;padding:0 8px 0 4px;font-family:inherit;cursor:pointer" style-hover="background:rgba(203,213,225,.2)"><span style="width:30px;height:30px;border-radius:9999px;background:rgba(0,48,135,.1);color:#003087;display:grid;place-items:center;font-size:12px;font-weight:500">RU</span><i data-lucide="chevron-down" width="16" height="16" style="color:#94a3b8"></i></button>
+</div>
+</header>
+<div style="flex:none;display:flex;align-items:center;gap:8px;padding:10px 20px;background:#fff;border-bottom:1px solid #e2e8f0">
+<button style="display:flex;align-items:center;gap:10px;height:44px;flex:none;white-space:nowrap;padding:0 10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;font-family:inherit;text-align:left;cursor:pointer" style-hover="border-color:#cbd5e1;background:#f8fafc">
+<span style="display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:8px;background:rgba(0,48,135,.1);color:#003087"><i data-lucide="warehouse" width="16" height="16"></i></span>
+<span style="display:block"><span style="display:block;font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#64748b;line-height:1.2">Warehouse</span><span style="display:block;font-size:13px;font-weight:500;color:#1e293b;line-height:1.35">Central Warehouse</span></span>
+<i data-lucide="chevron-down" width="16" height="16" style="color:#94a3b8"></i></button>
+<button style="display:flex;align-items:center;gap:10px;height:44px;flex:none;white-space:nowrap;padding:0 10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;font-family:inherit;text-align:left;cursor:pointer" style-hover="border-color:#cbd5e1;background:#f8fafc">
+<span style="display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:8px;background:rgba(0,48,135,.1);color:#003087"><i data-lucide="store" width="16" height="16"></i></span>
+<span style="display:block"><span style="display:block;font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#64748b;line-height:1.2">Counter</span><span style="display:block;font-size:13px;font-weight:500;color:#1e293b;line-height:1.35">Gulshan-1 · Counter 2</span></span>
+<i data-lucide="chevron-down" width="16" height="16" style="color:#94a3b8"></i></button>
+<button style="display:flex;align-items:center;gap:10px;height:44px;flex:none;white-space:nowrap;padding:0 10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;font-family:inherit;text-align:left;cursor:pointer" style-hover="border-color:#cbd5e1;background:#f8fafc">
+<span style="display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:8px;background:rgba(0,48,135,.1);color:#003087"><i data-lucide="calculator" width="16" height="16"></i></span>
+<span style="display:block"><span style="display:block;font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#64748b;line-height:1.2">Register</span><span style="display:block;font-size:13px;font-weight:500;color:#1e293b;line-height:1.35">REG-02 · open 9:02 AM</span></span>
+<i data-lucide="chevron-down" width="16" height="16" style="color:#94a3b8"></i></button>
+<button style="display:flex;align-items:center;gap:10px;height:44px;flex:none;white-space:nowrap;padding:0 10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;font-family:inherit;text-align:left;cursor:pointer" style-hover="border-color:#cbd5e1;background:#f8fafc">
+<span style="display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:8px;background:rgba(0,48,135,.1);color:#003087"><i data-lucide="user-round" width="16" height="16"></i></span>
+<span style="display:block"><span style="display:block;font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#64748b;line-height:1.2">Cashier</span><span style="display:block;font-size:13px;font-weight:500;color:#1e293b;line-height:1.35">Rahim Uddin — Super Admin</span></span>
+<i data-lucide="chevron-down" width="16" height="16" style="color:#94a3b8"></i></button>
+<button style="display:flex;align-items:center;gap:10px;height:44px;flex:none;white-space:nowrap;padding:0 10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;font-family:inherit;text-align:left;cursor:pointer" style-hover="border-color:#cbd5e1;background:#f8fafc">
+<span style="display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:8px;background:rgba(0,156,222,.12);color:#0089c3;font-size:12px;font-weight:600">SA</span>
+<span style="display:block"><span style="display:block;font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#64748b;line-height:1.2">Customer</span><span style="display:block;font-size:13px;font-weight:500;color:#1e293b;line-height:1.35">Shirin Akter — +8801811843300</span></span>
+<i data-lucide="chevron-down" width="16" height="16" style="color:#94a3b8"></i></button>
+</div>
+<div style="flex:1;min-height:0;display:flex;gap:16px;padding:16px 20px">
+<main style="flex:1;min-width:0;display:flex;flex-direction:column;gap:12px">
+<div style="flex:none;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+<span style="position:relative;display:block;flex:1 1 220px;min-width:220px"><input value="rice" placeholder="Search products by name, SKU or brand" style="width:100%;height:44px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 12px 0 40px;font-family:inherit;font-size:14px;color:#1e293b"><span style="position:absolute;left:0;top:0;width:40px;height:100%;display:flex;align-items:center;justify-content:center;color:#64748b"><i data-lucide="search" width="18" height="18"></i></span></span>
+<select aria-label="Category" style="height:44px;border:1px solid #cbd5e1;border-radius:8px;background-color:#fff;padding:0 34px 0 12px;font-family:inherit;font-size:13px;font-weight:500;color:#1e293b;appearance:none;background-image:linear-gradient(45deg,transparent 50%,#94a3b8 50%),linear-gradient(135deg,#94a3b8 50%,transparent 50%);background-position:calc(100% - 17px) 21px,calc(100% - 12px) 21px;background-size:5px 5px,5px 5px;background-repeat:no-repeat"><option>All categories</option><option>Apparel</option><option>Grocery</option></select>
+<select aria-label="Brand" style="height:44px;border:1px solid #cbd5e1;border-radius:8px;background-color:#fff;padding:0 34px 0 12px;font-family:inherit;font-size:13px;font-weight:500;color:#1e293b;appearance:none;background-image:linear-gradient(45deg,transparent 50%,#94a3b8 50%),linear-gradient(135deg,#94a3b8 50%,transparent 50%);background-position:calc(100% - 17px) 21px,calc(100% - 12px) 21px;background-size:5px 5px,5px 5px;background-repeat:no-repeat"><option>All brands</option><option>Aarong</option><option>Walton</option></select>
+<span style="display:flex;height:44px;padding:3px;border-radius:8px;background:#e9eef5;flex:none">
+<button aria-label="Grid view" style="width:40px;display:grid;place-items:center;border:none;border-radius:6px;background:#fff;color:#003087;cursor:pointer;box-shadow:0 1px 2px rgba(48,46,56,.1)"><i data-lucide="layout-grid" width="18" height="18"></i></button>
+<button aria-label="List view" style="width:40px;display:grid;place-items:center;border:none;border-radius:6px;background:none;color:#64748b;cursor:pointer"><i data-lucide="list" width="18" height="18"></i></button>
+</span>
+</div>
+<div style="flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;align-content:start">
+<button style="display:block;width:100%;text-align:left;padding:10px;border:1px solid #003087;border-radius:12px;background:#fff;font-family:inherit;cursor:pointer;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)">
+<span style="position:relative;display:block;height:104px;border-radius:8px;background:#eef2f7;overflow:hidden"><span style="position:absolute;inset:0;display:grid;place-items:center;font-size:30px;font-weight:600;color:#a9b8d4">P</span><span style="position:absolute;top:6px;left:6px;display:inline-flex;height:20px;align-items:center;border-radius:9999px;background:rgba(16,185,129,.14);padding:0 7px;font-size:11px;font-weight:500;color:#059669">120 in stock</span><span style="position:absolute;top:6px;right:6px;display:grid;place-items:center;width:22px;height:22px;border-radius:9999px;background:#003087;color:#fff;font-size:11px;font-weight:600">2</span></span>
+<span style="display:block;margin-top:8px;min-height:36px;font-size:13px;line-height:18px;font-weight:500;color:#1e293b">Premium Miniket Rice 5kg</span>
+<span style="display:block;font-size:12px;line-height:16px;color:#64748b">Sack · 5kg</span>
+<span style="display:flex;align-items:center;justify-content:space-between;margin-top:6px"><span style="font-size:18px;font-weight:600;color:#003087;font-variant-numeric:tabular-nums">৳780.00</span><span style="display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:#003087;color:#fff"><i data-lucide="check" width="16" height="16"></i></span></span></button>
+<button style="display:block;width:100%;text-align:left;padding:10px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;font-family:inherit;cursor:pointer;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)" style-hover="border-color:#99acd0">
+<span style="position:relative;display:block;height:104px;border-radius:8px;background:#eef2f7;overflow:hidden"><span style="position:absolute;inset:0;display:grid;place-items:center;font-size:30px;font-weight:600;color:#a9b8d4">C</span><span style="position:absolute;top:6px;left:6px;display:inline-flex;height:20px;align-items:center;border-radius:9999px;background:rgba(16,185,129,.14);padding:0 7px;font-size:11px;font-weight:500;color:#059669">64 in stock</span></span>
+<span style="display:block;margin-top:8px;min-height:36px;font-size:13px;line-height:18px;font-weight:500;color:#1e293b">Chickpeas Boot Dal 1kg</span>
+<span style="display:block;font-size:12px;line-height:16px;color:#64748b">Loose · 1kg</span>
+<span style="display:flex;align-items:center;justify-content:space-between;margin-top:6px"><span style="font-size:18px;font-weight:600;color:#003087;font-variant-numeric:tabular-nums">৳165.00</span><span style="display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(0,48,135,.1);color:#003087"><i data-lucide="plus" width="16" height="16"></i></span></span></button>
+<button style="display:block;width:100%;text-align:left;padding:10px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;font-family:inherit;cursor:pointer;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)" style-hover="border-color:#99acd0">
+<span style="position:relative;display:block;height:104px;border-radius:8px;background:#eef2f7;overflow:hidden"><span style="position:absolute;inset:0;display:grid;place-items:center;font-size:30px;font-weight:600;color:#a9b8d4">S</span><span style="position:absolute;top:6px;left:6px;display:inline-flex;height:20px;align-items:center;border-radius:9999px;background:rgba(16,185,129,.14);padding:0 7px;font-size:11px;font-weight:500;color:#059669">54 in stock</span></span>
+<span style="display:block;margin-top:8px;min-height:36px;font-size:13px;line-height:18px;font-weight:500;color:#1e293b">Soybean Cooking Oil 2L</span>
+<span style="display:block;font-size:12px;line-height:16px;color:#64748b">Bottle · 2L</span>
+<span style="display:flex;align-items:center;justify-content:space-between;margin-top:6px"><span style="font-size:18px;font-weight:600;color:#003087;font-variant-numeric:tabular-nums">৳390.00</span><span style="display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(0,48,135,.1);color:#003087"><i data-lucide="plus" width="16" height="16"></i></span></span></button>
+<button style="display:block;width:100%;text-align:left;padding:10px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;font-family:inherit;cursor:pointer;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)" style-hover="border-color:#99acd0">
+<span style="position:relative;display:block;height:104px;border-radius:8px;background:#eef2f7;overflow:hidden"><span style="position:absolute;inset:0;display:grid;place-items:center;font-size:30px;font-weight:600;color:#a9b8d4">T</span><span style="position:absolute;top:6px;left:6px;display:inline-flex;height:20px;align-items:center;border-radius:9999px;background:rgba(16,185,129,.14);padding:0 7px;font-size:11px;font-weight:500;color:#059669">42 in stock</span><span style="position:absolute;top:6px;right:6px;display:grid;place-items:center;width:22px;height:22px;border-radius:9999px;background:#003087;color:#fff;font-size:11px;font-weight:600">2</span></span>
+<span style="display:block;margin-top:8px;min-height:36px;font-size:13px;line-height:18px;font-weight:500;color:#1e293b">Premium Cotton Oversized T-Shirt</span>
+<span style="display:block;font-size:12px;line-height:16px;color:#64748b">Black · M</span>
+<span style="display:flex;align-items:center;justify-content:space-between;margin-top:6px"><span style="font-size:18px;font-weight:600;color:#003087;font-variant-numeric:tabular-nums">৳1,240.00</span><span style="display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:#003087;color:#fff"><i data-lucide="check" width="16" height="16"></i></span></span></button>
+<button style="display:block;width:100%;text-align:left;padding:10px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;font-family:inherit;cursor:pointer;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)" style-hover="border-color:#99acd0">
+<span style="position:relative;display:block;height:104px;border-radius:8px;background:#eef2f7;overflow:hidden"><span style="position:absolute;inset:0;display:grid;place-items:center;font-size:30px;font-weight:600;color:#a9b8d4">C</span><span style="position:absolute;top:6px;left:6px;display:inline-flex;height:20px;align-items:center;border-radius:9999px;background:rgba(255,152,0,.16);padding:0 7px;font-size:11px;font-weight:500;color:#b36a00">Low · 6 left</span></span>
+<span style="display:block;margin-top:8px;min-height:36px;font-size:13px;line-height:18px;font-weight:500;color:#1e293b">Compression Leggings</span>
+<span style="display:block;font-size:12px;line-height:16px;color:#64748b">Charcoal · L</span>
+<span style="display:flex;align-items:center;justify-content:space-between;margin-top:6px"><span style="font-size:18px;font-weight:600;color:#003087;font-variant-numeric:tabular-nums">৳1,850.00</span><span style="display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(0,48,135,.1);color:#003087"><i data-lucide="plus" width="16" height="16"></i></span></span></button>
+<button style="display:block;width:100%;text-align:left;padding:10px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;font-family:inherit;cursor:pointer;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)" style-hover="border-color:#99acd0">
+<span style="position:relative;display:block;height:104px;border-radius:8px;background:#eef2f7;overflow:hidden"><span style="position:absolute;inset:0;display:grid;place-items:center;font-size:30px;font-weight:600;color:#a9b8d4">D</span><span style="position:absolute;top:6px;left:6px;display:inline-flex;height:20px;align-items:center;border-radius:9999px;background:rgba(16,185,129,.14);padding:0 7px;font-size:11px;font-weight:500;color:#059669">88 in stock</span><span style="position:absolute;top:6px;right:6px;display:grid;place-items:center;width:22px;height:22px;border-radius:9999px;background:#003087;color:#fff;font-size:11px;font-weight:600">1</span></span>
+<span style="display:block;margin-top:8px;min-height:36px;font-size:13px;line-height:18px;font-weight:500;color:#1e293b">Daily Care Shampoo 340ml</span>
+<span style="display:block;font-size:12px;line-height:16px;color:#64748b">Anti-dandruff</span>
+<span style="display:flex;align-items:center;justify-content:space-between;margin-top:6px"><span style="font-size:18px;font-weight:600;color:#003087;font-variant-numeric:tabular-nums">৳420.00</span><span style="display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:#003087;color:#fff"><i data-lucide="check" width="16" height="16"></i></span></span></button>
+<button style="display:block;width:100%;text-align:left;padding:10px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;font-family:inherit;cursor:pointer;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)" style-hover="border-color:#99acd0">
+<span style="position:relative;display:block;height:104px;border-radius:8px;background:#eef2f7;overflow:hidden"><span style="position:absolute;inset:0;display:grid;place-items:center;font-size:30px;font-weight:600;color:#a9b8d4">B</span><span style="position:absolute;top:6px;left:6px;display:inline-flex;height:20px;align-items:center;border-radius:9999px;background:rgba(16,185,129,.14);padding:0 7px;font-size:11px;font-weight:500;color:#059669">12 in stock</span></span>
+<span style="display:block;margin-top:8px;min-height:36px;font-size:13px;line-height:18px;font-weight:500;color:#1e293b">Budget Android Phone</span>
+<span style="display:block;font-size:12px;line-height:16px;color:#64748b">Midnight · 128GB</span>
+<span style="display:flex;align-items:center;justify-content:space-between;margin-top:6px"><span style="font-size:18px;font-weight:600;color:#003087;font-variant-numeric:tabular-nums">৳14,990.00</span><span style="display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(0,48,135,.1);color:#003087"><i data-lucide="plus" width="16" height="16"></i></span></span></button>
+<button style="display:block;width:100%;text-align:left;padding:10px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;font-family:inherit;cursor:pointer;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)" style-hover="border-color:#99acd0">
+<span style="position:relative;display:block;height:104px;border-radius:8px;background:#eef2f7;overflow:hidden"><span style="position:absolute;inset:0;display:grid;place-items:center;font-size:30px;font-weight:600;color:#a9b8d4">C</span><span style="position:absolute;top:6px;left:6px;display:inline-flex;height:20px;align-items:center;border-radius:9999px;background:rgba(255,87,36,.16);padding:0 7px;font-size:11px;font-weight:500;color:#c2380f">Out of stock</span></span>
+<span style="display:block;margin-top:8px;min-height:36px;font-size:13px;line-height:18px;font-weight:500;color:#1e293b">Classic White Sneakers</span>
+<span style="display:block;font-size:12px;line-height:16px;color:#64748b">White · 42</span>
+<span style="display:flex;align-items:center;justify-content:space-between;margin-top:6px"><span style="font-size:18px;font-weight:600;color:#64748b;font-variant-numeric:tabular-nums">৳3,450.00</span><span style="display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:#f1f5f9;color:#64748b"><i data-lucide="ban" width="16" height="16"></i></span></span></button>
+<button style="display:block;width:100%;text-align:left;padding:10px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;font-family:inherit;cursor:pointer;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)" style-hover="border-color:#99acd0">
+<span style="position:relative;display:block;height:104px;border-radius:8px;background:#eef2f7;overflow:hidden"><span style="position:absolute;inset:0;display:grid;place-items:center;font-size:30px;font-weight:600;color:#a9b8d4">S</span><span style="position:absolute;top:6px;left:6px;display:inline-flex;height:20px;align-items:center;border-radius:9999px;background:rgba(16,185,129,.14);padding:0 7px;font-size:11px;font-weight:500;color:#059669">31 in stock</span></span>
+<span style="display:block;margin-top:8px;min-height:36px;font-size:13px;line-height:18px;font-weight:500;color:#1e293b">Steel Water Bottle 750ml</span>
+<span style="display:block;font-size:12px;line-height:16px;color:#64748b">Brushed steel</span>
+<span style="display:flex;align-items:center;justify-content:space-between;margin-top:6px"><span style="font-size:18px;font-weight:600;color:#003087;font-variant-numeric:tabular-nums">৳650.00</span><span style="display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(0,48,135,.1);color:#003087"><i data-lucide="plus" width="16" height="16"></i></span></span></button>
+<button style="display:block;width:100%;text-align:left;padding:10px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;font-family:inherit;cursor:pointer;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)" style-hover="border-color:#99acd0">
+<span style="position:relative;display:block;height:104px;border-radius:8px;background:#eef2f7;overflow:hidden"><span style="position:absolute;inset:0;display:grid;place-items:center;font-size:30px;font-weight:600;color:#a9b8d4">M</span><span style="position:absolute;top:6px;left:6px;display:inline-flex;height:20px;align-items:center;border-radius:9999px;background:rgba(16,185,129,.14);padding:0 7px;font-size:11px;font-weight:500;color:#059669">26 in stock</span></span>
+<span style="display:block;margin-top:8px;min-height:36px;font-size:13px;line-height:18px;font-weight:500;color:#1e293b">Mustard Oil 1L Pure Ghani</span>
+<span style="display:block;font-size:12px;line-height:16px;color:#64748b">Bottle · 1L</span>
+<span style="display:flex;align-items:center;justify-content:space-between;margin-top:6px"><span style="font-size:18px;font-weight:600;color:#003087;font-variant-numeric:tabular-nums">৳340.00</span><span style="display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(0,48,135,.1);color:#003087"><i data-lucide="plus" width="16" height="16"></i></span></span></button>
+<button style="display:block;width:100%;text-align:left;padding:10px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;font-family:inherit;cursor:pointer;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)" style-hover="border-color:#99acd0">
+<span style="position:relative;display:block;height:104px;border-radius:8px;background:#eef2f7;overflow:hidden"><span style="position:absolute;inset:0;display:grid;place-items:center;font-size:30px;font-weight:600;color:#a9b8d4">A</span><span style="position:absolute;top:6px;left:6px;display:inline-flex;height:20px;align-items:center;border-radius:9999px;background:rgba(16,185,129,.14);padding:0 7px;font-size:11px;font-weight:500;color:#059669">73 in stock</span></span>
+<span style="display:block;margin-top:8px;min-height:36px;font-size:13px;line-height:18px;font-weight:500;color:#1e293b">Atta Wheat Flour 2kg</span>
+<span style="display:block;font-size:12px;line-height:16px;color:#64748b">Pack · 2kg</span>
+<span style="display:flex;align-items:center;justify-content:space-between;margin-top:6px"><span style="font-size:18px;font-weight:600;color:#003087;font-variant-numeric:tabular-nums">৳150.00</span><span style="display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(0,48,135,.1);color:#003087"><i data-lucide="plus" width="16" height="16"></i></span></span></button>
+<button style="display:block;width:100%;text-align:left;padding:10px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;font-family:inherit;cursor:pointer;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)" style-hover="border-color:#99acd0">
+<span style="position:relative;display:block;height:104px;border-radius:8px;background:#eef2f7;overflow:hidden"><span style="position:absolute;inset:0;display:grid;place-items:center;font-size:30px;font-weight:600;color:#a9b8d4">R</span><span style="position:absolute;top:6px;left:6px;display:inline-flex;height:20px;align-items:center;border-radius:9999px;background:rgba(255,152,0,.16);padding:0 7px;font-size:11px;font-weight:500;color:#b36a00">Low · 4 left</span></span>
+<span style="display:block;margin-top:8px;min-height:36px;font-size:13px;line-height:18px;font-weight:500;color:#1e293b">Rice Cooker 1.8L Walton</span>
+<span style="display:block;font-size:12px;line-height:16px;color:#64748b">White · 700W</span>
+<span style="display:flex;align-items:center;justify-content:space-between;margin-top:6px"><span style="font-size:18px;font-weight:600;color:#003087;font-variant-numeric:tabular-nums">৳3,190.00</span><span style="display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(0,48,135,.1);color:#003087"><i data-lucide="plus" width="16" height="16"></i></span></span></button>
+</div>
+<div style="flex:none;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#64748b"><span>Showing 12 of 486 products · Central Warehouse</span><span>Grocery · “rice” · 12 matches</span></div>
+</main>
+<aside style="width:clamp(380px,36%,520px);flex:none;display:flex;flex-direction:column;background:#fff;border-radius:8px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);overflow:hidden">
+<div style="flex:none;padding:12px 14px;border-bottom:1px solid #e2e8f0;display:flex;flex-direction:column;gap:10px">
+<span style="position:relative;display:block"><input placeholder="Scan barcode or type SKU" style="width:100%;height:48px;border:1px solid #003087;border-radius:8px;background:#fff;padding:0 116px 0 42px;font-family:inherit;font-size:15px;color:#1e293b;animation:scanring 2.6s ease-in-out infinite"><span style="position:absolute;left:0;top:0;width:42px;height:100%;display:flex;align-items:center;justify-content:center;color:#003087"><i data-lucide="scan-line" width="20" height="20"></i></span><span style="position:absolute;right:10px;top:9px;display:inline-flex;height:30px;align-items:center;gap:6px;border-radius:9999px;background:rgba(0,48,135,.1);padding:0 10px;font-size:11px;font-weight:500;color:#003087"><i data-lucide="crosshair" width="13" height="13"></i>Auto-focused</span></span>
+<div style="display:flex;align-items:center;justify-content:space-between">
+<span style="display:inline-flex;height:26px;align-items:center;gap:7px;border-radius:9999px;background:rgba(16,185,129,.12);padding:0 10px;font-size:12px;font-weight:500;color:#059669"><span style="width:7px;height:7px;flex:none;border-radius:9999px;background:#10b981"></span>Scanner ready</span>
+<span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#64748b;white-space:nowrap">ORD-20260907-0001</span>
+</div>
+</div>
+<div style="flex:1 1 auto;min-height:132px;position:relative;display:flex;flex-direction:column">
+<div style="flex:none;display:flex;align-items:center;justify-content:space-between;padding:10px 14px 6px">
+<span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#64748b;white-space:nowrap">Line items</span><span style="font-size:11px;font-weight:500;color:#64748b;font-variant-numeric:tabular-nums;white-space:nowrap">6 lines · 9 units</span></span>
+<span style="flex:none;display:inline-flex;height:22px;align-items:center;gap:5px;border-radius:9999px;background:#f1f5f9;padding:0 9px;font-size:11px;font-weight:500;color:#64748b;white-space:nowrap"><i data-lucide="arrow-up" width="12" height="12"></i>2 above</span>
+</div>
+<div style="flex:1;min-height:0;overflow:auto;padding:0 14px 10px;display:flex;flex-direction:column;gap:8px">
+<div style="flex:none;display:flex;align-items:center;gap:10px;padding:6px 10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff" style-hover="border-color:#99acd0;background:#f8fafc">
+<span style="display:grid;place-items:center;width:36px;height:36px;flex:none;border-radius:8px;background:#eef2f7;font-size:14px;font-weight:600;color:#a9b8d4">T</span>
+<span style="display:block;flex:1;min-width:0"><span style="display:block;font-size:13px;line-height:18px;font-weight:500;color:#1e293b">Premium Cotton Oversized T-Shirt</span><span style="display:block;font-size:12px;color:#64748b">Black · M · ৳1,240.00</span></span>
+<span style="display:flex;align-items:center;gap:2px;flex:none;border:1px solid #e2e8f0;border-radius:8px;padding:2px">
+<button aria-label="Decrease quantity" style="width:30px;height:30px;display:grid;place-items:center;border:none;border-radius:6px;background:none;font-family:inherit;font-size:15px;color:#475569;cursor:pointer" style-hover="background:#f1f5f9">−</button>
+<span style="min-width:26px;text-align:center;font-size:14px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">2</span>
+<button aria-label="Increase quantity" style="width:30px;height:30px;display:grid;place-items:center;border:none;border-radius:6px;background:none;font-family:inherit;font-size:15px;color:#475569;cursor:pointer" style-hover="background:#f1f5f9">+</button>
+</span>
+<span style="width:82px;flex:none;text-align:right;font-size:14px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">৳2,480.00</span>
+<button aria-label="Remove line" style="width:30px;height:30px;flex:none;display:grid;place-items:center;border:none;border-radius:8px;background:none;color:#64748b;cursor:pointer" style-hover="background:rgba(255,87,36,.12);color:#c2380f"><i data-lucide="x" width="16" height="16"></i></button>
+</div>
+<div style="flex:none;display:flex;align-items:center;gap:10px;padding:6px 10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff" style-hover="border-color:#99acd0;background:#f8fafc">
+<span style="display:grid;place-items:center;width:36px;height:36px;flex:none;border-radius:8px;background:#eef2f7;font-size:14px;font-weight:600;color:#a9b8d4">P</span>
+<span style="display:block;flex:1;min-width:0"><span style="display:block;font-size:13px;line-height:18px;font-weight:500;color:#1e293b">Premium Miniket Rice 5kg</span><span style="display:block;font-size:12px;color:#64748b">Sack · 5kg · ৳780.00</span></span>
+<span style="display:flex;align-items:center;gap:2px;flex:none;border:1px solid #e2e8f0;border-radius:8px;padding:2px">
+<button aria-label="Decrease quantity" style="width:30px;height:30px;display:grid;place-items:center;border:none;border-radius:6px;background:none;font-family:inherit;font-size:15px;color:#475569;cursor:pointer" style-hover="background:#f1f5f9">−</button>
+<span style="min-width:26px;text-align:center;font-size:14px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">2</span>
+<button aria-label="Increase quantity" style="width:30px;height:30px;display:grid;place-items:center;border:none;border-radius:6px;background:none;font-family:inherit;font-size:15px;color:#475569;cursor:pointer" style-hover="background:#f1f5f9">+</button>
+</span>
+<span style="width:82px;flex:none;text-align:right;font-size:14px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">৳1,560.00</span>
+<button aria-label="Remove line" style="width:30px;height:30px;flex:none;display:grid;place-items:center;border:none;border-radius:8px;background:none;color:#64748b;cursor:pointer" style-hover="background:rgba(255,87,36,.12);color:#c2380f"><i data-lucide="x" width="16" height="16"></i></button>
+</div>
+<div style="flex:none;display:flex;align-items:center;gap:10px;padding:6px 10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff" style-hover="border-color:#99acd0;background:#f8fafc">
+<span style="display:grid;place-items:center;width:36px;height:36px;flex:none;border-radius:8px;background:#eef2f7;font-size:14px;font-weight:600;color:#a9b8d4">D</span>
+<span style="display:block;flex:1;min-width:0"><span style="display:block;font-size:13px;line-height:18px;font-weight:500;color:#1e293b">Daily Care Shampoo 340ml</span><span style="display:block;font-size:12px;color:#64748b">Anti-dandruff · ৳420.00</span></span>
+<span style="display:flex;align-items:center;gap:2px;flex:none;border:1px solid #e2e8f0;border-radius:8px;padding:2px">
+<button aria-label="Decrease quantity" style="width:30px;height:30px;display:grid;place-items:center;border:none;border-radius:6px;background:none;font-family:inherit;font-size:15px;color:#475569;cursor:pointer" style-hover="background:#f1f5f9">−</button>
+<span style="min-width:26px;text-align:center;font-size:14px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">1</span>
+<button aria-label="Increase quantity" style="width:30px;height:30px;display:grid;place-items:center;border:none;border-radius:6px;background:none;font-family:inherit;font-size:15px;color:#475569;cursor:pointer" style-hover="background:#f1f5f9">+</button>
+</span>
+<span style="width:82px;flex:none;text-align:right;font-size:14px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">৳420.00</span>
+<button aria-label="Remove line" style="width:30px;height:30px;flex:none;display:grid;place-items:center;border:none;border-radius:8px;background:none;color:#64748b;cursor:pointer" style-hover="background:rgba(255,87,36,.12);color:#c2380f"><i data-lucide="x" width="16" height="16"></i></button>
+</div>
+<div style="flex:none;display:flex;align-items:center;gap:10px;padding:6px 10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff" style-hover="border-color:#99acd0;background:#f8fafc">
+<span style="display:grid;place-items:center;width:36px;height:36px;flex:none;border-radius:8px;background:#eef2f7;font-size:14px;font-weight:600;color:#a9b8d4">C</span>
+<span style="display:block;flex:1;min-width:0"><span style="display:block;font-size:13px;line-height:18px;font-weight:500;color:#1e293b">Chickpeas Boot Dal 1kg</span><span style="display:block;font-size:12px;color:#64748b">Loose · 1kg · ৳165.00</span></span>
+<span style="display:flex;align-items:center;gap:2px;flex:none;border:1px solid #e2e8f0;border-radius:8px;padding:2px">
+<button aria-label="Decrease quantity" style="width:30px;height:30px;display:grid;place-items:center;border:none;border-radius:6px;background:none;font-family:inherit;font-size:15px;color:#475569;cursor:pointer" style-hover="background:#f1f5f9">−</button>
+<span style="min-width:26px;text-align:center;font-size:14px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">2</span>
+<button aria-label="Increase quantity" style="width:30px;height:30px;display:grid;place-items:center;border:none;border-radius:6px;background:none;font-family:inherit;font-size:15px;color:#475569;cursor:pointer" style-hover="background:#f1f5f9">+</button>
+</span>
+<span style="width:82px;flex:none;text-align:right;font-size:14px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">৳330.00</span>
+<button aria-label="Remove line" style="width:30px;height:30px;flex:none;display:grid;place-items:center;border:none;border-radius:8px;background:none;color:#64748b;cursor:pointer" style-hover="background:rgba(255,87,36,.12);color:#c2380f"><i data-lucide="x" width="16" height="16"></i></button>
+</div>
+<div style="flex:none;display:flex;align-items:center;gap:10px;padding:6px 10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff" style-hover="border-color:#99acd0;background:#f8fafc">
+<span style="display:grid;place-items:center;width:36px;height:36px;flex:none;border-radius:8px;background:#eef2f7;font-size:14px;font-weight:600;color:#a9b8d4">S</span>
+<span style="display:block;flex:1;min-width:0"><span style="display:block;font-size:13px;line-height:18px;font-weight:500;color:#1e293b">Steel Water Bottle 750ml</span><span style="display:block;font-size:12px;color:#64748b">Brushed steel · ৳650.00</span></span>
+<span style="display:flex;align-items:center;gap:2px;flex:none;border:1px solid #e2e8f0;border-radius:8px;padding:2px">
+<button aria-label="Decrease quantity" style="width:30px;height:30px;display:grid;place-items:center;border:none;border-radius:6px;background:none;font-family:inherit;font-size:15px;color:#475569;cursor:pointer" style-hover="background:#f1f5f9">−</button>
+<span style="min-width:26px;text-align:center;font-size:14px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">1</span>
+<button aria-label="Increase quantity" style="width:30px;height:30px;display:grid;place-items:center;border:none;border-radius:6px;background:none;font-family:inherit;font-size:15px;color:#475569;cursor:pointer" style-hover="background:#f1f5f9">+</button>
+</span>
+<span style="width:82px;flex:none;text-align:right;font-size:14px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">৳650.00</span>
+<button aria-label="Remove line" style="width:30px;height:30px;flex:none;display:grid;place-items:center;border:none;border-radius:8px;background:none;color:#64748b;cursor:pointer" style-hover="background:rgba(255,87,36,.12);color:#c2380f"><i data-lucide="x" width="16" height="16"></i></button>
+</div>
+<div style="flex:none;display:flex;align-items:center;gap:10px;padding:6px 10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff" style-hover="border-color:#99acd0;background:#f8fafc">
+<span style="display:grid;place-items:center;width:36px;height:36px;flex:none;border-radius:8px;background:#eef2f7;font-size:14px;font-weight:600;color:#a9b8d4">A</span>
+<span style="display:block;flex:1;min-width:0"><span style="display:block;font-size:13px;line-height:18px;font-weight:500;color:#1e293b">Atta Wheat Flour 2kg</span><span style="display:block;font-size:12px;color:#64748b">Pack · 2kg · ৳150.00</span></span>
+<span style="display:flex;align-items:center;gap:2px;flex:none;border:1px solid #e2e8f0;border-radius:8px;padding:2px">
+<button aria-label="Decrease quantity" style="width:30px;height:30px;display:grid;place-items:center;border:none;border-radius:6px;background:none;font-family:inherit;font-size:15px;color:#475569;cursor:pointer" style-hover="background:#f1f5f9">−</button>
+<span style="min-width:26px;text-align:center;font-size:14px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">1</span>
+<button aria-label="Increase quantity" style="width:30px;height:30px;display:grid;place-items:center;border:none;border-radius:6px;background:none;font-family:inherit;font-size:15px;color:#475569;cursor:pointer" style-hover="background:#f1f5f9">+</button>
+</span>
+<span style="width:82px;flex:none;text-align:right;font-size:14px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">৳150.00</span>
+<button aria-label="Remove line" style="width:30px;height:30px;flex:none;display:grid;place-items:center;border:none;border-radius:8px;background:none;color:#64748b;cursor:pointer" style-hover="background:rgba(255,87,36,.12);color:#c2380f"><i data-lucide="x" width="16" height="16"></i></button>
+</div>
+</div>
+<span style="position:absolute;left:14px;right:14px;top:32px;height:14px;background:linear-gradient(#fff,rgba(255,255,255,0));pointer-events:none"></span>
+</div>
+<div style="flex:none;display:flex;align-items:center;gap:8px;padding:9px 14px;border-top:1px solid #e2e8f0">
+<span style="flex:none;font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#64748b;white-space:nowrap">Discount</span>
+<span style="flex:none;display:flex;height:38px;padding:3px;border-radius:8px;background:#e9eef5">
+<button style="width:40px;border:none;border-radius:6px;background:#fff;font-family:inherit;font-size:14px;font-weight:600;color:#003087;cursor:pointer;box-shadow:0 1px 2px rgba(48,46,56,.1)">৳</button>
+<button style="width:40px;border:none;border-radius:6px;background:none;font-family:inherit;font-size:14px;font-weight:500;color:#64748b;cursor:pointer" style-hover="color:#1e293b">%</button>
+</span>
+<input value="100.00" aria-label="Discount amount" style="flex:1;min-width:0;height:38px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 11px;font-family:inherit;font-size:14px;font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums">
+<input placeholder="Coupon code" aria-label="Coupon code" style="width:118px;flex:none;height:38px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 11px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#1e293b">
+<button style="flex:none;height:38px;padding:0 14px;border:none;border-radius:8px;background:rgba(0,48,135,.1);font-family:inherit;font-size:13px;font-weight:500;letter-spacing:.025em;color:#003087;cursor:pointer;white-space:nowrap">Apply</button>
+</div>
+<div style="flex:none;position:relative;border-top:1px solid #e2e8f0;padding:10px 14px 12px;display:flex;flex-direction:column;gap:8px">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px">
+<span style="display:flex;align-items:center;justify-content:space-between;gap:8px;height:24px;padding:0 8px;border-radius:6px;background:#f8fafc" style-hover="background:#eef2f7"><span style="display:flex;align-items:center;gap:5px;min-width:0;font-size:12px;color:#475569;white-space:nowrap">Subtotal · 9 units<i data-lucide="info" width="12" height="12" style="color:#cbd5e1;flex:none"></i></span><span style="font-size:13px;font-weight:500;color:#1e293b;font-variant-numeric:tabular-nums;white-space:nowrap">৳5,590.00</span></span>
+<span style="display:flex;align-items:center;justify-content:space-between;gap:8px;height:24px;padding:0 8px;border-radius:6px;background:#f8fafc" style-hover="background:#eef2f7"><span style="display:flex;align-items:center;gap:5px;min-width:0;font-size:12px;color:#475569;white-space:nowrap">Promotion<i data-lucide="info" width="12" height="12" style="color:#cbd5e1;flex:none"></i></span><span style="font-size:13px;font-weight:500;color:#059669;font-variant-numeric:tabular-nums;white-space:nowrap">− ৳248.00</span></span>
+<span style="display:flex;align-items:center;justify-content:space-between;gap:8px;height:24px;padding:0 8px;border-radius:6px;background:#f8fafc" style-hover="background:#eef2f7"><span style="display:flex;align-items:center;gap:5px;min-width:0;font-size:12px;color:#475569;white-space:nowrap">Manual discount<i data-lucide="info" width="12" height="12" style="color:#cbd5e1;flex:none"></i></span><span style="font-size:13px;font-weight:500;color:#059669;font-variant-numeric:tabular-nums;white-space:nowrap">− ৳100.00</span></span>
+<span style="display:flex;align-items:center;justify-content:space-between;gap:8px;height:24px;padding:0 8px;border-radius:6px;background:#f8fafc" style-hover="background:#eef2f7"><span style="display:flex;align-items:center;gap:5px;min-width:0;font-size:12px;color:#475569;white-space:nowrap">Coupon<span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#1e293b">EIDSAVE10</span><i data-lucide="info" width="12" height="12" style="color:#cbd5e1;flex:none"></i></span><span style="font-size:13px;font-weight:500;color:#059669;font-variant-numeric:tabular-nums;white-space:nowrap">− ৳150.00</span></span>
+<span style="display:flex;align-items:center;justify-content:space-between;gap:8px;height:24px;padding:0 8px;border-radius:6px;background:#f8fafc" style-hover="background:#eef2f7"><span style="display:flex;align-items:center;gap:5px;min-width:0;font-size:12px;color:#475569;white-space:nowrap">Loyalty · 240 pts<i data-lucide="info" width="12" height="12" style="color:#cbd5e1;flex:none"></i></span><span style="font-size:13px;font-weight:500;color:#059669;font-variant-numeric:tabular-nums;white-space:nowrap">− ৳120.00</span></span>
+<span style="display:flex;align-items:center;justify-content:space-between;gap:8px;height:24px;padding:0 8px;border-radius:6px;background:rgba(0,48,135,.08);outline:1px solid rgba(0,48,135,.18)"><span style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:#1e293b;white-space:nowrap">Tax · 5% VAT<i data-lucide="info" width="12" height="12" style="color:#003087;flex:none"></i></span><span style="font-size:13px;font-weight:500;color:#1e293b;font-variant-numeric:tabular-nums">＋ ৳248.60</span>
+</span>
+<span style="grid-column:1/-1;display:flex;align-items:flex-start;gap:7px;padding:6px 9px;border-radius:6px;background:#f8fafc;font-size:12px;line-height:17px;color:#475569"><i data-lucide="info" width="13" height="13" style="color:#94a3b8;flex:none;margin-top:2px"></i>Tax: 5% VAT on ৳4,972.00 taxable — subtotal less every discount. Grocery lines are zero-rated.</span>
+</div>
+<div style="height:1px;background:#e2e8f0"></div>
+<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px">
+<span style="display:flex;flex-direction:column;gap:5px">
+<span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#475569">Payment taken<i data-lucide="info" width="12" height="12" style="color:#cbd5e1"></i><span style="font-weight:500;color:#1e293b;font-variant-numeric:tabular-nums">৳0.00</span></span>
+<span style="display:inline-flex;height:24px;align-items:center;gap:6px;border-radius:9999px;background:rgba(255,152,0,.14);padding:0 10px;font-size:12px;font-weight:500;color:#b36a00">Due <span style="font-weight:600;font-variant-numeric:tabular-nums">৳5,220.60</span></span>
+</span>
+<span style="display:flex;flex-direction:column;align-items:flex-end">
+<span style="font-size:12px;font-weight:500;letter-spacing:.025em;text-transform:uppercase;color:#64748b">Total due</span>
+<span style="font-size:32px;line-height:38px;font-weight:700;letter-spacing:-.025em;color:#0f172a;font-variant-numeric:tabular-nums">৳5,220.60</span>
+</span>
+</div>
+</div>
+<div style="flex:none;border-top:1px solid #e2e8f0;padding:10px 14px 12px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:18px">
+<span style="display:flex;align-items:center;gap:9px;font-size:13px;font-weight:500;color:#334155"><button role="switch" aria-checked="true" aria-label="Require full payment" style="position:relative;display:inline-flex;width:40px;height:22px;flex:none;border:none;border-radius:9999px;background:#003087;padding:0;cursor:pointer"><span style="position:absolute;left:20px;top:2px;width:18px;height:18px;border-radius:9999px;background:#fff"></span></button>Require full payment</span>
+<span style="display:flex;align-items:center;gap:9px;font-size:13px;font-weight:500;color:#334155"><button role="switch" aria-checked="true" aria-label="Print receipt" style="position:relative;display:inline-flex;width:40px;height:22px;flex:none;border:none;border-radius:9999px;background:#003087;padding:0;cursor:pointer"><span style="position:absolute;left:20px;top:2px;width:18px;height:18px;border-radius:9999px;background:#fff"></span></button>Print receipt</span>
+</div>
+<div style="display:flex;gap:8px">
+<button style="flex:1;height:40px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:none;border-radius:8px;background:#e9eef5;font-family:inherit;font-size:13px;font-weight:500;letter-spacing:.025em;color:#1e293b;cursor:pointer" style-hover="background:#e2e8f0"><i data-lucide="plus" width="16" height="16"></i>New sale</button>
+<button style="flex:1;height:40px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:none;border-radius:8px;background:#e9eef5;font-family:inherit;font-size:13px;font-weight:500;letter-spacing:.025em;color:#1e293b;cursor:pointer" style-hover="background:#e2e8f0"><i data-lucide="pause" width="16" height="16"></i>Hold sale</button>
+<button style="flex:1;height:40px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:none;border-radius:8px;background:none;font-family:inherit;font-size:13px;font-weight:500;letter-spacing:.025em;color:#c2380f;cursor:pointer" style-hover="background:rgba(255,87,36,.1)">Cancel sale</button>
+</div>
+<div style="display:flex;gap:8px">
+<button style="flex:1;height:48px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:8px;background:rgba(0,48,135,.1);font-family:inherit;font-size:15px;font-weight:500;letter-spacing:.025em;color:#003087;cursor:pointer;white-space:nowrap" style-hover="background:rgba(0,48,135,.2)">Take payment<span style="display:inline-flex;height:20px;align-items:center;border-radius:4px;background:#fff;padding:0 6px;font-size:11px;font-weight:600">Alt+P</span></button>
+<button style="flex:1.2;height:48px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:8px;background:#003087;font-family:inherit;font-size:15px;font-weight:500;letter-spacing:.025em;color:#fff;cursor:pointer;white-space:nowrap;box-shadow:0 3px 10px 0 rgba(0,48,135,.24)" style-hover="background:#002a77">Complete sale<span style="display:inline-flex;height:20px;align-items:center;border-radius:4px;background:rgba(255,255,255,.2);padding:0 6px;font-size:11px;font-weight:600">F4</span></button>
+</div>
+</div>
+</aside>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount() { this.paint(); }
+  componentDidUpdate() { this.paint(); }
+  paint() {
+    const go = () => { if (window.lucide && window.lucide.createIcons) window.lucide.createIcons({ attrs: { width: 20, height: 20, 'stroke-width': 1.75 } }); };
+    go(); setTimeout(go, 300); setTimeout(go, 900); setTimeout(go, 2500);
+  }
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

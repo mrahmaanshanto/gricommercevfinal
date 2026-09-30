@@ -1,0 +1,515 @@
+'use client';
+// Generated from design/templates/tracking-analytics/SetupGTM.dc.html by scripts/convert-design.mjs.
+// G3 · Google Tag Manager — Tracking & analytics — Google Tag Manager setup.
+// Edit freely: this file is now the source for the screen.
+
+import React from 'react';
+import __Link from 'next/link';
+import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+
+// ---- logic (from the design's <script type="text/x-dc">) ----
+
+function bdt(n) { var neg = n < 0; var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return (neg ? '−' : '') + '৳' + s; }
+var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
+function mkTabs(self, list, cur, key, counts) { return list.map(function (x) { var on = x.k === cur; var c = counts ? counts[x.k] : null; return { label: x.label, on: on, cls: on ? 'tab on' : 'tab', hasCount: c != null, count: c, countBg: on ? 'rgba(255,255,255,0.2)' : '#e9eef5', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
+function mkChips(self, list, cur, key) { return list.map(function (x) { var on = x.k === cur; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
+function pTabs(self, list, cur, key, counts) { return mkTabs(self, list, cur, key, counts).map(function (x) { x.pcls = x.on ? 'ptab on' : 'ptab'; return x; }); }
+function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
+function stepN(self, key, def, step, min, max) { var s = self.state || {}; var v = s[key] == null ? def : s[key]; return { v: v, dec: function () { var p = {}; p[key] = Math.max(min, +(v - step).toFixed(2)); self.setState(p); }, inc: function () { var p = {}; p[key] = Math.min(max, +(v + step).toFixed(2)); self.setState(p); } }; }
+function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
+function toast(self, m, bad) { clearTimeout(self.t); self.setState({ msg: m, bad: !!bad }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 2800); }
+function msgV(s) { return { hasMsg: !!s.msg, msg: s.msg || '', msgBg: s.bad ? '#fff4e0' : '#e7f8f1', msgFg: s.bad ? '#7a3b04' : '#065f46' }; }
+function segv(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#0b1733' : 'transparent', fg: on ? '#fff' : '#475569', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
+function lseg(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#fff' : 'transparent', fg: on ? '#0b1733' : '#64748b', sh: on ? '0 1px 2px rgba(15,23,42,.08), 0 1px 1px rgba(15,23,42,.04)' : 'none', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
+function ring(pctv, r) { var C = 2 * Math.PI * r; return { da: (C * pctv / 100).toFixed(1) + ' ' + C.toFixed(1) }; }
+function curve(pts) { if (!pts.length) return ''; var d = 'M' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1); for (var i = 0; i < pts.length - 1; i++) { var p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2; var c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6, c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6; d += ' C' + c1x.toFixed(1) + ' ' + c1y.toFixed(1) + ' ' + c2x.toFixed(1) + ' ' + c2y.toFixed(1) + ' ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1); } return d; }
+function pts(vals, w, h, max, min, padT, padB) { padT = padT || 2; padB = padB || 2; min = min == null ? 0 : min; max = max || Math.max.apply(null, vals) || 1; var n = vals.length; return vals.map(function (v, i) { return [n === 1 ? w / 2 : i * w / (n - 1), padT + (h - padT - padB) * (1 - (v - min) / (max - min || 1))]; }); }
+function sparkP(vals, w, h) { w = w || 160; h = h || 30; var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals); var p = pts(vals, w, h, mx + (mx - mn) * .1, mn - (mx - mn) * .15, 3, 2); var l = curve(p); return { line: l, area: l + ' L' + w + ' ' + h + ' L0 ' + h + ' Z' }; }
+function series(n, base, amp, seed, trend) { var out = []; for (var i = 0; i < n; i++) { var s = Math.sin((i + seed) * 1.7) * .5 + Math.sin((i * 3 + seed) * .9) * .3 + Math.cos(i * .45 + seed) * .2; out.push(Math.max(0, base * (1 + (trend || 0) * (i / n - .5)) + amp * s)); } return out; }
+var CFG = {"steps": ["Container ID", "Install snippet", "Data layer", "Preview & debug", "Publish version"], "start": 5, "initTested": true, "initLive": true, "fields": {"gtm": {"label": "Container ID", "def": "GTM-K7P2QXM", "re": "^GTM-[A-Z0-9]{6,8}$", "upper": 1, "step": 1, "ph": "GTM-XXXXXXX", "hint": "Shown at the top of the GTM workspace.", "bad": "Container IDs look like GTM- followed by 6 to 8 letters and numbers.", "ok": "Valid · container “gridshop.com.bd” found"}}, "sw": {}, "ev": [], "evCols": [], "done": ["f:gtm", "always", "always", "tested", "live"], "groups": {"s1": [1], "s2": [2], "s3": [3], "s4": [4], "s5": [5]}, "copies": {"head": "Head snippet copied.", "body": "Body snippet copied."}, "acts": {}, "facts": [{"l": "Workspace", "v": "Default"}, {"l": "Live version", "v": "14 · 22 Sep 2026"}, {"l": "Changes since", "v": "2 tags edited"}, {"l": "Tags load from", "v": "Store domain"}], "test": {"step": 4, "needs": ["gtm"], "ok": "Preview started. Tag Assistant opens the store with the debug panel attached.", "okNote": "Last preview · 11 tags fired, 0 errors", "hint": "Opens Tag Assistant on the store in a new tab.", "first": "Run a preview first."}, "liveBtn": "Publish version", "liveHead": "Live · container published", "liveMsg": "Version 15 published. Changes are live for every visitor."};
+
+function val(e) { return e && e.target ? e.target.value : e; }
+function nowDhaka() { return new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Dhaka' }); }
+class Component extends DCLogic {
+  componentWillUnmount() { clearTimeout(this.t); }
+  renderVals() {
+    var self = this, s = this.state || {}, C = CFG;
+    var step = s.step || C.start, F = s.F || {}, shown = s.shown || {}, tested = s.tested == null ? !!C.initTested : !!s.tested, live = s.live == null ? !!C.initLive : !!s.live;
+    var v = {}, ok = {};
+    Object.keys(C.fields).forEach(function (k) {
+      var d = C.fields[k], x = F[k] == null ? d.def : F[k]; ok[k] = new RegExp(d.re).test(x);
+      var sh = !!shown[k];
+      v['f_' + k] = { v: x, ok: ok[k], type: d.masked && !sh ? 'password' : 'text', shown: sh, aria: sh ? 'Hide' : 'Show',
+        border: ok[k] || !x ? '#cbd5e1' : '#e11d48', nc: ok[k] ? '#047857' : x ? '#b83210' : '#64748b',
+        note: ok[k] ? d.ok.replace('{last4}', x.slice(-4)).replace('{v}', x) : x ? d.bad : d.hint,
+        toggle: function () { var n = assign({}, shown); n[k] = !sh; self.setState({ shown: n }); },
+        onC: function (e) { var t = String(val(e) || ''); if (d.upper) t = t.toUpperCase(); if (d.digits) t = t.replace(/\D/g, ''); t = t.trim(); var n = assign({}, F); n[k] = t; var p = { F: n }; if (d.step) p.step = d.step; self.setState(p); } };
+      v['show_' + k] = ok[k] ? x : d.ph;
+    });
+    var sw = {};
+    Object.keys(C.sw || {}).forEach(function (k) { var o = mkSw(self, 'sw_' + k, C.sw[k]); sw[k] = o.on; v['sw_' + k] = o; });
+    var em = s.em || {};
+    (C.ev || []).forEach(function (r) { if (!em[r[0]]) em[r[0]] = r[r.length - 1].slice(); });
+    v.evs = (C.ev || []).map(function (r) { var m = em[r[0]], o = { n: r[0] };
+      for (var i = 1; i < r.length - 1; i++) o['c' + (i - 1)] = r[i];
+      m.forEach(function (on, ix) { o['t' + ix] = { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var n = assign({}, em); var c = m.slice(); c[ix] = !c[ix]; n[r[0]] = c; self.setState({ em: n, step: C.evStep || step }); } }; });
+      return o; });
+    var colOn = function (ix) { return (C.ev || []).filter(function (r) { return em[r[0]][ix]; }).length; };
+    v.evSummary = (C.evCols || []).map(function (c, ix) { return colOn(ix) + ' ' + c; }).join(' · ');
+    var done = {}, nDone = 0;
+    C.done.forEach(function (d, i) { var n = i + 1, r = 0;
+      if (d === 'always') r = 1; else if (d === 'tested') r = tested; else if (d === 'live') r = live; else if (d === 'past') r = step > n || tested;
+      else if (d.indexOf('f:') === 0) r = d.slice(2).split(',').every(function (k) { return ok[k]; });
+      else if (d.indexOf('sw:') === 0) r = d.slice(3).split(',').some(function (k) { return sw[k]; });
+      done[n] = !!r; if (r) nDone++; });
+    var N = C.steps.length;
+    v.headline = live ? C.liveHead : (N - nDone) + ' of ' + N + ' steps left';
+    v.progLabel = nDone + ' of ' + N + ' steps done'; v.progW = (nDone / N * 100) + '%';
+    v.steps = C.steps.map(function (t, i) { var n = i + 1, on = n === step, dn = done[n]; return { n: n, t: t, done: dn, todo: !dn, cur: on ? 'step' : 'false', line: i < N - 1, lc: dn ? '#10b981' : '#e2e8f0',
+      bg: dn ? '#e7f8f1' : on ? '#003087' : '#f1f4f9', fg: dn ? '#047857' : on ? '#fff' : '#64748b', sh: on ? '0 0 0 5px rgba(0,48,135,.12)' : 'none', tc: on ? '#003087' : '#334155', fw: on ? 600 : 500,
+      go: function () { self.setState({ step: n }); } }; });
+    for (var n = 1; n <= N; n++) { var c = done[n] ? ['#e7f8f1', '#047857'] : n === step ? ['#003087', '#fff'] : ['#f1f4f9', '#64748b']; v['nb' + n] = c[0]; v['nf' + n] = c[1]; }
+    Object.keys(C.groups).forEach(function (g) { var on = C.groups[g].indexOf(step) >= 0; v['bd_' + g] = on ? '#003087' : '#e7ebf2'; v['sh_' + g] = on ? '0 0 0 4px rgba(0,48,135,.08)' : '0 1px 2px rgba(15,23,42,.04)'; });
+    Object.keys(C.copies || {}).forEach(function (k) { v['copy_' + k] = function () { toast(self, C.copies[k]); }; });
+    Object.keys(C.acts || {}).forEach(function (k) { v[k] = function () { toast(self, C.acts[k]); }; });
+    if (C.score) { var sc = C.score, e = sc.base; Object.keys(sc.sw || {}).forEach(function (k) { if (sw[k]) e += sc.sw[k]; }); Object.keys(sc.f || {}).forEach(function (k) { if (ok[k]) e += sc.f[k]; }); if (sc.ev) e += colOn(sc.evCol || 0) * sc.ev;
+      e = Math.min(sc.max || 10, e); var pctv = e / (sc.max || 10) * 100; v.emq = sc.pct ? Math.round(pctv) + '%' : e.toFixed(1); v.emqDa = ring(pctv, 32).da; v.emqC = pctv >= 70 ? '#10b981' : pctv >= 60 ? '#f59e0b' : '#f43f5e'; v.emqNote = pctv >= 70 ? sc.good : sc.low; if (sc.need && !ok[sc.need]) { v.emq = '—'; v.emqDa = '0 999'; v.emqC = '#cbd5e1'; v.emqNote = sc.needNote; } }
+    v.facts = C.facts;
+    var tcode = s.tcode == null ? (C.test.def || '') : s.tcode;
+    v.tcode = tcode; v.onTc = function (e) { self.setState({ tcode: String(val(e) || '').toUpperCase().trim(), step: C.test.step }); };
+    v.sendTest = function () {
+      var need = (C.test.needs || []).filter(function (k) { return !ok[k]; });
+      if (need.length) { toast(self, C.fields[need[0]].label + ' needs a valid value before testing.', true); if (C.fields[need[0]].step) self.setState({ step: C.fields[need[0]].step }); return; }
+      if (C.test.re && !new RegExp(C.test.re).test(tcode)) { toast(self, C.test.bad, true); return; }
+      self.setState({ tested: true, step: C.test.step }); toast(self, C.test.ok.replace('{code}', tcode));
+    };
+    v.testC = tested ? '#047857' : '#64748b'; v.testNote = tested ? C.test.okNote : C.test.hint;
+    v.liveCls = live ? 'soft' : tested ? 'solid' : 'line'; v.liveLabel = live ? 'Live' : C.liveBtn || 'Go live';
+    v.liveNote = live ? 'Live since ' + nowDhaka() + ' Dhaka time.' : tested ? 'Ready to go live.' : 'Available after the test passes.';
+    v.goLive = function () { if (!tested) { toast(self, C.test.first, true); self.setState({ step: C.test.step }); return; } self.setState({ live: true, step: N }); toast(self, C.liveMsg); };
+    return assign(v, msgV(s));
+  }
+}
+
+// ---- styles (from the design's <helmet>) ----
+
+const CSS = `
+body{margin:0;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:#003087}a:hover{color:#002a77}
+.card{background:#ffffff;border-radius:12px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
+.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:8px;color:#475569;font-size:14px;font-weight:500;letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
+.nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
+.nav.on{background:rgba(0,48,135,.08);color:#003087}
+.navh{font-size:11px;line-height:16px;font-weight:600;letter-spacing:.08em;color:#64748b;padding:18px 12px 6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:8px;border:0;font:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
+.btn:hover{text-decoration:none}
+.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
+.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
+.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
+.line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
+.warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
+.big{height:52px;padding:0 24px;font-size:15px}
+.sm{height:36px;padding:0 12px;font-size:13px}
+.ib{width:40px;height:40px;border-radius:999px;border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
+.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font:inherit;font-size:14px;color:#1e293b;transition:border-color 200ms}
+.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
+.inp::placeholder{color:#64748b}
+.lbl{font-size:13px;line-height:18px;font-weight:500;color:#334155}
+.tab{height:40px;padding:0 14px;border-radius:999px;border:0;background:transparent;font:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
+.tab:hover{background:#f1f5f9;color:#0f172a}
+.tab.on{background:#003087;color:#fff}
+.chip{height:40px;padding:0 14px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:13px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
+.chip:hover{border-color:#94a3b8}
+.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
+.th{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:14px;line-height:20px;vertical-align:middle}
+.row{transition:background-color 200ms}.row:hover{background:#f8fafc}
+.badge{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.badge::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
+.b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
+.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
+.b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.02em}
+.fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
+@keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.flash{animation:gcFlash 900ms ease-out}
+@keyframes gcFlash{from{background:#e7f8f1}to{background:transparent}}
+.scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
+@keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
+
+.sw{position:relative;width:48px;height:28px;border-radius:999px;border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
+.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
+.sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
+.b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
+.t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
+.actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
+.bn{font-family:'Hind Siliguri','Poppins',sans-serif}
+.pulse{animation:gcPulse 1.6s ease-in-out infinite}
+@keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
+.psec{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#64748b}
+.num{font-variant-numeric:tabular-nums}
+.ai{height:30px;padding:0 10px;border-radius:8px;border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
+.ai:hover{border-color:#a78bfa;box-shadow:0 4px 12px -6px rgba(91,33,182,.5)}
+.ai:focus-visible{outline:3px solid rgba(124,58,237,.4);outline-offset:2px}
+.abtn{height:32px;padding:0 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:12.5px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.abtn:hover{background:#f1f5f9}
+.ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0}
+.ptab{position:relative;height:48px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:13.5px;font-weight:500;color:#64748b;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:600}
+.ptab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2.5px;border-radius:3px 3px 0 0;background:#003087}
+.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#eef2f6;color:#475569;font-size:11px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+.ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
+.thumb{width:44px;height:44px;flex-shrink:0;border-radius:10px;border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#003087}
+
+.tc{background:#fff;border:1px solid #e7ebf2;border-radius:18px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px -20px rgba(15,23,42,.18)}
+.ey{font-size:11px;line-height:14px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#64748b}
+.ey-d{color:rgba(203,216,238,.7)}
+.tn{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;letter-spacing:-.02em}
+.dl{display:inline-flex;align-items:center;gap:3px;height:22px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.hero{position:relative;overflow:hidden;border-radius:22px;background:#0b1733;color:#fff;padding:24px 26px}
+.hero::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:32px 32px;pointer-events:none}
+.hero>*{position:relative}
+.ht{border-radius:16px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.dseg{display:inline-flex;padding:3px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1)}
+.dseg button{height:32px;padding:0 14px;border:0;border-radius:999px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
+.lseg{display:inline-flex;padding:3px;border-radius:12px;background:#f1f4f9;border:1px solid #e7ebf2}
+.lseg button{height:32px;padding:0 13px;border:0;border-radius:9px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease,box-shadow 200ms ease}
+button:active,.btn:active,.abtn:active{transform:scale(.97)}
+.btn,.abtn{transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
+.st>*{animation:taUp 420ms cubic-bezier(.23,1,.32,1) both}
+.st>*:nth-child(2){animation-delay:40ms}.st>*:nth-child(3){animation-delay:80ms}.st>*:nth-child(4){animation-delay:120ms}.st>*:nth-child(5){animation-delay:160ms}.st>*:nth-child(6){animation-delay:200ms}.st>*:nth-child(7){animation-delay:240ms}.st>*:nth-child(8){animation-delay:280ms}
+@keyframes taUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.gr{transform-origin:left center;animation:taGrow 700ms cubic-bezier(.23,1,.32,1) both}
+@keyframes taGrow{from{transform:scaleX(.35);opacity:0}to{transform:none;opacity:1}}
+.draw{stroke-dasharray:1600;stroke-dashoffset:0;animation:taDraw 1100ms cubic-bezier(.77,0,.175,1) both}
+@keyframes taDraw{from{stroke-dashoffset:1600}to{stroke-dashoffset:0}}
+.fadein{animation:taFade 600ms ease both 200ms}@keyframes taFade{from{opacity:0}to{opacity:1}}
+.tt{position:relative}
+.tt .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px) scale(.97);transform-origin:bottom center;opacity:0;pointer-events:none;transition:opacity 125ms ease-out,transform 125ms ease-out;background:#0b1733;color:#fff;border-radius:10px;padding:8px 10px;font-size:12px;white-space:nowrap;box-shadow:0 10px 24px -8px rgba(15,23,42,.45);z-index:5}
+.col{position:relative;flex:1;height:100%;border-radius:6px;transition:background-color 150ms ease}
+.col .tip{bottom:auto;top:6px}
+.col .cl{position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(15,23,42,.18);opacity:0;transition:opacity 125ms ease}
+@media (hover:hover) and (pointer:fine){.tt:hover .tip,.col:hover .tip{opacity:1;transform:translate(-50%,0) scale(1)}.col:hover .cl{opacity:1}.row:hover{background:#f7f9fd}.tc.lift{transition:box-shadow 200ms ease,transform 200ms cubic-bezier(.23,1,.32,1)}.tc.lift:hover{box-shadow:0 1px 2px rgba(15,23,42,.05),0 18px 40px -20px rgba(15,23,42,.3)}}
+.tb{width:100%;border-collapse:separate;border-spacing:0}
+.tb th{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#64748b;text-align:left;padding:12px 16px;border-bottom:1px solid #eef1f6;background:#fbfcfe;white-space:nowrap}
+.tb td{padding:13px 16px;border-bottom:1px solid #f1f4f8;font-size:13.5px;vertical-align:middle}
+.tb tr:last-child td{border-bottom:0}
+.tb .r{text-align:right}
+@media (prefers-reduced-motion:reduce){.st>*,.gr,.draw,.fadein{animation:none}}
+
+.gm{width:52px;height:52px;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sp{display:flex;flex-direction:column;align-items:center;gap:8px;border:0;background:transparent;font:inherit;cursor:pointer;padding:4px;border-radius:10px;width:128px;flex-shrink:0}
+.sp:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
+.sn{width:34px;height:34px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;transition:background-color 200ms,color 200ms,box-shadow 200ms}
+.sec{transition:border-color 200ms,box-shadow 200ms}
+.secn{width:24px;height:24px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.code{margin:0;padding:14px 16px;border-radius:12px;background:#0b1733;color:#cbd8ee;font-size:12px;line-height:19px;white-space:pre;overflow-x:auto}
+.code .k{color:#93c5fd}.code .s{color:#86efac}.code .c{color:#64748b}
+.err{font-size:12.5px;color:#b83210}
+.pill{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:999px;background:#f1f4f9;font-size:12px;color:#334155}
+
+.chk{display:flex;align-items:center;gap:14px;padding:13px 16px;border-bottom:1px solid #f1f4f8}
+.chk:last-child{border-bottom:0}
+
+.pgc>*{flex-shrink:0}.tb th{white-space:normal}.stp2{flex-shrink:0}.pgc>.fill{flex-shrink:1;min-height:0}
+`;
+
+// ---- markup ----
+
+export default class SetupGTMScreen extends Component {
+  render() {
+    const v = this.renderVals() || {};
+    return (
+      <div className="dc-screen ds" data-screen="SetupGTM">
+        <style dangerouslySetInnerHTML={{ __html: CSS }} />
+        <div style={{ width: "1440px", height: "1750px", background: "#eef2f7", padding: "12px", display: "flex", gap: "12px", overflow: "hidden" }}>
+          <__Sidebar sticky="" active="ta-setup" />
+          <main style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "16px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <__Topbar crumb={"Tracking & analytics"} page="Tag Manager setup" placeholder="Search guides, events or tags" />
+            <div className="pgc" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <__Link href="/setup-guide" className="abtn" style={{ textDecoration: "none" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <path d="m15 18-6-6 6-6" />
+</svg>Setup guides</__Link>
+                <span style={{ fontSize: "12.5px", color: "#64748b" }}>Step 1 of 6 in the recommended order</span>
+              </div>
+              <section className="hero st" style={{ padding: "22px 26px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "18px" }}>
+                  <span className="gm" style={{ color: "#1a56db", fontWeight: "700", fontSize: "16px" }}>GTM</span>
+                  <div style={{ flexGrow: "1", minWidth: "0" }}>
+                    <div className="ey ey-d">G3 · Google Tag Manager</div>
+                    <h2 style={{ margin: "4px 0 0", fontSize: "24px", lineHeight: "30px", fontWeight: "700", letterSpacing: "-.025em" }}>{v.headline}</h2>
+                    <p style={{ margin: "4px 0 0", fontSize: "13.5px", lineHeight: "20px", color: "rgba(226,232,240,.78)" }}>One container for every tag. The store fills the data layer on each page, so tags need no custom code.</p>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px", width: "220px", flexShrink: "0" }}>
+                    <span style={{ fontSize: "12px", color: "rgba(203,216,238,.8)" }}>{v.progLabel}</span>
+                    <div style={{ width: "100%", height: "8px", borderRadius: "999px", background: "rgba(255,255,255,.12)", overflow: "hidden" }}>
+                      <div className="gr" style={__sx(`width: ${v.progW ?? ""}; height: 100%; background: #34d399; border-radius: 999px;`)} />
+                    </div>
+                    <span style={{ fontSize: "12px", color: "rgba(203,216,238,.65)" }}>About 10 minutes in total</span>
+                  </div>
+                </div>
+              </section>
+              {v.hasMsg ? (<>
+                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: 14px; font-weight: 500;`)}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="m9 12 2 2 4-4" />
+                  </svg>
+                  <span>{v.msg}</span>
+                </div>
+              </>) : null}
+              <nav className="tc" aria-label="Setup steps" style={{ padding: "16px 20px" }}>
+                <div style={{ display: "flex", alignItems: "flex-start" }}>
+                  {__list(v.steps).map((p, $index) => (<React.Fragment key={$index}>
+                      <button type="button" className="sp" onClick={p?.go} aria-current={p?.cur}>
+                        <span className="sn" style={__sx(`background: ${p?.bg ?? ""}; color: ${p?.fg ?? ""}; box-shadow: ${p?.sh ?? ""};`)}>
+                          {p?.done ? (<>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M20 6 9 17l-5-5" />
+                            </svg>
+                          </>) : null}
+                          {p?.todo ? (<>{p?.n}</>) : null}
+                        </span>
+                        <span style={__sx(`font-size: 12.5px; line-height: 16px; text-align: center; font-weight: ${p?.fw ?? ""}; color: ${p?.tc ?? ""};`)}>{p?.t}</span>
+                      </button>
+                      {p?.line ? (<>
+                        <div style={__sx(`flex-grow: 1; height: 2px; margin-top: 21px; border-radius: 2px; background: ${p?.lc ?? ""};`)} />
+                      </>) : null}
+                    </React.Fragment>))}
+                </div>
+              </nav>
+              <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 380px", gap: "16px", alignItems: "start" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
+                  <section className="tc sec" style={__sx(`padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; border-color: ${v.bd_s1 ?? ""}; box-shadow: ${v.sh_s1 ?? ""};`)}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                      <span style={{ display: "flex", gap: "4px" }}>
+                        <span className="secn" style={__sx(`background: ${v.nb1 ?? ""}; color: ${v.nf1 ?? ""};`)}>1</span>
+                      </span>
+                      <div style={{ flexGrow: "1", minWidth: "0" }}>
+                        <h2 style={{ margin: "0", fontSize: "15.5px", lineHeight: "22px", fontWeight: "600", color: "#0f172a" }}>Container ID</h2>
+                        <p style={{ margin: "2px 0 0", fontSize: "12.5px", lineHeight: "18px", color: "#64748b" }}>Create a Web container for the store domain, then paste its ID.</p>
+                      </div>
+                    </div>
+                    <div style={{ maxWidth: "420px" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px", minWidth: "0" }}>
+                        <label className="lbl" htmlFor="gtm">Container ID</label>
+                        <div style={{ position: "relative" }}>
+                          <input id="gtm" className="inp mono" type={v.f_gtm?.type} inputMode="text" autoComplete="off" placeholder="GTM-XXXXXXX" value={v.f_gtm?.v} onChange={v.f_gtm?.onC} style={__sx(`border-color: ${v.f_gtm?.border ?? ""}; `)} />
+                        </div>
+                        <span style={__sx(`font-size: 12.5px; color: ${v.f_gtm?.nc ?? ""};`)}>{v.f_gtm?.note}</span>
+                      </div>
+                    </div>
+                  </section>
+                  <section className="tc sec" style={__sx(`padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; border-color: ${v.bd_s2 ?? ""}; box-shadow: ${v.sh_s2 ?? ""};`)}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                      <span style={{ display: "flex", gap: "4px" }}>
+                        <span className="secn" style={__sx(`background: ${v.nb2 ?? ""}; color: ${v.nf2 ?? ""};`)}>2</span>
+                      </span>
+                      <div style={{ flexGrow: "1", minWidth: "0" }}>
+                        <h2 style={{ margin: "0", fontSize: "15.5px", lineHeight: "22px", fontWeight: "600", color: "#0f172a" }}>Install snippet</h2>
+                        <p style={{ margin: "2px 0 0", fontSize: "12.5px", lineHeight: "18px", color: "#64748b" }}>The store adds both parts automatically. Copy them only for a custom theme.</p>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <span className="lbl">{"In <head>, as high as possible"}</span>
+                      <div style={{ position: "relative" }}>
+                        <pre className="code mono" style={{ paddingRight: "80px" }}><span className="c">{"<!-- Google Tag Manager -->"}</span>{"\n<script>("}<span className="k">function</span>{"(w,d,s,l,i){w[l]=w[l]||[];\nw[l].push({"}<span className="s">'gtm.start'</span>{": "}<span className="k">new</span>{" Date().getTime(),event:"}<span className="s">'gtm.js'</span>{"});\n...})(window,document,"}<span className="s">'script'</span>{","}<span className="s">'dataLayer'</span>{","}<span className="s">'{v.show_gtm}'</span>{");</script>"}</pre>
+                        <button type="button" className="abtn" onClick={v.copy_head} style={{ position: "absolute", top: "10px", right: "10px", background: "rgba(255,255,255,.08)", borderColor: "rgba(255,255,255,.14)", color: "#fff" }}>Copy</button>
+                      </div>
+                      <span className="lbl">{"Right after <body>"}</span>
+                      <div style={{ position: "relative" }}>
+                        <pre className="code mono" style={{ paddingRight: "80px" }}>{"<noscript><iframe src="}<span className="s">{"\"https://www.googletagmanager.com/ns.html?id="}{v.show_gtm}{"\""}</span>{"\nheight="}<span className="s">{"\"0\""}</span>{" width="}<span className="s">{"\"0\""}</span>{" style="}<span className="s">{"\"display:none\""}</span>{"></iframe></noscript>"}</pre>
+                        <button type="button" className="abtn" onClick={v.copy_body} style={{ position: "absolute", top: "10px", right: "10px", background: "rgba(255,255,255,.08)", borderColor: "rgba(255,255,255,.14)", color: "#fff" }}>Copy</button>
+                      </div>
+                    </div>
+                  </section>
+                  <section className="tc sec" style={__sx(`padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; border-color: ${v.bd_s3 ?? ""}; box-shadow: ${v.sh_s3 ?? ""};`)}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                      <span style={{ display: "flex", gap: "4px" }}>
+                        <span className="secn" style={__sx(`background: ${v.nb3 ?? ""}; color: ${v.nf3 ?? ""};`)}>3</span>
+                      </span>
+                      <div style={{ flexGrow: "1", minWidth: "0" }}>
+                        <h2 style={{ margin: "0", fontSize: "15.5px", lineHeight: "22px", fontWeight: "600", color: "#0f172a" }}>Data layer events</h2>
+                        <p style={{ margin: "2px 0 0", fontSize: "12.5px", lineHeight: "18px", color: "#64748b" }}>Pushed on every store page. Use these names as custom event triggers.</p>
+                      </div>
+                    </div>
+                    <div style={{ border: "1px solid #eef1f6", borderRadius: "12px", overflow: "hidden" }}>
+                      <table className="tb">
+                        <thead>
+                          <tr>
+                            <th>Event</th>
+                            <th>Pushed when</th>
+                            <th>Key fields</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="row">
+                            <td>
+                              <span className="mono" style={{ fontWeight: "600", color: "#0f172a" }}>page_view</span>
+                            </td>
+                            <td style={{ color: "#475569" }}>Every page</td>
+                            <td style={{ color: "#475569" }}>page_type, language</td>
+                          </tr>
+                          <tr className="row">
+                            <td>
+                              <span className="mono" style={{ fontWeight: "600", color: "#0f172a" }}>view_item</span>
+                            </td>
+                            <td style={{ color: "#475569" }}>Product page</td>
+                            <td style={{ color: "#475569" }}>ecommerce.items[]</td>
+                          </tr>
+                          <tr className="row">
+                            <td>
+                              <span className="mono" style={{ fontWeight: "600", color: "#0f172a" }}>add_to_cart</span>
+                            </td>
+                            <td style={{ color: "#475569" }}>Add to cart or Buy now</td>
+                            <td style={{ color: "#475569" }}>ecommerce.items[], value</td>
+                          </tr>
+                          <tr className="row">
+                            <td>
+                              <span className="mono" style={{ fontWeight: "600", color: "#0f172a" }}>begin_checkout</span>
+                            </td>
+                            <td style={{ color: "#475569" }}>Checkout page</td>
+                            <td style={{ color: "#475569" }}>ecommerce.value, currency</td>
+                          </tr>
+                          <tr className="row">
+                            <td>
+                              <span className="mono" style={{ fontWeight: "600", color: "#0f172a" }}>add_shipping_info</span>
+                            </td>
+                            <td style={{ color: "#475569" }}>Phone and district entered</td>
+                            <td style={{ color: "#475569" }}>shipping_tier (Inside / Outside Dhaka)</td>
+                          </tr>
+                          <tr className="row">
+                            <td>
+                              <span className="mono" style={{ fontWeight: "600", color: "#0f172a" }}>purchase</span>
+                            </td>
+                            <td style={{ color: "#475569" }}>Order confirmed by phone</td>
+                            <td style={{ color: "#475569" }}>transaction_id, value, currency: BDT</td>
+                          </tr>
+                          <tr className="row">
+                            <td>
+                              <span className="mono" style={{ fontWeight: "600", color: "#0f172a" }}>refund</span>
+                            </td>
+                            <td style={{ color: "#475569" }}>Cancelled or returned</td>
+                            <td style={{ color: "#475569" }}>transaction_id, value</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px", fontSize: "12.5px", color: "#64748b" }}>
+                      <span className="pill">currency: BDT</span>
+                      <span className="pill">Time zone: Asia/Dhaka</span>
+                    </div>
+                  </section>
+                </div>
+                <aside style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
+                  <section className="tc" style={{ overflow: "hidden" }}>
+                    <div style={{ padding: "16px 20px 10px" }}>
+                      <h2 style={{ margin: "0", fontSize: "14.5px", fontWeight: "600", color: "#0f172a" }}>Built-in tags GridCommerce creates for you</h2>
+                      <p style={{ margin: "4px 0 0", fontSize: "12.5px", lineHeight: "18px", color: "#64748b" }}>Added to the container on connect. Paused tags turn on when their setup guide is finished.</p>
+                    </div>
+                    <div className="chk">
+                      <div style={{ flexGrow: "1" }}>
+                        <div style={{ fontSize: "13.5px", fontWeight: "600", color: "#0f172a" }}>GA4 configuration</div>
+                        <div style={{ fontSize: "12px", color: "#64748b" }}>Trigger: All pages</div>
+                      </div>
+                      <span className="badge b-received">Live</span>
+                    </div>
+                    <div className="chk">
+                      <div style={{ flexGrow: "1" }}>
+                        <div style={{ fontSize: "13.5px", fontWeight: "600", color: "#0f172a" }}>GA4 ecommerce events</div>
+                        <div style={{ fontSize: "12px", color: "#64748b" }}>Trigger: Data layer events</div>
+                      </div>
+                      <span className="badge b-received">Live</span>
+                    </div>
+                    <div className="chk">
+                      <div style={{ flexGrow: "1" }}>
+                        <div style={{ fontSize: "13.5px", fontWeight: "600", color: "#0f172a" }}>Meta Pixel</div>
+                        <div style={{ fontSize: "12px", color: "#64748b" }}>Trigger: Browsing events</div>
+                      </div>
+                      <span className="badge b-received">Live</span>
+                    </div>
+                    <div className="chk">
+                      <div style={{ flexGrow: "1" }}>
+                        <div style={{ fontSize: "13.5px", fontWeight: "600", color: "#0f172a" }}>TikTok Pixel</div>
+                        <div style={{ fontSize: "12px", color: "#64748b" }}>Trigger: Browsing events</div>
+                      </div>
+                      <span className="badge b-draft">Paused</span>
+                    </div>
+                    <div className="chk">
+                      <div style={{ flexGrow: "1" }}>
+                        <div style={{ fontSize: "13.5px", fontWeight: "600", color: "#0f172a" }}>Google Ads conversion</div>
+                        <div style={{ fontSize: "12px", color: "#64748b" }}>Trigger: purchase</div>
+                      </div>
+                      <span className="badge b-draft">Paused</span>
+                    </div>
+                    <div className="chk">
+                      <div style={{ flexGrow: "1" }}>
+                        <div style={{ fontSize: "13.5px", fontWeight: "600", color: "#0f172a" }}>Conversion linker</div>
+                        <div style={{ fontSize: "12px", color: "#64748b" }}>Trigger: All pages</div>
+                      </div>
+                      <span className="badge b-received">Live</span>
+                    </div>
+                    <div className="chk">
+                      <div style={{ flexGrow: "1" }}>
+                        <div style={{ fontSize: "13.5px", fontWeight: "600", color: "#0f172a" }}>Microsoft Clarity</div>
+                        <div style={{ fontSize: "12px", color: "#64748b" }}>Trigger: All pages</div>
+                      </div>
+                      <span className="badge b-draft">Paused</span>
+                    </div>
+                  </section>
+                  <section className="tc" style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <h2 style={{ margin: "0", fontSize: "14.5px", fontWeight: "600", color: "#0f172a" }}>Container</h2>
+                    <div style={{ display: "flex", flexDirection: "column", borderTop: "1px solid #f1f4f8" }}>
+                      {__list(v.facts).map((f, $index) => (<React.Fragment key={$index}>
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", padding: "9px 0", borderBottom: "1px solid #f1f4f8", fontSize: "13px" }}>
+                            <span style={{ color: "#64748b" }}>{f?.l}</span>
+                            <span style={{ color: "#0f172a", fontWeight: "600", textAlign: "right" }}>{f?.v}</span>
+                          </div>
+                        </React.Fragment>))}
+                    </div>
+                  </section>
+                  <section className="tc sec" style={__sx(`padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; border-color: ${v.bd_s4 ?? ""}; box-shadow: ${v.sh_s4 ?? ""};`)}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                      <span style={{ display: "flex", gap: "4px" }}>
+                        <span className="secn" style={__sx(`background: ${v.nb4 ?? ""}; color: ${v.nf4 ?? ""};`)}>4</span>
+                      </span>
+                      <div style={{ flexGrow: "1", minWidth: "0" }}>
+                        <h2 style={{ margin: "0", fontSize: "15.5px", lineHeight: "22px", fontWeight: "600", color: "#0f172a" }}>Preview and debug</h2>
+                        <p style={{ margin: "2px 0 0", fontSize: "12.5px", lineHeight: "18px", color: "#64748b" }}>Check that tags fire on the live store before publishing.</p>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <button type="button" className="btn solid sm" onClick={v.sendTest}>Start preview</button>
+                      <span style={__sx(`font-size: 12.5px; color: ${v.testC ?? ""};`)}>{v.testNote}</span>
+                    </div>
+                  </section>
+                  <section className="tc sec" style={__sx(`padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; border-color: ${v.bd_s5 ?? ""}; box-shadow: ${v.sh_s5 ?? ""};`)}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                      <span style={{ display: "flex", gap: "4px" }}>
+                        <span className="secn" style={__sx(`background: ${v.nb5 ?? ""}; color: ${v.nf5 ?? ""};`)}>5</span>
+                      </span>
+                      <div style={{ flexGrow: "1", minWidth: "0" }}>
+                        <h2 style={{ margin: "0", fontSize: "15.5px", lineHeight: "22px", fontWeight: "600", color: "#0f172a" }}>Publish version</h2>
+                        <p style={{ margin: "2px 0 0", fontSize: "12.5px", lineHeight: "18px", color: "#64748b" }}>Publishing makes the current workspace live for all visitors.</p>
+                      </div>
+                    </div>
+                    <button type="button" className={`btn ${v.liveCls ?? ""}`} onClick={v.goLive} style={{ alignSelf: "flex-start" }}>{v.liveLabel}</button>
+                    <span style={{ fontSize: "12.5px", color: "#64748b" }}>{v.liveNote}</span>
+                  </section>
+                </aside>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+}

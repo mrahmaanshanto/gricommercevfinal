@@ -1,0 +1,166 @@
+/* GridCommerce colour system. Brand core is taken from the brand board:
+   #003087 navy · #012169 deep navy · #009CDE sky · #FFFFFF. */
+:root{
+  /* --- brand core --- */
+  --brand-navy:#003087;
+  --brand-navy-deep:#012169;
+  --brand-sky:#009cde;
+  --brand-white:#ffffff;
+
+  /* --- primary scale (from #003087) --- */
+  --primary-50:#f2f5f9;
+  --primary-100:#e0e6f1;
+  --primary-200:#bfcbe1;
+  --primary-300:#99accf;
+  --primary-400:#6683b7;
+  --primary-500:#2e559d;
+  --primary-600:#003087;
+  --primary-700:#002a77;
+  --primary-800:#002361;
+  --primary-900:#001a4a;
+  --primary:#003087;
+  --primary-focus:#002a77;
+
+  /* --- accent scale (from #009CDE) --- */
+  --accent-50:#f2fafd;
+  --accent-100:#e0f3fb;
+  --accent-200:#bfe6f7;
+  --accent-300:#99d7f2;
+  --accent-400:#66c4eb;
+  --accent-500:#2eaee4;
+  --accent-600:#009cde;
+  --accent-700:#0089c3;
+  --accent-800:#0070a0;
+  --accent-900:#00567a;
+  --accent:#009cde;
+  --accent-light:#66c4eb;
+  --accent-focus:#0089c3;
+  /* accessible sky for TEXT on white — #009cde is only 3.08:1 */
+  --accent-text:#0089c3;
+
+  /* --- reserved promo colour: campaigns only --- */
+  --secondary-light:#ff57d8;
+  --secondary:#f000b9;
+  --secondary-focus:#bd0090;
+
+  /* --- semantic status --- */
+  --success:#10b981; --success-focus:#059669;
+  --warning:#ff9800; --warning-focus:#e68200;
+  --error:#ff5724;   --error-focus:#f03000;
+  --info:#0ea5e9;    --info-focus:#0284c7;
+
+  /* --- neutrals: light mode (slate + one custom step) --- */
+  --slate-50:#f8fafc;
+  --slate-100:#f1f5f9;
+  --slate-150:#e9eef5;
+  --slate-200:#e2e8f0;
+  --slate-300:#cbd5e1;
+  --slate-400:#94a3b8;
+  --slate-500:#64748b;
+  --slate-600:#475569;
+  --slate-700:#334155;
+  --slate-800:#1e293b;
+  --slate-900:#0f172a;
+
+  /* --- neutrals: dark mode navy ramp (blue-grey, never pure grey) --- */
+  --navy-50:#e7e9ef;
+  --navy-100:#c2c9d6;
+  --navy-200:#a3adc2;
+  --navy-300:#697a9b;
+  --navy-400:#5c6b8a;
+  --navy-450:#465675;
+  --navy-500:#384766;
+  --navy-600:#313e59;
+  --navy-700:#26334d;
+  --navy-750:#222e45;
+  --navy-800:#202b40;
+  --navy-900:#192132;
+  --navy-950:#131a27;
+
+  /* --- semantic aliases: use these in product code --- */
+  --text-heading:var(--slate-800);
+  --text-body:var(--slate-600);
+  --text-muted:var(--slate-400);
+  --text-inverse:#ffffff;
+  --text-link:var(--primary);
+  --text-link-hover:var(--primary-focus);
+
+  --surface-desk:#eef2f7;      /* the ground the shell cards float on */
+  --surface-page:var(--slate-50);
+  --surface-card:#ffffff;
+  --surface-subtle:var(--slate-100);
+  --surface-quiet:var(--slate-150);
+  --surface-header:rgba(255,255,255,.8);
+  --surface-rail:#ffffff;
+  --surface-panel:#ffffff;
+  --surface-table-head:var(--slate-200);
+
+  --border-subtle:var(--slate-200);
+  --border-strong:var(--slate-300);
+  --border-field:var(--slate-300);
+  --border-field-hover:var(--slate-400);
+  --border-field-focus:var(--primary);
+
+  --focus-ring:rgba(0,48,135,.5);
+
+  /* soft tinted fills — the house treatment for status and secondary actions */
+  --fill-primary-soft:rgba(0,48,135,.1);
+  --fill-primary-soft-hover:rgba(0,48,135,.2);
+  --fill-accent-soft:rgba(0,156,222,.1);
+  --fill-success-soft:rgba(16,185,129,.1);
+  --fill-warning-soft:rgba(255,152,0,.1);
+  --fill-error-soft:rgba(255,87,36,.1);
+  --fill-info-soft:rgba(14,165,233,.1);
+  --fill-secondary-soft:rgba(240,0,185,.1);
+
+  /* data-visualisation series order — keep this sequence */
+  --chart-1:#003087;
+  --chart-2:#009cde;
+  --chart-3:#10b981;
+  --chart-4:#ff9800;
+  --chart-5:#f000b9;
+  --chart-6:#697a9b;
+  --chart-grid:var(--slate-200);
+}
+
+/* Dark mode: swap primary → accent, and step surfaces by colour, not shadow. */
+html.dark{
+  color-scheme:dark;
+  --primary:var(--accent);
+  --primary-focus:var(--accent-focus);
+
+  --text-heading:var(--navy-50);
+  --text-body:var(--navy-200);
+  --text-muted:var(--navy-300);
+  --text-link:var(--accent-light);
+  --text-link-hover:var(--accent);
+
+  --surface-desk:var(--navy-950);
+  --surface-page:var(--navy-900);
+  --surface-card:var(--navy-700);
+  --surface-subtle:var(--navy-600);
+  --surface-quiet:var(--navy-800);
+  --surface-header:rgba(34,46,69,.8);
+  --surface-rail:var(--navy-800);
+  --surface-panel:var(--navy-750);
+  --surface-table-head:var(--navy-800);
+
+  --border-subtle:var(--navy-500);
+  --border-strong:var(--navy-450);
+  --border-field:var(--navy-450);
+  --border-field-hover:var(--navy-400);
+  --border-field-focus:var(--accent);
+
+  --focus-ring:rgba(0,156,222,.5);
+
+  /* soft fills gain presence on dark: /10 → /15 */
+  --fill-primary-soft:rgba(102,196,235,.1);
+  --fill-primary-soft-hover:rgba(102,196,235,.2);
+  --fill-accent-soft:rgba(0,156,222,.15);
+  --fill-success-soft:rgba(16,185,129,.15);
+  --fill-warning-soft:rgba(255,152,0,.15);
+  --fill-error-soft:rgba(255,87,36,.15);
+  --fill-info-soft:rgba(14,165,233,.15);
+  --fill-secondary-soft:rgba(240,0,185,.15);
+  --chart-grid:var(--navy-500);
+}

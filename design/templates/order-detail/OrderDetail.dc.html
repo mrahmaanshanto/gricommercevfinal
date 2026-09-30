@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Order detail" description="Single order workspace — fulfilment stepper, line items, payment summary, courier performance and action forms, customer/verification/notes rail, tracking and activity log." -->
+<helmet><script src="./ds-base.js"></script><script src="../_shell/gc-sidebar.js"></script><script src="../_shell/gc-topbar.js"></script><script src="/_blob/1840c8d9327e1d872bcd8bc9a4590a5a"></script><style>body{margin:0;background:#eef2f7;font-family:Poppins,ui-sans-serif,system-ui,sans-serif;color:#475569}a{color:#003087;text-decoration:none}a:hover{color:#002a77}input,select,textarea{font-family:inherit}</style></helmet>
+<div style="display:flex;gap:12px;padding:12px;height:100vh;box-sizing:border-box;overflow:hidden;background:#eef2f7">
+<gc-sidebar sticky="" active="orders-delivered" base="../"></gc-sidebar>
+<div style="flex:1;min-width:0;border:1px solid #e2e8f0;border-radius:16px;background:#f8fafc;overflow-y:auto">
+<gc-topbar crumb="Orders / All orders" page="Order details" base="../"></gc-topbar>
+<header style="flex:none;position:sticky;top:64px;z-index:90;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 24px;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);border-bottom:1px solid #e2e8f0">
+<a href="../merchant-orders/MerchantOrders.dc.html" style="display:inline-flex;height:34px;align-items:center;gap:8px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 12px;font-size:13px;font-weight:500;color:#475569" style-hover="border-color:#94a3b8"><i data-lucide="arrow-left" width="16" height="16"></i>All orders</a>
+<h1 style="margin:0;font-size:20px;font-weight:700;letter-spacing:-.025em;color:#0f172a">Order #136779</h1>
+<span style="display:inline-flex;height:24px;align-items:center;border-radius:9999px;background:rgba(255,152,0,.12);padding:0 10px;font-size:12px;font-weight:600;color:#9a5b00">Pending</span>
+<span style="display:inline-flex;height:24px;align-items:center;border-radius:9999px;background:rgba(255,87,36,.12);padding:0 10px;font-size:12px;font-weight:600;color:#b8330f">Unpaid</span>
+<span style="font-size:12px;color:#94a3b8">Placed 7 Sep 2026, 8:48 PM · Online store</span>
+<div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+<button style="display:inline-flex;height:34px;align-items:center;gap:8px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 12px;font-size:13px;font-weight:500;color:#475569;cursor:pointer" style-hover="border-color:#94a3b8"><i data-lucide="phone-call" width="16" height="16"></i>Auto call</button>
+<button style="width:34px;height:34px;display:grid;place-items:center;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#475569;cursor:pointer" style-hover="border-color:#94a3b8" aria-label="Print invoice"><i data-lucide="printer" width="16" height="16"></i></button>
+<button style="display:inline-flex;height:34px;align-items:center;gap:8px;border:none;border-radius:8px;background:#003087;padding:0 14px;font-size:13px;font-weight:600;color:#fff;cursor:pointer" style-hover="background:#002a77"><i data-lucide="receipt" width="16" height="16"></i>Print POS</button>
+</div>
+</header>
+<main style="padding:28px 32px 40px;display:flex;flex-wrap:wrap;align-items:flex-start;gap:26px;max-width:1440px;margin:0 auto">
+<div style="display:grid;gap:16px;min-width:0;flex:3 1 520px">
+<section style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:18px 20px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px">
+<div><h2 style="margin:0;font-size:15px;font-weight:600;letter-spacing:.025em;color:#334155">Order status</h2><p style="margin:2px 0 0;font-size:13px;color:#94a3b8">Track the current fulfilment stage</p></div>
+<button style="display:inline-flex;height:32px;align-items:center;gap:6px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 12px;font-size:13px;font-weight:500;color:#b8330f;cursor:pointer" style-hover="border-color:#f97362">Quick block</button>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin-top:18px">
+<div><span style="display:flex;align-items:center;gap:8px"><span style="width:32px;height:32px;flex:none;border-radius:9999px;background:rgba(16,185,129,.12);color:#047857;display:grid;place-items:center"><i data-lucide="check" width="16" height="16"></i></span><span style="flex:1;height:3px;border-radius:9999px;background:#10b981"></span></span><p style="margin:8px 0 0;font-size:13px;font-weight:600;color:#1e293b">Ordered</p><p style="margin:1px 0 0;font-size:12px;color:#94a3b8">2 minutes ago</p></div>
+<div><span style="display:flex;align-items:center;gap:8px"><span style="width:32px;height:32px;flex:none;border-radius:9999px;background:rgba(255,152,0,.12);color:#9a5b00;display:grid;place-items:center"><i data-lucide="clock" width="16" height="16"></i></span><span style="flex:1;height:3px;border-radius:9999px;background:#e2e8f0"></span></span><p style="margin:8px 0 0;font-size:13px;font-weight:600;color:#1e293b">Approved</p><p style="margin:1px 0 0;font-size:12px;color:#94a3b8">Awaiting confirmation</p></div>
+<div><span style="display:flex;align-items:center;gap:8px"><span style="width:32px;height:32px;flex:none;border-radius:9999px;background:#e9eef5;color:#94a3b8;display:grid;place-items:center"><i data-lucide="truck" width="16" height="16"></i></span><span style="flex:1;height:3px;border-radius:9999px;background:#e2e8f0"></span></span><p style="margin:8px 0 0;font-size:13px;font-weight:600;color:#94a3b8">Ready to ship</p><p style="margin:1px 0 0;font-size:12px;color:#94a3b8">No courier yet</p></div>
+<div><span style="display:flex;align-items:center;gap:8px"><span style="width:32px;height:32px;flex:none;border-radius:9999px;background:#e9eef5;color:#94a3b8;display:grid;place-items:center"><i data-lucide="package-check" width="16" height="16"></i></span></span><p style="margin:8px 0 0;font-size:13px;font-weight:600;color:#94a3b8">Delivered</p><p style="margin:1px 0 0;font-size:12px;color:#94a3b8">—</p></div>
+</div>
+</section>
+<section style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)">
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:20px 24px;border-bottom:1px solid #e2e8f0">
+<h2 style="margin:0;display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;letter-spacing:.025em;color:#334155">Order items<span style="display:inline-flex;height:22px;align-items:center;border-radius:9999px;background:rgba(0,48,135,.1);padding:0 9px;font-size:12px;font-weight:600;color:#003087">2 items</span></h2>
+<button style="display:inline-flex;height:32px;align-items:center;gap:6px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 12px;font-size:13px;font-weight:500;color:#475569;cursor:pointer" style-hover="border-color:#94a3b8"><i data-lucide="pencil" width="15" height="15"></i>Update items</button>
+</div>
+<div style="padding:16px 24px;display:grid;gap:10px">
+<div style="display:flex;align-items:center;gap:14px;border:1px solid #e2e8f0;border-radius:8px;padding:12px">
+<svg viewBox="0 0 48 48" style="width:48px;height:48px;flex:none;border-radius:8px;background:#e9eef5"><defs><pattern id="odA" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="6" fill="#cbd5e1"></rect></pattern></defs><rect width="48" height="48" fill="url(#odA)"></rect></svg>
+<span style="flex:1;min-width:0"><span style="display:block;font-size:14px;font-weight:600;color:#003087">Shockproof Bumper Matte Kickstand Case — 16 Pro Max</span><span style="display:block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#94a3b8">SKU-29349600 · Magnetic armor cover · ৳1,000</span></span>
+<span style="display:inline-flex;height:26px;flex:none;align-items:center;border-radius:8px;background:#e9eef5;padding:0 10px;font-size:13px;font-weight:600;color:#334155">× 1</span>
+<span style="width:88px;flex:none;text-align:right;font-weight:600;color:#334155;font-variant-numeric:tabular-nums">৳1,000</span>
+</div>
+<div style="display:flex;align-items:center;gap:14px;border:1px solid #e2e8f0;border-radius:8px;padding:12px">
+<svg viewBox="0 0 48 48" style="width:48px;height:48px;flex:none;border-radius:8px;background:#e9eef5"><rect width="48" height="48" fill="url(#odA)"></rect></svg>
+<span style="flex:1;min-width:0"><span style="display:block;font-size:14px;font-weight:600;color:#003087">Tempered Glass Screen Protector — 2 pack</span><span style="display:block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#94a3b8">SKU-50478265 · Clear · ৳0 (gift)</span></span>
+<span style="display:inline-flex;height:26px;flex:none;align-items:center;border-radius:8px;background:#e9eef5;padding:0 10px;font-size:13px;font-weight:600;color:#334155">× 1</span>
+<span style="width:88px;flex:none;text-align:right;font-weight:600;color:#334155;font-variant-numeric:tabular-nums">৳0</span>
+</div>
+</div>
+<div style="padding:0 28px 18px">
+<h3 style="margin:6px 0 8px;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#334155"><i data-lucide="badge-dollar-sign" width="16" height="16"></i>Payment summary</h3>
+<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #e2e8f0;font-size:13px"><span>Product price <span style="color:#94a3b8">(2 items)</span></span><span style="font-weight:500;color:#334155;font-variant-numeric:tabular-nums">৳1,000</span></div>
+<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #e2e8f0;font-size:13px"><span>Discount</span><span style="font-weight:500;color:#334155;font-variant-numeric:tabular-nums">৳0</span></div>
+<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #e2e8f0;font-size:13px"><span>Shipping <span style="color:#94a3b8">(inside Dhaka)</span></span><span style="font-weight:500;color:#334155;font-variant-numeric:tabular-nums">৳70</span></div>
+<div style="display:flex;justify-content:space-between;padding:7px 0;font-size:13px"><span>Paid by customer</span><span style="font-weight:500;color:#334155;font-variant-numeric:tabular-nums">৳0</span></div>
+<div style="display:flex;align-items:center;justify-content:space-between;border-radius:8px;background:rgba(0,48,135,.06);padding:14px 16px;margin-top:10px"><span style="font-size:14px;font-weight:600;color:#003087">Total due</span><span style="font-size:20px;font-weight:700;letter-spacing:-.025em;color:#003087;font-variant-numeric:tabular-nums">৳1,070</span></div>
+</div>
+</section>
+<section style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:18px 20px">
+<h2 style="margin:0;display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;letter-spacing:.025em;color:#334155"><i data-lucide="shield-check" width="17" height="17"></i>Admin management</h2>
+<p style="margin:4px 0 0;font-size:13px;color:#94a3b8">1 lifetime order from this phone number · currently 1 pending</p>
+<div style="border:1px solid #e2e8f0;border-radius:8px;padding:14px;margin-top:14px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px"><div><p style="margin:0;font-size:14px;font-weight:600;color:#334155">Courier delivery history</p><p style="margin:1px 0 0;font-size:12px;color:#94a3b8">Fraud check across connected couriers for 01553-336655</p></div><span style="display:inline-flex;height:24px;align-items:center;border-radius:9999px;background:#e9eef5;padding:0 10px;font-size:12px;font-weight:600;color:#54617a">Total 0 parcels</span></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:12px">
+<div style="border-radius:8px;background:rgba(0,48,135,.06);padding:10px 12px"><p style="margin:0;font-size:12px;font-weight:600;color:#003087">Ordered</p><p style="margin:2px 0 0;font-size:20px;font-weight:700;color:#0f172a">0</p></div>
+<div style="border-radius:8px;background:rgba(16,185,129,.08);padding:10px 12px"><p style="margin:0;font-size:12px;font-weight:600;color:#047857">Delivered</p><p style="margin:2px 0 0;font-size:20px;font-weight:700;color:#0f172a">0</p><p style="margin:0;font-size:11px;color:#94a3b8">0% success</p></div>
+<div style="border-radius:8px;background:rgba(255,87,36,.08);padding:10px 12px"><p style="margin:0;font-size:12px;font-weight:600;color:#b8330f">Cancelled</p><p style="margin:2px 0 0;font-size:20px;font-weight:700;color:#0f172a">0</p><p style="margin:0;font-size:11px;color:#94a3b8">0% of total</p></div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:10px">
+<sc-for list="{{ couriers }}" as="c" hint-placeholder-count="4">
+<div style="border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px"><div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:13px;font-weight:600;color:#334155">{{ c.name }}</span><span style="font-size:12px;font-weight:600;color:#94a3b8">{{ c.rate }}</span></div><div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:#94a3b8"><span>Deliv.<span style="display:block;font-size:14px;font-weight:600;color:#334155">{{ c.delivered }}</span></span><span>Canc.<span style="display:block;font-size:14px;font-weight:600;color:#334155">{{ c.cancelled }}</span></span><span>Total<span style="display:block;font-size:14px;font-weight:600;color:#334155">{{ c.total }}</span></span></div></div>
+</sc-for>
+</div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px;border-radius:12px;background:#f1f5f9;padding:5px;margin-top:16px">
+<sc-for list="{{ actions }}" as="a" hint-placeholder-count="4">
+<sc-if value="{{ a.onApprove }}" hint-placeholder-val="{{ true }}"><button onClick="{{ a.onClick }}" style="flex:1 1 120px;height:36px;border:none;border-radius:8px;background:#003087;font-family:inherit;font-size:13px;font-weight:600;color:#fff;cursor:pointer">{{ a.label }}</button></sc-if>
+<sc-if value="{{ a.onHold }}" hint-placeholder-val="{{ false }}"><button onClick="{{ a.onClick }}" style="flex:1 1 120px;height:36px;border:none;border-radius:8px;background:#9a5b00;font-family:inherit;font-size:13px;font-weight:600;color:#fff;cursor:pointer">{{ a.label }}</button></sc-if>
+<sc-if value="{{ a.onCancel }}" hint-placeholder-val="{{ false }}"><button onClick="{{ a.onClick }}" style="flex:1 1 120px;height:36px;border:none;border-radius:8px;background:#b8330f;font-family:inherit;font-size:13px;font-weight:600;color:#fff;cursor:pointer">{{ a.label }}</button></sc-if>
+<sc-if value="{{ a.onDelivered }}" hint-placeholder-val="{{ false }}"><button onClick="{{ a.onClick }}" style="flex:1 1 120px;height:36px;border:none;border-radius:8px;background:#047857;font-family:inherit;font-size:13px;font-weight:600;color:#fff;cursor:pointer">{{ a.label }}</button></sc-if>
+<sc-if value="{{ a.off }}" hint-placeholder-val="{{ true }}"><button onClick="{{ a.onClick }}" style="flex:1 1 120px;height:36px;border:none;border-radius:8px;background:none;font-family:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer" style-hover="background:rgba(255,255,255,.9)">{{ a.label }}</button></sc-if>
+</sc-for>
+</div>
+<div style="border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-top:12px">
+<p style="margin:0 0 12px;font-size:14px;font-weight:600;color:#334155">{{ panelTitle }}</p>
+<p style="margin:0 0 12px;font-size:13px;color:#94a3b8">{{ panelHint }}</p>
+<label style="display:block;font-size:12px;font-weight:600;color:#475569">Delivery address<input value="House 14, Road 7, Sector 4, Uttara, Dhaka 1230" style="width:100%;box-sizing:border-box;height:38px;border:1px solid #cbd5e1;border-radius:8px;padding:0 12px;margin-top:5px;font-size:13px;color:#1e293b"></label>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:12px">
+<label style="display:block;font-size:12px;font-weight:600;color:#475569;grid-column:1/-1">Ship from<select style="width:100%;box-sizing:border-box;height:38px;border:1px solid #cbd5e1;border-radius:8px;padding:0 10px;margin-top:5px;font-size:13px;color:#1e293b"><option selected>Central Warehouse, Tejgaon — default · both items in stock</option><option>Dhanmondi branch — both items in stock</option><option>Mirpur branch — 1 of 2 items in stock</option><option>Chattogram hub — for Chattogram addresses</option></select><span style="display:block;margin-top:5px;font-size:12px;font-weight:400;color:#64748b">Online orders ship from Central Warehouse. If an item is out of stock there, the nearest branch that has every item is picked instead. Change it here for this order only.</span></label>
+<label style="display:block;font-size:12px;font-weight:600;color:#475569">Zone<select style="width:100%;box-sizing:border-box;height:38px;border:1px solid #cbd5e1;border-radius:8px;padding:0 10px;margin-top:5px;font-size:13px;color:#1e293b"><option>Inside Dhaka — ৳70</option><option>Sub-Dhaka — ৳110</option><option>Outside Dhaka — ৳150</option></select></label>
+<label style="display:block;font-size:12px;font-weight:600;color:#475569">Courier<select style="width:100%;box-sizing:border-box;height:38px;border:1px solid #cbd5e1;border-radius:8px;padding:0 10px;margin-top:5px;font-size:13px;color:#1e293b"><option>Steadfast</option><option>Pathao</option><option>Carrybee</option><option>RedX</option></select></label>
+<label style="display:block;font-size:12px;font-weight:600;color:#475569">Shipping charge<input value="70" style="width:100%;box-sizing:border-box;height:38px;border:1px solid #cbd5e1;border-radius:8px;padding:0 12px;margin-top:5px;font-size:13px;color:#1e293b"></label>
+<label style="display:block;font-size:12px;font-weight:600;color:#475569">Discount<input value="0" style="width:100%;box-sizing:border-box;height:38px;border:1px solid #cbd5e1;border-radius:8px;padding:0 12px;margin-top:5px;font-size:13px;color:#1e293b"></label>
+<label style="display:block;font-size:12px;font-weight:600;color:#475569">Delivery date<input type="date" style="width:100%;box-sizing:border-box;height:38px;border:1px solid #cbd5e1;border-radius:8px;padding:0 10px;margin-top:5px;font-size:13px;color:#1e293b"></label>
+<label style="display:block;font-size:12px;font-weight:600;color:#475569">Advance collected<input placeholder="0" style="width:100%;box-sizing:border-box;height:38px;border:1px solid #cbd5e1;border-radius:8px;padding:0 12px;margin-top:5px;font-size:13px;color:#1e293b"></label>
+</div>
+<label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-top:12px">Note to courier<textarea rows="2" placeholder="Call before delivery, 3rd floor" style="width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:8px;padding:10px 12px;margin-top:5px;font-size:13px;color:#1e293b;resize:vertical"></textarea></label>
+<sc-if value="{{ ctaApprove }}" hint-placeholder-val="{{ true }}"><button style="width:100%;height:44px;border:none;border-radius:8px;background:#003087;margin-top:14px;font-family:inherit;font-size:14px;font-weight:600;color:#fff;cursor:pointer">Approve order</button></sc-if>
+<sc-if value="{{ ctaHold }}" hint-placeholder-val="{{ false }}"><button style="width:100%;height:44px;border:none;border-radius:8px;background:#9a5b00;margin-top:14px;font-family:inherit;font-size:14px;font-weight:600;color:#fff;cursor:pointer">Hold order</button></sc-if>
+<sc-if value="{{ ctaCancel }}" hint-placeholder-val="{{ false }}"><button style="width:100%;height:44px;border:none;border-radius:8px;background:#b8330f;margin-top:14px;font-family:inherit;font-size:14px;font-weight:600;color:#fff;cursor:pointer">Cancel order</button></sc-if>
+<sc-if value="{{ ctaDelivered }}" hint-placeholder-val="{{ false }}"><button style="width:100%;height:44px;border:none;border-radius:8px;background:#047857;margin-top:14px;font-family:inherit;font-size:14px;font-weight:600;color:#fff;cursor:pointer">Mark as delivered</button></sc-if>
+</div>
+</section>
+<section style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:18px 20px">
+<div style="display:flex;align-items:center;justify-content:space-between"><h2 style="margin:0;display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;letter-spacing:.025em;color:#334155"><i data-lucide="activity" width="17" height="17"></i>Tracking details</h2><button onClick="{{ toggleTracking }}" style="border:none;background:none;font-family:inherit;font-size:13px;font-weight:500;color:#003087;cursor:pointer">{{ trackingToggle }}</button></div>
+<sc-if value="{{ trackingOpen }}" hint-placeholder-val="{{ true }}">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;margin-top:14px">
+<div style="border:1px solid #e2e8f0;border-radius:8px;padding:14px"><p style="margin:0 0 10px;font-size:13px;font-weight:600;color:#334155">Attribution &amp; campaign</p><sc-for list="{{ attribution }}" as="r" hint-placeholder-count="4"><div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:13px"><span style="color:#94a3b8">{{ r.k }}</span><span style="font-weight:500;color:#334155">{{ r.v }}</span></div></sc-for></div>
+<div style="border:1px solid #e2e8f0;border-radius:8px;padding:14px"><p style="margin:0 0 10px;font-size:13px;font-weight:600;color:#334155">Session</p><sc-for list="{{ session }}" as="r" hint-placeholder-count="4"><div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:13px"><span style="color:#94a3b8">{{ r.k }}</span><span style="font-weight:500;color:#334155">{{ r.v }}</span></div></sc-for></div>
+<div style="border:1px solid #e2e8f0;border-radius:8px;padding:14px"><p style="margin:0 0 10px;font-size:13px;font-weight:600;color:#334155">Device &amp; browser</p><sc-for list="{{ device }}" as="r" hint-placeholder-count="5"><div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:13px"><span style="color:#94a3b8">{{ r.k }}</span><span style="font-weight:500;color:#334155">{{ r.v }}</span></div></sc-for></div>
+<div style="border:1px solid #e2e8f0;border-radius:8px;padding:14px"><p style="margin:0 0 10px;font-size:13px;font-weight:600;color:#334155">Location</p><sc-for list="{{ location }}" as="r" hint-placeholder-count="5"><div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:13px"><span style="color:#94a3b8">{{ r.k }}</span><span style="font-weight:500;color:#334155">{{ r.v }}</span></div></sc-for></div>
+</div>
+<div style="border:1px solid #e2e8f0;border-radius:8px;padding:14px;margin-top:12px"><p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#334155">Technical</p><p style="margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.7;color:#697a9b;word-break:break-all">session mtrcuaaz_tnkavpyh2 · fingerprint 468b95801620759a535e8b4b62f8589ba83c416b1aabd33bd99373b9dd6a42ca · created 7 Sep 2026, 8:48:22 PM</p></div>
+</sc-if>
+</section>
+<section style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:18px 20px">
+<div style="display:flex;align-items:center;justify-content:space-between"><h2 style="margin:0;display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;letter-spacing:.025em;color:#334155"><i data-lucide="history" width="17" height="17"></i>Activity</h2><button style="border:none;background:none;font-family:inherit;font-size:13px;font-weight:500;color:#003087;cursor:pointer">Add a comment</button></div>
+<div style="margin-top:14px;display:grid;gap:2px">
+<sc-for list="{{ activity }}" as="e" hint-placeholder-count="4">
+<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #e2e8f0"><span style="width:30px;height:30px;flex:none;border-radius:9999px;background:#e9eef5;color:#54617a;display:grid;place-items:center"><i data-lucide="{{ e.icon }}" width="15" height="15"></i></span><span style="flex:1;min-width:0"><span style="display:block;font-size:13px;font-weight:500;color:#1e293b">{{ e.title }}</span><span style="display:block;font-size:12px;color:#94a3b8">{{ e.meta }}</span></span></div>
+</sc-for>
+</div>
+</section>
+</div>
+<aside style="display:grid;gap:16px;min-width:0;flex:1 1 300px;max-width:400px;align-content:start">
+<section style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:18px 20px">
+<div style="display:flex;align-items:flex-start;gap:12px">
+<span style="width:44px;height:44px;flex:none;border-radius:9999px;background:rgba(0,48,135,.1);color:#003087;display:grid;place-items:center;font-size:15px;font-weight:600">NJ</span>
+<span style="flex:1;min-width:0"><span style="display:block;font-size:16px;font-weight:600;color:#0f172a">Nusrat Jahan</span><span style="display:block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;color:#003087">01553-336655</span><span style="display:block;font-size:12px;color:#94a3b8">First-time buyer · 1 order</span></span>
+<span style="display:inline-flex;gap:4px;flex:none"><button style="width:30px;height:30px;display:grid;place-items:center;border:1px solid #f9c8bf;border-radius:8px;background:#fff;color:#b8330f;cursor:pointer" aria-label="Block customer"><i data-lucide="ban" width="15" height="15"></i></button><button style="width:30px;height:30px;display:grid;place-items:center;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#475569;cursor:pointer" aria-label="Edit customer"><i data-lucide="pencil" width="15" height="15"></i></button></span>
+</div>
+<div style="display:flex;gap:6px;margin-top:14px"><button style="flex:1;height:34px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font-family:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer" style-hover="border-color:#94a3b8">Call</button><button style="flex:1;height:34px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font-family:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer" style-hover="border-color:#94a3b8">WhatsApp</button><button style="flex:1;height:34px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font-family:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer" style-hover="border-color:#94a3b8">SMS</button></div>
+</section>
+<section style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:18px 20px">
+<div style="display:flex;align-items:center;justify-content:space-between"><h2 style="margin:0;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#334155"><i data-lucide="map-pin" width="16" height="16"></i>Shipping address</h2><span style="display:inline-flex;height:22px;align-items:center;border-radius:9999px;background:rgba(16,185,129,.12);padding:0 10px;font-size:12px;font-weight:600;color:#047857">Inside Dhaka</span></div>
+<p style="margin:12px 0 0;border-radius:8px;background:#f8fafc;padding:12px;font-size:13px;line-height:1.6;color:#475569">House 14, Road 7, Sector 4<br>Uttara, Dhaka 1230<br>Bangladesh</p>
+</section>
+<section style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:18px 20px">
+<div style="display:flex;align-items:center;justify-content:space-between"><h2 style="margin:0;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#334155"><i data-lucide="shield-check" width="16" height="16"></i>Order verification</h2><span style="display:inline-flex;height:22px;align-items:center;border-radius:9999px;background:#10b981;padding:0 10px;font-size:12px;font-weight:600;color:#fff">Low risk</span></div>
+<div style="border-radius:8px;background:#f8fafc;padding:12px;margin-top:12px"><p style="margin:0;font-size:13px;font-weight:500;color:#334155">Dhaka, Dhaka Division, BD</p><p style="margin:2px 0 0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#94a3b8">104.28.117.2 · Cloudflare AS13335</p></div>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:10px">
+<span style="display:inline-flex;align-items:center;gap:6px;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;font-size:12px;font-weight:500;color:#475569"><i data-lucide="monitor" width="14" height="14"></i>Desktop</span>
+<span style="display:inline-flex;align-items:center;gap:6px;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;font-size:12px;font-weight:500;color:#475569"><i data-lucide="globe" width="14" height="14"></i>Direct</span>
+<span style="display:inline-flex;align-items:center;gap:6px;border:1px solid #f9c8bf;border-radius:8px;background:rgba(255,87,36,.06);padding:8px 10px;font-size:12px;font-weight:600;color:#b8330f"><i data-lucide="timer" width="14" height="14"></i>1 min session</span>
+<span style="display:inline-flex;align-items:center;gap:6px;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;font-size:12px;font-weight:500;color:#475569"><i data-lucide="repeat" width="14" height="14"></i>Returning</span>
+</div>
+</section>
+<section style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:18px 20px">
+<h2 style="margin:0;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#334155"><i data-lucide="sticky-note" width="16" height="16"></i>Notes</h2>
+<label style="display:block;margin-top:12px;font-size:12px;font-weight:600;color:#047857">Order note<textarea rows="2" placeholder="Visible to courier and on the invoice" style="width:100%;box-sizing:border-box;border:1px solid rgba(16,185,129,.35);border-radius:8px;background:rgba(16,185,129,.05);padding:10px 12px;margin-top:5px;font-size:13px;color:#1e293b;resize:vertical"></textarea></label>
+<label style="display:block;margin-top:10px;font-size:12px;font-weight:600;color:#475569">Internal note<textarea rows="2" placeholder="Only staff can read this" style="width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;padding:10px 12px;margin-top:5px;font-size:13px;color:#1e293b;resize:vertical"></textarea></label>
+</section>
+<section style="border-radius:14px;background:#fff;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);padding:18px 20px">
+<h2 style="margin:0;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#334155"><i data-lucide="tag" width="16" height="16"></i>Tags</h2>
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px"><span style="display:inline-flex;height:24px;align-items:center;border-radius:9999px;background:#e9eef5;padding:0 10px;font-size:12px;font-weight:500;color:#54617a">high-value</span><span style="display:inline-flex;height:24px;align-items:center;border-radius:9999px;background:#e9eef5;padding:0 10px;font-size:12px;font-weight:500;color:#54617a">call-first</span></div>
+<input placeholder="Type a tag and press Enter" style="width:100%;box-sizing:border-box;height:36px;border:1px solid #cbd5e1;border-radius:8px;padding:0 12px;margin-top:10px;font-size:13px;color:#1e293b">
+<button style="width:100%;height:36px;border:1px dashed #cbd5e1;border-radius:8px;background:#fff;margin-top:10px;font-family:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer" style-hover="border-color:#94a3b8">+ Create task</button>
+</section>
+</aside>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1100}}">
+class Component extends DCLogic {
+  state = { action: 'Approve', tracking: true };
+  componentDidMount() { this.paint(); }
+  componentDidUpdate() { this.paint(); }
+  paint() {
+    const go = () => { if (window.lucide && window.lucide.createIcons) window.lucide.createIcons({ attrs: { width: 20, height: 20, 'stroke-width': 1.75 } }); };
+    go(); setTimeout(go, 400); setTimeout(go, 1200);
+  }
+  renderVals() {
+    const a = this.state.action;
+    const meta = {
+      Approve: { bg: '#003087', title: 'Approve order for delivery', hint: 'Confirm the address and courier, then push the parcel to the selected courier.', cta: 'Approve order' },
+      Hold: { bg: '#9a5b00', title: 'Put order on hold', hint: 'The order stays in the pipeline but is hidden from courier pushes until released.', cta: 'Hold order' },
+      Cancel: { bg: '#b8330f', title: 'Cancel this order', hint: 'Stock is returned to inventory and the customer is notified by SMS.', cta: 'Cancel order' },
+      'Mark delivered': { bg: '#047857', title: 'Mark as delivered', hint: 'Records the collected amount and closes the fulfilment cycle.', cta: 'Mark as delivered' }
+    };
+    const m = meta[a];
+    return {
+      actions: ['Approve', 'Hold', 'Cancel', 'Mark delivered'].map(k => ({
+        label: k, off: a !== k,
+        onApprove: a === k && k === 'Approve',
+        onHold: a === k && k === 'Hold',
+        onCancel: a === k && k === 'Cancel',
+        onDelivered: a === k && k === 'Mark delivered',
+        onClick: () => this.setState({ action: k })
+      })),
+      panelTitle: m.title, panelHint: m.hint,
+      ctaApprove: a === 'Approve', ctaHold: a === 'Hold', ctaCancel: a === 'Cancel', ctaDelivered: a === 'Mark delivered',
+      trackingOpen: this.state.tracking,
+      trackingToggle: this.state.tracking ? 'Hide summary' : 'Show summary',
+      toggleTracking: () => this.setState(s => ({ tracking: !s.tracking })),
+      couriers: [
+        { name: 'Steadfast', rate: '0%', delivered: 0, cancelled: 0, total: 0 },
+        { name: 'Pathao', rate: '0%', delivered: 0, cancelled: 0, total: 0 },
+        { name: 'Carrybee', rate: '0%', delivered: 0, cancelled: 0, total: 0 },
+        { name: 'RedX', rate: '0%', delivered: 0, cancelled: 0, total: 0 }
+      ],
+      attribution: [
+        { k: 'Primary source', v: 'first_visit' }, { k: 'Channel', v: 'Web' },
+        { k: 'Traffic source', v: 'Direct' }, { k: 'Confidence', v: 'Medium' }
+      ],
+      session: [
+        { k: 'Duration', v: '1 min' }, { k: 'Page views', v: '1' },
+        { k: 'Visitor', v: 'Returning' }, { k: 'Landing page', v: '/' }
+      ],
+      device: [
+        { k: 'Device', v: 'Desktop' }, { k: 'Browser', v: 'Safari 26' },
+        { k: 'Platform', v: 'macOS' }, { k: 'Resolution', v: '1512×779' },
+        { k: 'Language', v: 'en-US' }
+      ],
+      location: [
+        { k: 'Country', v: 'Bangladesh' }, { k: 'Region', v: 'Dhaka Division' },
+        { k: 'City', v: 'Dhaka' }, { k: 'ZIP', v: '1230' },
+        { k: 'Coordinates', v: '23.7104, 90.4074' }
+      ],
+      activity: [
+        { icon: 'shopping-bag', title: 'Order created by customer', meta: '7 Sep 2026, 8:48 PM · online store checkout' },
+        { icon: 'shield-check', title: 'Fraud check completed — low risk', meta: '7 Sep 2026, 8:48 PM · automated' },
+        { icon: 'mail', title: 'Order confirmation email sent', meta: '7 Sep 2026, 8:49 PM · to nusrat@example.com' },
+        { icon: 'phone-call', title: 'Auto call queued for confirmation', meta: '7 Sep 2026, 8:50 PM · attempt 1 of 3' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

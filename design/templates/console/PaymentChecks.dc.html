@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Removed screen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Hind+Siliguri:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap"><style>
+body{margin:0;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;background:#e9eef5;color:#475569;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:#003087;text-decoration:none}a:hover{color:#002a77}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;letter-spacing:0}
+.num{font-variant-numeric:tabular-nums}
+.card{background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 6px 18px -8px rgba(15,23,42,.10)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:10px;border:0;font:inherit;font-size:14px;font-weight:500;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 160ms ease,color 160ms ease,transform 140ms cubic-bezier(.23,1,.32,1)}
+.btn:active{transform:scale(.97)}
+.btn:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid rgba(0,48,135,.45);outline-offset:2px}
+.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
+.ghost{background:rgba(0,48,135,.08);color:#003087}.ghost:hover{background:rgba(0,48,135,.15);color:#003087}
+.onnavy{background:rgba(255,255,255,.1);color:#fff}.onnavy:hover{background:rgba(255,255,255,.18);color:#fff}
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+.sk{border-radius:6px;background:linear-gradient(90deg,#eef2f7 0,#f7f9fc 40%,#eef2f7 80%);background-size:800px 100%;animation:shimmer 1.4s linear infinite}
+@media (prefers-reduced-motion: reduce){.btn,.nav{transition:none}.btn:active{transform:none}.sk{animation:none}}
+
+</style></helmet>
+<div style="width:1440px;height:600px;display:flex;align-items:center;justify-content:center;background:#e9eef5">
+<div class="card" style="max-width:640px;padding:36px 40px;display:flex;flex-direction:column;gap:14px">
+<span class="pill p-grey" style="align-self:flex-start">Removed</span>
+<h1 style="margin:0;font-size:26px;font-weight:700;color:#0f172a">Payment checks is no longer a screen</h1>
+<p style="margin:0;font-size:15px;line-height:1.65;color:#475569">There is no auto-renewal and no screenshot queue. Merchants pay from their own panel, or staff call and record the payment. Both happen in Collections and on each merchant's page.</p>
+<div style="display:flex;gap:10px"><a class="btn solid" href="Collections.dc.html">Open Collections</a><a class="btn ghost" href="MerchantDetail.dc.html">Open a merchant page</a></div>
+<p style="margin:0;font-size:13px;color:#64748b">This board can be deleted from the canvas.</p></div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 600}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

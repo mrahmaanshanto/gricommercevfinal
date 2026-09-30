@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Supplier ledger</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="SupplierDetail" description="Purchase — Supplier ledger. Imported from Retail Commerce and merged."-->
+<helmet>
+<script src="./ds-base.js"></script><script src="../_shell/gc-sidebar.js"></script><script src="../_shell/gc-topbar.js"></script><script src="/_blob/1840c8d9327e1d872bcd8bc9a4590a5a"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Hind+Siliguri:wght@400;500;600;700&amp;display=swap">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#e9eef5;color:#0f172a;-webkit-font-smoothing:antialiased;font-family:'Hind Siliguri','Poppins',system-ui,sans-serif}
+a{color:#003087;text-decoration:none}
+button{font:inherit;color:inherit}
+.fbn{font-family:'Hind Siliguri','Poppins',system-ui,sans-serif}
+.fen{font-family:'Poppins','Hind Siliguri',system-ui,sans-serif}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.card{background:#fff;border:1px solid #e6eaf0;border-radius:18px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 10px 28px -18px rgba(15,23,42,.14)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 20px;border-radius:12px;border:0;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap;text-decoration:none;transition:background-color 200ms,border-color 200ms}
+.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
+.line{background:#fff;color:#0f172a;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#0f172a}
+.soft{background:#eef3fb;color:#003087}.soft:hover{background:#e0e9f7;color:#003087}
+.okb{background:#047857;color:#fff}.okb:hover{background:#065f46;color:#fff}
+.dang{background:#fff;color:#b83210;border:1px solid #f3b7a5}.dang:hover{background:#fff4f0;color:#b83210}
+.sm{height:38px;padding:0 14px;font-size:14px;border-radius:10px}
+.big{height:56px;padding:0 26px;font-size:17px;border-radius:14px}
+.ib{width:44px;height:44px;border-radius:12px;border:1px solid #e2e8f0;background:#fff;color:#334155;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-shrink:0}
+.ib:hover{background:#f1f5f9}
+.seg{display:inline-flex;padding:4px;gap:2px;border-radius:12px;background:#e9eef5}
+.sgb{height:36px;padding:0 14px;border:0;border-radius:9px;background:transparent;font-size:14px;font-weight:500;color:#475569;cursor:pointer;white-space:nowrap}
+.sgb.on{background:#fff;color:#003087;font-weight:700;box-shadow:0 1px 3px rgba(15,23,42,.14)}
+.chip{height:38px;padding:0 14px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;font-size:14px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.chip:hover{border-color:#94a3b8}
+.chip.on{border-color:#003087;background:#eef3fb;color:#003087;font-weight:600}
+.pill{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap}
+.p-ok{background:#e7f8f1;color:#047857}.p-due{background:#ffece6;color:#b83210}.p-warn{background:#fff4e0;color:#a14f06}.p-info{background:#eef3fb;color:#003087}.p-grey{background:#eef2f6;color:#475569}.p-bk{background:#fdecf5;color:#a3195b}
+.inp{width:100%;height:48px;padding:0 14px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;font:inherit;font-size:15px;color:#0f172a}
+.inp:focus{outline:none;border-color:#003087;box-shadow:0 0 0 3px rgba(0,48,135,.12)}
+.inp::placeholder{color:#64748b}
+.lbl{font-size:14px;font-weight:600;color:#334155}
+.fld{display:flex;flex-direction:column;gap:6px;min-width:0}
+.hint{font-size:13px;line-height:18px;color:#64748b}
+.req{color:#b83210}
+.th{font-size:13px;font-weight:600;color:#64748b;text-align:left;padding:10px 14px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.td{padding:12px 14px;border-bottom:1px solid #f1f5f9;font-size:15px;vertical-align:middle}
+.trow:hover{background:#f8fafc}
+.h1{margin:0;font-size:26px;line-height:34px;font-weight:700}
+.h2{margin:0;font-size:18px;line-height:24px;font-weight:700}
+.sub{font-size:14.5px;color:#64748b}
+.kpi{padding:18px 20px;display:flex;flex-direction:column;gap:4px}
+.kpi .k{font-size:14.5px;color:#475569;font-weight:500}
+.kpi .v{font-size:28px;line-height:36px;font-weight:700;font-variant-numeric:tabular-nums}
+.sw{position:relative;width:48px;height:28px;border-radius:999px;border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms}
+.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
+.tabl{display:flex;gap:4px;border-bottom:1px solid #e2e8f0}
+.tl{position:relative;height:46px;padding:0 14px;border:0;background:transparent;font-size:15px;font-weight:500;color:#64748b;cursor:pointer;white-space:nowrap}
+.tl.on{color:#003087;font-weight:700}.tl.on::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:#003087}
+.row{display:flex;align-items:center;gap:12px;padding:14px 16px}
+.row + .row{border-top:1px solid #eef2f6}
+.bar{height:8px;border-radius:999px;background:#eef2f6;overflow:hidden;display:block}.bar>span{display:block;height:8px;border-radius:999px}
+.note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:14px;line-height:20px}
+.n-info{background:#eef3fb;color:#1e3a6e}.n-warn{background:#fff8eb;color:#7a3b04;border:1px solid #fde3b5}.n-ok{background:#e7f8f1;color:#065f46}.n-due{background:#fff4f0;color:#8a2a0d;border:1px solid #f7c9bb}
+.chipq{height:38px;padding:0 12px;border-radius:999px;border:1px solid #d6e0ef;background:#f5f8ff;color:#003087;font-size:13.5px;font-weight:500;cursor:pointer;white-space:nowrap}
+.wave span{display:inline-block;width:4px;margin:0 2px;border-radius:4px;background:#003087;animation:wv 900ms ease-in-out infinite}
+.wave span:nth-child(2){animation-delay:.15s}.wave span:nth-child(3){animation-delay:.3s}.wave span:nth-child(4){animation-delay:.45s}.wave span:nth-child(5){animation-delay:.6s}
+@keyframes wv{0%,100%{height:8px}50%{height:26px}}
+.fade{animation:fd 240ms cubic-bezier(0,0,.2,1)}
+@keyframes fd{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.btn:focus-visible,.ib:focus-visible,.sgb:focus-visible,.chip:focus-visible,.tl:focus-visible,.sw:focus-visible,.chipq:focus-visible,a:focus-visible,button:focus-visible{outline:3px solid rgba(0,48,135,.45);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+
+.nav{display:flex;align-items:center;gap:11px;height:38px;padding:0 10px;border-radius:10px;color:#334155;font-size:14.5px;font-weight:500;text-decoration:none;transition:background-color 200ms,color 200ms}
+.nav:hover{background:#f1f5f9;color:#0f172a}
+.nav.on{background:rgba(0,48,135,.09);color:#003087;font-weight:700}
+.nav .cnt{margin-left:auto;min-width:24px;height:21px;padding:0 7px;border-radius:999px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.navh{font-size:12px;font-weight:600;letter-spacing:.04em;color:#64748b;padding:12px 10px 2px}
+.act{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:16px;border-radius:16px;border:1px solid #e6eaf0;background:#fff;cursor:pointer;text-align:left;text-decoration:none;color:#0f172a;transition:border-color 200ms,box-shadow 200ms}
+.act:hover{border-color:#003087;box-shadow:0 8px 20px -12px rgba(0,48,135,.35);color:#0f172a}
+.act .ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center}
+.alert{display:flex;align-items:center;gap:14px;padding:12px 16px;border-top:1px solid #eef2f6}
+.abtn{height:38px;padding:0 14px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;font-size:14px;font-weight:600;color:#003087;cursor:pointer;white-space:nowrap}
+.abtn:hover{background:#f1f5f9}
+.mic{position:absolute;right:28px;bottom:28px;height:60px;padding:0 22px 0 8px;border-radius:999px;border:0;background:#003087;color:#fff;display:flex;align-items:center;gap:12px;font-size:16px;font-weight:600;cursor:pointer;box-shadow:0 16px 32px -12px rgba(0,48,135,.6);z-index:20}
+.mic .dotc{width:44px;height:44px;border-radius:999px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center}
+.scrim{position:absolute;inset:0;background:rgba(15,23,42,.42);z-index:15}
+.drawer{position:absolute;top:0;right:0;bottom:0;width:520px;background:#fff;z-index:16;display:flex;flex-direction:column;box-shadow:-20px 0 50px -20px rgba(15,23,42,.35)}
+.modal{position:absolute;left:50%;top:120px;transform:translateX(-50%);width:560px;background:#fff;border-radius:20px;z-index:16;box-shadow:0 30px 70px -20px rgba(15,23,42,.45)}
+
+/* merged: English, compact controls, GridAI button */
+body{font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif}
+.btn{height:40px;padding:0 16px;font-size:14px;border-radius:10px}
+.btn.sm,.sm{height:34px;padding:0 12px;font-size:13px;border-radius:9px}
+.btn.big,.big{height:48px;padding:0 22px;font-size:15px;border-radius:12px}
+.ib{width:40px;height:40px;border-radius:10px}
+.chip{height:34px;padding:0 12px;font-size:13px}
+.sgb{height:32px;padding:0 12px;font-size:13px}
+.gfab{position:absolute;right:28px;bottom:28px;z-index:20;display:inline-flex;align-items:center;gap:10px;height:52px;padding:0 20px 0 16px;border-radius:999px;background:#003087;color:#fff;font-size:15px;font-weight:600;text-decoration:none;box-shadow:0 14px 30px -12px rgba(0,48,135,.6)}
+.gfab:hover{background:#002a77;color:#fff}
+.gfab:focus-visible{outline:3px solid rgba(0,48,135,.45);outline-offset:3px}
+.th,.td{white-space:normal}
+</style>
+</helmet>
+<div class="{{rootCls}}" style="width: 1440px; height: 1350px; position: relative; background: #e9eef5; padding: 12px; display: flex; gap: 12px; overflow: hidden;">
+<gc-sidebar sticky active="po-suppliers" base="../"></gc-sidebar>
+<main style="flex-grow: 1; min-width: 0; background: #f6f8fb; border-radius: 18px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; overflow: hidden; position: relative;">
+<gc-topbar crumb="Purchase" page="Supplier ledger" placeholder="Search products, customers or memo no." base="../"></gc-topbar>
+<div style="flex-grow: 1; min-height: 0; padding: 22px 28px 28px; display: flex; flex-direction: column; gap: 18px;">
+
+<div style="display: flex; align-items: center; gap: 12px;">
+<a class="ib" href="../purchase-stock/Suppliers.dc.html" aria-label="{{t.back}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></a>
+<span style="width: 52px; height: 52px; border-radius: 15px; background: #fff; border: 1px solid #e6eaf0; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="40" height="40" viewBox="0 0 48 48" aria-hidden="true"><path d="M5 11H27A2 2 0 0 1 29 13V30A2 2 0 0 1 27 32H5A2 2 0 0 1 3 30V13A2 2 0 0 1 5 11Z" fill="#0ea5e9"></path><path d="M8.6 16H16.4A1.1 1.1 0 0 1 17.5 17.1V17.099999999999998A1.1 1.1 0 0 1 16.4 18.2H8.6A1.1 1.1 0 0 1 7.5 17.099999999999998V17.1A1.1 1.1 0 0 1 8.6 16Z" fill="#7dd3fc"></path><path d="M8.6 21H20.4A1.1 1.1 0 0 1 21.5 22.1V22.099999999999998A1.1 1.1 0 0 1 20.4 23.2H8.6A1.1 1.1 0 0 1 7.5 22.099999999999998V22.1A1.1 1.1 0 0 1 8.6 21Z" fill="#7dd3fc"></path><path d="M29 17L38.5 17L45 25.5L45 32L29 32Z" fill="#0ea5e9"></path><path d="M31.5 19.5L37.5 19.5L41.5 25.5L31.5 25.5Z" fill="#7dd3fc"></path><path d="M4.5 31H43.5A1.5 1.5 0 0 1 45 32.5V34.0A1.5 1.5 0 0 1 43.5 35.5H4.5A1.5 1.5 0 0 1 3 34.0V32.5A1.5 1.5 0 0 1 4.5 31Z" fill="#003087"></path><path d="M7.2 37.5a4.8 4.8 0 1 0 9.6 0a4.8 4.8 0 1 0 -9.6 0Z" fill="#003087"></path><path d="M10.2 37.5a1.8 1.8 0 1 0 3.6 0a1.8 1.8 0 1 0 -3.6 0Z" fill="#ffffff"></path><path d="M31.2 37.5a4.8 4.8 0 1 0 9.6 0a4.8 4.8 0 1 0 -9.6 0Z" fill="#003087"></path><path d="M34.2 37.5a1.8 1.8 0 1 0 3.6 0a1.8 1.8 0 1 0 -3.6 0Z" fill="#ffffff"></path></svg></span>
+<div style="flex-grow: 1;"><h1 class="h1">{{t.name}}</h1><div class="sub">{{t.hsub}}</div></div>
+<button type="button" class="btn line" onClick="{{print}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"></path></svg>{{t.print}}</button>
+<a class="btn line" href="../purchase-stock/BuyGoods.dc.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h3l2.7 12.4a2 2 0 0 0 2 1.6h8.5a2 2 0 0 0 2-1.5L22 8H6M9 21h.01M18 21h.01"></path></svg>{{t.newBuy}}</a>
+<button type="button" class="btn solid" onClick="{{openPay}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"></path></svg>{{t.pay}}</button>
+</div>
+
+<section class="card" style="padding: 18px 20px; display: grid; grid-template-columns: 1.15fr 1.2fr 1fr; gap: 20px; align-items: start;">
+<div style="display: flex; gap: 14px; align-items: center;">
+<span style="position: relative; width: 60px; height: 60px; border-radius: 16px; background: #e7f8f1; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="44" height="44" viewBox="0 0 48 48" aria-hidden="true"><path d="M24.5 15a6.5 6.5 0 1 0 13.0 0a6.5 6.5 0 1 0 -13.0 0Z" fill="#7dd3fc"></path><path d="M29.5 23H33.5A8.5 8.5 0 0 1 42 31.5V31.5A8.5 8.5 0 0 1 33.5 40H29.5A8.5 8.5 0 0 1 21 31.5V31.5A8.5 8.5 0 0 1 29.5 23Z" fill="#0ea5e9"></path><path d="M10.5 17a7.5 7.5 0 1 0 15.0 0a7.5 7.5 0 1 0 -15.0 0Z" fill="#7dd3fc"></path><path d="M14.5 26H21.5A8.5 8.5 0 0 1 30 34.5V34.5A8.5 8.5 0 0 1 21.5 43H14.5A8.5 8.5 0 0 1 6 34.5V34.5A8.5 8.5 0 0 1 14.5 26Z" fill="#0ea5e9"></path></svg><span style="position: absolute; right: -5px; bottom: -5px; min-width: 26px; height: 26px; padding: 0 5px; border-radius: 999px; background: #047857; color: #fff; border: 2px solid #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center;">{{ini}}</span></span>
+<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;"><span class="hint">{{t.contact}}</span><span style="font-size: 16px; font-weight: 700;">{{t.person}}</span>
+<span style="display: flex; align-items: center; gap: 8px;"><span class="num" style="font-size: 15px; font-weight: 600;">{{mobile}}</span><button type="button" class="btn soft sm" onClick="{{call}}" style="height: 34px; padding: 0 10px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"></path></svg>{{t.call}}</button></span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px;">
+<div><div class="hint" style="display: flex; align-items: center; gap: 6px;"><svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 3C15.7 3 9.5 9.2 9.5 17.3C9.5 28.5 24 45 24 45C24 45 38.5 28.5 38.5 17.3C38.5 9.2 32.3 3 24 3Z" fill="#ef4444"></path><path d="M17.8 17.5a6.2 6.2 0 1 0 12.4 0a6.2 6.2 0 1 0 -12.4 0Z" fill="#ffffff"></path></svg>{{t.addr}}</div><div style="font-size: 15px; font-weight: 500;">{{t.addrV}}</div></div>
+<div><div class="hint" style="margin-bottom: 4px; display: flex; align-items: center; gap: 6px;"><svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path d="M10 17H36A2 2 0 0 1 38 19V39A2 2 0 0 1 36 41H10A2 2 0 0 1 8 39V19A2 2 0 0 1 10 17Z" fill="#7dd3fc"></path><path d="M8 11H38A2 2 0 0 1 40 13V17A2 2 0 0 1 38 19H8A2 2 0 0 1 6 17V13A2 2 0 0 1 8 11Z" fill="#0ea5e9"></path><path d="M20 11h6v30h-6Z" fill="#e0f2fe"></path><path d="M29 26L41 26L45 31.5L41 37L29 37Z" fill="#0ea5e9"></path><path d="M30.9 31.5a1.6 1.6 0 1 0 3.2 0a1.6 1.6 0 1 0 -3.2 0Z" fill="#ffffff"></path></svg>{{t.supplies}}</div><div style="display: flex; gap: 6px; flex-wrap: wrap;"><sc-for list="{{goods}}" as="g" hint-placeholder-count="4"><span class="pill p-grey">{{g.l}}</span></sc-for></div></div>
+</div>
+<div style="padding: 12px 14px; border-radius: 14px; background: #eef3fb; display: flex; align-items: center; gap: 12px;">
+<svg width="40" height="40" viewBox="0 0 48 48" aria-hidden="true"><path d="M4 24a18 18 0 1 0 36 0a18 18 0 1 0 -36 0Z" fill="#e0f2fe"></path><path d="M8.5 24a13.5 13.5 0 1 0 27.0 0a13.5 13.5 0 1 0 -27.0 0Z" fill="#ffffff"></path><path d="M22 16V24.5L28 28" fill="none" stroke="#003087" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path><path d="M29 36a8 8 0 1 0 16 0a8 8 0 1 0 -16 0Z" fill="#0ea5e9"></path><path d="M33 36l2.8 2.8 5.2 -5.6" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<div style="display: flex; flex-direction: column; gap: 4px;"><span style="color: #003087; font-size: 16px; font-weight: 700;">{{t.credit}}</span>
+<span style="font-size: 13.5px; color: #1e3a6e; line-height: 19px;">{{t.creditHint}}</span></div>
+</div>
+</section>
+
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px;">
+<div class="card kpi" style="border-color: #fde3b5; background: #fffcf5;"><span class="k" style="display: flex; align-items: center; gap: 10px;"><svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true"><path d="M10.5 30H27.5A3.5 3.5 0 0 1 31 33.5V33.5A3.5 3.5 0 0 1 27.5 37H10.5A3.5 3.5 0 0 1 7 33.5V33.5A3.5 3.5 0 0 1 10.5 30Z" fill="#0ea5e9"></path><path d="M10.5 24.5H27.5A3.5 3.5 0 0 1 31 28.0V28.0A3.5 3.5 0 0 1 27.5 31.5H10.5A3.5 3.5 0 0 1 7 28.0V28.0A3.5 3.5 0 0 1 10.5 24.5Z" fill="#0ea5e9"></path><path d="M10.5 19H27.5A3.5 3.5 0 0 1 31 22.5V22.5A3.5 3.5 0 0 1 27.5 26H10.5A3.5 3.5 0 0 1 7 22.5V22.5A3.5 3.5 0 0 1 10.5 19Z" fill="#7dd3fc"></path><path d="M27 13a9 9 0 1 0 18 0a9 9 0 1 0 -18 0Z" fill="#0ea5e9"></path><path d="M36 8.5V17.5M32 13.5l4 4 4 -4" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>{{t.kOwe}}</span><span class="v" style="color: #a14f06; font-size: 32px;">{{k.owe}}</span><span class="hint num">{{k.oweN}}</span></div>
+<div class="card kpi" style="border-color: #f7c9bb; background: #fffaf8;"><span class="k" style="display: flex; align-items: center; gap: 10px;"><svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true"><path d="M10 8H38A5 5 0 0 1 43 13V37A5 5 0 0 1 38 42H10A5 5 0 0 1 5 37V13A5 5 0 0 1 10 8Z" fill="#e0f2fe"></path><path d="M10.5 9.5H37.5A4 4 0 0 1 41.5 13.5V36.5A4 4 0 0 1 37.5 40.5H10.5A4 4 0 0 1 6.5 36.5V13.5A4 4 0 0 1 10.5 9.5Z" fill="#ffffff"></path><path d="M10 8H38A5 5 0 0 1 43 13V14A5 5 0 0 1 38 19H10A5 5 0 0 1 5 14V13A5 5 0 0 1 10 8Z" fill="#0ea5e9"></path><path d="M5 14h38v5h-38Z" fill="#0ea5e9"></path><path d="M14.7 4H14.7A1.7 1.7 0 0 1 16.4 5.7V11.3A1.7 1.7 0 0 1 14.7 13H14.7A1.7 1.7 0 0 1 13 11.3V5.7A1.7 1.7 0 0 1 14.7 4Z" fill="#003087"></path><path d="M33.7 4H33.699999999999996A1.7 1.7 0 0 1 35.4 5.7V11.3A1.7 1.7 0 0 1 33.699999999999996 13H33.7A1.7 1.7 0 0 1 32 11.3V5.7A1.7 1.7 0 0 1 33.7 4Z" fill="#003087"></path><path d="M12.2 23H15.8A1.2 1.2 0 0 1 17 24.2V26.8A1.2 1.2 0 0 1 15.8 28H12.2A1.2 1.2 0 0 1 11 26.8V24.2A1.2 1.2 0 0 1 12.2 23Z" fill="#e0f2fe"></path><path d="M22.2 23H25.8A1.2 1.2 0 0 1 27 24.2V26.8A1.2 1.2 0 0 1 25.8 28H22.2A1.2 1.2 0 0 1 21 26.8V24.2A1.2 1.2 0 0 1 22.2 23Z" fill="#e0f2fe"></path><path d="M32.2 23H35.8A1.2 1.2 0 0 1 37 24.2V26.8A1.2 1.2 0 0 1 35.8 28H32.2A1.2 1.2 0 0 1 31 26.8V24.2A1.2 1.2 0 0 1 32.2 23Z" fill="#0ea5e9"></path><path d="M12.2 32H15.8A1.2 1.2 0 0 1 17 33.2V35.8A1.2 1.2 0 0 1 15.8 37H12.2A1.2 1.2 0 0 1 11 35.8V33.2A1.2 1.2 0 0 1 12.2 32Z" fill="#e0f2fe"></path><path d="M22.2 32H25.8A1.2 1.2 0 0 1 27 33.2V35.8A1.2 1.2 0 0 1 25.8 37H22.2A1.2 1.2 0 0 1 21 35.8V33.2A1.2 1.2 0 0 1 22.2 32Z" fill="#e0f2fe"></path><path d="M32.2 32H35.8A1.2 1.2 0 0 1 37 33.2V35.8A1.2 1.2 0 0 1 35.8 37H32.2A1.2 1.2 0 0 1 31 35.8V33.2A1.2 1.2 0 0 1 32.2 32Z" fill="#e0f2fe"></path></svg>{{t.kToday}}</span><span class="v" style="color: #b83210;">{{k.today}}</span><span class="hint num">{{k.todayN}}</span></div>
+<div class="card kpi"><span class="k" style="display: flex; align-items: center; gap: 10px;"><svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true"><path d="M18.5 6H27.5A1.5 1.5 0 0 1 29 7.5V15.5A1.5 1.5 0 0 1 27.5 17H18.5A1.5 1.5 0 0 1 17 15.5V7.5A1.5 1.5 0 0 1 18.5 6Z" fill="#7dd3fc"></path><path d="M21.5 6h3v5h-3Z" fill="#e0f2fe"></path><path d="M29.5 10H37.5A1.5 1.5 0 0 1 39 11.5V16.5A1.5 1.5 0 0 1 37.5 18H29.5A1.5 1.5 0 0 1 28 16.5V11.5A1.5 1.5 0 0 1 29.5 10Z" fill="#0ea5e9"></path><path d="M32 10h3v4h-3Z" fill="#e0f2fe"></path><path d="M8 18L42 18L38.5 32L13 32Z" fill="#0ea5e9"></path><path d="M15.1 22H37.9A1.1 1.1 0 0 1 39 23.1V23.099999999999998A1.1 1.1 0 0 1 37.9 24.2H15.1A1.1 1.1 0 0 1 14 23.099999999999998V23.1A1.1 1.1 0 0 1 15.1 22Z" fill="#7dd3fc"></path><path d="M16.1 26.5H35.9A1.1 1.1 0 0 1 37 27.6V27.599999999999998A1.1 1.1 0 0 1 35.9 28.7H16.1A1.1 1.1 0 0 1 15 27.599999999999998V27.6A1.1 1.1 0 0 1 16.1 26.5Z" fill="#7dd3fc"></path><path d="M3 11H8L13 32H38" fill="none" stroke="#003087" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path><path d="M12.2 38.5a3.8 3.8 0 1 0 7.6 0a3.8 3.8 0 1 0 -7.6 0Z" fill="#003087"></path><path d="M31.2 38.5a3.8 3.8 0 1 0 7.6 0a3.8 3.8 0 1 0 -7.6 0Z" fill="#003087"></path><path d="M14.6 38.5a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0Z" fill="#ffffff"></path><path d="M33.6 38.5a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0Z" fill="#ffffff"></path></svg>{{t.kYear}}</span><span class="v">{{k.year}}</span><span class="hint num">{{k.yearN}}</span></div>
+<div class="card kpi"><span class="k" style="display: flex; align-items: center; gap: 10px;"><svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true"><path d="M6.5 13H41.5A3.5 3.5 0 0 1 45 16.5V33.5A3.5 3.5 0 0 1 41.5 37H6.5A3.5 3.5 0 0 1 3 33.5V16.5A3.5 3.5 0 0 1 6.5 13Z" fill="#003087"></path><path d="M8.5 16H39.5A2.5 2.5 0 0 1 42 18.5V31.5A2.5 2.5 0 0 1 39.5 34H8.5A2.5 2.5 0 0 1 6 31.5V18.5A2.5 2.5 0 0 1 8.5 16Z" fill="#0ea5e9"></path><path d="M18 25a6 6 0 1 0 12 0a6 6 0 1 0 -12 0Z" fill="#e0f2fe"></path><path d="M24.0 21H24.0A1.2 1.2 0 0 1 25.2 22.2V27.8A1.2 1.2 0 0 1 24.0 29H24.0A1.2 1.2 0 0 1 22.8 27.8V22.2A1.2 1.2 0 0 1 24.0 21Z" fill="#003087"></path><path d="M8.5 25a2 2 0 1 0 4 0a2 2 0 1 0 -4 0Z" fill="#7dd3fc"></path><path d="M35.5 25a2 2 0 1 0 4 0a2 2 0 1 0 -4 0Z" fill="#7dd3fc"></path></svg>{{t.kPaid}}</span><span class="v" style="color: #047857;">{{k.paid}}</span><span class="hint num">{{k.paidN}}</span></div>
+</div>
+
+<section class="card" style="overflow: hidden;">
+<div class="tabl" role="tablist" style="padding: 0 12px;"><sc-for list="{{tabs}}" as="o" hint-placeholder-count="4"><button type="button" role="tab" class="{{o.cls}}" aria-selected="{{o.on}}" onClick="{{o.pick}}" style="display: inline-flex; align-items: center; gap: 7px;"><sc-if value="{{o.iLed}}" hint-placeholder-val="{{ true }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"></path></svg></sc-if><sc-if value="{{o.iInv}}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h5"></path></svg></sc-if><sc-if value="{{o.iPay}}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"></path></svg></sc-if><sc-if value="{{o.iDue}}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18v16H3zM16 3v4M8 3v4M3 10h18"></path></svg></sc-if>{{o.l}}</button></sc-for></div>
+
+<sc-if value="{{isLedger}}" hint-placeholder-val="{{ true }}">
+<div class="fade">
+<table style="width: 100%; border-collapse: collapse;">
+<thead><tr style="background: #f8fafc;"><th class="th">{{t.cDate}}</th><th class="th">{{t.cDesc}}</th><th class="th" style="text-align: right;">{{t.cBuy}}</th><th class="th" style="text-align: right;">{{t.cPay}}</th><th class="th" style="text-align: right;">{{t.cBal}}</th></tr></thead>
+<tbody><sc-for list="{{ledger}}" as="r" hint-placeholder-count="9"><tr class="trow" style="background: {{r.rowBg}};">
+<td class="td num" style="width: 150px; color: #475569;">{{r.date}}</td>
+<td class="td"><span style="display: flex; align-items: center; gap: 10px;"><span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: {{r.icBg}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><sc-if value="{{r.isBuy}}" hint-placeholder-val="{{ true }}"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true"><path d="M18.5 6H27.5A1.5 1.5 0 0 1 29 7.5V15.5A1.5 1.5 0 0 1 27.5 17H18.5A1.5 1.5 0 0 1 17 15.5V7.5A1.5 1.5 0 0 1 18.5 6Z" fill="#7dd3fc"></path><path d="M21.5 6h3v5h-3Z" fill="#e0f2fe"></path><path d="M29.5 10H37.5A1.5 1.5 0 0 1 39 11.5V16.5A1.5 1.5 0 0 1 37.5 18H29.5A1.5 1.5 0 0 1 28 16.5V11.5A1.5 1.5 0 0 1 29.5 10Z" fill="#0ea5e9"></path><path d="M32 10h3v4h-3Z" fill="#e0f2fe"></path><path d="M8 18L42 18L38.5 32L13 32Z" fill="#0ea5e9"></path><path d="M15.1 22H37.9A1.1 1.1 0 0 1 39 23.1V23.099999999999998A1.1 1.1 0 0 1 37.9 24.2H15.1A1.1 1.1 0 0 1 14 23.099999999999998V23.1A1.1 1.1 0 0 1 15.1 22Z" fill="#7dd3fc"></path><path d="M16.1 26.5H35.9A1.1 1.1 0 0 1 37 27.6V27.599999999999998A1.1 1.1 0 0 1 35.9 28.7H16.1A1.1 1.1 0 0 1 15 27.599999999999998V27.6A1.1 1.1 0 0 1 16.1 26.5Z" fill="#7dd3fc"></path><path d="M3 11H8L13 32H38" fill="none" stroke="#003087" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path><path d="M12.2 38.5a3.8 3.8 0 1 0 7.6 0a3.8 3.8 0 1 0 -7.6 0Z" fill="#003087"></path><path d="M31.2 38.5a3.8 3.8 0 1 0 7.6 0a3.8 3.8 0 1 0 -7.6 0Z" fill="#003087"></path><path d="M14.6 38.5a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0Z" fill="#ffffff"></path><path d="M33.6 38.5a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0Z" fill="#ffffff"></path></svg></sc-if><sc-if value="{{r.isPay}}" hint-placeholder-val="{{ false }}"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true"><path d="M10.5 30H27.5A3.5 3.5 0 0 1 31 33.5V33.5A3.5 3.5 0 0 1 27.5 37H10.5A3.5 3.5 0 0 1 7 33.5V33.5A3.5 3.5 0 0 1 10.5 30Z" fill="#0ea5e9"></path><path d="M10.5 24.5H27.5A3.5 3.5 0 0 1 31 28.0V28.0A3.5 3.5 0 0 1 27.5 31.5H10.5A3.5 3.5 0 0 1 7 28.0V28.0A3.5 3.5 0 0 1 10.5 24.5Z" fill="#0ea5e9"></path><path d="M10.5 19H27.5A3.5 3.5 0 0 1 31 22.5V22.5A3.5 3.5 0 0 1 27.5 26H10.5A3.5 3.5 0 0 1 7 22.5V22.5A3.5 3.5 0 0 1 10.5 19Z" fill="#7dd3fc"></path><path d="M27 13a9 9 0 1 0 18 0a9 9 0 1 0 -18 0Z" fill="#0ea5e9"></path><path d="M36 8.5V17.5M32 13.5l4 4 4 -4" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if><sc-if value="{{r.isOpen}}" hint-placeholder-val="{{ false }}"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true"><path d="M12 5H32A3 3 0 0 1 35 8V39A3 3 0 0 1 32 42H12A3 3 0 0 1 9 39V8A3 3 0 0 1 12 5Z" fill="#0ea5e9"></path><path d="M11.5 5H12.5A2.5 2.5 0 0 1 15 7.5V39.5A2.5 2.5 0 0 1 12.5 42H11.5A2.5 2.5 0 0 1 9 39.5V7.5A2.5 2.5 0 0 1 11.5 5Z" fill="#003087"></path><path d="M16.5 8H31.5A1.5 1.5 0 0 1 33 9.5V37.5A1.5 1.5 0 0 1 31.5 39H16.5A1.5 1.5 0 0 1 15 37.5V9.5A1.5 1.5 0 0 1 16.5 8Z" fill="#ffffff"></path><path d="M19.1 13H28.9A1.1 1.1 0 0 1 30 14.1V14.1A1.1 1.1 0 0 1 28.9 15.2H19.1A1.1 1.1 0 0 1 18 14.1V14.1A1.1 1.1 0 0 1 19.1 13Z" fill="#e0f2fe"></path><path d="M19.1 18H28.9A1.1 1.1 0 0 1 30 19.1V19.099999999999998A1.1 1.1 0 0 1 28.9 20.2H19.1A1.1 1.1 0 0 1 18 19.099999999999998V19.1A1.1 1.1 0 0 1 19.1 18Z" fill="#e0f2fe"></path><path d="M19.1 23H25.9A1.1 1.1 0 0 1 27 24.1V24.099999999999998A1.1 1.1 0 0 1 25.9 25.2H19.1A1.1 1.1 0 0 1 18 24.099999999999998V24.1A1.1 1.1 0 0 1 19.1 23Z" fill="#e0f2fe"></path><path d="M26 35a9 9 0 1 0 18 0a9 9 0 1 0 -18 0Z" fill="#ffffff"></path><path d="M27.5 35a7.5 7.5 0 1 0 15.0 0a7.5 7.5 0 1 0 -15.0 0Z" fill="#0ea5e9"></path><path d="M35 30.5V39.5M31 35.5l4 4 4 -4" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if></span><span class="num" style="font-weight: 600;">{{r.desc}}</span></span></td>
+<td class="td num" style="text-align: right; font-weight: 700; color: #a14f06;">{{r.buy}}</td>
+<td class="td num" style="text-align: right; font-weight: 700; color: #047857;">{{r.pay}}</td>
+<td class="td num" style="text-align: right; font-weight: 700;">{{r.bal}}</td>
+</tr></sc-for></tbody>
+</table>
+<div style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #fffcf5; border-top: 1px solid #fde3b5;"><span class="hint" style="flex-grow: 1;">{{t.ledgerNote}}</span><span style="font-size: 15px; font-weight: 600;">{{t.kOwe}}</span><span class="num" style="font-size: 22px; font-weight: 700; color: #a14f06;">{{k.owe}}</span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{isInv}}" hint-placeholder-val="{{ false }}">
+<div class="fade">
+<table style="width: 100%; border-collapse: collapse;">
+<thead><tr style="background: #f8fafc;"><th class="th">{{t.cNo}}</th><th class="th" style="text-align: right;">{{t.cTotal}}</th><th class="th" style="text-align: right;">{{t.cPaid}}</th><th class="th">{{t.cDue}}</th><th class="th">{{t.cStatus}}</th><th class="th"></th></tr></thead>
+<tbody><sc-for list="{{invs}}" as="v" hint-placeholder-count="5"><tr class="trow">
+<td class="td"><span style="display: flex; align-items: center; gap: 12px;"><span style="width: 44px; height: 54px; border-radius: 8px; background: #f5f8ff; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="34" height="34" viewBox="0 0 48 48" aria-hidden="true"><path d="M11 4H33A3 3 0 0 1 36 7V39A3 3 0 0 1 33 42H11A3 3 0 0 1 8 39V7A3 3 0 0 1 11 4Z" fill="#e0f2fe"></path><path d="M11.5 5.5H32.5A2 2 0 0 1 34.5 7.5V38.5A2 2 0 0 1 32.5 40.5H11.5A2 2 0 0 1 9.5 38.5V7.5A2 2 0 0 1 11.5 5.5Z" fill="#ffffff"></path><path d="M14.6 10H23.4A1.6 1.6 0 0 1 25 11.6V11.6A1.6 1.6 0 0 1 23.4 13.2H14.6A1.6 1.6 0 0 1 13 11.6V11.6A1.6 1.6 0 0 1 14.6 10Z" fill="#0ea5e9"></path><path d="M14.1 17H29.9A1.1 1.1 0 0 1 31 18.1V18.099999999999998A1.1 1.1 0 0 1 29.9 19.2H14.1A1.1 1.1 0 0 1 13 18.099999999999998V18.1A1.1 1.1 0 0 1 14.1 17Z" fill="#e0f2fe"></path><path d="M14.1 22H29.9A1.1 1.1 0 0 1 31 23.1V23.099999999999998A1.1 1.1 0 0 1 29.9 24.2H14.1A1.1 1.1 0 0 1 13 23.099999999999998V23.1A1.1 1.1 0 0 1 14.1 22Z" fill="#e0f2fe"></path><path d="M14.1 27H23.9A1.1 1.1 0 0 1 25 28.1V28.099999999999998A1.1 1.1 0 0 1 23.9 29.2H14.1A1.1 1.1 0 0 1 13 28.099999999999998V28.1A1.1 1.1 0 0 1 14.1 27Z" fill="#e0f2fe"></path><path d="M27 35a8 8 0 1 0 16 0a8 8 0 1 0 -16 0Z" fill="#e0f2fe"></path><path d="M28.7 35a6.3 6.3 0 1 0 12.6 0a6.3 6.3 0 1 0 -12.6 0Z" fill="none" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M32.6 34H37.4A1.1 1.1 0 0 1 38.5 35.1V35.1A1.1 1.1 0 0 1 37.4 36.2H32.6A1.1 1.1 0 0 1 31.5 35.1V35.1A1.1 1.1 0 0 1 32.6 34Z" fill="#0ea5e9"></path></svg></span><span><span class="num mono" style="display: block; font-weight: 700; color: #003087;">{{v.no}}</span><span class="num" style="display: block; font-size: 13px; color: #64748b;">{{v.sub}}</span></span></span></td>
+<td class="td num" style="text-align: right; font-weight: 700;">{{v.total}}</td>
+<td class="td num" style="text-align: right; font-weight: 600; color: #047857;">{{v.paid}}</td>
+<td class="td num">{{v.due}}</td>
+<td class="td"><span class="{{v.stCls}}">{{v.st}}</span></td>
+<td class="td" style="text-align: right;"><button type="button" class="btn line sm" onClick="{{v.photo}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"></path></svg>{{t.seePhoto}}</button></td>
+</tr></sc-for></tbody>
+</table>
+</div>
+</sc-if>
+
+<sc-if value="{{isPays}}" hint-placeholder-val="{{ false }}">
+<div class="fade">
+<table style="width: 100%; border-collapse: collapse;">
+<thead><tr style="background: #f8fafc;"><th class="th">{{t.cDate}}</th><th class="th" style="text-align: right;">{{t.cAmt}}</th><th class="th">{{t.cMethod}}</th><th class="th">{{t.cWho}}</th><th class="th">{{t.cFor}}</th></tr></thead>
+<tbody><sc-for list="{{pays}}" as="p" hint-placeholder-count="5"><tr class="trow">
+<td class="td num">{{p.date}}</td>
+<td class="td num" style="text-align: right; font-size: 16px; font-weight: 700; color: #047857;">{{p.amt}}</td>
+<td class="td"><span class="pill" style="background: {{p.bg}}; color: {{p.fg}}; gap: 5px; padding-left: 6px;"><sc-if value="{{p.isCash}}" hint-placeholder-val="{{ true }}"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path d="M6.5 13H41.5A3.5 3.5 0 0 1 45 16.5V33.5A3.5 3.5 0 0 1 41.5 37H6.5A3.5 3.5 0 0 1 3 33.5V16.5A3.5 3.5 0 0 1 6.5 13Z" fill="#003087"></path><path d="M8.5 16H39.5A2.5 2.5 0 0 1 42 18.5V31.5A2.5 2.5 0 0 1 39.5 34H8.5A2.5 2.5 0 0 1 6 31.5V18.5A2.5 2.5 0 0 1 8.5 16Z" fill="#0ea5e9"></path><path d="M18 25a6 6 0 1 0 12 0a6 6 0 1 0 -12 0Z" fill="#e0f2fe"></path><path d="M24.0 21H24.0A1.2 1.2 0 0 1 25.2 22.2V27.8A1.2 1.2 0 0 1 24.0 29H24.0A1.2 1.2 0 0 1 22.8 27.8V22.2A1.2 1.2 0 0 1 24.0 21Z" fill="#003087"></path><path d="M8.5 25a2 2 0 1 0 4 0a2 2 0 1 0 -4 0Z" fill="#7dd3fc"></path><path d="M35.5 25a2 2 0 1 0 4 0a2 2 0 1 0 -4 0Z" fill="#7dd3fc"></path></svg></sc-if><sc-if value="{{p.isBk}}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path d="M17 3H31A5 5 0 0 1 36 8V40A5 5 0 0 1 31 45H17A5 5 0 0 1 12 40V8A5 5 0 0 1 17 3Z" fill="#003087"></path><path d="M16.5 7H31.5A2 2 0 0 1 33.5 9V37A2 2 0 0 1 31.5 39H16.5A2 2 0 0 1 14.5 37V9A2 2 0 0 1 16.5 7Z" fill="#7dd3fc"></path><path d="M22.6 41.5a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0Z" fill="#0ea5e9"></path><path d="M19 11H29A2 2 0 0 1 31 13V17A2 2 0 0 1 29 19H19A2 2 0 0 1 17 17V13A2 2 0 0 1 19 11Z" fill="#0ea5e9"></path><path d="M18.5 22H29.5A1.5 1.5 0 0 1 31 23.5V23.5A1.5 1.5 0 0 1 29.5 25H18.5A1.5 1.5 0 0 1 17 23.5V23.5A1.5 1.5 0 0 1 18.5 22Z" fill="#ffffff"></path><path d="M18.5 27H25.5A1.5 1.5 0 0 1 27 28.5V28.5A1.5 1.5 0 0 1 25.5 30H18.5A1.5 1.5 0 0 1 17 28.5V28.5A1.5 1.5 0 0 1 18.5 27Z" fill="#ffffff"></path></svg></sc-if><sc-if value="{{p.isBank}}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path d="M4 17L24 5L44 17Z" fill="#0ea5e9"></path><path d="M7 16H41A1 1 0 0 1 42 17V19A1 1 0 0 1 41 20H7A1 1 0 0 1 6 19V17A1 1 0 0 1 7 16Z" fill="#003087"></path><path d="M9 21h4.5v14h-4.5Z" fill="#7dd3fc"></path><path d="M17 21h4.5v14h-4.5Z" fill="#7dd3fc"></path><path d="M26.5 21h4.5v14h-4.5Z" fill="#7dd3fc"></path><path d="M34.5 21h4.5v14h-4.5Z" fill="#7dd3fc"></path><path d="M6.5 35H41.5A1.5 1.5 0 0 1 43 36.5V39.5A1.5 1.5 0 0 1 41.5 41H6.5A1.5 1.5 0 0 1 5 39.5V36.5A1.5 1.5 0 0 1 6.5 35Z" fill="#003087"></path><path d="M21.8 12.5a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0 -4.4 0Z" fill="#7dd3fc"></path></svg></sc-if>{{p.m}}</span><span class="num" style="display: block; font-size: 12.5px; color: #64748b; margin-top: 2px;">{{p.ref}}</span></td>
+<td class="td"><span style="display: flex; align-items: center; gap: 8px;"><span style="width: 30px; height: 30px; border-radius: 999px; background: #e0e9f7; color: #003087; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center;">{{p.ini}}</span>{{p.who}}</span></td>
+<td class="td num mono" style="font-size: 14px; color: #475569;">{{p.inv}}</td>
+</tr></sc-for></tbody>
+</table>
+</div>
+</sc-if>
+
+<sc-if value="{{isDue}}" hint-placeholder-val="{{ false }}">
+<div class="fade" style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+<div style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 14px; background: #eef3fb;">
+<svg width="40" height="40" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 5C16.5 5 12 10.5 12 18V27L8 33H40L36 27V18C36 10.5 31.5 5 24 5Z" fill="#0ea5e9"></path><path d="M23 34H25A3 3 0 0 1 28 37V37A3 3 0 0 1 25 40H23A3 3 0 0 1 20 37V37A3 3 0 0 1 23 34Z" fill="#0ea5e9"></path><path d="M30.5 10a5.5 5.5 0 1 0 11.0 0a5.5 5.5 0 1 0 -11.0 0Z" fill="#0ea5e9"></path></svg>
+<div style="flex-grow: 1;"><div style="font-size: 15.5px; font-weight: 700;">{{t.remind}}</div><div class="hint">{{t.remindHint}}</div></div>
+<button type="button" class="{{remind.cls}}" aria-pressed="{{remind.on}}" aria-label="{{t.remind}}" onClick="{{remind.toggle}}"></button>
+</div>
+<sc-for list="{{sched}}" as="x" hint-placeholder-count="2">
+<div style="display: flex; align-items: center; gap: 16px; padding: 14px 16px; border-radius: 14px; border: 1px solid {{x.bd}}; background: {{x.bg}};">
+<div style="width: 66px; height: 66px; border-radius: 14px; background: #fff; border: 1px solid #e2e8f0; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0;"><span class="num" style="font-size: 24px; line-height: 26px; font-weight: 700; color: {{x.fg}};">{{x.d}}</span><span style="font-size: 12.5px; color: #64748b;">{{x.m}}</span></div>
+<div style="flex-grow: 1;"><div style="display: flex; align-items: center; gap: 8px;"><span class="{{x.relCls}}">{{x.rel}}</span><span class="num mono" style="font-size: 14px; color: #475569;">{{x.inv}}</span></div><div class="num" style="font-size: 14px; color: #64748b; margin-top: 4px;">{{x.sub}}</div></div>
+<span class="num" style="font-size: 22px; font-weight: 700; color: #a14f06;">{{x.amt}}</span>
+<span style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: #475569; padding-left: 12px; border-left: 1px solid #e2e8f0;">{{t.remindRow}}<button type="button" class="{{x.swCls}}" aria-pressed="{{x.swOn}}" aria-label="{{t.remindRow}} {{x.inv}}" onClick="{{x.toggle}}"></button></span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</section>
+
+<sc-if value="{{payOpen}}" hint-placeholder-val="{{ false }}">
+<div class="scrim" onClick="{{closePay}}"></div>
+<section class="modal fade" role="dialog" aria-label="{{t.payTitle}}" style="top: 90px;">
+<div style="display: flex; align-items: center; gap: 12px; padding: 18px 22px; border-bottom: 1px solid #eef2f6;">
+<span style="width: 48px; height: 48px; border-radius: 14px; background: #fff8eb; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true"><path d="M10.5 30H27.5A3.5 3.5 0 0 1 31 33.5V33.5A3.5 3.5 0 0 1 27.5 37H10.5A3.5 3.5 0 0 1 7 33.5V33.5A3.5 3.5 0 0 1 10.5 30Z" fill="#0ea5e9"></path><path d="M10.5 24.5H27.5A3.5 3.5 0 0 1 31 28.0V28.0A3.5 3.5 0 0 1 27.5 31.5H10.5A3.5 3.5 0 0 1 7 28.0V28.0A3.5 3.5 0 0 1 10.5 24.5Z" fill="#0ea5e9"></path><path d="M10.5 19H27.5A3.5 3.5 0 0 1 31 22.5V22.5A3.5 3.5 0 0 1 27.5 26H10.5A3.5 3.5 0 0 1 7 22.5V22.5A3.5 3.5 0 0 1 10.5 19Z" fill="#7dd3fc"></path><path d="M27 13a9 9 0 1 0 18 0a9 9 0 1 0 -18 0Z" fill="#0ea5e9"></path><path d="M36 8.5V17.5M32 13.5l4 4 4 -4" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+<div style="flex-grow: 1;"><h2 class="h2">{{t.payTitle}} · {{t.name}}</h2><div class="num" style="font-size: 14px; color: #475569;">{{t.nowOwe}} <b style="color: #a14f06;">{{k.owe}}</b></div></div>
+<button type="button" class="ib" onClick="{{closePay}}" aria-label="{{t.close}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+</div>
+<div style="padding: 18px 22px; display: flex; flex-direction: column; gap: 14px;">
+<div style="display: flex; gap: 12px; align-items: flex-end;">
+<label class="fld" style="flex-grow: 1;"><span class="lbl">{{t.amount}}</span><input class="inp num" value="{{pm.amtTxt}}" onInput="{{pm.typeAmt}}" onChange="{{pm.typeAmt}}" aria-label="{{t.amount}}" style="height: 58px; font-size: 26px; font-weight: 700;"></label>
+<div style="width: 180px; height: 58px; padding: 0 12px; border-radius: 12px; background: #fff4e0; display: flex; flex-direction: column; justify-content: center;"><span style="font-size: 12.5px; font-weight: 600; color: #7a3b04;">{{t.after}}</span><span class="num" style="font-size: 19px; font-weight: 700; color: #a14f06;">{{pm.left}}</span></div>
+</div>
+<div class="fld"><span class="lbl">{{t.method}}</span><div style="display: flex; gap: 8px;"><sc-for list="{{pm.methods}}" as="o" hint-placeholder-count="3"><button type="button" class="{{o.cls}}" aria-pressed="{{o.on}}" onClick="{{o.pick}}" style="flex: 1; justify-content: center; height: 48px;"><sc-if value="{{o.isCash}}" hint-placeholder-val="{{ true }}"><svg width="22" height="22" viewBox="0 0 48 48" aria-hidden="true"><path d="M6.5 13H41.5A3.5 3.5 0 0 1 45 16.5V33.5A3.5 3.5 0 0 1 41.5 37H6.5A3.5 3.5 0 0 1 3 33.5V16.5A3.5 3.5 0 0 1 6.5 13Z" fill="#003087"></path><path d="M8.5 16H39.5A2.5 2.5 0 0 1 42 18.5V31.5A2.5 2.5 0 0 1 39.5 34H8.5A2.5 2.5 0 0 1 6 31.5V18.5A2.5 2.5 0 0 1 8.5 16Z" fill="#0ea5e9"></path><path d="M18 25a6 6 0 1 0 12 0a6 6 0 1 0 -12 0Z" fill="#e0f2fe"></path><path d="M24.0 21H24.0A1.2 1.2 0 0 1 25.2 22.2V27.8A1.2 1.2 0 0 1 24.0 29H24.0A1.2 1.2 0 0 1 22.8 27.8V22.2A1.2 1.2 0 0 1 24.0 21Z" fill="#003087"></path><path d="M8.5 25a2 2 0 1 0 4 0a2 2 0 1 0 -4 0Z" fill="#7dd3fc"></path><path d="M35.5 25a2 2 0 1 0 4 0a2 2 0 1 0 -4 0Z" fill="#7dd3fc"></path></svg></sc-if><sc-if value="{{o.isBk}}" hint-placeholder-val="{{ false }}"><span style="width: 24px; height: 24px; border-radius: 7px; background: #fdecf5; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path d="M17 3H31A5 5 0 0 1 36 8V40A5 5 0 0 1 31 45H17A5 5 0 0 1 12 40V8A5 5 0 0 1 17 3Z" fill="#003087"></path><path d="M16.5 7H31.5A2 2 0 0 1 33.5 9V37A2 2 0 0 1 31.5 39H16.5A2 2 0 0 1 14.5 37V9A2 2 0 0 1 16.5 7Z" fill="#7dd3fc"></path><path d="M22.6 41.5a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0Z" fill="#0ea5e9"></path><path d="M19 11H29A2 2 0 0 1 31 13V17A2 2 0 0 1 29 19H19A2 2 0 0 1 17 17V13A2 2 0 0 1 19 11Z" fill="#0ea5e9"></path><path d="M18.5 22H29.5A1.5 1.5 0 0 1 31 23.5V23.5A1.5 1.5 0 0 1 29.5 25H18.5A1.5 1.5 0 0 1 17 23.5V23.5A1.5 1.5 0 0 1 18.5 22Z" fill="#ffffff"></path><path d="M18.5 27H25.5A1.5 1.5 0 0 1 27 28.5V28.5A1.5 1.5 0 0 1 25.5 30H18.5A1.5 1.5 0 0 1 17 28.5V28.5A1.5 1.5 0 0 1 18.5 27Z" fill="#ffffff"></path></svg></span></sc-if><sc-if value="{{o.isBank}}" hint-placeholder-val="{{ false }}"><svg width="22" height="22" viewBox="0 0 48 48" aria-hidden="true"><path d="M4 17L24 5L44 17Z" fill="#0ea5e9"></path><path d="M7 16H41A1 1 0 0 1 42 17V19A1 1 0 0 1 41 20H7A1 1 0 0 1 6 19V17A1 1 0 0 1 7 16Z" fill="#003087"></path><path d="M9 21h4.5v14h-4.5Z" fill="#7dd3fc"></path><path d="M17 21h4.5v14h-4.5Z" fill="#7dd3fc"></path><path d="M26.5 21h4.5v14h-4.5Z" fill="#7dd3fc"></path><path d="M34.5 21h4.5v14h-4.5Z" fill="#7dd3fc"></path><path d="M6.5 35H41.5A1.5 1.5 0 0 1 43 36.5V39.5A1.5 1.5 0 0 1 41.5 41H6.5A1.5 1.5 0 0 1 5 39.5V36.5A1.5 1.5 0 0 1 6.5 35Z" fill="#003087"></path><path d="M21.8 12.5a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0 -4.4 0Z" fill="#7dd3fc"></path></svg></sc-if>{{o.l}}</button></sc-for></div></div>
+<div class="fld"><span class="lbl" style="display: flex; align-items: center; gap: 6px;"><svg width="22" height="22" viewBox="0 0 48 48" aria-hidden="true"><path d="M11 4H33A3 3 0 0 1 36 7V39A3 3 0 0 1 33 42H11A3 3 0 0 1 8 39V7A3 3 0 0 1 11 4Z" fill="#e0f2fe"></path><path d="M11.5 5.5H32.5A2 2 0 0 1 34.5 7.5V38.5A2 2 0 0 1 32.5 40.5H11.5A2 2 0 0 1 9.5 38.5V7.5A2 2 0 0 1 11.5 5.5Z" fill="#ffffff"></path><path d="M14.6 10H23.4A1.6 1.6 0 0 1 25 11.6V11.6A1.6 1.6 0 0 1 23.4 13.2H14.6A1.6 1.6 0 0 1 13 11.6V11.6A1.6 1.6 0 0 1 14.6 10Z" fill="#0ea5e9"></path><path d="M14.1 17H29.9A1.1 1.1 0 0 1 31 18.1V18.099999999999998A1.1 1.1 0 0 1 29.9 19.2H14.1A1.1 1.1 0 0 1 13 18.099999999999998V18.1A1.1 1.1 0 0 1 14.1 17Z" fill="#e0f2fe"></path><path d="M14.1 22H29.9A1.1 1.1 0 0 1 31 23.1V23.099999999999998A1.1 1.1 0 0 1 29.9 24.2H14.1A1.1 1.1 0 0 1 13 23.099999999999998V23.1A1.1 1.1 0 0 1 14.1 22Z" fill="#e0f2fe"></path><path d="M14.1 27H23.9A1.1 1.1 0 0 1 25 28.1V28.099999999999998A1.1 1.1 0 0 1 23.9 29.2H14.1A1.1 1.1 0 0 1 13 28.099999999999998V28.1A1.1 1.1 0 0 1 14.1 27Z" fill="#e0f2fe"></path><path d="M27 35a8 8 0 1 0 16 0a8 8 0 1 0 -16 0Z" fill="#e0f2fe"></path><path d="M28.7 35a6.3 6.3 0 1 0 12.6 0a6.3 6.3 0 1 0 -12.6 0Z" fill="none" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M32.6 34H37.4A1.1 1.1 0 0 1 38.5 35.1V35.1A1.1 1.1 0 0 1 37.4 36.2H32.6A1.1 1.1 0 0 1 31.5 35.1V35.1A1.1 1.1 0 0 1 32.6 34Z" fill="#0ea5e9"></path></svg>{{t.which}}</span><span class="hint">{{t.whichHint}}</span>
+<div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">
+<sc-for list="{{pm.invs}}" as="v" hint-placeholder-count="2">
+<button type="button" role="checkbox" aria-checked="{{v.on}}" onClick="{{v.toggle}}" style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid {{v.bd}}; background: {{v.bg}}; cursor: pointer; text-align: left;">
+<span style="width: 24px; height: 24px; border-radius: 7px; border: 2px solid {{v.boxBd}}; background: {{v.boxBg}}; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span>
+<span style="flex-grow: 1;"><span class="num mono" style="display: block; font-size: 14.5px; font-weight: 700;">{{v.no}}</span><span class="num" style="display: block; font-size: 13px; color: #64748b;">{{v.sub}}</span></span>
+<span class="{{v.dueCls}}">{{v.due}}</span>
+<span class="num" style="width: 90px; text-align: right; font-weight: 700;">{{v.amt}}</span>
+</button>
+</sc-for>
+</div></div>
+<label class="fld"><span class="lbl">{{t.note}}</span><input class="inp" placeholder="{{t.notePh}}" aria-label="{{t.note}}"></label>
+</div>
+<div style="padding: 14px 22px 18px; border-top: 1px solid #eef2f6; display: flex; gap: 10px; justify-content: flex-end;">
+<button type="button" class="btn line" onClick="{{closePay}}">{{t.cancel}}</button>
+<button type="button" class="btn okb" onClick="{{pm.confirm}}" style="min-width: 200px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>{{t.paid}} · {{pm.amtMoney}}</button>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{photoOpen}}" hint-placeholder-val="{{ false }}">
+<div class="scrim" onClick="{{closePhoto}}"></div>
+<section class="modal fade" role="dialog" aria-label="{{t.photoTitle}}" style="top: 90px; width: 480px;">
+<div style="display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #eef2f6;"><svg width="34" height="34" viewBox="0 0 48 48" aria-hidden="true"><path d="M11 4H33A3 3 0 0 1 36 7V39A3 3 0 0 1 33 42H11A3 3 0 0 1 8 39V7A3 3 0 0 1 11 4Z" fill="#e0f2fe"></path><path d="M11.5 5.5H32.5A2 2 0 0 1 34.5 7.5V38.5A2 2 0 0 1 32.5 40.5H11.5A2 2 0 0 1 9.5 38.5V7.5A2 2 0 0 1 11.5 5.5Z" fill="#ffffff"></path><path d="M14.6 10H23.4A1.6 1.6 0 0 1 25 11.6V11.6A1.6 1.6 0 0 1 23.4 13.2H14.6A1.6 1.6 0 0 1 13 11.6V11.6A1.6 1.6 0 0 1 14.6 10Z" fill="#0ea5e9"></path><path d="M14.1 17H29.9A1.1 1.1 0 0 1 31 18.1V18.099999999999998A1.1 1.1 0 0 1 29.9 19.2H14.1A1.1 1.1 0 0 1 13 18.099999999999998V18.1A1.1 1.1 0 0 1 14.1 17Z" fill="#e0f2fe"></path><path d="M14.1 22H29.9A1.1 1.1 0 0 1 31 23.1V23.099999999999998A1.1 1.1 0 0 1 29.9 24.2H14.1A1.1 1.1 0 0 1 13 23.099999999999998V23.1A1.1 1.1 0 0 1 14.1 22Z" fill="#e0f2fe"></path><path d="M14.1 27H23.9A1.1 1.1 0 0 1 25 28.1V28.099999999999998A1.1 1.1 0 0 1 23.9 29.2H14.1A1.1 1.1 0 0 1 13 28.099999999999998V28.1A1.1 1.1 0 0 1 14.1 27Z" fill="#e0f2fe"></path><path d="M27 35a8 8 0 1 0 16 0a8 8 0 1 0 -16 0Z" fill="#e0f2fe"></path><path d="M28.7 35a6.3 6.3 0 1 0 12.6 0a6.3 6.3 0 1 0 -12.6 0Z" fill="none" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M32.6 34H37.4A1.1 1.1 0 0 1 38.5 35.1V35.1A1.1 1.1 0 0 1 37.4 36.2H32.6A1.1 1.1 0 0 1 31.5 35.1V35.1A1.1 1.1 0 0 1 32.6 34Z" fill="#0ea5e9"></path></svg><div style="flex-grow: 1;"><h2 class="h2">{{t.photoTitle}}</h2><div class="num mono hint">{{photoName}}</div></div><button type="button" class="ib" onClick="{{closePhoto}}" aria-label="{{t.close}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></div>
+<div style="padding: 20px;"><div role="img" aria-label="{{t.photoTitle}} {{photoName}}" style="height: 440px; border-radius: 14px; background: #f1f5f9; border: 1px solid #e2e8f0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: #94a3b8;"><svg width="80" height="80" viewBox="0 0 48 48" aria-hidden="true"><path d="M11 4H33A3 3 0 0 1 36 7V39A3 3 0 0 1 33 42H11A3 3 0 0 1 8 39V7A3 3 0 0 1 11 4Z" fill="#e0f2fe"></path><path d="M11.5 5.5H32.5A2 2 0 0 1 34.5 7.5V38.5A2 2 0 0 1 32.5 40.5H11.5A2 2 0 0 1 9.5 38.5V7.5A2 2 0 0 1 11.5 5.5Z" fill="#ffffff"></path><path d="M14.6 10H23.4A1.6 1.6 0 0 1 25 11.6V11.6A1.6 1.6 0 0 1 23.4 13.2H14.6A1.6 1.6 0 0 1 13 11.6V11.6A1.6 1.6 0 0 1 14.6 10Z" fill="#0ea5e9"></path><path d="M14.1 17H29.9A1.1 1.1 0 0 1 31 18.1V18.099999999999998A1.1 1.1 0 0 1 29.9 19.2H14.1A1.1 1.1 0 0 1 13 18.099999999999998V18.1A1.1 1.1 0 0 1 14.1 17Z" fill="#e0f2fe"></path><path d="M14.1 22H29.9A1.1 1.1 0 0 1 31 23.1V23.099999999999998A1.1 1.1 0 0 1 29.9 24.2H14.1A1.1 1.1 0 0 1 13 23.099999999999998V23.1A1.1 1.1 0 0 1 14.1 22Z" fill="#e0f2fe"></path><path d="M14.1 27H23.9A1.1 1.1 0 0 1 25 28.1V28.099999999999998A1.1 1.1 0 0 1 23.9 29.2H14.1A1.1 1.1 0 0 1 13 28.099999999999998V28.1A1.1 1.1 0 0 1 14.1 27Z" fill="#e0f2fe"></path><path d="M27 35a8 8 0 1 0 16 0a8 8 0 1 0 -16 0Z" fill="#e0f2fe"></path><path d="M28.7 35a6.3 6.3 0 1 0 12.6 0a6.3 6.3 0 1 0 -12.6 0Z" fill="none" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M32.6 34H37.4A1.1 1.1 0 0 1 38.5 35.1V35.1A1.1 1.1 0 0 1 37.4 36.2H32.6A1.1 1.1 0 0 1 31.5 35.1V35.1A1.1 1.1 0 0 1 32.6 34Z" fill="#0ea5e9"></path></svg><span class="num" style="font-size: 14px;">{{photoName}}</span></div></div>
+<div style="padding: 0 20px 20px; display: flex; gap: 10px;"><button type="button" class="btn line" onClick="{{print}}" style="flex: 1;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"></path></svg>{{t.print}}</button><button type="button" class="btn solid" onClick="{{closePhoto}}" style="flex: 1;">{{t.close}}</button></div>
+</section>
+</sc-if>
+
+</div>
+</main>
+<sc-if value="{{hasMsg}}" hint-placeholder-val="{{ false }}"><div class="fade" role="status" style="position: absolute; top: 90px; left: 50%; transform: translateX(-50%); z-index: 30; display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 14px; background: #0f172a; color: #fff; font-size: 15px; font-weight: 500; box-shadow: 0 16px 36px -14px rgba(15,23,42,.6); max-width: 640px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg><span>{{msg}}</span></div></sc-if>
+
+
+<a href="../gridai/GridAI.dc.html" class="gfab" aria-label="Open GridAI"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"></path></svg><span>GridAI</span></a>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 1350}}'>
+
+var BND = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
+function dg(s, bn) { s = String(s); return bn ? s.replace(/[0-9]/g, function (d) { return BND[+d]; }) : s; }
+function money(n, bn) { var s = String(Math.round(Math.abs(n))); var last = s.slice(-3), rest = s.slice(0, -3); if (rest) s = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + last; else s = last; return dg((n < 0 ? '−' : '') + '৳' + s, bn); }
+function num(x) { return +(String(x).replace(/[^\d.]/g, '').replace(/^$/, '0')) || 0; }
+function unbn(x) { return String(x).replace(/[০-৯]/g, function (d) { return BND.indexOf(d); }); }
+function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
+function toast(self, m) { clearTimeout(self.t); self.setState({ msg: m }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 3200); }
+function seg(self, opts, cur, key, i, base) { return opts.map(function (o) { var on = o[0] === cur; return { k: o[0], l: o[1 + i], on: on, cls: (base || 'sgb') + (on ? ' on' : ''), pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
+function sw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
+var T = {"menu": ["মেনু", "Menu"], "shop": ["রহমান স্টোর", "GridShop"], "shopInitial": ["র", "R"], "branch": ["মিরপুর শাখা", "Mirpur branch"], "newSale": ["নতুন বেচা", "New sale"], "gDaily": ["প্রতিদিনের কাজ", "Daily work"], "gGoods": ["মাল ও স্টক", "Goods & stock"], "gPeople": ["মানুষজন", "People"], "gAccounts": ["হিসাব", "Accounts"], "nHome": ["হোম", "Home"], "nSalesBook": ["বেচার খাতা", "Sales book"], "nInvoices": ["পাইকারি ও ইনভয়েস", "Wholesale & invoices"], "nReturn": ["ফেরত ও বদল", "Return & exchange"], "nPurchase": ["মাল কেনা", "Purchase"], "nMoney": ["টাকা আসা-যাওয়া", "Money in & out"], "nProducts": ["প্রোডাক্ট", "Products"], "nCategories": ["ক্যাটাগরি", "Categories"], "nBarcode": ["বারকোড", "Barcodes"], "nStock": ["স্টক ও গুদাম", "Stock & warehouses"], "nDamage": ["ড্যামেজ ও মেয়াদ শেষ", "Damaged & expired"], "nWarranty": ["ওয়ারেন্টি", "Warranty"], "nCatalog": ["ক্যাটালগ", "Catalogue"], "nCustomers": ["কাস্টমার ও বাকি", "Customers & dues"], "nSuppliers": ["সাপ্লায়ার ও দেনা", "Suppliers & payables"], "nStaff": ["স্টাফ", "Staff"], "nBook": ["হিসাব খাতা ও খরচ", "Cash book & expenses"], "nVat": ["ভ্যাট", "VAT"], "nReports": ["রিপোর্ট", "Reports"], "nPos": ["POS খুলুন", "Open POS"], "nSettings": ["সেটিংস", "Settings"], "search": ["প্রোডাক্ট, কাস্টমার বা মেমো নম্বর খুঁজুন", "Search products, customers or memo no."], "voiceSearch": ["কথা বলে খুঁজুন", "Search by voice"], "notif": ["নোটিফিকেশন", "Notifications"], "owner": ["মোস্তাফিজ", "Mostafiz"], "ownerInitial": ["মো", "M"], "role": ["মালিক", "Owner"], "aiAsk": ["কথা বলুন", "Ask by voice"], "aiTitle": ["গ্রিড সহকারী", "Grid assistant"], "aiSub": ["বাংলায় বলুন বা লিখুন — যেকোনো স্ক্রিন থেকে", "Speak or type — from any screen"], "close": ["বন্ধ করুন", "Close"], "aiType": ["এখানে লিখুন…", "Type here…"], "aiSpeak": ["কথা বলুন", "Speak"], "back": ["পেছনে", "Back"], "tHome": ["হোম", "Home"], "tSales": ["বেচা", "Sales"], "tStock": ["স্টক", "Stock"], "tMore": ["আরও", "More"], "save": ["সেভ করুন", "Save"], "cancel": ["বাতিল", "Cancel"], "seeAll": ["সব দেখুন", "See all"], "name": ["মেঘনা ট্রেডার্স", "Techland Imports"], "hsub": ["সাপ্লায়ার · ২০২১ থেকে মাল দিচ্ছে", "Supplier · with you since 2021"], "print": ["খাতা প্রিন্ট / PDF", "Print / PDF ledger"], "newBuy": ["নতুন কেনা", "New purchase"], "pay": ["টাকা দিন", "Pay"], "contact": ["যোগাযোগ", "Contact"], "person": ["জসিম উদ্দিন (মালিক)", "Jashim Uddin (owner)"], "call": ["কল করুন", "Call"], "addr": ["ঠিকানা", "Address"], "addrV": ["৪২ মৌলভীবাজার, চকবাজার, ঢাকা-১২১১", "42 Moulvibazar, Chawkbazar, Dhaka-1211"], "supplies": ["কী মাল দেয়", "Supplies"], "credit": ["৩০ দিনের বাকি দেয়", "Gives 30 days’ credit"], "creditHint": ["মাল নেওয়ার ৩০ দিনের মধ্যে টাকা দিতে হয়", "Pay within 30 days of delivery"], "kOwe": ["মোট দেনা", "Total payable"], "kToday": ["আজ দিতে হবে", "Due today"], "kYear": ["এই বছর মোট কেনা", "Bought this year"], "kPaid": ["মোট দিয়েছি", "Paid in total"], "tLedger": ["খাতা", "Ledger"], "tInv": ["চালান", "Invoices"], "tPays": ["পেমেন্টের ইতিহাস", "Payment history"], "tDue": ["দেনা শোধের তারিখ", "Due dates"], "cDate": ["তারিখ", "Date"], "cDesc": ["বিবরণ", "Details"], "cBuy": ["কেনা (+)", "Bought (+)"], "cPay": ["দিলাম (−)", "Paid (−)"], "cBal": ["ব্যালান্স", "Balance"], "ledgerNote": ["ব্যালান্স মানে আপনি মেঘনাকে কত টাকা দেবেন।", "Balance is what you owe Techland."], "cNo": ["চালান", "Invoice"], "cTotal": ["মোট", "Total"], "cPaid": ["দিয়েছি", "Paid"], "cDue": ["শোধের তারিখ", "Due date"], "cStatus": ["অবস্থা", "Status"], "seePhoto": ["ছবি দেখুন", "View photo"], "cAmt": ["টাকা", "Amount"], "cMethod": ["কীভাবে", "Method"], "cWho": ["কে দিল", "Paid by"], "cFor": ["কোন চালানের", "For invoice"], "remind": ["আগের দিন আমাকে মনে করিয়ে দেবে", "Remind me the day before"], "remindHint": ["সকাল ৯টায় ফোনে নোটিফিকেশন আর SMS আসবে", "You get a phone notification and SMS at 9 am"], "remindRow": ["মনে করাবে", "Remind"], "payTitle": ["টাকা দিন", "Pay supplier"], "amount": ["কত টাকা দিচ্ছেন", "Amount"], "method": ["কীভাবে দিচ্ছেন", "Paid by"], "which": ["কোন চালানের টাকা", "Which invoices this settles"], "whichHint": ["টিক দিলে টাকার ঘর নিজে থেকে বসে যাবে", "Ticking fills in the amount for you"], "note": ["নোট", "Note"], "notePh": ["যেমন: জসিম ভাইয়ের হাতে দিলাম", "e.g. handed to Jashim bhai"], "paid": ["টাকা দিলাম", "Paid"], "nowOwe": ["এখন দেনা", "Owed now"], "after": ["দেওয়ার পর থাকবে", "Left after this"], "photoTitle": ["চালানের ছবি", "Invoice photo"], "pageTitle": ["মেঘনা ট্রেডার্স", "Techland Imports"]};
+var AI = [["মেঘনার কাছে কত দেনা?", "How much do I owe Techland?", "মেঘনা ট্রেডার্সের কাছে দেনা ৳৪৮,০০০ — ২টা চালানে। এর মধ্যে ৳২৫,০০০ আজই দিতে হবে (MGT-1098)।", "You owe Techland Imports ৳48,000 on 2 invoices. ৳25,000 of it (MGT-1098) is due today."], ["মেঘনাকে ২৫ হাজার বিকাশে দিলাম", "Paid Techland 25k by bKash", "লিখলাম: ৳২৫,০০০ বিকাশে, চালান MGT-1098 শোধ। বাকি দেনা ৳২৩,০০০, দিতে হবে ২৯ অক্টোবর।", "Noted: ৳25,000 by bKash, invoice MGT-1098 settled. ৳23,000 left, due 29 October."], ["খাতাটা PDF করে দাও", "Make the ledger a PDF", "১ আগস্ট থেকে আজ পর্যন্ত মেঘনা ট্রেডার্সের খাতা PDF বানাচ্ছি। হোয়াটসঅ্যাপে জসিম ভাইকে পাঠাব?", "Making a PDF of the Techland Imports ledger from 1 Aug to today. Send it to Jashim bhai on WhatsApp?"]];
+var NAVC = {"stock": "7", "customers": "12", "suppliers": "3"};
+
+class Component extends DCLogic {
+  componentWillUnmount() { clearTimeout(this.t); }
+  renderVals() {
+    var self = this, s = this.state || {};
+    var lang = 'en', bn = false, i = bn ? 0 : 1;
+    var t = {}; Object.keys(T).forEach(function (k) { t[k] = T[k][i]; });
+    var L = function (a, b) { return bn ? a : b; };
+    var c = {}; Object.keys(NAVC).forEach(function (k) { c[k] = dg(NAVC[k], bn); });
+    var ak = s.aiKey == null ? 0 : s.aiKey;
+    var base = {
+      t: t, c: c, rootCls: bn ? 'fbn' : 'fen', isBn: bn, isEn: !bn,
+      bnCls: bn ? 'sgb on' : 'sgb', enCls: bn ? 'sgb' : 'sgb on', bnPill: bn ? 'on' : '', enPill: bn ? '' : 'on',
+      setBn: function () { self.setState({ lang: 'bn' }); }, setEn: function () { self.setState({ lang: 'en' }); },
+      aiOpen: !!s.aiOpen, aiClosed: !s.aiOpen,
+      openAi: function () { self.setState({ aiOpen: true, listening: true }); },
+      closeAi: function () { self.setState({ aiOpen: false, listening: false }); },
+      listening: !!s.listening, micBg: s.listening ? '#e0431b' : '#003087', micFg: s.listening ? '#e0431b' : '#475569',
+      micLbl: s.listening ? L('শুনছি… বলুন', 'Listening… go ahead') : L('চাপ দিয়ে বলুন', 'Tap and speak'),
+      toggleListen: function () { self.setState({ listening: !s.listening }); },
+      aiQ: AI[ak][i], aiA: AI[ak][2 + i],
+      sugg: AI.map(function (q, j) { return { l: q[i], pick: function () { self.setState({ aiKey: j, listening: false }); } }; }),
+      hasMsg: !!s.msg, msg: s.msg || ''
+    };
+    var extra = (function () {
+
+var MB = ['জানু', 'ফেব্রু', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
+var ME = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+var D = function (d, m) { return bn ? dg(d, true) + ' ' + MB[m - 1] : d + ' ' + ME[m - 1]; };
+var MET = { cash: ['ক্যাশ', 'Cash', '#e7f8f1', '#047857'], bkash: ['বিকাশ', 'bKash', '#fdecf5', '#a3195b'], bank: ['ব্যাংক', 'Bank', '#eef3fb', '#003087'] };
+var WHO = [['মোস্তাফিজ', 'Mostafiz'], ['সুমন', 'Suman'], ['কামাল', 'Kamal']];
+// ledger: d, m, type (open|buy|pay), inv, amount, method
+var LED = [
+  [1, 8, 'open', '', 36000, ''], [5, 8, 'buy', 'MGT-1071', 44000, ''], [10, 8, 'pay', '', 50000, 'bank'], [22, 8, 'pay', '', 30000, 'cash'],
+  [30, 8, 'buy', 'MGT-1098', 52000, ''], [30, 8, 'pay', '', 20000, 'cash'], [15, 9, 'pay', '', 7000, 'bkash'], [29, 9, 'buy', 'MGT-1127', 38000, ''], [29, 9, 'pay', '', 15000, 'cash']
+];
+// payments: d, m, amt, method, who, inv, ref
+var PAYS = [
+  [29, 9, 15000, 'cash', 0, 'MGT-1127', ['মাল নেওয়ার সময়', 'At delivery']], [15, 9, 7000, 'bkash', 0, 'MGT-1098', ['TrxID 9KX2M7Q', 'TrxID 9KX2M7Q']],
+  [30, 8, 20000, 'cash', 2, 'MGT-1098', ['মাল নেওয়ার সময়', 'At delivery']], [22, 8, 30000, 'cash', 1, 'MGT-1071', ['জসিম ভাইয়ের হাতে', 'Handed to Jashim']],
+  [10, 8, 50000, 'bank', 0, 'MGT-1071 + MGT-1043', ['চেক · ডাচ্-বাংলা ব্যাংক', 'Cheque · Dutch-Bangla Bank']]
+];
+// invoices: no, d, m, items, total, paid, due d, due m
+var INVS = [['MGT-1127', 29, 9, 4, 38000, 15000, 29, 10], ['MGT-1098', 30, 8, 4, 52000, 27000, 29, 9], ['MGT-1071', 5, 8, 5, 44000, 44000, 4, 9], ['MGT-1043', 12, 7, 6, 61500, 61500, 11, 8], ['MGT-1019', 20, 6, 4, 39000, 39000, 20, 7]];
+var extraPays = s.extraPays || [];
+var extraSum = extraPays.reduce(function (n, p) { return n + p[0]; }, 0);
+var owe = 48000 - extraSum;
+var todayLeft = Math.max(0, 25000 - extraSum);
+var tab = s.tab || 'ledger';
+var bal = 0;
+var ledRows = LED.concat(extraPays.map(function (p) { return [29, 9, 'pay', '', p[0], p[1]]; }));
+var openInv = [['MGT-1098', 30, 8, Math.max(0, 25000 - extraSum), 29, 9], ['MGT-1127', 29, 9, Math.min(23000, 48000 - extraSum), 29, 10]].filter(function (v) { return v[3] > 0; });
+var ticks = s.ticks || (openInv[0] ? (function () { var o = {}; o[openInv[0][0]] = 1; return o; })() : {});
+var tickSum = openInv.filter(function (v) { return ticks[v[0]]; }).reduce(function (n, v) { return n + v[3]; }, 0);
+var amt = s.payAmt == null ? tickSum : s.payAmt;
+var pm = s.pm || 'cash';
+var rem = sw(self, 'remind', true);
+var remRow = s.remRow || { 'MGT-1098': true, 'MGT-1127': true };
+return {
+  ini: t.name.slice(0, 1), mobile: dg('01819-234567', bn),
+  call: function () { toast(self, L('জসিম উদ্দিনকে কল করা হচ্ছে… ০১৮১৯-২৩৪৫৬৭', 'Calling Jashim Uddin… 01819-234567')); },
+  print: function () { toast(self, L('খাতার PDF তৈরি হচ্ছে — ১ আগস্ট থেকে আজ পর্যন্ত।', 'Preparing ledger PDF — 1 Aug to today.')); },
+  goods: [L('মিনিকেট চাল', 'Power banks'), L('মসুর ডাল', 'Micro-USB cables'), L('চিনি', 'Lightning cables'), L('সয়াবিন তেল', 'Chargers')].map(function (x) { return { l: x }; }),
+  k: {
+    owe: money(owe, bn), oweN: L('২টা চালানে · MGT-1098, MGT-1127', 'On 2 invoices · MGT-1098, MGT-1127').replace(/[0-9]/g, function (x) { return dg(x, bn); }),
+    today: money(todayLeft, bn), todayN: todayLeft ? L('চালান MGT-1098 · ৩০ দিন পূর্ণ', 'Invoice MGT-1098 · 30 days up').replace(/[0-9]/g, function (x) { return dg(x, bn); }) : L('আজকের টাকা দেওয়া হয়ে গেছে', 'Today’s payment is done'),
+    year: money(940000, bn), yearN: L('জানুয়ারি থেকে · ১৮টা চালান', 'Since January · 18 invoices'),
+    paid: money(892000 + extraSum, bn), paidN: L('শেষ পেমেন্ট আজ, ৳১৫,০০০ ক্যাশ', 'Last paid today, ৳15,000 cash')
+  },
+  tabs: seg(self, [['ledger', 'খাতা', 'Ledger'], ['inv', 'চালান', 'Invoices'], ['pays', 'পেমেন্টের ইতিহাস', 'Payment history'], ['due', 'দেনা শোধের তারিখ', 'Due dates']], tab, 'tab', i, 'tl').map(function (o) { return assign(o, { iLed: o.k === 'ledger', iInv: o.k === 'inv', iPay: o.k === 'pays', iDue: o.k === 'due' }); }),
+  isLedger: tab === 'ledger', isInv: tab === 'inv', isPays: tab === 'pays', isDue: tab === 'due',
+  ledger: ledRows.map(function (r, j) {
+    var isNew = j >= LED.length;
+    if (r[2] === 'open') bal = r[4]; else if (r[2] === 'buy') bal += r[4]; else bal -= r[4];
+    return {
+      date: D(r[0], r[1]) + (r[1] === 9 && r[0] === 29 ? L(' (আজ)', ' (today)') : ''),
+      desc: r[2] === 'open' ? L('আগের জের (জুলাই থেকে)', 'Brought forward (from July)') : r[2] === 'buy' ? L('চালান #', 'Invoice #') + dg(r[3], bn) + L(' — মাল কেনা', ' — goods bought') : L('টাকা দিলাম (', 'Paid (') + MET[r[5]][i] + ')',
+      sign: r[2] === 'buy' ? '+' : r[2] === 'pay' ? '−' : '=',
+      icBg: r[2] === 'buy' ? '#fff4e0' : r[2] === 'pay' ? '#e7f8f1' : '#eef2f6', icFg: r[2] === 'buy' ? '#a14f06' : r[2] === 'pay' ? '#047857' : '#475569',
+      buy: r[2] === 'buy' ? money(r[4], bn) : '', pay: r[2] === 'pay' ? money(r[4], bn) : '', bal: money(bal, bn),
+      rowBg: isNew ? '#f0fbf6' : '#fff', isBuy: r[2] === 'buy', isPay: r[2] === 'pay', isOpen: r[2] === 'open'
+    };
+  }),
+  invs: INVS.map(function (v) {
+    var o = v[4] - v[5], st = o <= 0 ? [L('পুরো দেওয়া', 'Paid in full'), 'pill p-ok'] : (v[6] === 29 && v[7] === 9) ? [L('আজ দিতে হবে · ', 'Due today · ') + money(o, bn), 'pill p-due'] : [L('দেনা ', 'Owe ') + money(o, bn), 'pill p-warn'];
+    return { no: dg(v[0], bn), sub: D(v[1], v[2]) + ' · ' + dg(v[3], bn) + L('টা আইটেম', ' items'), total: money(v[4], bn), paid: money(v[5], bn), due: D(v[6], v[7]), st: st[0], stCls: st[1], photo: function () { self.setState({ photo: v[0] }); } };
+  }),
+  pays: extraPays.map(function (p) { return [29, 9, p[0], p[1], 0, 'MGT-1098', ['এইমাত্র', 'Just now']]; }).concat(PAYS).map(function (p) {
+    var m = MET[p[3]]; return { isCash: p[3] === 'cash', isBk: p[3] === 'bkash', isBank: p[3] === 'bank', date: D(p[0], p[1]), amt: money(p[2], bn), m: m[i], bg: m[2], fg: m[3], ref: p[6][i], who: WHO[p[4]][i], ini: WHO[p[4]][i].slice(0, 1), inv: dg(p[5], bn) };
+  }),
+  remind: rem,
+  sched: openInv.map(function (v) {
+    var today = v[4] === 29 && v[5] === 9, on = remRow[v[0]] !== false && rem.on;
+    return {
+      d: dg(v[4], bn), m: bn ? MB[v[5] - 1] : ME[v[5] - 1], fg: today ? '#b83210' : '#0f172a',
+      rel: today ? L('আজ', 'Today') : L('৩০ দিন পর', 'In 30 days'), relCls: today ? 'pill p-due' : 'pill p-grey', inv: dg(v[0], bn),
+      sub: L('কেনা ', 'Bought ') + D(v[1], v[2]) + L(' · মনে করাবে ', ' · reminder on ') + (today ? L('২৮ সেপ্টেম্বর (পাঠানো হয়েছে)', '28 Sep (sent)') : L('২৮ অক্টোবর', '28 Oct')),
+      amt: money(v[3], bn), bd: today ? '#f7c9bb' : '#e6eaf0', bg: today ? '#fffaf8' : '#fff',
+      swOn: on, swCls: on ? 'sw on' : 'sw', toggle: function () { var o = assign({}, remRow); o[v[0]] = !on; self.setState({ remRow: o }); }
+    };
+  }),
+  payOpen: !!s.payOpen, openPay: function () { self.setState({ payOpen: true, ticks: null, payAmt: null }); }, closePay: function () { self.setState({ payOpen: false }); },
+  pm: {
+    amtTxt: dg(amt, bn), amtMoney: money(amt, bn), left: money(Math.max(0, owe - amt), bn),
+    typeAmt: function (e) { self.setState({ payAmt: num(unbn(e.target.value)) }); },
+    methods: seg(self, [['cash', 'ক্যাশ', 'Cash'], ['bkash', 'বিকাশ', 'bKash'], ['bank', 'ব্যাংক', 'Bank']], pm, 'pm', i, 'chip').map(function (o) { return assign(o, { isCash: o.k === 'cash', isBk: o.k === 'bkash', isBank: o.k === 'bank' }); }),
+    invs: openInv.map(function (v) { var on = !!ticks[v[0]], today = v[4] === 29 && v[5] === 9; return {
+      no: dg(v[0], bn), sub: L('কেনা ', 'Bought ') + D(v[1], v[2]), due: today ? L('আজ', 'Today') : D(v[4], v[5]), dueCls: today ? 'pill p-warn' : 'pill p-grey', amt: money(v[3], bn), on: on,
+      bd: on ? '#003087' : '#e2e8f0', bg: on ? '#f5f8ff' : '#fff', boxBd: on ? '#003087' : '#94a3b8', boxBg: on ? '#003087' : '#fff',
+      toggle: function () { var o = assign({}, ticks); if (on) delete o[v[0]]; else o[v[0]] = 1; self.setState({ ticks: o, payAmt: null }); }
+    }; }),
+    confirm: function () {
+      if (!amt) { toast(self, L('কত টাকা দিচ্ছেন লিখুন।', 'Enter the amount first.')); return; }
+      var a = Math.min(amt, owe);
+      self.setState({ payOpen: false, extraPays: extraPays.concat([[a, pm]]), ticks: null, payAmt: null, tab: 'ledger' });
+      toast(self, L('মেঘনা ট্রেডার্সকে ' + money(a, true) + ' দেওয়া হলো (' + MET[pm][0] + ')। বাকি দেনা ' + money(owe - a, true) + '।', 'Paid ' + money(a, false) + ' to Techland Imports (' + MET[pm][1] + '). Still owed: ' + money(owe - a, false) + '.'));
+    }
+  },
+  photoOpen: !!s.photo, photoName: dg((s.photo || 'MGT-1127') + '.jpg', bn), closePhoto: function () { self.setState({ photo: null }); }
+};
+
+    })();
+    return assign(base, extra || {});
+  }
+}
+</script>
+</body>
+</html>

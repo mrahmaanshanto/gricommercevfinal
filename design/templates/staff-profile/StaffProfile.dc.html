@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script><script src="../_shell/gc-topbar.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Staff profile and access" description="One merchant-admin screen for a single staff member: identity, permissions, shift, attendance, leave, salary, activity and documents — with a live Bangla toggle and preview states." -->
+<helmet><script src="./ds-base.js"></script><script src="/_blob/1840c8d9327e1d872bcd8bc9a4590a5a"></script><style>html,body{height:100%;margin:0}*{box-sizing:border-box}:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:1px}@keyframes gcfade{from{opacity:0}to{opacity:1}}@keyframes gcpop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}@keyframes gcrise{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}</style></helmet>
+<div style="position:relative;width:100%;min-width:1240px;height:100vh;overflow:hidden;display:flex;background:#f8fafc;font-family:Poppins,'Hind Siliguri',ui-sans-serif,system-ui,sans-serif;color:#475569">
+<nav aria-label="Admin sections" style="width:68px;flex:none;height:100%;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 0 12px;border-right:1px solid #e2e8f0;background:#fff">
+<a href="../site-map/SiteMap.dc.html" title="GridCommerce" style="display:grid;place-items:center;width:38px;height:38px;flex:none;border-radius:10px;background:#003087;font-size:16px;font-weight:600;color:#fff;text-decoration:none">G</a>
+<span style="height:10px;flex:none"></span>
+<a href="../merchant-overview/MerchantOverview.dc.html" title="Dashboard" style="width:44px;height:42px;flex:none;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#64748b" style-hover="background:#f1f5f9;color:#1e293b"><i data-lucide="layout-dashboard" width="19" height="19"></i></a>
+<a href="../merchant-orders/MerchantOrders.dc.html" title="Orders" style="width:44px;height:42px;flex:none;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#64748b" style-hover="background:#f1f5f9;color:#1e293b"><i data-lucide="shopping-cart" width="19" height="19"></i></a>
+<a href="../pos-register/PosRegister.dc.html" title="POS register" style="width:44px;height:42px;flex:none;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#64748b" style-hover="background:#f1f5f9;color:#1e293b"><i data-lucide="scan-line" width="19" height="19"></i></a>
+<a href="../products/AllProducts.dc.html" title="Products and stock" style="width:44px;height:42px;flex:none;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#64748b" style-hover="background:#f1f5f9;color:#1e293b"><i data-lucide="package" width="19" height="19"></i></a>
+<a href="../staff-hr/HrDashboard.dc.html" aria-current="page" title="Staff and payroll" style="position:relative;width:44px;height:42px;flex:none;display:grid;place-items:center;border-radius:10px;text-decoration:none;background:rgba(0,48,135,.1);color:#003087"><i data-lucide="users" width="19" height="19"></i><span style="position:absolute;left:-12px;top:9px;width:3px;height:24px;border-radius:0 3px 3px 0;background:#003087"></span></a>
+<a href="#" title="Reports" style="width:44px;height:42px;flex:none;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#64748b" style-hover="background:#f1f5f9;color:#1e293b"><i data-lucide="bar-chart-3" width="19" height="19"></i></a>
+<a href="../settings-console/SettingsConsole.dc.html" title="Settings" style="width:44px;height:42px;flex:none;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#64748b" style-hover="background:#f1f5f9;color:#1e293b"><i data-lucide="settings" width="19" height="19"></i></a>
+<span style="flex:1"></span>
+<a href="#" title="Help" style="width:44px;height:42px;flex:none;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#94a3b8" style-hover="background:#f1f5f9;color:#1e293b"><i data-lucide="life-buoy" width="19" height="19"></i></a>
+</nav>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column">
+<gc-topbar crumb="{{ t.staff }}" page="{{ t.name }}" height="56" base="../" placeholder="{{ t.searchStaff }}"></gc-topbar>
+<div style="flex:1;min-height:0;overflow:auto">
+<div style="padding:22px 26px 26px;display:flex;flex-direction:column;gap:16px">
+<section aria-label="Staff identity" style="position:relative;border-radius:8px;overflow:hidden;box-shadow:0 3px 10px 0 rgba(48,46,56,.06);background:#012169">
+<sc-if value="{{ suspended }}"><span aria-hidden="true" style="position:absolute;inset:0;background:#475569"></span></sc-if>
+<div style="position:relative;display:flex;align-items:flex-start;gap:20px;padding:22px 24px 20px">
+<span aria-hidden="true" style="display:grid;place-items:center;width:78px;height:78px;flex:none;border-radius:9999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);font-size:26px;font-weight:600;letter-spacing:.02em;color:#fff">SA</span>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+<h1 style="margin:0;font-size:24px;line-height:30px;font-weight:700;letter-spacing:-.025em;color:#fff">{{ t.name }}</h1>
+<sc-if value="{{ active }}" hint-placeholder-val="{{ true }}"><span style="display:inline-flex;align-items:center;gap:6px;height:24px;border-radius:9999px;padding:0 10px;font-size:12px;font-weight:600;letter-spacing:.02em;background:rgba(16,185,129,.2);color:#d1fae5"><i data-lucide="check-circle-2" width="13" height="13"></i>{{ pillText }}</span></sc-if>
+<sc-if value="{{ suspended }}"><span style="display:inline-flex;align-items:center;gap:6px;height:24px;border-radius:9999px;padding:0 10px;font-size:12px;font-weight:600;letter-spacing:.02em;background:rgba(255,255,255,.18);color:#fee2e2"><i data-lucide="ban" width="13" height="13"></i>{{ pillText }}</span></sc-if>
+<span style="display:inline-flex;align-items:center;gap:6px;height:24px;border-radius:9999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);padding:0 10px;font-size:12px;font-weight:500;color:#dbeafe"><i data-lucide="hash" width="12" height="12"></i>EMP-0142</span>
+</div>
+<p style="margin:0;font-size:14px;font-weight:500;letter-spacing:.025em;color:#cfe4ff">{{ t.designation }} · {{ t.branch }}</p>
+<sc-if value="{{ active }}" hint-placeholder-val="{{ true }}"><div style="display:flex;align-items:center;gap:8px;height:34px;width:fit-content;border-radius:8px;background:rgba(16,185,129,.18);padding:0 12px;font-size:13px;font-weight:500;color:#d1fae5"><i data-lucide="log-in" width="15" height="15"></i><span>{{ todayText }}</span></div></sc-if>
+<sc-if value="{{ suspended }}"><div style="display:flex;align-items:center;gap:8px;height:34px;width:fit-content;border-radius:8px;background:rgba(255,255,255,.1);padding:0 12px;font-size:13px;font-weight:500;color:#e2e8f0"><i data-lucide="minus-circle" width="15" height="15"></i><span>{{ todayText }}</span></div></sc-if>
+<dl style="margin:0;display:flex;align-items:center;gap:22px;flex-wrap:wrap;font-size:12.5px;color:#a9c6ea">
+<div style="display:flex;align-items:center;gap:6px"><dt style="margin:0">{{ t.joined }}</dt><dd style="margin:0;font-weight:500;color:#fff">02 Mar 2026</dd></div>
+<div style="display:flex;align-items:center;gap:6px"><dt style="margin:0">{{ t.reportsTo }}</dt><dd style="margin:0;font-weight:500;color:#fff">Nusrat Jahan · {{ t.branchManager }}</dd></div>
+<div style="display:flex;align-items:center;gap:6px"><dt style="margin:0">{{ t.employment }}</dt><dd style="margin:0;font-weight:500;color:#fff">{{ t.fullTime }}</dd></div>
+<div style="display:flex;align-items:center;gap:6px"><dt style="margin:0">{{ t.phone }}</dt><dd style="margin:0;display:flex;align-items:center;gap:6px;font-weight:500;color:#fff"><span>{{ phoneText }}</span><i data-lucide="{{ phoneIcon }}" width="13" height="13" style="color:#a9c6ea"></i></dd></div>
+</dl>
+</div>
+<div style="flex:none;display:flex;align-items:center;gap:8px">
+<sc-if value="{{ active }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ openEdit }}" style="display:inline-flex;align-items:center;gap:7px;height:36px;border:none;border-radius:8px;background:#003087;padding:0 15px;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;color:#fff;cursor:pointer" style-hover="background:#002a77"><i data-lucide="pencil" width="16" height="16"></i>{{ primaryLabel }}</button></sc-if>
+<sc-if value="{{ suspended }}"><button type="button" onClick="{{ openEdit }}" style="display:inline-flex;align-items:center;gap:7px;height:36px;border:none;border-radius:8px;background:#047857;padding:0 15px;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;color:#fff;cursor:pointer" style-hover="background:#036049"><i data-lucide="user-check" width="16" height="16"></i>{{ primaryLabel }}</button></sc-if>
+<div style="position:relative">
+<button type="button" onClick="{{ toggleMenu }}" aria-haspopup="menu" aria-expanded="{{ menuOpen }}" style="display:inline-flex;align-items:center;gap:6px;height:36px;border:1px solid rgba(255,255,255,.3);border-radius:8px;background:rgba(255,255,255,.08);padding:0 12px;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;color:#fff;cursor:pointer" style-hover="background:rgba(255,255,255,.16)">{{ t.more }}<i data-lucide="chevron-down" width="15" height="15"></i></button>
+<sc-if value="{{ menuOpen }}">
+<div role="menu" aria-label="More staff actions" style="position:absolute;top:42px;right:0;z-index:120;width:268px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:6px;box-shadow:0 10px 30px -8px rgba(15,23,42,.35);animation:gcrise .18s ease-out">
+<sc-for list="{{ menuItems }}" as="m" hint-placeholder-count="5">
+<sc-if value="{{ m.neutral }}" hint-placeholder-val="{{ true }}"><button type="button" role="menuitem" onClick="{{ m.act }}" style="display:flex;align-items:center;gap:10px;width:100%;height:36px;border:none;border-radius:6px;background:none;padding:0 10px;font-family:inherit;font-size:13px;font-weight:500;text-align:left;cursor:pointer;color:#475569" style-hover="background:#f1f5f9"><i data-lucide="{{ m.icon }}" width="16" height="16"></i>{{ m.label }}</button></sc-if>
+<sc-if value="{{ m.danger }}"><button type="button" role="menuitem" onClick="{{ m.act }}" style="display:flex;align-items:center;gap:10px;width:100%;height:36px;border:none;border-radius:6px;background:none;padding:0 10px;font-family:inherit;font-size:13px;font-weight:500;text-align:left;cursor:pointer;color:#c2410c" style-hover="background:#fff7ed"><i data-lucide="{{ m.icon }}" width="16" height="16"></i>{{ m.label }}</button></sc-if>
+<sc-if value="{{ m.good }}"><button type="button" role="menuitem" onClick="{{ m.act }}" style="display:flex;align-items:center;gap:10px;width:100%;height:36px;border:none;border-radius:6px;background:none;padding:0 10px;font-family:inherit;font-size:13px;font-weight:500;text-align:left;cursor:pointer;color:#047857" style-hover="background:#ecfdf5"><i data-lucide="{{ m.icon }}" width="16" height="16"></i>{{ m.label }}</button></sc-if>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</div>
+</div>
+<div style="position:relative;display:flex;align-items:center;gap:2px;padding:0 14px;background:rgba(255,255,255,.06);border-top:1px solid rgba(255,255,255,.1);overflow:auto">
+<sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="7">
+<sc-if value="{{ tb.sel }}"><button type="button" onClick="{{ tb.act }}" aria-current="page" style="position:relative;display:inline-flex;align-items:center;gap:7px;height:46px;flex:none;border:none;background:none;padding:0 14px;font-family:inherit;font-size:13.5px;font-weight:600;letter-spacing:.025em;cursor:pointer;color:#fff;box-shadow:inset 0 -2px 0 0 #009CDE"><i data-lucide="{{ tb.icon }}" width="15" height="15"></i>{{ tb.label }}<sc-if value="{{ tb.dot }}"><span style="width:6px;height:6px;border-radius:9999px;background:#ff9800"></span></sc-if></button></sc-if>
+<sc-if value="{{ tb.unsel }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ tb.act }}" aria-current="false" style="position:relative;display:inline-flex;align-items:center;gap:7px;height:46px;flex:none;border:none;background:none;padding:0 14px;font-family:inherit;font-size:13.5px;font-weight:500;letter-spacing:.025em;cursor:pointer;color:#a9c6ea" style-hover="color:#fff"><i data-lucide="{{ tb.icon }}" width="15" height="15"></i>{{ tb.label }}<sc-if value="{{ tb.dot }}"><span style="width:6px;height:6px;border-radius:9999px;background:#ff9800"></span></sc-if></button></sc-if>
+</sc-for>
+</div>
+</section>
+<sc-if value="{{ showOverview }}" hint-placeholder-val="{{ true }}">
+<dc-import name="StaffOverview" lang="{{ lang }}" locked="{{ salaryLocked }}" empty="{{ emptyData }}" hr="{{ hrAddon }}" go-tab="{{ goTab }}" hint-size="100%,1150px" style="width:100%"></dc-import>
+</sc-if>
+<sc-if value="{{ showAccess }}">
+<dc-import name="StaffAccess" lang="{{ lang }}" role="{{ role }}" overrides="{{ overrides }}" on-toggle="{{ toggleCell }}" on-reset="{{ resetCell }}" on-role="{{ setRole }}" on-change="{{ noteChange }}" data-vis="{{ dataVis }}" hint-size="100%,2100px" style="width:100%"></dc-import>
+</sc-if>
+<sc-if value="{{ showAttendance }}">
+<dc-import name="StaffAttendance" lang="{{ lang }}" empty="{{ emptyData }}" hint-size="100%,1050px" style="width:100%"></dc-import>
+</sc-if>
+<sc-if value="{{ showLeave }}">
+<dc-import name="StaffLeave" lang="{{ lang }}" empty="{{ emptyData }}" hint-size="100%,1000px" style="width:100%"></dc-import>
+</sc-if>
+<sc-if value="{{ showSalary }}">
+<dc-import name="StaffSalary" lang="{{ lang }}" locked="{{ salaryLocked }}" hint-size="100%,1200px" style="width:100%"></dc-import>
+</sc-if>
+<sc-if value="{{ showActivity }}">
+<dc-import name="StaffActivity" lang="{{ lang }}" hint-size="100%,1150px" style="width:100%"></dc-import>
+</sc-if>
+<sc-if value="{{ showDocs }}">
+<dc-import name="StaffDocs" lang="{{ lang }}" hint-size="100%,600px" style="width:100%"></dc-import>
+</sc-if>
+<sc-if value="{{ showUpsell }}">
+<div style="display:grid;place-items:center;padding:34px 0">
+<div style="max-width:520px;display:flex;flex-direction:column;align-items:center;gap:14px;border-radius:8px;background:#fff;padding:32px;text-align:center;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)">
+<span style="display:grid;place-items:center;width:54px;height:54px;border-radius:16px;background:rgba(0,156,222,.12);color:#0089c3"><i data-lucide="calendar-clock" width="26" height="26"></i></span>
+<h2 style="margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em;color:#1e293b">{{ t.upsellTitle }}</h2>
+<p style="margin:0;font-size:13.5px;line-height:20px;color:#64748b;text-wrap:pretty">{{ t.upsellBody }}</p>
+<div style="display:flex;align-items:center;gap:8px">
+<button type="button" style="height:36px;border:none;border-radius:8px;background:#003087;padding:0 15px;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;color:#fff;cursor:pointer" style-hover="background:#002a77">{{ t.upsellCta }}</button>
+<button type="button" style="height:36px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:0 15px;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;color:#475569;cursor:pointer" style-hover="background:#f1f5f9">{{ t.upsellSecondary }}</button>
+</div>
+<p style="margin:0;font-size:12px;color:#94a3b8">{{ t.upsellMeta }}</p>
+</div>
+</div>
+</sc-if>
+</div>
+</div>
+<sc-if value="{{ dirty }}">
+<div role="region" aria-label="Unsaved changes" style="flex:none;display:flex;align-items:center;gap:14px;height:64px;padding:0 26px;border-top:1px solid #e2e8f0;background:#fff;box-shadow:0 -8px 22px -14px rgba(15,23,42,.25)">
+<span style="display:grid;place-items:center;width:34px;height:34px;flex:none;border-radius:8px;background:rgba(255,152,0,.12);color:#b45309"><i data-lucide="alert-circle" width="18" height="18"></i></span>
+<div style="flex:1;min-width:0">
+<p style="margin:0;font-size:13.5px;font-weight:600;color:#1e293b">{{ dirtyHeadline }}</p>
+<p style="margin:0;font-size:12.5px;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ dirtySummary }}</p>
+</div>
+<button type="button" onClick="{{ discard }}" style="height:36px;flex:none;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:0 15px;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;color:#475569;cursor:pointer" style-hover="background:#f1f5f9">{{ t.discard }}</button>
+<button type="button" onClick="{{ openSave }}" style="display:inline-flex;align-items:center;gap:7px;height:36px;flex:none;border:none;border-radius:8px;background:#003087;padding:0 16px;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;color:#fff;cursor:pointer" style-hover="background:#002a77"><i data-lucide="check" width="16" height="16"></i>{{ t.saveChanges }}</button>
+</div>
+</sc-if>
+</div>
+<sc-if value="{{ toast }}">
+<div role="status" style="position:fixed;right:22px;bottom:22px;z-index:250;display:flex;align-items:center;gap:10px;max-width:360px;border-radius:8px;background:#fff;padding:12px 14px;box-shadow:0 14px 34px -10px rgba(15,23,42,.4);animation:gcrise .2s ease-out">
+<span style="display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:8px;background:rgba(16,185,129,.12);color:#047857"><i data-lucide="check" width="16" height="16"></i></span>
+<p style="margin:0;font-size:13px;font-weight:500;color:#1e293b">{{ toastText }}</p>
+</div>
+</sc-if>
+<sc-if value="{{ dialog }}">
+<div role="presentation" onClick="{{ closeDialog }}" style="position:fixed;inset:0;z-index:200;display:grid;place-items:center;background:rgba(15,23,42,.6);padding:24px;animation:gcfade .16s ease-out">
+<div role="dialog" aria-modal="true" aria-label="{{ dlg.title }}" onClick="{{ stop }}" style="width:100%;max-width:520px;max-height:82vh;overflow:auto;border-radius:8px;background:#fff;box-shadow:0 26px 60px -20px rgba(15,23,42,.5);animation:gcpop .18s cubic-bezier(0,0,.2,1)">
+<div style="display:flex;align-items:flex-start;gap:12px;padding:20px 22px 0">
+<sc-if value="{{ dlg.chipNavy }}"><span style="display:grid;place-items:center;width:38px;height:38px;flex:none;border-radius:8px;background:rgba(0,48,135,.1);color:#003087"><i data-lucide="{{ dlg.icon }}" width="20" height="20"></i></span></sc-if>
+<sc-if value="{{ dlg.chipDanger }}"><span style="display:grid;place-items:center;width:38px;height:38px;flex:none;border-radius:8px;background:rgba(255,87,36,.12);color:#c2410c"><i data-lucide="{{ dlg.icon }}" width="20" height="20"></i></span></sc-if>
+<sc-if value="{{ dlg.chipWarn }}"><span style="display:grid;place-items:center;width:38px;height:38px;flex:none;border-radius:8px;background:rgba(255,152,0,.14);color:#b45309"><i data-lucide="{{ dlg.icon }}" width="20" height="20"></i></span></sc-if>
+<sc-if value="{{ dlg.chipGood }}"><span style="display:grid;place-items:center;width:38px;height:38px;flex:none;border-radius:8px;background:rgba(16,185,129,.12);color:#047857"><i data-lucide="{{ dlg.icon }}" width="20" height="20"></i></span></sc-if>
+<sc-if value="{{ dlg.chipSky }}"><span style="display:grid;place-items:center;width:38px;height:38px;flex:none;border-radius:8px;background:rgba(0,156,222,.12);color:#0089c3"><i data-lucide="{{ dlg.icon }}" width="20" height="20"></i></span></sc-if>
+<div style="flex:1;min-width:0">
+<h2 style="margin:0;font-size:16px;font-weight:600;letter-spacing:-.01em;color:#1e293b">{{ dlg.title }}</h2>
+<p style="margin:4px 0 0;font-size:13px;line-height:19px;color:#64748b;text-wrap:pretty">{{ dlg.body }}</p>
+</div>
+<button type="button" onClick="{{ closeDialog }}" aria-label="Close" style="width:30px;height:30px;flex:none;display:grid;place-items:center;border:none;border-radius:8px;background:none;color:#94a3b8;cursor:pointer" style-hover="background:#f1f5f9;color:#1e293b"><i data-lucide="x" width="17" height="17"></i></button>
+</div>
+<sc-if value="{{ dlg.hasList }}">
+<ul style="margin:16px 22px 0;padding:0;list-style:none;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+<sc-for list="{{ changes }}" as="c" hint-placeholder-count="3">
+<li style="display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border-bottom:1px solid #e2e8f0;background:#fff">
+<sc-if value="{{ c.isAllow }}"><i data-lucide="plus-circle" width="15" height="15" style="margin-top:2px;flex:none;color:#047857"></i></sc-if>
+<sc-if value="{{ c.isBlock }}"><i data-lucide="minus-circle" width="15" height="15" style="margin-top:2px;flex:none;color:#c2410c"></i></sc-if>
+<sc-if value="{{ c.isEdit }}"><i data-lucide="pencil" width="15" height="15" style="margin-top:2px;flex:none;color:#003087"></i></sc-if>
+<div style="min-width:0"><p style="margin:0;font-size:13px;font-weight:500;color:#1e293b">{{ c.label }}</p><p style="margin:1px 0 0;font-size:12px;color:#64748b">{{ c.detail }}</p></div>
+</li>
+</sc-for>
+</ul>
+</sc-if>
+<sc-if value="{{ dlg.hasConfirmField }}">
+<label style="display:block;margin:16px 22px 0">
+<span style="display:block;margin-bottom:6px;font-size:12px;font-weight:500;letter-spacing:.025em;color:#64748b">{{ dlg.fieldLabel }}</span>
+<input type="text" placeholder="{{ dlg.fieldPlaceholder }}" style="width:100%;height:36px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:0 11px;font-family:inherit;font-size:13.5px;color:#1e293b" style-focus="border-color:#003087">
+</label>
+</sc-if>
+<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:20px;padding:14px 22px;border-top:1px solid #e2e8f0;background:#f8fafc">
+<button type="button" onClick="{{ closeDialog }}" style="height:36px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;padding:0 15px;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;color:#475569;cursor:pointer" style-hover="background:#f1f5f9">{{ t.cancel }}</button>
+<sc-if value="{{ dlg.verbNavy }}"><button type="button" onClick="{{ dlg.act }}" style="display:inline-flex;align-items:center;gap:7px;height:36px;border:none;border-radius:8px;padding:0 16px;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;color:#fff;cursor:pointer;background:#003087" style-hover="background:#002a77"><i data-lucide="{{ dlg.verbIcon }}" width="16" height="16"></i>{{ dlg.verb }}</button></sc-if>
+<sc-if value="{{ dlg.verbDanger }}"><button type="button" onClick="{{ dlg.act }}" style="display:inline-flex;align-items:center;gap:7px;height:36px;border:none;border-radius:8px;padding:0 16px;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;color:#fff;cursor:pointer;background:#c2410c" style-hover="background:#9a3412"><i data-lucide="{{ dlg.verbIcon }}" width="16" height="16"></i>{{ dlg.verb }}</button></sc-if>
+<sc-if value="{{ dlg.verbWarn }}"><button type="button" onClick="{{ dlg.act }}" style="display:inline-flex;align-items:center;gap:7px;height:36px;border:none;border-radius:8px;padding:0 16px;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;color:#fff;cursor:pointer;background:#b45309" style-hover="background:#92400e"><i data-lucide="{{ dlg.verbIcon }}" width="16" height="16"></i>{{ dlg.verb }}</button></sc-if>
+</div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ createOpen }}">
+<div style="position:fixed;inset:0;z-index:210;background:#f8fafc;animation:gcfade .16s ease-out;overflow:auto">
+<dc-import name="StaffCreate" lang="{{ lang }}" on-close="{{ closeCreate }}" hint-size="100%,100vh" style="width:100%;min-height:100vh"></dc-import>
+</div>
+</sc-if>
+<div style="position:fixed;top:76px;right:14px;z-index:9998;display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+<button type="button" onClick="{{ togglePanel }}" aria-expanded="{{ panelOpen }}" style="display:inline-flex;align-items:center;gap:7px;height:30px;border:none;border-radius:9999px;background:rgba(15,23,42,.9);padding:0 12px;font-family:inherit;font-size:11.5px;font-weight:500;letter-spacing:.02em;color:#e2e8f0;cursor:pointer;box-shadow:0 10px 26px -12px rgba(15,23,42,.6)"><i data-lucide="sliders-horizontal" width="13" height="13"></i>{{ panelLabel }}</button>
+<sc-if value="{{ panelOpen }}">
+<div style="width:250px;border-radius:10px;background:rgba(15,23,42,.94);padding:10px;box-shadow:0 16px 40px -14px rgba(15,23,42,.7);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);animation:gcrise .18s ease-out">
+<p style="margin:0 0 8px;padding:0 4px;font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#94a3b8">Preview state</p>
+<sc-for list="{{ demoRows }}" as="d" hint-placeholder-count="5">
+<sc-if value="{{ d.sel }}"><button type="button" onClick="{{ d.act }}" aria-pressed="true" style="display:flex;align-items:center;gap:8px;width:100%;height:32px;border:none;border-radius:7px;background:rgba(0,156,222,.22);padding:0 8px;font-family:inherit;font-size:12px;font-weight:500;text-align:left;color:#e0f2fe;cursor:pointer;margin-bottom:2px"><i data-lucide="{{ d.icon }}" width="14" height="14"></i><span style="flex:1">{{ d.label }}</span><span style="font-size:10.5px;letter-spacing:.04em;opacity:.8">{{ d.value }}</span></button></sc-if>
+<sc-if value="{{ d.unsel }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ d.act }}" aria-pressed="false" style="display:flex;align-items:center;gap:8px;width:100%;height:32px;border:none;border-radius:7px;background:transparent;padding:0 8px;font-family:inherit;font-size:12px;font-weight:500;text-align:left;color:#cbd5e1;cursor:pointer;margin-bottom:2px" style-hover="background:rgba(255,255,255,.08)"><i data-lucide="{{ d.icon }}" width="14" height="14"></i><span style="flex:1">{{ d.label }}</span><span style="font-size:10.5px;letter-spacing:.04em;opacity:.8">{{ d.value }}</span></button></sc-if>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;en&quot;,&quot;bn&quot;],&quot;default&quot;:&quot;en&quot;,&quot;tsType&quot;:&quot;'en' | 'bn'&quot;,&quot;section&quot;:&quot;Localisation&quot;},&quot;status&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;active&quot;,&quot;suspended&quot;],&quot;default&quot;:&quot;active&quot;,&quot;tsType&quot;:&quot;'active' | 'suspended'&quot;,&quot;section&quot;:&quot;Preview state&quot;},&quot;salaryLocked&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Preview state&quot;},&quot;hrAddon&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Preview state&quot;},&quot;emptyData&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Preview state&quot;}}">
+class Component extends DCLogic {
+  state = { lang: this.props.lang ?? 'en', tab: 'overview', status: this.props.status ?? 'active', salaryLocked: this.props.salaryLocked ?? false, hrAddon: this.props.hrAddon ?? true, emptyData: this.props.emptyData ?? false, role: 'Cashier', menuOpen: false, panelOpen: true, dialog: null, createOpen: false, toastText: '', overrides: {}, extraChanges: [], dataVis: { phone: 'masked', cost: 'hidden', salary: 'hidden' } };
+
+  componentDidMount() { this.paint(); }
+  componentDidUpdate() { this.paint(); }
+  paint() {
+    const go = () => { if (window.lucide && window.lucide.createIcons) window.lucide.createIcons({ attrs: { 'stroke-width': 1.75 } }); };
+    go(); setTimeout(go, 200); setTimeout(go, 700); setTimeout(go, 2000);
+  }
+  L(en, bn) { return this.state.lang === 'bn' ? bn : en; }
+  toast(text) { this.setState({ toastText: text }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toastText: '' }), 2600); }
+
+  changeList() {
+    const L = (en, bn) => this.L(en, bn);
+    const out = Object.keys(this.state.overrides).map(k => {
+      const v = this.state.overrides[k];
+      return { key: k, label: v.label, detail: v.on ? L('Allowed — override on role', 'অনুমোদিত — রোল ওভাররাইড') : L('Blocked — override on role', 'বন্ধ — রোল ওভাররাইড'), isAllow: v.on, isBlock: !v.on };
+    });
+    return out.concat(this.state.extraChanges.map(c => ({ key: c.key, label: c.label, detail: c.detail, isEdit: true })));
+  }
+
+  dialogFor(key) {
+    const L = (en, bn) => this.L(en, bn);
+    const n = this.changeList().length;
+    const map = {
+      save: { title: L('Save ' + n + ' permission changes?', n + 'টি পরিবর্তন সংরক্ষণ করবেন?'), body: L('Sadia Akter takes these on her next page load. Sessions stay signed in.', 'সাদিয়া আক্তারের পরবর্তী লোডে এগুলো চালু হবে। সেশন সাইন-ইন থাকবে।'), icon: 'shield-check', chipNavy: true, verb: L('Save changes', 'সংরক্ষণ করুন'), verbIcon: 'check', verbNavy: true, hasList: true, hasConfirmField: false, act: () => { this.setState({ overrides: {}, extraChanges: [], dialog: null }); this.toast(L(n + ' changes saved', n + 'টি পরিবর্তন সংরক্ষিত')); } },
+      suspend: { title: L('Suspend login for Sadia Akter?', 'সাদিয়ার লগইন স্থগিত করবেন?'), body: L('She is signed out of POS Dhanmondi-1 and the admin panel immediately and cannot sign back in. Attendance, leave and payroll records are kept.', 'তিনি সাথে সাথে POS ধানমন্ডি-১ ও অ্যাডমিন থেকে সাইন আউট হবেন এবং আর ঢুকতে পারবেন না। হাজিরা, ছুটি ও বেতনের রেকর্ড থাকবে।'), icon: 'user-x', chipDanger: true, verb: L('Suspend login', 'লগইন স্থগিত করুন'), verbIcon: 'user-x', verbDanger: true, hasList: false, hasConfirmField: false, act: () => { this.setState({ status: 'suspended', dialog: null, menuOpen: false }); this.toast(L('Login suspended', 'লগইন স্থগিত হয়েছে')); } },
+      reactivate: { title: L('Reactivate Sadia Akter?', 'সাদিয়াকে পুনরায় সক্রিয় করবেন?'), body: L('Her previous role, branch scope and permission overrides are restored. She can sign in at the next shift.', 'তাঁর আগের রোল, শাখা ও অনুমতি ফিরে আসবে। পরের শিফটে সাইন ইন করতে পারবেন।'), icon: 'user-check', chipGood: true, verb: L('Reactivate staff', 'পুনরায় সক্রিয় করুন'), verbIcon: 'user-check', verbNavy: true, hasList: false, hasConfirmField: false, act: () => { this.setState({ status: 'active', dialog: null, menuOpen: false }); this.toast(L('Sadia Akter reactivated', 'সাদিয়া আক্তার সক্রিয়')); } },
+      logout: { title: L('Force logout from all devices?', 'সব ডিভাইস থেকে সাইন আউট করাবেন?'), body: L('Ends 3 sessions: POS Dhanmondi-1, Chrome on Windows, GridCommerce app on Android. Her login stays active.', '৩টি সেশন বন্ধ হবে: POS ধানমন্ডি-১, উইন্ডোজ ক্রোম, অ্যান্ড্রয়েড অ্যাপ। লগইন সক্রিয় থাকবে।'), icon: 'log-out', chipWarn: true, verb: L('Force logout', 'সাইন আউট করান'), verbIcon: 'log-out', verbWarn: true, hasList: false, hasConfirmField: false, act: () => { this.setState({ dialog: null, menuOpen: false }); this.toast(L('3 sessions ended', '৩টি সেশন বন্ধ হয়েছে')); } },
+      reset: { title: L('Send a password reset?', 'পাসওয়ার্ড রিসেট পাঠাবেন?'), body: L('A one-time link goes to +880 1712-XXXXXX by SMS and expires in 30 minutes.', 'একটি এককালীন লিংক +880 1712-XXXXXX নম্বরে SMS-এ যাবে, ৩০ মিনিটে শেষ হবে।'), icon: 'key-round', chipNavy: true, verb: L('Send reset link', 'লিংক পাঠান'), verbIcon: 'send', verbNavy: true, hasList: false, hasConfirmField: false, act: () => { this.setState({ dialog: null, menuOpen: false }); this.toast(L('Reset link sent by SMS', 'SMS-এ রিসেট লিংক পাঠানো হয়েছে')); } },
+      offboard: { title: L('Offboard Sadia Akter?', 'সাদিয়াকে অফবোর্ড করবেন?'), body: L('Removes her access for good, closes the cash drawer assignment and starts final settlement. Type OFFBOARD to confirm.', 'তাঁর অ্যাক্সেস স্থায়ীভাবে বন্ধ হবে, ক্যাশ ড্রয়ার ছেড়ে দেবে এবং চূড়ান্ত হিসাব শুরু হবে। নিশ্চিত করতে OFFBOARD লিখুন।'), icon: 'user-minus', chipDanger: true, verb: L('Offboard staff', 'অফবোর্ড করুন'), verbIcon: 'user-minus', verbDanger: true, hasList: false, hasConfirmField: true, fieldLabel: L('Type OFFBOARD to confirm', 'নিশ্চিত করতে OFFBOARD লিখুন'), fieldPlaceholder: 'OFFBOARD', act: () => { this.setState({ dialog: null, menuOpen: false }); this.toast(L('Offboarding started', 'অফবোর্ডিং শুরু হয়েছে')); } },
+      edit: { title: L('Edit profile', 'প্রোফাইল সম্পাদনা'), body: L('Name, designation, branch, employment type, phone and photo are edited in the staff form. Opening it keeps unsaved permission changes.', 'নাম, পদবি, শাখা, নিয়োগের ধরন, ফোন ও ছবি স্টাফ ফর্মে সম্পাদনা হয়। অসংরক্ষিত অনুমতি পরিবর্তন থাকবে।'), icon: 'pencil', chipNavy: true, verb: L('Open staff form', 'ফর্ম খুলুন'), verbIcon: 'arrow-right', verbNavy: true, hasList: false, hasConfirmField: false, act: () => this.setState({ dialog: null, createOpen: true }) },
+      preview: { title: L('Preview the admin as Sadia?', 'সাদিয়া হিসেবে অ্যাডমিন দেখবেন?'), body: L('You see exactly what she sees, read-only, with a banner across the top. Nothing you click is recorded against her account.', 'তিনি যা দেখেন তাই দেখবেন, শুধু পড়ার জন্য, উপরে একটি ব্যানার থাকবে। কোনো ক্লিক তাঁর অ্যাকাউন্টে লেখা হবে না।'), icon: 'eye', chipSky: true, verb: L('Start preview', 'প্রিভিউ শুরু'), verbIcon: 'eye', verbNavy: true, hasList: false, hasConfirmField: false, act: () => { this.setState({ dialog: null, menuOpen: false }); this.toast(L('Previewing as Sadia Akter', 'সাদিয়া হিসেবে প্রিভিউ')); } }
+    };
+    return map[key] || null;
+  }
+
+  renderVals() {
+    const s = this.state;
+    const L = (en, bn) => this.L(en, bn);
+    const suspended = s.status === 'suspended';
+    const changes = this.changeList();
+    const dirty = changes.length > 0;
+    const tabDefs = [
+      ['overview', L('Overview', 'সংক্ষিপ্ত'), 'layout-grid', false],
+      ['access', L('Access and permissions', 'অ্যাক্সেস ও অনুমতি'), 'shield-check', false],
+      ['attendance', L('Shift and attendance', 'শিফট ও হাজিরা'), 'clock', true],
+      ['leave', L('Leave', 'ছুটি'), 'palmtree', true],
+      ['salary', L('Salary and payroll', 'বেতন ও পে-রোল'), 'wallet', true],
+      ['activity', L('Activity log', 'কার্যক্রম'), 'history', false],
+      ['docs', L('Documents', 'কাগজপত্র'), 'file-text', false]
+    ].filter(d => s.hrAddon || !d[3]);
+    const tabs = tabDefs.map(([key, label, icon]) => ({
+      key, label, icon,
+      sel: s.tab === key, unsel: s.tab !== key,
+      dot: key === 'access' && dirty,
+      act: () => this.setState({ tab: key, menuOpen: false })
+    }));
+    const hidden = !s.hrAddon && (s.tab === 'attendance' || s.tab === 'leave' || s.tab === 'salary');
+    const menuItems = [
+      suspended
+        ? { label: L('Reactivate staff', 'পুনরায় সক্রিয় করুন'), icon: 'user-check', good: true, act: () => this.setState({ dialog: 'reactivate' }) }
+        : { label: L('Suspend login', 'লগইন স্থগিত করুন'), icon: 'user-x', danger: true, act: () => this.setState({ dialog: 'suspend' }) },
+      { label: L('Force logout from all devices', 'সব ডিভাইস থেকে সাইন আউট'), icon: 'log-out', neutral: true, act: () => this.setState({ dialog: 'logout' }) },
+      { label: L('Reset password', 'পাসওয়ার্ড রিসেট'), icon: 'key-round', neutral: true, act: () => this.setState({ dialog: 'reset' }) },
+      { label: L('Preview admin as this person', 'এই ব্যক্তি হিসেবে দেখুন'), icon: 'eye', neutral: true, act: () => this.setState({ dialog: 'preview' }) },
+      { label: L('Offboard', 'অফবোর্ড'), icon: 'user-minus', danger: true, act: () => this.setState({ dialog: 'offboard' }) }
+    ];
+    const pill = suspended
+      ? { text: L('Suspended', 'স্থগিত'), icon: 'ban', bg: 'rgba(255,255,255,.16)', fg: '#fee2e2' }
+      : { text: L('Active', 'সক্রিয়'), icon: 'check-circle-2', bg: 'rgba(16,185,129,.2)', fg: '#d1fae5' };
+    const today = suspended
+      ? { text: L('Not checked in · login suspended 15 Sep', 'চেক-ইন নেই · ১৫ সেপ্টেম্বর স্থগিত'), icon: 'minus-circle', bg: 'rgba(255,255,255,.1)', fg: '#e2e8f0' }
+      : { text: L('Checked in 09:56 at POS Dhanmondi-1', 'চেক-ইন ০৯:৫৬ · POS ধানমন্ডি-১'), icon: 'log-in', bg: 'rgba(16,185,129,.18)', fg: '#d1fae5' };
+    const demoRows = [
+      { label: L('Status', 'স্ট্যাটাস'), value: suspended ? L('Suspended', 'স্থগিত') : L('Active', 'সক্রিয়'), icon: 'user-check', on: suspended, act: () => this.setState({ status: suspended ? 'active' : 'suspended' }) },
+      { label: L('Salary card', 'বেতন কার্ড'), value: s.salaryLocked ? L('Locked', 'লকড') : L('Visible', 'দৃশ্যমান'), icon: 'lock', on: s.salaryLocked, act: () => this.setState({ salaryLocked: !s.salaryLocked }) },
+      { label: L('HR and Payroll add-on', 'এইচআর অ্যাড-অন'), value: s.hrAddon ? L('On', 'চালু') : L('Off', 'বন্ধ'), icon: 'puzzle', on: !s.hrAddon, act: () => this.setState({ hrAddon: !s.hrAddon, tab: 'overview' }) },
+      { label: L('Records', 'রেকর্ড'), value: s.emptyData ? L('Empty', 'খালি') : L('Populated', 'পূর্ণ'), icon: 'inbox', on: s.emptyData, act: () => this.setState({ emptyData: !s.emptyData }) },
+      { label: L('Language', 'ভাষা'), value: s.lang === 'bn' ? 'বাংলা' : 'English', icon: 'languages', on: s.lang === 'bn', act: () => this.setState({ lang: s.lang === 'bn' ? 'en' : 'bn' }) },
+      { label: L('Create staff flow', 'নতুন স্টাফ'), value: L('Open', 'খুলুন'), icon: 'user-plus', on: false, act: () => this.setState({ createOpen: true }) }
+    ].map(d => Object.assign(d, { sel: !!d.on, unsel: !d.on }));
+    const dlg = this.dialogFor(s.dialog);
+    return {
+      lang: s.lang, role: s.role, overrides: s.overrides, dataVis: s.dataVis,
+      isEn: s.lang === 'en', isBn: s.lang === 'bn',
+      setEn: () => this.setState({ lang: 'en' }), setBn: () => this.setState({ lang: 'bn' }),
+      suspended: suspended, active: !suspended,
+      pillText: pill.text, todayText: today.text,
+      phoneText: s.dataVis.phone === 'visible' ? '+880 1712-660145' : '+880 1712-XXXXXX',
+      phoneIcon: s.dataVis.phone === 'visible' ? 'eye' : 'eye-off',
+      primaryLabel: suspended ? L('Reactivate', 'পুনরায় সক্রিয়') : L('Edit profile', 'প্রোফাইল সম্পাদনা'),
+      openEdit: () => this.setState({ dialog: suspended ? 'reactivate' : 'edit' }),
+      menuOpen: s.menuOpen, toggleMenu: () => this.setState({ menuOpen: !s.menuOpen }), menuItems,
+      tabs,
+      showOverview: s.tab === 'overview', showAccess: s.tab === 'access',
+      showAttendance: s.tab === 'attendance' && s.hrAddon, showLeave: s.tab === 'leave' && s.hrAddon,
+      showSalary: s.tab === 'salary' && s.hrAddon, showActivity: s.tab === 'activity', showDocs: s.tab === 'docs',
+      showUpsell: hidden,
+      salaryLocked: s.salaryLocked, emptyData: s.emptyData, hrAddon: s.hrAddon,
+      goTab: (k) => this.setState({ tab: k }),
+      toggleCell: (key, label, on) => {
+        const o = Object.assign({}, s.overrides);
+        if (o[key]) delete o[key]; else o[key] = { label, on };
+        this.setState({ overrides: o });
+      },
+      resetCell: (key) => { const o = Object.assign({}, s.overrides); delete o[key]; this.setState({ overrides: o }); },
+      setRole: (r) => this.setState({ role: r, extraChanges: s.extraChanges.filter(c => c.key !== 'role').concat([{ key: 'role', label: L('Role changed to ' + r, 'রোল বদলে ' + r), detail: L('Replaces the Cashier permission set', 'ক্যাশিয়ার সেট প্রতিস্থাপন করবে') }]) }),
+      noteChange: (key, label, detail) => {
+        const rest = s.extraChanges.filter(c => c.key !== key);
+        this.setState({ extraChanges: rest.concat([{ key, label, detail }]) });
+      },
+      dirty, changes,
+      dirtyHeadline: L(changes.length + ' unsaved change' + (changes.length === 1 ? '' : 's'), changes.length + 'টি অসংরক্ষিত পরিবর্তন'),
+      dirtySummary: changes.map(c => c.label).join(' · '),
+      discard: () => { this.setState({ overrides: {}, extraChanges: [] }); this.toast(L('Changes discarded', 'পরিবর্তন বাতিল')); },
+      openSave: () => this.setState({ dialog: 'save' }),
+      dialog: !!dlg, dlg: dlg || {}, closeDialog: () => this.setState({ dialog: null }), stop: (e) => e.stopPropagation(),
+      createOpen: s.createOpen, closeCreate: () => this.setState({ createOpen: false }),
+      toast: !!s.toastText, toastText: s.toastText,
+      panelOpen: s.panelOpen, togglePanel: () => this.setState({ panelOpen: !s.panelOpen }),
+      panelLabel: s.panelOpen ? L('Hide states', 'লুকান') : L('Preview states', 'প্রিভিউ স্টেট'),
+      demoRows,
+      t: {
+        staff: L('Staff', 'স্টাফ'), name: L('Sadia Akter', 'সাদিয়া আক্তার'),
+        designation: L('Cashier', 'ক্যাশিয়ার'), branch: L('Dhanmondi branch', 'ধানমন্ডি শাখা'),
+        searchStaff: L('Search staff, roles…', 'স্টাফ, রোল খুঁজুন…'), owner: L('Owner', 'মালিক'),
+        joined: L('Joined', 'যোগদান'), reportsTo: L('Reports to', 'রিপোর্ট করেন'), branchManager: L('Branch manager', 'শাখা ব্যবস্থাপক'),
+        employment: L('Employment', 'নিয়োগ'), fullTime: L('Full time', 'পূর্ণকালীন'), phone: L('Phone', 'ফোন'),
+        more: L('More', 'আরও'), discard: L('Discard', 'বাতিল'), saveChanges: L('Save changes', 'সংরক্ষণ করুন'), cancel: L('Cancel', 'বাতিল'),
+        upsellTitle: L('HR and Payroll is off for this shop', 'এই দোকানে এইচআর ও পে-রোল বন্ধ'),
+        upsellBody: L('Turn it on to set shifts, track check-ins from the POS, approve leave and run monthly payroll for all 14 staff. Access and permissions keep working without it.', 'শিফট ঠিক করা, POS থেকে হাজিরা, ছুটি অনুমোদন ও ১৪ জনের মাসিক পে-রোল চালাতে এটি চালু করুন। অ্যাক্সেস ও অনুমতি এটি ছাড়াই চলে।'),
+        upsellCta: L('Add HR and Payroll', 'এইচআর যোগ করুন'), upsellSecondary: L('See what it includes', 'কী কী আছে দেখুন'),
+        upsellMeta: L('৳900 per month · billed with your plan · cancel any time', '৳৯০০ প্রতি মাস · প্ল্যানের সাথে বিল · যেকোনো সময় বাতিল')
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

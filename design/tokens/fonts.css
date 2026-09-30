@@ -1,0 +1,6 @@
+/* GridCommerce webfonts.
+   Poppins = Latin UI face. Hind Siliguri = Bangla companion (Poppins has no Bengali glyphs).
+   Both are Google Fonts and are loaded from the Google CDN because no font binaries were
+   supplied with the brand pack. Swap these @import lines for local @font-face rules
+   (src: url("../assets/fonts/…woff2")) once licensed files are available. */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Hind+Siliguri:wght@300;400;500;600;700&display=swap");

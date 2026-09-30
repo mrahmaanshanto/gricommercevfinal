@@ -1,0 +1,9 @@
+:root{
+  --z-sidebar:100; /* @kind other */
+  --z-header:90; /* @kind other */
+  --z-dropdown:120; /* @kind other */
+  --z-drawer:150; /* @kind other */
+  --z-modal-backdrop:200; /* @kind other */
+  --z-modal:210; /* @kind other */
+  --z-toast:250; /* @kind other */
+}

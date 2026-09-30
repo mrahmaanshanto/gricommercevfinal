@@ -1,0 +1,31 @@
+/* GridCommerce type. Poppins for Latin UI, Hind Siliguri for Bangla, system mono for IDs.
+   Two "plus" steps (13px / 15px) carry most of the interface — keep them. */
+:root{
+  --font-sans:Poppins,ui-sans-serif,system-ui,sans-serif;
+  --font-bn:"Hind Siliguri","Noto Sans Bengali",Poppins,sans-serif;
+  --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+
+  --text-xs:12px;        --text-xs-lh:1.333;
+  --text-xs-plus:13px;   --text-xs-plus-lh:18px;
+  --text-sm:14px;        --text-sm-lh:1.429;
+  --text-sm-plus:15px;   --text-sm-plus-lh:22px;
+  --text-base:16px;      --text-base-lh:1.5;
+  --text-lg:18px;        --text-lg-lh:1.556;
+  --text-xl:20px;        --text-xl-lh:1.4;
+  --text-2xl:24px;       --text-2xl-lh:1.333;
+  --text-3xl:30px;       --text-3xl-lh:1.2;
+  /* marketing-only display steps, taken from the brand-board hero */
+  --text-4xl:40px;       --text-4xl-lh:1.1;
+  --text-5xl:56px;       --text-5xl-lh:1.05;
+
+  --weight-light:300;
+  --weight-regular:400;
+  --weight-medium:500;   /* UI chrome default — not bold */
+  --weight-semibold:600; /* numbers, card titles */
+  --weight-bold:700;     /* page titles, hero metrics */
+
+  --tracking-tight:-.025em; /* 24px+ headings only */
+  --tracking-normal:0;
+  --tracking-wide:.025em;   /* buttons, nav links, card titles */
+  --tracking-caps:.18em;    /* the tagline lockup: ALL TOGETHER. MORE COMMERCE. */
+}

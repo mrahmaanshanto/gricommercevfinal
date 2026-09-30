@@ -1,0 +1,697 @@
+'use client';
+// Generated from design/templates/sales/WholesaleInvoices.dc.html by scripts/convert-design.mjs.
+// Wholesale invoices — Sales — Wholesale invoices. Imported from Retail Commerce and merged.
+// Edit freely: this file is now the source for the screen.
+
+import React from 'react';
+import __Link from 'next/link';
+import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+
+// ---- logic (from the design's <script type="text/x-dc">) ----
+
+var BND = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
+function dg(s, bn) { s = String(s); return bn ? s.replace(/[0-9]/g, function (d) { return BND[+d]; }) : s; }
+function money(n, bn) { var s = String(Math.round(Math.abs(n))); var last = s.slice(-3), rest = s.slice(0, -3); if (rest) s = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + last; else s = last; return dg((n < 0 ? '−' : '') + '৳' + s, bn); }
+function num(x) { return +(String(x).replace(/[^\d.]/g, '').replace(/^$/, '0')) || 0; }
+function unbn(x) { return String(x).replace(/[০-৯]/g, function (d) { return BND.indexOf(d); }); }
+function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
+function toast(self, m) { clearTimeout(self.t); self.setState({ msg: m }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 3200); }
+function seg(self, opts, cur, key, i, base) { return opts.map(function (o) { var on = o[0] === cur; return { k: o[0], l: o[1 + i], on: on, cls: (base || 'sgb') + (on ? ' on' : ''), pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
+function sw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
+var T = {"menu": ["মেনু", "Menu"], "shop": ["রহমান স্টোর", "GridShop"], "shopInitial": ["র", "R"], "branch": ["মিরপুর শাখা", "Mirpur branch"], "newSale": ["নতুন বেচা", "New sale"], "gDaily": ["প্রতিদিনের কাজ", "Daily work"], "gGoods": ["মাল ও স্টক", "Goods & stock"], "gPeople": ["মানুষজন", "People"], "gAccounts": ["হিসাব", "Accounts"], "nHome": ["হোম", "Home"], "nSalesBook": ["বেচার খাতা", "Sales book"], "nInvoices": ["পাইকারি ও ইনভয়েস", "Wholesale & invoices"], "nReturn": ["ফেরত ও বদল", "Return & exchange"], "nPurchase": ["মাল কেনা", "Purchase"], "nMoney": ["টাকা আসা-যাওয়া", "Money in & out"], "nProducts": ["প্রোডাক্ট", "Products"], "nCategories": ["ক্যাটাগরি", "Categories"], "nBarcode": ["বারকোড", "Barcodes"], "nStock": ["স্টক ও গুদাম", "Stock & warehouses"], "nDamage": ["ড্যামেজ ও মেয়াদ শেষ", "Damaged & expired"], "nWarranty": ["ওয়ারেন্টি", "Warranty"], "nCatalog": ["ক্যাটালগ", "Catalogue"], "nCustomers": ["কাস্টমার ও বাকি", "Customers & dues"], "nSuppliers": ["সাপ্লায়ার ও দেনা", "Suppliers & payables"], "nStaff": ["স্টাফ", "Staff"], "nBook": ["হিসাব খাতা ও খরচ", "Cash book & expenses"], "nVat": ["ভ্যাট", "VAT"], "nReports": ["রিপোর্ট", "Reports"], "nPos": ["POS খুলুন", "Open POS"], "nSettings": ["সেটিংস", "Settings"], "search": ["প্রোডাক্ট, কাস্টমার বা মেমো নম্বর খুঁজুন", "Search products, customers or memo no."], "voiceSearch": ["কথা বলে খুঁজুন", "Search by voice"], "notif": ["নোটিফিকেশন", "Notifications"], "owner": ["মোস্তাফিজ", "Mostafiz"], "ownerInitial": ["মো", "M"], "role": ["মালিক", "Owner"], "aiAsk": ["কথা বলুন", "Ask by voice"], "aiTitle": ["গ্রিড সহকারী", "Grid assistant"], "aiSub": ["বাংলায় বলুন বা লিখুন — যেকোনো স্ক্রিন থেকে", "Speak or type — from any screen"], "close": ["বন্ধ করুন", "Close"], "aiType": ["এখানে লিখুন…", "Type here…"], "aiSpeak": ["কথা বলুন", "Speak"], "back": ["পেছনে", "Back"], "tHome": ["হোম", "Home"], "tSales": ["বেচা", "Sales"], "tStock": ["স্টক", "Stock"], "tMore": ["আরও", "More"], "save": ["সেভ করুন", "Save"], "cancel": ["বাতিল", "Cancel"], "seeAll": ["সব দেখুন", "See all"], "h": ["পাইকারি ও ইনভয়েস", "Wholesale & invoices"], "hsub": ["দোকানদার কাস্টমারদের পাইকারি মেমো, বাকি আর তাগাদা — এক জায়গায়।", "Wholesale memos to shop customers, dues and reminders — in one place."], "newW": ["নতুন পাইকারি মেমো", "New wholesale memo"], "custDues": ["কাস্টমার ও বাকি", "Customers & dues"], "kDue": ["মোট পাওনা", "Total receivable"], "kToday": ["আজ দিতে হবে", "Due today"], "kOver": ["মেয়াদ পেরিয়েছে", "Overdue"], "kMonth": ["এই মাসে পাইকারি বেচা", "Wholesale this month"], "find": ["কাস্টমারের নাম বা ইনভয়েস নং খুঁজুন", "Search customer or invoice no."], "cNo": ["ইনভয়েস নং", "Invoice no."], "cCust": ["কাস্টমার", "Customer"], "cDate": ["তারিখ · শেষ তারিখ", "Date · due date"], "cTotal": ["মোট · পরিশোধ", "Total · paid"], "cDue": ["বাকি", "Due"], "cSt": ["অবস্থা", "Status"], "send": ["পাঠান", "Send"], "edit": ["ঠিক করুন", "Edit"], "take": ["টাকা নিন", "Take payment"], "selAll": ["সব বাকি ইনভয়েস বাছুন", "Select all unpaid invoices"], "selOne": ["বাছুন", "Select"], "bulk": ["একসাথে তাগাদা পাঠান", "Send reminders together"], "clearSel": ["বাছাই বাদ দিন", "Clear selection"], "empty": ["এই ভাগে কোনো ইনভয়েস নেই", "No invoices here"], "sendHow": ["কীভাবে পাঠাবেন?", "How to send?"], "preview": ["কাস্টমার যা পাবে", "What the customer gets"], "paper": ["কাগজের মাপ", "Paper size"], "take2": ["কত টাকা পেলেন", "Amount received"], "howPaid": ["কীভাবে দিল", "Paid by"], "dueNow": ["এখন বাকি", "Due now"], "full": ["পুরো বাকি", "Full due"], "half": ["অর্ধেক", "Half"], "pageTitle": ["পাইকারি ও ইনভয়েস", "Wholesale & invoices"]};
+var AI = [["কার কার ইনভয়েসের মেয়াদ পেরিয়েছে?", "Which invoices are overdue?", "৩টা ইনভয়েসের মেয়াদ পেরিয়েছে — বিসমিল্লাহ এন্টারপ্রাইজ ৳৩৮,৩০০, নিউ মদিনা স্টোর ৳৩১,২০০, আল-আমিন ট্রেডার্স ৳২৭,৫০০। একসাথে তাগাদা পাঠাব?", "3 invoices are overdue — Bismillah Mobile Corner ৳38,300, New Madina Telecom ৳31,200, Al-Amin Gadgets ৳27,500. Send reminders to all?"], ["জামাল স্টোরকে ইনভয়েস WhatsApp করো", "WhatsApp the invoice to Jamal Telecom", "জামাল স্টোরকে #INV-২৩১ পাঠাতে তৈরি — বাকি ৳৪২,৫০০, শেষ তারিখ ৫ অক্টোবর। \"পাঠাও\" বললেই চলে যাবে।", "Ready to send #INV-231 to Jamal Telecom — ৳42,500 due by 5 Oct. Say \"send\" and it goes."], ["হাবিব ট্রেডার্স ১০ হাজার দিল", "Habib Telecom paid 10 thousand", "#INV-২৩০ এ ৳১০,০০০ জমা করলাম। এখন বাকি ৳১৬,৮০০।", "Recorded ৳10,000 on #INV-230. Now ৳16,800 due."]];
+var NAVC = {"stock": "7", "customers": "12", "suppliers": "3"};
+
+class Component extends DCLogic {
+  componentWillUnmount() { clearTimeout(this.t); }
+  renderVals() {
+    var self = this, s = this.state || {};
+    var lang = 'en', bn = false, i = bn ? 0 : 1;
+    var t = {}; Object.keys(T).forEach(function (k) { t[k] = T[k][i]; });
+    var L = function (a, b) { return bn ? a : b; };
+    var c = {}; Object.keys(NAVC).forEach(function (k) { c[k] = dg(NAVC[k], bn); });
+    var ak = s.aiKey == null ? 0 : s.aiKey;
+    var base = {
+      t: t, c: c, rootCls: bn ? 'fbn' : 'fen', isBn: bn, isEn: !bn,
+      bnCls: bn ? 'sgb on' : 'sgb', enCls: bn ? 'sgb' : 'sgb on', bnPill: bn ? 'on' : '', enPill: bn ? '' : 'on',
+      setBn: function () { self.setState({ lang: 'bn' }); }, setEn: function () { self.setState({ lang: 'en' }); },
+      aiOpen: !!s.aiOpen, aiClosed: !s.aiOpen,
+      openAi: function () { self.setState({ aiOpen: true, listening: true }); },
+      closeAi: function () { self.setState({ aiOpen: false, listening: false }); },
+      listening: !!s.listening, micBg: s.listening ? '#e0431b' : '#003087', micFg: s.listening ? '#e0431b' : '#475569',
+      micLbl: s.listening ? L('শুনছি… বলুন', 'Listening… go ahead') : L('চাপ দিয়ে বলুন', 'Tap and speak'),
+      toggleListen: function () { self.setState({ listening: !s.listening }); },
+      aiQ: AI[ak][i], aiA: AI[ak][2 + i],
+      sugg: AI.map(function (q, j) { return { l: q[i], pick: function () { self.setState({ aiKey: j, listening: false }); } }; }),
+      hasMsg: !!s.msg, msg: s.msg || ''
+    };
+    var extra = (function () {
+
+// id, customer bn/en, phone bn/en, date bn/en, due date bn/en, days left (negative = overdue), total, paid, status, revision
+var R = [
+  ['232', 'হাবিব ট্রেডার্স', 'Habib Telecom', '০১৭১৫-৩৩২৯০৮', '01715-332908', '২৯ সেপ্টেম্বর', '29 Sep', '৯ অক্টোবর', '9 Oct', 10, 15400, 0, 'draft', 1],
+  ['231', 'জামাল স্টোর', 'Jamal Telecom', '০১৮১৯-৪৪৭২১০', '01819-447210', '২৫ সেপ্টেম্বর', '25 Sep', '৫ অক্টোবর', '5 Oct', 6, 42500, 0, 'seen', 2],
+  ['230', 'হাবিব ট্রেডার্স', 'Habib Telecom', '০১৭১৫-৩৩২৯০৮', '01715-332908', '২৪ সেপ্টেম্বর', '24 Sep', '২৯ সেপ্টেম্বর', '29 Sep', 0, 36800, 10000, 'partial', 1],
+  ['229', 'মা ফাতেমা স্টোর', 'Maa Fatema Mobile', '০১৯১২-৮০৪৫৫১', '01912-804551', '২২ সেপ্টেম্বর', '22 Sep', '২৯ সেপ্টেম্বর', '29 Sep', 0, 24600, 0, 'sent', 1],
+  ['228', 'বিসমিল্লাহ এন্টারপ্রাইজ', 'Bismillah Mobile Corner', '০১৬৭৪-২১০৯৮৭', '01674-210987', '১২ সেপ্টেম্বর', '12 Sep', '২২ সেপ্টেম্বর', '22 Sep', -7, 58300, 20000, 'overdue', 3],
+  ['227', 'নিউ মদিনা স্টোর', 'New Madina Telecom', '০১৮৪৫-৬৬৭৩০২', '01845-667302', '১০ সেপ্টেম্বর', '10 Sep', '২০ সেপ্টেম্বর', '20 Sep', -9, 31200, 0, 'overdue', 1],
+  ['226', 'রাজু ভ্যারাইটি স্টোর', 'Raju Mobile Shop', '০১৭৩০-৫৫৮২১৪', '01730-558214', '২০ সেপ্টেম্বর', '20 Sep', '৩০ সেপ্টেম্বর', '30 Sep', 1, 18750, 18750, 'paid', 1],
+  ['225', 'আল-আমিন ট্রেডার্স', 'Al-Amin Gadgets', '০১৯৮৭-১২০৪৪৩', '01987-120443', '৫ সেপ্টেম্বর', '5 Sep', '১৫ সেপ্টেম্বর', '15 Sep', -14, 27500, 0, 'overdue', 2]
+];
+var ST = { draft: ['খসড়া', 'Draft', 'pill p-grey'], sent: ['পাঠানো হয়েছে', 'Sent', 'pill p-grey'], seen: ['দেখেছে', 'Seen', 'pill p-info'], partial: ['আংশিক', 'Part paid', 'pill p-warn'], paid: ['পরিশোধ', 'Paid', 'pill p-ok'], overdue: ['মেয়াদ পেরিয়েছে', 'Overdue', 'pill p-due'] };
+var xp = s.xp || {};
+var rows0 = R.map(function (r) {
+  var paid = r[11] + (xp[r[0]] || 0), due = Math.max(0, r[10] - paid);
+  var st = r[12] === 'draft' ? 'draft' : due <= 0 ? 'paid' : r[9] < 0 ? 'overdue' : paid > 0 ? 'partial' : r[12];
+  return { r: r, id: r[0], paid: paid, due: due, st: st, open: due > 0 && st !== 'draft' };
+});
+var byId = {}; rows0.forEach(function (x) { byId[x.id] = x; });
+var tab = s.tab || 'all', q = (s.q || '').toLowerCase();
+var inTab = function (x, k) { return k === 'all' ? true : k === 'due' ? x.open : k === 'partial' ? (x.open && x.paid > 0) : k === 'paid' ? x.st === 'paid' : x.st === 'draft'; };
+var TABS = [['all', 'সব', 'All'], ['due', 'বাকি আছে', 'Unpaid'], ['partial', 'আংশিক পরিশোধ', 'Part paid'], ['paid', 'পুরো পরিশোধ', 'Paid'], ['draft', 'খসড়া', 'Drafts']];
+var TABIC = {"all": "M4 4h16v16l-3-2-3 2-2-2-2 2-3-2-3 2zM8 9h8M8 13h5", "due": "M7 7h11l-3-3M17 17H6l3 3", "partial": "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2", "paid": "M20 6 9 17l-5-5", "draft": "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"};
+var byKey = function (arr, keys) { var o = {}; arr.forEach(function (x, j) { o[keys[j]] = x; }); return o; };
+var sel = s.sel || { '228': 1, '227': 1 };
+var vis = rows0.filter(function (x) { return inTab(x, tab) && (!q || (x.r[1] + x.r[2] + 'inv-' + x.id + unbn(x.id)).toLowerCase().indexOf(unbn(q)) >= 0); });
+var selRows = rows0.filter(function (x) { return sel[x.id] && x.open; });
+var visOpen = vis.filter(function (x) { return x.open; });
+var allOn = visOpen.length > 0 && visOpen.every(function (x) { return sel[x.id]; });
+var invNo = function (id) { return dg('#INV-' + id, bn); };
+var sum = function (arr) { return arr.reduce(function (n, x) { return n + x.due; }, 0); };
+var openRows = rows0.filter(function (x) { return x.open; });
+var todayRows = openRows.filter(function (x) { return x.r[9] === 0; });
+var overRows = openRows.filter(function (x) { return x.st === 'overdue'; });
+var custN = {}; openRows.forEach(function (x) { custN[x.r[1]] = 1; });
+
+var mode = s.modal || '', mid = s.mid || '231';
+var mr = byId[mid];
+var chan = s.chan || 'wa', paper = s.paper || 'a4';
+var msgBn = mr.r[1] + ', আপনার ইনভয়েস ' + invNo(mid) + ', বাকি ' + money(mr.due, true) + ', শেষ তারিখ ' + mr.r[7] + '। লিংক: rahmanstore.gridgo.shop/i/JKQ — রহমান স্টোর';
+var msgEn = mr.r[2] + ', your invoice #INV-' + mid + ', due ' + money(mr.due, false) + ', last date ' + mr.r[8] + '. Link: rahmanstore.gridgo.shop/i/JKQ — GridShop';
+var pAmt = s.pAmt == null ? mr.due : s.pAmt;
+var meth = s.meth || 'cash';
+var mName = { sms: L('SMS', 'SMS'), wa: 'WhatsApp', print: L('প্রিন্ট', 'Print') };
+
+return {
+  k: {
+    due: money(sum(openRows), bn), dueN: dg(openRows.length, bn) + L('টা ইনভয়েস · ', ' invoices · ') + dg(Object.keys(custN).length, bn) + L(' জন কাস্টমার', ' customers'),
+    today: money(sum(todayRows), bn), todayN: dg(todayRows.length, bn) + L('টা ইনভয়েসের শেষ দিন আজ', ' invoices end today'),
+    over: dg(overRows.length, bn) + L('টা', ''), overN: money(sum(overRows), bn) + L(' আটকে আছে', ' stuck'),
+    month: money(785600, bn), monthN: L('গত মাসের চেয়ে ৮% বেশি · ৪৬টা ইনভয়েস', '8% more than last month · 46 invoices')
+  },
+  tabs: TABS.map(function (o) { var on = o[0] === tab; return { ic: TABIC[o[0]], l: o[1 + i], n: dg(rows0.filter(function (x) { return inTab(x, o[0]); }).length, bn), on: on, cls: on ? 'tl on' : 'tl', pick: function () { self.setState({ tab: o[0] }); } }; }),
+  q: s.q || '', typeQ: function (e) { self.setState({ q: e.target.value }); },
+  hasSel: selRows.length > 0,
+  selLine: dg(selRows.length, bn) + L('টা বাকি ইনভয়েস বাছা হয়েছে', ' unpaid invoices selected'),
+  selAmt: L('· মোট বাকি ', '· total due ') + money(sum(selRows), bn),
+  clearSel: function () { self.setState({ sel: {} }); },
+  bulkSend: function () { toast(self, L(dg(selRows.length, true) + ' জন কাস্টমারকে SMS ও WhatsApp-এ তাগাদা পাঠানো হলো।', 'Reminders sent to ' + selRows.length + ' customers by SMS and WhatsApp.')); self.setState({ sel: {} }); },
+  allOn: allOn, allBd: allOn ? '#003087' : '#94a3b8', allBg: allOn ? '#003087' : '#fff',
+  toggleAll: function () { var n = {}; if (!allOn) visOpen.forEach(function (x) { n[x.id] = 1; }); self.setState({ sel: n }); },
+  rows: vis.map(function (x) {
+    var r = x.r, on = !!sel[x.id] && x.open, dl = r[9];
+    var ddNote = x.st === 'paid' ? L('শোধ হয়েছে', 'settled') : x.st === 'draft' ? L('পাঠানো হয়নি', 'not sent') : dl < 0 ? dg(-dl, bn) + L(' দিন পেরিয়েছে', ' days late') : dl === 0 ? L('আজ শেষ', 'ends today') : L('আর ', '') + dg(dl, bn) + L(' দিন', ' days left');
+    return {
+      no: invNo(x.id), cust: r[1 + i], phone: r[3 + i], date: r[5 + i], dueDate: r[7 + i], ddNote: ddNote,
+      ddFg: x.st === 'paid' || x.st === 'draft' ? '#64748b' : dl <= 0 ? '#b83210' : '#64748b',
+      total: money(r[10], bn), paid: x.paid > 0 ? L('পেয়েছি ', 'paid ') + money(x.paid, bn) : L('এখনো কিছু পাইনি', 'nothing yet'),
+      due: x.due > 0 ? money(x.due, bn) : '—', dueFg: x.due > 0 && x.st !== 'draft' ? '#b83210' : '#94a3b8',
+      st: ST[x.st][i], stCls: ST[x.st][2], isSeen: x.st === 'seen',
+      hasRev: r[13] > 1, rev: L('সংশোধন ', 'rev. ') + dg('v' + r[13], bn),
+      canSel: x.open, noSel: !x.open, sel: on, cbBd: on ? '#003087' : '#94a3b8', cbBg: on ? '#003087' : '#fff', rowBg: on ? '#f5f8ff' : 'transparent',
+      toggle: function () { var n = assign({}, sel); if (n[x.id]) delete n[x.id]; else n[x.id] = 1; self.setState({ sel: n }); },
+      canPay: x.open, noPay: !x.open,
+      send: function () { self.setState({ modal: 'send', mid: x.id }); },
+      pay: function () { self.setState({ modal: 'pay', mid: x.id, pAmt: null }); }
+    };
+  }),
+  isEmpty: vis.length === 0,
+  footLine: dg(rows0.length, bn) + L('টার মধ্যে ', ' invoices, showing ') + dg(vis.length, bn) + L('টা দেখাচ্ছে', ''),
+  sendOpen: mode === 'send', payOpen: mode === 'pay',
+  closeModal: function () { self.setState({ modal: '' }); },
+  mTitle: L('ইনভয়েস পাঠান · ', 'Send invoice · ') + invNo(mid), mSub: mr.r[1 + i] + ' · ' + mr.r[3 + i],
+  chans: seg(self, [['sms', 'SMS', 'SMS'], ['wa', 'WhatsApp', 'WhatsApp'], ['print', 'প্রিন্ট', 'Print']], chan, 'chan', i, 'chip'),
+  chK: byKey(seg(self, [['sms', 'SMS', 'SMS'], ['wa', 'WhatsApp', 'WhatsApp'], ['print', 'প্রিন্ট', 'Print']], chan, 'chan', i, 'chip'), ['sms', 'wa', 'print']),
+  isMsg: chan !== 'print', isPrint: chan === 'print',
+  msgText: bn ? msgBn : msgEn,
+  bubbleBg: chan === 'wa' ? '#e7f8f1' : '#eef3fb', bubbleBd: chan === 'wa' ? '#bfe8d6' : '#d6e0ef',
+  chanHint: chan === 'wa' ? L('WhatsApp খুলবে, মেসেজ বসানো থাকবে — শুধু Send চাপবেন।', 'WhatsApp opens with the message ready — just press Send.') : L('১টা SMS যাবে কাস্টমারের মোবাইলে। লিংকে পুরো ইনভয়েস দেখা যাবে।', 'One SMS to the customer’s mobile. The link shows the full invoice.'),
+  papers: seg(self, [['a4', 'A4 কাগজ', 'A4 paper'], ['roll', '৮০ মিমি রসিদ', '80 mm receipt']], paper, 'paper', i),
+  printHint: L('দোকানের নাম, লোগো আর বাকির হিসাবসহ প্রিন্ট হবে।', 'Prints with shop name, logo and the due summary.'),
+  sendBtn: chan === 'print' ? L('প্রিন্ট করুন', 'Print') : chan === 'wa' ? L('WhatsApp-এ পাঠান', 'Send on WhatsApp') : L('SMS পাঠান', 'Send SMS'),
+  doSend: function () { self.setState({ modal: '' }); toast(self, chan === 'print' ? L(invNo(mid) + ' প্রিন্ট হচ্ছে…', 'Printing ' + invNo(mid) + '…') : L(mr.r[1] + '-কে ' + mName[chan] + '-এ ইনভয়েস পাঠানো হলো।', 'Invoice sent to ' + mr.r[2] + ' on ' + mName[chan] + '.')); },
+  pTitle: L('টাকা নিন · ', 'Take payment · ') + invNo(mid), pCust: mr.r[1 + i], pDue: money(mr.due, bn),
+  pAmtTxt: dg(pAmt, bn), typeAmt: function (e) { self.setState({ pAmt: num(unbn(e.target.value)) }); },
+  setFull: function () { self.setState({ pAmt: mr.due }); }, setHalf: function () { self.setState({ pAmt: Math.round(mr.due / 2) }); },
+  methods: seg(self, [['cash', 'ক্যাশ', 'Cash'], ['bkash', 'বিকাশ', 'bKash'], ['nagad', 'নগদ', 'Nagad'], ['bank', 'ব্যাংক', 'Bank']], meth, 'meth', i, 'chip'),
+  mK: byKey(seg(self, [['cash', 'ক্যাশ', 'Cash'], ['bkash', 'বিকাশ', 'bKash'], ['nagad', 'নগদ', 'Nagad'], ['bank', 'ব্যাংক', 'Bank']], meth, 'meth', i, 'chip'), ['cash', 'bkash', 'nagad', 'bank']),
+  payBtn: money(Math.min(pAmt, mr.due), bn) + L(' টাকা নিন', ' — take payment'),
+  doPay: function () { var a = Math.min(pAmt, mr.due); if (a <= 0) { toast(self, L('টাকার পরিমাণ লিখুন।', 'Enter an amount.')); return; } var n = assign({}, xp); n[mid] = (n[mid] || 0) + a; self.setState({ xp: n, modal: '' }); toast(self, L(mr.r[1] + ' থেকে ' + money(a, true) + ' পেলাম — হিসাব খাতায় উঠে গেছে।', 'Received ' + money(a, false) + ' from ' + mr.r[2] + ' — added to the cash book.')); }
+};
+
+    })();
+    return assign(base, extra || {});
+  }
+}
+
+// ---- styles (from the design's <helmet>) ----
+
+const CSS = `
+*{box-sizing:border-box}
+body{margin:0;background:#e9eef5;color:#0f172a;-webkit-font-smoothing:antialiased;font-family:'Hind Siliguri','Poppins',system-ui,sans-serif}
+a{color:#003087;text-decoration:none}
+button{font:inherit;color:inherit}
+.fbn{font-family:'Hind Siliguri','Poppins',system-ui,sans-serif}
+.fen{font-family:'Poppins','Hind Siliguri',system-ui,sans-serif}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.card{background:#fff;border:1px solid #e6eaf0;border-radius:18px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 10px 28px -18px rgba(15,23,42,.14)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 20px;border-radius:12px;border:0;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap;text-decoration:none;transition:background-color 200ms,border-color 200ms}
+.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
+.line{background:#fff;color:#0f172a;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#0f172a}
+.soft{background:#eef3fb;color:#003087}.soft:hover{background:#e0e9f7;color:#003087}
+.okb{background:#047857;color:#fff}.okb:hover{background:#065f46;color:#fff}
+.dang{background:#fff;color:#b83210;border:1px solid #f3b7a5}.dang:hover{background:#fff4f0;color:#b83210}
+.sm{height:38px;padding:0 14px;font-size:14px;border-radius:10px}
+.big{height:56px;padding:0 26px;font-size:17px;border-radius:14px}
+.ib{width:44px;height:44px;border-radius:12px;border:1px solid #e2e8f0;background:#fff;color:#334155;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-shrink:0}
+.ib:hover{background:#f1f5f9}
+.seg{display:inline-flex;padding:4px;gap:2px;border-radius:12px;background:#e9eef5}
+.sgb{height:36px;padding:0 14px;border:0;border-radius:9px;background:transparent;font-size:14px;font-weight:500;color:#475569;cursor:pointer;white-space:nowrap}
+.sgb.on{background:#fff;color:#003087;font-weight:700;box-shadow:0 1px 3px rgba(15,23,42,.14)}
+.chip{height:38px;padding:0 14px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;font-size:14px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.chip:hover{border-color:#94a3b8}
+.chip.on{border-color:#003087;background:#eef3fb;color:#003087;font-weight:600}
+.pill{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap}
+.p-ok{background:#e7f8f1;color:#047857}.p-due{background:#ffece6;color:#b83210}.p-warn{background:#fff4e0;color:#a14f06}.p-info{background:#eef3fb;color:#003087}.p-grey{background:#eef2f6;color:#475569}.p-bk{background:#fdecf5;color:#a3195b}
+.inp{width:100%;height:48px;padding:0 14px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;font:inherit;font-size:15px;color:#0f172a}
+.inp:focus{outline:none;border-color:#003087;box-shadow:0 0 0 3px rgba(0,48,135,.12)}
+.inp::placeholder{color:#64748b}
+.lbl{font-size:14px;font-weight:600;color:#334155}
+.fld{display:flex;flex-direction:column;gap:6px;min-width:0}
+.hint{font-size:13px;line-height:18px;color:#64748b}
+.req{color:#b83210}
+.th{font-size:13px;font-weight:600;color:#64748b;text-align:left;padding:10px 14px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.td{padding:12px 14px;border-bottom:1px solid #f1f5f9;font-size:15px;vertical-align:middle}
+.trow:hover{background:#f8fafc}
+.h1{margin:0;font-size:26px;line-height:34px;font-weight:700}
+.h2{margin:0;font-size:18px;line-height:24px;font-weight:700}
+.sub{font-size:14.5px;color:#64748b}
+.kpi{padding:18px 20px;display:flex;flex-direction:column;gap:4px}
+.kpi .k{font-size:14.5px;color:#475569;font-weight:500}
+.kpi .v{font-size:28px;line-height:36px;font-weight:700;font-variant-numeric:tabular-nums}
+.sw{position:relative;width:48px;height:28px;border-radius:999px;border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms}
+.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
+.tabl{display:flex;gap:4px;border-bottom:1px solid #e2e8f0}
+.tl{position:relative;height:46px;padding:0 14px;border:0;background:transparent;font-size:15px;font-weight:500;color:#64748b;cursor:pointer;white-space:nowrap}
+.tl.on{color:#003087;font-weight:700}.tl.on::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:#003087}
+.row{display:flex;align-items:center;gap:12px;padding:14px 16px}
+.row + .row{border-top:1px solid #eef2f6}
+.bar{height:8px;border-radius:999px;background:#eef2f6;overflow:hidden;display:block}.bar>span{display:block;height:8px;border-radius:999px}
+.note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:14px;line-height:20px}
+.n-info{background:#eef3fb;color:#1e3a6e}.n-warn{background:#fff8eb;color:#7a3b04;border:1px solid #fde3b5}.n-ok{background:#e7f8f1;color:#065f46}.n-due{background:#fff4f0;color:#8a2a0d;border:1px solid #f7c9bb}
+.chipq{height:38px;padding:0 12px;border-radius:999px;border:1px solid #d6e0ef;background:#f5f8ff;color:#003087;font-size:13.5px;font-weight:500;cursor:pointer;white-space:nowrap}
+.wave span{display:inline-block;width:4px;margin:0 2px;border-radius:4px;background:#003087;animation:wv 900ms ease-in-out infinite}
+.wave span:nth-child(2){animation-delay:.15s}.wave span:nth-child(3){animation-delay:.3s}.wave span:nth-child(4){animation-delay:.45s}.wave span:nth-child(5){animation-delay:.6s}
+@keyframes wv{0%,100%{height:8px}50%{height:26px}}
+.fade{animation:fd 240ms cubic-bezier(0,0,.2,1)}
+@keyframes fd{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.btn:focus-visible,.ib:focus-visible,.sgb:focus-visible,.chip:focus-visible,.tl:focus-visible,.sw:focus-visible,.chipq:focus-visible,a:focus-visible,button:focus-visible{outline:3px solid rgba(0,48,135,.45);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+
+.nav{display:flex;align-items:center;gap:11px;height:38px;padding:0 10px;border-radius:10px;color:#334155;font-size:14.5px;font-weight:500;text-decoration:none;transition:background-color 200ms,color 200ms}
+.nav:hover{background:#f1f5f9;color:#0f172a}
+.nav.on{background:rgba(0,48,135,.09);color:#003087;font-weight:700}
+.nav .cnt{margin-left:auto;min-width:24px;height:21px;padding:0 7px;border-radius:999px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.navh{font-size:12px;font-weight:600;letter-spacing:.04em;color:#64748b;padding:12px 10px 2px}
+.act{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:16px;border-radius:16px;border:1px solid #e6eaf0;background:#fff;cursor:pointer;text-align:left;text-decoration:none;color:#0f172a;transition:border-color 200ms,box-shadow 200ms}
+.act:hover{border-color:#003087;box-shadow:0 8px 20px -12px rgba(0,48,135,.35);color:#0f172a}
+.act .ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center}
+.alert{display:flex;align-items:center;gap:14px;padding:12px 16px;border-top:1px solid #eef2f6}
+.abtn{height:38px;padding:0 14px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;font-size:14px;font-weight:600;color:#003087;cursor:pointer;white-space:nowrap}
+.abtn:hover{background:#f1f5f9}
+.mic{position:absolute;right:28px;bottom:28px;height:60px;padding:0 22px 0 8px;border-radius:999px;border:0;background:#003087;color:#fff;display:flex;align-items:center;gap:12px;font-size:16px;font-weight:600;cursor:pointer;box-shadow:0 16px 32px -12px rgba(0,48,135,.6);z-index:20}
+.mic .dotc{width:44px;height:44px;border-radius:999px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center}
+.scrim{position:absolute;inset:0;background:rgba(15,23,42,.42);z-index:15}
+.drawer{position:absolute;top:0;right:0;bottom:0;width:520px;background:#fff;z-index:16;display:flex;flex-direction:column;box-shadow:-20px 0 50px -20px rgba(15,23,42,.35)}
+.modal{position:absolute;left:50%;top:120px;transform:translateX(-50%);width:560px;background:#fff;border-radius:20px;z-index:16;box-shadow:0 30px 70px -20px rgba(15,23,42,.45)}
+
+/* merged: English, compact controls, GridAI button */
+body{font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif}
+.btn{height:40px;padding:0 16px;font-size:14px;border-radius:10px}
+.btn.sm,.sm{height:34px;padding:0 12px;font-size:13px;border-radius:9px}
+.btn.big,.big{height:48px;padding:0 22px;font-size:15px;border-radius:12px}
+.ib{width:40px;height:40px;border-radius:10px}
+.chip{height:34px;padding:0 12px;font-size:13px}
+.sgb{height:32px;padding:0 12px;font-size:13px}
+.gfab{position:absolute;right:28px;bottom:28px;z-index:20;display:inline-flex;align-items:center;gap:10px;height:52px;padding:0 20px 0 16px;border-radius:999px;background:#003087;color:#fff;font-size:15px;font-weight:600;text-decoration:none;box-shadow:0 14px 30px -12px rgba(0,48,135,.6)}
+.gfab:hover{background:#002a77;color:#fff}
+.gfab:focus-visible{outline:3px solid rgba(0,48,135,.45);outline-offset:3px}
+.th,.td{white-space:normal}
+`;
+
+// ---- markup ----
+
+export default class WholesaleInvoicesScreen extends Component {
+  render() {
+    const v = this.renderVals() || {};
+    return (
+      <div className="dc-screen ds" data-screen="WholesaleInvoices">
+        <style dangerouslySetInnerHTML={{ __html: CSS }} />
+        <div className={v.rootCls} style={{ width: "1440px", height: "1250px", position: "relative", background: "#e9eef5", padding: "12px", display: "flex", gap: "12px", overflow: "hidden" }}>
+          <__Sidebar sticky="" active="sales-wholesale" />
+          <main style={{ flexGrow: "1", minWidth: "0", background: "#f6f8fb", borderRadius: "18px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
+            <__Topbar crumb="Sales" page="Wholesale invoices" placeholder="Search products, customers or memo no." />
+            <div style={{ flexGrow: "1", minHeight: "0", padding: "22px 28px 28px", display: "flex", flexDirection: "column", gap: "18px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <span style={{ width: "52px", height: "52px", flexShrink: "0", borderRadius: "15px", background: "#fff", border: "1px solid #e6eaf0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="40" height="40" viewBox="0 0 48 48" aria-hidden="true">
+                    <path d="M7 18H13A3 3 0 0 1 16 21V31A3 3 0 0 1 13 34H7A3 3 0 0 1 4 31V21A3 3 0 0 1 7 18Z" fill="#0ea5e9" />
+                    <path d="M35 18H41A3 3 0 0 1 44 21V31A3 3 0 0 1 41 34H35A3 3 0 0 1 32 31V21A3 3 0 0 1 35 18Z" fill="#0ea5e9" />
+                    <path d="M14 22L23 16L34 22L30 30L24 33L17 30Z" fill="#7dd3fc" />
+                    <path d="M20 24L25 28M23 22L28 26" fill="none" stroke="#0ea5e9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                <div style={{ flexGrow: "1" }}>
+                  <h1 className="h1">{v.t?.h}</h1>
+                  <div className="sub">{v.t?.hsub}</div>
+                </div>
+                <__Link href="/all-customers" className="btn line"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <path d="M9 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a7 7 0 0 1 14 0M17 11a3 3 0 1 0 0-6M22 21a5 5 0 0 0-4-5" />
+</svg>{v.t?.custDues}</__Link>
+                <__Link href="/wholesale-invoice-edit" className="btn solid"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <path d="M12 5v14M5 12h14" />
+</svg>{v.t?.newW}</__Link>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "14px" }}>
+                <div className="card kpi" style={{ borderColor: "#f7c9bb", background: "#fffaf8" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true">
+                      <path d="M11.5 14.5a7.5 7.5 0 1 0 15.0 0a7.5 7.5 0 1 0 -15.0 0Z" fill="#7dd3fc" />
+                      <path d="M14.5 24H23.5A9.5 9.5 0 0 1 33 33.5V33.5A9.5 9.5 0 0 1 23.5 43H14.5A9.5 9.5 0 0 1 5 33.5V33.5A9.5 9.5 0 0 1 14.5 24Z" fill="#0ea5e9" />
+                      <path d="M25 31a10 10 0 1 0 20 0a10 10 0 1 0 -20 0Z" fill="#0ea5e9" />
+                      <path d="M28 31a7 7 0 1 0 14 0a7 7 0 1 0 -14 0Z" fill="#7dd3fc" />
+                      <path d="M31 31H39" fill="none" stroke="#fff" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span className="k">{v.t?.kDue}</span>
+                  </div>
+                  <span className="v num" style={{ color: "#b83210" }}>{v.k?.due}</span>
+                  <span className="hint">{v.k?.dueN}</span>
+                </div>
+                <div className="card kpi">
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true">
+                      <path d="M10 8H38A5 5 0 0 1 43 13V37A5 5 0 0 1 38 42H10A5 5 0 0 1 5 37V13A5 5 0 0 1 10 8Z" fill="#e0f2fe" />
+                      <path d="M10.5 9.5H37.5A4 4 0 0 1 41.5 13.5V36.5A4 4 0 0 1 37.5 40.5H10.5A4 4 0 0 1 6.5 36.5V13.5A4 4 0 0 1 10.5 9.5Z" fill="#ffffff" />
+                      <path d="M10 8H38A5 5 0 0 1 43 13V14A5 5 0 0 1 38 19H10A5 5 0 0 1 5 14V13A5 5 0 0 1 10 8Z" fill="#0ea5e9" />
+                      <path d="M5 14h38v5h-38Z" fill="#0ea5e9" />
+                      <path d="M14.7 4H14.7A1.7 1.7 0 0 1 16.4 5.7V11.3A1.7 1.7 0 0 1 14.7 13H14.7A1.7 1.7 0 0 1 13 11.3V5.7A1.7 1.7 0 0 1 14.7 4Z" fill="#003087" />
+                      <path d="M33.7 4H33.699999999999996A1.7 1.7 0 0 1 35.4 5.7V11.3A1.7 1.7 0 0 1 33.699999999999996 13H33.7A1.7 1.7 0 0 1 32 11.3V5.7A1.7 1.7 0 0 1 33.7 4Z" fill="#003087" />
+                      <path d="M12.2 23H15.8A1.2 1.2 0 0 1 17 24.2V26.8A1.2 1.2 0 0 1 15.8 28H12.2A1.2 1.2 0 0 1 11 26.8V24.2A1.2 1.2 0 0 1 12.2 23Z" fill="#e0f2fe" />
+                      <path d="M22.2 23H25.8A1.2 1.2 0 0 1 27 24.2V26.8A1.2 1.2 0 0 1 25.8 28H22.2A1.2 1.2 0 0 1 21 26.8V24.2A1.2 1.2 0 0 1 22.2 23Z" fill="#e0f2fe" />
+                      <path d="M32.2 23H35.8A1.2 1.2 0 0 1 37 24.2V26.8A1.2 1.2 0 0 1 35.8 28H32.2A1.2 1.2 0 0 1 31 26.8V24.2A1.2 1.2 0 0 1 32.2 23Z" fill="#0ea5e9" />
+                      <path d="M12.2 32H15.8A1.2 1.2 0 0 1 17 33.2V35.8A1.2 1.2 0 0 1 15.8 37H12.2A1.2 1.2 0 0 1 11 35.8V33.2A1.2 1.2 0 0 1 12.2 32Z" fill="#e0f2fe" />
+                      <path d="M22.2 32H25.8A1.2 1.2 0 0 1 27 33.2V35.8A1.2 1.2 0 0 1 25.8 37H22.2A1.2 1.2 0 0 1 21 35.8V33.2A1.2 1.2 0 0 1 22.2 32Z" fill="#e0f2fe" />
+                      <path d="M32.2 32H35.8A1.2 1.2 0 0 1 37 33.2V35.8A1.2 1.2 0 0 1 35.8 37H32.2A1.2 1.2 0 0 1 31 35.8V33.2A1.2 1.2 0 0 1 32.2 32Z" fill="#e0f2fe" />
+                    </svg>
+                    <span className="k">{v.t?.kToday}</span>
+                  </div>
+                  <span className="v num" style={{ color: "#a14f06" }}>{v.k?.today}</span>
+                  <span className="hint">{v.k?.todayN}</span>
+                </div>
+                <div className="card kpi">
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true">
+                      <path d="M9 8H32A4 4 0 0 1 36 12V35A4 4 0 0 1 32 39H9A4 4 0 0 1 5 35V12A4 4 0 0 1 9 8Z" fill="#e0f2fe" />
+                      <path d="M9.5 9.5H31.5A3 3 0 0 1 34.5 12.5V34.5A3 3 0 0 1 31.5 37.5H9.5A3 3 0 0 1 6.5 34.5V12.5A3 3 0 0 1 9.5 9.5Z" fill="#ffffff" />
+                      <path d="M9 8H32A4 4 0 0 1 36 12V14A4 4 0 0 1 32 18H9A4 4 0 0 1 5 14V12A4 4 0 0 1 9 8Z" fill="#0ea5e9" />
+                      <path d="M5 13h31v5h-31Z" fill="#0ea5e9" />
+                      <path d="M13.6 4H13.6A1.6 1.6 0 0 1 15.2 5.6V10.4A1.6 1.6 0 0 1 13.6 12H13.6A1.6 1.6 0 0 1 12 10.4V5.6A1.6 1.6 0 0 1 13.6 4Z" fill="#003087" />
+                      <path d="M27.6 4H27.599999999999998A1.6 1.6 0 0 1 29.2 5.6V10.4A1.6 1.6 0 0 1 27.599999999999998 12H27.6A1.6 1.6 0 0 1 26 10.4V5.6A1.6 1.6 0 0 1 27.6 4Z" fill="#003087" />
+                      <path d="M12 22H14.5A1 1 0 0 1 15.5 23V25A1 1 0 0 1 14.5 26H12A1 1 0 0 1 11 25V23A1 1 0 0 1 12 22Z" fill="#7dd3fc" />
+                      <path d="M19.5 22H22.0A1 1 0 0 1 23.0 23V25A1 1 0 0 1 22.0 26H19.5A1 1 0 0 1 18.5 25V23A1 1 0 0 1 19.5 22Z" fill="#7dd3fc" />
+                      <path d="M27 22H29.5A1 1 0 0 1 30.5 23V25A1 1 0 0 1 29.5 26H27A1 1 0 0 1 26 25V23A1 1 0 0 1 27 22Z" fill="#7dd3fc" />
+                      <path d="M12 29H14.5A1 1 0 0 1 15.5 30V32A1 1 0 0 1 14.5 33H12A1 1 0 0 1 11 32V30A1 1 0 0 1 12 29Z" fill="#7dd3fc" />
+                      <path d="M19.5 29H22.0A1 1 0 0 1 23.0 30V32A1 1 0 0 1 22.0 33H19.5A1 1 0 0 1 18.5 32V30A1 1 0 0 1 19.5 29Z" fill="#7dd3fc" />
+                      <path d="M26.5 35a9.5 9.5 0 1 0 19.0 0a9.5 9.5 0 1 0 -19.0 0Z" fill="#0ea5e9" />
+                      <path d="M29 35a7 7 0 1 0 14 0a7 7 0 1 0 -14 0Z" fill="#ffffff" />
+                      <path d="M36 31V35.5L39 37.5" fill="none" stroke="#003087" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span className="k">{v.t?.kOver}</span>
+                  </div>
+                  <span className="v num" style={{ color: "#b83210" }}>{v.k?.over}</span>
+                  <span className="hint">{v.k?.overN}</span>
+                </div>
+                <div className="card kpi">
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true">
+                      <path d="M8.5 28H12.5A1.5 1.5 0 0 1 14 29.5V39.5A1.5 1.5 0 0 1 12.5 41H8.5A1.5 1.5 0 0 1 7 39.5V29.5A1.5 1.5 0 0 1 8.5 28Z" fill="#7dd3fc" />
+                      <path d="M18.5 22H22.5A1.5 1.5 0 0 1 24 23.5V39.5A1.5 1.5 0 0 1 22.5 41H18.5A1.5 1.5 0 0 1 17 39.5V23.5A1.5 1.5 0 0 1 18.5 22Z" fill="#7dd3fc" />
+                      <path d="M28.5 16H32.5A1.5 1.5 0 0 1 34 17.5V39.5A1.5 1.5 0 0 1 32.5 41H28.5A1.5 1.5 0 0 1 27 39.5V17.5A1.5 1.5 0 0 1 28.5 16Z" fill="#0ea5e9" />
+                      <path d="M6 21L16 13L24 17L39 7" fill="none" stroke="#0ea5e9" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M33 5.5L42.5 4.5L41 13.5Z" fill="#0ea5e9" />
+                    </svg>
+                    <span className="k">{v.t?.kMonth}</span>
+                  </div>
+                  <span className="v num" style={{ color: "#047857" }}>{v.k?.month}</span>
+                  <span className="hint">{v.k?.monthN}</span>
+                </div>
+              </div>
+              <section className="card" style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <div style={{ display: "flex", alignItems: "flex-end", gap: "12px", padding: "6px 16px 0" }}>
+                  <div className="tabl" role="tablist" style={{ flexGrow: "1", borderBottom: "0" }}>
+                    {__list(v.tabs).map((tb, $index) => (<React.Fragment key={$index}>
+                        <button type="button" role="tab" className={tb?.cls} aria-selected={tb?.on} onClick={tb?.pick} style={{ display: "inline-flex", alignItems: "center", gap: "7px" }}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <path d={tb?.ic} />
+</svg>{tb?.l} <span className="num" style={{ fontSize: "13px", fontWeight: "600", color: "#64748b" }}>{tb?.n}</span></button>
+                      </React.Fragment>))}
+                  </div>
+                  <label style={{ width: "320px", height: "42px", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px", padding: "0 12px", border: "1px solid #dbe2ec", borderRadius: "12px", background: "#f8fafc", color: "#64748b" }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-3.5-3.5" />
+                    </svg>
+                    <input value={v.q} onInput={v.typeQ} onChange={v.typeQ} placeholder={v.t?.find} aria-label={v.t?.find} style={{ flexGrow: "1", minWidth: "0", border: "0", background: "transparent", font: "inherit", fontSize: "14.5px", outline: "none" }} />
+                  </label>
+                </div>
+                <div style={{ borderTop: "1px solid #e2e8f0" }} />
+                {v.hasSel ? (<>
+                  <div className="fade" role="status" style={{ margin: "12px 16px 4px", display: "flex", alignItems: "center", gap: "12px", padding: "10px 12px 10px 16px", borderRadius: "14px", background: "#003087", color: "#fff" }}>
+                    <span style={{ width: "30px", height: "30px", borderRadius: "999px", background: "rgba(255,255,255,.16)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span style={{ flexGrow: "1", fontSize: "15px" }}>
+                      <span style={{ fontWeight: "700" }}>{v.selLine}</span>
+                      {" "}
+                      <span className="num" style={{ opacity: ".85" }}>{v.selAmt}</span>
+                    </span>
+                    <button type="button" className="btn sm" onClick={v.clearSel} style={{ background: "transparent", color: "#fff", border: "1px solid rgba(255,255,255,.4)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <path d="M18 6 6 18M6 6l12 12" />
+</svg>{v.t?.clearSel}</button>
+                    <button type="button" className="btn sm" onClick={v.bulkSend} style={{ background: "#fff", color: "#003087" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <path d="m22 2-7 20-4-9-9-4zM22 2 11 13" />
+</svg>{v.t?.bulk}</button>
+                  </div>
+                </>) : null}
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr>
+                      <th className="th" style={{ width: "48px", padding: "10px 8px 10px 16px" }}>
+                        <button type="button" onClick={v.toggleAll} aria-pressed={v.allOn} aria-label={v.t?.selAll} style={__sx(`width: 24px; height: 24px; border-radius: 7px; border: 2px solid ${v.allBd ?? ""}; background: ${v.allBg ?? ""}; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;`)}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M20 6 9 17l-5-5" />
+                          </svg>
+                        </button>
+                      </th>
+                      <th className="th" style={{ padding: "10px 10px" }}>{v.t?.cNo}</th>
+                      <th className="th" style={{ padding: "10px 10px" }}>{v.t?.cCust}</th>
+                      <th className="th" style={{ padding: "10px 10px" }}>{v.t?.cDate}</th>
+                      <th className="th" style={{ padding: "10px 10px", textAlign: "right" }}>{v.t?.cTotal}</th>
+                      <th className="th" style={{ padding: "10px 10px", textAlign: "right" }}>{v.t?.cDue}</th>
+                      <th className="th" style={{ padding: "10px 10px" }}>{v.t?.cSt}</th>
+                      <th className="th" style={{ padding: "10px 16px 10px 10px" }} />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {__list(v.rows).map((r, $index) => (<React.Fragment key={$index}>
+                        <tr className="trow" style={__sx(`background: ${r?.rowBg ?? ""};`)}>
+                          <td className="td" style={{ padding: "12px 8px 12px 16px" }}>
+                            {r?.canSel ? (<>
+                              <button type="button" onClick={r?.toggle} aria-pressed={r?.sel} aria-label={`${v.t?.selOne ?? ""} ${r?.no ?? ""}`} style={__sx(`width: 24px; height: 24px; border-radius: 7px; border: 2px solid ${r?.cbBd ?? ""}; background: ${r?.cbBg ?? ""}; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;`)}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <path d="M20 6 9 17l-5-5" />
+                                </svg>
+                              </button>
+                            </>) : null}
+                            {r?.noSel ? (<>
+                              <span aria-hidden="true" style={{ display: "block", width: "24px", height: "24px", borderRadius: "7px", border: "2px solid #eef2f6", background: "#f8fafc" }} />
+                            </>) : null}
+                          </td>
+                          <td className="td" style={{ padding: "12px 10px" }}>
+                            <__Link href="/wholesale-invoice-edit" className="num" style={{ fontWeight: "700", whiteSpace: "nowrap" }}>{r?.no}</__Link>
+                            {r?.hasRev ? (<>
+                              <div style={{ marginTop: "4px" }}>
+                                <span className="pill num" style={{ height: "22px", padding: "0 8px", fontSize: "12px", background: "#fff4e0", color: "#a14f06" }}>{r?.rev}</span>
+                              </div>
+                            </>) : null}
+                          </td>
+                          <td className="td" style={{ padding: "12px 10px" }}>
+                            <div style={{ fontWeight: "600" }}>{r?.cust}</div>
+                            <div className="num hint">{r?.phone}</div>
+                          </td>
+                          <td className="td num" style={{ padding: "12px 10px", whiteSpace: "nowrap" }}>
+                            <div>{r?.date}</div>
+                            <div style={__sx(`font-size: 13px; font-weight: 600; color: ${r?.ddFg ?? ""};`)}>{r?.dueDate} · {r?.ddNote}</div>
+                          </td>
+                          <td className="td num" style={{ padding: "12px 10px", textAlign: "right", whiteSpace: "nowrap" }}>
+                            <div style={{ fontWeight: "700" }}>{r?.total}</div>
+                            <div style={{ fontSize: "13px", color: "#047857", fontWeight: "600" }}>{r?.paid}</div>
+                          </td>
+                          <td className="td num" style={__sx(`padding: 12px 10px; text-align: right; font-weight: 700; font-size: 16px; color: ${r?.dueFg ?? ""}; white-space: nowrap;`)}>{r?.due}</td>
+                          <td className="td" style={{ padding: "12px 10px" }}>
+                            <span className={r?.stCls} style={{ gap: "5px" }}>{r?.isSeen ? (<>
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+  </svg>
+</>) : null}{r?.st}</span>
+                          </td>
+                          <td className="td" style={{ padding: "12px 16px 12px 10px", whiteSpace: "nowrap", textAlign: "right" }}>
+                            <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
+                              <button type="button" className="btn line sm" onClick={r?.send} style={{ padding: "0 12px" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <path d="m22 2-7 20-4-9-9-4zM22 2 11 13" />
+</svg>{v.t?.send}</button>
+                              <__Link href="/wholesale-invoice-edit" className="ib" aria-label={`${v.t?.edit ?? ""} ${r?.no ?? ""}`} title={v.t?.edit} style={{ width: "38px", height: "38px", borderRadius: "10px" }}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
+                                </svg>
+                              </__Link>
+                              {r?.canPay ? (<>
+                                <button type="button" className="btn okb sm" onClick={r?.pay}>{v.t?.take}</button>
+                              </>) : null}
+                              {r?.noPay ? (<>
+                                <span aria-hidden="true" style={{ display: "inline-block", width: "92px" }} />
+                              </>) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      </React.Fragment>))}
+                  </tbody>
+                </table>
+                {v.isEmpty ? (<>
+                  <div style={{ padding: "36px", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", color: "#64748b", fontSize: "15px" }}>
+                    <svg width="52" height="52" viewBox="0 0 48 48" aria-hidden="true">
+                      <path d="M11 4H33A3 3 0 0 1 36 7V39A3 3 0 0 1 33 42H11A3 3 0 0 1 8 39V7A3 3 0 0 1 11 4Z" fill="#e0f2fe" />
+                      <path d="M11.5 5.5H32.5A2 2 0 0 1 34.5 7.5V38.5A2 2 0 0 1 32.5 40.5H11.5A2 2 0 0 1 9.5 38.5V7.5A2 2 0 0 1 11.5 5.5Z" fill="#ffffff" />
+                      <path d="M14.6 10H23.4A1.6 1.6 0 0 1 25 11.6V11.6A1.6 1.6 0 0 1 23.4 13.2H14.6A1.6 1.6 0 0 1 13 11.6V11.6A1.6 1.6 0 0 1 14.6 10Z" fill="#0ea5e9" />
+                      <path d="M14.1 17H29.9A1.1 1.1 0 0 1 31 18.1V18.099999999999998A1.1 1.1 0 0 1 29.9 19.2H14.1A1.1 1.1 0 0 1 13 18.099999999999998V18.1A1.1 1.1 0 0 1 14.1 17Z" fill="#e0f2fe" />
+                      <path d="M14.1 22H29.9A1.1 1.1 0 0 1 31 23.1V23.099999999999998A1.1 1.1 0 0 1 29.9 24.2H14.1A1.1 1.1 0 0 1 13 23.099999999999998V23.1A1.1 1.1 0 0 1 14.1 22Z" fill="#e0f2fe" />
+                      <path d="M14.1 27H23.9A1.1 1.1 0 0 1 25 28.1V28.099999999999998A1.1 1.1 0 0 1 23.9 29.2H14.1A1.1 1.1 0 0 1 13 28.099999999999998V28.1A1.1 1.1 0 0 1 14.1 27Z" fill="#e0f2fe" />
+                      <path d="M27 35a8 8 0 1 0 16 0a8 8 0 1 0 -16 0Z" fill="#e0f2fe" />
+                      <path d="M28.7 35a6.3 6.3 0 1 0 12.6 0a6.3 6.3 0 1 0 -12.6 0Z" fill="none" stroke="#0ea5e9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M32.6 34H37.4A1.1 1.1 0 0 1 38.5 35.1V35.1A1.1 1.1 0 0 1 37.4 36.2H32.6A1.1 1.1 0 0 1 31.5 35.1V35.1A1.1 1.1 0 0 1 32.6 34Z" fill="#0ea5e9" />
+                    </svg>
+                    <span>{v.t?.empty}</span>
+                  </div>
+                </>) : null}
+                <div className="num" style={{ padding: "12px 16px", fontSize: "14px", color: "#64748b", borderTop: "1px solid #f1f5f9" }}>{v.footLine}</div>
+              </section>
+              {v.sendOpen ? (<>
+                <div className="scrim" onClick={v.closeModal} aria-hidden="true" />
+                <section className="modal fade" role="dialog" aria-label={v.mTitle} style={{ padding: "22px", display: "flex", flexDirection: "column", gap: "14px" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+                    <svg width="40" height="40" viewBox="0 0 48 48" aria-hidden="true">
+                      <path d="M15.5 3H27.5A4.5 4.5 0 0 1 32 7.5V40.5A4.5 4.5 0 0 1 27.5 45H15.5A4.5 4.5 0 0 1 11 40.5V7.5A4.5 4.5 0 0 1 15.5 3Z" fill="#003087" />
+                      <path d="M15.5 7.5H27.5A2 2 0 0 1 29.5 9.5V36.5A2 2 0 0 1 27.5 38.5H15.5A2 2 0 0 1 13.5 36.5V9.5A2 2 0 0 1 15.5 7.5Z" fill="#e0f2fe" />
+                      <path d="M20.2 41.5a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0 -2.6 0Z" fill="#7dd3fc" />
+                      <path d="M27 10H40A5 5 0 0 1 45 15V19A5 5 0 0 1 40 24H27A5 5 0 0 1 22 19V15A5 5 0 0 1 27 10Z" fill="#0ea5e9" />
+                      <path d="M27 23L25.5 29.5L32 24Z" fill="#0ea5e9" />
+                      <path d="M26.3 17a1.7 1.7 0 1 0 3.4 0a1.7 1.7 0 1 0 -3.4 0Z" fill="#ffffff" />
+                      <path d="M31.8 17a1.7 1.7 0 1 0 3.4 0a1.7 1.7 0 1 0 -3.4 0Z" fill="#ffffff" />
+                      <path d="M37.3 17a1.7 1.7 0 1 0 3.4 0a1.7 1.7 0 1 0 -3.4 0Z" fill="#ffffff" />
+                    </svg>
+                    <div style={{ flexGrow: "1" }}>
+                      <h2 className="h2 num">{v.mTitle}</h2>
+                      <div className="sub num">{v.mSub}</div>
+                    </div>
+                    <button type="button" className="ib" onClick={v.closeModal} aria-label={v.t?.close}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M18 6 6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  <span className="lbl">{v.t?.sendHow}</span>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "8px" }}>
+                    <button type="button" className={v.chK?.sms?.cls} aria-pressed={v.chK?.sms?.on} onClick={v.chK?.sms?.pick} style={{ height: "52px", justifyContent: "center", gap: "8px" }}><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true">
+  <path d="M15.5 3H27.5A4.5 4.5 0 0 1 32 7.5V40.5A4.5 4.5 0 0 1 27.5 45H15.5A4.5 4.5 0 0 1 11 40.5V7.5A4.5 4.5 0 0 1 15.5 3Z" fill="#003087" />
+  <path d="M15.5 7.5H27.5A2 2 0 0 1 29.5 9.5V36.5A2 2 0 0 1 27.5 38.5H15.5A2 2 0 0 1 13.5 36.5V9.5A2 2 0 0 1 15.5 7.5Z" fill="#e0f2fe" />
+  <path d="M20.2 41.5a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0 -2.6 0Z" fill="#7dd3fc" />
+  <path d="M27 10H40A5 5 0 0 1 45 15V19A5 5 0 0 1 40 24H27A5 5 0 0 1 22 19V15A5 5 0 0 1 27 10Z" fill="#0ea5e9" />
+  <path d="M27 23L25.5 29.5L32 24Z" fill="#0ea5e9" />
+  <path d="M26.3 17a1.7 1.7 0 1 0 3.4 0a1.7 1.7 0 1 0 -3.4 0Z" fill="#ffffff" />
+  <path d="M31.8 17a1.7 1.7 0 1 0 3.4 0a1.7 1.7 0 1 0 -3.4 0Z" fill="#ffffff" />
+  <path d="M37.3 17a1.7 1.7 0 1 0 3.4 0a1.7 1.7 0 1 0 -3.4 0Z" fill="#ffffff" />
+</svg>{v.chK?.sms?.l}</button>
+                    <button type="button" className={v.chK?.wa?.cls} aria-pressed={v.chK?.wa?.on} onClick={v.chK?.wa?.pick} style={{ height: "52px", justifyContent: "center", gap: "8px" }}><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true">
+  <path d="M17 3H31A5 5 0 0 1 36 8V40A5 5 0 0 1 31 45H17A5 5 0 0 1 12 40V8A5 5 0 0 1 17 3Z" fill="#003087" />
+  <path d="M16.5 7H31.5A2 2 0 0 1 33.5 9V37A2 2 0 0 1 31.5 39H16.5A2 2 0 0 1 14.5 37V9A2 2 0 0 1 16.5 7Z" fill="#7dd3fc" />
+  <path d="M22.6 41.5a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0Z" fill="#0ea5e9" />
+  <path d="M19 11H29A2 2 0 0 1 31 13V17A2 2 0 0 1 29 19H19A2 2 0 0 1 17 17V13A2 2 0 0 1 19 11Z" fill="#0ea5e9" />
+  <path d="M18.5 22H29.5A1.5 1.5 0 0 1 31 23.5V23.5A1.5 1.5 0 0 1 29.5 25H18.5A1.5 1.5 0 0 1 17 23.5V23.5A1.5 1.5 0 0 1 18.5 22Z" fill="#ffffff" />
+  <path d="M18.5 27H25.5A1.5 1.5 0 0 1 27 28.5V28.5A1.5 1.5 0 0 1 25.5 30H18.5A1.5 1.5 0 0 1 17 28.5V28.5A1.5 1.5 0 0 1 18.5 27Z" fill="#ffffff" />
+</svg>{v.chK?.wa?.l}</button>
+                    <button type="button" className={v.chK?.print?.cls} aria-pressed={v.chK?.print?.on} onClick={v.chK?.print?.pick} style={{ height: "52px", justifyContent: "center", gap: "8px" }}><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true">
+  <path d="M15 4H33A2 2 0 0 1 35 6V16A2 2 0 0 1 33 18H15A2 2 0 0 1 13 16V6A2 2 0 0 1 15 4Z" fill="#e0f2fe" />
+  <path d="M16.0 5.5H32.0A1.5 1.5 0 0 1 33.5 7.0V16.0A1.5 1.5 0 0 1 32.0 17.5H16.0A1.5 1.5 0 0 1 14.5 16.0V7.0A1.5 1.5 0 0 1 16.0 5.5Z" fill="#ffffff" />
+  <path d="M9 16H39A4 4 0 0 1 43 20V30A4 4 0 0 1 39 34H9A4 4 0 0 1 5 30V20A4 4 0 0 1 9 16Z" fill="#003087" />
+  <path d="M10.5 25H37.5A1.5 1.5 0 0 1 39 26.5V27.5A1.5 1.5 0 0 1 37.5 29H10.5A1.5 1.5 0 0 1 9 27.5V26.5A1.5 1.5 0 0 1 10.5 25Z" fill="#003087" />
+  <path d="M15 27H33A2 2 0 0 1 35 29V42A2 2 0 0 1 33 44H15A2 2 0 0 1 13 42V29A2 2 0 0 1 15 27Z" fill="#e0f2fe" />
+  <path d="M16.0 28H32.0A1.5 1.5 0 0 1 33.5 29.5V41.0A1.5 1.5 0 0 1 32.0 42.5H16.0A1.5 1.5 0 0 1 14.5 41.0V29.5A1.5 1.5 0 0 1 16.0 28Z" fill="#ffffff" />
+  <path d="M18.5 32H29.5A1 1 0 0 1 30.5 33V33A1 1 0 0 1 29.5 34H18.5A1 1 0 0 1 17.5 33V33A1 1 0 0 1 18.5 32Z" fill="#7dd3fc" />
+  <path d="M18.5 36H25.5A1 1 0 0 1 26.5 37V37A1 1 0 0 1 25.5 38H18.5A1 1 0 0 1 17.5 37V37A1 1 0 0 1 18.5 36Z" fill="#7dd3fc" />
+  <path d="M35 21a2 2 0 1 0 4 0a2 2 0 1 0 -4 0Z" fill="#0ea5e9" />
+</svg>{v.chK?.print?.l}</button>
+                  </div>
+                  {v.isMsg ? (<>
+                    <div className="fade" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <span className="lbl">{v.t?.preview}</span>
+                      <div className="num" style={__sx(`padding: 14px 16px; border-radius: 16px 16px 16px 4px; background: ${v.bubbleBg ?? ""}; border: 1px solid ${v.bubbleBd ?? ""}; font-size: 15px; line-height: 24px; color: #0f172a;`)}>{v.msgText}</div>
+                      <span className="hint">{v.chanHint}</span>
+                    </div>
+                  </>) : null}
+                  {v.isPrint ? (<>
+                    <div className="fade" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <span className="lbl">{v.t?.paper}</span>
+                      <div className="seg" role="group" aria-label={v.t?.paper} style={{ alignSelf: "flex-start" }}>
+                        {__list(v.papers).map((pp, $index) => (<React.Fragment key={$index}>
+                            <button type="button" className={pp?.cls} aria-pressed={pp?.on} onClick={pp?.pick}>{pp?.l}</button>
+                          </React.Fragment>))}
+                      </div>
+                      <span className="hint">{v.printHint}</span>
+                    </div>
+                  </>) : null}
+                  <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", paddingTop: "6px", borderTop: "1px solid #eef2f6" }}>
+                    <button type="button" className="btn line" onClick={v.closeModal}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <path d="M18 6 6 18M6 6l12 12" />
+</svg>{v.t?.cancel}</button>
+                    <button type="button" className="btn solid" onClick={v.doSend}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <path d="m22 2-7 20-4-9-9-4zM22 2 11 13" />
+</svg>{v.sendBtn}</button>
+                  </div>
+                </section>
+              </>) : null}
+              {v.payOpen ? (<>
+                <div className="scrim" onClick={v.closeModal} aria-hidden="true" />
+                <section className="modal fade" role="dialog" aria-label={v.pTitle} style={{ padding: "22px", display: "flex", flexDirection: "column", gap: "14px", width: "500px" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+                    <svg width="40" height="40" viewBox="0 0 48 48" aria-hidden="true">
+                      <path d="M10.5 30H27.5A3.5 3.5 0 0 1 31 33.5V33.5A3.5 3.5 0 0 1 27.5 37H10.5A3.5 3.5 0 0 1 7 33.5V33.5A3.5 3.5 0 0 1 10.5 30Z" fill="#0ea5e9" />
+                      <path d="M10.5 24.5H27.5A3.5 3.5 0 0 1 31 28.0V28.0A3.5 3.5 0 0 1 27.5 31.5H10.5A3.5 3.5 0 0 1 7 28.0V28.0A3.5 3.5 0 0 1 10.5 24.5Z" fill="#0ea5e9" />
+                      <path d="M10.5 19H27.5A3.5 3.5 0 0 1 31 22.5V22.5A3.5 3.5 0 0 1 27.5 26H10.5A3.5 3.5 0 0 1 7 22.5V22.5A3.5 3.5 0 0 1 10.5 19Z" fill="#7dd3fc" />
+                      <path d="M27 13a9 9 0 1 0 18 0a9 9 0 1 0 -18 0Z" fill="#0ea5e9" />
+                      <path d="M36 17.5V8.5M32 12.5l4 -4 4 4" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <div style={{ flexGrow: "1" }}>
+                      <h2 className="h2 num">{v.pTitle}</h2>
+                      <div className="sub">{v.pCust}</div>
+                    </div>
+                    <button type="button" className="ib" onClick={v.closeModal} aria-label={v.t?.close}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M18 6 6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 14px", borderRadius: "12px", background: "#fff4f0" }}>
+                    <svg width="30" height="30" viewBox="0 0 48 48" aria-hidden="true">
+                      <path d="M11.5 14.5a7.5 7.5 0 1 0 15.0 0a7.5 7.5 0 1 0 -15.0 0Z" fill="#7dd3fc" />
+                      <path d="M14.5 24H23.5A9.5 9.5 0 0 1 33 33.5V33.5A9.5 9.5 0 0 1 23.5 43H14.5A9.5 9.5 0 0 1 5 33.5V33.5A9.5 9.5 0 0 1 14.5 24Z" fill="#0ea5e9" />
+                      <path d="M25 31a10 10 0 1 0 20 0a10 10 0 1 0 -20 0Z" fill="#0ea5e9" />
+                      <path d="M28 31a7 7 0 1 0 14 0a7 7 0 1 0 -14 0Z" fill="#7dd3fc" />
+                      <path d="M31 31H39" fill="none" stroke="#fff" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span style={{ flexGrow: "1", fontSize: "15px", color: "#8a2a0d" }}>{v.t?.dueNow}</span>
+                    <span className="num" style={{ fontSize: "24px", fontWeight: "700", color: "#b83210" }}>{v.pDue}</span>
+                  </div>
+                  <label className="fld">
+                    <span className="lbl">{v.t?.take2}</span>
+                    <input className="inp num" value={v.pAmtTxt} onInput={v.typeAmt} onChange={v.typeAmt} aria-label={v.t?.take2} style={{ height: "56px", fontSize: "22px", fontWeight: "700" }} />
+                  </label>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button type="button" className="chip" onClick={v.setFull}>{v.t?.full}</button>
+                    <button type="button" className="chip" onClick={v.setHalf}>{v.t?.half}</button>
+                  </div>
+                  <span className="lbl">{v.t?.howPaid}</span>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "8px" }}>
+                    <button type="button" className={v.mK?.cash?.cls} aria-pressed={v.mK?.cash?.on} onClick={v.mK?.cash?.pick} style={{ height: "50px", justifyContent: "center", padding: "0 8px" }}><svg width="24" height="24" viewBox="0 0 48 48" aria-hidden="true">
+  <path d="M6.5 13H41.5A3.5 3.5 0 0 1 45 16.5V33.5A3.5 3.5 0 0 1 41.5 37H6.5A3.5 3.5 0 0 1 3 33.5V16.5A3.5 3.5 0 0 1 6.5 13Z" fill="#003087" />
+  <path d="M8.5 16H39.5A2.5 2.5 0 0 1 42 18.5V31.5A2.5 2.5 0 0 1 39.5 34H8.5A2.5 2.5 0 0 1 6 31.5V18.5A2.5 2.5 0 0 1 8.5 16Z" fill="#0ea5e9" />
+  <path d="M18 25a6 6 0 1 0 12 0a6 6 0 1 0 -12 0Z" fill="#e0f2fe" />
+  <path d="M24.0 21H24.0A1.2 1.2 0 0 1 25.2 22.2V27.8A1.2 1.2 0 0 1 24.0 29H24.0A1.2 1.2 0 0 1 22.8 27.8V22.2A1.2 1.2 0 0 1 24.0 21Z" fill="#003087" />
+  <path d="M8.5 25a2 2 0 1 0 4 0a2 2 0 1 0 -4 0Z" fill="#7dd3fc" />
+  <path d="M35.5 25a2 2 0 1 0 4 0a2 2 0 1 0 -4 0Z" fill="#7dd3fc" />
+</svg>{v.mK?.cash?.l}</button>
+                    <button type="button" className={v.mK?.bkash?.cls} aria-pressed={v.mK?.bkash?.on} onClick={v.mK?.bkash?.pick} style={{ height: "50px", justifyContent: "center", padding: "0 8px" }}><span style={{ width: "28px", height: "28px", borderRadius: "8px", background: "#fdecf5", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: "0" }}>
+  <svg width="22" height="22" viewBox="0 0 48 48" aria-hidden="true">
+    <path d="M17 3H31A5 5 0 0 1 36 8V40A5 5 0 0 1 31 45H17A5 5 0 0 1 12 40V8A5 5 0 0 1 17 3Z" fill="#003087" />
+    <path d="M16.5 7H31.5A2 2 0 0 1 33.5 9V37A2 2 0 0 1 31.5 39H16.5A2 2 0 0 1 14.5 37V9A2 2 0 0 1 16.5 7Z" fill="#7dd3fc" />
+    <path d="M22.6 41.5a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0Z" fill="#0ea5e9" />
+    <path d="M19 11H29A2 2 0 0 1 31 13V17A2 2 0 0 1 29 19H19A2 2 0 0 1 17 17V13A2 2 0 0 1 19 11Z" fill="#0ea5e9" />
+    <path d="M18.5 22H29.5A1.5 1.5 0 0 1 31 23.5V23.5A1.5 1.5 0 0 1 29.5 25H18.5A1.5 1.5 0 0 1 17 23.5V23.5A1.5 1.5 0 0 1 18.5 22Z" fill="#ffffff" />
+    <path d="M18.5 27H25.5A1.5 1.5 0 0 1 27 28.5V28.5A1.5 1.5 0 0 1 25.5 30H18.5A1.5 1.5 0 0 1 17 28.5V28.5A1.5 1.5 0 0 1 18.5 27Z" fill="#ffffff" />
+  </svg>
+</span>{v.mK?.bkash?.l}</button>
+                    <button type="button" className={v.mK?.nagad?.cls} aria-pressed={v.mK?.nagad?.on} onClick={v.mK?.nagad?.pick} style={{ height: "50px", justifyContent: "center", padding: "0 8px" }}><span style={{ width: "28px", height: "28px", borderRadius: "8px", background: "#fff1e7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: "0" }}>
+  <svg width="22" height="22" viewBox="0 0 48 48" aria-hidden="true">
+    <path d="M17 3H31A5 5 0 0 1 36 8V40A5 5 0 0 1 31 45H17A5 5 0 0 1 12 40V8A5 5 0 0 1 17 3Z" fill="#003087" />
+    <path d="M16.5 7H31.5A2 2 0 0 1 33.5 9V37A2 2 0 0 1 31.5 39H16.5A2 2 0 0 1 14.5 37V9A2 2 0 0 1 16.5 7Z" fill="#7dd3fc" />
+    <path d="M22.6 41.5a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0Z" fill="#0ea5e9" />
+    <path d="M19 11H29A2 2 0 0 1 31 13V17A2 2 0 0 1 29 19H19A2 2 0 0 1 17 17V13A2 2 0 0 1 19 11Z" fill="#0ea5e9" />
+    <path d="M18.5 22H29.5A1.5 1.5 0 0 1 31 23.5V23.5A1.5 1.5 0 0 1 29.5 25H18.5A1.5 1.5 0 0 1 17 23.5V23.5A1.5 1.5 0 0 1 18.5 22Z" fill="#ffffff" />
+    <path d="M18.5 27H25.5A1.5 1.5 0 0 1 27 28.5V28.5A1.5 1.5 0 0 1 25.5 30H18.5A1.5 1.5 0 0 1 17 28.5V28.5A1.5 1.5 0 0 1 18.5 27Z" fill="#ffffff" />
+  </svg>
+</span>{v.mK?.nagad?.l}</button>
+                    <button type="button" className={v.mK?.bank?.cls} aria-pressed={v.mK?.bank?.on} onClick={v.mK?.bank?.pick} style={{ height: "50px", justifyContent: "center", padding: "0 8px" }}><svg width="24" height="24" viewBox="0 0 48 48" aria-hidden="true">
+  <path d="M4 17L24 5L44 17Z" fill="#0ea5e9" />
+  <path d="M7 16H41A1 1 0 0 1 42 17V19A1 1 0 0 1 41 20H7A1 1 0 0 1 6 19V17A1 1 0 0 1 7 16Z" fill="#003087" />
+  <path d="M9 21h4.5v14h-4.5Z" fill="#7dd3fc" />
+  <path d="M17 21h4.5v14h-4.5Z" fill="#7dd3fc" />
+  <path d="M26.5 21h4.5v14h-4.5Z" fill="#7dd3fc" />
+  <path d="M34.5 21h4.5v14h-4.5Z" fill="#7dd3fc" />
+  <path d="M6.5 35H41.5A1.5 1.5 0 0 1 43 36.5V39.5A1.5 1.5 0 0 1 41.5 41H6.5A1.5 1.5 0 0 1 5 39.5V36.5A1.5 1.5 0 0 1 6.5 35Z" fill="#003087" />
+  <path d="M21.8 12.5a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0 -4.4 0Z" fill="#7dd3fc" />
+</svg>{v.mK?.bank?.l}</button>
+                  </div>
+                  <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", paddingTop: "6px", borderTop: "1px solid #eef2f6" }}>
+                    <button type="button" className="btn line" onClick={v.closeModal}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <path d="M18 6 6 18M6 6l12 12" />
+</svg>{v.t?.cancel}</button>
+                    <button type="button" className="btn okb" onClick={v.doPay}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <path d="M20 6 9 17l-5-5" />
+</svg>{v.payBtn}</button>
+                  </div>
+                </section>
+              </>) : null}
+            </div>
+          </main>
+          {v.hasMsg ? (<>
+            <div className="fade" role="status" style={{ position: "absolute", top: "90px", left: "50%", transform: "translateX(-50%)", zIndex: "30", display: "flex", alignItems: "center", gap: "10px", padding: "12px 18px", borderRadius: "14px", background: "#0f172a", color: "#fff", fontSize: "15px", fontWeight: "500", boxShadow: "0 16px 36px -14px rgba(15,23,42,.6)", maxWidth: "640px" }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+              <span>{v.msg}</span>
+            </div>
+          </>) : null}
+          <__Link href="/grid-ai" className="gfab" aria-label="Open GridAI">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />
+              <path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z" />
+            </svg>
+            <span>GridAI</span>
+          </__Link>
+        </div>
+      </div>
+    );
+  }
+}

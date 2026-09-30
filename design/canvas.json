@@ -1,0 +1,3331 @@
+{
+ "v": 3,
+ "attachments": {},
+ "boards": {
+  "templates/accounts/BankAccounts.dc.html": {
+   "h": 1300,
+   "is_interactive": true,
+   "page": "m-acc",
+   "title": "Bank accounts",
+   "w": 1440,
+   "x": 7600,
+   "y": 0
+  },
+  "templates/accounts/BankDeposits.dc.html": {
+   "h": 1300,
+   "is_interactive": true,
+   "page": "m-acc",
+   "title": "Bank deposits",
+   "w": 1440,
+   "x": 1520,
+   "y": 3620
+  },
+  "templates/accounts/Banks.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "page": "m-acc",
+   "title": "Banks",
+   "w": 1440,
+   "x": 6080,
+   "y": 0
+  },
+  "templates/accounts/CashBook.dc.html": {
+   "h": 1300,
+   "is_interactive": true,
+   "page": "m-acc",
+   "title": "Cash book & expenses",
+   "w": 1440,
+   "x": 0,
+   "y": 5490
+  },
+  "templates/accounts/ChartOfAccounts.dc.html": {
+   "h": 3200,
+   "is_interactive": true,
+   "page": "m-acc",
+   "title": "Chart of accounts",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "templates/accounts/Commissions.dc.html": {
+   "h": 1350,
+   "is_interactive": true,
+   "page": "m-acc",
+   "title": "Commissions",
+   "w": 1440,
+   "x": 10640,
+   "y": 3620
+  },
+  "templates/accounts/Expenses.dc.html": {
+   "h": 1400,
+   "is_interactive": true,
+   "page": "m-acc",
+   "title": "Expenses",
+   "w": 1440,
+   "x": 4560,
+   "y": 3620
+  },
+  "templates/accounts/FundTransfers.dc.html": {
+   "h": 1300,
+   "is_interactive": true,
+   "page": "m-acc",
+   "title": "Fund transfers",
+   "w": 1440,
+   "x": 0,
+   "y": 3620
+  },
+  "templates/accounts/Investment.dc.html": {
+   "h": 1200,
+   "is_interactive": true,
+   "page": "m-acc",
+   "title": "Investment",
+   "w": 1440,
+   "x": 6080,
+   "y": 3620
+  },
+  "templates/accounts/Journals.dc.html": {
+   "h": 1400,
+   "is_interactive": true,
+   "page": "m-acc",
+   "title": "Journals",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  },
+  "templates/accounts/LiabilitySettlement.dc.html": {
+   "h": 1450,
+   "is_interactive": true,
+   "page": "m-acc",
+   "title": "Liability settlement",
+   "w": 1440,
+   "x": 9120,
+   "y": 3620
+  },
+  "templates/accounts/MfsAccounts.dc.html": {
+   "h": 1150,
+   "is_interactive": true,
+   "page": "m-acc",
+   "title": "Mobile banking accounts",
+   "w": 1440,
+   "x": 10640,
+   "y": 0
+  },
+  "templates/accounts/MfsProviders.dc.html": {
+   "h": 1150,
+   "is_interactive": true,
+   "page": "m-acc",
+   "title": "Mobile banking providers",
+   "w": 1440,
+   "x": 9120,
+   "y": 0
+  },
+  "templates/accounts/MoneyInOut.dc.html": {
+   "h": 1400,
+   "is_interactive": true,
+   "page": "m-acc",
+   "title": "Money in & out",
+   "w": 1440,
+   "x": 1520,
+   "y": 5490
+  },
+  "templates/accounts/OwnerWithdraw.dc.html": {
+   "h": 1200,
+   "is_interactive": true,
+   "page": "m-acc",
+   "title": "Owner withdraw",
+   "w": 1440,
+   "x": 7600,
+   "y": 3620
+  },
+  "templates/accounts/PaymentSessions.dc.html": {
+   "h": 1450,
+   "is_interactive": true,
+   "page": "m-acc",
+   "title": "Payment sessions",
+   "w": 1440,
+   "x": 3040,
+   "y": 3620
+  },
+  "templates/accounts/Reconciliation.dc.html": {
+   "h": 1250,
+   "is_interactive": true,
+   "page": "m-acc",
+   "title": "Reconciliation",
+   "w": 1440,
+   "x": 4560,
+   "y": 0
+  },
+  "templates/accounts/Reports.dc.html": {
+   "h": 1340,
+   "is_interactive": true,
+   "page": "m-acc",
+   "title": "Reports",
+   "w": 1440,
+   "x": 4560,
+   "y": 5490
+  },
+  "templates/accounts/Transactions.dc.html": {
+   "h": 2600,
+   "is_interactive": true,
+   "page": "m-acc",
+   "title": "Transactions",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "templates/accounts/Vat.dc.html": {
+   "h": 1500,
+   "is_interactive": true,
+   "page": "m-acc",
+   "title": "VAT",
+   "w": 1440,
+   "x": 3040,
+   "y": 5490
+  },
+  "templates/ai-call/AiCalls.dc.html": {
+   "h": 1650,
+   "is_interactive": true,
+   "page": "m-ai-call",
+   "title": "AI calls · results",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "templates/ai-call/AutoCallSettings.dc.html": {
+   "h": 1950,
+   "is_interactive": true,
+   "page": "m-ai-call",
+   "title": "AI auto-call settings",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "templates/app/AppSystem.dc.html": {
+   "h": 1150,
+   "page": "m-dev",
+   "title": "App design system",
+   "w": 1440,
+   "x": 0,
+   "y": 10440
+  },
+  "templates/app/CCollections.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Staff app · Collections",
+   "w": 390,
+   "x": 1880,
+   "y": 35494
+  },
+  "templates/app/CHome.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Staff app · Home",
+   "w": 390,
+   "x": 470,
+   "y": 35494
+  },
+  "templates/app/CMerchantDetail.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Staff app · Merchant",
+   "w": 390,
+   "x": 1410,
+   "y": 35494
+  },
+  "templates/app/CMerchants.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Staff app · Merchants",
+   "w": 390,
+   "x": 940,
+   "y": 35494
+  },
+  "templates/app/CMore.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Staff app · More",
+   "w": 390,
+   "x": 3290,
+   "y": 35494
+  },
+  "templates/app/COps.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Staff app · Incident",
+   "w": 390,
+   "x": 2820,
+   "y": 35494
+  },
+  "templates/app/CRecordPayment.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Staff app · Record payment",
+   "w": 390,
+   "x": 2350,
+   "y": 35494
+  },
+  "templates/app/CSignIn.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Staff app · Staff sign in",
+   "w": 390,
+   "x": 0,
+   "y": 35494
+  },
+  "templates/app/CStoreAccess.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Staff app · Enter a store with a PIN",
+   "w": 390,
+   "x": 940,
+   "y": 24430
+  },
+  "templates/app/CStoreSession.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Staff app · Inside the store",
+   "w": 390,
+   "x": 1410,
+   "y": 24430
+  },
+  "templates/app/CTicket.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Staff app · Ticket",
+   "w": 390,
+   "x": 470,
+   "y": 24430
+  },
+  "templates/app/CTickets.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Staff app · Tickets",
+   "w": 390,
+   "x": 0,
+   "y": 24430
+  },
+  "templates/app/MCallActive.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "Merchant app · On a call",
+   "w": 390,
+   "x": 470,
+   "y": 5710
+  },
+  "templates/app/MCallSettings.dc.html": {
+   "h": 1100,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "Merchant app · Call settings",
+   "w": 390,
+   "x": 940,
+   "y": 5710
+  },
+  "templates/app/MCalls.dc.html": {
+   "h": 960,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "Merchant app · Calls",
+   "w": 390,
+   "x": 0,
+   "y": 5710
+  },
+  "templates/app/MChat.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "Merchant app · Chat",
+   "w": 390,
+   "x": 2350,
+   "y": 4210
+  },
+  "templates/app/MHome.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "Merchant app · Home",
+   "w": 390,
+   "x": 0,
+   "y": 4210
+  },
+  "templates/app/MInbox.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "Merchant app · Inbox",
+   "w": 390,
+   "x": 1880,
+   "y": 4210
+  },
+  "templates/app/MMore.dc.html": {
+   "h": 1060,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "Merchant app · More",
+   "w": 390,
+   "x": 3290,
+   "y": 4210
+  },
+  "templates/app/MNewOrder.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "Merchant app · New order",
+   "w": 390,
+   "x": 1410,
+   "y": 4210
+  },
+  "templates/app/MNotifications.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "Merchant app · Notifications",
+   "w": 390,
+   "x": 2820,
+   "y": 4210
+  },
+  "templates/app/MOrderDetail.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "Merchant app · Order details",
+   "w": 390,
+   "x": 940,
+   "y": 4210
+  },
+  "templates/app/MOrders.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "Merchant app · Orders",
+   "w": 390,
+   "x": 470,
+   "y": 4210
+  },
+  "templates/app/MProductEdit.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-products",
+   "title": "Merchant app · Edit product",
+   "w": 390,
+   "x": 470,
+   "y": 5790
+  },
+  "templates/app/MProducts.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-products",
+   "title": "Merchant app · Products",
+   "w": 390,
+   "x": 0,
+   "y": 5790
+  },
+  "templates/app/MPurchase.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-purchase",
+   "title": "Merchant app · Purchase",
+   "w": 390,
+   "x": 0,
+   "y": 2390
+  },
+  "templates/app/MPurchaseDetail.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-purchase",
+   "title": "Merchant app · Purchase order",
+   "w": 390,
+   "x": 470,
+   "y": 2390
+  },
+  "templates/app/MPurchaseNew.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-purchase",
+   "title": "Merchant app · New purchase order",
+   "w": 390,
+   "x": 940,
+   "y": 2390
+  },
+  "templates/app/MScan.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-stock",
+   "title": "Merchant app · Scan a barcode",
+   "w": 390,
+   "x": 470,
+   "y": 2990
+  },
+  "templates/app/MStock.dc.html": {
+   "h": 960,
+   "is_interactive": true,
+   "page": "m-stock",
+   "title": "Merchant app · Stock",
+   "w": 390,
+   "x": 0,
+   "y": 2990
+  },
+  "templates/app/MTicketDetail.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "Merchant app · Ticket",
+   "w": 390,
+   "x": 1880,
+   "y": 5710
+  },
+  "templates/app/MTicketNew.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "Merchant app · New ticket",
+   "w": 390,
+   "x": 2350,
+   "y": 5710
+  },
+  "templates/app/MTickets.dc.html": {
+   "h": 960,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "Merchant app · Support tickets",
+   "w": 390,
+   "x": 1410,
+   "y": 5710
+  },
+  "templates/app/OnbChannels.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-start",
+   "title": "Merchant app · Step 4 · How you sell",
+   "w": 390,
+   "x": 1880,
+   "y": 5330
+  },
+  "templates/app/OnbDone.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-start",
+   "title": "Merchant app · Shop ready",
+   "w": 390,
+   "x": 3290,
+   "y": 5330
+  },
+  "templates/app/OnbLink.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-start",
+   "title": "Merchant app · Step 5 · Shop link",
+   "w": 390,
+   "x": 2350,
+   "y": 5330
+  },
+  "templates/app/OnbOtp.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-start",
+   "title": "Merchant app · Step 2 · Verify number",
+   "w": 390,
+   "x": 940,
+   "y": 5330
+  },
+  "templates/app/OnbPhone.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-start",
+   "title": "Merchant app · Step 1 · Create account",
+   "w": 390,
+   "x": 470,
+   "y": 5330
+  },
+  "templates/app/OnbProduct.dc.html": {
+   "h": 844,
+   "page": "m-start",
+   "w": 390,
+   "x": 2820,
+   "y": 5330
+  },
+  "templates/app/OnbSignIn.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-start",
+   "title": "Merchant app · Sign in",
+   "w": 390,
+   "x": 3760,
+   "y": 5330
+  },
+  "templates/app/OnbSignInCode.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-start",
+   "title": "Merchant app · Sign in code",
+   "w": 390,
+   "x": 4230,
+   "y": 5330
+  },
+  "templates/app/OnbStore.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-start",
+   "title": "Merchant app · Step 3 · Your business",
+   "w": 390,
+   "x": 1410,
+   "y": 5330
+  },
+  "templates/app/OnbWelcome.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-start",
+   "title": "Merchant app · Welcome",
+   "w": 390,
+   "x": 0,
+   "y": 5330
+  },
+  "templates/automation/Automations.dc.html": {
+   "h": 1950,
+   "is_interactive": true,
+   "page": "m-gridai",
+   "title": "Automation · rules",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "templates/automation/WorkflowBuilder.dc.html": {
+   "h": 1100,
+   "is_interactive": true,
+   "page": "m-gridai",
+   "title": "Workflow builder",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  },
+  "templates/automation/WorkflowSettings.dc.html": {
+   "h": 1350,
+   "is_interactive": true,
+   "page": "m-gridai",
+   "title": "Workflow settings",
+   "w": 1440,
+   "x": 4560,
+   "y": 0
+  },
+  "templates/billing/CreditWallet.dc.html": {
+   "h": 1650,
+   "is_interactive": true,
+   "page": "m-billing",
+   "title": "Wallet & credits",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "templates/billing/HelpSupport.dc.html": {
+   "h": 1500,
+   "is_interactive": true,
+   "page": "m-billing",
+   "title": "Help & support",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  },
+  "templates/billing/Subscription.dc.html": {
+   "h": 2250,
+   "is_interactive": true,
+   "page": "m-billing",
+   "title": "Subscription & billing",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "templates/communication/Calendar.dc.html": {
+   "h": 1550,
+   "is_interactive": true,
+   "page": "m-comm",
+   "title": "Post calendar",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "templates/communication/Composer.dc.html": {
+   "h": 1700,
+   "is_interactive": true,
+   "page": "m-comm",
+   "title": "Create post",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "templates/communication/SocialConnections.dc.html": {
+   "h": 1550,
+   "is_interactive": true,
+   "page": "m-comm",
+   "title": "Connections",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  },
+  "templates/console/AccessLog.dc.html": {
+   "h": 1420,
+   "page": "m-core",
+   "title": "Support · store access log",
+   "w": 1440,
+   "x": 4560,
+   "y": 21350
+  },
+  "templates/console/Adjustments.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Billing · Adjustments",
+   "w": 1440,
+   "x": 4560,
+   "y": 30014
+  },
+  "templates/console/AuditLog.dc.html": {
+   "h": 960,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "System · Audit log",
+   "w": 1440,
+   "x": 9120,
+   "y": 33894
+  },
+  "templates/console/Backups.dc.html": {
+   "h": 1380,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Tenants · Backups",
+   "w": 1440,
+   "x": 6080,
+   "y": 26974
+  },
+  "templates/console/ChartKit.dc.html": {
+   "h": 4350,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Chart and KPI kit",
+   "w": 1440,
+   "x": 3040,
+   "y": 15300
+  },
+  "templates/console/Collections.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Collections · call and record payments",
+   "w": 1440,
+   "x": 3040,
+   "y": 30014
+  },
+  "templates/console/ConsoleShell.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Console shell · light",
+   "w": 1440,
+   "x": 0,
+   "y": 15300
+  },
+  "templates/console/ConsoleShellDark.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Console shell · dark",
+   "w": 1440,
+   "x": 1520,
+   "y": 15300
+  },
+  "templates/console/CostToServe.dc.html": {
+   "h": 1060,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Monitoring · CostToServe",
+   "w": 1440,
+   "x": 3040,
+   "y": 31234
+  },
+  "templates/console/Domains.dc.html": {
+   "h": 1150,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Tenants · Domains",
+   "w": 1440,
+   "x": 4560,
+   "y": 26974
+  },
+  "templates/console/Entitlements.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Packaging · Entitlements",
+   "w": 1440,
+   "x": 3040,
+   "y": 28694
+  },
+  "templates/console/FlagsNotices.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "System · Flags and notices",
+   "w": 1440,
+   "x": 6080,
+   "y": 33894
+  },
+  "templates/console/FormAdjustment.dc.html": {
+   "h": 1040,
+   "page": "m-core",
+   "title": "Billing · new adjustment",
+   "w": 1440,
+   "x": 1520,
+   "y": 40318
+  },
+  "templates/console/FormEntitlement.dc.html": {
+   "h": 1620,
+   "page": "m-core",
+   "title": "Packaging · new entitlement override",
+   "w": 1440,
+   "x": 3040,
+   "y": 37738
+  },
+  "templates/console/FormFlag.dc.html": {
+   "h": 1400,
+   "page": "m-core",
+   "title": "System · new feature flag",
+   "w": 1440,
+   "x": 4560,
+   "y": 40318
+  },
+  "templates/console/FormIncident.dc.html": {
+   "h": 1480,
+   "page": "m-core",
+   "title": "Operations · declare incident",
+   "w": 1440,
+   "x": 0,
+   "y": 42498
+  },
+  "templates/console/FormLead.dc.html": {
+   "h": 1400,
+   "page": "m-core",
+   "title": "Sales CRM · add lead",
+   "w": 1440,
+   "x": 1520,
+   "y": 42498
+  },
+  "templates/console/FormLimits.dc.html": {
+   "h": 1400,
+   "page": "m-core",
+   "title": "Packaging · limit rules",
+   "w": 1440,
+   "x": 4560,
+   "y": 37738
+  },
+  "templates/console/FormPlan.dc.html": {
+   "h": 2420,
+   "page": "m-core",
+   "title": "Packaging · draft plan version",
+   "w": 1440,
+   "x": 1520,
+   "y": 37738
+  },
+  "templates/console/FormProvision.dc.html": {
+   "h": 2020,
+   "page": "m-core",
+   "title": "Tenants · provision a store",
+   "w": 1440,
+   "x": 0,
+   "y": 40318
+  },
+  "templates/console/FormSet.dc.html": {
+   "h": 2100,
+   "page": "m-core",
+   "title": "Packaging · edit module set",
+   "w": 1440,
+   "x": 0,
+   "y": 37738
+  },
+  "templates/console/FormStaff.dc.html": {
+   "h": 1660,
+   "page": "m-core",
+   "title": "System · add staff member",
+   "w": 1440,
+   "x": 3040,
+   "y": 40318
+  },
+  "templates/console/FormTicket.dc.html": {
+   "h": 1180,
+   "page": "m-core",
+   "title": "Support · new ticket",
+   "w": 1440,
+   "x": 3040,
+   "y": 42498
+  },
+  "templates/console/HealthRisk.dc.html": {
+   "h": 1040,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Monitoring · HealthRisk",
+   "w": 1440,
+   "x": 0,
+   "y": 31234
+  },
+  "templates/console/Incidents.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Operations · Incidents",
+   "w": 1440,
+   "x": 7600,
+   "y": 32454
+  },
+  "templates/console/Integrations.dc.html": {
+   "h": 960,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Operations · Integrations",
+   "w": 1440,
+   "x": 3040,
+   "y": 32454
+  },
+  "templates/console/Invoices.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Billing · Invoices",
+   "w": 1440,
+   "x": 1520,
+   "y": 30014
+  },
+  "templates/console/LeadImport.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Sales CRM · import leads from CSV",
+   "w": 1440,
+   "x": 4560,
+   "y": 22930
+  },
+  "templates/console/LeadProfile.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Sales CRM · lead profile",
+   "w": 1440,
+   "x": 1520,
+   "y": 22930
+  },
+  "templates/console/Leads.dc.html": {
+   "h": 1060,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Sales CRM · leads",
+   "w": 1440,
+   "x": 0,
+   "y": 22930
+  },
+  "templates/console/Limits.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Packaging · Limits",
+   "w": 1440,
+   "x": 4560,
+   "y": 28694
+  },
+  "templates/console/MerchantDetail.dc.html": {
+   "h": 1560,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Merchant page · Dhaka Gadget Hub",
+   "w": 1440,
+   "x": 1520,
+   "y": 26974
+  },
+  "templates/console/MerchantPinAccess.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Merchant admin · support access PIN",
+   "w": 1440,
+   "x": 3040,
+   "y": 21350
+  },
+  "templates/console/Merchants.dc.html": {
+   "h": 1400,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Merchants · search and filters",
+   "w": 1440,
+   "x": 0,
+   "y": 26974
+  },
+  "templates/console/Messaging.dc.html": {
+   "h": 1140,
+   "page": "m-core",
+   "title": "System · Messaging",
+   "w": 1440,
+   "x": 3040,
+   "y": 33894
+  },
+  "templates/console/ModuleCatalogue.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Packaging · ModuleCatalogue",
+   "w": 1440,
+   "x": 0,
+   "y": 28694
+  },
+  "templates/console/OpsCentre.dc.html": {
+   "h": 1220,
+   "page": "m-core",
+   "title": "Operations · Ops centre",
+   "w": 1440,
+   "x": 0,
+   "y": 32454
+  },
+  "templates/console/PaymentChecks.dc.html": {
+   "h": 600,
+   "page": "m-core",
+   "w": 1440,
+   "x": 6080,
+   "y": 30014
+  },
+  "templates/console/Plans.dc.html": {
+   "h": 1160,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Packaging · Plans",
+   "w": 1440,
+   "x": 1520,
+   "y": 28694
+  },
+  "templates/console/PlatformHealth.dc.html": {
+   "h": 1060,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Operations · PlatformHealth",
+   "w": 1440,
+   "x": 1520,
+   "y": 32454
+  },
+  "templates/console/Provisioning.dc.html": {
+   "h": 1140,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Tenants · Provisioning",
+   "w": 1440,
+   "x": 3040,
+   "y": 26974
+  },
+  "templates/console/QueuesJobs.dc.html": {
+   "h": 1280,
+   "page": "m-core",
+   "title": "Operations · Queues and jobs",
+   "w": 1440,
+   "x": 6080,
+   "y": 32454
+  },
+  "templates/console/Releases.dc.html": {
+   "h": 900,
+   "page": "m-core",
+   "title": "System · Releases",
+   "w": 1440,
+   "x": 0,
+   "y": 33894
+  },
+  "templates/console/ScheduledTasks.dc.html": {
+   "h": 1100,
+   "page": "m-core",
+   "title": "System · Scheduled tasks",
+   "w": 1440,
+   "x": 4560,
+   "y": 33894
+  },
+  "templates/console/Security.dc.html": {
+   "h": 1160,
+   "page": "m-core",
+   "title": "System · Security",
+   "w": 1440,
+   "x": 1520,
+   "y": 33894
+  },
+  "templates/console/StaffRoles.dc.html": {
+   "h": 1040,
+   "page": "m-core",
+   "title": "System · Staff and roles",
+   "w": 1440,
+   "x": 7600,
+   "y": 33894
+  },
+  "templates/console/StoreAccess.dc.html": {
+   "h": 1060,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Support · store access by PIN",
+   "w": 1440,
+   "x": 1520,
+   "y": 21350
+  },
+  "templates/console/Subscriptions.dc.html": {
+   "h": 1060,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Billing · Subscriptions",
+   "w": 1440,
+   "x": 0,
+   "y": 30014
+  },
+  "templates/console/SupportDesk.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Support · tickets",
+   "w": 1440,
+   "x": 0,
+   "y": 21350
+  },
+  "templates/console/SupportPerformance.dc.html": {
+   "h": 1180,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Support · performance",
+   "w": 1440,
+   "x": 6080,
+   "y": 21350
+  },
+  "templates/console/SystemStates.dc.html": {
+   "h": 2640,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "System states",
+   "w": 1440,
+   "x": 6080,
+   "y": 15300
+  },
+  "templates/console/TenantContextBar.dc.html": {
+   "h": 2400,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Tenant context bar",
+   "w": 1440,
+   "x": 4560,
+   "y": 15300
+  },
+  "templates/console/TrialFunnel.dc.html": {
+   "h": 1060,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Monitoring · TrialFunnel",
+   "w": 1440,
+   "x": 1520,
+   "y": 31234
+  },
+  "templates/console/Trials.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Sales CRM · trials",
+   "w": 1440,
+   "x": 3040,
+   "y": 22930
+  },
+  "templates/console/Webhooks.dc.html": {
+   "h": 1260,
+   "page": "m-core",
+   "title": "Operations · Webhooks",
+   "w": 1440,
+   "x": 4560,
+   "y": 32454
+  },
+  "templates/core-backend/CoreArchitecture.dc.html": {
+   "h": 3500,
+   "page": "m-core",
+   "title": "Architecture · request lifecycle and data model",
+   "w": 1440,
+   "x": 3040,
+   "y": 800
+  },
+  "templates/core-backend/CoreMonitoring.dc.html": {
+   "h": 1580,
+   "page": "m-core",
+   "title": "S5 · Merchant monitoring console",
+   "w": 1440,
+   "x": 6080,
+   "y": 800
+  },
+  "templates/core-backend/CorePackaging.dc.html": {
+   "h": 3900,
+   "page": "m-core",
+   "title": "Packaging, plans and billing",
+   "w": 1440,
+   "x": 4560,
+   "y": 800
+  },
+  "templates/core-backend/CorePlan.dc.html": {
+   "h": 4500,
+   "page": "m-core",
+   "title": "Build plan · overview",
+   "w": 1440,
+   "x": 0,
+   "y": 800
+  },
+  "templates/core-backend/CoreSteps.dc.html": {
+   "h": 1180,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Build plan · step explorer",
+   "w": 1440,
+   "x": 1520,
+   "y": 800
+  },
+  "templates/core-backend/CoreUIData.dc.html": {
+   "h": 3400,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Core backend UI · data presentation system",
+   "w": 1440,
+   "x": 1520,
+   "y": 7000
+  },
+  "templates/core-backend/CoreUIPlan.dc.html": {
+   "h": 6600,
+   "is_interactive": true,
+   "page": "m-core",
+   "title": "Core backend UI · design plan",
+   "w": 1440,
+   "x": 0,
+   "y": 7000
+  },
+  "templates/customers-crm/AllCustomers.dc.html": {
+   "h": 1900,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "AllCustomers",
+   "w": 1440,
+   "x": 0,
+   "y": 1420
+  },
+  "templates/customers-crm/CustomerCRM.dc.html": {
+   "h": 2350,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "CustomerCRM",
+   "w": 1440,
+   "x": 1520,
+   "y": 1420
+  },
+  "templates/dev-reference/DevReference.dc.html": {
+   "h": 10000,
+   "is_interactive": true,
+   "page": "m-dev",
+   "title": "DevReference",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "templates/dev-reference/FlowOnboarding.dc.html": {
+   "h": 2000,
+   "page": "m-dev",
+   "title": "Flow · Onboarding",
+   "w": 1440,
+   "x": 6080,
+   "y": 12010
+  },
+  "templates/dev-reference/FlowOrders.dc.html": {
+   "h": 2000,
+   "page": "m-dev",
+   "title": "Flow · Orders",
+   "w": 1440,
+   "x": 0,
+   "y": 12010
+  },
+  "templates/dev-reference/FlowPayments.dc.html": {
+   "h": 2000,
+   "page": "m-dev",
+   "title": "Flow · Payments",
+   "w": 1440,
+   "x": 4560,
+   "y": 12010
+  },
+  "templates/dev-reference/FlowProducts.dc.html": {
+   "h": 2000,
+   "page": "m-dev",
+   "title": "Flow · Products",
+   "w": 1440,
+   "x": 1520,
+   "y": 12010
+  },
+  "templates/dev-reference/FlowPurchase.dc.html": {
+   "h": 2000,
+   "page": "m-dev",
+   "title": "Flow · Purchase & stock",
+   "w": 1440,
+   "x": 3040,
+   "y": 12010
+  },
+  "templates/dev-reference/FlowStaff.dc.html": {
+   "h": 2000,
+   "page": "m-dev",
+   "title": "Flow · Staff & HR",
+   "w": 1440,
+   "x": 7600,
+   "y": 12010
+  },
+  "templates/dev-reference/IconSet.dc.html": {
+   "h": 1000,
+   "page": "m-dev",
+   "title": "Icon set",
+   "w": 1440,
+   "x": 15200,
+   "y": 0
+  },
+  "templates/dev-reference/UIKit01Shell.dc.html": {
+   "h": 5300,
+   "is_interactive": true,
+   "page": "m-dev",
+   "title": "UI kit 01 · Shell & navigation",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "templates/dev-reference/UIKit02Actions.dc.html": {
+   "h": 3000,
+   "is_interactive": true,
+   "page": "m-dev",
+   "title": "UI kit 02 · Actions, badges & icons",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  },
+  "templates/dev-reference/UIKit03Controls.dc.html": {
+   "h": 4250,
+   "is_interactive": true,
+   "page": "m-dev",
+   "title": "UI kit 03 · Form controls",
+   "w": 1440,
+   "x": 4560,
+   "y": 0
+  },
+  "templates/dev-reference/UIKit04FormLayouts.dc.html": {
+   "h": 4100,
+   "is_interactive": true,
+   "page": "m-dev",
+   "title": "UI kit 04 · Form layouts",
+   "w": 1440,
+   "x": 6080,
+   "y": 0
+  },
+  "templates/dev-reference/UIKit05Tables.dc.html": {
+   "h": 4100,
+   "is_interactive": true,
+   "page": "m-dev",
+   "title": "UI kit 05 · Tables",
+   "w": 1440,
+   "x": 7600,
+   "y": 0
+  },
+  "templates/dev-reference/UIKit06Data.dc.html": {
+   "h": 3700,
+   "is_interactive": true,
+   "page": "m-dev",
+   "title": "UI kit 06 · KPI tiles & charts",
+   "w": 1440,
+   "x": 9120,
+   "y": 0
+  },
+  "templates/dev-reference/UIKit07Feedback.dc.html": {
+   "h": 3950,
+   "is_interactive": true,
+   "page": "m-dev",
+   "title": "UI kit 07 · Feedback & overlays",
+   "w": 1440,
+   "x": 10640,
+   "y": 0
+  },
+  "templates/dev-reference/UIKit08Commerce.dc.html": {
+   "h": 3500,
+   "is_interactive": true,
+   "page": "m-dev",
+   "title": "UI kit 08 · Commerce components",
+   "w": 1440,
+   "x": 12160,
+   "y": 0
+  },
+  "templates/dev-reference/UIKit09Templates.dc.html": {
+   "h": 3600,
+   "is_interactive": true,
+   "page": "m-dev",
+   "title": "UI kit 09 · Page templates",
+   "w": 1440,
+   "x": 13680,
+   "y": 0
+  },
+  "templates/gridai/GridAI.dc.html": {
+   "h": 1100,
+   "is_interactive": true,
+   "page": "m-gridai",
+   "title": "GridAI",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "templates/integrations/BlogPosts.dc.html": {
+   "h": 950,
+   "is_interactive": true,
+   "page": "m-wp",
+   "title": "Blog posts",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "templates/integrations/WooSync.dc.html": {
+   "h": 2400,
+   "is_interactive": true,
+   "page": "m-wp",
+   "title": "WordPress sync",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "templates/landing-page-builder/LandingPageBuilder.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "LandingPageBuilder",
+   "w": 1440,
+   "x": 12160,
+   "y": 0
+  },
+  "templates/loyalty-promo/Coupons.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "page": "m-promo",
+   "title": "Coupons",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "templates/loyalty-promo/FlashSales.dc.html": {
+   "h": 1060,
+   "is_interactive": true,
+   "page": "m-promo",
+   "title": "FlashSales",
+   "w": 1440,
+   "x": 4560,
+   "y": 0
+  },
+  "templates/loyalty-promo/Loyalty.dc.html": {
+   "h": 2150,
+   "is_interactive": true,
+   "page": "m-loyalty",
+   "title": "Loyalty",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "templates/loyalty-promo/MemberDetail.dc.html": {
+   "h": 1120,
+   "is_interactive": true,
+   "page": "m-loyalty",
+   "title": "MemberDetail",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  },
+  "templates/loyalty-promo/Members.dc.html": {
+   "h": 1250,
+   "is_interactive": true,
+   "page": "m-loyalty",
+   "title": "Members",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "templates/loyalty-promo/NewCoupon.dc.html": {
+   "h": 3050,
+   "is_interactive": true,
+   "page": "m-promo",
+   "title": "NewCoupon",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  },
+  "templates/loyalty-promo/NewFlashSale.dc.html": {
+   "h": 3020,
+   "is_interactive": true,
+   "page": "m-promo",
+   "title": "NewFlashSale",
+   "w": 1440,
+   "x": 6080,
+   "y": 0
+  },
+  "templates/loyalty-promo/ProductPoints.dc.html": {
+   "h": 1040,
+   "is_interactive": true,
+   "page": "m-loyalty",
+   "title": "ProductPoints",
+   "w": 1440,
+   "x": 4560,
+   "y": 0
+  },
+  "templates/loyalty-promo/Promo.dc.html": {
+   "h": 1900,
+   "is_interactive": true,
+   "page": "m-promo",
+   "title": "Promo",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "templates/loyalty-promo/Referrals.dc.html": {
+   "h": 1120,
+   "is_interactive": true,
+   "page": "m-loyalty",
+   "title": "Referrals",
+   "w": 1440,
+   "x": 7600,
+   "y": 0
+  },
+  "templates/loyalty-promo/Wallet.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "page": "m-loyalty",
+   "title": "Wallet",
+   "w": 1440,
+   "x": 6080,
+   "y": 0
+  },
+  "templates/merchant-calls/MerchantCalls.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "MerchantCalls",
+   "w": 1440,
+   "x": 7600,
+   "y": 0
+  },
+  "templates/merchant-inbox/MerchantInbox.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "MerchantInbox",
+   "w": 1440,
+   "x": 6080,
+   "y": 0
+  },
+  "templates/merchant-onboarding/MerchantOnboarding.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-start",
+   "title": "MerchantOnboarding",
+   "w": 1440,
+   "x": 20,
+   "y": 0
+  },
+  "templates/merchant-orders/MerchantOrders.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "MerchantOrders",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "templates/merchant-overview/MerchantOverview.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "Home",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "templates/merchant-signin/MerchantSignIn.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-start",
+   "title": "Sign in / sign up · desktop",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "templates/merchant-signin/MobileSignIn.dc.html": {
+   "h": 940,
+   "is_interactive": true,
+   "page": "m-start",
+   "title": "Sign in / sign up · mobile",
+   "w": 390,
+   "x": 4560,
+   "y": 0
+  },
+  "templates/merchant-signin/MobileSignUp.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-start",
+   "title": "Sign up onboarding · mobile",
+   "w": 390,
+   "x": 5030,
+   "y": 0
+  },
+  "templates/order-detail/OrderDetail.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "OrderDetail",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  },
+  "templates/pos-register/PosActive.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-pos",
+   "title": "PosActive",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "templates/pos-register/PosClose.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-pos",
+   "title": "PosClose · open / close shift",
+   "w": 1440,
+   "x": 12160,
+   "y": 0
+  },
+  "templates/pos-register/PosIdle.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-pos",
+   "title": "PosIdle",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "templates/pos-register/PosKeypad.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-pos",
+   "title": "PosKeypad",
+   "w": 1440,
+   "x": 6080,
+   "y": 0
+  },
+  "templates/pos-register/PosOffline.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-pos",
+   "title": "PosOffline",
+   "w": 1440,
+   "x": 13680,
+   "y": 0
+  },
+  "templates/pos-register/PosOpen.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-pos",
+   "title": "PosOpen",
+   "w": 1440,
+   "x": 10640,
+   "y": 0
+  },
+  "templates/pos-register/PosPay.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-pos",
+   "title": "PosPay",
+   "w": 1440,
+   "x": 4560,
+   "y": 0
+  },
+  "templates/pos-register/PosRegister.dc.html": {
+   "h": 9250,
+   "is_interactive": true,
+   "page": "m-pos",
+   "title": "PosRegister",
+   "w": 1520,
+   "x": 17824,
+   "y": 0
+  },
+  "templates/pos-register/PosReturn.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-pos",
+   "title": "PosReturn",
+   "w": 1440,
+   "x": 9120,
+   "y": 0
+  },
+  "templates/pos-register/PosSales.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-pos",
+   "title": "PosSales",
+   "w": 1440,
+   "x": 7600,
+   "y": 0
+  },
+  "templates/products/AddProduct.dc.html": {
+   "h": 5350,
+   "is_interactive": true,
+   "page": "m-products",
+   "title": "AddProduct",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "templates/products/AddProductTabs.dc.html": {
+   "h": 1700,
+   "is_interactive": true,
+   "page": "m-products",
+   "title": "Add product · tabs version",
+   "w": 1440,
+   "x": 6080,
+   "y": 0
+  },
+  "templates/products/AllProducts.dc.html": {
+   "h": 1650,
+   "is_interactive": true,
+   "page": "m-products",
+   "title": "AllProducts",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "templates/products/CatalogSetup.dc.html": {
+   "h": 1260,
+   "is_interactive": true,
+   "page": "m-products",
+   "title": "CatalogSetup",
+   "w": 1440,
+   "x": 4560,
+   "y": 0
+  },
+  "templates/products/Categories.dc.html": {
+   "h": 1600,
+   "is_interactive": true,
+   "page": "m-products",
+   "title": "Categories",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  },
+  "templates/products/CustomerCatalogue.dc.html": {
+   "h": 1200,
+   "is_interactive": true,
+   "page": "m-products",
+   "title": "Customer catalogue",
+   "w": 1440,
+   "x": 7600,
+   "y": 0
+  },
+  "templates/purchase-stock/BarcodeLabels.dc.html": {
+   "h": 1190,
+   "is_interactive": true,
+   "page": "m-stock",
+   "title": "Barcode labels",
+   "w": 1440,
+   "x": 7600,
+   "y": 0
+  },
+  "templates/purchase-stock/Branches.dc.html": {
+   "h": 1600,
+   "is_interactive": true,
+   "page": "m-stock",
+   "title": "Branches",
+   "w": 1440,
+   "x": 15200,
+   "y": 0
+  },
+  "templates/purchase-stock/BuyGoods.dc.html": {
+   "h": 1400,
+   "is_interactive": true,
+   "page": "m-purchase",
+   "title": "Buy goods",
+   "w": 1440,
+   "x": 14150,
+   "y": 0
+  },
+  "templates/purchase-stock/ExpiryDisposal.dc.html": {
+   "h": 1300,
+   "is_interactive": true,
+   "page": "m-stock",
+   "title": "Damaged & expired",
+   "w": 1440,
+   "x": 9120,
+   "y": 0
+  },
+  "templates/purchase-stock/MobileReceive.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "m-purchase",
+   "title": "Receive goods · phone",
+   "w": 390,
+   "x": 12160,
+   "y": 0
+  },
+  "templates/purchase-stock/NewPO.dc.html": {
+   "h": 1950,
+   "is_interactive": true,
+   "page": "m-purchase",
+   "title": "NewPO",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "templates/purchase-stock/NewTransfer.dc.html": {
+   "h": 1120,
+   "is_interactive": true,
+   "page": "m-stock",
+   "title": "NewTransfer",
+   "w": 1440,
+   "x": 6080,
+   "y": 0
+  },
+  "templates/purchase-stock/PODetail.dc.html": {
+   "h": 1800,
+   "is_interactive": true,
+   "page": "m-purchase",
+   "title": "PODetail",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  },
+  "templates/purchase-stock/PurchaseOrders.dc.html": {
+   "h": 1350,
+   "is_interactive": true,
+   "page": "m-purchase",
+   "title": "PurchaseOrders",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "templates/purchase-stock/Racks.dc.html": {
+   "h": 1500,
+   "is_interactive": true,
+   "page": "m-stock",
+   "title": "Racks & bins",
+   "w": 1440,
+   "x": 16720,
+   "y": 0
+  },
+  "templates/purchase-stock/ReceiveGoods.dc.html": {
+   "h": 1300,
+   "is_interactive": true,
+   "page": "m-purchase",
+   "title": "ReceiveGoods",
+   "w": 1440,
+   "x": 4560,
+   "y": 0
+  },
+  "templates/purchase-stock/Requests.dc.html": {
+   "h": 940,
+   "is_interactive": true,
+   "page": "m-purchase",
+   "title": "Requests",
+   "w": 1440,
+   "x": 6080,
+   "y": 0
+  },
+  "templates/purchase-stock/Stock.dc.html": {
+   "h": 1400,
+   "is_interactive": true,
+   "page": "m-stock",
+   "title": "Stock",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "templates/purchase-stock/StockCount.dc.html": {
+   "h": 1350,
+   "is_interactive": true,
+   "page": "m-stock",
+   "title": "StockCount",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  },
+  "templates/purchase-stock/Structure.dc.html": {
+   "h": 1780,
+   "is_interactive": true,
+   "page": "m-purchase",
+   "title": "Structure — menu, PO journey, barcodes",
+   "w": 1440,
+   "x": 12630,
+   "y": 0
+  },
+  "templates/purchase-stock/SupplierDetail.dc.html": {
+   "h": 1350,
+   "is_interactive": true,
+   "page": "m-purchase",
+   "title": "Supplier ledger",
+   "w": 1440,
+   "x": 9120,
+   "y": 0
+  },
+  "templates/purchase-stock/SupplierReturn.dc.html": {
+   "h": 1350,
+   "is_interactive": true,
+   "page": "m-purchase",
+   "title": "SupplierReturn",
+   "w": 1440,
+   "x": 10640,
+   "y": 0
+  },
+  "templates/purchase-stock/Suppliers.dc.html": {
+   "h": 1500,
+   "is_interactive": true,
+   "page": "m-purchase",
+   "title": "Suppliers & payables",
+   "w": 1440,
+   "x": 7600,
+   "y": 0
+  },
+  "templates/purchase-stock/Transfers.dc.html": {
+   "h": 960,
+   "is_interactive": true,
+   "page": "m-stock",
+   "title": "Transfers",
+   "w": 1440,
+   "x": 4560,
+   "y": 0
+  },
+  "templates/purchase-stock/Warehouses.dc.html": {
+   "h": 1420,
+   "is_interactive": true,
+   "page": "m-stock",
+   "title": "Warehouses",
+   "w": 1440,
+   "x": 13680,
+   "y": 0
+  },
+  "templates/purchase-stock/WarrantyClaims.dc.html": {
+   "h": 1640,
+   "is_interactive": true,
+   "page": "m-stock",
+   "title": "Warranty claims & serials",
+   "w": 1440,
+   "x": 12160,
+   "y": 0
+  },
+  "templates/purchase-stock/WarrantyPolicies.dc.html": {
+   "h": 2550,
+   "is_interactive": true,
+   "page": "m-stock",
+   "title": "Warranty policies",
+   "w": 1440,
+   "x": 10640,
+   "y": 0
+  },
+  "templates/recovery/AbandonedCarts.dc.html": {
+   "h": 1400,
+   "is_interactive": true,
+   "page": "m-recovery",
+   "title": "AbandonedCarts",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "templates/recovery/AutoReminders.dc.html": {
+   "h": 2650,
+   "is_interactive": true,
+   "page": "m-recovery",
+   "title": "AutoReminders",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "templates/recovery/CustomerProfile.dc.html": {
+   "h": 1300,
+   "is_interactive": true,
+   "page": "m-recovery",
+   "title": "CustomerProfile",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  },
+  "templates/sales/NewSale.dc.html": {
+   "h": 1150,
+   "is_interactive": true,
+   "page": "m-sales",
+   "title": "New sale",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "templates/sales/ReturnExchange.dc.html": {
+   "h": 1270,
+   "is_interactive": true,
+   "page": "m-sales",
+   "title": "Return & exchange",
+   "w": 1440,
+   "x": 6080,
+   "y": 0
+  },
+  "templates/sales/SalesBook.dc.html": {
+   "h": 1350,
+   "is_interactive": true,
+   "page": "m-sales",
+   "title": "Sales book",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "templates/sales/WholesaleInvoiceEdit.dc.html": {
+   "h": 1500,
+   "is_interactive": true,
+   "page": "m-sales",
+   "title": "Wholesale invoice · edit",
+   "w": 1440,
+   "x": 4560,
+   "y": 0
+  },
+  "templates/sales/WholesaleInvoices.dc.html": {
+   "h": 1250,
+   "is_interactive": true,
+   "page": "m-sales",
+   "title": "Wholesale invoices",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  },
+  "templates/settings-console/SetAi.dc.html": {
+   "h": 880,
+   "is_interactive": true,
+   "page": "m-settings",
+   "title": "SetAi",
+   "w": 1380,
+   "x": 10220,
+   "y": 0
+  },
+  "templates/settings-console/SetChrome.dc.html": {
+   "h": 880,
+   "is_interactive": true,
+   "page": "m-settings",
+   "title": "SetChrome",
+   "w": 68,
+   "x": 24524,
+   "y": 0
+  },
+  "templates/settings-console/SetDelivery.dc.html": {
+   "h": 880,
+   "is_interactive": true,
+   "page": "m-settings",
+   "title": "SetDelivery",
+   "w": 1380,
+   "x": 8760,
+   "y": 0
+  },
+  "templates/settings-console/SetGeneral.dc.html": {
+   "h": 880,
+   "is_interactive": true,
+   "page": "m-settings",
+   "title": "SetGeneral",
+   "w": 1380,
+   "x": 0,
+   "y": 0
+  },
+  "templates/settings-console/SetMedia.dc.html": {
+   "h": 880,
+   "is_interactive": true,
+   "page": "m-settings",
+   "title": "SetMedia",
+   "w": 1380,
+   "x": 4380,
+   "y": 0
+  },
+  "templates/settings-console/SetPayments.dc.html": {
+   "h": 880,
+   "is_interactive": true,
+   "page": "m-settings",
+   "title": "SetPayments",
+   "w": 1380,
+   "x": 7300,
+   "y": 0
+  },
+  "templates/settings-console/SetPreference.dc.html": {
+   "h": 880,
+   "is_interactive": true,
+   "page": "m-settings",
+   "title": "SetPreference",
+   "w": 1380,
+   "x": 5840,
+   "y": 0
+  },
+  "templates/settings-console/SetRail.dc.html": {
+   "h": 824,
+   "is_interactive": true,
+   "page": "m-settings",
+   "title": "SetRail",
+   "w": 272,
+   "x": 24820,
+   "y": 0
+  },
+  "templates/settings-console/SetRules.dc.html": {
+   "h": 880,
+   "is_interactive": true,
+   "page": "m-settings",
+   "title": "SetRules",
+   "w": 1380,
+   "x": 13140,
+   "y": 0
+  },
+  "templates/settings-console/SetSecurity.dc.html": {
+   "h": 880,
+   "is_interactive": true,
+   "page": "m-settings",
+   "title": "SetSecurity",
+   "w": 1380,
+   "x": 17520,
+   "y": 0
+  },
+  "templates/settings-console/SetSeo.dc.html": {
+   "h": 880,
+   "is_interactive": true,
+   "page": "m-settings",
+   "title": "SetSeo",
+   "w": 1380,
+   "x": 14600,
+   "y": 0
+  },
+  "templates/settings-console/SetStorage.dc.html": {
+   "h": 880,
+   "is_interactive": true,
+   "page": "m-settings",
+   "title": "SetStorage",
+   "w": 1380,
+   "x": 16060,
+   "y": 0
+  },
+  "templates/settings-console/SetTopbar.dc.html": {
+   "h": 56,
+   "is_interactive": true,
+   "page": "m-settings",
+   "title": "SetTopbar",
+   "w": 1380,
+   "x": 25524,
+   "y": 0
+  },
+  "templates/settings-console/SetUsage.dc.html": {
+   "h": 880,
+   "is_interactive": true,
+   "page": "m-settings",
+   "title": "SetUsage",
+   "w": 1380,
+   "x": 11680,
+   "y": 0
+  },
+  "templates/settings-console/SettingsConsole.dc.html": {
+   "h": 11050,
+   "is_interactive": true,
+   "page": "m-settings",
+   "title": "SettingsConsole",
+   "w": 1460,
+   "x": 28444,
+   "y": 0
+  },
+  "templates/site-map/SiteMap.dc.html": {
+   "h": 8400,
+   "is_interactive": true,
+   "page": "m-start",
+   "title": "SiteMap",
+   "w": 1440,
+   "x": 5500,
+   "y": 0
+  },
+  "templates/staff-hr/AllStaff.dc.html": {
+   "h": 2100,
+   "is_interactive": true,
+   "page": "m-staff",
+   "title": "All staff",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "templates/staff-hr/Attendance.dc.html": {
+   "h": 2000,
+   "is_interactive": true,
+   "page": "m-staff",
+   "title": "Attendance",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  },
+  "templates/staff-hr/HrDashboard.dc.html": {
+   "h": 1480,
+   "is_interactive": true,
+   "page": "m-staff",
+   "title": "HR dashboard",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "templates/staff-hr/HrSetup.dc.html": {
+   "h": 1400,
+   "is_interactive": true,
+   "page": "m-staff",
+   "title": "HR setup",
+   "w": 1440,
+   "x": 10640,
+   "y": 0
+  },
+  "templates/staff-hr/Leave.dc.html": {
+   "h": 1400,
+   "is_interactive": true,
+   "page": "m-staff",
+   "title": "Leave",
+   "w": 1440,
+   "x": 6080,
+   "y": 0
+  },
+  "templates/staff-hr/LoansAdvances.dc.html": {
+   "h": 1300,
+   "is_interactive": true,
+   "page": "m-staff",
+   "title": "Loans & advances",
+   "w": 1440,
+   "x": 9120,
+   "y": 0
+  },
+  "templates/staff-hr/Payroll.dc.html": {
+   "h": 2150,
+   "is_interactive": true,
+   "page": "m-staff",
+   "title": "Payroll",
+   "w": 1440,
+   "x": 7600,
+   "y": 0
+  },
+  "templates/staff-hr/Shifts.dc.html": {
+   "h": 1800,
+   "is_interactive": true,
+   "page": "m-staff",
+   "title": "Shifts & roster",
+   "w": 1440,
+   "x": 4560,
+   "y": 0
+  },
+  "templates/staff-profile/StaffAccess.dc.html": {
+   "h": 2100,
+   "is_interactive": true,
+   "page": "m-staff",
+   "title": "Profile · access",
+   "w": 1280,
+   "x": 2880,
+   "y": 2570
+  },
+  "templates/staff-profile/StaffActivity.dc.html": {
+   "h": 1150,
+   "is_interactive": true,
+   "page": "m-staff",
+   "title": "Profile · activity",
+   "w": 1280,
+   "x": 8320,
+   "y": 2570
+  },
+  "templates/staff-profile/StaffAttendance.dc.html": {
+   "h": 1050,
+   "is_interactive": true,
+   "page": "m-staff",
+   "title": "Profile · attendance",
+   "w": 1280,
+   "x": 4240,
+   "y": 2570
+  },
+  "templates/staff-profile/StaffCreate.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-staff",
+   "title": "Add staff form",
+   "w": 1280,
+   "x": 11040,
+   "y": 2570
+  },
+  "templates/staff-profile/StaffDocs.dc.html": {
+   "h": 600,
+   "is_interactive": true,
+   "page": "m-staff",
+   "title": "Profile · documents",
+   "w": 1280,
+   "x": 9680,
+   "y": 2570
+  },
+  "templates/staff-profile/StaffLeave.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "page": "m-staff",
+   "title": "Profile · leave",
+   "w": 1280,
+   "x": 5600,
+   "y": 2570
+  },
+  "templates/staff-profile/StaffOverview.dc.html": {
+   "h": 1150,
+   "is_interactive": true,
+   "page": "m-staff",
+   "title": "Profile · overview",
+   "w": 1280,
+   "x": 1520,
+   "y": 2570
+  },
+  "templates/staff-profile/StaffProfile.dc.html": {
+   "h": 1100,
+   "is_interactive": true,
+   "page": "m-staff",
+   "title": "Staff profile (full)",
+   "w": 1440,
+   "x": 0,
+   "y": 2570
+  },
+  "templates/staff-profile/StaffSalary.dc.html": {
+   "h": 1200,
+   "is_interactive": true,
+   "page": "m-staff",
+   "title": "Profile · salary",
+   "w": 1280,
+   "x": 6960,
+   "y": 2570
+  },
+  "templates/storefront/OfferDetail.dc.html": {
+   "h": 1780,
+   "is_interactive": true,
+   "page": "m-storefront",
+   "title": "OfferDetail",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "templates/storefront/Offers.dc.html": {
+   "h": 3100,
+   "is_interactive": true,
+   "page": "m-storefront",
+   "title": "Offers",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "templates/support-tickets/SupportTickets.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "SupportTickets",
+   "w": 1440,
+   "x": 9120,
+   "y": 0
+  },
+  "templates/team-report/TeamReport.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "page": "m-console",
+   "title": "TeamReport",
+   "w": 1440,
+   "x": 10640,
+   "y": 0
+  },
+  "templates/tracking-analytics/AnalyticsHub.dc.html": {
+   "h": 2100,
+   "is_interactive": true,
+   "page": "m-track",
+   "title": "G2 · Analytics hub",
+   "w": 1440,
+   "x": 0,
+   "y": 3270
+  },
+  "templates/tracking-analytics/Attribution.dc.html": {
+   "h": 1950,
+   "is_interactive": true,
+   "page": "m-track",
+   "title": "G2 · Attribution & UTM",
+   "w": 1440,
+   "x": 4560,
+   "y": 3270
+  },
+  "templates/tracking-analytics/Campaigns.dc.html": {
+   "h": 1750,
+   "is_interactive": true,
+   "page": "m-track",
+   "title": "G2 · Campaigns & creatives",
+   "w": 1440,
+   "x": 1520,
+   "y": 3270
+  },
+  "templates/tracking-analytics/Connections.dc.html": {
+   "h": 1560,
+   "is_interactive": true,
+   "page": "m-track",
+   "title": "G2 · Connections",
+   "w": 1440,
+   "x": 7600,
+   "y": 3270
+  },
+  "templates/tracking-analytics/EventHealth.dc.html": {
+   "h": 2000,
+   "is_interactive": true,
+   "page": "m-track",
+   "title": "G1 · Event health & privacy",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "templates/tracking-analytics/PixelsEvents.dc.html": {
+   "h": 2850,
+   "is_interactive": true,
+   "page": "m-track",
+   "title": "G1 · Pixels & events",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "templates/tracking-analytics/ProductsTraffic.dc.html": {
+   "h": 1640,
+   "is_interactive": true,
+   "page": "m-track",
+   "title": "G2 · Products & traffic",
+   "w": 1440,
+   "x": 3040,
+   "y": 3270
+  },
+  "templates/tracking-analytics/ReportsAlerts.dc.html": {
+   "h": 2100,
+   "is_interactive": true,
+   "page": "m-track",
+   "title": "G2 · Reports & alerts",
+   "w": 1440,
+   "x": 6080,
+   "y": 3270
+  },
+  "templates/tracking-analytics/SetupClarity.dc.html": {
+   "h": 1650,
+   "is_interactive": true,
+   "page": "m-track",
+   "title": "G3 · Microsoft Clarity",
+   "w": 1440,
+   "x": 9120,
+   "y": 5790
+  },
+  "templates/tracking-analytics/SetupGA4.dc.html": {
+   "h": 1950,
+   "is_interactive": true,
+   "page": "m-track",
+   "title": "G3 · Google Analytics 4",
+   "w": 1440,
+   "x": 4560,
+   "y": 5790
+  },
+  "templates/tracking-analytics/SetupGTM.dc.html": {
+   "h": 1750,
+   "is_interactive": true,
+   "page": "m-track",
+   "title": "G3 · Google Tag Manager",
+   "w": 1440,
+   "x": 7600,
+   "y": 5790
+  },
+  "templates/tracking-analytics/SetupGoogleAds.dc.html": {
+   "h": 2000,
+   "is_interactive": true,
+   "page": "m-track",
+   "title": "G3 · Google Ads conversions",
+   "w": 1440,
+   "x": 6080,
+   "y": 5790
+  },
+  "templates/tracking-analytics/SetupGuide.dc.html": {
+   "h": 2200,
+   "is_interactive": true,
+   "page": "m-track",
+   "title": "G3 · Setup guides",
+   "w": 1440,
+   "x": 0,
+   "y": 5790
+  },
+  "templates/tracking-analytics/SetupMetaPixel.dc.html": {
+   "h": 1800,
+   "is_interactive": true,
+   "page": "m-track",
+   "title": "G3 · Meta Pixel & CAPI",
+   "w": 1440,
+   "x": 1520,
+   "y": 5790
+  },
+  "templates/tracking-analytics/SetupTikTok.dc.html": {
+   "h": 1850,
+   "is_interactive": true,
+   "page": "m-track",
+   "title": "G3 · TikTok Pixel & Events API",
+   "w": 1440,
+   "x": 3040,
+   "y": 5790
+  },
+  "templates/storefront/Checkout.dc.html": {
+   "h": 1500,
+   "is_interactive": true,
+   "page": "m-storefront",
+   "title": "Checkout",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  }
+ },
+ "createdOnFiles": {
+  "at": "2026-09-29T19:30:00Z",
+  "v": 1
+ },
+ "designSystems": [
+  {
+   "artifact": "https://claude.ai/artifact/6jdpZHKWCDd1kV9qjbp8kh",
+   "copiedAt": "2026-09-18T09:46:31Z",
+   "namespace": "gridcommerce",
+   "title": "GridCommerce Design System",
+   "version": null
+  }
+ ],
+ "launch": {
+  "page": "m-start",
+  "view": "canvas"
+ },
+ "notes": {
+  "bk1": {
+   "kind": "title1",
+   "maxW": 6000,
+   "page": "m-start",
+   "text": "Sign in, onboarding & site map",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "bk10": {
+   "kind": "title1",
+   "maxW": 4480,
+   "page": "m-storefront",
+   "text": "Storefront — offers & checkout",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "bk11": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "m-recovery",
+   "text": "Customer intelligence & cart recovery",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "bk12": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "m-dev",
+   "text": "Page flows",
+   "w": 240,
+   "x": 0,
+   "y": 11710
+  },
+  "bk2": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "m-console",
+   "text": "Merchant console",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "bk3": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "m-purchase",
+   "text": "Inventory\n   ",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "bk4": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "m-stock",
+   "text": "Stocks & Inventory",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "bk5": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "m-pos",
+   "text": "POS register",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "bk6": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "m-settings",
+   "text": "Settings console",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "bk7": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "m-dev",
+   "text": "Developer reference & UI kit",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "bk8": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "m-loyalty",
+   "text": "Loyalty & rewards",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "bk9": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "m-promo",
+   "text": "Offers & promo",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "cf1": {
+   "kind": "title1",
+   "maxW": 7520,
+   "page": "m-core",
+   "text": "Step 1 — Console foundation",
+   "w": 240,
+   "x": 0,
+   "y": 15000
+  },
+  "core1": {
+   "kind": "title1",
+   "maxW": 7520,
+   "page": "m-core",
+   "text": "Core backend — multi-tenant build plan",
+   "w": 240,
+   "x": 0,
+   "y": 500
+  },
+  "coreui1": {
+   "kind": "title1",
+   "maxW": 2960,
+   "page": "m-core",
+   "text": "Core backend UI — design plan",
+   "w": 240,
+   "x": 0,
+   "y": 6700
+  },
+  "crm1": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "m-core",
+   "text": "Support and sales CRM",
+   "w": 240,
+   "x": 0,
+   "y": 21050
+  },
+  "hr1": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "m-staff",
+   "text": "Staff & HR",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "hr2": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "m-staff",
+   "text": "Staff profile",
+   "w": 240,
+   "x": 0,
+   "y": 2270
+  },
+  "mob-m-console-0": {
+   "kind": "title1",
+   "maxW": 3680,
+   "page": "m-console",
+   "text": "Mobile app · home, orders & inbox",
+   "w": 240,
+   "x": 0,
+   "y": 3910
+  },
+  "mob-m-console-1": {
+   "kind": "title1",
+   "maxW": 2740,
+   "page": "m-console",
+   "text": "Mobile app · calls & support",
+   "w": 240,
+   "x": 0,
+   "y": 5410
+  },
+  "mob-m-crm-0": {
+   "kind": "title1",
+   "maxW": 2400,
+   "page": "m-core",
+   "text": "Staff app · support & store access",
+   "w": 240,
+   "x": 0,
+   "y": 24130
+  },
+  "mob-m-dev-0": {
+   "kind": "title1",
+   "maxW": 2400,
+   "page": "m-dev",
+   "text": "Mobile app · design system",
+   "w": 240,
+   "x": 0,
+   "y": 10140
+  },
+  "mob-m-products-0": {
+   "kind": "title1",
+   "maxW": 2400,
+   "page": "m-products",
+   "text": "Mobile app · products",
+   "w": 240,
+   "x": 0,
+   "y": 5490
+  },
+  "mob-m-purchase-0": {
+   "kind": "title1",
+   "maxW": 2400,
+   "page": "m-purchase",
+   "text": "Mobile app · purchase",
+   "w": 240,
+   "x": 0,
+   "y": 2090
+  },
+  "mob-m-screens-0": {
+   "kind": "title1",
+   "maxW": 3680,
+   "page": "m-core",
+   "text": "Staff app · merchants, billing & ops",
+   "w": 240,
+   "x": 0,
+   "y": 35194
+  },
+  "mob-m-start-0": {
+   "kind": "title1",
+   "maxW": 4620,
+   "page": "m-start",
+   "text": "Mobile app · onboarding",
+   "w": 240,
+   "x": 0,
+   "y": 5030
+  },
+  "mob-m-stock-0": {
+   "kind": "title1",
+   "maxW": 2400,
+   "page": "m-stock",
+   "text": "Mobile app · stock",
+   "w": 240,
+   "x": 0,
+   "y": 2690
+  },
+  "n-m-acc": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "m-acc",
+   "text": "Accounts · books and reconciliation",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "n-m-acc-2": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "m-acc",
+   "text": "Money in and out",
+   "w": 240,
+   "x": 0,
+   "y": 3320
+  },
+  "n-m-acc-3": {
+   "kind": "title1",
+   "maxW": 6000,
+   "page": "m-acc",
+   "text": "Retail books · cash, VAT and reports",
+   "w": 240,
+   "x": 0,
+   "y": 5190
+  },
+  "n-m-ai-call": {
+   "kind": "title1",
+   "maxW": 2960,
+   "page": "m-ai-call",
+   "text": "AI auto-call",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "n-m-billing": {
+   "kind": "title1",
+   "maxW": 4480,
+   "page": "m-billing",
+   "text": "Wallet, billing & help",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "n-m-comm": {
+   "kind": "title1",
+   "maxW": 4480,
+   "page": "m-comm",
+   "text": "Communication",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "n-m-gridai": {
+   "kind": "title1",
+   "maxW": 6000,
+   "page": "m-gridai",
+   "text": "GridAI & automation",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "n-m-sales": {
+   "kind": "title1",
+   "maxW": 7520,
+   "page": "m-sales",
+   "text": "Sales & wholesale",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "n-m-wp": {
+   "kind": "title1",
+   "maxW": 2960,
+   "page": "m-wp",
+   "text": "WordPress sync",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "prd1": {
+   "kind": "title1",
+   "maxW": 5920,
+   "page": "m-products",
+   "text": "Products",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "scr0": {
+   "kind": "title1",
+   "maxW": 7520,
+   "page": "m-core",
+   "text": "Tenants",
+   "w": 240,
+   "x": 0,
+   "y": 26674
+  },
+  "scr1": {
+   "kind": "title1",
+   "maxW": 6000,
+   "page": "m-core",
+   "text": "Packaging",
+   "w": 240,
+   "x": 0,
+   "y": 28654
+  },
+  "scr2": {
+   "kind": "title1",
+   "maxW": 6000,
+   "page": "m-core",
+   "text": "Billing",
+   "w": 240,
+   "x": 0,
+   "y": 30194
+  },
+  "scr3": {
+   "kind": "title1",
+   "maxW": 4480,
+   "page": "m-core",
+   "text": "Monitoring",
+   "w": 240,
+   "x": 0,
+   "y": 31674
+  },
+  "scr4": {
+   "kind": "title1",
+   "maxW": 7520,
+   "page": "m-core",
+   "text": "Operations",
+   "w": 240,
+   "x": 0,
+   "y": 33154
+  },
+  "sec-m-cf": {
+   "kind": "title1",
+   "maxW": 7520,
+   "page": "m-core",
+   "text": "Step 1 · Console foundation",
+   "w": 240,
+   "x": 0,
+   "y": 14500
+  },
+  "sec-m-core": {
+   "kind": "title1",
+   "maxW": 7520,
+   "page": "m-core",
+   "text": "Core backend plan",
+   "w": 240,
+   "x": 0,
+   "y": 0
+  },
+  "sec-m-coreui": {
+   "kind": "title1",
+   "maxW": 2960,
+   "page": "m-core",
+   "text": "Core backend UI plan",
+   "w": 240,
+   "x": 0,
+   "y": 6200
+  },
+  "sec-m-crm": {
+   "kind": "title1",
+   "maxW": 7520,
+   "page": "m-core",
+   "text": "Support and sales CRM",
+   "w": 240,
+   "x": 0,
+   "y": 20550
+  },
+  "sec-m-forms": {
+   "kind": "title1",
+   "maxW": 6000,
+   "page": "m-core",
+   "text": "Console data entry forms",
+   "w": 240,
+   "x": 0,
+   "y": 37238
+  },
+  "sec-m-screens": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "m-core",
+   "text": "Console screens",
+   "w": 240,
+   "x": 0,
+   "y": 26174
+  },
+  "ta1": {
+   "kind": "title1",
+   "maxW": 2960,
+   "page": "m-track",
+   "text": "G1 · Server-side tracking",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "ta2": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "m-track",
+   "text": "G2 · Analytics hub",
+   "w": 240,
+   "x": 0,
+   "y": 2970
+  },
+  "ta3": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "m-track",
+   "text": "G3 · Setup guides",
+   "w": 240,
+   "x": 0,
+   "y": 5490
+  }
+ },
+ "order": [
+  "templates/merchant-onboarding/MerchantOnboarding.dc.html",
+  "templates/site-map/SiteMap.dc.html",
+  "templates/merchant-overview/MerchantOverview.dc.html",
+  "templates/merchant-orders/MerchantOrders.dc.html",
+  "templates/order-detail/OrderDetail.dc.html",
+  "templates/merchant-inbox/MerchantInbox.dc.html",
+  "templates/merchant-calls/MerchantCalls.dc.html",
+  "templates/support-tickets/SupportTickets.dc.html",
+  "templates/team-report/TeamReport.dc.html",
+  "templates/landing-page-builder/LandingPageBuilder.dc.html",
+  "templates/purchase-stock/PurchaseOrders.dc.html",
+  "templates/purchase-stock/NewPO.dc.html",
+  "templates/purchase-stock/PODetail.dc.html",
+  "templates/purchase-stock/ReceiveGoods.dc.html",
+  "templates/purchase-stock/Requests.dc.html",
+  "templates/purchase-stock/Suppliers.dc.html",
+  "templates/purchase-stock/SupplierDetail.dc.html",
+  "templates/purchase-stock/SupplierReturn.dc.html",
+  "templates/purchase-stock/Stock.dc.html",
+  "templates/purchase-stock/StockCount.dc.html",
+  "templates/purchase-stock/Transfers.dc.html",
+  "templates/purchase-stock/NewTransfer.dc.html",
+  "templates/purchase-stock/BarcodeLabels.dc.html",
+  "templates/purchase-stock/ExpiryDisposal.dc.html",
+  "templates/purchase-stock/WarrantyPolicies.dc.html",
+  "templates/purchase-stock/WarrantyClaims.dc.html",
+  "templates/purchase-stock/Warehouses.dc.html",
+  "templates/purchase-stock/Branches.dc.html",
+  "templates/purchase-stock/Racks.dc.html",
+  "templates/pos-register/PosIdle.dc.html",
+  "templates/pos-register/PosActive.dc.html",
+  "templates/pos-register/PosPay.dc.html",
+  "templates/pos-register/PosKeypad.dc.html",
+  "templates/pos-register/PosSales.dc.html",
+  "templates/pos-register/PosReturn.dc.html",
+  "templates/pos-register/PosOpen.dc.html",
+  "templates/pos-register/PosClose.dc.html",
+  "templates/pos-register/PosOffline.dc.html",
+  "templates/pos-register/PosRegister.dc.html",
+  "templates/settings-console/SetGeneral.dc.html",
+  "templates/settings-console/SetMedia.dc.html",
+  "templates/settings-console/SetPreference.dc.html",
+  "templates/settings-console/SetPayments.dc.html",
+  "templates/settings-console/SetDelivery.dc.html",
+  "templates/settings-console/SetAi.dc.html",
+  "templates/settings-console/SetUsage.dc.html",
+  "templates/settings-console/SetRules.dc.html",
+  "templates/settings-console/SetSeo.dc.html",
+  "templates/settings-console/SetStorage.dc.html",
+  "templates/settings-console/SetSecurity.dc.html",
+  "templates/settings-console/SetChrome.dc.html",
+  "templates/settings-console/SetRail.dc.html",
+  "templates/settings-console/SetTopbar.dc.html",
+  "templates/settings-console/SettingsConsole.dc.html",
+  "templates/dev-reference/DevReference.dc.html",
+  "templates/dev-reference/UIKit01Shell.dc.html",
+  "templates/dev-reference/UIKit02Actions.dc.html",
+  "templates/dev-reference/UIKit03Controls.dc.html",
+  "templates/dev-reference/UIKit04FormLayouts.dc.html",
+  "templates/dev-reference/UIKit05Tables.dc.html",
+  "templates/dev-reference/UIKit06Data.dc.html",
+  "templates/dev-reference/UIKit07Feedback.dc.html",
+  "templates/dev-reference/UIKit08Commerce.dc.html",
+  "templates/dev-reference/UIKit09Templates.dc.html",
+  "templates/loyalty-promo/Loyalty.dc.html",
+  "templates/loyalty-promo/Members.dc.html",
+  "templates/loyalty-promo/MemberDetail.dc.html",
+  "templates/loyalty-promo/ProductPoints.dc.html",
+  "templates/loyalty-promo/Wallet.dc.html",
+  "templates/loyalty-promo/Referrals.dc.html",
+  "templates/loyalty-promo/Promo.dc.html",
+  "templates/loyalty-promo/Coupons.dc.html",
+  "templates/loyalty-promo/NewCoupon.dc.html",
+  "templates/loyalty-promo/FlashSales.dc.html",
+  "templates/loyalty-promo/NewFlashSale.dc.html",
+  "templates/storefront/Offers.dc.html",
+  "templates/storefront/OfferDetail.dc.html",
+  "templates/recovery/AbandonedCarts.dc.html",
+  "templates/recovery/AutoReminders.dc.html",
+  "templates/recovery/CustomerProfile.dc.html",
+  "templates/customers-crm/AllCustomers.dc.html",
+  "templates/customers-crm/CustomerCRM.dc.html",
+  "templates/products/AllProducts.dc.html",
+  "templates/products/AddProduct.dc.html",
+  "templates/products/Categories.dc.html",
+  "templates/products/CatalogSetup.dc.html",
+  "templates/products/AddProductTabs.dc.html",
+  "templates/staff-hr/HrDashboard.dc.html",
+  "templates/staff-hr/AllStaff.dc.html",
+  "templates/staff-hr/Attendance.dc.html",
+  "templates/staff-hr/Shifts.dc.html",
+  "templates/staff-hr/Leave.dc.html",
+  "templates/staff-hr/Payroll.dc.html",
+  "templates/staff-hr/LoansAdvances.dc.html",
+  "templates/staff-hr/HrSetup.dc.html",
+  "templates/staff-profile/StaffProfile.dc.html",
+  "templates/staff-profile/StaffOverview.dc.html",
+  "templates/staff-profile/StaffAccess.dc.html",
+  "templates/staff-profile/StaffAttendance.dc.html",
+  "templates/staff-profile/StaffLeave.dc.html",
+  "templates/staff-profile/StaffSalary.dc.html",
+  "templates/staff-profile/StaffActivity.dc.html",
+  "templates/staff-profile/StaffDocs.dc.html",
+  "templates/staff-profile/StaffCreate.dc.html",
+  "templates/tracking-analytics/PixelsEvents.dc.html",
+  "templates/tracking-analytics/EventHealth.dc.html",
+  "templates/tracking-analytics/AnalyticsHub.dc.html",
+  "templates/tracking-analytics/Campaigns.dc.html",
+  "templates/tracking-analytics/ProductsTraffic.dc.html",
+  "templates/tracking-analytics/Attribution.dc.html",
+  "templates/tracking-analytics/ReportsAlerts.dc.html",
+  "templates/tracking-analytics/Connections.dc.html",
+  "templates/merchant-signin/MerchantSignIn.dc.html",
+  "templates/merchant-signin/MobileSignIn.dc.html",
+  "templates/merchant-signin/MobileSignUp.dc.html",
+  "templates/purchase-stock/MobileReceive.dc.html",
+  "templates/purchase-stock/Structure.dc.html",
+  "templates/core-backend/CorePlan.dc.html",
+  "templates/core-backend/CoreSteps.dc.html",
+  "templates/core-backend/CoreArchitecture.dc.html",
+  "templates/core-backend/CorePackaging.dc.html",
+  "templates/core-backend/CoreMonitoring.dc.html",
+  "templates/core-backend/CoreUIPlan.dc.html",
+  "templates/core-backend/CoreUIData.dc.html",
+  "templates/console/ConsoleShell.dc.html",
+  "templates/console/ConsoleShellDark.dc.html",
+  "templates/console/ChartKit.dc.html",
+  "templates/console/TenantContextBar.dc.html",
+  "templates/console/SystemStates.dc.html",
+  "templates/console/SupportDesk.dc.html",
+  "templates/console/SupportPerformance.dc.html",
+  "templates/console/Leads.dc.html",
+  "templates/console/LeadProfile.dc.html",
+  "templates/console/Trials.dc.html",
+  "templates/console/LeadImport.dc.html",
+  "templates/console/Merchants.dc.html",
+  "templates/console/Provisioning.dc.html",
+  "templates/console/Domains.dc.html",
+  "templates/console/Backups.dc.html",
+  "templates/console/ModuleCatalogue.dc.html",
+  "templates/console/Plans.dc.html",
+  "templates/console/Entitlements.dc.html",
+  "templates/console/Limits.dc.html",
+  "templates/console/Subscriptions.dc.html",
+  "templates/console/Invoices.dc.html",
+  "templates/console/Adjustments.dc.html",
+  "templates/console/HealthRisk.dc.html",
+  "templates/console/TrialFunnel.dc.html",
+  "templates/console/CostToServe.dc.html",
+  "templates/console/PlatformHealth.dc.html",
+  "templates/console/Integrations.dc.html",
+  "templates/console/Incidents.dc.html",
+  "templates/console/FlagsNotices.dc.html",
+  "templates/console/AuditLog.dc.html",
+  "templates/console/MerchantDetail.dc.html",
+  "templates/console/Collections.dc.html",
+  "templates/console/OpsCentre.dc.html",
+  "templates/console/Webhooks.dc.html",
+  "templates/console/QueuesJobs.dc.html",
+  "templates/console/Releases.dc.html",
+  "templates/console/Security.dc.html",
+  "templates/console/Messaging.dc.html",
+  "templates/console/ScheduledTasks.dc.html",
+  "templates/console/StaffRoles.dc.html",
+  "templates/console/StoreAccess.dc.html",
+  "templates/console/MerchantPinAccess.dc.html",
+  "templates/console/AccessLog.dc.html",
+  "templates/console/FormSet.dc.html",
+  "templates/console/FormPlan.dc.html",
+  "templates/console/FormEntitlement.dc.html",
+  "templates/console/FormLimits.dc.html",
+  "templates/console/FormProvision.dc.html",
+  "templates/console/FormAdjustment.dc.html",
+  "templates/console/FormStaff.dc.html",
+  "templates/console/FormFlag.dc.html",
+  "templates/console/FormIncident.dc.html",
+  "templates/console/FormLead.dc.html",
+  "templates/console/FormTicket.dc.html",
+  "templates/app/AppSystem.dc.html",
+  "templates/app/MHome.dc.html",
+  "templates/app/MOrders.dc.html",
+  "templates/app/MOrderDetail.dc.html",
+  "templates/app/MNewOrder.dc.html",
+  "templates/app/MProducts.dc.html",
+  "templates/app/MProductEdit.dc.html",
+  "templates/app/MScan.dc.html",
+  "templates/app/MInbox.dc.html",
+  "templates/app/MChat.dc.html",
+  "templates/app/MNotifications.dc.html",
+  "templates/app/MMore.dc.html",
+  "templates/app/CHome.dc.html",
+  "templates/app/CMerchants.dc.html",
+  "templates/app/CMerchantDetail.dc.html",
+  "templates/app/CTickets.dc.html",
+  "templates/app/CTicket.dc.html",
+  "templates/app/CStoreAccess.dc.html",
+  "templates/app/CStoreSession.dc.html",
+  "templates/app/CCollections.dc.html",
+  "templates/app/CRecordPayment.dc.html",
+  "templates/app/COps.dc.html",
+  "templates/app/CMore.dc.html",
+  "templates/app/MStock.dc.html",
+  "templates/app/MPurchase.dc.html",
+  "templates/app/MPurchaseDetail.dc.html",
+  "templates/app/MPurchaseNew.dc.html",
+  "templates/app/MCallSettings.dc.html",
+  "templates/app/MCalls.dc.html",
+  "templates/app/MCallActive.dc.html",
+  "templates/app/MTickets.dc.html",
+  "templates/app/MTicketDetail.dc.html",
+  "templates/app/MTicketNew.dc.html",
+  "templates/app/OnbWelcome.dc.html",
+  "templates/app/OnbSignIn.dc.html",
+  "templates/app/OnbOtp.dc.html",
+  "templates/app/OnbPhone.dc.html",
+  "templates/app/OnbStore.dc.html",
+  "templates/app/OnbChannels.dc.html",
+  "templates/app/OnbDone.dc.html",
+  "templates/app/CSignIn.dc.html",
+  "templates/app/OnbLink.dc.html",
+  "templates/app/OnbSignInCode.dc.html",
+  "templates/app/OnbProduct.dc.html",
+  "templates/console/PaymentChecks.dc.html",
+  "templates/tracking-analytics/SetupGuide.dc.html",
+  "templates/tracking-analytics/SetupMetaPixel.dc.html",
+  "templates/tracking-analytics/SetupTikTok.dc.html",
+  "templates/tracking-analytics/SetupGA4.dc.html",
+  "templates/tracking-analytics/SetupGoogleAds.dc.html",
+  "templates/tracking-analytics/SetupGTM.dc.html",
+  "templates/tracking-analytics/SetupClarity.dc.html",
+  "templates/dev-reference/FlowOrders.dc.html",
+  "templates/dev-reference/FlowProducts.dc.html",
+  "templates/dev-reference/FlowPurchase.dc.html",
+  "templates/dev-reference/FlowPayments.dc.html",
+  "templates/dev-reference/FlowOnboarding.dc.html",
+  "templates/dev-reference/FlowStaff.dc.html",
+  "templates/ai-call/AutoCallSettings.dc.html",
+  "templates/ai-call/AiCalls.dc.html",
+  "templates/integrations/WooSync.dc.html",
+  "templates/integrations/BlogPosts.dc.html",
+  "templates/billing/Subscription.dc.html",
+  "templates/billing/HelpSupport.dc.html",
+  "templates/billing/CreditWallet.dc.html",
+  "templates/gridai/GridAI.dc.html",
+  "templates/automation/Automations.dc.html",
+  "templates/automation/WorkflowBuilder.dc.html",
+  "templates/automation/WorkflowSettings.dc.html",
+  "templates/communication/Calendar.dc.html",
+  "templates/communication/Composer.dc.html",
+  "templates/communication/SocialConnections.dc.html",
+  "templates/accounts/ChartOfAccounts.dc.html",
+  "templates/accounts/Transactions.dc.html",
+  "templates/accounts/Journals.dc.html",
+  "templates/accounts/Reconciliation.dc.html",
+  "templates/accounts/Banks.dc.html",
+  "templates/accounts/BankAccounts.dc.html",
+  "templates/accounts/MfsProviders.dc.html",
+  "templates/accounts/MfsAccounts.dc.html",
+  "templates/accounts/FundTransfers.dc.html",
+  "templates/accounts/BankDeposits.dc.html",
+  "templates/accounts/PaymentSessions.dc.html",
+  "templates/accounts/Expenses.dc.html",
+  "templates/accounts/Investment.dc.html",
+  "templates/accounts/OwnerWithdraw.dc.html",
+  "templates/accounts/LiabilitySettlement.dc.html",
+  "templates/accounts/Commissions.dc.html",
+  "templates/sales/NewSale.dc.html",
+  "templates/sales/SalesBook.dc.html",
+  "templates/sales/WholesaleInvoices.dc.html",
+  "templates/sales/WholesaleInvoiceEdit.dc.html",
+  "templates/sales/ReturnExchange.dc.html",
+  "templates/products/CustomerCatalogue.dc.html",
+  "templates/purchase-stock/BuyGoods.dc.html",
+  "templates/accounts/CashBook.dc.html",
+  "templates/accounts/MoneyInOut.dc.html",
+  "templates/accounts/Vat.dc.html",
+  "templates/accounts/Reports.dc.html",
+  "templates/dev-reference/IconSet.dc.html",
+  "templates/storefront/Checkout.dc.html"
+ ],
+ "pages": [
+  {
+   "id": "m-start",
+   "name": "01 · Sign up & site map"
+  },
+  {
+   "id": "m-console",
+   "name": "02 · Merchant console"
+  },
+  {
+   "id": "m-products",
+   "name": "03 · Products"
+  },
+  {
+   "id": "m-purchase",
+   "name": "04 · Purchase"
+  },
+  {
+   "id": "m-stock",
+   "name": "05 · Stocks & Inventory"
+  },
+  {
+   "id": "m-loyalty",
+   "name": "06 · Loyalty & rewards"
+  },
+  {
+   "id": "m-promo",
+   "name": "07 · Offers & promo"
+  },
+  {
+   "id": "m-storefront",
+   "name": "08 · Storefront"
+  },
+  {
+   "id": "m-recovery",
+   "name": "09 · Cart recovery"
+  },
+  {
+   "id": "m-pos",
+   "name": "10 · POS register"
+  },
+  {
+   "id": "m-settings",
+   "name": "11 · Settings"
+  },
+  {
+   "id": "m-dev",
+   "name": "12 · Developer reference"
+  },
+  {
+   "id": "m-staff",
+   "name": "13 · Staff & HR"
+  },
+  {
+   "id": "m-track",
+   "name": "14 · Tracking & analytics"
+  },
+  {
+   "id": "m-core",
+   "name": "15 · Main merchant platform"
+  },
+  {
+   "id": "m-ai-call",
+   "name": "16 · AI auto-call"
+  },
+  {
+   "id": "m-wp",
+   "name": "17 · WordPress sync"
+  },
+  {
+   "id": "m-billing",
+   "name": "18 · Wallet, billing & help"
+  },
+  {
+   "id": "m-gridai",
+   "name": "19 · GridAI & automation"
+  },
+  {
+   "id": "m-comm",
+   "name": "20 · Communication"
+  },
+  {
+   "id": "m-acc",
+   "name": "21 · Accounts"
+  },
+  {
+   "id": "m-sales",
+   "name": "22 · Sales & wholesale"
+  }
+ ],
+ "title": "GridCommerce · Merged"
+}
