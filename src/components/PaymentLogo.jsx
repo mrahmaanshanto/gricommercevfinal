@@ -2,7 +2,8 @@
 // `variant="mark"` is a square tile for lists and buttons (Rocket shows its paper plane at 40px
 // and below, where the wordmark is unreadable); `variant="full"` is the whole logo
 // at a given height for checkout and "paid through" lines.
-// Providers without a supplied logo yet fall back to a tile with their initials in brand colours.
+// Providers without a supplied logo yet fall back to a tile with their initials in brand colours
+// (text at least 11px and 4.5:1 contrast, per the Impeccable detector).
 
 const LOGOS = {
   rocket: { name: 'Rocket', full: '/assets/payments/rocket.png', mark: '/assets/payments/rocket-mark.png', small: '/assets/payments/rocket-plane.png' },
@@ -11,9 +12,9 @@ const LOGOS = {
 };
 
 const FALLBACK = {
-  bkash: { name: 'bKash', text: 'bK', bg: '#e2136e' },
-  nagad: { name: 'Nagad', text: 'Ng', bg: '#f6821f' },
-  upay: { name: 'Upay', text: 'U', bg: '#0b3d91' },
+  bkash: { name: 'bKash', text: 'bK', bg: '#c8105f', fg: '#fff' },
+  nagad: { name: 'Nagad', text: 'Ng', bg: '#f6821f', fg: '#2b1400' },
+  upay: { name: 'Upay', text: 'U', bg: '#0b3d91', fg: '#fff' },
 };
 
 /** Maps a label such as "Rocket ·01611-390155" or "SSLCommerz" to a provider key. */
@@ -54,7 +55,7 @@ export function PaymentLogo({ provider, variant = 'mark', size = 34, radius, sty
   const fb = FALLBACK[key];
   if (!fb) return null;
   return (
-    <span role={decorative ? undefined : 'img'} aria-label={decorative ? undefined : alt} style={{ ...tile, background: fb.bg, color: '#fff', fontSize: Math.round(size * 0.31), fontWeight: 700, letterSpacing: '.02em' }}>
+    <span role={decorative ? undefined : 'img'} aria-label={decorative ? undefined : alt} style={{ ...tile, background: fb.bg, color: fb.fg, fontSize: Math.max(11, Math.round(size * 0.34)), fontWeight: 700, letterSpacing: '.02em' }}>
       {fb.text}
     </span>
   );
