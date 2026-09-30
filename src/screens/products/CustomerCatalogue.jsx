@@ -115,61 +115,61 @@ return {
 
 const CSS = `
 *{box-sizing:border-box}
-body{margin:0;background:#e9eef5;color:#0f172a;-webkit-font-smoothing:antialiased;font-family:'Hind Siliguri','Poppins',system-ui,sans-serif}
+body{margin:0;background:#e9eef5;color:#0f172a;-webkit-font-smoothing:antialiased;font-family:var(--font-bn)}
 a{color:#003087;text-decoration:none}
 button{font:inherit;color:inherit}
-.fbn{font-family:'Hind Siliguri','Poppins',system-ui,sans-serif}
-.fen{font-family:'Poppins','Hind Siliguri',system-ui,sans-serif}
+.fbn{font-family:var(--font-bn)}
+.fen{font-family:var(--font-sans)}
 .num{font-variant-numeric:tabular-nums}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-.card{background:#fff;border:1px solid #e6eaf0;border-radius:18px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 10px 28px -18px rgba(15,23,42,.14)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 20px;border-radius:12px;border:0;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap;text-decoration:none;transition:background-color 200ms,border-color 200ms}
+.mono{font-family:var(--font-data)}
+.card{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 10px 28px -18px rgba(15,23,42,.14)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;white-space:nowrap;text-decoration:none;transition:background-color 200ms,border-color 200ms}
 .solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
 .line{background:#fff;color:#0f172a;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#0f172a}
 .soft{background:#eef3fb;color:#003087}.soft:hover{background:#e0e9f7;color:#003087}
 .okb{background:#047857;color:#fff}.okb:hover{background:#065f46;color:#fff}
 .dang{background:#fff;color:#b83210;border:1px solid #f3b7a5}.dang:hover{background:#fff4f0;color:#b83210}
-.sm{height:38px;padding:0 14px;font-size:14px;border-radius:10px}
-.big{height:56px;padding:0 26px;font-size:17px;border-radius:14px}
-.ib{width:44px;height:44px;border-radius:12px;border:1px solid #e2e8f0;background:#fff;color:#334155;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-shrink:0}
+.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus);border-radius:var(--radius-lg)}
+.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus);border-radius:var(--radius-lg)}
+.ib{width:36px;height:36px;border-radius:var(--radius-full);border:1px solid #e2e8f0;background:#fff;color:#334155;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-shrink:0}
 .ib:hover{background:#f1f5f9}
-.seg{display:inline-flex;padding:4px;gap:2px;border-radius:12px;background:#e9eef5}
-.sgb{height:36px;padding:0 14px;border:0;border-radius:9px;background:transparent;font-size:14px;font-weight:500;color:#475569;cursor:pointer;white-space:nowrap}
-.sgb.on{background:#fff;color:#003087;font-weight:700;box-shadow:0 1px 3px rgba(15,23,42,.14)}
-.chip{height:38px;padding:0 14px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;font-size:14px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.seg{display:inline-flex;padding:4px;gap:2px;border-radius:var(--radius-xl);background:#e9eef5}
+.sgb{height:36px;padding:0 14px;border:0;border-radius:var(--radius-lg);background:transparent;font-size:var(--text-sm);font-weight:var(--weight-medium);color:#475569;cursor:pointer;white-space:nowrap}
+.sgb.on{background:#fff;color:#003087;font-weight:var(--weight-semibold);box-shadow:0 1px 3px rgba(15,23,42,.14)}
+.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:#eef3fb;color:#003087;font-weight:600}
-.pill{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap}
+.chip.on{border-color:#003087;background:#eef3fb;color:#003087;font-weight:var(--weight-medium)}
+.pill{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-full);font-size:var(--text-xs-plus);font-weight:var(--weight-medium);white-space:nowrap}
 .p-ok{background:#e7f8f1;color:#047857}.p-due{background:#ffece6;color:#b83210}.p-warn{background:#fff4e0;color:#a14f06}.p-info{background:#eef3fb;color:#003087}.p-grey{background:#eef2f6;color:#475569}.p-bk{background:#fdecf5;color:#a3195b}
-.inp{width:100%;height:48px;padding:0 14px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;font:inherit;font-size:15px;color:#0f172a}
+.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#0f172a}
 .inp:focus{outline:none;border-color:#003087;box-shadow:0 0 0 3px rgba(0,48,135,.12)}
-.inp::placeholder{color:#64748b}
-.lbl{font-size:14px;font-weight:600;color:#334155}
+.inp::placeholder{color:var(--text-muted)}
+.lbl{font-size:var(--text-sm);font-weight:var(--weight-medium);color:#334155}
 .fld{display:flex;flex-direction:column;gap:6px;min-width:0}
-.hint{font-size:13px;line-height:18px;color:#64748b}
+.hint{font-size:var(--text-xs-plus);line-height:18px;color:var(--text-muted)}
 .req{color:#b83210}
-.th{font-size:13px;font-weight:600;color:#64748b;text-align:left;padding:10px 14px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:12px 14px;border-bottom:1px solid #f1f5f9;font-size:15px;vertical-align:middle}
+.th{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted);text-align:left;padding:10px 14px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.td{padding:12px 14px;border-bottom:1px solid #f1f5f9;font-size:var(--text-sm);vertical-align:middle}
 .trow:hover{background:#f8fafc}
-.h1{margin:0;font-size:26px;line-height:34px;font-weight:700}
-.h2{margin:0;font-size:18px;line-height:24px;font-weight:700}
-.sub{font-size:14.5px;color:#64748b}
+.h1{margin:0;font-size:var(--text-2xl);line-height:34px;font-weight:var(--weight-semibold)}
+.h2{margin:0;font-size:var(--text-lg);line-height:24px;font-weight:var(--weight-semibold)}
+.sub{font-size:var(--text-sm-plus);color:var(--text-muted)}
 .kpi{padding:18px 20px;display:flex;flex-direction:column;gap:4px}
-.kpi .k{font-size:14.5px;color:#475569;font-weight:500}
-.kpi .v{font-size:28px;line-height:36px;font-weight:700;font-variant-numeric:tabular-nums}
-.sw{position:relative;width:48px;height:28px;border-radius:999px;border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms}
+.kpi .k{font-size:var(--text-sm-plus);color:#475569;font-weight:var(--weight-medium)}
+.kpi .v{font-size:var(--text-3xl);line-height:36px;font-weight:var(--weight-semibold);font-variant-numeric:tabular-nums}
+.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms}
 .sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
 .tabl{display:flex;gap:4px;border-bottom:1px solid #e2e8f0}
-.tl{position:relative;height:46px;padding:0 14px;border:0;background:transparent;font-size:15px;font-weight:500;color:#64748b;cursor:pointer;white-space:nowrap}
-.tl.on{color:#003087;font-weight:700}.tl.on::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:#003087}
+.tl{position:relative;height:44px;padding:0 14px;border:0;background:transparent;font-size:var(--text-sm-plus);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;white-space:nowrap}
+.tl.on{color:#003087;font-weight:var(--weight-semibold)}.tl.on::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:#003087}
 .row{display:flex;align-items:center;gap:12px;padding:14px 16px}
 .row + .row{border-top:1px solid #eef2f6}
-.bar{height:8px;border-radius:999px;background:#eef2f6;overflow:hidden;display:block}.bar>span{display:block;height:8px;border-radius:999px}
-.note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:14px;line-height:20px}
+.bar{height:8px;border-radius:var(--radius-full);background:#eef2f6;overflow:hidden;display:block}.bar>span{display:block;height:8px;border-radius:var(--radius-full)}
+.note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:var(--radius-xl);font-size:var(--text-sm);line-height:20px}
 .n-info{background:#eef3fb;color:#1e3a6e}.n-warn{background:#fff8eb;color:#7a3b04;border:1px solid #fde3b5}.n-ok{background:#e7f8f1;color:#065f46}.n-due{background:#fff4f0;color:#8a2a0d;border:1px solid #f7c9bb}
-.chipq{height:38px;padding:0 12px;border-radius:999px;border:1px solid #d6e0ef;background:#f5f8ff;color:#003087;font-size:13.5px;font-weight:500;cursor:pointer;white-space:nowrap}
-.wave span{display:inline-block;width:4px;margin:0 2px;border-radius:4px;background:#003087;animation:wv 900ms ease-in-out infinite}
+.chipq{height:36px;padding:0 12px;border-radius:var(--radius-full);border:1px solid #d6e0ef;background:#f5f8ff;color:#003087;font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;white-space:nowrap}
+.wave span{display:inline-block;width:4px;margin:0 2px;border-radius:var(--radius-sm);background:#003087;animation:wv 900ms ease-in-out infinite}
 .wave span:nth-child(2){animation-delay:.15s}.wave span:nth-child(3){animation-delay:.3s}.wave span:nth-child(4){animation-delay:.45s}.wave span:nth-child(5){animation-delay:.6s}
 @keyframes wv{0%,100%{height:8px}50%{height:26px}}
 .fade{animation:fd 240ms cubic-bezier(0,0,.2,1)}
@@ -177,32 +177,32 @@ button{font:inherit;color:inherit}
 .btn:focus-visible,.ib:focus-visible,.sgb:focus-visible,.chip:focus-visible,.tl:focus-visible,.sw:focus-visible,.chipq:focus-visible,a:focus-visible,button:focus-visible{outline:3px solid rgba(0,48,135,.45);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
 
-.nav{display:flex;align-items:center;gap:11px;height:38px;padding:0 10px;border-radius:10px;color:#334155;font-size:14.5px;font-weight:500;text-decoration:none;transition:background-color 200ms,color 200ms}
+.nav{display:flex;align-items:center;gap:11px;height:38px;padding:0 10px;border-radius:var(--radius-lg);color:#334155;font-size:var(--text-sm-plus);font-weight:var(--weight-medium);text-decoration:none;transition:background-color 200ms,color 200ms}
 .nav:hover{background:#f1f5f9;color:#0f172a}
-.nav.on{background:rgba(0,48,135,.09);color:#003087;font-weight:700}
-.nav .cnt{margin-left:auto;min-width:24px;height:21px;padding:0 7px;border-radius:999px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
-.navh{font-size:12px;font-weight:600;letter-spacing:.04em;color:#64748b;padding:12px 10px 2px}
-.act{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:16px;border-radius:16px;border:1px solid #e6eaf0;background:#fff;cursor:pointer;text-align:left;text-decoration:none;color:#0f172a;transition:border-color 200ms,box-shadow 200ms}
+.nav.on{background:rgba(0,48,135,.09);color:#003087;font-weight:var(--weight-semibold)}
+.nav .cnt{margin-left:auto;min-width:24px;height:21px;padding:0 7px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
+.navh{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:.04em;color:var(--text-muted);padding:12px 10px 2px}
+.act{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:16px;border-radius:var(--radius-xl);border:1px solid #e6eaf0;background:#fff;cursor:pointer;text-align:left;text-decoration:none;color:#0f172a;transition:border-color 200ms,box-shadow 200ms}
 .act:hover{border-color:#003087;box-shadow:0 8px 20px -12px rgba(0,48,135,.35);color:#0f172a}
-.act .ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center}
+.act .ic{width:44px;height:44px;border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center}
 .alert{display:flex;align-items:center;gap:14px;padding:12px 16px;border-top:1px solid #eef2f6}
-.abtn{height:38px;padding:0 14px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;font-size:14px;font-weight:600;color:#003087;cursor:pointer;white-space:nowrap}
+.abtn{height:36px;padding:0 14px;border-radius:var(--radius-lg);border:1px solid #cbd5e1;background:#fff;font-size:var(--text-sm);font-weight:var(--weight-medium);color:#003087;cursor:pointer;white-space:nowrap}
 .abtn:hover{background:#f1f5f9}
-.mic{position:absolute;right:28px;bottom:28px;height:60px;padding:0 22px 0 8px;border-radius:999px;border:0;background:#003087;color:#fff;display:flex;align-items:center;gap:12px;font-size:16px;font-weight:600;cursor:pointer;box-shadow:0 16px 32px -12px rgba(0,48,135,.6);z-index:20}
-.mic .dotc{width:44px;height:44px;border-radius:999px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center}
+.mic{position:absolute;right:28px;bottom:28px;height:60px;padding:0 22px 0 8px;border-radius:var(--radius-full);border:0;background:#003087;color:#fff;display:flex;align-items:center;gap:12px;font-size:var(--text-base);font-weight:var(--weight-semibold);cursor:pointer;box-shadow:0 16px 32px -12px rgba(0,48,135,.6);z-index:20}
+.mic .dotc{width:44px;height:44px;border-radius:var(--radius-full);background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center}
 .scrim{position:absolute;inset:0;background:rgba(15,23,42,.42);z-index:15}
 .drawer{position:absolute;top:0;right:0;bottom:0;width:520px;background:#fff;z-index:16;display:flex;flex-direction:column;box-shadow:-20px 0 50px -20px rgba(15,23,42,.35)}
-.modal{position:absolute;left:50%;top:120px;transform:translateX(-50%);width:560px;background:#fff;border-radius:20px;z-index:16;box-shadow:0 30px 70px -20px rgba(15,23,42,.45)}
+.modal{position:absolute;left:50%;top:120px;transform:translateX(-50%);width:560px;background:#fff;border-radius:var(--radius-xl);z-index:16;box-shadow:0 30px 70px -20px rgba(15,23,42,.45)}
 
 /* merged: English, compact controls, GridAI button */
-body{font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif}
-.btn{height:40px;padding:0 16px;font-size:14px;border-radius:10px}
-.btn.sm,.sm{height:34px;padding:0 12px;font-size:13px;border-radius:9px}
-.btn.big,.big{height:48px;padding:0 22px;font-size:15px;border-radius:12px}
-.ib{width:40px;height:40px;border-radius:10px}
-.chip{height:34px;padding:0 12px;font-size:13px}
-.sgb{height:32px;padding:0 12px;font-size:13px}
-.gfab{position:absolute;right:28px;bottom:28px;z-index:20;display:inline-flex;align-items:center;gap:10px;height:52px;padding:0 20px 0 16px;border-radius:999px;background:#003087;color:#fff;font-size:15px;font-weight:600;text-decoration:none;box-shadow:0 14px 30px -12px rgba(0,48,135,.6)}
+body{font-family:var(--font-sans)}
+.btn{height:44px;padding:0 18px;font-size:var(--text-sm);border-radius:var(--radius-lg)}
+.btn.sm,.sm{height:34px;padding:0 12px;font-size:var(--text-xs-plus);border-radius:var(--radius-lg)}
+.btn.big,.big{height:48px;padding:0 22px;font-size:var(--text-sm-plus);border-radius:var(--radius-xl)}
+.ib{width:36px;height:36px;border-radius:var(--radius-full)}
+.chip{height:36px;padding:0 14px;font-size:var(--text-xs-plus)}
+.sgb{height:32px;padding:0 12px;font-size:var(--text-xs-plus)}
+.gfab{position:absolute;right:28px;bottom:28px;z-index:20;display:inline-flex;align-items:center;gap:10px;height:52px;padding:0 20px 0 16px;border-radius:var(--radius-full);background:#003087;color:#fff;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);text-decoration:none;box-shadow:0 14px 30px -12px rgba(0,48,135,.6)}
 .gfab:hover{background:#002a77;color:#fff}
 .gfab:focus-visible{outline:3px solid rgba(0,48,135,.45);outline-offset:3px}
 .th,.td{white-space:normal}
@@ -216,13 +216,13 @@ export default class CustomerCatalogueScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="CustomerCatalogue">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className={v.rootCls} style={{ width: "1440px", height: "1200px", position: "relative", background: "#e9eef5", padding: "12px", display: "flex", gap: "12px", overflow: "hidden" }}>
+        <div className={"gc-shell " + (v.rootCls || "")} style={{ position: "relative", background: "#e9eef5", padding: "12px", display: "flex", gap: "12px" }}>
           <__Sidebar sticky="" active="products-catalogue" />
-          <main style={{ flexGrow: "1", minWidth: "0", background: "#f6f8fb", borderRadius: "18px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
+          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f6f8fb", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", position: "relative" }}>
             <__Topbar crumb="Products" page="Customer catalogue" placeholder="Search products, customers or memo no." />
-            <div style={{ flexGrow: "1", minHeight: "0", padding: "22px 28px 28px", display: "flex", flexDirection: "column", gap: "18px" }}>
+            <div className="gc-shell__content" style={{ flexGrow: "1", minHeight: "0", padding: "22px 28px 28px", display: "flex", flexDirection: "column", gap: "18px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                <span style={{ width: "52px", height: "52px", borderRadius: "15px", background: "#fff", border: "1px solid #e6eaf0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: "0" }}>
+                <span style={{ width: "52px", height: "52px", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e6eaf0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: "0" }}>
                   <svg width="40" height="40" viewBox="0 0 48 48" aria-hidden="true">
                     <path d="M6 8H22A2 2 0 0 1 24 10V39A2 2 0 0 1 22 41H6A2 2 0 0 1 4 39V10A2 2 0 0 1 6 8Z" fill="#e0f2fe" />
                     <path d="M26 8H42A2 2 0 0 1 44 10V39A2 2 0 0 1 42 41H26A2 2 0 0 1 24 39V10A2 2 0 0 1 26 8Z" fill="#7dd3fc" />
@@ -264,7 +264,7 @@ export default class CustomerCatalogueScreen extends Component {
                   </div>
                   <label className="fld">
                     <span className="lbl">{v.t?.cName}</span>
-                    <input className="inp" value={v.cName} onInput={v.typeName} onChange={v.typeName} aria-label={v.t?.cName} style={{ fontWeight: "600" }} />
+                    <input className="inp" value={v.cName} onInput={v.typeName} onChange={v.typeName} aria-label={v.t?.cName} style={{ fontWeight: "var(--weight-medium)" }} />
                   </label>
                   <div className="fld">
                     <span className="lbl" style={{ display: "flex", alignItems: "center", gap: "6px" }}><svg width="22" height="22" viewBox="0 0 48 48" aria-hidden="true">
@@ -273,10 +273,10 @@ export default class CustomerCatalogueScreen extends Component {
   <path d="M14 26L22.5 41.5L5.5 41.5Z" fill="#0ea5e9" />
   <path d="M30 26H38A4 4 0 0 1 42 30V38A4 4 0 0 1 38 42H30A4 4 0 0 1 26 38V30A4 4 0 0 1 30 26Z" fill="#0ea5e9" />
 </svg>{v.t?.whichCats}</span>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "6px" }}>
+                    <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "6px" }}>
                       {__list(v.catChecks).map((o, $index) => (<React.Fragment key={$index}>
-                          <button type="button" role="checkbox" aria-checked={o?.on} onClick={o?.toggle} style={__sx(`height: 42px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border-radius: 10px; border: 1px solid ${o?.bd ?? ""}; background: ${o?.bg ?? ""}; cursor: pointer; font: inherit; font-size: 14.5px; text-align: left; color: #0f172a;`)}>
-                            <span style={__sx(`width: 20px; height: 20px; border-radius: 6px; border: 2px solid ${o?.boxBd ?? ""}; background: ${o?.boxBg ?? ""}; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;`)}>
+                          <button type="button" role="checkbox" aria-checked={o?.on} onClick={o?.toggle} style={__sx(`height: 42px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border-radius: var(--radius-lg); border: 1px solid ${o?.bd ?? ""}; background: ${o?.bg ?? ""}; cursor: pointer; font: inherit; font-size: var(--text-sm-plus); text-align: left; color: #0f172a;`)}>
+                            <span style={__sx(`width: 20px; height: 20px; border-radius: var(--radius-md); border: 2px solid ${o?.boxBd ?? ""}; background: ${o?.boxBg ?? ""}; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;`)}>
                               {o?.on ? (<>
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                   <path d="M20 6 9 17l-5-5" />
@@ -284,7 +284,7 @@ export default class CustomerCatalogueScreen extends Component {
                               </>) : null}
                             </span>
                             <span style={{ flexGrow: "1", minWidth: "0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o?.l}</span>
-                            <span className="num" style={{ fontSize: "12.5px", color: "#64748b" }}>{o?.n}</span>
+                            <span className="num" style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{o?.n}</span>
                           </button>
                         </React.Fragment>))}
                     </div>
@@ -298,14 +298,14 @@ export default class CustomerCatalogueScreen extends Component {
                     <div className="seg" role="group" aria-label={v.t?.priceQ} style={{ display: "flex", flexDirection: "column", alignItems: "stretch" }}>
                       {__list(v.priceModes).map((o, $index) => (<React.Fragment key={$index}>
                           <button type="button" className={o?.cls} aria-pressed={o?.on} onClick={o?.pick} style={{ height: "auto", minHeight: "44px", padding: "7px 12px 7px 8px", textAlign: "left", whiteSpace: "normal", display: "flex", alignItems: "center", gap: "10px" }}>
-                            <span style={__sx(`width: 32px; height: 32px; border-radius: 9px; background: ${o?.tint ?? ""}; color: ${o?.fg ?? ""}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;`)}>
+                            <span style={__sx(`width: 32px; height: 32px; border-radius: var(--radius-lg); background: ${o?.tint ?? ""}; color: ${o?.fg ?? ""}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;`)}>
                               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                 <path d={o?.icon} />
                               </svg>
                             </span>
                             <span style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column" }}>
                               <span>{o?.l}</span>
-                              <span style={{ fontSize: "12.5px", fontWeight: "400", color: "#64748b" }}>{o?.h}</span>
+                              <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>{o?.h}</span>
                             </span>
                           </button>
                         </React.Fragment>))}
@@ -323,7 +323,7 @@ export default class CustomerCatalogueScreen extends Component {
                       <path d="M34 11l2.8 2.8 5.2 -5.6" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                     <div style={{ flexGrow: "1" }}>
-                      <div style={{ fontSize: "15px", fontWeight: "600" }}>{v.t?.stockSw}</div>
+                      <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>{v.t?.stockSw}</div>
                       <div className="hint">{v.t?.stockHint}</div>
                     </div>
                     <button type="button" className={v.stockSw?.cls} aria-pressed={v.stockSw?.on} aria-label={v.t?.stockSw} onClick={v.stockSw?.toggle} />
@@ -337,13 +337,13 @@ export default class CustomerCatalogueScreen extends Component {
   <path d="M18.5 22H29.5A1.5 1.5 0 0 1 31 23.5V23.5A1.5 1.5 0 0 1 29.5 25H18.5A1.5 1.5 0 0 1 17 23.5V23.5A1.5 1.5 0 0 1 18.5 22Z" fill="#ffffff" />
   <path d="M18.5 27H25.5A1.5 1.5 0 0 1 27 28.5V28.5A1.5 1.5 0 0 1 25.5 30H18.5A1.5 1.5 0 0 1 17 28.5V28.5A1.5 1.5 0 0 1 18.5 27Z" fill="#ffffff" />
 </svg>{v.t?.wa}</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: "10px", height: "48px", padding: "0 14px", border: "1px solid #cbd5e1", borderRadius: "12px", background: "#fff" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: "10px", height: "48px", padding: "0 14px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-xl)", background: "#fff" }}>
                       <span style={{ color: "#047857", display: "inline-flex" }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z" />
                         </svg>
                       </span>
-                      <input value={v.waNum} onInput={v.typeWa} onChange={v.typeWa} inputMode="tel" aria-label={v.t?.wa} className="num" style={{ flexGrow: "1", minWidth: "0", border: "0", outline: "none", background: "transparent", font: "inherit", fontSize: "15px" }} />
+                      <input value={v.waNum} onInput={v.typeWa} onChange={v.typeWa} inputMode="tel" aria-label={v.t?.wa} className="num" style={{ flexGrow: "1", minWidth: "0", border: "0", outline: "none", background: "transparent", font: "inherit", fontSize: "var(--text-sm-plus)" }} />
                     </span>
                     <span className="hint">{v.t?.waHint}</span>
                   </label>
@@ -351,12 +351,12 @@ export default class CustomerCatalogueScreen extends Component {
                 <div style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "16px" }}>
                   <section className="card" style={{ padding: "16px 18px", display: "flex", gap: "18px", alignItems: "center" }}>
                     <div style={{ flexShrink: "0", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
-                      <div role="img" aria-label="QR" style={{ padding: "8px", borderRadius: "10px", background: "#fff", border: "1px solid #e2e8f0", display: "grid", gridTemplateColumns: "repeat(21, 5px)", gridAutoRows: "5px" }}>
+                      <div role="img" aria-label="QR" style={{ padding: "8px", borderRadius: "var(--radius-lg)", background: "#fff", border: "1px solid #e2e8f0", display: "grid", gridTemplateColumns: "repeat(21, 5px)", gridAutoRows: "5px" }}>
                         {__list(v.qr).map((qc, $index) => (<React.Fragment key={$index}>
                             <span style={__sx(`background: ${qc?.bg ?? ""};`)} />
                           </React.Fragment>))}
                       </div>
-                      <span className="hint" style={{ maxWidth: "130px", textAlign: "center", fontSize: "12px", lineHeight: "15px" }}>{v.t?.qrHint}</span>
+                      <span className="hint" style={{ maxWidth: "130px", textAlign: "center", fontSize: "var(--text-xs)", lineHeight: "17px" }}>{v.t?.qrHint}</span>
                     </div>
                     <div style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "10px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -371,7 +371,7 @@ export default class CustomerCatalogueScreen extends Component {
                         <h2 className="h2">{v.t?.shareTitle}</h2>
                       </div>
                       <div style={{ display: "flex", gap: "8px" }}>
-                        <span className="mono" style={{ flexGrow: "1", minWidth: "0", height: "44px", display: "flex", alignItems: "center", padding: "0 12px", borderRadius: "10px", background: "#f3f6fa", border: "1px solid #e2e8f0", fontSize: "13.5px", color: "#334155", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.link}</span>
+                        <span className="mono" style={{ flexGrow: "1", minWidth: "0", height: "44px", display: "flex", alignItems: "center", padding: "0 12px", borderRadius: "var(--radius-lg)", background: "#f3f6fa", border: "1px solid #e2e8f0", fontSize: "var(--text-sm)", color: "#334155", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.link}</span>
                         <button type="button" className="btn line sm" onClick={v.copyLink} style={{ height: "44px" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" />
 </svg>{v.t?.copy}</button>
@@ -387,7 +387,7 @@ export default class CustomerCatalogueScreen extends Component {
                     </div>
                     <div style={{ width: "130px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "10px", paddingLeft: "16px", borderLeft: "1px solid #eef2f6" }}>
                       <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "13px", color: "#475569" }}><svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
+                        <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "var(--text-xs-plus)", color: "#475569" }}><svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
   <path d="M8.5 16a5.5 5.5 0 1 0 11.0 0a5.5 5.5 0 1 0 -11.0 0Z" fill="#7dd3fc" />
   <path d="M12 23H16A7 7 0 0 1 23 30V31A7 7 0 0 1 16 38H12A7 7 0 0 1 5 31V30A7 7 0 0 1 12 23Z" fill="#0ea5e9" />
   <path d="M28.5 16a5.5 5.5 0 1 0 11.0 0a5.5 5.5 0 1 0 -11.0 0Z" fill="#7dd3fc" />
@@ -395,10 +395,10 @@ export default class CustomerCatalogueScreen extends Component {
   <path d="M17.5 20a6.5 6.5 0 1 0 13.0 0a6.5 6.5 0 1 0 -13.0 0Z" fill="#7dd3fc" />
   <path d="M21 28H27A8 8 0 0 1 35 36V36A8 8 0 0 1 27 44H21A8 8 0 0 1 13 36V36A8 8 0 0 1 21 28Z" fill="#0ea5e9" />
 </svg>{v.t?.views}</div>
-                        <div className="num" style={{ fontSize: "24px", fontWeight: "700", lineHeight: "30px" }}>{v.views}</div>
+                        <div className="num" style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", lineHeight: "30px" }}>{v.views}</div>
                       </div>
                       <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "13px", color: "#475569" }}><svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
+                        <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "var(--text-xs-plus)", color: "#475569" }}><svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
   <path d="M14 16H34A5 5 0 0 1 39 21V38A5 5 0 0 1 34 43H14A5 5 0 0 1 9 38V21A5 5 0 0 1 14 16Z" fill="#0ea5e9" />
   <path d="M12 16H36A3 3 0 0 1 39 19V19A3 3 0 0 1 36 22H12A3 3 0 0 1 9 19V19A3 3 0 0 1 12 16Z" fill="#003087" />
   <path d="M17 17V13a7 7 0 0 1 14 0V17" fill="none" stroke="#003087" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
@@ -406,7 +406,7 @@ export default class CustomerCatalogueScreen extends Component {
   <path d="M28.5 33a4.5 4.5 0 1 0 9.0 0a4.5 4.5 0 1 0 -9.0 0Z" fill="#7dd3fc" />
   <path d="M33.0 29.5H33.0A1.2 1.2 0 0 1 34.2 30.7V35.3A1.2 1.2 0 0 1 33.0 36.5H33.0A1.2 1.2 0 0 1 31.8 35.3V30.7A1.2 1.2 0 0 1 33.0 29.5Z" fill="#0ea5e9" />
 </svg>{v.t?.orders}</div>
-                        <div className="num" style={{ fontSize: "24px", fontWeight: "700", lineHeight: "30px", color: "#047857" }}>{v.orders}</div>
+                        <div className="num" style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", lineHeight: "30px", color: "#047857" }}>{v.orders}</div>
                       </div>
                     </div>
                   </section>
@@ -423,12 +423,12 @@ export default class CustomerCatalogueScreen extends Component {
                       <h2 className="h2" style={{ flexGrow: "1" }}>{v.t?.prevTitle}</h2>
                       <span className="hint">{v.t?.prevHint}</span>
                     </div>
-                    <div style={{ borderRadius: "16px", border: "1px solid #dbe2ec", background: "#f3f6fa", overflow: "hidden" }}>
+                    <div style={{ borderRadius: "var(--radius-xl)", border: "1px solid #dbe2ec", background: "#f3f6fa", overflow: "hidden" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 16px", background: "#003087", color: "#fff" }}>
-                        <span style={{ width: "44px", height: "44px", borderRadius: "12px", background: "#fff", color: "#003087", fontSize: "20px", fontWeight: "700", display: "flex", alignItems: "center", justifyContent: "center" }}>{v.t?.shopInitial}</span>
+                        <span style={{ width: "44px", height: "44px", borderRadius: "var(--radius-xl)", background: "#fff", color: "#003087", fontSize: "var(--text-xl)", fontWeight: "var(--weight-semibold)", display: "flex", alignItems: "center", justifyContent: "center" }}>{v.t?.shopInitial}</span>
                         <div style={{ flexGrow: "1", minWidth: "0" }}>
-                          <div style={{ fontSize: "17px", fontWeight: "700", lineHeight: "22px" }}>{v.t?.shop} <span style={{ fontWeight: "500", opacity: ".8" }}>· {v.cName}</span></div>
-                          <div style={{ fontSize: "13px", opacity: ".85", display: "flex", alignItems: "center", gap: "6px" }}>{v.t?.addr} · <span style={{ width: "8px", height: "8px", borderRadius: "999px", background: "#34d399" }} />{v.t?.openNow}</div>
+                          <div style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", lineHeight: "22px" }}>{v.t?.shop} <span style={{ fontWeight: "var(--weight-medium)", opacity: ".8" }}>· {v.cName}</span></div>
+                          <div style={{ fontSize: "var(--text-xs-plus)", opacity: ".85", display: "flex", alignItems: "center", gap: "6px" }}>{v.t?.addr} · <span style={{ width: "8px", height: "8px", borderRadius: "var(--radius-full)", background: "#34d399" }} />{v.t?.openNow}</div>
                         </div>
                         <span className="btn sm" style={{ height: "38px", background: "#047857", color: "#fff" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z" />
@@ -437,7 +437,7 @@ export default class CustomerCatalogueScreen extends Component {
                       <div style={{ padding: "12px 14px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
                         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                           {__list(v.pChips).map((o, $index) => (<React.Fragment key={$index}>
-                              <button type="button" className={o?.cls} aria-pressed={o?.on} onClick={o?.pick} style={{ height: "32px", fontSize: "13px", padding: "0 12px" }}>{o?.l}</button>
+                              <button type="button" className={o?.cls} aria-pressed={o?.on} onClick={o?.pick} style={{ height: "32px", fontSize: "var(--text-xs-plus)", padding: "0 12px" }}>{o?.l}</button>
                             </React.Fragment>))}
                         </div>
                         {v.noCats ? (<>
@@ -451,28 +451,28 @@ export default class CustomerCatalogueScreen extends Component {
                             <span>{v.t?.noCats}</span>
                           </div>
                         </>) : null}
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px" }}>
+                        <div className="gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px" }}>
                           {__list(v.cards).map((pc, $index) => (<React.Fragment key={$index}>
-                              <div className="fade" style={{ background: "#fff", borderRadius: "14px", border: "1px solid #e6eaf0", padding: "8px", display: "flex", flexDirection: "column", gap: "5px" }}>
-                                <span style={__sx(`height: 54px; border-radius: 10px; background: ${pc?.bg ?? ""}; color: ${pc?.fg ?? ""}; font-size: 22px; font-weight: 700; display: flex; align-items: center; justify-content: center;`)}>{pc?.ini}</span>
-                                <span style={{ fontSize: "14px", fontWeight: "600", lineHeight: "18px", height: "36px", overflow: "hidden" }}>{pc?.name}</span>
+                              <div className="fade" style={{ background: "#fff", borderRadius: "var(--radius-xl)", border: "1px solid #e6eaf0", padding: "8px", display: "flex", flexDirection: "column", gap: "5px" }}>
+                                <span style={__sx(`height: 54px; border-radius: var(--radius-lg); background: ${pc?.bg ?? ""}; color: ${pc?.fg ?? ""}; font-size: var(--text-2xl); font-weight: var(--weight-semibold); display: flex; align-items: center; justify-content: center;`)}>{pc?.ini}</span>
+                                <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", lineHeight: "20px", height: "40px", overflow: "hidden" }}>{pc?.name}</span>
                                 {v.priceShow ? (<>
-                                  <span className="num" style={{ fontSize: "16px", fontWeight: "700", color: "#003087", lineHeight: "22px" }}>{pc?.price}</span>
+                                  <span className="num" style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#003087", lineHeight: "22px" }}>{pc?.price}</span>
                                 </>) : null}
                                 {v.priceHide ? (<>
-                                  <span style={{ fontSize: "12.5px", fontWeight: "600", color: "#003087", lineHeight: "22px", display: "flex", alignItems: "center", gap: "4px" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087", lineHeight: "22px", display: "flex", alignItems: "center", gap: "4px" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z" />
 </svg>{v.callTxt}</span>
                                 </>) : null}
                                 {v.priceWhole ? (<>
-                                  <span style={{ fontSize: "12px", fontWeight: "600", color: "#64748b", lineHeight: "22px", display: "flex", alignItems: "center", gap: "4px" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)", lineHeight: "22px", display: "flex", alignItems: "center", gap: "4px" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4" />
 </svg>{v.wholeTxt}</span>
                                 </>) : null}
                                 {v.showStock ? (<>
-                                  <span className={pc?.sCls} style={{ height: "22px", fontSize: "12px", alignSelf: "flex-start" }}>{pc?.sTxt}</span>
+                                  <span className={pc?.sCls} style={{ height: "22px", fontSize: "var(--text-xs)", alignSelf: "flex-start" }}>{pc?.sTxt}</span>
                                 </>) : null}
-                                <span className="btn sm" style={{ height: "32px", fontSize: "13px", padding: "0 8px", background: "#e7f8f1", color: "#047857" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <span className="btn sm" style={{ height: "32px", fontSize: "var(--text-xs-plus)", padding: "0 8px", background: "#e7f8f1", color: "#047857" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="m22 2-7 20-4-9-9-4zM22 2 11 13" />
 </svg>{v.t?.order}</span>
                               </div>
@@ -486,7 +486,7 @@ export default class CustomerCatalogueScreen extends Component {
             </div>
           </main>
           {v.hasMsg ? (<>
-            <div className="fade" role="status" style={{ position: "absolute", top: "90px", left: "50%", transform: "translateX(-50%)", zIndex: "30", display: "flex", alignItems: "center", gap: "10px", padding: "12px 18px", borderRadius: "14px", background: "#0f172a", color: "#fff", fontSize: "15px", fontWeight: "500", boxShadow: "0 16px 36px -14px rgba(15,23,42,.6)", maxWidth: "640px" }}>
+            <div className="fade gc-on-dark" role="status" style={{ position: "absolute", top: "90px", left: "50%", transform: "translateX(-50%)", zIndex: "30", display: "flex", alignItems: "center", gap: "10px", padding: "12px 18px", borderRadius: "var(--radius-xl)", background: "#0f172a", color: "#fff", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)", boxShadow: "0 16px 36px -14px rgba(15,23,42,.6)", maxWidth: "640px" }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M20 6 9 17l-5-5" />
               </svg>

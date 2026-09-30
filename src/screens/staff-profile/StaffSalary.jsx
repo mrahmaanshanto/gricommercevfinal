@@ -100,191 +100,195 @@ export default class StaffSalaryScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="StaffSalary">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "100%", fontFamily: "Poppins,'Hind Siliguri',ui-sans-serif,system-ui,sans-serif", color: "#475569" }}>
+        <div style={{ width: "100%", fontFamily: "var(--font-sans)", color: "#475569" }}>
           {v.locked ? (<>
-            <section style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "13px", borderRadius: "8px", background: "#fff", padding: "64px 24px", textAlign: "center", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
-              <span style={{ display: "grid", placeItems: "center", width: "64px", height: "64px", borderRadius: "16px", background: "#e9eef5", color: "#475569" }}>
+            <section style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "13px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "64px 24px", textAlign: "center", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+              <span style={{ display: "grid", placeItems: "center", width: "64px", height: "64px", borderRadius: "var(--radius-xl)", background: "#e9eef5", color: "#475569" }}>
                 <__Icon name="lock" strokeWidth="1.75" width="30" height="30" />
               </span>
-              <h2 style={{ margin: "0", fontSize: "18px", fontWeight: "600", letterSpacing: "-.01em", color: "#1e293b" }}>{v.t?.lockTitle}</h2>
-              <p style={{ margin: "0", maxWidth: "440px", fontSize: "13.5px", lineHeight: "21px", color: "#64748b", textWrap: "pretty" }}>{v.t?.lockBody}</p>
+              <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "#1e293b" }}>{v.t?.lockTitle}</h2>
+              <p style={{ margin: "0", maxWidth: "440px", fontSize: "var(--text-sm)", lineHeight: "21px", color: "var(--text-muted)", textWrap: "pretty" }}>{v.t?.lockBody}</p>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <button className="dc-h760" type="button" style={{ height: "36px", border: "none", borderRadius: "8px", background: "#003087", padding: "0 15px", fontFamily: "inherit", fontSize: "14px", fontWeight: "500", letterSpacing: ".025em", color: "#fff", cursor: "pointer" }}>{v.t?.requestAccess}</button>
-                <button className="dc-h761" type="button" style={{ height: "36px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 15px", fontFamily: "inherit", fontSize: "14px", fontWeight: "500", letterSpacing: ".025em", color: "#475569", cursor: "pointer" }}>{v.t?.whoCanSee}</button>
+                <button className="dc-h760" type="button" style={{ height: "36px", border: "none", borderRadius: "var(--radius-lg)", background: "#003087", padding: "0 15px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#fff", cursor: "pointer" }}>{v.t?.requestAccess}</button>
+                <button className="dc-h761" type="button" style={{ height: "36px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 15px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#475569", cursor: "pointer" }}>{v.t?.whoCanSee}</button>
               </div>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: "9px", maxWidth: "460px", borderRadius: "8px", background: "#f8fafc", padding: "12px 14px", textAlign: "left" }}>
-                <__Icon name="info" strokeWidth="1.75" width="17" height="17" style={{ flex: "none", marginTop: "1px", color: "#64748b" }} />
-                <p style={{ margin: "0", fontSize: "12.5px", lineHeight: "19px", color: "#475569", textWrap: "pretty" }}>{v.t?.lockNote}</p>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: "9px", maxWidth: "460px", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "12px 14px", textAlign: "left" }}>
+                <__Icon name="info" strokeWidth="1.75" width="17" height="17" style={{ flex: "none", marginTop: "1px", color: "var(--text-muted)" }} />
+                <p style={{ margin: "0", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "#475569", textWrap: "pretty" }}>{v.t?.lockNote}</p>
               </div>
             </section>
           </>) : null}
           {v.unlocked ? (<>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 340px", gap: "16px", alignItems: "start" }}>
-                <section style={{ borderRadius: "8px", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", overflow: "hidden" }}>
+              <div className="gc-split" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 340px", gap: "16px", alignItems: "start" }}>
+                <section style={{ borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", overflow: "hidden" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "18px 20px 12px" }}>
                     <div style={{ flex: "1" }}>
-                      <h2 style={{ margin: "0", fontSize: "15px", lineHeight: "22px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.structure}</h2>
-                      <p style={{ margin: "2px 0 0", fontSize: "12.5px", color: "#64748b" }}>{v.t?.structureMeta}</p>
+                      <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.structure}</h2>
+                      <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.t?.structureMeta}</p>
                     </div>
-                    <button className="dc-h762" type="button" style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "32px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 12px", fontFamily: "inherit", fontSize: "12.5px", fontWeight: "500", letterSpacing: ".025em", color: "#475569", cursor: "pointer" }}><__Icon name="pencil" strokeWidth="1.75" width="14" height="14" />{v.t?.editStructure}</button>
+                    <button className="dc-h762" type="button" style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "32px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#475569", cursor: "pointer" }}><__Icon name="pencil" strokeWidth="1.75" width="14" height="14" />{v.t?.editStructure}</button>
                   </div>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <caption style={{ position: "absolute", width: "1px", height: "1px", overflow: "hidden", clipPath: "inset(50%)" }}>{v.t?.structureCaption}</caption>
-                    <thead>
-                      <tr>
-                        <th scope="col" style={{ padding: "8px 20px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "11px", fontWeight: "600", letterSpacing: ".025em", textTransform: "uppercase", color: "#64748b", textAlign: "left" }}>{v.t?.component}</th>
-                        <th scope="col" style={{ padding: "8px 20px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "11px", fontWeight: "600", letterSpacing: ".025em", textTransform: "uppercase", color: "#64748b", textAlign: "left" }}>{v.t?.basis}</th>
-                        <th scope="col" style={{ padding: "8px 20px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "11px", fontWeight: "600", letterSpacing: ".025em", textTransform: "uppercase", color: "#64748b", textAlign: "right" }}>{v.t?.amount}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {__list(v.structure).map((s, $index) => (<React.Fragment key={$index}>
-                          {s?.isTotal ? (<>
-                            <tr style={{ background: "#f8fafc" }}>
-                              <td style={{ padding: "11px 20px", borderBottom: "1px solid #e2e8f0", fontSize: "13px", fontWeight: "700", color: "#1e293b" }}>{s?.label}</td>
-                              <td style={{ padding: "11px 20px", borderBottom: "1px solid #e2e8f0", fontSize: "12.5px", color: "#64748b" }}>{s?.basis}</td>
-                              <td style={{ padding: "11px 20px", borderBottom: "1px solid #e2e8f0", textAlign: "right", fontSize: "13.5px", fontWeight: "700", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>{s?.amount}</td>
-                            </tr>
-                          </>) : null}
-                          {s?.isDeduct ? (<>
-                            <tr style={{ background: "#fff" }}>
-                              <td style={{ padding: "11px 20px", borderBottom: "1px solid #e2e8f0", fontSize: "13px", fontWeight: "500", color: "#475569" }}>{s?.label}</td>
-                              <td style={{ padding: "11px 20px", borderBottom: "1px solid #e2e8f0", fontSize: "12.5px", color: "#64748b" }}>{s?.basis}</td>
-                              <td style={{ padding: "11px 20px", borderBottom: "1px solid #e2e8f0", textAlign: "right", fontSize: "13.5px", fontWeight: "500", color: "#c2410c", fontVariantNumeric: "tabular-nums" }}>{s?.amount}</td>
-                            </tr>
-                          </>) : null}
-                          {s?.isPlain ? (<>
-                            <tr style={{ background: "#fff" }}>
-                              <td style={{ padding: "11px 20px", borderBottom: "1px solid #e2e8f0", fontSize: "13px", fontWeight: "500", color: "#475569" }}>{s?.label}</td>
-                              <td style={{ padding: "11px 20px", borderBottom: "1px solid #e2e8f0", fontSize: "12.5px", color: "#64748b" }}>{s?.basis}</td>
-                              <td style={{ padding: "11px 20px", borderBottom: "1px solid #e2e8f0", textAlign: "right", fontSize: "13.5px", fontWeight: "500", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>{s?.amount}</td>
-                            </tr>
-                          </>) : null}
-                        </React.Fragment>))}
-                    </tbody>
-                  </table>
+                  <div className="gc-table-wrap">
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <caption style={{ position: "absolute", width: "1px", height: "1px", overflow: "hidden", clipPath: "inset(50%)" }}>{v.t?.structureCaption}</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col" style={{ padding: "8px 20px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textTransform: "uppercase", color: "var(--text-muted)", textAlign: "left" }}>{v.t?.component}</th>
+                          <th scope="col" style={{ padding: "8px 20px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textTransform: "uppercase", color: "var(--text-muted)", textAlign: "left" }}>{v.t?.basis}</th>
+                          <th scope="col" style={{ padding: "8px 20px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textTransform: "uppercase", color: "var(--text-muted)", textAlign: "right" }}>{v.t?.amount}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {__list(v.structure).map((s, $index) => (<React.Fragment key={$index}>
+                            {s?.isTotal ? (<>
+                              <tr style={{ background: "#f8fafc" }}>
+                                <td style={{ padding: "11px 20px", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-semibold)", color: "#1e293b" }}>{s?.label}</td>
+                                <td style={{ padding: "11px 20px", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{s?.basis}</td>
+                                <td style={{ padding: "11px 20px", borderBottom: "1px solid #e2e8f0", textAlign: "right", fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>{s?.amount}</td>
+                              </tr>
+                            </>) : null}
+                            {s?.isDeduct ? (<>
+                              <tr style={{ background: "#fff" }}>
+                                <td style={{ padding: "11px 20px", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#475569" }}>{s?.label}</td>
+                                <td style={{ padding: "11px 20px", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{s?.basis}</td>
+                                <td style={{ padding: "11px 20px", borderBottom: "1px solid #e2e8f0", textAlign: "right", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#c2410c", fontVariantNumeric: "tabular-nums" }}>{s?.amount}</td>
+                              </tr>
+                            </>) : null}
+                            {s?.isPlain ? (<>
+                              <tr style={{ background: "#fff" }}>
+                                <td style={{ padding: "11px 20px", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#475569" }}>{s?.label}</td>
+                                <td style={{ padding: "11px 20px", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{s?.basis}</td>
+                                <td style={{ padding: "11px 20px", borderBottom: "1px solid #e2e8f0", textAlign: "right", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>{s?.amount}</td>
+                              </tr>
+                            </>) : null}
+                          </React.Fragment>))}
+                      </tbody>
+                    </table>
+                  </div>
                 </section>
                 <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                  <section style={{ display: "flex", flexDirection: "column", gap: "12px", borderRadius: "8px", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
-                    <h2 style={{ margin: "0", fontSize: "15px", lineHeight: "22px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.payment}</h2>
-                    <div style={{ display: "flex", alignItems: "center", gap: "11px", borderRadius: "8px", background: "#f8fafc", padding: "12px 13px" }}>
-                      <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "8px", background: "rgba(240,0,185,.08)", color: "#a21caf" }}>
+                  <section style={{ display: "flex", flexDirection: "column", gap: "12px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+                    <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.payment}</h2>
+                    <div style={{ display: "flex", alignItems: "center", gap: "11px", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "12px 13px" }}>
+                      <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "rgba(240,0,185,.08)", color: "#a21caf" }}>
                         <__Icon name="smartphone" strokeWidth="1.75" width="18" height="18" />
                       </span>
                       <div style={{ flex: "1", minWidth: "0" }}>
-                        <p style={{ margin: "0", fontSize: "13.5px", fontWeight: "600", color: "#1e293b" }}>bKash</p>
-                        <p style={{ margin: "1px 0 0", fontSize: "12.5px", color: "#64748b" }}>01712-XXXXXX · {v.t?.verified}</p>
+                        <p style={{ margin: "0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>bKash</p>
+                        <p style={{ margin: "1px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>01712-XXXXXX · {v.t?.verified}</p>
                       </div>
-                      <button className="dc-h763" type="button" aria-label={v.t?.changeMethod} title={v.t?.changeMethod} style={{ width: "30px", height: "30px", flex: "none", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", color: "#64748b", cursor: "pointer" }}>
+                      <button className="dc-h763" type="button" aria-label={v.t?.changeMethod} title={v.t?.changeMethod} style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", color: "var(--text-muted)", cursor: "pointer" }}>
                         <__Icon name="pencil" strokeWidth="1.75" width="15" height="15" />
                       </button>
                     </div>
-                    <dl style={{ margin: "0", display: "flex", flexDirection: "column", gap: "9px", fontSize: "13px" }}>
+                    <dl style={{ margin: "0", display: "flex", flexDirection: "column", gap: "9px", fontSize: "var(--text-xs-plus)" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <dt style={{ margin: "0", flex: "1", color: "#64748b" }}>{v.t?.payDay}</dt>
-                        <dd style={{ margin: "0", fontWeight: "500", color: "#1e293b" }}>{v.t?.firstOfMonth}</dd>
+                        <dt style={{ margin: "0", flex: "1", color: "var(--text-muted)" }}>{v.t?.payDay}</dt>
+                        <dd style={{ margin: "0", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{v.t?.firstOfMonth}</dd>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <dt style={{ margin: "0", flex: "1", color: "#64748b" }}>{v.t?.nextPay}</dt>
-                        <dd style={{ margin: "0", fontWeight: "500", color: "#1e293b" }}>01 Oct 2026</dd>
+                        <dt style={{ margin: "0", flex: "1", color: "var(--text-muted)" }}>{v.t?.nextPay}</dt>
+                        <dd style={{ margin: "0", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>01 Oct 2026</dd>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <dt style={{ margin: "0", flex: "1", color: "#64748b" }}>{v.t?.payrollGroup}</dt>
-                        <dd style={{ margin: "0", fontWeight: "500", color: "#1e293b" }}>{v.t?.dhanmondiMonthly}</dd>
+                        <dt style={{ margin: "0", flex: "1", color: "var(--text-muted)" }}>{v.t?.payrollGroup}</dt>
+                        <dd style={{ margin: "0", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{v.t?.dhanmondiMonthly}</dd>
                       </div>
                     </dl>
                   </section>
-                  <section style={{ display: "flex", flexDirection: "column", gap: "12px", borderRadius: "8px", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
-                    <h2 style={{ margin: "0", fontSize: "15px", lineHeight: "22px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.commission}</h2>
+                  <section style={{ display: "flex", flexDirection: "column", gap: "12px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+                    <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.commission}</h2>
                     <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-                      <span style={{ fontSize: "24px", fontWeight: "700", letterSpacing: "-.025em", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>৳1,713</span>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: "3px", fontSize: "12.5px", fontWeight: "600", color: "#047857" }}>▲ 9%</span>
+                      <span style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>৳1,713</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "3px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#047857" }}>▲ 9%</span>
                     </div>
-                    <p style={{ margin: "0", fontSize: "12.5px", lineHeight: "19px", color: "#64748b", textWrap: "pretty" }}>{v.t?.commissionBody}</p>
-                    <div style={{ height: "7px", borderRadius: "9999px", background: "#e9eef5", overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: "68%", borderRadius: "9999px", background: "#009CDE" }} />
+                    <p style={{ margin: "0", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "var(--text-muted)", textWrap: "pretty" }}>{v.t?.commissionBody}</p>
+                    <div style={{ height: "7px", borderRadius: "var(--radius-full)", background: "#e9eef5", overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: "68%", borderRadius: "var(--radius-full)", background: "#009CDE" }} />
                     </div>
-                    <p style={{ margin: "0", fontSize: "12px", color: "#94a3b8" }}>{v.t?.commissionTarget}</p>
+                    <p style={{ margin: "0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{v.t?.commissionTarget}</p>
                   </section>
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: "16px", alignItems: "start" }}>
-                <section style={{ display: "flex", flexDirection: "column", gap: "13px", borderRadius: "8px", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+              <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: "16px", alignItems: "start" }}>
+                <section style={{ display: "flex", flexDirection: "column", gap: "13px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <h2 style={{ margin: "0", flex: "1", fontSize: "15px", lineHeight: "22px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.loans}</h2>
-                    <button className="dc-h764" type="button" style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "32px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 12px", fontFamily: "inherit", fontSize: "12.5px", fontWeight: "500", letterSpacing: ".025em", color: "#475569", cursor: "pointer" }}><__Icon name="plus" strokeWidth="1.75" width="14" height="14" />{v.t?.addAdvance}</button>
+                    <h2 style={{ margin: "0", flex: "1", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.loans}</h2>
+                    <button className="dc-h764" type="button" style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "32px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#475569", cursor: "pointer" }}><__Icon name="plus" strokeWidth="1.75" width="14" height="14" />{v.t?.addAdvance}</button>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "14px", borderRadius: "8px", background: "rgba(255,152,0,.1)", padding: "13px 14px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "14px", borderRadius: "var(--radius-lg)", background: "rgba(255,152,0,.1)", padding: "13px 14px" }}>
                     <div style={{ flex: "1", minWidth: "0" }}>
-                      <p style={{ margin: "0", fontSize: "12px", fontWeight: "500", letterSpacing: ".025em", color: "#b45309" }}>{v.t?.advanceTaken}</p>
-                      <p style={{ margin: "2px 0 0", fontSize: "13px", fontWeight: "500", color: "#1e293b", textWrap: "pretty" }}>{v.t?.advanceBody}</p>
+                      <p style={{ margin: "0", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#b45309" }}>{v.t?.advanceTaken}</p>
+                      <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b", textWrap: "pretty" }}>{v.t?.advanceBody}</p>
                     </div>
                     <div style={{ textAlign: "right", flex: "none" }}>
-                      <p style={{ margin: "0", fontSize: "12px", fontWeight: "500", color: "#b45309" }}>{v.t?.outstanding}</p>
-                      <p style={{ margin: "2px 0 0", fontSize: "20px", fontWeight: "700", letterSpacing: "-.02em", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>৳4,000</p>
+                      <p style={{ margin: "0", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#b45309" }}>{v.t?.outstanding}</p>
+                      <p style={{ margin: "2px 0 0", fontSize: "var(--text-xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>৳4,000</p>
                     </div>
                   </div>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <caption style={{ position: "absolute", width: "1px", height: "1px", overflow: "hidden", clipPath: "inset(50%)" }}>{v.t?.instalmentCaption}</caption>
-                    <thead>
-                      <tr>
-                        <th scope="col" style={{ padding: "7px 10px 7px 0", borderBottom: "1px solid #e2e8f0", fontSize: "11px", fontWeight: "600", letterSpacing: ".025em", textTransform: "uppercase", color: "#64748b", textAlign: "left" }}>{v.t?.instalment}</th>
-                        <th scope="col" style={{ padding: "7px 10px", borderBottom: "1px solid #e2e8f0", fontSize: "11px", fontWeight: "600", letterSpacing: ".025em", textTransform: "uppercase", color: "#64748b", textAlign: "left" }}>{v.t?.month}</th>
-                        <th scope="col" style={{ padding: "7px 10px", borderBottom: "1px solid #e2e8f0", fontSize: "11px", fontWeight: "600", letterSpacing: ".025em", textTransform: "uppercase", color: "#64748b", textAlign: "right" }}>{v.t?.amount}</th>
-                        <th scope="col" style={{ padding: "7px 0 7px 10px", borderBottom: "1px solid #e2e8f0", fontSize: "11px", fontWeight: "600", letterSpacing: ".025em", textTransform: "uppercase", color: "#64748b", textAlign: "left" }}>{v.t?.status}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {__list(v.instalments).map((i, $index) => (<React.Fragment key={$index}>
-                          <tr>
-                            <td style={{ padding: "10px 10px 10px 0", borderBottom: "1px solid #e2e8f0", fontSize: "13px", fontWeight: "500", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>{i?.n}</td>
-                            <td style={{ padding: "10px", borderBottom: "1px solid #e2e8f0", fontSize: "13px", color: "#475569" }}>{i?.month}</td>
-                            <td style={{ padding: "10px", borderBottom: "1px solid #e2e8f0", textAlign: "right", fontSize: "13px", color: "#475569", fontVariantNumeric: "tabular-nums" }}>{i?.amount}</td>
-                            <td style={{ padding: "10px 0 10px 10px", borderBottom: "1px solid #e2e8f0" }}>
-                              {i?.isPaid ? (<>
-                                <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "22px", borderRadius: "9999px", padding: "0 9px", fontSize: "11.5px", fontWeight: "600", background: "rgba(16,185,129,.12)", color: "#047857" }}><__Icon name="check" strokeWidth="1.75" width="12" height="12" />{v.t?.recovered}</span>
-                              </>) : null}
-                              {i?.isDue ? (<>
-                                <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "22px", borderRadius: "9999px", padding: "0 9px", fontSize: "11.5px", fontWeight: "600", background: "rgba(255,152,0,.14)", color: "#b45309" }}><__Icon name="clock" strokeWidth="1.75" width="12" height="12" />{v.t?.thisMonth}</span>
-                              </>) : null}
-                              {i?.isSched ? (<>
-                                <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "22px", borderRadius: "9999px", padding: "0 9px", fontSize: "11.5px", fontWeight: "600", background: "#e9eef5", color: "#475569" }}><__Icon name="calendar" strokeWidth="1.75" width="12" height="12" />{v.t?.scheduled}</span>
-                              </>) : null}
-                            </td>
-                          </tr>
-                        </React.Fragment>))}
-                    </tbody>
-                  </table>
+                  <div className="gc-table-wrap">
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <caption style={{ position: "absolute", width: "1px", height: "1px", overflow: "hidden", clipPath: "inset(50%)" }}>{v.t?.instalmentCaption}</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col" style={{ padding: "7px 10px 7px 0", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textTransform: "uppercase", color: "var(--text-muted)", textAlign: "left" }}>{v.t?.instalment}</th>
+                          <th scope="col" style={{ padding: "7px 10px", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textTransform: "uppercase", color: "var(--text-muted)", textAlign: "left" }}>{v.t?.month}</th>
+                          <th scope="col" style={{ padding: "7px 10px", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textTransform: "uppercase", color: "var(--text-muted)", textAlign: "right" }}>{v.t?.amount}</th>
+                          <th scope="col" style={{ padding: "7px 0 7px 10px", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textTransform: "uppercase", color: "var(--text-muted)", textAlign: "left" }}>{v.t?.status}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {__list(v.instalments).map((i, $index) => (<React.Fragment key={$index}>
+                            <tr>
+                              <td style={{ padding: "10px 10px 10px 0", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>{i?.n}</td>
+                              <td style={{ padding: "10px", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs-plus)", color: "#475569" }}>{i?.month}</td>
+                              <td style={{ padding: "10px", borderBottom: "1px solid #e2e8f0", textAlign: "right", fontSize: "var(--text-xs-plus)", color: "#475569", fontVariantNumeric: "tabular-nums" }}>{i?.amount}</td>
+                              <td style={{ padding: "10px 0 10px 10px", borderBottom: "1px solid #e2e8f0" }}>
+                                {i?.isPaid ? (<>
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "22px", borderRadius: "var(--radius-full)", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(16,185,129,.12)", color: "#047857" }}><__Icon name="check" strokeWidth="1.75" width="12" height="12" />{v.t?.recovered}</span>
+                                </>) : null}
+                                {i?.isDue ? (<>
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "22px", borderRadius: "var(--radius-full)", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(255,152,0,.14)", color: "#b45309" }}><__Icon name="clock" strokeWidth="1.75" width="12" height="12" />{v.t?.thisMonth}</span>
+                                </>) : null}
+                                {i?.isSched ? (<>
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "22px", borderRadius: "var(--radius-full)", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#e9eef5", color: "#475569" }}><__Icon name="calendar" strokeWidth="1.75" width="12" height="12" />{v.t?.scheduled}</span>
+                                </>) : null}
+                              </td>
+                            </tr>
+                          </React.Fragment>))}
+                      </tbody>
+                    </table>
+                  </div>
                 </section>
-                <section style={{ display: "flex", flexDirection: "column", gap: "13px", borderRadius: "8px", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+                <section style={{ display: "flex", flexDirection: "column", gap: "13px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <h2 style={{ margin: "0", flex: "1", fontSize: "15px", lineHeight: "22px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.payslips}</h2>
-                    <span style={{ fontSize: "12.5px", fontWeight: "500", color: "#64748b" }}>{v.t?.since} Mar 2026</span>
+                    <h2 style={{ margin: "0", flex: "1", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.payslips}</h2>
+                    <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>{v.t?.since} Mar 2026</span>
                   </div>
                   <ul style={{ margin: "0", padding: "0", listStyle: "none", display: "flex", flexDirection: "column" }}>
                     {__list(v.payslips).map((p, $index) => (<React.Fragment key={$index}>
                         <li style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 0", borderBottom: "1px solid #e2e8f0" }}>
-                          <span style={{ display: "grid", placeItems: "center", width: "32px", height: "32px", flex: "none", borderRadius: "8px", background: "#f1f5f9", color: "#475569" }}>
+                          <span style={{ display: "grid", placeItems: "center", width: "32px", height: "32px", flex: "none", borderRadius: "var(--radius-lg)", background: "#f1f5f9", color: "#475569" }}>
                             <__Icon name="file-text" strokeWidth="1.75" width="16" height="16" />
                           </span>
                           <div style={{ flex: "1", minWidth: "0" }}>
-                            <p style={{ margin: "0", fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>{p?.month}</p>
-                            <p style={{ margin: "1px 0 0", fontSize: "11.5px", color: "#94a3b8" }}>{p?.meta}</p>
+                            <p style={{ margin: "0", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{p?.month}</p>
+                            <p style={{ margin: "1px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{p?.meta}</p>
                           </div>
-                          <span style={{ fontSize: "13.5px", fontWeight: "600", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>{p?.net}</span>
+                          <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>{p?.net}</span>
                           <span style={{ display: "flex", alignItems: "center", gap: "4px", flex: "none" }}>
-                            <button className="dc-h765" type="button" aria-label={p?.dlAria} title={v.t?.download} style={{ width: "30px", height: "30px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", color: "#64748b", cursor: "pointer" }}>
+                            <button className="dc-h765" type="button" aria-label={p?.dlAria} title={v.t?.download} style={{ width: "28px", height: "28px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", color: "var(--text-muted)", cursor: "pointer" }}>
                               <__Icon name="download" strokeWidth="1.75" width="15" height="15" />
                             </button>
-                            <button className="dc-h766" type="button" aria-label={p?.shAria} title={v.t?.share} style={{ width: "30px", height: "30px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", color: "#64748b", cursor: "pointer" }}>
+                            <button className="dc-h766" type="button" aria-label={p?.shAria} title={v.t?.share} style={{ width: "28px", height: "28px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", color: "var(--text-muted)", cursor: "pointer" }}>
                               <__Icon name="share-2" strokeWidth="1.75" width="15" height="15" />
                             </button>
                           </span>
                         </li>
                       </React.Fragment>))}
                   </ul>
-                  <p style={{ margin: "0", fontSize: "12px", color: "#94a3b8", textWrap: "pretty" }}>{v.t?.payslipNote}</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", color: "var(--text-muted)", textWrap: "pretty" }}>{v.t?.payslipNote}</p>
                 </section>
               </div>
             </div>

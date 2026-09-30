@@ -81,44 +81,44 @@ class Component extends DCLogic {
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `
-body{margin:0;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
+body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
 a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:12px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:8px;color:#475569;font-size:14px;font-weight:500;letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
+.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
+.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
 .nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
 .nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:11px;line-height:16px;font-weight:600;letter-spacing:.08em;color:#64748b;padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:8px;border:0;font:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
+.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
 .btn:hover{text-decoration:none}
 .btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
 .soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
 .line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
 .warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:15px}
-.sm{height:36px;padding:0 12px;font-size:13px}
-.ib{width:40px;height:40px;border-radius:999px;border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
+.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
+.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
 .ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font:inherit;font-size:14px;color:#1e293b;transition:border-color 200ms}
+.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
 .inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:#64748b}
-.lbl{font-size:13px;line-height:18px;font-weight:500;color:#334155}
-.tab{height:40px;padding:0 14px;border-radius:999px;border:0;background:transparent;font:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
+.inp::placeholder{color:var(--text-muted)}
+.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
+.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
 .tab:hover{background:#f1f5f9;color:#0f172a}
 .tab.on{background:#003087;color:#fff}
-.chip{height:40px;padding:0 14px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:13px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
+.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
 .chip:hover{border-color:#94a3b8}
 .chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:14px;line-height:20px;vertical-align:middle}
+.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
 .row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
+.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
+.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
 .b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
 .b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
 .b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.02em}
+.mono{font-family:var(--font-data);letter-spacing:.02em}
 .fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
 @keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 .flash{animation:gcFlash 900ms ease-out}
@@ -126,46 +126,46 @@ a{color:#003087}a:hover{color:#002a77}
 .scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
 @keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
 
-.sw{position:relative;width:48px;height:28px;border-radius:999px;border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
+.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
 .sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
 .sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
 .t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
 .actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:'Hind Siliguri','Poppins',sans-serif}
+.bn{font-family:var(--font-bn)}
 .pulse{animation:gcPulse 1.6s ease-in-out infinite}
 @keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
-.psec{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#64748b}
+.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
+.psec{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
 .num{font-variant-numeric:tabular-nums}
-.ai{height:30px;padding:0 10px;border-radius:8px;border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
+.ai{height:28px;padding:0 10px;border-radius:var(--radius-lg);border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
 .ai:hover{border-color:#a78bfa;box-shadow:0 4px 12px -6px rgba(91,33,182,.5)}
 .ai:focus-visible{outline:3px solid rgba(124,58,237,.4);outline-offset:2px}
-.abtn{height:32px;padding:0 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:12.5px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.abtn{height:32px;padding:0 12px;border-radius:var(--radius-lg);border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .abtn:hover{background:#f1f5f9}
 .ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0}
-.ptab{position:relative;height:48px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:13.5px;font-weight:500;color:#64748b;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:600}
+.ptab{position:relative;height:52px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:var(--weight-medium)}
 .ptab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2.5px;border-radius:3px 3px 0 0;background:#003087}
-.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#eef2f6;color:#475569;font-size:11px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
 .ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
-.thumb{width:44px;height:44px;flex-shrink:0;border-radius:10px;border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#003087}
+.thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
 
-.tc{background:#fff;border:1px solid #e7ebf2;border-radius:18px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px -20px rgba(15,23,42,.18)}
-.ey{font-size:11px;line-height:14px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#64748b}
+.tc{background:#fff;border:1px solid #e7ebf2;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px -20px rgba(15,23,42,.18)}
+.ey{font-size:var(--text-xs);line-height:17px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
 .ey-d{color:rgba(203,216,238,.7)}
-.tn{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;letter-spacing:-.02em}
-.dl{display:inline-flex;align-items:center;gap:3px;height:22px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums}
-.hero{position:relative;overflow:hidden;border-radius:22px;background:#0b1733;color:#fff;padding:24px 26px}
+.tn{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;letter-spacing:0}
+.dl{display:inline-flex;align-items:center;gap:3px;height:22px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums}
+.hero{position:relative;overflow:hidden;border-radius:var(--radius-xl);background:#0b1733;color:#fff;padding:24px 26px;--accent-text:#7fcff0;--text-success:#6ee7b7;--text-warning:#fcd34d;--text-danger:#fda4af;--text-info:#7dd3fc}
 .hero::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:32px 32px;pointer-events:none}
 .hero>*{position:relative}
-.ht{border-radius:16px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
-.dseg{display:inline-flex;padding:3px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1)}
-.dseg button{height:32px;padding:0 14px;border:0;border-radius:999px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
-.lseg{display:inline-flex;padding:3px;border-radius:12px;background:#f1f4f9;border:1px solid #e7ebf2}
-.lseg button{height:32px;padding:0 13px;border:0;border-radius:9px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease,box-shadow 200ms ease}
+.ht{border-radius:var(--radius-xl);background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.dseg{display:inline-flex;padding:3px;border-radius:var(--radius-full);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1)}
+.dseg button{height:32px;padding:0 14px;border:0;border-radius:var(--radius-full);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
+.lseg{display:inline-flex;padding:3px;border-radius:var(--radius-xl);background:#f1f4f9;border:1px solid #e7ebf2}
+.lseg button{height:32px;padding:0 13px;border:0;border-radius:var(--radius-lg);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease,box-shadow 200ms ease}
 button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .btn,.abtn{transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
 .st>*{animation:taUp 420ms cubic-bezier(.23,1,.32,1) both}
@@ -177,14 +177,14 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 @keyframes taDraw{from{stroke-dashoffset:1600}to{stroke-dashoffset:0}}
 .fadein{animation:taFade 600ms ease both 200ms}@keyframes taFade{from{opacity:0}to{opacity:1}}
 .tt{position:relative}
-.tt .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px) scale(.97);transform-origin:bottom center;opacity:0;pointer-events:none;transition:opacity 125ms ease-out,transform 125ms ease-out;background:#0b1733;color:#fff;border-radius:10px;padding:8px 10px;font-size:12px;white-space:nowrap;box-shadow:0 10px 24px -8px rgba(15,23,42,.45);z-index:5}
-.col{position:relative;flex:1;height:100%;border-radius:6px;transition:background-color 150ms ease}
+.tt .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px) scale(.97);transform-origin:bottom center;opacity:0;pointer-events:none;transition:opacity 125ms ease-out,transform 125ms ease-out;background:#0b1733;color:#fff;border-radius:var(--radius-lg);padding:8px 10px;font-size:var(--text-xs);white-space:nowrap;box-shadow:0 10px 24px -8px rgba(15,23,42,.45);z-index:5}
+.col{position:relative;flex:1;height:100%;border-radius:var(--radius-md);transition:background-color 150ms ease}
 .col .tip{bottom:auto;top:6px}
 .col .cl{position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(15,23,42,.18);opacity:0;transition:opacity 125ms ease}
 @media (hover:hover) and (pointer:fine){.tt:hover .tip,.col:hover .tip{opacity:1;transform:translate(-50%,0) scale(1)}.col:hover .cl{opacity:1}.row:hover{background:#f7f9fd}.tc.lift{transition:box-shadow 200ms ease,transform 200ms cubic-bezier(.23,1,.32,1)}.tc.lift:hover{box-shadow:0 1px 2px rgba(15,23,42,.05),0 18px 40px -20px rgba(15,23,42,.3)}}
 .tb{width:100%;border-collapse:separate;border-spacing:0}
-.tb th{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#64748b;text-align:left;padding:12px 16px;border-bottom:1px solid #eef1f6;background:#fbfcfe;white-space:nowrap}
-.tb td{padding:13px 16px;border-bottom:1px solid #f1f4f8;font-size:13.5px;vertical-align:middle}
+.tb th{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #eef1f6;background:#fbfcfe;white-space:nowrap}
+.tb td{padding:13px 16px;border-bottom:1px solid #f1f4f8;font-size:var(--text-sm);vertical-align:middle}
 .tb tr:last-child td{border-bottom:0}
 .tb .r{text-align:right}
 @media (prefers-reduced-motion:reduce){.st>*,.gr,.draw,.fadein{animation:none}}
@@ -198,20 +198,20 @@ export default class PixelsEventsScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="PixelsEvents">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "1440px", height: "2850px", background: "#eef2f7", padding: "12px", display: "flex", gap: "12px", overflow: "hidden" }}>
+        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
           <__Sidebar sticky="" active="ta-track" />
-          <main style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "16px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
             <__Topbar crumb={"Tracking & analytics"} page={"Pixels & events"} placeholder="Search campaign, event or product" />
-            <div style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
               <section className="hero st">
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "20px" }}>
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <div className="ey ey-d">G1 · Server-side tracking</div>
-                    <h2 style={{ margin: "6px 0 0", fontSize: "26px", lineHeight: "32px", fontWeight: "700", letterSpacing: "-.025em" }}>Delivered is the conversion that counts</h2>
-                    <p style={{ margin: "6px 0 0", fontSize: "13.5px", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "640px" }}>Events go from our server to Meta, Google and TikTok — hashed, deduplicated, and confirmed when the courier delivers. No code, no tag manager.</p>
+                    <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>Delivered is the conversion that counts</h1>
+                    <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "640px" }}>Events go from our server to Meta, Google and TikTok — hashed, deduplicated, and confirmed when the courier delivers. No code, no tag manager.</p>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: "0" }}>
-                    <button type="button" className="btn sm" onClick={v.openWiz} style={{ background: "#fff", color: "#0b1733", height: "38px" }}>
+                    <button type="button" className="btn sm" onClick={v.openWiz} style={{ background: "#fff", color: "#0b1733", height: "36px" }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M5 12h14" />
                         <path d="M12 5v14" />
@@ -220,17 +220,17 @@ export default class PixelsEventsScreen extends Component {
                     </button>
                   </div>
                 </div>
-                <div className="st" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px", marginTop: "20px" }}>
+                <div className="st gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px", marginTop: "20px" }}>
                   {__list(v.tiles).map((ht, $index) => (<React.Fragment key={$index}>
                       <div className="ht">
                         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <span style={__sx(`width: 7px; height: 7px; border-radius: 999px; background: ${ht?.c ?? ""};`)} />
-                          <span style={{ fontSize: "12px", color: "rgba(203,216,238,.85)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ht?.l}</span>
+                          <span style={__sx(`width: 7px; height: 7px; border-radius: var(--radius-full); background: ${ht?.c ?? ""};`)} />
+                          <span style={{ fontSize: "var(--text-xs)", color: "rgba(203,216,238,.85)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ht?.l}</span>
                         </div>
-                        <div className="tn" style={{ fontSize: "25px", lineHeight: "30px", fontWeight: "700", color: "#fff" }}>{ht?.v}</div>
+                        <div className="tn" style={{ fontSize: "var(--text-2xl)", lineHeight: "30px", fontWeight: "var(--weight-semibold)", color: "#fff" }}>{ht?.v}</div>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                           <span className="dl" style={__sx(`background: ${ht?.db ?? ""}; color: ${ht?.df ?? ""};`)}>{ht?.d}</span>
-                          <span style={{ fontSize: "11.5px", color: "rgba(203,216,238,.7)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ht?.s}</span>
+                          <span style={{ fontSize: "var(--text-xs)", color: "rgba(203,216,238,.7)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ht?.s}</span>
                         </div>
                         <svg width="100%" height="30" viewBox="0 0 160 30" preserveAspectRatio="none" aria-hidden="true" style={{ display: "block", marginTop: "2px" }}>
                           <path d={ht?.area} fill={ht?.c} fillOpacity=".14" />
@@ -241,7 +241,7 @@ export default class PixelsEventsScreen extends Component {
                 </div>
               </section>
               {v.hasMsg ? (<>
-                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: 14px; font-weight: 500;`)}>
+                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-lg); background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: var(--text-sm); font-weight: var(--weight-medium);`)}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <circle cx="12" cy="12" r="10" />
                     <path d="m9 12 2 2 4-4" />
@@ -249,16 +249,16 @@ export default class PixelsEventsScreen extends Component {
                   <span>{v.msg}</span>
                 </div>
               </>) : null}
-              <div className="st" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "16px" }}>
+              <div className="st gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "16px" }}>
                 {__list(v.plats).map((pt, $index) => (<React.Fragment key={$index}>
                     <section className="tc lift" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <span style={{ width: "42px", height: "42px", borderRadius: "12px", background: "#fff", border: "1px solid #e7ebf2", boxShadow: "0 1px 2px rgba(15,23,42,.06)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: "0" }}>
+                        <span style={{ width: "42px", height: "42px", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e7ebf2", boxShadow: "0 1px 2px rgba(15,23,42,.06)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: "0" }}>
                           <img src={pt?.lg} alt="" width="24" height="24" style={{ width: "24px", height: "24px", objectFit: "contain", flexShrink: "0", display: "block" }} />
                         </span>
                         <div style={{ flexGrow: "1", minWidth: "0" }}>
-                          <div style={{ fontSize: "16px", fontWeight: "700", color: "#0f172a" }}>{pt?.pl}</div>
-                          <div style={{ fontSize: "12px", color: "#64748b" }}>{pt?.what}</div>
+                          <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{pt?.pl}</div>
+                          <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{pt?.what}</div>
                         </div>
                         <span className="dl" style={__sx(`background: ${pt?.sb ?? ""}; color: ${pt?.sf ?? ""};`)}>{pt?.st}</span>
                       </div>
@@ -269,26 +269,26 @@ export default class PixelsEventsScreen extends Component {
                             <circle className="fadein" cx="44" cy="44" r="36" fill="none" stroke={pt?.gc} strokeWidth="8" strokeLinecap="round" strokeDasharray={pt?.da} />
                           </svg>
                           <div style={{ position: "absolute", inset: "0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                            <span className="tn" style={{ fontSize: "21px", fontWeight: "800" }}>{pt?.q}</span>
-                            <span style={{ fontSize: "9.5px", color: "#64748b", letterSpacing: ".06em", textTransform: "uppercase" }}>match</span>
+                            <span className="tn" style={{ fontSize: "var(--text-xl)", fontWeight: "var(--weight-semibold)" }}>{pt?.q}</span>
+                            <span style={{ fontSize: "var(--text-2xs)", color: "var(--text-muted)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase" }}>match</span>
                           </div>
                         </div>
                         <div style={{ flexGrow: "1", display: "flex", flexDirection: "column", gap: "8px" }}>
                           {__list(pt?.m).map((pm, $index) => (<React.Fragment key={$index}>
-                              <div style={{ display: "flex", alignItems: "baseline", fontSize: "12.5px" }}>
-                                <span style={{ flexGrow: "1", color: "#64748b" }}>{pm?.l}</span>
-                                <span className="tn" style={__sx(`font-weight: 700; color: ${pm?.c ?? ""};`)}>{pm?.v}</span>
+                              <div style={{ display: "flex", alignItems: "baseline", fontSize: "var(--text-xs-plus)" }}>
+                                <span style={{ flexGrow: "1", color: "var(--text-muted)" }}>{pm?.l}</span>
+                                <span className="tn" style={__sx(`font-weight: var(--weight-semibold); color: ${pm?.c ?? ""};`)}>{pm?.v}</span>
                               </div>
                             </React.Fragment>))}
                         </div>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                         {__list(pt?.ids).map((pi, $index) => (<React.Fragment key={$index}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", padding: "8px 10px", borderRadius: "10px", background: "#f7f9fc" }}>
-                              <span style={__sx(`width: 6px; height: 6px; border-radius: 999px; background: ${pi?.c ?? ""};`)} />
-                              <span style={{ color: "#64748b", width: "100px" }}>{pi?.k}</span>
-                              <span className="mono" style={{ flexGrow: "1", fontWeight: "600", color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pi?.v}</span>
-                              <span style={__sx(`color: ${pi?.c ?? ""}; font-weight: 700;`)}>{pi?.s}</span>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", padding: "8px 10px", borderRadius: "var(--radius-lg)", background: "#f7f9fc" }}>
+                              <span style={__sx(`width: 6px; height: 6px; border-radius: var(--radius-full); background: ${pi?.c ?? ""};`)} />
+                              <span style={{ color: "var(--text-muted)", width: "100px" }}>{pi?.k}</span>
+                              <span className="mono" style={{ flexGrow: "1", fontWeight: "var(--weight-medium)", color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pi?.v}</span>
+                              <span style={__sx(`color: ${pi?.c ?? ""}; font-weight: var(--weight-semibold);`)}>{pi?.s}</span>
                             </div>
                           </React.Fragment>))}
                       </div>
@@ -302,22 +302,22 @@ export default class PixelsEventsScreen extends Component {
               <section className="tc " style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
-                    <h2 style={{ margin: "0", fontSize: "15.5px", lineHeight: "22px", fontWeight: "600", color: "#0f172a", letterSpacing: "-.01em" }}>An order’s life, as the ad platforms see it · last 30 days</h2>
-                    <p style={{ margin: "3px 0 0", fontSize: "12.5px", lineHeight: "18px", color: "#64748b" }}>Platforms learn from delivered buyers — and stop chasing people who return.</p>
+                    <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "0" }}>An order’s life, as the ad platforms see it · last 30 days</h2>
+                    <p style={{ margin: "3px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Platforms learn from delivered buyers — and stop chasing people who return.</p>
                   </div>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "12px" }}>
+                <div className="gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "12px" }}>
                   {__list(v.life).map((lf, $index) => (<React.Fragment key={$index}>
-                      <div style={__sx(`position: relative; padding: 16px; border-radius: 16px; background: ${lf?.bg ?? ""}; color: ${lf?.fg ?? ""}; display: flex; flex-direction: column; gap: 6px;`)}>
+                      <div style={__sx(`position: relative; padding: 16px; border-radius: var(--radius-xl); background: ${lf?.bg ?? ""}; color: ${lf?.fg ?? ""}; display: flex; flex-direction: column; gap: 6px;`)}>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                           <span className="ey" style={__sx(`color: ${lf?.ey ?? ""};`)}>{lf?.step}</span>
                           {lf?.star ? (<>
                             <span className="dl" style={{ background: "#34d399", color: "#064e3b" }}>REAL CONVERSION</span>
                           </>) : null}
                         </div>
-                        <div style={{ fontSize: "16px", fontWeight: "700" }}>{lf?.n}</div>
-                        <div className="tn" style={{ fontSize: "26px", fontWeight: "800" }}>{lf?.v}</div>
-                        <div style={{ fontSize: "12px", opacity: ".8" }}>{lf?.s}</div>
+                        <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>{lf?.n}</div>
+                        <div className="tn" style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)" }}>{lf?.v}</div>
+                        <div style={{ fontSize: "var(--text-xs)", opacity: ".8" }}>{lf?.s}</div>
                       </div>
                     </React.Fragment>))}
                 </div>
@@ -325,116 +325,118 @@ export default class PixelsEventsScreen extends Component {
               <section className="tc " style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
-                    <h2 style={{ margin: "0", fontSize: "15.5px", lineHeight: "22px", fontWeight: "600", color: "#0f172a", letterSpacing: "-.01em" }}>Which events go where</h2>
-                    <p style={{ margin: "3px 0 0", fontSize: "12.5px", lineHeight: "18px", color: "#64748b" }}>Purchase fires when the order is placed; Delivered fires when the courier confirms. Returned tells the platforms to stop chasing people who return.</p>
+                    <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "0" }}>Which events go where</h2>
+                    <p style={{ margin: "3px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Purchase fires when the order is placed; Delivered fires when the courier confirms. Returned tells the platforms to stop chasing people who return.</p>
                   </div>
-                  <span style={{ fontSize: "12.5px", color: "#64748b" }}>Click a box to turn it on or off</span>
+                  <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Click a box to turn it on or off</span>
                 </div>
-                <table className="tb">
-                  <thead>
-                    <tr>
-                      <th>Event</th>
-                      <th>When it fires</th>
-                      <th style={{ textAlign: "center" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><img src="/assets/41f77fbf774c3a1c10208ca2b086bc14.png" alt="meta" width="16" height="16" style={{ width: "16px", height: "16px", objectFit: "contain", flexShrink: "0", display: "inline-block", verticalAlign: "middle" }} />Meta</span>
-                      </th>
-                      <th style={{ textAlign: "center" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><img src="/assets/85e4f9f412e9d0859b3e4e19309ccb4d.png" alt="google" width="16" height="16" style={{ width: "16px", height: "16px", objectFit: "contain", flexShrink: "0", display: "inline-block", verticalAlign: "middle" }} />Google</span>
-                      </th>
-                      <th style={{ textAlign: "center" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><img src="/assets/57bb10142b6017571910098da3778028.png" alt="tiktok" width="16" height="16" style={{ width: "16px", height: "16px", objectFit: "contain", flexShrink: "0", display: "inline-block", verticalAlign: "middle" }} />TikTok</span>
-                      </th>
-                      <th className="r">Last 24 h</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {__list(v.evs).map((ev, $index) => (<React.Fragment key={$index}>
-                        <tr className="row" style={__sx(`background: ${ev?.bg ?? ""};`)}>
-                          <td>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                              <span style={{ fontWeight: "600", color: "#0f172a" }}>{ev?.n}</span>
-                              {ev?.star ? (<>
-                                <span style={{ height: "20px", padding: "0 8px", borderRadius: "999px", background: "#0b1733", color: "#fff", fontSize: "10.5px", fontWeight: "700", display: "inline-flex", alignItems: "center" }}>REAL CONVERSION</span>
-                              </>) : null}
-                            </div>
-                            <div className="mono" style={{ fontSize: "11.5px", color: "#94a3b8" }}>{ev?.api}</div>
-                          </td>
-                          <td style={{ fontSize: "13px", color: "#475569" }}>{ev?.w}</td>
-                          {__list(ev?.c).map((ec, $index) => (<React.Fragment key={$index}>
-                              <td style={{ textAlign: "center" }}>
-                                <button type="button" onClick={ec?.tog} aria-pressed={ec?.on} aria-label={ec?.aria} style={__sx(`position: relative; width: 40px; height: 24px; border-radius: 999px; border: 0; background: ${ec?.bg ?? ""}; cursor: pointer; transition: background-color 180ms ease;`)}>
-                                  <span style={__sx(`position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 999px; background: #fff; box-shadow: 0 1px 3px rgba(15,23,42,.25); transform: translateX(${ec?.tx ?? ""}); transition: transform 180ms cubic-bezier(.23,1,.32,1);`)} />
-                                </button>
-                              </td>
-                            </React.Fragment>))}
-                          <td className="r tn" style={{ fontWeight: "600" }}>{ev?.n24}</td>
-                        </tr>
-                      </React.Fragment>))}
-                  </tbody>
-                </table>
+                <div className="gc-table-wrap">
+                  <table className="tb">
+                    <thead>
+                      <tr>
+                        <th>Event</th>
+                        <th>When it fires</th>
+                        <th style={{ textAlign: "center" }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><img src="/assets/41f77fbf774c3a1c10208ca2b086bc14.png" alt="meta" width="16" height="16" style={{ width: "16px", height: "16px", objectFit: "contain", flexShrink: "0", display: "inline-block", verticalAlign: "middle" }} />Meta</span>
+                        </th>
+                        <th style={{ textAlign: "center" }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><img src="/assets/85e4f9f412e9d0859b3e4e19309ccb4d.png" alt="google" width="16" height="16" style={{ width: "16px", height: "16px", objectFit: "contain", flexShrink: "0", display: "inline-block", verticalAlign: "middle" }} />Google</span>
+                        </th>
+                        <th style={{ textAlign: "center" }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><img src="/assets/57bb10142b6017571910098da3778028.png" alt="tiktok" width="16" height="16" style={{ width: "16px", height: "16px", objectFit: "contain", flexShrink: "0", display: "inline-block", verticalAlign: "middle" }} />TikTok</span>
+                        </th>
+                        <th className="r">Last 24 h</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {__list(v.evs).map((ev, $index) => (<React.Fragment key={$index}>
+                          <tr className="row" style={__sx(`background: ${ev?.bg ?? ""};`)}>
+                            <td>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{ev?.n}</span>
+                                {ev?.star ? (<>
+                                  <span style={{ height: "20px", padding: "0 8px", borderRadius: "var(--radius-full)", background: "#0b1733", color: "#fff", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center" }}>REAL CONVERSION</span>
+                                </>) : null}
+                              </div>
+                              <div className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{ev?.api}</div>
+                            </td>
+                            <td style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}>{ev?.w}</td>
+                            {__list(ev?.c).map((ec, $index) => (<React.Fragment key={$index}>
+                                <td style={{ textAlign: "center" }}>
+                                  <button type="button" onClick={ec?.tog} aria-pressed={ec?.on} aria-label={ec?.aria} style={__sx(`position: relative; width: 40px; height: 24px; border-radius: var(--radius-full); border: 0; background: ${ec?.bg ?? ""}; cursor: pointer; transition: background-color 180ms ease;`)}>
+                                    <span style={__sx(`position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: var(--radius-full); background: #fff; box-shadow: 0 1px 3px rgba(15,23,42,.25); transform: translateX(${ec?.tx ?? ""}); transition: transform 180ms cubic-bezier(.23,1,.32,1);`)} />
+                                  </button>
+                                </td>
+                              </React.Fragment>))}
+                            <td className="r tn" style={{ fontWeight: "var(--weight-medium)" }}>{ev?.n24}</td>
+                          </tr>
+                        </React.Fragment>))}
+                    </tbody>
+                  </table>
+                </div>
               </section>
-              <div className="st" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px", alignItems: "start" }}>
+              <div className="st gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px", alignItems: "start" }}>
                 <section className="tc " style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <h2 style={{ margin: "0", fontSize: "15.5px", lineHeight: "22px", fontWeight: "600", color: "#0f172a", letterSpacing: "-.01em" }}>Sending and data safety</h2>
+                      <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "0" }}>Sending and data safety</h2>
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                    <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "10px", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
                         <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                       </svg>
                     </span>
                     <div style={{ flexGrow: "1" }}>
-                      <div style={{ fontSize: "14px", lineHeight: "20px", fontWeight: "600", color: "#0f172a" }}>Hash all customer data on our server</div>
-                      <div style={{ fontSize: "13px", lineHeight: "18px", color: "#64748b" }}>Phone, email and name are scrambled before they leave — raw data never leaves GridCommerce</div>
+                      <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Hash all customer data on our server</div>
+                      <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Phone, email and name are scrambled before they leave — raw data never leaves GridCommerce</div>
                     </div>
                     <button type="button" role="switch" aria-checked={v.hash?.on} aria-label="Hash all customer data on our server" className={v.hash?.cls} onClick={v.hash?.toggle} />
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                    <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "10px", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
                       </svg>
                     </span>
                     <div style={{ flexGrow: "1" }}>
-                      <div style={{ fontSize: "14px", lineHeight: "20px", fontWeight: "600", color: "#0f172a" }}>Fix Bangladeshi phone numbers first</div>
-                      <div style={{ fontSize: "13px", lineHeight: "18px", color: "#64748b" }}>01712-345678 becomes +8801712345678 before hashing, so more people are matched</div>
+                      <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Fix Bangladeshi phone numbers first</div>
+                      <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>01712-345678 becomes +8801712345678 before hashing, so more people are matched</div>
                     </div>
                     <button type="button" role="switch" aria-checked={v.phone?.on} aria-label="Fix Bangladeshi phone numbers first" className={v.phone?.cls} onClick={v.phone?.toggle} />
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                    <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "10px", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />
                         <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />
                       </svg>
                     </span>
                     <div style={{ flexGrow: "1" }}>
-                      <div style={{ fontSize: "14px", lineHeight: "20px", fontWeight: "600", color: "#0f172a" }}>Keep COD and prepaid separate</div>
-                      <div style={{ fontSize: "13px", lineHeight: "18px", color: "#64748b" }}>Platforms can learn which buyers actually pay</div>
+                      <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Keep COD and prepaid separate</div>
+                      <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Platforms can learn which buyers actually pay</div>
                     </div>
                     <button type="button" role="switch" aria-checked={v.split?.on} aria-label="Keep COD and prepaid separate" className={v.split?.cls} onClick={v.split?.toggle} />
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                    <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "10px", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <circle cx="12" cy="12" r="10" />
                         <path d="M12 6v6l4 2" />
                       </svg>
                     </span>
                     <div style={{ flexGrow: "1" }}>
-                      <div style={{ fontSize: "14px", lineHeight: "20px", fontWeight: "600", color: "#0f172a" }}>Send delivery events late when needed</div>
-                      <div style={{ fontSize: "13px", lineHeight: "18px", color: "#64748b" }}>Deliveries after 7 days go by the offline events path</div>
+                      <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Send delivery events late when needed</div>
+                      <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Deliveries after 7 days go by the offline events path</div>
                     </div>
                     <button type="button" role="switch" aria-checked={v.late?.on} aria-label="Send delivery events late when needed" className={v.late?.cls} onClick={v.late?.toggle} />
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "12px 0", borderBottom: "1px solid #eef2f6" }}>
                     <div style={{ flexGrow: "1" }}>
-                      <div style={{ fontSize: "14px", fontWeight: "600", color: "#0f172a" }}>Retry when a platform is down</div>
-                      <div style={{ fontSize: "13px", color: "#64748b" }}>Keeps trying with longer gaps</div>
+                      <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Retry when a platform is down</div>
+                      <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Keeps trying with longer gaps</div>
                     </div>
                     <select className="inp" aria-label="Retry" style={{ width: "190px" }}>
                       <option>Up to 24 hours</option>
@@ -444,8 +446,8 @@ export default class PixelsEventsScreen extends Component {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "12px 0", borderBottom: "1px solid #eef2f6" }}>
                     <div style={{ flexGrow: "1" }}>
-                      <div style={{ fontSize: "14px", fontWeight: "600", color: "#0f172a" }}>Test event code</div>
-                      <div style={{ fontSize: "13px", color: "#64748b" }}>Shows events in the platform’s test screen only</div>
+                      <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Test event code</div>
+                      <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Shows events in the platform’s test screen only</div>
                     </div>
                     <input className="inp mono" defaultValue="TEST48213" aria-label="Test code" style={{ width: "190px" }} />
                   </div>
@@ -453,43 +455,45 @@ export default class PixelsEventsScreen extends Component {
                 <section className="tc " style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <h2 style={{ margin: "0", fontSize: "15.5px", lineHeight: "22px", fontWeight: "600", color: "#0f172a", letterSpacing: "-.01em" }}>Per-product and per-page pixels</h2>
-                      <p style={{ margin: "3px 0 0", fontSize: "12.5px", lineHeight: "18px", color: "#64748b" }}>A partner brand or a landing page can use its own pixel. Everything else uses the store pixel.</p>
+                      <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "0" }}>Per-product and per-page pixels</h2>
+                      <p style={{ margin: "3px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>A partner brand or a landing page can use its own pixel. Everything else uses the store pixel.</p>
                     </div>
                     <button type="button" className="abtn" onClick={v.addOvr}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M5 12h14" />
   <path d="M12 5v14" />
 </svg>Add override</button>
                   </div>
-                  <table className="tb">
-                    <thead>
-                      <tr>
-                        <th>Where</th>
-                        <th>Pixel used</th>
-                        <th>Why</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {__list(v.ovr).map((ov, $index) => (<React.Fragment key={$index}>
-                          <tr className="row">
-                            <td style={{ fontWeight: "600" }}>{ov?.w}</td>
-                            <td>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "12.5px", fontWeight: "600", color: "#0f172a", whiteSpace: "nowrap" }}><img src={ov?.lg} alt="" width="16" height="16" style={{ width: "16px", height: "16px", objectFit: "contain", flexShrink: "0", display: "block" }} />{ov?.pl}</span>
-                              {" "}
-                              <span className="mono" style={{ fontSize: "12px", color: "#475569" }}>{ov?.id}</span>
-                            </td>
-                            <td style={{ fontSize: "13px", color: "#475569" }}>{ov?.y}</td>
-                          </tr>
-                        </React.Fragment>))}
-                    </tbody>
-                  </table>
+                  <div className="gc-table-wrap">
+                    <table className="tb">
+                      <thead>
+                        <tr>
+                          <th>Where</th>
+                          <th>Pixel used</th>
+                          <th>Why</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {__list(v.ovr).map((ov, $index) => (<React.Fragment key={$index}>
+                            <tr className="row">
+                              <td style={{ fontWeight: "var(--weight-medium)" }}>{ov?.w}</td>
+                              <td>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#0f172a", whiteSpace: "nowrap" }}><img src={ov?.lg} alt="" width="16" height="16" style={{ width: "16px", height: "16px", objectFit: "contain", flexShrink: "0", display: "block" }} />{ov?.pl}</span>
+                                {" "}
+                                <span className="mono" style={{ fontSize: "var(--text-xs)", color: "#475569" }}>{ov?.id}</span>
+                              </td>
+                              <td style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}>{ov?.y}</td>
+                            </tr>
+                          </React.Fragment>))}
+                      </tbody>
+                    </table>
+                  </div>
                 </section>
               </div>
               {v.wizOn ? (<>
                 <div style={{ position: "fixed", inset: "0", background: "rgba(15,23,42,.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: "50" }}>
-                  <section className="tc fade" style={{ width: "640px", padding: "24px", borderRadius: "22px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <section className="tc fade" style={{ width: "640px", padding: "24px", borderRadius: "var(--radius-xl)", display: "flex", flexDirection: "column", gap: "16px" }}>
                     <div style={{ display: "flex", alignItems: "center" }}>
-                      <h2 style={{ margin: "0", fontSize: "18px", flexGrow: "1" }}>Connect a platform</h2>
+                      <h2 style={{ margin: "0", fontSize: "var(--text-lg)", flexGrow: "1" }}>Connect a platform</h2>
                       <button type="button" className="ib" onClick={v.closeWiz} aria-label="Close">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M18 6 6 18" />
@@ -500,18 +504,18 @@ export default class PixelsEventsScreen extends Component {
                     <div style={{ display: "flex", gap: "6px" }}>
                       {__list(v.wsteps).map((wz, $index) => (<React.Fragment key={$index}>
                           <div style={{ flex: "1" }}>
-                            <div style={__sx(`height: 5px; border-radius: 999px; background: ${wz?.c ?? ""};`)} />
-                            <div style={__sx(`font-size: 12px; color: ${wz?.f ?? ""}; margin-top: 6px; font-weight: 600;`)}>{wz?.l}</div>
+                            <div style={__sx(`height: 5px; border-radius: var(--radius-full); background: ${wz?.c ?? ""};`)} />
+                            <div style={__sx(`font-size: var(--text-xs); color: ${wz?.f ?? ""}; margin-top: 6px; font-weight: var(--weight-medium);`)}>{wz?.l}</div>
                           </div>
                         </React.Fragment>))}
                     </div>
-                    <div style={{ minHeight: "150px", padding: "18px", borderRadius: "14px", background: "#f7f9fc", display: "flex", flexDirection: "column", gap: "12px" }}>
-                      <div style={{ fontSize: "15px", fontWeight: "600" }}>{v.wT}</div>
-                      <div style={{ fontSize: "13.5px", color: "#475569", lineHeight: "21px" }}>{v.wB}</div>
+                    <div style={{ minHeight: "150px", padding: "18px", borderRadius: "var(--radius-xl)", background: "#f7f9fc", display: "flex", flexDirection: "column", gap: "12px" }}>
+                      <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>{v.wT}</div>
+                      <div style={{ fontSize: "var(--text-sm)", color: "#475569", lineHeight: "21px" }}>{v.wB}</div>
                       {v.wIsPick ? (<>
                         <div style={{ display: "flex", gap: "8px" }}>
                           {__list(v.wPick).map((wp, $index) => (<React.Fragment key={$index}>
-                              <button type="button" onClick={wp?.pick} style={__sx(`flex: 1; height: 64px; border-radius: 14px; border: 1.5px solid ${wp?.bd ?? ""}; background: #fff; font: inherit; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;`)}><img src={wp?.lg} alt="" width="26" height="26" style={{ width: "26px", height: "26px", objectFit: "contain", flexShrink: "0", display: "block" }} />{wp?.l}</button>
+                              <button type="button" onClick={wp?.pick} style={__sx(`flex: 1; height: 64px; border-radius: var(--radius-xl); border: 1.5px solid ${wp?.bd ?? ""}; background: #fff; font: inherit; font-weight: var(--weight-semibold); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;`)}><img src={wp?.lg} alt="" width="26" height="26" style={{ width: "26px", height: "26px", objectFit: "contain", flexShrink: "0", display: "block" }} />{wp?.l}</button>
                             </React.Fragment>))}
                         </div>
                       </>) : null}
@@ -519,7 +523,7 @@ export default class PixelsEventsScreen extends Component {
                         <input className="inp mono" placeholder={v.wPh} aria-label="Value" />
                       </>) : null}
                       {v.wIsOk ? (<>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px", borderRadius: "10px", background: "#e7f8f1", color: "#065f46", fontWeight: "600" }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px", borderRadius: "var(--radius-lg)", background: "#e7f8f1", color: "#065f46", fontWeight: "var(--weight-medium)" }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <circle cx="12" cy="12" r="10" />
   <path d="m9 12 2 2 4-4" />
 </svg>Test event received by the platform · 2 seconds</div>

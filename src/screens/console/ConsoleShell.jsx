@@ -82,47 +82,47 @@ class Component extends DCLogic {
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `
-body{margin:0;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;background:#e9eef5;color:#475569;-webkit-font-smoothing:antialiased}
+body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#475569;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
 a{color:#003087;text-decoration:none}a:hover{color:#002a77}
-.mono{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;letter-spacing:0}
+.mono{font-family:var(--font-data);font-size:var(--text-xs);letter-spacing:0}
 .num{font-variant-numeric:tabular-nums}
-.card{background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 6px 18px -8px rgba(15,23,42,.10)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:10px;border:0;font:inherit;font-size:14px;font-weight:500;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 160ms ease,color 160ms ease,transform 140ms cubic-bezier(.23,1,.32,1)}
+.card{background:#fff;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 6px 18px -8px rgba(15,23,42,.10)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 160ms ease,color 160ms ease,transform 140ms cubic-bezier(.23,1,.32,1)}
 .btn:active{transform:scale(.97)}
 .btn:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid rgba(0,48,135,.45);outline-offset:2px}
 .solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
 .ghost{background:rgba(0,48,135,.08);color:#003087}.ghost:hover{background:rgba(0,48,135,.15);color:#003087}
 .onnavy{background:rgba(255,255,255,.1);color:#fff}.onnavy:hover{background:rgba(255,255,255,.18);color:#fff}
 @keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
-.sk{border-radius:6px;background:linear-gradient(90deg,#eef2f7 0,#f7f9fc 40%,#eef2f7 80%);background-size:800px 100%;animation:shimmer 1.4s linear infinite}
+.sk{border-radius:var(--radius-md);background:linear-gradient(90deg,#eef2f7 0,#f7f9fc 40%,#eef2f7 80%);background-size:800px 100%;animation:shimmer 1.4s linear infinite}
 @media (prefers-reduced-motion: reduce){.btn,.nav{transition:none}.btn:active{transform:none}.sk{animation:none}}
 
-.cs{--bg:#eef2f7;--surface:#ffffff;--surface2:#f4f7fb;--line:#e2e8f0;--ink:#0f172a;--body:#475569;--muted:#64748b;--rail:#012169;--railink:#b7c6e0;--railicon:#7d94bf;--railhead:#7fd4f5;--railon:rgba(127,212,245,.16);--railhover:rgba(255,255,255,.06);--primary:#003087;--primaryhover:#002a77;--primaryink:#ffffff;--okbg:#e7f8f1;--okt:#047857;--warnbg:#fff4e0;--warnt:#b45309;--errbg:#ffece5;--errt:#c2410c;--track:#eef2f7;--series:#003087;--seriesfill:rgba(0,48,135,.08);--scrim:rgba(1,20,60,.36);--shadow:0 1px 2px rgba(15,23,42,.04),0 6px 18px -8px rgba(15,23,42,.10)}
+.cs{--bg:#eef2f7;--surface:#ffffff;--surface2:#f4f7fb;--line:#e2e8f0;--ink:#0f172a;--body:#475569;--muted:var(--text-muted);--rail:#012169;--railink:#b7c6e0;--railicon:#7d94bf;--railhead:#7fd4f5;--railon:rgba(127,212,245,.16);--railhover:rgba(255,255,255,.06);--primary:#003087;--primaryhover:#002a77;--primaryink:#ffffff;--okbg:#e7f8f1;--okt:#047857;--warnbg:#fff4e0;--warnt:#b45309;--errbg:#ffece5;--errt:#c2410c;--track:#eef2f7;--series:#003087;--seriesfill:rgba(0,48,135,.08);--scrim:rgba(1,20,60,.36);--shadow:0 1px 2px rgba(15,23,42,.04),0 6px 18px -8px rgba(15,23,42,.10)}
 .cs.dark{--bg:#0a1020;--surface:#111a2e;--surface2:#16213a;--line:#24324f;--ink:#e8eef8;--body:#aebbd2;--muted:#8a9bb8;--rail:#060b17;--railink:#a7b6d0;--railicon:#6c80a5;--railhead:#66c4eb;--railon:rgba(0,156,222,.18);--railhover:rgba(255,255,255,.05);--primary:#009cde;--primaryhover:#2eaee4;--primaryink:#04121f;--okbg:rgba(16,185,129,.14);--okt:#4ade9f;--warnbg:rgba(255,152,0,.14);--warnt:#fbbf24;--errbg:rgba(255,87,36,.16);--errt:#ff8a65;--track:#1d2944;--series:#66c4eb;--seriesfill:rgba(102,196,235,.10);--scrim:rgba(0,0,0,.55);--shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -10px rgba(0,0,0,.5)}
 .cs{color:var(--body)}
-.nav{display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:0 12px;border:0;border-radius:10px;background:transparent;color:var(--railink);font:inherit;font-size:14px;font-weight:500;text-align:left;cursor:pointer;transition:background-color 150ms ease,color 150ms ease}
+.nav{display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:0 12px;border:0;border-radius:var(--radius-lg);background:transparent;color:var(--railink);font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);text-align:left;cursor:pointer;transition:background-color 150ms ease,color 150ms ease}
 .nav:hover{background:var(--railhover);color:#fff}
 .nav.on{background:var(--railon);color:#fff}
-.nav.sub{min-height:40px;padding-left:42px;font-size:13.5px}
+.nav.sub{min-height:40px;padding-left:42px;font-size:var(--text-sm)}
 .nav:focus-visible{outline:3px solid rgba(127,212,245,.6);outline-offset:-3px}
 .chev{display:inline-flex;margin-left:auto;color:var(--railicon);transition:transform 160ms cubic-bezier(.23,1,.32,1)}
 .chev.open{transform:rotate(90deg)}
-.badge{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;padding:0 6px;border-radius:999px;font-size:11px;font-weight:600;background:rgba(255,255,255,.12);color:#fff}
+.badge{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;padding:0 6px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);background:rgba(255,255,255,.12);color:#fff}
 .badge.warn{background:#ff9800;color:#1a1204}.badge.err{background:#ff5724;color:#1c0a04}
-.tb{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:var(--body);cursor:pointer;transition:background-color 150ms ease}
+.tb{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:var(--radius-lg);background:transparent;color:var(--body);cursor:pointer;transition:background-color 150ms ease}
 .tb:hover{background:var(--surface2)}
-.seg{display:inline-flex;padding:3px;border-radius:10px;background:var(--surface2);border:1px solid var(--line)}
-.segb{min-height:36px;padding:0 14px;border:0;border-radius:8px;background:transparent;color:var(--body);font:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:background-color 150ms ease,color 150ms ease}
+.seg{display:inline-flex;padding:3px;border-radius:var(--radius-lg);background:var(--surface2);border:1px solid var(--line)}
+.segb{min-height:36px;padding:0 14px;border:0;border-radius:var(--radius-lg);background:transparent;color:var(--body);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;transition:background-color 150ms ease,color 150ms ease}
 .segb.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(15,23,42,.12)}
 
 .sp{transition:d 200ms cubic-bezier(.23,1,.32,1)}
-.searchbtn{display:flex;align-items:center;gap:10px;width:440px;height:44px;padding:0 10px 0 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--muted);font:inherit;font-size:14px;cursor:pointer;text-align:left}
+.searchbtn{display:flex;align-items:center;gap:10px;width:440px;height:44px;padding:0 10px 0 14px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--surface);color:var(--muted);font:inherit;font-size:var(--text-sm);cursor:pointer;text-align:left}
 .searchbtn:hover{border-color:var(--muted)}
-.kbd{margin-left:auto;display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:6px;border:1px solid var(--line);background:var(--surface2);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--body)}
-.pr{display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:0 12px;border:0;border-radius:10px;background:transparent;font:inherit;font-size:14px;color:var(--ink);text-align:left;cursor:pointer}
+.kbd{margin-left:auto;display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:var(--radius-md);border:1px solid var(--line);background:var(--surface2);font-family:var(--font-data);font-size:var(--text-xs);color:var(--body)}
+.pr{display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:0 12px;border:0;border-radius:var(--radius-lg);background:transparent;font:inherit;font-size:var(--text-sm);color:var(--ink);text-align:left;cursor:pointer}
 .pr:hover,.pr.on{background:var(--surface2)}
-.rowlink{color:var(--primary);font-size:13px;font-weight:600}
+.rowlink{color:var(--primary);font-size:var(--text-xs-plus);font-weight:var(--weight-medium)}
 .rowlink:hover{color:var(--primaryhover)}
 .btnp{background:var(--primary);color:var(--primaryink)}.btnp:hover{background:var(--primaryhover);color:var(--primaryink)}
 .btng{background:var(--surface2);color:var(--ink);border:1px solid var(--line)}.btng:hover{border-color:var(--muted)}
@@ -133,39 +133,39 @@ a{color:#003087;text-decoration:none}a:hover{color:#002a77}
 .cs{--bg:#f3f6fb;--side:#ffffff;--sideline:#e6ebf3;--sideink:#0f172a;--sidebody:#475569;--sidemuted:#64748b;--sidehover:#f4f7fb;--sideon:#eaf1ff;--sideonink:#003087;--iconbg:#eef3fb;--iconfg:#2e559d;--iconon:linear-gradient(145deg,#1f6fe0 0%,#003087 100%);--guide:#e2e8f0;--topbar:rgba(255,255,255,.86);--card:#ffffff;--cardline:#e8edf5}
 .cs.dark{--bg:#0a1020;--side:#0c1426;--sideline:#1c2842;--sideink:#e8eef8;--sidebody:#aebbd2;--sidemuted:#8a9bb8;--sidehover:rgba(255,255,255,.04);--sideon:rgba(0,156,222,.16);--sideonink:#7fd4f5;--iconbg:rgba(255,255,255,.06);--iconfg:#9fb3d6;--iconon:linear-gradient(145deg,#2eaee4 0%,#0070a0 100%);--guide:#24324f;--topbar:rgba(17,26,46,.86);--card:#111a2e;--cardline:#22304d}
 .side{position:absolute;left:0;top:0;bottom:0;width:272px;display:flex;flex-direction:column;background:var(--side);border-right:1px solid var(--sideline)}
-.nav{display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:0 10px;border:0;border-radius:12px;background:transparent;color:var(--sidebody);font:inherit;font-size:14px;font-weight:500;text-align:left;text-decoration:none;cursor:pointer;transition:background-color 150ms ease,color 150ms ease}
+.nav{display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:0 10px;border:0;border-radius:var(--radius-xl);background:transparent;color:var(--sidebody);font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);text-align:left;text-decoration:none;cursor:pointer;transition:background-color 150ms ease,color 150ms ease}
 .nav:hover{background:var(--sidehover);color:var(--sideink)}
 .nav:active{transform:scale(.99)}
 .nav:focus-visible{outline:3px solid rgba(0,48,135,.35);outline-offset:-2px}
-.navic{flex:none;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:10px;background:var(--iconbg);color:var(--iconfg);transition:background-color 150ms ease,color 150ms ease}
-.nav.grp.open{color:var(--sideink);font-weight:600}
+.navic{flex:none;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-lg);background:var(--iconbg);color:var(--iconfg);transition:background-color 150ms ease,color 150ms ease}
+.nav.grp.open{color:var(--sideink);font-weight:var(--weight-medium)}
 .nav.grp.open .navic,.nav.top.on .navic{background:var(--iconon);color:#fff;box-shadow:0 6px 14px -6px rgba(0,48,135,.55)}
-.nav.top.on{color:var(--sideink);font-weight:600;background:var(--sidehover)}
+.nav.top.on{color:var(--sideink);font-weight:var(--weight-medium);background:var(--sidehover)}
 .kids{position:relative;display:grid;gap:2px;margin:2px 0 8px 0;padding-left:44px}
 .kids:before{content:"";position:absolute;left:25px;top:4px;bottom:4px;width:1.5px;border-radius:2px;background:var(--guide)}
-.nav.sub{position:relative;min-height:38px;padding:0 10px;font-size:13.5px;border-radius:10px}
-.nav.sub.on{background:var(--sideon);color:var(--sideonink);font-weight:600}
+.nav.sub{position:relative;min-height:38px;padding:0 10px;font-size:var(--text-sm);border-radius:var(--radius-lg)}
+.nav.sub.on{background:var(--sideon);color:var(--sideonink);font-weight:var(--weight-medium)}
 .nav.sub.on:before{content:"";position:absolute;left:-20px;top:9px;bottom:9px;width:3px;border-radius:3px;background:#003087}
 .cs.dark .nav.sub.on:before{background:#2eaee4}
 .chev{display:inline-flex;margin-left:auto;color:var(--sidemuted);transition:transform 160ms cubic-bezier(.23,1,.32,1)}
 .chev.open{transform:rotate(90deg)}
-.badge{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;padding:0 7px;border-radius:999px;font-size:11px;font-weight:700;background:#eef2f7;color:#475569}
+.badge{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;padding:0 7px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);background:#eef2f7;color:#475569}
 .badge.warn{background:#fff1d6;color:#9a4a00}.badge.err{background:#ffe3d9;color:#b3340e}
 .cs.dark .badge{background:rgba(255,255,255,.08);color:#cbd5e1}.cs.dark .badge.warn{background:rgba(255,152,0,.18);color:#fbbf24}.cs.dark .badge.err{background:rgba(255,87,36,.2);color:#ff8a65}
 .topbar{position:absolute;left:272px;right:0;top:0;height:64px;display:flex;align-items:center;gap:12px;padding:0 24px 0 28px;background:var(--topbar);backdrop-filter:saturate(160%) blur(12px);-webkit-backdrop-filter:saturate(160%) blur(12px);border-bottom:1px solid var(--sideline);z-index:3}
-.crumbic{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:var(--iconbg);color:var(--iconfg)}
-.searchbtn{width:400px;height:40px;border-radius:12px;background:var(--surface2);border:1px solid transparent}
+.crumbic{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:var(--radius-lg);background:var(--iconbg);color:var(--iconfg)}
+.searchbtn{width:400px;height:40px;border-radius:var(--radius-xl);background:var(--surface2);border:1px solid transparent}
 .searchbtn:hover{border-color:var(--line);background:var(--surface)}
-.tb{width:40px;height:40px;border-radius:12px}
-.panel{background:var(--card);border:1px solid var(--cardline);border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04)}
-.kpi{position:relative;display:flex;flex-direction:column;gap:4px;padding:14px 16px 12px;border-radius:16px;background:var(--card);border:1px solid var(--cardline);box-shadow:0 1px 2px rgba(15,23,42,.04);overflow:hidden}
-.dpill{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.tb{width:40px;height:40px;border-radius:var(--radius-xl)}
+.panel{background:var(--card);border:1px solid var(--cardline);border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04)}
+.kpi{position:relative;display:flex;flex-direction:column;gap:4px;padding:14px 16px 12px;border-radius:var(--radius-xl);background:var(--card);border:1px solid var(--cardline);box-shadow:0 1px 2px rgba(15,23,42,.04);overflow:hidden}
+.dpill{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
 .d-good{background:#e7f8f1;color:#047857}.d-bad{background:#ffece5;color:#c2410c}.d-flat{background:transparent;color:var(--muted);padding:0}
 .th{background:#f8fafc;border-bottom:1px solid var(--line)}
 .cs.dark .th{background:rgba(255,255,255,.03)}
-.statuscard{margin:0 14px 10px;padding:12px 14px;border-radius:14px;background:linear-gradient(160deg,#f5f9ff 0%,#eef4fd 100%);border:1px solid #e1eaf7}
+.statuscard{margin:0 14px 10px;padding:12px 14px;border-radius:var(--radius-xl);background:linear-gradient(160deg,#f5f9ff 0%,#eef4fd 100%);border:1px solid #e1eaf7}
 .cs.dark .statuscard{background:rgba(255,255,255,.04);border-color:var(--sideline)}
-.me{display:flex;align-items:center;gap:10px;margin:0 14px 14px;padding:10px;border-radius:14px;border:1px solid var(--sideline)}
+.me{display:flex;align-items:center;gap:10px;margin:0 14px 14px;padding:10px;border-radius:var(--radius-xl);border:1px solid var(--sideline)}
 @media (prefers-reduced-motion: reduce){.nav,.navic,.chev{transition:none}.nav:active{transform:none}}
 
 .sidein{display:flex;flex-direction:column;height:min(100%,900px);min-height:0}
@@ -174,7 +174,7 @@ a{color:#003087;text-decoration:none}a:hover{color:#002a77}
 .pill{white-space:normal;height:auto;min-height:24px;padding:3px 9px;line-height:1.3;max-width:100%}
 .dpill{white-space:normal;height:auto;min-height:22px;padding:3px 8px;line-height:1.35;max-width:100%}
 .d-flat{padding:0}
-.kl{font-size:12.5px;font-weight:500;color:var(--body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.kl{font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .ell{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .nav{position:relative;min-height:38px}
 .navlabel{margin:6px 10px 4px !important}
@@ -204,46 +204,46 @@ a{color:#003087;text-decoration:none}a:hover{color:#002a77}
 .cs.mini .statuscard{margin:0 12px 10px;padding:12px 0;display:flex;justify-content:center}
 .cs.mini .me{justify-content:center;margin:0 12px 12px;padding:8px 0}
 @media (prefers-reduced-motion: reduce){.side,.topbar,.mainarea,.formbar{transition:none}}
-.fcard{background:var(--card);border:1px solid var(--cardline);border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04);padding:4px 28px}
+.fcard{background:var(--card);border:1px solid var(--cardline);border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04);padding:4px 28px}
 .fsec{display:grid;grid-template-columns:250px minmax(0,1fr);gap:32px;padding:24px 0}
 .fsec + .fsec{border-top:1px solid var(--line)}
-.fsh{font-size:15px;font-weight:600;color:var(--ink);margin:0}
-.fsd{margin:6px 0 0;font-size:12.5px;line-height:1.55;color:var(--body)}
+.fsh{font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--ink);margin:0}
+.fsd{margin:6px 0 0;font-size:var(--text-xs-plus);line-height:1.55;color:var(--body)}
 .fgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 18px}
 .fld{display:flex;flex-direction:column;gap:6px;min-width:0}
-.flab{font-size:13px;font-weight:600;color:var(--ink)}
+.flab{font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--ink)}
 .req{color:#c2410c;margin-left:2px}
-.fhelp{font-size:12px;line-height:1.45;color:var(--muted)}
-.ferr{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#c2410c}
-.in{width:100%;height:44px;padding:0 12px;border:1px solid #d5dde8;border-radius:10px;background:var(--surface);font:inherit;font-size:14px;color:var(--ink)}
+.fhelp{font-size:var(--text-xs);line-height:1.45;color:var(--muted)}
+.ferr{display:flex;align-items:center;gap:6px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:#c2410c}
+.in{width:100%;height:44px;padding:0 12px;border:1px solid #d5dde8;border-radius:var(--radius-lg);background:var(--surface);font:inherit;font-size:var(--text-sm);color:var(--ink)}
 textarea.in{height:auto;padding:10px 12px;line-height:1.5;resize:vertical}
 select.in{padding-right:8px}
 .in:focus,.affix:focus-within{outline:none;border-color:#003087;box-shadow:0 0 0 3px rgba(0,48,135,.15)}
 .in.err,.affix.err{border-color:#ff5724;box-shadow:0 0 0 3px rgba(255,87,36,.12)}
 .in.ok{border-color:#10b981}
 .in[disabled]{background:var(--surface2);color:var(--muted)}
-.affix{display:flex;align-items:stretch;height:44px;border:1px solid #d5dde8;border-radius:10px;overflow:hidden;background:var(--surface)}
-.affix > span{display:flex;align-items:center;flex:none;padding:0 12px;background:var(--surface2);color:var(--body);font-size:13px}
+.affix{display:flex;align-items:stretch;height:44px;border:1px solid #d5dde8;border-radius:var(--radius-lg);overflow:hidden;background:var(--surface)}
+.affix > span{display:flex;align-items:center;flex:none;padding:0 12px;background:var(--surface2);color:var(--body);font-size:var(--text-xs-plus)}
 .affix > span.pre{border-right:1px solid #d5dde8}.affix > span.post{border-left:1px solid #d5dde8}
-.affix input{flex:1;min-width:0;border:0;padding:0 12px;font:inherit;font-size:14px;background:transparent;color:var(--ink);outline:none}
-.sw{position:relative;display:inline-flex;flex:none;width:40px;height:24px;border-radius:99px;background:#cbd5e1}
-.sw:after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:99px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform 160ms cubic-bezier(.23,1,.32,1)}
+.affix input{flex:1;min-width:0;border:0;padding:0 12px;font:inherit;font-size:var(--text-sm);background:transparent;color:var(--ink);outline:none}
+.sw{position:relative;display:inline-flex;flex:none;width:40px;height:24px;border-radius:var(--radius-full);background:#cbd5e1}
+.sw:after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform 160ms cubic-bezier(.23,1,.32,1)}
 .sw.on{background:#003087}.sw.on:after{transform:translateX(16px)}
 .swrow{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:12px 0}
 .swrow + .swrow{border-top:1px solid var(--line)}
 .rgrid{display:grid;gap:10px}
-.rc{display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid #d5dde8;border-radius:12px;background:var(--surface);min-width:0}
+.rc{display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid #d5dde8;border-radius:var(--radius-xl);background:var(--surface);min-width:0}
 .rc.on{border-color:#003087;background:#f5f8ff;box-shadow:0 0 0 1px #003087}
 .rc .rdot{margin-top:1px}
 .rc.on .rdot{border:6px solid #003087}
-.cb{flex:none;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;border:2px solid #94a3b8;background:#fff}
+.cb{flex:none;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:var(--radius-sm);border:2px solid #94a3b8;background:#fff}
 .cb.on{background:#003087;border-color:#003087;color:#fff}
 .cb.dis{background:var(--surface2);border-color:#cbd5e1}
-.chk{display:flex;align-items:center;gap:10px;min-height:36px;font-size:13.5px;color:var(--ink);min-width:0}
-.tagsel{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:999px;border:1px solid #d5dde8;font-size:13px;color:var(--body);background:var(--surface)}
-.tagsel.on{background:#003087;border-color:#003087;color:#fff;font-weight:600}
+.chk{display:flex;align-items:center;gap:10px;min-height:36px;font-size:var(--text-sm);color:var(--ink);min-width:0}
+.tagsel{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:var(--radius-full);border:1px solid #d5dde8;font-size:var(--text-xs-plus);color:var(--body);background:var(--surface)}
+.tagsel.on{background:#003087;border-color:#003087;color:#fff;font-weight:var(--weight-medium)}
 .formbar{position:absolute;left:0;right:0;bottom:0;height:72px;display:flex;align-items:center;gap:10px;padding:0 28px;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);z-index:3}
-.note{padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.55}
+.note{padding:12px 14px;border-radius:var(--radius-xl);font-size:var(--text-xs-plus);line-height:1.55}
 .n-info{background:#f2f5f9;color:var(--ink)}.n-warn{background:#fff4e0;color:#7a3e05}.n-err{background:#ffece5;color:#7c2d12}.n-ok{background:#e7f8f1;color:#065f46}
 `;
 
@@ -255,7 +255,7 @@ export default class ConsoleShellScreen extends Component {
     return (
       <div className="dc-screen" data-screen="ConsoleShell">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className={v.rootCls} style={{ width: "1440px", height: "900px", overflow: "hidden", position: "relative", background: "var(--bg)", fontFamily: "'Poppins',system-ui,sans-serif" }}>
+        <div className={v.rootCls} style={{ width: "1440px", height: "900px", overflow: "hidden", position: "relative", background: "var(--bg)", fontFamily: "var(--font-sans)" }}>
           <aside className="side" aria-label="Console navigation">
             <div className="sidehead" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "18px 12px 6px 20px" }}>
               <span className="logo-full">
@@ -275,8 +275,8 @@ export default class ConsoleShellScreen extends Component {
               </button>
             </div>
             <div className="sidemeta" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "4px 20px 12px" }}>
-              <span style={{ display: "inline-flex", alignItems: "center", height: "22px", padding: "0 8px", borderRadius: "6px", background: "var(--iconbg)", color: "var(--iconfg)", fontSize: "11px", fontWeight: "600", letterSpacing: ".06em", textTransform: "uppercase" }}>Console</span>
-              <span className="ell" style={{ fontSize: "12px", color: "var(--sidemuted)" }}>Staff only · views logged</span>
+              <span style={{ display: "inline-flex", alignItems: "center", height: "22px", padding: "0 8px", borderRadius: "var(--radius-md)", background: "var(--iconbg)", color: "var(--iconfg)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase" }}>Console</span>
+              <span className="ell" style={{ fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>Staff only · views logged</span>
             </div>
             <nav aria-label="Console" className="sidenav">
               <button className={v.overviewCls} type="button" onClick={v.pickOverview} aria-current={v.overviewCurrent}>
@@ -287,7 +287,7 @@ export default class ConsoleShellScreen extends Component {
                 </span>
                 <span className="navtxt">Overview</span>
               </button>
-              <div className="navlabel" style={{ margin: "10px 10px 6px", fontSize: "10.5px", fontWeight: "700", letterSpacing: ".14em", textTransform: "uppercase", color: "var(--sidemuted)" }}>Manage</div>
+              <div className="navlabel" style={{ margin: "10px 10px 6px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--sidemuted)" }}>Manage</div>
               <button className={v.g?.tenants?.hcls} type="button" onClick={v.g?.tenants?.toggle} title="Tenants" aria-expanded={v.g?.tenants?.expanded}>
                 <span className="navic">
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -476,20 +476,20 @@ export default class ConsoleShellScreen extends Component {
             </nav>
             <__Link href="/ops-centre" className="statuscard" title="1 open incident" style={{ display: "block", color: "inherit", textDecoration: "none" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ flex: "none", width: "10px", height: "10px", borderRadius: "99px", background: "#ff9800", boxShadow: "0 0 0 3px rgba(255,152,0,.2)" }} />
-                <span className="statustxt" style={{ fontSize: "12.5px", fontWeight: "600", color: "var(--sideink)" }}>1 open incident</span>
-                <span className="num statustxt" style={{ marginLeft: "auto", fontSize: "11.5px", color: "var(--sidemuted)" }}>99.96%</span>
+                <span style={{ flex: "none", width: "10px", height: "10px", borderRadius: "var(--radius-full)", background: "#ff9800", boxShadow: "0 0 0 3px rgba(255,152,0,.2)" }} />
+                <span className="statustxt" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--sideink)" }}>1 open incident</span>
+                <span className="num statustxt" style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>99.96%</span>
               </div>
-              <div className="statustxt ell" style={{ marginTop: "4px", fontSize: "12px", color: "var(--sidebody)" }}>Steadfast webhooks delayed · 38 stores</div>
+              <div className="statustxt ell" style={{ marginTop: "4px", fontSize: "var(--text-xs)", color: "var(--sidebody)" }}>Steadfast webhooks delayed · 38 stores</div>
             </__Link>
             <div className="me">
               <span style={{ position: "relative", display: "inline-flex", flex: "none" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "12px", background: "linear-gradient(145deg,#2eaee4,#003087)", color: "#fff", fontSize: "13px", fontWeight: "700" }}>FA</span>
-                <span style={{ position: "absolute", right: "-2px", bottom: "-2px", width: "11px", height: "11px", borderRadius: "99px", background: "#10b981", border: "2px solid var(--side)" }} />
+                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "var(--radius-xl)", background: "linear-gradient(145deg,#2eaee4,#003087)", color: "#fff", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-semibold)" }}>FA</span>
+                <span style={{ position: "absolute", right: "-2px", bottom: "-2px", width: "11px", height: "11px", borderRadius: "var(--radius-full)", background: "#10b981", border: "2px solid var(--side)" }} />
               </span>
               <div className="metxt" style={{ minWidth: "0" }}>
-                <div className="ell" style={{ fontSize: "13px", fontWeight: "600", color: "var(--sideink)" }}>Farhana Akter</div>
-                <div className="ell" style={{ fontSize: "11.5px", color: "var(--sidemuted)" }}>Support lead · 2FA on</div>
+                <div className="ell" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--sideink)" }}>Farhana Akter</div>
+                <div className="ell" style={{ fontSize: "var(--text-xs)", color: "var(--sidemuted)" }}>Support lead · 2FA on</div>
               </div>
               <__Link href="/staff-roles" className="tb mebtn" aria-label="Account and roles" style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--sidemuted)" }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -500,7 +500,7 @@ export default class ConsoleShellScreen extends Component {
             </div>
           </aside>
           <header className="topbar">
-            <nav aria-label="Breadcrumb" style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13px", minWidth: "230px" }}>
+            <nav aria-label="Breadcrumb" style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs-plus)", minWidth: "230px" }}>
               <span className="crumbic">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
@@ -512,7 +512,7 @@ export default class ConsoleShellScreen extends Component {
                   <path d="m9 6 6 6-6 6" />
                 </svg>
               </span>
-              <span style={{ fontWeight: "600", color: "var(--ink)" }}>{v.crumbPage}</span>
+              <span style={{ fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>{v.crumbPage}</span>
             </nav>
             <button className="searchbtn" type="button" onClick={v.openPalette} aria-haspopup="dialog"><span style={{ display: "inline-flex" }}>
   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -521,9 +521,9 @@ export default class ConsoleShellScreen extends Component {
   </svg>
 </span>Search stores, phones, invoices, leads<span className="kbd">Ctrl K</span></button>
             {" "}
-            <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "8px", height: "30px", padding: "0 12px", borderRadius: "999px", background: "var(--okbg)", color: "var(--okt)", fontSize: "12px", fontWeight: "600" }}><span style={{ width: "7px", height: "7px", borderRadius: "9px", background: "#10b981", boxShadow: "0 0 0 3px rgba(16,185,129,.18)" }} />Production</span>
+            <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "8px", height: "24px", padding: "0 8px", borderRadius: "var(--radius-full)", background: "var(--okbg)", color: "var(--okt)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}><span style={{ width: "7px", height: "7px", borderRadius: "var(--radius-lg)", background: "#10b981", boxShadow: "0 0 0 3px rgba(16,185,129,.18)" }} />Production</span>
             {" "}
-            <span className="num" style={{ fontSize: "12.5px", color: "var(--muted)", padding: "0 4px" }}>Sun 20 Sep · 14:32</span>
+            <span className="num" style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)", padding: "0 4px" }}>Sun 20 Sep · 14:32</span>
             {" "}
             <span style={{ width: "1px", height: "24px", background: "var(--line)" }} />
             {" "}
@@ -532,7 +532,7 @@ export default class ConsoleShellScreen extends Component {
                 <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
                 <path d="M10 21h4" />
               </svg>
-              <span style={{ position: "absolute", top: "8px", right: "9px", width: "8px", height: "8px", borderRadius: "9px", background: "#ff5724", border: "2px solid var(--surface)" }} />
+              <span style={{ position: "absolute", top: "8px", right: "9px", width: "8px", height: "8px", borderRadius: "var(--radius-lg)", background: "#ff5724", border: "2px solid var(--surface)" }} />
             </button>
             {" "}
             <button className="tb" type="button" onClick={v.toggleTheme} aria-label={v.themeLabel}>
@@ -560,8 +560,8 @@ export default class ConsoleShellScreen extends Component {
             {v.isOverview ? (<>
               <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "24px" }}>
                 <div>
-                  <h1 style={{ margin: "0", fontSize: "24px", lineHeight: "1.2", fontWeight: "700", letterSpacing: "-.02em", color: "var(--ink)" }}>Overview</h1>
-                  <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--muted)" }}>All 62 stores · refreshed 2 min ago</p>
+                  <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }}>Overview</h1>
+                  <p style={{ margin: "4px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>All 62 stores · refreshed 2 min ago</p>
                 </div>
                 <div className="seg" role="group" aria-label="Period">
                   {__list(v.ranges).map((r, $index) => (<React.Fragment key={$index}>
@@ -573,11 +573,11 @@ export default class ConsoleShellScreen extends Component {
                 {__list(v.kpis).map((k, $index) => (<React.Fragment key={$index}>
                     <div className="kpi" style={{ gap: "6px", padding: "16px 18px 12px" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <span style={{ fontSize: "13px", fontWeight: "500", color: "var(--body)" }}>{k?.label}</span>
-                        <span style={{ fontSize: "12px", color: "var(--muted)" }}>{v.rangeLabel}</span>
+                        <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--body)" }}>{k?.label}</span>
+                        <span style={{ fontSize: "var(--text-xs)", color: "var(--muted)" }}>{v.rangeLabel}</span>
                       </div>
-                      <div className="num" style={{ fontSize: "30px", lineHeight: "1.15", fontWeight: "700", letterSpacing: "-.02em", color: "var(--ink)" }}>{k?.value}</div>
-                      <div className={k?.toneCls} style={{ fontSize: "12.5px", fontWeight: "600" }}>{k?.delta}</div>
+                      <div className="num" style={{ fontSize: "var(--text-3xl)", lineHeight: "1.15", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }}>{k?.value}</div>
+                      <div className={k?.toneCls} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>{k?.delta}</div>
                       <svg viewBox="0 0 200 36" width="100%" height="36" aria-hidden="true" preserveAspectRatio="none" style={{ display: "block", marginTop: "4px" }}>
                         <path className="sp" d={k?.area} fill="var(--seriesfill)" />
                         <path className="sp" d={k?.d} fill="none" stroke="var(--series)" strokeWidth="2" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
@@ -588,10 +588,10 @@ export default class ConsoleShellScreen extends Component {
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,2.1fr) minmax(0,1fr)", gap: "16px", minHeight: "0" }}>
                 <section className="panel" aria-labelledby="na" style={{ overflow: "hidden" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px 12px" }}>
-                    <h2 id="na" style={{ margin: "0", fontSize: "16px", fontWeight: "600", color: "var(--ink)" }}>Needs attention today</h2>
+                    <h2 id="na" style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>Needs attention today</h2>
                     <a className="rowlink" href="#">All 9 in Health and risk →</a>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1.6fr) 110px 110px 110px", gap: "12px", padding: "0 20px 8px", fontSize: "11px", fontWeight: "600", letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1.6fr) 110px 110px 110px", gap: "12px", padding: "0 20px 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
                     <span>Store</span>
                     <span>Reason</span>
                     <span>Band</span>
@@ -600,73 +600,73 @@ export default class ConsoleShellScreen extends Component {
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1.6fr) 110px 110px 110px", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 20px", borderTop: "1px solid var(--line)" }}>
                     <div style={{ minWidth: "0" }}>
-                      <div style={{ fontSize: "14px", fontWeight: "600", color: "var(--ink)" }}>Dhaka Gadget Hub</div>
+                      <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Dhaka Gadget Hub</div>
                       <div className="mono" style={{ color: "var(--muted)" }}>tenant 0031</div>
                     </div>
-                    <div style={{ fontSize: "13px", color: "var(--body)" }}>Invoice unpaid · courier failing</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: "600", color: "var(--errt)" }}><svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
+                    <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Invoice unpaid · courier failing</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--errt)" }}><svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
   <rect x="4" y="4" width="12" height="12" fill="#ff5724" transform="rotate(45 10 10)" />
 </svg>At risk</div>
-                    <div style={{ fontSize: "13px", color: "var(--body)" }}>Farhana A.</div>
+                    <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Farhana A.</div>
                     <a className="rowlink" href="#" style={{ textAlign: "right" }}>Call today →</a>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1.6fr) 110px 110px 110px", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 20px", borderTop: "1px solid var(--line)" }}>
                     <div style={{ minWidth: "0" }}>
-                      <div style={{ fontSize: "14px", fontWeight: "600", color: "var(--ink)" }}>Bindu Beauty</div>
+                      <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Bindu Beauty</div>
                       <div className="mono" style={{ color: "var(--muted)" }}>tenant 0044</div>
                     </div>
-                    <div style={{ fontSize: "13px", color: "var(--body)" }}>Read-only · no login 9 days</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: "600", color: "var(--errt)" }}><svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
+                    <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Read-only · no login 9 days</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--errt)" }}><svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
   <rect x="4" y="4" width="12" height="12" fill="#ff5724" transform="rotate(45 10 10)" />
 </svg>At risk</div>
-                    <div style={{ fontSize: "13px", color: "var(--body)" }}>Rakib H.</div>
+                    <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Rakib H.</div>
                     <a className="rowlink" href="#" style={{ textAlign: "right" }}>Call today →</a>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1.6fr) 110px 110px 110px", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 20px", borderTop: "1px solid var(--line)" }}>
                     <div style={{ minWidth: "0" }}>
-                      <div style={{ fontSize: "14px", fontWeight: "600", color: "var(--ink)" }}>Nodi Organic</div>
+                      <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Nodi Organic</div>
                       <div className="mono" style={{ color: "var(--muted)" }}>tenant 0058</div>
                     </div>
-                    <div style={{ fontSize: "13px", color: "var(--body)" }}>Setup stalled · no orders 6 days</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: "600", color: "var(--warnt)" }}><svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
+                    <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Setup stalled · no orders 6 days</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--warnt)" }}><svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
   <path d="M10,2 L18,17 L2,17 Z" fill="#ff9800" />
 </svg>Watch</div>
-                    <div style={{ fontSize: "13px", color: "var(--body)" }}>Unassigned</div>
+                    <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Unassigned</div>
                     <a className="rowlink" href="#" style={{ textAlign: "right" }}>Assign →</a>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1.6fr) 110px 110px 110px", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 20px", borderTop: "1px solid var(--line)" }}>
                     <div style={{ minWidth: "0" }}>
-                      <div style={{ fontSize: "14px", fontWeight: "600", color: "var(--ink)" }}>Shonali Crafts</div>
+                      <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Shonali Crafts</div>
                       <div className="mono" style={{ color: "var(--muted)" }}>tenant 0017</div>
                     </div>
-                    <div style={{ fontSize: "13px", color: "var(--body)" }}>82% of order limit</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: "600", color: "var(--warnt)" }}><svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
+                    <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>82% of order limit</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--warnt)" }}><svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
   <path d="M10,2 L18,17 L2,17 Z" fill="#ff9800" />
 </svg>Watch</div>
-                    <div style={{ fontSize: "13px", color: "var(--body)" }}>Tania S.</div>
+                    <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Tania S.</div>
                     <a className="rowlink" href="#" style={{ textAlign: "right" }}>Offer upgrade →</a>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1.6fr) 110px 110px 110px", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 20px", borderTop: "1px solid var(--line)" }}>
                     <div style={{ minWidth: "0" }}>
-                      <div style={{ fontSize: "14px", fontWeight: "600", color: "var(--ink)" }}>Kolpo Books</div>
+                      <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Kolpo Books</div>
                       <div className="mono" style={{ color: "var(--muted)" }}>tenant 0061</div>
                     </div>
-                    <div style={{ fontSize: "13px", color: "var(--body)" }}>Trial day 12 · domain not verified</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: "600", color: "var(--warnt)" }}><svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
+                    <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Trial day 12 · domain not verified</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--warnt)" }}><svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
   <path d="M10,2 L18,17 L2,17 Z" fill="#ff9800" />
 </svg>Watch</div>
-                    <div style={{ fontSize: "13px", color: "var(--body)" }}>Tania S.</div>
+                    <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Tania S.</div>
                     <a className="rowlink" href="#" style={{ textAlign: "right" }}>Send guide →</a>
                   </div>
                 </section>
                 <section className="panel" aria-labelledby="pl" style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "16px 20px" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <h2 id="pl" style={{ margin: "0", fontSize: "16px", fontWeight: "600", color: "var(--ink)" }}>Platform</h2>
-                    <span style={{ fontSize: "12px", color: "var(--muted)" }}>30 days</span>
+                    <h2 id="pl" style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>Platform</h2>
+                    <span style={{ fontSize: "var(--text-xs)", color: "var(--muted)" }}>30 days</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-                    <span className="num" style={{ fontSize: "26px", fontWeight: "700", color: "var(--ink)" }}>99.96%</span>
-                    <span style={{ fontSize: "12.5px", color: "var(--muted)" }}>uptime · target 99.9</span>
+                    <span className="num" style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>99.96%</span>
+                    <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>uptime · target 99.9</span>
                   </div>
                   <div style={{ display: "flex", gap: "2px" }} aria-label="Uptime by day, one degraded day">
                     <span style={{ flex: "1", height: "32px", borderRadius: "2px", background: "#10b981" }} />
@@ -702,50 +702,50 @@ export default class ConsoleShellScreen extends Component {
                   </div>
                   <div style={{ height: "1px", background: "var(--line)", margin: "4px 0" }} />
                   <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "36px", fontSize: "13px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "36px", fontSize: "var(--text-xs-plus)" }}>
                       <span style={{ display: "inline-flex" }}>
                         <svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
                           <circle cx="10" cy="10" r="7" fill="#10b981" />
                         </svg>
                       </span>
-                      <span style={{ color: "var(--ink)", fontWeight: "500" }}>Pathao</span>
-                      <span style={{ marginLeft: "auto", color: "var(--okt)", fontWeight: "400" }}>Healthy</span>
+                      <span style={{ color: "var(--ink)", fontWeight: "var(--weight-medium)" }}>Pathao</span>
+                      <span style={{ marginLeft: "auto", color: "var(--okt)", fontWeight: "var(--weight-regular)" }}>Healthy</span>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "36px", fontSize: "13px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "36px", fontSize: "var(--text-xs-plus)" }}>
                       <span style={{ display: "inline-flex" }}>
                         <svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
                           <rect x="4" y="4" width="12" height="12" fill="#ff5724" transform="rotate(45 10 10)" />
                         </svg>
                       </span>
-                      <span style={{ color: "var(--ink)", fontWeight: "500" }}>Steadfast</span>
-                      <span style={{ marginLeft: "auto", color: "var(--errt)", fontWeight: "600" }}>Failing since 09:40</span>
+                      <span style={{ color: "var(--ink)", fontWeight: "var(--weight-medium)" }}>Steadfast</span>
+                      <span style={{ marginLeft: "auto", color: "var(--errt)", fontWeight: "var(--weight-medium)" }}>Failing since 09:40</span>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "36px", fontSize: "13px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "36px", fontSize: "var(--text-xs-plus)" }}>
                       <span style={{ display: "inline-flex" }}>
                         <svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
                           <circle cx="10" cy="10" r="7" fill="#10b981" />
                         </svg>
                       </span>
-                      <span style={{ color: "var(--ink)", fontWeight: "500" }}>bKash</span>
-                      <span style={{ marginLeft: "auto", color: "var(--okt)", fontWeight: "400" }}>Healthy</span>
+                      <span style={{ color: "var(--ink)", fontWeight: "var(--weight-medium)" }}>bKash</span>
+                      <span style={{ marginLeft: "auto", color: "var(--okt)", fontWeight: "var(--weight-regular)" }}>Healthy</span>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "36px", fontSize: "13px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "36px", fontSize: "var(--text-xs-plus)" }}>
                       <span style={{ display: "inline-flex" }}>
                         <svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
                           <circle cx="10" cy="10" r="7" fill="#10b981" />
                         </svg>
                       </span>
-                      <span style={{ color: "var(--ink)", fontWeight: "500" }}>Nagad</span>
-                      <span style={{ marginLeft: "auto", color: "var(--okt)", fontWeight: "400" }}>Healthy</span>
+                      <span style={{ color: "var(--ink)", fontWeight: "var(--weight-medium)" }}>Nagad</span>
+                      <span style={{ marginLeft: "auto", color: "var(--okt)", fontWeight: "var(--weight-regular)" }}>Healthy</span>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "36px", fontSize: "13px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "36px", fontSize: "var(--text-xs-plus)" }}>
                       <span style={{ display: "inline-flex" }}>
                         <svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
                           <path d="M10,2 L18,17 L2,17 Z" fill="#ff9800" />
                         </svg>
                       </span>
-                      <span style={{ color: "var(--ink)", fontWeight: "500" }}>Meta CAPI</span>
-                      <span style={{ marginLeft: "auto", color: "var(--warnt)", fontWeight: "600" }}>Delayed events</span>
+                      <span style={{ color: "var(--ink)", fontWeight: "var(--weight-medium)" }}>Meta CAPI</span>
+                      <span style={{ marginLeft: "auto", color: "var(--warnt)", fontWeight: "var(--weight-medium)" }}>Delayed events</span>
                     </div>
                   </div>
                 </section>
@@ -753,24 +753,24 @@ export default class ConsoleShellScreen extends Component {
             </>) : null}
             {v.notOverview ? (<>
               <div>
-                <h1 style={{ margin: "0", fontSize: "24px", lineHeight: "1.2", fontWeight: "700", letterSpacing: "-.02em", color: "var(--ink)" }}>{v.crumbPage}</h1>
-                <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--muted)" }}>{v.cur?.desc}</p>
+                <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }}>{v.crumbPage}</h1>
+                <p style={{ margin: "4px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>{v.cur?.desc}</p>
               </div>
               <div className="panel" style={{ flexGrow: "1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px", textAlign: "center", border: "2px dashed var(--line)", boxShadow: "none", background: "transparent" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "56px", height: "56px", borderRadius: "16px", background: "var(--surface)", color: "var(--primary)", boxShadow: "var(--shadow)" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "56px", height: "56px", borderRadius: "var(--radius-xl)", background: "var(--surface)", color: "var(--primary)", boxShadow: "var(--shadow)" }}>
                   <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="m12 2 9 5v10l-9 5-9-5V7l9-5Z" />
                     <path d="m3 7 9 5 9-5M12 12v10" />
                   </svg>
                 </span>
                 {v.cur?.noBoard ? (<>
-                  <div style={{ fontSize: "12px", fontWeight: "600", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--muted)" }}>Designed in step {v.cur?.step} · {v.cur?.stepName}</div>
-                  <div style={{ maxWidth: "460px", fontSize: "15px", lineHeight: "1.6", color: "var(--body)" }}>This slot in the shell is reserved for the {v.crumbPage} screen. The shell, search, tenant context bar and states around it are final.</div>
+                  <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>Designed in step {v.cur?.step} · {v.cur?.stepName}</div>
+                  <div style={{ maxWidth: "460px", fontSize: "var(--text-sm-plus)", lineHeight: "1.6", color: "var(--body)" }}>This slot in the shell is reserved for the {v.crumbPage} screen. The shell, search, tenant context bar and states around it are final.</div>
                   <button className="btn btng" type="button" onClick={v.pickOverview}>Back to Overview</button>
                 </>) : null}
                 {v.cur?.hasBoard ? (<>
-                  <div style={{ fontSize: "12px", fontWeight: "600", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--muted)" }}>Built · full screen board</div>
-                  <div style={{ maxWidth: "460px", fontSize: "15px", lineHeight: "1.6", color: "var(--body)" }}>The {v.crumbPage} screen is built as its own board, with the same shell. Open it to see and click through it.</div>
+                  <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>Built · full screen board</div>
+                  <div style={{ maxWidth: "460px", fontSize: "var(--text-sm-plus)", lineHeight: "1.6", color: "var(--body)" }}>The {v.crumbPage} screen is built as its own board, with the same shell. Open it to see and click through it.</div>
                   <__A className="btn btnp" href={v.cur?.href}>Open {v.crumbPage}</__A>
                 </>) : null}
               </div>
@@ -778,7 +778,7 @@ export default class ConsoleShellScreen extends Component {
           </main>
           {v.palette ? (<>
             <div style={{ position: "absolute", inset: "0", background: "var(--scrim)" }} />
-            <div role="dialog" aria-modal="true" aria-label="Search the console" style={{ position: "absolute", left: "50%", top: "80px", width: "680px", marginLeft: "-204px", borderRadius: "16px", background: "var(--surface)", boxShadow: "0 24px 60px -16px rgba(0,0,0,.45)", overflow: "hidden" }}>
+            <div role="dialog" aria-modal="true" aria-label="Search the console" style={{ position: "absolute", left: "50%", top: "80px", width: "680px", marginLeft: "-204px", borderRadius: "var(--radius-xl)", background: "var(--surface)", boxShadow: "0 24px 60px -16px rgba(0,0,0,.45)", overflow: "hidden" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px", height: "60px", padding: "0 16px 0 20px", borderBottom: "1px solid var(--line)" }}>
                 <span style={{ display: "inline-flex", color: "var(--muted)" }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -788,30 +788,30 @@ export default class ConsoleShellScreen extends Component {
                 </span>
                 <label style={{ flexGrow: "1" }}>
                   <span style={{ position: "absolute", width: "1px", height: "1px", overflow: "hidden", clip: "rect(0 0 0 0)" }}>Search</span>
-                  <input type="search" defaultValue="dhaka" style={{ width: "100%", height: "44px", border: "0", outline: "0", background: "transparent", font: "inherit", fontSize: "16px", color: "var(--ink)" }} />
+                  <input type="search" defaultValue="dhaka" style={{ width: "100%", height: "44px", border: "0", outline: "0", background: "transparent", font: "inherit", fontSize: "var(--text-base)", color: "var(--ink)" }} />
                 </label>
-                <button className="btn btng" type="button" onClick={v.closePalette} style={{ minHeight: "32px", padding: "0 10px", fontSize: "12px" }}>Esc</button>
+                <button className="btn btng" type="button" onClick={v.closePalette} style={{ minHeight: "32px", padding: "0 10px", fontSize: "var(--text-xs)" }}>Esc</button>
               </div>
               <div style={{ padding: "10px 10px 6px" }}>
-                <div style={{ padding: "6px 12px", fontSize: "11px", fontWeight: "600", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--muted)" }}>Stores</div>
+                <div style={{ padding: "6px 12px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>Stores</div>
                 <button className="pr on" type="button">
                   <svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
                     <path d="M10,2 L18,17 L2,17 Z" fill="#ff9800" />
                   </svg>
-                  <span style={{ fontWeight: "600" }}>Dhaka Gadget Hub</span>
+                  <span style={{ fontWeight: "var(--weight-medium)" }}>Dhaka Gadget Hub</span>
                   <span className="mono" style={{ color: "var(--muted)" }}>tenant 0031 · dhakagadgethub.com.bd</span>
-                  <span style={{ marginLeft: "auto", fontSize: "12px", fontWeight: "600", color: "var(--warnt)" }}>Grace · day 3</span>
+                  <span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--warnt)" }}>Grace · day 3</span>
                 </button>
                 {" "}
                 <button className="pr" type="button">
                   <svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
                     <circle cx="10" cy="10" r="7" fill="#10b981" />
                   </svg>
-                  <span style={{ fontWeight: "600" }}>Dhaka Shoe Corner</span>
+                  <span style={{ fontWeight: "var(--weight-medium)" }}>Dhaka Shoe Corner</span>
                   <span className="mono" style={{ color: "var(--muted)" }}>tenant 0009 · dhakashoe.gridcommerce.com.bd</span>
-                  <span style={{ marginLeft: "auto", fontSize: "12px", color: "var(--okt)" }}>Active</span>
+                  <span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--okt)" }}>Active</span>
                 </button>
-                <div style={{ padding: "10px 12px 6px", fontSize: "11px", fontWeight: "600", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--muted)" }}>Invoices and payments</div>
+                <div style={{ padding: "10px 12px 6px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>Invoices and payments</div>
                 <button className="pr" type="button">
                   <span style={{ display: "inline-flex", color: "var(--muted)" }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -820,9 +820,9 @@ export default class ConsoleShellScreen extends Component {
                     </svg>
                   </span>
                   <span className="mono" style={{ color: "var(--ink)" }}>INV-2026-0912</span>
-                  <span style={{ color: "var(--muted)", fontSize: "13px" }}>Dhaka Gadget Hub · ৳2,500 · unpaid since 17 Sep</span>
+                  <span style={{ color: "var(--muted)", fontSize: "var(--text-xs-plus)" }}>Dhaka Gadget Hub · ৳2,500 · unpaid since 17 Sep</span>
                 </button>
-                <div style={{ padding: "10px 12px 6px", fontSize: "11px", fontWeight: "600", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--muted)" }}>Actions</div>
+                <div style={{ padding: "10px 12px 6px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>Actions</div>
                 <button className="pr" type="button"><span style={{ display: "inline-flex", color: "var(--muted)" }}>
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
@@ -830,7 +830,7 @@ export default class ConsoleShellScreen extends Component {
   </svg>
 </span>Compose a notice to Dhaka stores</button>
               </div>
-              <div style={{ display: "flex", gap: "18px", padding: "12px 20px", borderTop: "1px solid var(--line)", fontSize: "12px", color: "var(--muted)" }}>
+              <div style={{ display: "flex", gap: "18px", padding: "12px 20px", borderTop: "1px solid var(--line)", fontSize: "var(--text-xs)", color: "var(--muted)" }}>
                 <span><span className="kbd" style={{ margin: "0 4px 0 0" }}>↑↓</span>move</span>
                 <span><span className="kbd" style={{ margin: "0 4px 0 0" }}>Enter</span>open</span>
                 <span>Opens without animation: it is used many times a day.</span>

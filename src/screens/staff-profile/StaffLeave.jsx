@@ -117,233 +117,235 @@ export default class StaffLeaveScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="StaffLeave">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "16px", fontFamily: "Poppins,'Hind Siliguri',ui-sans-serif,system-ui,sans-serif", color: "#475569" }}>
-          <section style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", borderRadius: "8px", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "16px", fontFamily: "var(--font-sans)", color: "#475569" }}>
+          <section style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", borderRadius: "var(--radius-lg)", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
             <div style={{ flex: "1", minWidth: "240px" }}>
-              <h2 style={{ margin: "0", fontSize: "15px", lineHeight: "22px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.policy}</h2>
-              <p style={{ margin: "3px 0 0", fontSize: "13px", lineHeight: "20px", color: "#64748b", textWrap: "pretty" }}>{v.t?.policyBody}</p>
+              <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.policy}</h2>
+              <p style={{ margin: "3px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "20px", color: "var(--text-muted)", textWrap: "pretty" }}>{v.t?.policyBody}</p>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "22px" }}>
               <div>
-                <p style={{ margin: "0", fontSize: "12px", fontWeight: "500", letterSpacing: ".025em", color: "#64748b" }}>{v.t?.allocation}</p>
-                <p style={{ margin: "2px 0 0", fontSize: "20px", fontWeight: "700", letterSpacing: "-.02em", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>36 {v.t?.days}</p>
+                <p style={{ margin: "0", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>{v.t?.allocation}</p>
+                <p style={{ margin: "2px 0 0", fontSize: "var(--text-xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>36 {v.t?.days}</p>
               </div>
               <div>
-                <p style={{ margin: "0", fontSize: "12px", fontWeight: "500", letterSpacing: ".025em", color: "#64748b" }}>{v.t?.taken}</p>
-                <p style={{ margin: "2px 0 0", fontSize: "20px", fontWeight: "700", letterSpacing: "-.02em", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>{v.takenValue}</p>
+                <p style={{ margin: "0", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>{v.t?.taken}</p>
+                <p style={{ margin: "2px 0 0", fontSize: "var(--text-xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>{v.takenValue}</p>
               </div>
-              <button className="dc-h714" type="button" onClick={v.openApply} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", border: "none", borderRadius: "8px", background: "#003087", padding: "0 15px", fontFamily: "inherit", fontSize: "14px", fontWeight: "500", letterSpacing: ".025em", color: "#fff", cursor: "pointer" }}><__Icon name="calendar-plus" strokeWidth="1.75" width="16" height="16" />{v.t?.applyBehalf}</button>
+              <button className="dc-h714" type="button" onClick={v.openApply} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", border: "none", borderRadius: "var(--radius-lg)", background: "#003087", padding: "0 15px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#fff", cursor: "pointer" }}><__Icon name="calendar-plus" strokeWidth="1.75" width="16" height="16" />{v.t?.applyBehalf}</button>
             </div>
           </section>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: "16px" }}>
-            <section style={{ display: "flex", flexDirection: "column", gap: "11px", borderRadius: "8px", background: "#fff", padding: "16px 18px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+          <div className="gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: "16px" }}>
+            <section style={{ display: "flex", flexDirection: "column", gap: "11px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "16px 18px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-                <span style={{ display: "grid", placeItems: "center", width: "30px", height: "30px", flex: "none", borderRadius: "8px", background: "rgba(0,48,135,.1)", color: "#003087" }}>
+                <span style={{ display: "grid", placeItems: "center", width: "30px", height: "30px", flex: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.1)", color: "#003087" }}>
                   <__Icon name="coffee" strokeWidth="1.75" width="16" height="16" />
                 </span>
-                <h3 style={{ margin: "0", flex: "1", fontSize: "13.5px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.casual}</h3>
+                <h3 style={{ margin: "0", flex: "1", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.casual}</h3>
               </div>
               <p style={{ margin: "0", display: "flex", alignItems: "baseline", gap: "5px" }}>
-                <span style={{ fontSize: "26px", fontWeight: "700", letterSpacing: "-.025em", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>{v.casualLeft}</span>
-                <span style={{ fontSize: "13px", fontWeight: "500", color: "#64748b" }}>{v.t?.ofTen}</span>
+                <span style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>{v.casualLeft}</span>
+                <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>{v.t?.ofTen}</span>
               </p>
               {v.populated ? (<>
-                <div style={{ height: "7px", borderRadius: "9999px", background: "#e9eef5", overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: "60%", borderRadius: "9999px", background: "#003087" }} />
+                <div style={{ height: "7px", borderRadius: "var(--radius-full)", background: "#e9eef5", overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: "60%", borderRadius: "var(--radius-full)", background: "#003087" }} />
                 </div>
               </>) : null}
               {v.isEmpty ? (<>
-                <div style={{ height: "7px", borderRadius: "9999px", background: "#e9eef5", overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: "100%", borderRadius: "9999px", background: "#003087" }} />
+                <div style={{ height: "7px", borderRadius: "var(--radius-full)", background: "#e9eef5", overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: "100%", borderRadius: "var(--radius-full)", background: "#003087" }} />
                 </div>
               </>) : null}
-              <p style={{ margin: "0", fontSize: "12px", color: "#64748b", textWrap: "pretty" }}>{v.casualNote}</p>
+              <p style={{ margin: "0", fontSize: "var(--text-xs)", color: "var(--text-muted)", textWrap: "pretty" }}>{v.casualNote}</p>
             </section>
-            <section style={{ display: "flex", flexDirection: "column", gap: "11px", borderRadius: "8px", background: "#fff", padding: "16px 18px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+            <section style={{ display: "flex", flexDirection: "column", gap: "11px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "16px 18px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-                <span style={{ display: "grid", placeItems: "center", width: "30px", height: "30px", flex: "none", borderRadius: "8px", background: "rgba(0,156,222,.12)", color: "#0089c3" }}>
+                <span style={{ display: "grid", placeItems: "center", width: "30px", height: "30px", flex: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,156,222,.12)", color: "var(--accent-text)" }}>
                   <__Icon name="thermometer" strokeWidth="1.75" width="16" height="16" />
                 </span>
-                <h3 style={{ margin: "0", flex: "1", fontSize: "13.5px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.sick}</h3>
+                <h3 style={{ margin: "0", flex: "1", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.sick}</h3>
               </div>
               <p style={{ margin: "0", display: "flex", alignItems: "baseline", gap: "5px" }}>
-                <span style={{ fontSize: "26px", fontWeight: "700", letterSpacing: "-.025em", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>{v.sickLeft}</span>
-                <span style={{ fontSize: "13px", fontWeight: "500", color: "#64748b" }}>{v.t?.ofFourteen}</span>
+                <span style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>{v.sickLeft}</span>
+                <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>{v.t?.ofFourteen}</span>
               </p>
               {v.populated ? (<>
-                <div style={{ height: "7px", borderRadius: "9999px", background: "#e9eef5", overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: "86%", borderRadius: "9999px", background: "#009CDE" }} />
+                <div style={{ height: "7px", borderRadius: "var(--radius-full)", background: "#e9eef5", overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: "86%", borderRadius: "var(--radius-full)", background: "#009CDE" }} />
                 </div>
               </>) : null}
               {v.isEmpty ? (<>
-                <div style={{ height: "7px", borderRadius: "9999px", background: "#e9eef5", overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: "100%", borderRadius: "9999px", background: "#009CDE" }} />
+                <div style={{ height: "7px", borderRadius: "var(--radius-full)", background: "#e9eef5", overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: "100%", borderRadius: "var(--radius-full)", background: "#009CDE" }} />
                 </div>
               </>) : null}
-              <p style={{ margin: "0", fontSize: "12px", color: "#64748b", textWrap: "pretty" }}>{v.sickNote}</p>
+              <p style={{ margin: "0", fontSize: "var(--text-xs)", color: "var(--text-muted)", textWrap: "pretty" }}>{v.sickNote}</p>
             </section>
-            <section style={{ display: "flex", flexDirection: "column", gap: "11px", borderRadius: "8px", background: "#fff", padding: "16px 18px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+            <section style={{ display: "flex", flexDirection: "column", gap: "11px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "16px 18px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-                <span style={{ display: "grid", placeItems: "center", width: "30px", height: "30px", flex: "none", borderRadius: "8px", background: "rgba(16,185,129,.12)", color: "#047857" }}>
+                <span style={{ display: "grid", placeItems: "center", width: "30px", height: "30px", flex: "none", borderRadius: "var(--radius-lg)", background: "rgba(16,185,129,.12)", color: "#047857" }}>
                   <__Icon name="palmtree" strokeWidth="1.75" width="16" height="16" />
                 </span>
-                <h3 style={{ margin: "0", flex: "1", fontSize: "13.5px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.annual}</h3>
+                <h3 style={{ margin: "0", flex: "1", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.annual}</h3>
               </div>
               <p style={{ margin: "0", display: "flex", alignItems: "baseline", gap: "5px" }}>
-                <span style={{ fontSize: "26px", fontWeight: "700", letterSpacing: "-.025em", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>12</span>
-                <span style={{ fontSize: "13px", fontWeight: "500", color: "#64748b" }}>{v.t?.ofTwelve}</span>
+                <span style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>12</span>
+                <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>{v.t?.ofTwelve}</span>
               </p>
-              <div style={{ height: "7px", borderRadius: "9999px", background: "#e9eef5", overflow: "hidden" }}>
-                <div style={{ height: "100%", width: "100%", borderRadius: "9999px", background: "#047857" }} />
+              <div style={{ height: "7px", borderRadius: "var(--radius-full)", background: "#e9eef5", overflow: "hidden" }}>
+                <div style={{ height: "100%", width: "100%", borderRadius: "var(--radius-full)", background: "#047857" }} />
               </div>
-              <p style={{ margin: "0", fontSize: "12px", color: "#64748b", textWrap: "pretty" }}>{v.t?.annualNote}</p>
+              <p style={{ margin: "0", fontSize: "var(--text-xs)", color: "var(--text-muted)", textWrap: "pretty" }}>{v.t?.annualNote}</p>
             </section>
-            <section style={{ display: "flex", flexDirection: "column", gap: "11px", borderRadius: "8px", background: "#fff", padding: "16px 18px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+            <section style={{ display: "flex", flexDirection: "column", gap: "11px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "16px 18px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-                <span style={{ display: "grid", placeItems: "center", width: "30px", height: "30px", flex: "none", borderRadius: "8px", background: "#e9eef5", color: "#475569" }}>
+                <span style={{ display: "grid", placeItems: "center", width: "30px", height: "30px", flex: "none", borderRadius: "var(--radius-lg)", background: "#e9eef5", color: "#475569" }}>
                   <__Icon name="minus-circle" strokeWidth="1.75" width="16" height="16" />
                 </span>
-                <h3 style={{ margin: "0", flex: "1", fontSize: "13.5px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.unpaid}</h3>
+                <h3 style={{ margin: "0", flex: "1", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.unpaid}</h3>
               </div>
               <p style={{ margin: "0", display: "flex", alignItems: "baseline", gap: "5px" }}>
-                <span style={{ fontSize: "26px", fontWeight: "700", letterSpacing: "-.025em", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>0</span>
-                <span style={{ fontSize: "13px", fontWeight: "500", color: "#64748b" }}>{v.t?.takenThisYear}</span>
+                <span style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>0</span>
+                <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>{v.t?.takenThisYear}</span>
               </p>
-              <div style={{ height: "7px", borderRadius: "9999px", background: "#e9eef5", overflow: "hidden" }}>
-                <div style={{ height: "100%", width: "0%", borderRadius: "9999px", background: "#475569" }} />
+              <div style={{ height: "7px", borderRadius: "var(--radius-full)", background: "#e9eef5", overflow: "hidden" }}>
+                <div style={{ height: "100%", width: "0%", borderRadius: "var(--radius-full)", background: "#475569" }} />
               </div>
-              <p style={{ margin: "0", fontSize: "12px", color: "#64748b", textWrap: "pretty" }}>{v.t?.unpaidNote}</p>
+              <p style={{ margin: "0", fontSize: "var(--text-xs)", color: "var(--text-muted)", textWrap: "pretty" }}>{v.t?.unpaidNote}</p>
             </section>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 340px", gap: "16px", alignItems: "start" }}>
-            <section style={{ borderRadius: "8px", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", overflow: "hidden" }}>
+          <div className="gc-split" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 340px", gap: "16px", alignItems: "start" }}>
+            <section style={{ borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", overflow: "hidden" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "18px 20px 12px" }}>
-                <h2 style={{ margin: "0", flex: "1", fontSize: "15px", lineHeight: "22px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.requests}</h2>
-                <div style={{ display: "flex", alignItems: "center", gap: "2px", height: "32px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#f8fafc", padding: "3px" }}>
+                <h2 style={{ margin: "0", flex: "1", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.requests}</h2>
+                <div style={{ display: "flex", alignItems: "center", gap: "2px", height: "32px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "3px" }}>
                   {__list(v.filters).map((f, $index) => (<React.Fragment key={$index}>
                       {f?.on ? (<>
-                        <button type="button" onClick={f?.act} aria-pressed="true" style={{ height: "24px", border: "none", borderRadius: "6px", padding: "0 10px", fontFamily: "inherit", fontSize: "12px", fontWeight: "600", cursor: "pointer", background: "#fff", color: "#1e293b", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)" }}>{f?.label}</button>
+                        <button type="button" onClick={f?.act} aria-pressed="true" style={{ height: "28px", border: "none", borderRadius: "var(--radius-md)", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer", background: "#fff", color: "#1e293b", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)" }}>{f?.label}</button>
                       </>) : null}
                       {f?.off ? (<>
-                        <button className="dc-h715" type="button" onClick={f?.act} aria-pressed="false" style={{ height: "24px", border: "none", borderRadius: "6px", padding: "0 10px", fontFamily: "inherit", fontSize: "12px", fontWeight: "500", cursor: "pointer", background: "transparent", color: "#64748b" }}>{f?.label}</button>
+                        <button className="dc-h715" type="button" onClick={f?.act} aria-pressed="false" style={{ height: "28px", border: "none", borderRadius: "var(--radius-md)", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer", background: "transparent", color: "var(--text-muted)" }}>{f?.label}</button>
                       </>) : null}
                     </React.Fragment>))}
                 </div>
               </div>
               {v.hasRows ? (<>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <caption style={{ position: "absolute", width: "1px", height: "1px", overflow: "hidden", clipPath: "inset(50%)" }}>{v.t?.reqCaption}</caption>
-                  <thead>
-                    <tr>
-                      <th scope="col" style={{ padding: "8px 16px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "11px", fontWeight: "600", letterSpacing: ".025em", textTransform: "uppercase", color: "#64748b", textAlign: "left", whiteSpace: "nowrap" }}>{v.t?.colDates}</th>
-                      <th scope="col" style={{ padding: "8px 16px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "11px", fontWeight: "600", letterSpacing: ".025em", textTransform: "uppercase", color: "#64748b", textAlign: "left", whiteSpace: "nowrap" }}>{v.t?.colType}</th>
-                      <th scope="col" style={{ padding: "8px 16px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "11px", fontWeight: "600", letterSpacing: ".025em", textTransform: "uppercase", color: "#64748b", textAlign: "right", whiteSpace: "nowrap" }}>{v.t?.colDays}</th>
-                      <th scope="col" style={{ padding: "8px 16px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "11px", fontWeight: "600", letterSpacing: ".025em", textTransform: "uppercase", color: "#64748b", textAlign: "left", whiteSpace: "nowrap" }}>{v.t?.colReason}</th>
-                      <th scope="col" style={{ padding: "8px 16px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "11px", fontWeight: "600", letterSpacing: ".025em", textTransform: "uppercase", color: "#64748b", textAlign: "left", whiteSpace: "nowrap" }}>{v.t?.colStatus}</th>
-                      <th scope="col" style={{ padding: "8px 16px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "11px", fontWeight: "600", letterSpacing: ".025em", textTransform: "uppercase", color: "#64748b", textAlign: "left", whiteSpace: "nowrap" }}>{v.t?.colApprover}</th>
-                      <th scope="col" style={{ padding: "8px 16px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc" }} />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {__list(v.rows).map((r, $index) => (<React.Fragment key={$index}>
-                        <tr style={{ background: "#fff" }}>
-                          <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", fontSize: "13px", fontWeight: "500", color: "#1e293b", whiteSpace: "nowrap" }}>{r?.dates}</td>
-                          <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", fontSize: "13px", color: "#475569" }}>{r?.type}</td>
-                          <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", textAlign: "right", fontSize: "13px", fontWeight: "600", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>{r?.days}</td>
-                          <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", fontSize: "12.5px", color: "#64748b", textWrap: "pretty" }}>{r?.reason}</td>
-                          <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap" }}>
-                            {r?.pending ? (<>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "24px", borderRadius: "9999px", background: "rgba(255,152,0,.14)", padding: "0 9px", fontSize: "12px", fontWeight: "600", color: "#b45309" }}><__Icon name="clock" strokeWidth="1.75" width="12" height="12" />{v.t?.pendingWord}</span>
-                            </>) : null}
-                            {r?.isApproved ? (<>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "24px", borderRadius: "9999px", background: "rgba(16,185,129,.12)", padding: "0 9px", fontSize: "12px", fontWeight: "600", color: "#047857" }}><__Icon name="check" strokeWidth="1.75" width="12" height="12" />{v.t?.approvedWord}</span>
-                            </>) : null}
-                            {r?.isRejected ? (<>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "24px", borderRadius: "9999px", background: "rgba(255,87,36,.1)", padding: "0 9px", fontSize: "12px", fontWeight: "600", color: "#c2410c" }}><__Icon name="x" strokeWidth="1.75" width="12" height="12" />{v.t?.rejectedWord}</span>
-                            </>) : null}
-                            {r?.isCancelled ? (<>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "24px", borderRadius: "9999px", background: "#e9eef5", padding: "0 9px", fontSize: "12px", fontWeight: "600", color: "#475569" }}><__Icon name="minus" strokeWidth="1.75" width="12" height="12" />{v.t?.cancelledWord}</span>
-                            </>) : null}
-                          </td>
-                          <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", fontSize: "12.5px", color: "#475569", whiteSpace: "nowrap" }}>{r?.approver}</td>
-                          <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", textAlign: "right", whiteSpace: "nowrap" }}>
-                            {r?.pending ? (<>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                                <button className="dc-h716" type="button" onClick={r?.approve} style={{ height: "30px", border: "none", borderRadius: "8px", background: "#003087", padding: "0 12px", fontFamily: "inherit", fontSize: "12.5px", fontWeight: "500", letterSpacing: ".025em", color: "#fff", cursor: "pointer" }}>{v.t?.approve}</button>
-                                <button className="dc-h717" type="button" onClick={r?.reject} style={{ height: "30px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 12px", fontFamily: "inherit", fontSize: "12.5px", fontWeight: "500", letterSpacing: ".025em", color: "#475569", cursor: "pointer" }}>{v.t?.reject}</button>
-                              </span>
-                            </>) : null}
-                            {r?.settled ? (<>
-                              <button className="dc-h718" type="button" aria-label={r?.viewAria} style={{ width: "30px", height: "30px", display: "grid", placeItems: "center", border: "none", borderRadius: "9999px", background: "none", color: "#94a3b8", cursor: "pointer" }}>
-                                <__Icon name="chevron-right" strokeWidth="1.75" width="16" height="16" />
-                              </button>
-                            </>) : null}
-                          </td>
-                        </tr>
-                      </React.Fragment>))}
-                  </tbody>
-                </table>
+                <div className="gc-table-wrap">
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <caption style={{ position: "absolute", width: "1px", height: "1px", overflow: "hidden", clipPath: "inset(50%)" }}>{v.t?.reqCaption}</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col" style={{ padding: "8px 16px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textTransform: "uppercase", color: "var(--text-muted)", textAlign: "left", whiteSpace: "nowrap" }}>{v.t?.colDates}</th>
+                        <th scope="col" style={{ padding: "8px 16px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textTransform: "uppercase", color: "var(--text-muted)", textAlign: "left", whiteSpace: "nowrap" }}>{v.t?.colType}</th>
+                        <th scope="col" style={{ padding: "8px 16px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textTransform: "uppercase", color: "var(--text-muted)", textAlign: "right", whiteSpace: "nowrap" }}>{v.t?.colDays}</th>
+                        <th scope="col" style={{ padding: "8px 16px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textTransform: "uppercase", color: "var(--text-muted)", textAlign: "left", whiteSpace: "nowrap" }}>{v.t?.colReason}</th>
+                        <th scope="col" style={{ padding: "8px 16px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textTransform: "uppercase", color: "var(--text-muted)", textAlign: "left", whiteSpace: "nowrap" }}>{v.t?.colStatus}</th>
+                        <th scope="col" style={{ padding: "8px 16px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textTransform: "uppercase", color: "var(--text-muted)", textAlign: "left", whiteSpace: "nowrap" }}>{v.t?.colApprover}</th>
+                        <th scope="col" style={{ padding: "8px 16px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc" }} />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {__list(v.rows).map((r, $index) => (<React.Fragment key={$index}>
+                          <tr style={{ background: "#fff" }}>
+                            <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b", whiteSpace: "nowrap" }}>{r?.dates}</td>
+                            <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs-plus)", color: "#475569" }}>{r?.type}</td>
+                            <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", textAlign: "right", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>{r?.days}</td>
+                            <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", textWrap: "pretty" }}>{r?.reason}</td>
+                            <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap" }}>
+                              {r?.pending ? (<>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "24px", borderRadius: "var(--radius-full)", background: "rgba(255,152,0,.14)", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#b45309" }}><__Icon name="clock" strokeWidth="1.75" width="12" height="12" />{v.t?.pendingWord}</span>
+                              </>) : null}
+                              {r?.isApproved ? (<>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "24px", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.12)", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#047857" }}><__Icon name="check" strokeWidth="1.75" width="12" height="12" />{v.t?.approvedWord}</span>
+                              </>) : null}
+                              {r?.isRejected ? (<>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "24px", borderRadius: "var(--radius-full)", background: "rgba(255,87,36,.1)", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#c2410c" }}><__Icon name="x" strokeWidth="1.75" width="12" height="12" />{v.t?.rejectedWord}</span>
+                              </>) : null}
+                              {r?.isCancelled ? (<>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "24px", borderRadius: "var(--radius-full)", background: "#e9eef5", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#475569" }}><__Icon name="minus" strokeWidth="1.75" width="12" height="12" />{v.t?.cancelledWord}</span>
+                              </>) : null}
+                            </td>
+                            <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs-plus)", color: "#475569", whiteSpace: "nowrap" }}>{r?.approver}</td>
+                            <td style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", textAlign: "right", whiteSpace: "nowrap" }}>
+                              {r?.pending ? (<>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                                  <button className="dc-h716" type="button" onClick={r?.approve} style={{ height: "28px", border: "none", borderRadius: "var(--radius-lg)", background: "#003087", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#fff", cursor: "pointer" }}>{v.t?.approve}</button>
+                                  <button className="dc-h717" type="button" onClick={r?.reject} style={{ height: "28px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#475569", cursor: "pointer" }}>{v.t?.reject}</button>
+                                </span>
+                              </>) : null}
+                              {r?.settled ? (<>
+                                <button className="dc-h718" type="button" aria-label={r?.viewAria} style={{ width: "28px", height: "28px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>
+                                  <__Icon name="chevron-right" strokeWidth="1.75" width="16" height="16" />
+                                </button>
+                              </>) : null}
+                            </td>
+                          </tr>
+                        </React.Fragment>))}
+                    </tbody>
+                  </table>
+                </div>
               </>) : null}
               {v.noRows ? (<>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "11px", padding: "48px 20px", textAlign: "center" }}>
-                  <span style={{ display: "grid", placeItems: "center", width: "60px", height: "60px", borderRadius: "16px", background: "#f1f5f9", color: "#94a3b8" }}>
+                  <span style={{ display: "grid", placeItems: "center", width: "60px", height: "60px", borderRadius: "var(--radius-xl)", background: "#f1f5f9", color: "var(--text-muted)" }}>
                     <__Icon name="inbox" strokeWidth="1.75" width="28" height="28" />
                   </span>
-                  <h3 style={{ margin: "0", fontSize: "15px", fontWeight: "600", color: "#1e293b" }}>{v.t?.emptyTitle}</h3>
-                  <p style={{ margin: "0", maxWidth: "400px", fontSize: "13.5px", lineHeight: "21px", color: "#64748b", textWrap: "pretty" }}>{v.t?.emptyBody}</p>
-                  <button className="dc-h719" type="button" onClick={v.openApply} style={{ height: "36px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 15px", fontFamily: "inherit", fontSize: "14px", fontWeight: "500", letterSpacing: ".025em", color: "#475569", cursor: "pointer" }}>{v.t?.applyBehalf}</button>
+                  <h3 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#1e293b" }}>{v.t?.emptyTitle}</h3>
+                  <p style={{ margin: "0", maxWidth: "400px", fontSize: "var(--text-sm)", lineHeight: "21px", color: "var(--text-muted)", textWrap: "pretty" }}>{v.t?.emptyBody}</p>
+                  <button className="dc-h719" type="button" onClick={v.openApply} style={{ height: "36px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 15px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#475569", cursor: "pointer" }}>{v.t?.applyBehalf}</button>
                 </div>
               </>) : null}
             </section>
-            <section style={{ display: "flex", flexDirection: "column", gap: "12px", borderRadius: "8px", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+            <section style={{ display: "flex", flexDirection: "column", gap: "12px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <h2 style={{ margin: "0", flex: "1", fontSize: "15px", lineHeight: "22px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.holidays}</h2>
-                <span style={{ fontSize: "12px", fontWeight: "500", color: "#64748b" }}>{v.t?.dhanmondi}</span>
+                <h2 style={{ margin: "0", flex: "1", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.holidays}</h2>
+                <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>{v.t?.dhanmondi}</span>
               </div>
               <ol style={{ margin: "0", padding: "0", listStyle: "none", display: "flex", flexDirection: "column" }}>
                 {__list(v.holidays).map((h, $index) => (<React.Fragment key={$index}>
                     <li style={{ display: "flex", alignItems: "center", gap: "11px", padding: "9px 0", borderBottom: "1px solid #e2e8f0" }}>
                       {h?.closed ? (<>
-                        <span style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "38px", flex: "none", borderRadius: "8px", background: "rgba(240,0,185,.08)", padding: "4px 0" }}>
-                          <span style={{ fontSize: "13px", fontWeight: "700", color: "#a21caf", fontVariantNumeric: "tabular-nums" }}>{h?.day}</span>
-                          <span style={{ fontSize: "10px", fontWeight: "600", letterSpacing: ".04em", color: "#a21caf" }}>{h?.mon}</span>
+                        <span style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "38px", flex: "none", borderRadius: "var(--radius-lg)", background: "rgba(240,0,185,.08)", padding: "4px 0" }}>
+                          <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-semibold)", color: "#a21caf", fontVariantNumeric: "tabular-nums" }}>{h?.day}</span>
+                          <span style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".04em", color: "#a21caf" }}>{h?.mon}</span>
                         </span>
                       </>) : null}
                       {h?.isOpen ? (<>
-                        <span style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "38px", flex: "none", borderRadius: "8px", background: "#f1f5f9", padding: "4px 0" }}>
-                          <span style={{ fontSize: "13px", fontWeight: "700", color: "#475569", fontVariantNumeric: "tabular-nums" }}>{h?.day}</span>
-                          <span style={{ fontSize: "10px", fontWeight: "600", letterSpacing: ".04em", color: "#475569" }}>{h?.mon}</span>
+                        <span style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "38px", flex: "none", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "4px 0" }}>
+                          <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-semibold)", color: "#475569", fontVariantNumeric: "tabular-nums" }}>{h?.day}</span>
+                          <span style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".04em", color: "#475569" }}>{h?.mon}</span>
                         </span>
                       </>) : null}
                       <span style={{ flex: "1", minWidth: "0" }}>
-                        <span style={{ display: "block", fontSize: "13px", fontWeight: "500", color: "#1e293b", textWrap: "pretty" }}>{h?.name}</span>
-                        <span style={{ display: "block", fontSize: "11.5px", color: "#94a3b8" }}>{h?.meta}</span>
+                        <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b", textWrap: "pretty" }}>{h?.name}</span>
+                        <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{h?.meta}</span>
                       </span>
                     </li>
                   </React.Fragment>))}
               </ol>
-              <p style={{ margin: "0", fontSize: "12px", color: "#94a3b8", textWrap: "pretty" }}>{v.t?.holidayNote}</p>
+              <p style={{ margin: "0", fontSize: "var(--text-xs)", color: "var(--text-muted)", textWrap: "pretty" }}>{v.t?.holidayNote}</p>
             </section>
           </div>
           {v.applyOpen ? (<>
             <div role="presentation" onClick={v.closeApply} style={{ position: "fixed", inset: "0", zIndex: "200", display: "grid", placeItems: "center", background: "rgba(15,23,42,.6)", padding: "24px" }}>
-              <div role="dialog" aria-modal="true" aria-label={v.t?.applyBehalf} onClick={v.stop} style={{ width: "100%", maxWidth: "520px", borderRadius: "8px", background: "#fff", boxShadow: "0 26px 60px -20px rgba(15,23,42,.5)" }}>
+              <div role="dialog" aria-modal="true" aria-label={v.t?.applyBehalf} onClick={v.stop} style={{ width: "100%", maxWidth: "520px", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 26px 60px -20px rgba(15,23,42,.5)" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "20px 22px 0" }}>
-                  <span style={{ display: "grid", placeItems: "center", width: "38px", height: "38px", flex: "none", borderRadius: "8px", background: "rgba(0,48,135,.1)", color: "#003087" }}>
+                  <span style={{ display: "grid", placeItems: "center", width: "38px", height: "38px", flex: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.1)", color: "#003087" }}>
                     <__Icon name="calendar-plus" strokeWidth="1.75" width="20" height="20" />
                   </span>
                   <div style={{ flex: "1", minWidth: "0" }}>
-                    <h2 style={{ margin: "0", fontSize: "16px", fontWeight: "600", color: "#1e293b" }}>{v.t?.applyTitle}</h2>
-                    <p style={{ margin: "4px 0 0", fontSize: "13px", lineHeight: "19px", color: "#64748b", textWrap: "pretty" }}>{v.t?.applyBody}</p>
+                    <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#1e293b" }}>{v.t?.applyTitle}</h2>
+                    <p style={{ margin: "4px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "var(--text-muted)", textWrap: "pretty" }}>{v.t?.applyBody}</p>
                   </div>
-                  <button className="dc-h720" type="button" onClick={v.closeApply} aria-label="Close" style={{ width: "30px", height: "30px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "8px", background: "none", color: "#94a3b8", cursor: "pointer" }}>
+                  <button className="dc-h720" type="button" onClick={v.closeApply} aria-label="Close" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-lg)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>
                     <__Icon name="x" strokeWidth="1.75" width="17" height="17" />
                   </button>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", padding: "16px 22px 0" }}>
+                <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", padding: "16px 22px 0" }}>
                   <label style={{ display: "block" }}>
-                    <span style={{ display: "block", marginBottom: "6px", fontSize: "12px", fontWeight: "500", letterSpacing: ".025em", color: "#64748b" }}>{v.t?.leaveType}</span>
-                    <select className="dc-f721" style={{ width: "100%", height: "36px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 9px", fontFamily: "inherit", fontSize: "13.5px", color: "#1e293b", cursor: "pointer" }}>
+                    <span style={{ display: "block", marginBottom: "6px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>{v.t?.leaveType}</span>
+                    <select className="dc-f721" style={{ width: "100%", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 9px", fontFamily: "inherit", fontSize: "var(--text-sm)", color: "#1e293b", cursor: "pointer" }}>
                       <option>{v.t?.casual}</option>
                       <option>{v.t?.sick}</option>
                       <option>{v.t?.annual}</option>
@@ -351,27 +353,27 @@ export default class StaffLeaveScreen extends Component {
                     </select>
                   </label>
                   <label style={{ display: "block" }}>
-                    <span style={{ display: "block", marginBottom: "6px", fontSize: "12px", fontWeight: "500", letterSpacing: ".025em", color: "#64748b" }}>{v.t?.days}</span>
-                    <input className="dc-f722" type="text" defaultValue="2" style={{ width: "100%", height: "36px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 11px", fontFamily: "inherit", fontSize: "13.5px", color: "#1e293b" }} />
+                    <span style={{ display: "block", marginBottom: "6px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>{v.t?.days}</span>
+                    <input className="dc-f722" type="text" defaultValue="2" style={{ width: "100%", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontFamily: "inherit", fontSize: "var(--text-sm)", color: "#1e293b" }} />
                   </label>
                   <label style={{ display: "block" }}>
-                    <span style={{ display: "block", marginBottom: "6px", fontSize: "12px", fontWeight: "500", letterSpacing: ".025em", color: "#64748b" }}>{v.t?.from}</span>
-                    <input className="dc-f723" type="text" defaultValue="24 Sep 2026" style={{ width: "100%", height: "36px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 11px", fontFamily: "inherit", fontSize: "13.5px", color: "#1e293b" }} />
+                    <span style={{ display: "block", marginBottom: "6px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>{v.t?.from}</span>
+                    <input className="dc-f723" type="text" defaultValue="24 Sep 2026" style={{ width: "100%", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontFamily: "inherit", fontSize: "var(--text-sm)", color: "#1e293b" }} />
                   </label>
                   <label style={{ display: "block" }}>
-                    <span style={{ display: "block", marginBottom: "6px", fontSize: "12px", fontWeight: "500", letterSpacing: ".025em", color: "#64748b" }}>{v.t?.to}</span>
-                    <input className="dc-f724" type="text" defaultValue="25 Sep 2026" style={{ width: "100%", height: "36px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 11px", fontFamily: "inherit", fontSize: "13.5px", color: "#1e293b" }} />
+                    <span style={{ display: "block", marginBottom: "6px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>{v.t?.to}</span>
+                    <input className="dc-f724" type="text" defaultValue="25 Sep 2026" style={{ width: "100%", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontFamily: "inherit", fontSize: "var(--text-sm)", color: "#1e293b" }} />
                   </label>
                   <label style={{ display: "block", gridColumn: "span 2" }}>
-                    <span style={{ display: "block", marginBottom: "6px", fontSize: "12px", fontWeight: "500", letterSpacing: ".025em", color: "#64748b" }}>{v.t?.reason}</span>
-                    <textarea className="dc-f725" rows="2" placeholder={v.t?.reasonPlaceholder} style={{ width: "100%", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "9px 11px", fontFamily: "inherit", fontSize: "13.5px", lineHeight: "20px", color: "#1e293b", resize: "vertical" }} />
+                    <span style={{ display: "block", marginBottom: "6px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>{v.t?.reason}</span>
+                    <textarea className="dc-f725" rows="2" placeholder={v.t?.reasonPlaceholder} style={{ width: "100%", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "9px 11px", fontFamily: "inherit", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#1e293b", resize: "vertical" }} />
                   </label>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginTop: "18px", padding: "14px 22px", borderTop: "1px solid #e2e8f0", background: "#f8fafc" }}>
-                  <p style={{ margin: "0", fontSize: "12px", color: "#64748b" }}>{v.t?.applyMeta}</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{v.t?.applyMeta}</p>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <button className="dc-h726" type="button" onClick={v.closeApply} style={{ height: "36px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 15px", fontFamily: "inherit", fontSize: "14px", fontWeight: "500", letterSpacing: ".025em", color: "#475569", cursor: "pointer" }}>{v.t?.cancel}</button>
-                    <button className="dc-h727" type="button" onClick={v.closeApply} style={{ height: "36px", border: "none", borderRadius: "8px", background: "#003087", padding: "0 16px", fontFamily: "inherit", fontSize: "14px", fontWeight: "500", letterSpacing: ".025em", color: "#fff", cursor: "pointer" }}>{v.t?.applyVerb}</button>
+                    <button className="dc-h726" type="button" onClick={v.closeApply} style={{ height: "36px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 15px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#475569", cursor: "pointer" }}>{v.t?.cancel}</button>
+                    <button className="dc-h727" type="button" onClick={v.closeApply} style={{ height: "36px", border: "none", borderRadius: "var(--radius-lg)", background: "#003087", padding: "0 16px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#fff", cursor: "pointer" }}>{v.t?.applyVerb}</button>
                   </div>
                 </div>
               </div>

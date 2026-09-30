@@ -1,7 +1,6 @@
-import Screen from '@/screens/purchase-stock/BuyGoods';
+import { redirect } from 'next/navigation';
 
-export const metadata = { title: "Buy goods" };
-
+// Buying is done with purchase orders now.
 export default function Page() {
-  return <Screen />;
+  redirect('/new-po');
 }

@@ -6,3 +6,8 @@ next-env.d.ts
 .DS_Store
 .env*.local
 .next-check/
+
+# local backups made while editing
+backup/
+.impeccable/
+.claude/

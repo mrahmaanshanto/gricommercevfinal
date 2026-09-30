@@ -8,7 +8,9 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "convert": "node scripts/convert-design.mjs"
+    "convert": "node scripts/convert-design.mjs",
+    "pattern": "node scripts/normalize-type.mjs && node scripts/normalize-shape.mjs && node scripts/normalize-structure.mjs",
+    "check:screens": "node scripts/check-screens.mjs"
   },
   "dependencies": {
     "lucide": "^0.469.0",

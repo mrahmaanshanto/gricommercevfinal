@@ -1,380 +1,295 @@
 'use client';
-// Generated from design/templates/purchase-stock/SupplierReturn.dc.html by scripts/convert-design.mjs.
-// SupplierReturn — Purchase & Stock module — Return goods to supplier.
-// Edit freely: this file is now the source for the screen.
+// SupplierReturn — goods waiting to go back to suppliers, and the returns made.
+// - Waiting: damaged holds at the Returns & damaged bay (DAMAGED_PLACE) that came from a delivery —
+//   their ref is a purchase order, or their note names the supplier (Receive goods reports:
+//   'Wrong item · return to <supplier>' / 'Arrived damaged · <PO>'). Grouped by supplier.
+// - Making a return closes those holds (returned when the supplier picks up, delivered when we send
+//   them), takes the pieces off the bay's stock (a 'supplier return' stock move) and adds a credit
+//   note for their value at the order price, which lowers what the shop owes that supplier.
+// - /supplier-return?hold=<hold id>&product=<name>&qty=<n> (from Damaged & expired) opens the return for
+//   that hold, or the product's first set-aside hold, with that many pieces. A damaged hold that did not
+//   come from a delivery can go back too: the window then asks which supplier takes it.
+// Front end only: holds from src/lib/stockHolds.js, bills and returns from src/lib/supplierBills.js.
 
-import React from 'react';
-import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Icon } from '@/runtime/dc';
+import { toast } from '@/runtime/ui';
+import { Sidebar, Topbar } from '@/shell/Shell';
+import { Dialog, PageHeader, EmptyState } from '@/components/ui';
+import { formatBDT, formatDate } from '@/lib/format';
+import { EMPLOYEES } from '@/lib/posStore';
+import { DAMAGED_PLACE } from '@/lib/locations';
+import { productBy, addMove } from '@/lib/stock';
+import { getHolds, addHolds, closeHold } from '@/lib/stockHolds';
+import { getPO, lineCost, unitCost } from '@/lib/purchaseOrders';
+import { getDb, demoDb, supplierByName, payableOf, addSupplierReturn } from '@/lib/supplierBills';
 
-// ---- logic (from the design's <script type="text/x-dc">) ----
+const REASONS = ['Damaged', 'Wrong item or size', 'Poor quality', 'Expired', 'Sent too many'];
+const HOW = [['pickup', 'Supplier picks up', 'They collect the goods from the Returns & damaged bay.'], ['send', 'We send them', 'We deliver the goods back to the supplier.']];
+const HOW_LABEL = { pickup: 'Supplier picked up', send: 'We sent them' };
+// the demo purchase orders' suppliers (orders made in this browser carry their own)
+const DEMO_PO_SUPPLIER = { 'PO-2609-0020': 'Nabil Fashion House', 'PO-2609-0019': 'Dhaka Beauty Imports', 'PO-2608-0017': 'Mim Enterprise', 'PO-2608-0015': 'Rahman Traders' };
+const num = (v) => Math.max(0, Math.round(Number(v) || 0));
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
-function bdt(n) { var neg = n < 0; var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return (neg ? '−' : '') + '৳' + s; }
-var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
-function mkTabs(self, list, cur, key, counts) { return list.map(function (x) { var on = x.k === cur; var c = counts ? counts[x.k] : null; return { label: x.label, on: on, cls: on ? 'tab on' : 'tab', hasCount: c != null, count: c, countBg: on ? 'rgba(255,255,255,0.2)' : '#e9eef5', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-function mkChips(self, list, cur, key) { return list.map(function (x) { var on = x.k === cur; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-function flashMsg(self, msg, bad, patch) { clearTimeout(self.t); var p = patch || {}; p.msg = msg; p.bad = !!bad; self.setState(p); self.t = setTimeout(function () { self.setState({ flash: null }); }, 900); }
-function msgVals(s) { return { hasMsg: !!s.msg, msg: s.msg || '', msgBg: s.bad ? '#ffece6' : '#e7f8f1', msgFg: s.bad ? '#8a2a0c' : '#065f46' }; }
-function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-var RL = [
-  { name: 'Denim Jeans · Blue · 32', code: '8941200200214', recv: 30, cost: 720 },
-  { name: 'Denim Jeans · Blue · 34', code: '8941200200221', recv: 30, cost: 720 }
-];
-var REASONS = [{ k: 'damaged', label: 'Damaged' }, { k: 'wrong', label: 'Wrong item or size' }, { k: 'quality', label: 'Poor quality' }, { k: 'expired', label: 'Expired' }, { k: 'extra', label: 'Sent too many' }];
-var SETTLE = [
-  { k: 'credit', label: 'Reduce what I owe', sub: 'Most common. The value comes off your next payment.' },
-  { k: 'cash', label: 'Money back', sub: 'The supplier pays you back in cash, bKash or bank.' },
-  { k: 'replace', label: 'Send new items', sub: 'The supplier replaces them. The order waits for them.' }
-];
-class Component extends DCLogic {
-  componentWillUnmount() { clearTimeout(this.t); }
-  renderVals() {
-    var self = this, s = this.state || {};
-    var q = s.q || [2, 0], reason = s.reason || 'quality', st = s.st || 'credit', done = !!s.done;
-    var setQ = function (i, v) { var x = q.slice(); x[i] = Math.max(0, Math.min(RL[i].recv, v)); self.setState({ q: x, flash: i }); };
-    var pcs = q[0] + q[1], val = q[0] * RL[0].cost + q[1] * RL[1].cost;
-    var effect = st === 'credit' ? 'You will owe Nabil Fashion House ' + bdt(62600 - val) + ' instead of ৳62,600.' : (st === 'cash' ? 'Nabil Fashion House will pay you back ' + bdt(val) + '. We will remind you until it is paid.' : pcs + ' new pieces will be added to PO-2609-0020 as still coming.');
-    return assign({
-      lines: RL.map(function (r, i) { return { name: r.name, code: r.code, initial: r.name.charAt(0), recv: r.recv, qty: q[i], cost: bdt(r.cost), value: bdt(q[i] * r.cost), rowCls: s.flash === i ? 'row flash' : 'row', inc: function () { setQ(i, q[i] + 1); }, dec: function () { setQ(i, q[i] - 1); } }; }),
-      scan: function () { var n = s.n || 0; var i = n % 2; var x = q.slice(); x[i] = Math.min(RL[i].recv, x[i] + 1); flashMsg(self, 'Beep — +1 ' + RL[i].name, false, { q: x, n: n + 1, flash: i }); },
-      reasons: mkChips(this, REASONS, reason, 'reason'),
-      settle: SETTLE.map(function (x) { var on = x.k === st; return { label: x.label, sub: x.sub, on: on, border: on ? '#003087' : '#e2e8f0', bg: on ? 'rgba(0,48,135,.05)' : '#ffffff', pick: function () { self.setState({ st: x.k }); } }; }),
-      pcs: pcs, val: bdt(val), effect: effect, notDone: !done, done: done,
-      save: function () { if (pcs > 0) self.setState({ done: true }); },
-      doneText: pcs + ' pieces removed from Central Warehouse stock. ' + effect
-    }, msgVals(s));
-  }
+/** Which supplier a damaged hold goes back to, or '' when it is not from a delivery. */
+function supplierOfHold(h, suppliers) {
+  const po = /^PO-/.test(h.ref || '') ? h.ref : '';
+  if (po) return (getPO(po) || {}).supplier || DEMO_PO_SUPPLIER[po] || (h.who !== '—' ? h.who : '');
+  const note = String(h.note || '');
+  const m = note.match(/return to (.+)$/i);
+  if (m) return m[1].trim();
+  const named = suppliers.find((s) => note.toLowerCase().includes(s.name.toLowerCase()));
+  return named ? named.name : '';
 }
 
-// ---- styles (from the design's <helmet>) ----
+const holdCost = (h, po) => (po ? lineCost(po, h.product) : unitCost(h.product));
+
+/** Damaged holds at the bay, each with its supplier name ('' when not from a delivery), PO and order price. */
+function setAside(holds, suppliers) {
+  return holds.filter((h) => h.status === 'damaged' && h.place === DAMAGED_PLACE).map((h) => {
+    const po = /^PO-/.test(h.ref || '') ? h.ref : '';
+    return { ...h, supName: supplierOfHold(h, suppliers), po, cost: holdCost(h, po) };
+  });
+}
+function groupOf(name, items, db) {
+  const sup = supplierByName(name, db.suppliers);
+  return { name, sup, items, pieces: items.reduce((a, h) => a + h.qty, 0), value: items.reduce((a, h) => a + h.qty * h.cost, 0), owe: sup ? payableOf(sup.id, db) : 0 };
+}
 
 const CSS = `
-body{margin:0;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
-*{box-sizing:border-box}
-a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:12px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:8px;color:#475569;font-size:14px;font-weight:500;letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
-.nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
-.nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:11px;line-height:16px;font-weight:600;letter-spacing:.08em;color:#64748b;padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:8px;border:0;font:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
-.btn:hover{text-decoration:none}
-.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
-.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
-.line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
-.warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:15px}
-.sm{height:36px;padding:0 12px;font-size:13px}
-.ib{width:40px;height:40px;border-radius:999px;border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font:inherit;font-size:14px;color:#1e293b;transition:border-color 200ms}
-.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:#64748b}
-.lbl{font-size:13px;line-height:18px;font-weight:500;color:#334155}
-.tab{height:40px;padding:0 14px;border-radius:999px;border:0;background:transparent;font:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
-.tab:hover{background:#f1f5f9;color:#0f172a}
-.tab.on{background:#003087;color:#fff}
-.chip{height:40px;padding:0 14px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:13px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
-.chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:14px;line-height:20px;vertical-align:middle}
-.row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
-.b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
-.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
-.b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.02em}
-.fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
-@keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.flash{animation:gcFlash 900ms ease-out}
-@keyframes gcFlash{from{background:#e7f8f1}to{background:transparent}}
-.scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
-@keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
-@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+.sr-card{overflow:hidden}
+.sr-card .gc-table th,.sr-card .gc-table td{padding-left:var(--space-3);padding-right:var(--space-3);white-space:normal}
+.sr-card .gc-table th:first-child,.sr-card .gc-table td:first-child{padding-left:var(--space-5)}
+.sr-card .gc-table th:last-child,.sr-card .gc-table td:last-child{padding-right:var(--space-5)}
+.sr-card .gc-badge,.sr-card .gc-btn,.sr-num{white-space:nowrap}
+.sr-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-4) var(--space-5)}
+.sr-head h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.sr-head p{margin:2px 0 0;font-size:var(--text-xs);color:var(--text-muted)}
+.sr-who{display:flex;align-items:center;gap:var(--space-3)}
+.sr-avatar{display:grid;place-items:center;width:36px;height:36px;flex:none;border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary);font-weight:var(--weight-medium)}
+.sr-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}
+.sr-strong{font-weight:var(--weight-medium);color:var(--text-heading)}
+.sr-id{font-family:var(--font-data)}
+.sr-num{text-align:right;font-variant-numeric:tabular-nums}
+.sr-acts{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.sr-section{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.sr-form{display:flex;flex-direction:column;gap:var(--space-4)}
+.sr-two{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+.sr-lines{margin:0;padding:0;list-style:none;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden}
+.sr-lines li{display:flex;align-items:center;gap:var(--space-3);min-height:56px;padding:6px var(--space-3);border-top:1px solid var(--border-subtle)}
+.sr-lines li:first-child{border-top:0}
+.sr-lines label{display:flex;align-items:center;gap:var(--space-3);flex:1;min-width:0;cursor:pointer}
+.sr-lines .gc-input{width:84px}
+.sr-opts{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2)}
+.sr-opt{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);cursor:pointer}
+.sr-opt.is-on{border-color:var(--primary);background:var(--fill-primary-soft)}
+.sr-opt b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.sr-opt small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
+.sr-total{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary);font-size:var(--text-sm)}
+.sr-total b{font-size:var(--text-xl);font-weight:var(--weight-semibold);font-variant-numeric:tabular-nums}
+@media (max-width:599px){.sr-two,.sr-opts{grid-template-columns:1fr}}
 `;
 
-// ---- markup ----
+export default function SupplierReturn() {
+  const [db, setDb] = useState(demoDb);
+  const [holds, setHolds] = useState([]);
+  const [form, setForm] = useState(null);   // { sup, qty: { holdId: n }, reason, how, note, by }
 
-export default class SupplierReturnScreen extends Component {
-  render() {
-    const v = this.renderVals() || {};
-    return (
-      <div className="dc-screen ds" data-screen="SupplierReturn">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "1440px", height: "1350px", background: "#eef2f7", padding: "12px", display: "flex", gap: "12px", overflow: "hidden" }}>
-          <__Sidebar sticky="" active="po-suppliers" />
-          <main style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "16px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <__Topbar crumb={"Purchase › Suppliers & dues"} page="Return goods to supplier" placeholder="Search or scan any barcode" />
-            <div style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <div style={{ display: "flex", gap: "24px", alignItems: "flex-start" }}>
-                <div style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "20px" }}>
-                  <section className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                      <span style={{ width: "32px", height: "32px", flexShrink: "0", borderRadius: "999px", background: "#003087", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: "700" }}>1</span>
-                      <div style={{ flexGrow: "1" }}>
-                        <h2 style={{ margin: "0", fontSize: "17px", lineHeight: "24px", fontWeight: "600", color: "#0f172a" }}>Which delivery are the goods from?</h2>
-                        <p style={{ margin: "2px 0 0", fontSize: "13px", lineHeight: "18px", color: "#64748b" }}>Scan the delivery slip (GRN) or pick the supplier.</p>
-                      </div>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "16px 20px" }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <label className="lbl" htmlFor="rt-sup">Supplier</label>
-                        <select id="rt-sup" className="inp">
-                          <option>Nabil Fashion House</option>
-                        </select>
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <label className="lbl" htmlFor="rt-grn">Delivery</label>
-                        <div style={{ position: "relative" }}>
-                          <select id="rt-grn" className="inp">
-                            <option>GRN-0118 · 17 Sep 2026 · PO-2609-0020</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-                  <section className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                      <span style={{ width: "32px", height: "32px", flexShrink: "0", borderRadius: "999px", background: "#003087", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: "700" }}>2</span>
-                      <div style={{ flexGrow: "1" }}>
-                        <h2 style={{ margin: "0", fontSize: "17px", lineHeight: "24px", fontWeight: "600", color: "#0f172a" }}>Scan the items going back</h2>
-                        <p style={{ margin: "2px 0 0", fontSize: "13px", lineHeight: "18px", color: "#64748b" }}>Only items from this delivery can be returned.</p>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: "12px" }}>
-                      <label style={{ position: "relative", flexGrow: "1" }}>
-                        <span style={{ position: "absolute", left: "16px", top: "15px", color: "#003087" }}>
-                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M3 7V5a2 2 0 0 1 2-2h2" />
-                            <path d="M17 3h2a2 2 0 0 1 2 2v2" />
-                            <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
-                            <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
-                            <path d="M8 7v10" />
-                            <path d="M12 7v10" />
-                            <path d="M17 7v10" />
-                          </svg>
-                        </span>
-                        <input className="inp" type="search" placeholder="Scan an item you are sending back" aria-label="Scan an item you are sending back" style={{ height: "54px", paddingLeft: "50px", fontSize: "15px", border: "2px solid #003087" }} />
-                      </label>
-                      <button type="button" className="btn solid big" onClick={v.scan}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-                          <circle cx="12" cy="13" r="3" />
-                        </svg>
-                        <span>Scan with camera</span>
-                      </button>
-                    </div>
-                    {v.hasMsg ? (<>
-                      <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: 14px; line-height: 20px; font-weight: 500;`)}>
-                        <span style={{ flexShrink: "0" }}>
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M3 7V5a2 2 0 0 1 2-2h2" />
-                            <path d="M17 3h2a2 2 0 0 1 2 2v2" />
-                            <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
-                            <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
-                            <path d="M8 7v10" />
-                            <path d="M12 7v10" />
-                            <path d="M17 7v10" />
-                          </svg>
-                        </span>
-                        <span>{v.msg}</span>
-                      </div>
-                    </>) : null}
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                      <thead>
-                        <tr>
-                          <th className="th" style={{ paddingLeft: "0" }}>Product</th>
-                          <th className="th" style={{ textAlign: "center" }}>Received</th>
-                          <th className="th">Returning</th>
-                          <th className="th" style={{ textAlign: "right" }}>Unit cost</th>
-                          <th className="th" style={{ textAlign: "right" }}>Value</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {__list(v.lines).map((r, $index) => (<React.Fragment key={$index}>
-                            <tr className={r?.rowCls}>
-                              <td className="td" style={{ paddingLeft: "0" }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                                  <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "10px", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "600" }}>{r?.initial}</span>
-                                  <div>
-                                    <div style={{ fontWeight: "500" }}>{r?.name}</div>
-                                    <div className="mono" style={{ fontSize: "12px", lineHeight: "16px", color: "#64748b" }}>{r?.code}</div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="td" style={{ textAlign: "center" }}>{r?.recv}</td>
-                              <td className="td">
-                                <div style={{ display: "inline-flex", alignItems: "center", border: "1px solid #cbd5e1", borderRadius: "8px", overflow: "hidden", background: "#fff" }}>
-                                  <button type="button" className="ib" aria-label="Less " onClick={r?.dec} style={{ borderRadius: "0" }}>
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                      <path d="M5 12h14" />
-                                    </svg>
-                                  </button>
-                                  <span style={{ minWidth: "44px", textAlign: "center", fontWeight: "600" }}>{r?.qty}</span>
-                                  <button type="button" className="ib" aria-label="More " onClick={r?.inc} style={{ borderRadius: "0" }}>
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                      <path d="M5 12h14" />
-                                      <path d="M12 5v14" />
-                                    </svg>
-                                  </button>
-                                </div>
-                              </td>
-                              <td className="td" style={{ textAlign: "right" }}>{r?.cost}</td>
-                              <td className="td" style={{ textAlign: "right", fontWeight: "600" }}>{r?.value}</td>
-                            </tr>
-                          </React.Fragment>))}
-                      </tbody>
-                    </table>
-                  </section>
-                  <section className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                      <span style={{ width: "32px", height: "32px", flexShrink: "0", borderRadius: "999px", background: "#003087", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: "700" }}>3</span>
-                      <div style={{ flexGrow: "1" }}>
-                        <h2 style={{ margin: "0", fontSize: "17px", lineHeight: "24px", fontWeight: "600", color: "#0f172a" }}>Why are they going back?</h2>
-                        <p style={{ margin: "2px 0 0", fontSize: "13px", lineHeight: "18px", color: "#64748b" }}>Pick one reason. Add a photo so the supplier can’t argue.</p>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                      {__list(v.reasons).map((x, $index) => (<React.Fragment key={$index}>
-                          <button type="button" className={x?.cls} aria-pressed={x?.on} onClick={x?.pick}>{x?.label}</button>
-                        </React.Fragment>))}
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "220px minmax(0, 1fr)", gap: "16px" }}>
-                      <button type="button" className="btn line" style={{ height: "110px", flexDirection: "column", borderStyle: "dashed", borderWidth: "2px" }}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-                          <circle cx="12" cy="13" r="3" />
-                        </svg>
-                        <span>Add photo</span>
-                      </button>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <label className="lbl" htmlFor="rt-note">Note for the supplier</label>
-                        <textarea id="rt-note" className="inp" style={{ height: "86px", padding: "12px 14px", resize: "none", lineHeight: "20px" }} defaultValue={"Loose stitching on the seams. Please replace."} />
-                      </div>
-                    </div>
-                  </section>
-                  <section className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                      <span style={{ width: "32px", height: "32px", flexShrink: "0", borderRadius: "999px", background: "#003087", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: "700" }}>4</span>
-                      <div style={{ flexGrow: "1" }}>
-                        <h2 style={{ margin: "0", fontSize: "17px", lineHeight: "24px", fontWeight: "600", color: "#0f172a" }}>How will the supplier settle it?</h2>
-                        <p style={{ margin: "2px 0 0", fontSize: "13px", lineHeight: "18px", color: "#64748b" }}>This decides what happens to the money you owe.</p>
-                      </div>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px" }}>
-                      {__list(v.settle).map((x, $index) => (<React.Fragment key={$index}>
-                          <button type="button" onClick={x?.pick} aria-pressed={x?.on} style={__sx(`text-align: left; padding: 16px; border-radius: 12px; border: 2px solid ${x?.border ?? ""}; background: ${x?.bg ?? ""}; font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 4px;`)}>
-                            <span style={{ fontSize: "14px", fontWeight: "600", color: "#0f172a" }}>{x?.label}</span>
-                            <span style={{ fontSize: "12px", lineHeight: "17px", color: "#475569" }}>{x?.sub}</span>
-                          </button>
-                        </React.Fragment>))}
-                    </div>
-                  </section>
-                </div>
-                <aside style={{ width: "340px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "16px" }}>
-                  {v.notDone ? (<>
-                    <section className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                      <div>
-                        <h2 style={{ margin: "0", fontSize: "17px", lineHeight: "24px", fontWeight: "600", color: "#0f172a" }}>Return summary</h2>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "14px" }}>
-                        <span style={{ color: "#475569" }}>Pieces going back</span>
-                        <span style={{ fontWeight: "600" }}>{v.pcs}</span>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "14px" }}>
-                        <span style={{ color: "#475569" }}>Value</span>
-                        <span style={{ fontWeight: "600" }}>{v.val}</span>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "14px" }}>
-                        <span style={{ color: "#475569" }}>Stock</span>
-                        <span style={{ fontWeight: "600", color: "#b83210" }}>−{v.pcs} pcs</span>
-                      </div>
-                      <div style={{ height: "1px", background: "#e2e8f0" }} />
-                      <div style={{ fontSize: "13px", lineHeight: "19px", color: "#334155" }}>{v.effect}</div>
-                      <button type="button" className="btn solid big" style={{ width: "100%" }} onClick={v.save}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-                          <path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6" />
-                          <rect x="6" y="14" width="12" height="8" rx="1" />
-                        </svg>
-                        <span>Save and print return slip</span>
-                      </button>
-                      <p style={{ margin: "0", fontSize: "12px", lineHeight: "17px", color: "#64748b" }}>The slip has a barcode. Give it to the supplier with the goods.</p>
-                    </section>
-                  </>) : null}
-                  {v.done ? (<>
-                    <section className="card fade" style={{ padding: "28px 24px", display: "flex", flexDirection: "column", gap: "14px", alignItems: "center", textAlign: "center" }}>
-                      <span style={{ width: "64px", height: "64px", borderRadius: "999px", background: "#e7f8f1", color: "#10b981", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M20 6 9 17l-5-5" />
-                        </svg>
-                      </span>
-                      <h2 style={{ margin: "0", fontSize: "20px", lineHeight: "28px", fontWeight: "700", color: "#0f172a" }}>Return saved</h2>
-                      <p style={{ margin: "0", fontSize: "14px", lineHeight: "22px", color: "#475569" }}>{v.doneText}</p>
-                      <div style={{ padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: "8px" }}>
-                        <svg width="160" height="34" viewBox="0 0 160 34" aria-hidden="true">
-                          <rect x="0" y="0" width="3" height="34" fill="#0f172a" />
-                          <rect x="4" y="0" width="1" height="34" fill="#0f172a" />
-                          <rect x="8" y="0" width="1" height="34" fill="#0f172a" />
-                          <rect x="11" y="0" width="2" height="34" fill="#0f172a" />
-                          <rect x="14" y="0" width="1" height="34" fill="#0f172a" />
-                          <rect x="16" y="0" width="1" height="34" fill="#0f172a" />
-                          <rect x="18" y="0" width="2" height="34" fill="#0f172a" />
-                          <rect x="22" y="0" width="1" height="34" fill="#0f172a" />
-                          <rect x="25" y="0" width="2" height="34" fill="#0f172a" />
-                          <rect x="29" y="0" width="1" height="34" fill="#0f172a" />
-                          <rect x="32" y="0" width="3" height="34" fill="#0f172a" />
-                          <rect x="37" y="0" width="2" height="34" fill="#0f172a" />
-                          <rect x="42" y="0" width="2" height="34" fill="#0f172a" />
-                          <rect x="46" y="0" width="2" height="34" fill="#0f172a" />
-                          <rect x="49" y="0" width="1" height="34" fill="#0f172a" />
-                          <rect x="51" y="0" width="3" height="34" fill="#0f172a" />
-                          <rect x="56" y="0" width="2" height="34" fill="#0f172a" />
-                          <rect x="60" y="0" width="1" height="34" fill="#0f172a" />
-                          <rect x="64" y="0" width="3" height="34" fill="#0f172a" />
-                          <rect x="68" y="0" width="1" height="34" fill="#0f172a" />
-                          <rect x="70" y="0" width="1" height="34" fill="#0f172a" />
-                          <rect x="73" y="0" width="3" height="34" fill="#0f172a" />
-                          <rect x="78" y="0" width="2" height="34" fill="#0f172a" />
-                          <rect x="81" y="0" width="1" height="34" fill="#0f172a" />
-                          <rect x="83" y="0" width="2" height="34" fill="#0f172a" />
-                          <rect x="86" y="0" width="1" height="34" fill="#0f172a" />
-                          <rect x="88" y="0" width="1" height="34" fill="#0f172a" />
-                          <rect x="92" y="0" width="1" height="34" fill="#0f172a" />
-                          <rect x="96" y="0" width="1" height="34" fill="#0f172a" />
-                          <rect x="99" y="0" width="1" height="34" fill="#0f172a" />
-                          <rect x="101" y="0" width="3" height="34" fill="#0f172a" />
-                          <rect x="105" y="0" width="2" height="34" fill="#0f172a" />
-                          <rect x="108" y="0" width="3" height="34" fill="#0f172a" />
-                          <rect x="113" y="0" width="2" height="34" fill="#0f172a" />
-                          <rect x="117" y="0" width="3" height="34" fill="#0f172a" />
-                          <rect x="123" y="0" width="2" height="34" fill="#0f172a" />
-                          <rect x="127" y="0" width="1" height="34" fill="#0f172a" />
-                          <rect x="131" y="0" width="2" height="34" fill="#0f172a" />
-                          <rect x="136" y="0" width="3" height="34" fill="#0f172a" />
-                          <rect x="140" y="0" width="1" height="34" fill="#0f172a" />
-                          <rect x="143" y="0" width="3" height="34" fill="#0f172a" />
-                          <rect x="149" y="0" width="1" height="34" fill="#0f172a" />
-                          <rect x="152" y="0" width="1" height="34" fill="#0f172a" />
-                          <rect x="155" y="0" width="1" height="34" fill="#0f172a" />
-                          <rect x="158" y="0" width="2" height="34" fill="#0f172a" />
-                        </svg>
-                        <div className="mono" style={{ fontSize: "11px", color: "#334155" }}>RTS-0010</div>
-                      </div>
-                      <__Link href="/suppliers" className="btn line" style={{ width: "100%" }}>Back to suppliers</__Link>
-                    </section>
-                  </>) : null}
-                </aside>
-              </div>
+  const reload = () => { const d = getDb(), hs = getHolds(); setDb(d); setHolds(hs); return { d, hs }; };
+  useEffect(() => {
+    const { d, hs } = reload();
+    // opened from Damaged & expired: start the return for that hold (or product) and quantity
+    const q = new URLSearchParams(window.location.search);
+    const holdId = q.get('hold'), product = q.get('product'), want = num(q.get('qty'));
+    if (!holdId && !product) return;
+    const all = setAside(hs, d.suppliers);
+    const h = all.find((x) => x.id === holdId) || all.find((x) => x.product === product && x.supName) || all.find((x) => x.product === product);
+    if (!h) { toast(`No ${product || 'item'} is set aside at ${DAMAGED_PLACE} to return`, { tone: 'info' }); return; }
+    const name = h.supName;
+    const g = name ? groupOf(name, all.filter((x) => x.supName === name), d) : { ...groupOf('', [h], d), pick: true };
+    const qty = Object.fromEntries(g.items.map((x) => [x.id, x.id === h.id ? Math.min(h.qty, want || h.qty) : 0]));
+    setForm({ g, qty, reason: /^Wrong/.test(h.note || '') ? REASONS[1] : REASONS[0], how: 'pickup', note: '', by: EMPLOYEES[2].name });
+  }, []);
+
+  // damaged holds from deliveries, waiting at the bay, grouped by supplier
+  const waiting = setAside(holds, db.suppliers).filter((h) => h.supName);
+  const groups = [...new Set(waiting.map((h) => h.supName))].map((name) => groupOf(name, waiting.filter((h) => h.supName === name), db));
+  const returns = db.returns;
+  const supName = (id) => (db.suppliers.find((s) => s.id === id) || {}).name || id;
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
+  const thisMonth = returns.filter((r) => r.at >= monthStart);
+  const totalPieces = waiting.reduce((a, h) => a + h.qty, 0);
+  const totalValue = waiting.reduce((a, h) => a + h.qty * h.cost, 0);
+
+  const open = (g) => setForm({ g, qty: Object.fromEntries(g.items.map((h) => [h.id, h.qty])), reason: /^Wrong/.test(g.items[0].note || '') ? REASONS[1] : REASONS[0], how: 'pickup', note: '', by: EMPLOYEES[2].name });
+  const picked = form ? form.g.items.filter((h) => num(form.qty[h.id]) > 0).map((h) => ({ h, qty: Math.min(h.qty, num(form.qty[h.id])) })) : [];
+  const credit = picked.reduce((a, x) => a + x.qty * x.h.cost, 0);
+  const pieces = picked.reduce((a, x) => a + x.qty, 0);
+
+  const save = (e) => {
+    e.preventDefault();
+    if (!picked.length) { toast('Tick at least one item to send back', { tone: 'error' }); return; }
+    if (!form.g.name) { toast('Choose the supplier the goods go back to', { tone: 'error' }); return; }
+    const g = form.g;
+    const note = form.note.trim();
+    const closeNote = `${HOW_LABEL[form.how]} · ${form.reason}${note ? ' · ' + note : ''}`;
+    const lines = picked.map(({ h, qty }) => ({ holdId: h.id, name: h.product, sku: productBy(h.product)?.sku || '', qty, cost: h.cost, po: h.po }));
+    const { ret, credit: cn } = addSupplierReturn({ supplier: g.sup ? g.sup.id : g.name, lines, reason: form.reason, how: form.how, note, by: form.by });
+    picked.forEach(({ h, qty }) => {
+      closeHold(h.id, form.how === 'pickup' ? 'returned' : 'delivered', `${closeNote} · ${ret.no}`);
+      // part of a hold goes back: the rest stays set aside at the bay (still counted off the shelf it came from)
+      if (qty < h.qty) addHolds({ type: 'damaged', ref: h.ref, who: h.who, place: h.from || DAMAGED_PLACE, note: h.note, by: form.by }, [{ name: h.product, qty: h.qty - qty }]);
+      // delivery items were booked into the bay, so they leave the bay; stock set aside from a shelf
+      // only counts off that shelf while the hold is open, so the move is recorded there
+      const at = h.from && h.from !== DAMAGED_PLACE ? h.from : DAMAGED_PLACE;
+      addMove({ sku: productBy(h.product)?.sku || h.product, place: at, qty: -qty, kind: 'supplier return', reason: `Returned to ${g.name} · ${form.reason}`, by: form.by, ref: ret.no });
+    });
+    reload();
+    setForm(null);
+    toast(`${ret.no}: ${plural(pieces, 'piece')} back to ${g.name}${cn ? ` · credit note ${cn.no} for ${formatBDT(cn.amount)}` : ''}`);
+  };
+
+  const kpi = (icon, bg, fg, label, value, note) => (
+    <div className="gc-kpi">
+      <span className="gc-kpi__icon" style={{ background: bg, color: fg }}><Icon name={icon} width="24" height="24" aria-hidden="true" /></span>
+      <span className="gc-kpi__text"><span className="gc-kpi__label" style={{ display: 'block' }}>{label}</span><span className="gc-kpi__value">{value}<small title={note}>{note}</small></span></span>
+    </div>
+  );
+
+  return (
+    <div className="dc-screen ds" data-screen="SupplierReturn">
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      <div className="gc-shell">
+        <Sidebar sticky="" active="po-suppliers" />
+        <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
+          <Topbar crumb="Purchase › Suppliers & payables" page="Return goods to supplier" placeholder="Search or scan any barcode" />
+          <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+            <PageHeader
+              title="Return goods to supplier"
+              description="Damaged or wrong items from deliveries wait here. Sending them back takes them off stock and lowers what you owe."
+              actions={<>
+                <Link href="/receive-goods" className="gc-btn gc-btn--neutral"><Icon name="package-check" width="18" height="18" aria-hidden="true" /> Receive goods</Link>
+                <Link href="/suppliers" className="gc-btn gc-btn--neutral"><Icon name="wallet" width="18" height="18" aria-hidden="true" /> Suppliers & payables</Link>
+              </>}
+            />
+
+            <div className="gc-kpis">
+              {kpi('package-x', 'var(--fill-error-soft)', 'var(--text-danger)', 'Waiting to go back', plural(totalPieces, 'piece'), plural(groups.length, 'supplier'))}
+              {kpi('coins', 'var(--fill-warning-soft)', 'var(--text-warning)', 'Their value', formatBDT(totalValue), 'at the order price')}
+              {kpi('undo-2', 'var(--fill-primary-soft)', 'var(--primary)', 'Returned this month', plural(thisMonth.length, 'return'), plural(thisMonth.reduce((a, r) => a + r.lines.reduce((n, l) => n + l.qty, 0), 0), 'piece'))}
+              {kpi('receipt', 'var(--fill-success-soft)', 'var(--text-success)', 'Credit from returns', formatBDT(thisMonth.reduce((a, r) => a + r.value, 0)), 'this month')}
             </div>
-          </main>
-        </div>
+
+            <h2 className="sr-section">Waiting to go back</h2>
+            {groups.length === 0 ? (
+              <section className="gc-card">
+                <EmptyState icon="package-check" title="Nothing is waiting to go back" body={`When you report damaged or wrong items in Receive goods, they are kept at ${DAMAGED_PLACE} and show here, by supplier.`} />
+              </section>
+            ) : groups.map((g) => (
+              <section key={g.name} className="gc-card sr-card" aria-label={`Waiting to go back to ${g.name}`}>
+                <div className="sr-head">
+                  <div className="sr-who">
+                    <span className="sr-avatar" aria-hidden="true">{g.name[0]}</span>
+                    <div><h2>{g.name}</h2><p>{plural(g.pieces, 'piece')} · {formatBDT(g.value)} · you owe them {formatBDT(g.owe)}</p></div>
+                  </div>
+                  <div className="sr-acts">
+                    {g.sup ? <Link href={`/supplier-detail?id=${encodeURIComponent(g.sup.id)}`} className="gc-btn gc-btn--sm gc-btn--neutral">Ledger</Link> : null}
+                    <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => open(g)}><Icon name="undo-2" width="16" height="16" aria-hidden="true" /> Create return</button>
+                  </div>
+                </div>
+                <div className="gc-table-wrap">
+                  <table className="gc-table gc-table--compact">
+                    <thead><tr><th scope="col">Product</th><th scope="col">From</th><th scope="col" className="sr-num">Pieces</th><th scope="col" className="sr-num">Order price</th><th scope="col" className="sr-num">Value</th><th scope="col">Set aside</th></tr></thead>
+                    <tbody>
+                      {g.items.map((h) => (
+                        <tr key={h.id}>
+                          <td><span className="sr-strong">{h.product}</span><span className="sr-sub sr-id">{h.id}</span></td>
+                          <td>{h.po ? <span className="sr-id">{h.po}</span> : '—'}<span className="sr-sub">{h.note}</span></td>
+                          <td className="sr-num">{h.qty}</td>
+                          <td className="sr-num">{formatBDT(h.cost)}</td>
+                          <td className="sr-num sr-strong">{formatBDT(h.qty * h.cost)}</td>
+                          <td>{formatDate(h.at)}<span className="sr-sub">by {h.by}</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            ))}
+
+            <section className="gc-card sr-card" aria-label="Returns made">
+              <div className="sr-head"><div><h2>Returns made</h2><p>Each return took the pieces off stock and added a credit note to the supplier’s ledger.</p></div></div>
+              {returns.length === 0 ? <EmptyState icon="undo-2" title="No returns yet" body="Returns you make show here with their credit notes." /> : (
+                <div className="gc-table-wrap">
+                  <table className="gc-table gc-table--compact">
+                    <thead><tr><th scope="col">Return</th><th scope="col">Supplier</th><th scope="col">Items</th><th scope="col">Reason</th><th scope="col" className="sr-num">Credit note</th><th scope="col">By</th></tr></thead>
+                    <tbody>
+                      {returns.map((r) => (
+                        <tr key={r.no}>
+                          <td><span className="sr-strong sr-id">{r.no}</span><span className="sr-sub">{formatDate(r.at)}</span></td>
+                          <td><Link href={`/supplier-detail?id=${encodeURIComponent(r.supplier)}`}>{supName(r.supplier)}</Link></td>
+                          <td>{r.lines.map((l) => <span key={l.holdId + l.name} className="sr-sub" style={{ color: 'var(--text-body)' }}>{l.qty} × {l.name}</span>)}</td>
+                          <td>{r.reason}<span className="sr-sub">{HOW_LABEL[r.how]}{r.note ? ' · ' + r.note : ''}</span></td>
+                          <td className="sr-num"><span className="sr-strong">{formatBDT(r.value)}</span><span className="sr-sub sr-id">{r.credit || '—'}</span></td>
+                          <td>{r.by}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          </div>
+        </main>
       </div>
-    );
-  }
+
+      <Dialog open={!!form} title={form && form.g.name ? `Return to ${form.g.name}` : 'Return to supplier'} onClose={() => setForm(null)} width={600}>
+        {form ? (
+          <form className="sr-form" onSubmit={save}>
+            {form.g.pick ? (
+              <div>
+                <label className="gc-label" htmlFor="sr-sup">Supplier *</label>
+                <select id="sr-sup" className="gc-input gc-select" aria-required="true" value={form.g.name} onChange={(e) => setForm({ ...form, g: { ...groupOf(e.target.value, form.g.items, db), pick: true } })}>
+                  <option value="">Choose who takes it back</option>
+                  {db.suppliers.map((x) => <option key={x.id} value={x.name}>{x.name}</option>)}
+                </select>
+                <p className="gc-help">This item was not reported on a delivery, so choose the supplier.</p>
+              </div>
+            ) : null}
+            <ul className="sr-lines" aria-label="Items going back">
+              {form.g.items.map((h) => {
+                const on = num(form.qty[h.id]) > 0;
+                return (
+                  <li key={h.id}>
+                    <label>
+                      <input type="checkbox" className="gc-check" checked={on} onChange={(e) => setForm({ ...form, qty: { ...form.qty, [h.id]: e.target.checked ? h.qty : 0 } })} />
+                      <span style={{ minWidth: 0 }}><span className="sr-strong">{h.product}</span><span className="sr-sub">{h.po || h.note || 'Set aside'} · {h.qty} set aside · {formatBDT(h.cost)} each</span></span>
+                    </label>
+                    <input className="gc-input" type="number" min="0" max={h.qty} inputMode="numeric" aria-label={`Pieces of ${h.product} going back`} value={form.qty[h.id]} onChange={(e) => setForm({ ...form, qty: { ...form.qty, [h.id]: Math.min(h.qty, num(e.target.value)) } })} />
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="sr-two">
+              <div><label className="gc-label" htmlFor="sr-reason">Reason</label><select id="sr-reason" className="gc-input gc-select" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })}>{REASONS.map((x) => <option key={x}>{x}</option>)}</select></div>
+              <div><label className="gc-label" htmlFor="sr-by">Handled by</label><select id="sr-by" className="gc-input gc-select" value={form.by} onChange={(e) => setForm({ ...form, by: e.target.value })}>{EMPLOYEES.map((m) => <option key={m.name}>{m.name}</option>)}</select></div>
+            </div>
+            <div className="sr-opts" role="radiogroup" aria-label="How the goods go back">
+              {HOW.map(([k, label, sub]) => (
+                <label key={k} className={'sr-opt' + (form.how === k ? ' is-on' : '')}>
+                  <input type="radio" name="sr-how" checked={form.how === k} onChange={() => setForm({ ...form, how: k })} />
+                  <span><b>{label}</b><small>{sub}</small></span>
+                </label>
+              ))}
+            </div>
+            <div><label className="gc-label" htmlFor="sr-note">Note</label><textarea id="sr-note" className="gc-input" rows="2" placeholder="For example: 2 jeans are size 36 instead of 34" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} /></div>
+            <div className="sr-total" role="status"><span>{plural(pieces, 'piece')}{form.g.name ? ` · you will owe ${form.g.name} ${formatBDT(Math.max(0, form.g.owe - credit))}` : ''}</span><b>{formatBDT(credit)} credit</b></div>
+            <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setForm(null)}>Cancel</button><button type="submit" className="gc-btn gc-btn--solid" disabled={!pieces}>Return {plural(pieces, 'piece')}</button></div>
+          </form>
+        ) : null}
+      </Dialog>
+    </div>
+  );
 }

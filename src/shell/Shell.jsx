@@ -28,8 +28,24 @@ export function Topbar(props) {
 /** Routes the shell's `dc:navigate` events through the Next.js router (no full page reload). */
 export function NavigationBridge() {
   const router = useRouter();
+  const path = usePathname();
+  // screens and the sidebar listen to gc:route to follow path and query changes
   useEffect(() => {
-    const go = (e) => router.push(e.detail);
+    const id = window.setTimeout(() => window.dispatchEvent(new CustomEvent('gc:route')), 0);
+    return () => window.clearTimeout(id);
+  }, [path]);
+  useEffect(() => {
+    const go = (e) => {
+      const before = window.location.pathname + window.location.search;
+      router.push(e.detail);
+      // the router updates the address a moment later: announce it once it has (query-only changes too)
+      let tries = 0;
+      const tick = () => {
+        if (window.location.pathname + window.location.search !== before || ++tries > 20) window.dispatchEvent(new CustomEvent('gc:route'));
+        else window.setTimeout(tick, 50);
+      };
+      window.setTimeout(tick, 50);
+    };
     window.addEventListener('dc:navigate', go);
     return () => window.removeEventListener('dc:navigate', go);
   }, [router]);
@@ -60,8 +76,12 @@ const SETTINGS_SCREENS = [
   ['13', 'Keys / backups', 'SetSecurity.dc.html'], ['··', 'All settings', 'SettingsConsole.dc.html'],
 ];
 
+// The switchers are review tools. They show only when NEXT_PUBLIC_SHOW_STORYBOARD=true.
+export const SHOW_STORYBOARD = process.env.NEXT_PUBLIC_SHOW_STORYBOARD === 'true';
+
 function Switcher({ label, screens }) {
   const here = usePathname();
+  if (!SHOW_STORYBOARD) return null;
   return (
     <nav aria-label={label} className="dc-switcher">
       {screens.map(([n, text, file]) => {
@@ -82,43 +102,18 @@ export const PosSwitcher = () => <Switcher label="POS screens" screens={POS_SCRE
 export const SettingsSwitcher = () => <Switcher label="Settings screens" screens={SETTINGS_SCREENS} />;
 
 // ---- POS stage fit ----------------------------------------------------------------------------
-// A POS screen is a fixed-height stage scaled to the window height and widened by the inverse of
-// that scale, so it fills the width with no page scroll. Ported from the design's pos-fit.js.
+// The POS screens are fluid (see src/screens/pos-register/posLayout.js): they fill the window and
+// reflow at their own breakpoints, so nothing is scaled with a transform any more. All that is
+// left to do here is reserve the strip at the bottom for the review switcher when it is shown.
 
-const BAND = 58; // clear strip at the bottom for the screen switcher
+const BAND = process.env.NEXT_PUBLIC_SHOW_STORYBOARD === 'true' ? 58 : 0; // clear strip at the bottom for the screen switcher
 
 export function PosFit() {
   useEffect(() => {
-    const stages = document.querySelectorAll('[data-pos-fit]');
-    if (!stages.length || stages.length > 3) return undefined; // >3 = the contact sheet
-    const [dw, dh] = (stages[0].dataset.posFit || '1380x880').split('x').map(Number);
-    const tag = document.createElement('style');
-    tag.textContent = 'html,body{overflow:hidden!important;height:100%;margin:0;background:#0f172a}'
-      + '[data-pos-fit]{position:fixed!important;left:0!important;top:0!important;'
-      + `width:calc(var(--pos-stage-w,${dw}) * 1px)!important;min-width:calc(var(--pos-stage-w,${dw}) * 1px)!important;`
-      + `height:calc(var(--pos-stage-h,${dh}) * 1px)!important;min-height:calc(var(--pos-stage-h,${dh}) * 1px)!important;`
-      + 'max-height:none!important;transform-origin:0 0!important;transform:scale(var(--pos-fit-scale,1))!important}'
-      + '[data-pos-fit] [data-pos-fit]{position:static!important;width:100%!important;min-width:0!important;height:100%!important;min-height:0!important;transform:none!important}';
-    document.head.appendChild(tag);
+    if (!BAND) return undefined;
     const root = document.documentElement.style;
-    const fit = () => {
-      const vp = window.visualViewport;
-      const vh = Math.min(window.innerHeight || Infinity, document.documentElement.clientHeight || Infinity, vp ? vp.height : Infinity);
-      const vw = Math.min(window.innerWidth || Infinity, document.documentElement.clientWidth || Infinity, vp ? vp.width : Infinity);
-      const availH = Math.max(320, vh - BAND);
-      let s = Math.min(1, availH / dh);
-      if (vw / s < dw) s = vw / dw;
-      root.setProperty('--pos-fit-scale', String(s));
-      root.setProperty('--pos-stage-w', String(Math.max(dw, Math.round(vw / s))));
-      root.setProperty('--pos-stage-h', String(Math.round(availH / s)));
-    };
-    fit();
-    window.addEventListener('resize', fit);
-    return () => {
-      window.removeEventListener('resize', fit);
-      tag.remove();
-      ['--pos-fit-scale', '--pos-stage-w', '--pos-stage-h'].forEach((p) => root.removeProperty(p));
-    };
+    root.setProperty('--pos-band', BAND + 'px');
+    return () => root.removeProperty('--pos-band');
   }, []);
   return null;
 }

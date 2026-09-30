@@ -214,9 +214,9 @@ class Component extends DCLogic {
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `
-body{margin:0;font-family:'Poppins','Hind Siliguri',system-ui,-apple-system,'Segoe UI',sans-serif;background:#f8fafc;color:#1e293b;-webkit-font-smoothing:antialiased}
+body{margin:0;font-family:var(--font-sans);background:#f8fafc;color:#1e293b;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
-a{color:#003087;font-weight:500;text-decoration:none}a:hover{color:#002a77;text-decoration:underline}
+a{color:#003087;font-weight:var(--weight-medium);text-decoration:none}a:hover{color:#002a77;text-decoration:underline}
 .gc-stripes{background-color:#012169;background-image:repeating-linear-gradient(115deg,rgba(255,255,255,.055) 0 1px,transparent 1px 46px);animation:gcDrift 60s linear infinite}
 @keyframes gcDrift{from{background-position:0 0}to{background-position:507.55px 0}}
 .gc-rise{opacity:0;animation:gcRise 560ms cubic-bezier(0,0,.2,1) forwards}
@@ -228,26 +228,26 @@ a{color:#003087;font-weight:500;text-decoration:none}a:hover{color:#002a77;text-
 @keyframes gcSwapA{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @keyframes gcSwapB{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .gc-field{position:relative}
-.gc-ico{position:absolute;left:14px;top:12px;color:#64748b;pointer-events:none;transition:color 200ms cubic-bezier(0,0,.2,1)}
+.gc-ico{position:absolute;left:14px;top:12px;color:var(--text-muted);pointer-events:none;transition:color 200ms cubic-bezier(0,0,.2,1)}
 .gc-field:focus-within .gc-ico{color:#003087}
-.gc-input{width:100%;height:44px;padding:0 14px 0 44px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font:inherit;font-size:14px;color:#1e293b;transition:border-color 200ms cubic-bezier(0,0,.2,1)}
-.gc-input::placeholder{color:#64748b}
+.gc-input{width:100%;height:44px;padding:0 14px 0 44px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms cubic-bezier(0,0,.2,1)}
+.gc-input::placeholder{color:var(--text-muted)}
 .gc-input:hover{border-color:#94a3b8}
 .gc-input:focus{outline:none;border-color:#003087}
-.gc-btn{height:44px;border-radius:8px;border:0;font:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms cubic-bezier(0,0,.2,1),border-color 200ms cubic-bezier(0,0,.2,1)}
+.gc-btn{height:44px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms cubic-bezier(0,0,.2,1),border-color 200ms cubic-bezier(0,0,.2,1)}
 .gc-btn:focus-visible,.gc-link:focus-visible,.gc-eye:focus-visible,.gc-tab:focus-visible,.gc-lang:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .gc-solid{background:#003087;color:#fff}.gc-solid:hover{background:#002a77}.gc-solid:active{background:#00235f}
 .gc-outline{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.gc-outline:hover{background:#f1f5f9;border-color:#94a3b8}
-.gc-pill{height:52px;padding:0 6px 0 24px;border-radius:999px;border:1px solid rgba(255,255,255,.32);background:transparent;color:#fff;font-size:15px}
+.gc-pill{height:52px;padding:0 6px 0 24px;border-radius:var(--radius-full);border:1px solid rgba(255,255,255,.32);background:transparent;color:#fff;font-size:var(--text-sm-plus)}
 .gc-pill:hover{background:rgba(255,255,255,.1)}
 .gc-pill:focus-visible{outline:3px solid rgba(0,156,222,.5)}
-.gc-link{background:none;border:0;padding:0;font:inherit;color:#003087;font-weight:500;cursor:pointer}
+.gc-link{background:none;border:0;padding:0;font:inherit;color:#003087;font-weight:var(--weight-medium);cursor:pointer}
 .gc-link:hover{color:#002a77;text-decoration:underline}
-.gc-eye{position:absolute;right:2px;top:2px;width:40px;height:40px;border:0;border-radius:999px;background:transparent;color:#64748b;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background-color 200ms,color 200ms}
+.gc-eye{position:absolute;right:2px;top:2px;width:40px;height:36px;border:0;border-radius:var(--radius-full);background:transparent;color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background-color 200ms,color 200ms}
 .gc-eye:hover{background:rgba(203,213,225,.35);color:#1e293b}
-.gc-tab{flex-grow:1;flex-basis:0;height:44px;border:0;background:transparent;font:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer;transition:color 300ms ease-in-out}
+.gc-tab{flex-grow:1;flex-basis:0;height:44px;border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;transition:color 300ms ease-in-out}
 .gc-tab:hover{color:#1e293b}
-.gc-lang{position:relative;z-index:1;width:52px;height:36px;border:0;border-radius:999px;background:transparent;font:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:color 300ms ease-in-out}
+.gc-lang{position:relative;z-index:1;width:52px;height:36px;border:0;border-radius:var(--radius-full);background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;transition:color 300ms ease-in-out}
 .gc-seg{transition:background-color 300ms ease-out}
 .gc-box{transition:border-color 200ms cubic-bezier(0,0,.2,1),box-shadow 200ms cubic-bezier(0,0,.2,1)}
 .gc-digit{animation:gcDigit 220ms cubic-bezier(0,0,.2,1)}
@@ -278,40 +278,40 @@ export default class MobileSignInScreen extends Component {
             </svg>
             <div className="gc-rise" style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", animationDelay: "40ms" }}>
               <img src="/assets/820d4a69b45ed8fa40c9bc6015985c0e.png" alt="GridCommerce" style={{ height: "28px", width: "auto", display: "block" }} />
-              <div role="group" aria-label={v.t?.langLabel} style={{ position: "relative", display: "flex", padding: "3px", borderRadius: "999px", background: "rgba(255, 255, 255, 0.14)" }}>
-                <div style={__sx(`position: absolute; left: 3px; top: 3px; width: 52px; height: 36px; border-radius: 999px; background: #ffffff; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.14); transform: ${v.langX ?? ""}; transition: transform 300ms ease-in-out;`)} />
+              <div role="group" aria-label={v.t?.langLabel} style={{ position: "relative", display: "flex", padding: "3px", borderRadius: "var(--radius-full)", background: "rgba(255, 255, 255, 0.14)" }}>
+                <div style={__sx(`position: absolute; left: 3px; top: 3px; width: 52px; height: 36px; border-radius: var(--radius-full); background: #ffffff; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.14); transform: ${v.langX ?? ""}; transition: transform 300ms ease-in-out;`)} />
                 <button type="button" className="gc-lang" lang="en" aria-pressed={v.isEn} onClick={v.toEn} style={__sx(`color: ${v.enColorD ?? ""};`)}>EN</button>
-                <button type="button" className="gc-lang" lang="bn" aria-pressed={v.isBn} onClick={v.toBn} style={__sx(`color: ${v.bnColorD ?? ""}; font-family: 'Hind Siliguri', sans-serif; font-size: 14px;`)}>বাং</button>
+                <button type="button" className="gc-lang" lang="bn" aria-pressed={v.isBn} onClick={v.toBn} style={__sx(`color: ${v.bnColorD ?? ""}; font-family: var(--font-bn); font-size: var(--text-sm);`)}>বাং</button>
               </div>
             </div>
             <div className={v.swapCls} style={{ position: "relative" }}>
               {v.panelSignin ? (<>
                 <div style={{ marginTop: "22px" }}>
-                  <h1 className="gc-rise" style={__sx(`margin: 0; font-size: 30px; line-height: 38px; font-weight: 700; letter-spacing: ${v.track ?? ""}; animation-delay: 100ms;`)}>{v.t?.mWelcome}</h1>
-                  <p className="gc-rise" style={{ margin: "6px 0 0", fontSize: "14px", lineHeight: "22px", color: "rgba(255, 255, 255, 0.78)", animationDelay: "160ms" }}>{v.t?.mWelcomeSub}</p>
+                  <h1 className="gc-rise" style={__sx(`margin: 0; font-size: var(--text-3xl); line-height: 38px; font-weight: var(--weight-semibold); letter-spacing: ${v.track ?? ""}; animation-delay: 100ms;`)}>{v.t?.mWelcome}</h1>
+                  <p className="gc-rise" style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "22px", color: "rgba(255, 255, 255, 0.78)", animationDelay: "160ms" }}>{v.t?.mWelcomeSub}</p>
                 </div>
               </>) : null}
               {v.panelSignup ? (<>
                 <div style={{ marginTop: "22px" }}>
-                  <h1 className="gc-rise" style={__sx(`margin: 0; font-size: 30px; line-height: 38px; font-weight: 700; letter-spacing: ${v.track ?? ""}; animation-delay: 100ms;`)}>{v.t?.heroSignupA} <span style={{ color: "#009cde" }}>{v.t?.heroSignupB}</span></h1>
-                  <p className="gc-rise" style={{ margin: "6px 0 0", fontSize: "14px", lineHeight: "22px", color: "rgba(255, 255, 255, 0.78)", animationDelay: "160ms" }}>{v.t?.newHereSub}</p>
+                  <h1 className="gc-rise" style={__sx(`margin: 0; font-size: var(--text-3xl); line-height: 38px; font-weight: var(--weight-semibold); letter-spacing: ${v.track ?? ""}; animation-delay: 100ms;`)}>{v.t?.heroSignupA} <span style={{ color: "var(--accent-text)" }}>{v.t?.heroSignupB}</span></h1>
+                  <p className="gc-rise" style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "22px", color: "rgba(255, 255, 255, 0.78)", animationDelay: "160ms" }}>{v.t?.newHereSub}</p>
                 </div>
               </>) : null}
             </div>
           </div>
-          <div className="gc-rise" style={{ position: "relative", margin: "-56px 16px 24px", padding: "20px", background: "#ffffff", borderRadius: "16px", boxShadow: "0 3px 10px 0 rgba(48, 46, 56, 0.06), 0 20px 40px -20px rgba(1, 33, 105, 0.25)", display: "flex", flexDirection: "column", gap: "20px", animationDelay: "120ms" }}>
-            <div style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", padding: "4px", borderRadius: "999px", background: "#e9eef5" }}>
-              <div style={__sx(`position: absolute; left: 4px; top: 4px; width: calc(50% - 4px); height: 40px; border-radius: 999px; background: #ffffff; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12); transform: ${v.pillX ?? ""}; transition: transform 300ms ease-in-out;`)} />
-              <button type="button" aria-pressed={v.panelSignin} onClick={v.toSignin} className="gc-tab" style={__sx(`position: relative; z-index: 1; height: 40px; border-radius: 999px; color: ${v.panelSigninColor ?? ""};`)}>{v.t?.signIn}</button>
-              <__Link href="/mobile-sign-up" className="gc-tab" style={__sx(`position: relative; z-index: 1; height: 40px; border-radius: 999px; color: ${v.panelSignupColor ?? ""}; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 14px; font-weight: 500;`)}>{v.t?.createAccount}</__Link>
+          <div className="gc-rise" style={{ position: "relative", margin: "-56px 16px 24px", padding: "20px", background: "#ffffff", borderRadius: "var(--radius-xl)", boxShadow: "0 3px 10px 0 rgba(48, 46, 56, 0.06), 0 20px 40px -20px rgba(1, 33, 105, 0.25)", display: "flex", flexDirection: "column", gap: "20px", animationDelay: "120ms" }}>
+            <div className="gc-cols-2" style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", padding: "4px", borderRadius: "var(--radius-full)", background: "#e9eef5" }}>
+              <div style={__sx(`position: absolute; left: 4px; top: 4px; width: calc(50% - 4px); height: 40px; border-radius: var(--radius-full); background: #ffffff; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12); transform: ${v.pillX ?? ""}; transition: transform 300ms ease-in-out;`)} />
+              <button type="button" aria-pressed={v.panelSignin} onClick={v.toSignin} className="gc-tab" style={__sx(`position: relative; z-index: 1; height: 40px; border-radius: var(--radius-full); color: ${v.panelSigninColor ?? ""};`)}>{v.t?.signIn}</button>
+              <__Link href="/mobile-sign-up" className="gc-tab" style={__sx(`position: relative; z-index: 1; height: 40px; border-radius: var(--radius-full); color: ${v.panelSignupColor ?? ""}; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: var(--text-sm); font-weight: var(--weight-medium);`)}>{v.t?.createAccount}</__Link>
             </div>
             <div className={v.swapCls} style={{ display: "flex", flexDirection: "column" }}>
               {v.showSignin ? (<>
                 <form onSubmit={v.submit} style={{ display: "flex", flexDirection: "column" }}>
-                  <button type="button" className="gc-btn gc-outline gc-rise" style={{ marginTop: "0px", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", animationDelay: "60ms" }}><span style={{ fontSize: "16px", fontWeight: "600" }}>G</span>{v.t?.google}</button>
+                  <button type="button" className="gc-btn gc-outline gc-rise" style={{ marginTop: "0px", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", animationDelay: "60ms" }}><span style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>G</span>{v.t?.google}</button>
                   <div className="gc-rise" style={{ marginTop: "20px", display: "flex", alignItems: "center", gap: "14px", animationDelay: "100ms" }}>
                     <div style={{ flexGrow: "1", height: "1px", background: "#e2e8f0" }} />
-                    <span style={{ fontSize: "12px", lineHeight: "16px", color: "#64748b", letterSpacing: "0.025em" }}>{v.t?.or}</span>
+                    <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)", letterSpacing: "var(--tracking-wide)" }}>{v.t?.or}</span>
                     <div style={{ flexGrow: "1", height: "1px", background: "#e2e8f0" }} />
                   </div>
                   <div className="gc-rise" style={{ marginTop: "16px", position: "relative", display: "flex", borderBottom: "1px solid #e2e8f0", animationDelay: "140ms" }}>
@@ -322,7 +322,7 @@ export default class MobileSignInScreen extends Component {
                   {v.isEmail ? (<>
                     <div style={{ display: "flex", flexDirection: "column" }}>
                       <div className="gc-rise" style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "6px", animationDelay: "180ms" }}>
-                        <label htmlFor="m-si-email" style={{ fontSize: "13px", lineHeight: "18px", fontWeight: "500", color: "#334155" }}>{v.t?.email}</label>
+                        <label htmlFor="m-si-email" style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#334155" }}>{v.t?.email}</label>
                         <div className="gc-field">
                           <svg className="gc-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                             <rect x="2" y="4" width="20" height="16" rx="2" />
@@ -333,7 +333,7 @@ export default class MobileSignInScreen extends Component {
                         </div>
                       </div>
                       <div className="gc-rise" style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "6px", animationDelay: "220ms" }}>
-                        <label htmlFor="m-si-pw" style={{ fontSize: "13px", lineHeight: "18px", fontWeight: "500", color: "#334155" }}>{v.t?.password}</label>
+                        <label htmlFor="m-si-pw" style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#334155" }}>{v.t?.password}</label>
                         <div className="gc-field">
                           <svg className="gc-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                             <rect x="3" y="11" width="18" height="11" rx="2" />
@@ -361,34 +361,34 @@ export default class MobileSignInScreen extends Component {
                         </div>
                       </div>
                       <div className="gc-rise" style={{ marginTop: "8px", display: "flex", alignItems: "center", justifyContent: "space-between", animationDelay: "260ms" }}>
-                        <label style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "44px", fontSize: "13px", lineHeight: "18px", color: "#475569", cursor: "pointer" }}><input type="checkbox" style={{ width: "18px", height: "18px", margin: "0", accentColor: "#003087" }} />{v.t?.remember}</label>
-                        <button type="button" className="gc-link" style={{ fontSize: "13px", lineHeight: "18px", minHeight: "44px" }}>{v.t?.forgot}</button>
+                        <label style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "44px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569", cursor: "pointer" }}><input type="checkbox" style={{ width: "18px", height: "18px", margin: "0", accentColor: "#003087" }} />{v.t?.remember}</label>
+                        <button type="button" className="gc-link" style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", minHeight: "44px" }}>{v.t?.forgot}</button>
                       </div>
                     </div>
                   </>) : null}
                   {v.phoneEntry ? (<>
                     <div style={{ display: "flex", flexDirection: "column" }}>
                       <div className="gc-rise" style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "6px", animationDelay: "40ms" }}>
-                        <label htmlFor="m-si-phone" style={{ fontSize: "13px", lineHeight: "18px", fontWeight: "500", color: "#334155" }}>{v.t?.mobile}</label>
+                        <label htmlFor="m-si-phone" style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#334155" }}>{v.t?.mobile}</label>
                         <div className="gc-field">
-                          <span style={{ position: "absolute", left: "14px", top: "0", height: "44px", display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", fontWeight: "500", color: "#334155", pointerEvents: "none" }}>+880<span style={{ width: "1px", height: "20px", background: "#cbd5e1" }} /></span>
+                          <span style={{ position: "absolute", left: "14px", top: "0", height: "44px", display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#334155", pointerEvents: "none" }}>+880<span style={{ width: "1px", height: "20px", background: "#cbd5e1" }} /></span>
                           {" "}
                           <input id="m-si-phone" className="gc-input" type="tel" inputMode="numeric" placeholder="1XXX-XXXXXX" autoComplete="tel-national" onInput={v.onPhone} style={{ paddingLeft: "74px" }} />
                         </div>
-                        <p style={{ margin: "2px 0 0", fontSize: "13px", lineHeight: "18px", color: "#64748b" }}>{v.t?.phoneHelp}</p>
+                        <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>{v.t?.phoneHelp}</p>
                       </div>
                     </div>
                   </>) : null}
                   {v.codeEntry ? (<>
                     <div style={{ display: "flex", flexDirection: "column" }}>
                       <div className="gc-rise" style={{ marginTop: "16px", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "12px", animationDelay: "40ms" }}>
-                        <label htmlFor="m-si-code" style={{ fontSize: "13px", lineHeight: "18px", fontWeight: "500", color: "#334155" }}>{v.t?.codeLabel}</label>
-                        <button type="button" className="gc-link" onClick={v.changeNumber} style={{ fontSize: "13px", lineHeight: "18px" }}>{v.t?.change}</button>
+                        <label htmlFor="m-si-code" style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#334155" }}>{v.t?.codeLabel}</label>
+                        <button type="button" className="gc-link" onClick={v.changeNumber} style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px" }}>{v.t?.change}</button>
                       </div>
-                      <p className="gc-rise" style={{ margin: "4px 0 0", fontSize: "13px", lineHeight: "18px", color: "#64748b", animationDelay: "80ms" }}>{v.otpHint}</p>
-                      <div className="gc-rise" style={{ position: "relative", marginTop: "12px", display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: "8px", animationDelay: "120ms" }}>
+                      <p className="gc-rise" style={{ margin: "4px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)", animationDelay: "80ms" }}>{v.otpHint}</p>
+                      <div className="gc-rise gc-cols-6" style={{ position: "relative", marginTop: "12px", display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: "8px", animationDelay: "120ms" }}>
                         {__list(v.boxes).map((box, $index) => (<React.Fragment key={$index}>
-                            <div className="gc-box" style={__sx(`height: 52px; border-radius: 8px; background: #ffffff; border: 1px solid ${box?.border ?? ""}; box-shadow: ${box?.ring ?? ""}; display: flex; align-items: center; justify-content: center; font-size: 20px; line-height: 28px; font-weight: 600; color: #0f172a;`)}>
+                            <div className="gc-box" style={__sx(`height: 52px; border-radius: var(--radius-lg); background: #ffffff; border: 1px solid ${box?.border ?? ""}; box-shadow: ${box?.ring ?? ""}; display: flex; align-items: center; justify-content: center; font-size: var(--text-xl); line-height: 28px; font-weight: var(--weight-semibold); color: #0f172a;`)}>
                               {box?.has ? (<>
                                 <span className="gc-digit">{box?.digit}</span>
                               </>) : null}
@@ -397,17 +397,17 @@ export default class MobileSignInScreen extends Component {
                               </>) : null}
                             </div>
                           </React.Fragment>))}
-                        <input id="m-si-code" type="text" inputMode="numeric" autoComplete="one-time-code" maxLength="6" autoFocus={true} onInput={v.onCode} onFocus={v.codeFocus} onBlur={v.codeBlur} style={{ position: "absolute", inset: "0", width: "100%", height: "100%", opacity: "0", border: "0", fontSize: "16px", cursor: "text" }} />
+                        <input id="m-si-code" type="text" inputMode="numeric" autoComplete="one-time-code" maxLength="6" autoFocus={true} onInput={v.onCode} onFocus={v.codeFocus} onBlur={v.codeBlur} style={{ position: "absolute", inset: "0", width: "100%", height: "100%", opacity: "0", border: "0", fontSize: "var(--text-base)", cursor: "text" }} />
                       </div>
                       {v.codeError ? (<>
-                        <p className="gc-fade" style={{ margin: "8px 0 0", fontSize: "13px", lineHeight: "18px", color: "#c23a10" }}>{v.t?.codeErr}</p>
+                        <p className="gc-fade" style={{ margin: "8px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#c23a10" }}>{v.t?.codeErr}</p>
                       </>) : null}
                       <div className="gc-rise" style={{ marginTop: "10px", display: "flex", alignItems: "center", minHeight: "24px", animationDelay: "160ms" }}>
                         {v.canResend ? (<>
-                          <button type="button" className="gc-link" onClick={v.resend} style={{ fontSize: "13px", lineHeight: "18px", minHeight: "32px" }}>{v.t?.resend}</button>
+                          <button type="button" className="gc-link" onClick={v.resend} style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", minHeight: "32px" }}>{v.t?.resend}</button>
                         </>) : null}
                         {v.waitResend ? (<>
-                          <span style={{ fontSize: "13px", lineHeight: "18px", color: "#64748b" }}>{v.resendLabel}</span>
+                          <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>{v.resendLabel}</span>
                         </>) : null}
                       </div>
                     </div>
@@ -431,14 +431,14 @@ export default class MobileSignInScreen extends Component {
               </>) : null}
               {v.showSignup ? (<>
                 <form onSubmit={v.submit} style={{ display: "flex", flexDirection: "column" }}>
-                  <button type="button" className="gc-btn gc-outline gc-rise" style={{ marginTop: "0px", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", animationDelay: "60ms" }}><span style={{ fontSize: "16px", fontWeight: "600" }}>G</span>{v.t?.googleUp}</button>
+                  <button type="button" className="gc-btn gc-outline gc-rise" style={{ marginTop: "0px", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", animationDelay: "60ms" }}><span style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>G</span>{v.t?.googleUp}</button>
                   <div className="gc-rise" style={{ marginTop: "20px", display: "flex", alignItems: "center", gap: "14px", animationDelay: "100ms" }}>
                     <div style={{ flexGrow: "1", height: "1px", background: "#e2e8f0" }} />
-                    <span style={{ fontSize: "12px", lineHeight: "16px", color: "#64748b", letterSpacing: "0.025em" }}>{v.t?.or}</span>
+                    <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)", letterSpacing: "var(--tracking-wide)" }}>{v.t?.or}</span>
                     <div style={{ flexGrow: "1", height: "1px", background: "#e2e8f0" }} />
                   </div>
                   <div className="gc-rise" style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "6px", animationDelay: "140ms" }}>
-                    <label htmlFor="m-su-name" style={{ fontSize: "13px", lineHeight: "18px", fontWeight: "500", color: "#334155" }}>{v.t?.fullName}</label>
+                    <label htmlFor="m-su-name" style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#334155" }}>{v.t?.fullName}</label>
                     <div className="gc-field">
                       <svg className="gc-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
@@ -449,7 +449,7 @@ export default class MobileSignInScreen extends Component {
                     </div>
                   </div>
                   <div className="gc-rise" style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "6px", animationDelay: "170ms" }}>
-                    <label htmlFor="m-su-store" style={{ fontSize: "13px", lineHeight: "18px", fontWeight: "500", color: "#334155" }}>{v.t?.storeName}</label>
+                    <label htmlFor="m-su-store" style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#334155" }}>{v.t?.storeName}</label>
                     <div className="gc-field">
                       <svg className="gc-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                         <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7" />
@@ -462,7 +462,7 @@ export default class MobileSignInScreen extends Component {
                     </div>
                   </div>
                   <div className="gc-rise" style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "6px", animationDelay: "200ms" }}>
-                    <label htmlFor="m-su-email" style={{ fontSize: "13px", lineHeight: "18px", fontWeight: "500", color: "#334155" }}>{v.t?.email}</label>
+                    <label htmlFor="m-su-email" style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#334155" }}>{v.t?.email}</label>
                     <div className="gc-field">
                       <svg className="gc-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="2" y="4" width="20" height="16" rx="2" />
@@ -473,7 +473,7 @@ export default class MobileSignInScreen extends Component {
                     </div>
                   </div>
                   <div className="gc-rise" style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "6px", animationDelay: "230ms" }}>
-                    <label htmlFor="m-su-pw" style={{ fontSize: "13px", lineHeight: "18px", fontWeight: "500", color: "#334155" }}>{v.t?.password}</label>
+                    <label htmlFor="m-su-pw" style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", fontWeight: "var(--weight-medium)", color: "#334155" }}>{v.t?.password}</label>
                     <div className="gc-field">
                       <svg className="gc-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="3" y="11" width="18" height="11" rx="2" />
@@ -500,15 +500,15 @@ export default class MobileSignInScreen extends Component {
                       </button>
                     </div>
                     <div style={{ marginTop: "6px", display: "flex", alignItems: "center", gap: "12px" }}>
-                      <div style={{ flexGrow: "1", display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "6px" }}>
+                      <div className="gc-cols-4" style={{ flexGrow: "1", display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "6px" }}>
                         {__list(v.segs).map((seg, $index) => (<React.Fragment key={$index}>
-                            <div className="gc-seg" style={__sx(`height: 4px; border-radius: 999px; background: ${seg?.bg ?? ""};`)} />
+                            <div className="gc-seg" style={__sx(`height: 4px; border-radius: var(--radius-full); background: ${seg?.bg ?? ""};`)} />
                           </React.Fragment>))}
                       </div>
-                      <span style={{ minWidth: "88px", textAlign: "right", fontSize: "12px", lineHeight: "16px", fontWeight: "500", color: "#475569" }}>{v.strengthLabel}</span>
+                      <span style={{ minWidth: "88px", textAlign: "right", fontSize: "var(--text-xs)", lineHeight: "16px", fontWeight: "var(--weight-medium)", color: "#475569" }}>{v.strengthLabel}</span>
                     </div>
                   </div>
-                  <label className="gc-rise" style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "10px", minHeight: "44px", fontSize: "13px", lineHeight: "18px", color: "#475569", cursor: "pointer", animationDelay: "260ms" }}>
+                  <label className="gc-rise" style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "10px", minHeight: "44px", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569", cursor: "pointer", animationDelay: "260ms" }}>
                     <input type="checkbox" style={{ width: "18px", height: "18px", margin: "0", flexShrink: "0", accentColor: "#003087" }} />
                     <span>{v.t?.termsPre}<a href="#">{v.t?.terms}</a>{v.t?.termsMid}<a href="#">{v.t?.privacy}</a>{v.t?.termsPost}</span>
                   </label>
@@ -536,8 +536,8 @@ export default class MobileSignInScreen extends Component {
                     <path className="gc-check-mark" d="M17 29l7 7 15-15" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <div className="gc-rise" style={{ marginTop: "28px", animationDelay: "560ms" }}>
-                    <h2 style={__sx(`margin: 0; font-size: 24px; line-height: 1.3; font-weight: 700; letter-spacing: ${v.track ?? ""}; color: #0f172a;`)}>{v.doneTitle}</h2>
-                    <p style={{ margin: "8px 0 0", fontSize: "14px", lineHeight: "22px", color: "#64748b" }}>{v.doneText}</p>
+                    <h2 style={__sx(`margin: 0; font-size: var(--text-2xl); line-height: 1.3; font-weight: var(--weight-semibold); letter-spacing: ${v.track ?? ""}; color: #0f172a;`)}>{v.doneTitle}</h2>
+                    <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", lineHeight: "22px", color: "var(--text-muted)" }}>{v.doneText}</p>
                   </div>
                   <button type="button" className="gc-btn gc-outline gc-rise" style={{ marginTop: "32px", padding: "0 24px", animationDelay: "680ms" }} onClick={v.reset}>{v.t?.startOver}</button>
                 </div>

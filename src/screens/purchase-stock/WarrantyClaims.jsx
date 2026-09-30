@@ -7,6 +7,7 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+import { PageHeader as __PageHeader } from '@/components/ui';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -77,44 +78,44 @@ class Component extends DCLogic {
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `
-body{margin:0;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
+body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
 a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:12px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:8px;color:#475569;font-size:14px;font-weight:500;letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
+.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
+.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
 .nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
 .nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:11px;line-height:16px;font-weight:600;letter-spacing:.08em;color:#64748b;padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:8px;border:0;font:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
+.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
 .btn:hover{text-decoration:none}
 .btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
 .soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
 .line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
 .warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:15px}
-.sm{height:36px;padding:0 12px;font-size:13px}
-.ib{width:40px;height:40px;border-radius:999px;border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
+.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
+.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
 .ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font:inherit;font-size:14px;color:#1e293b;transition:border-color 200ms}
+.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
 .inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:#64748b}
-.lbl{font-size:13px;line-height:18px;font-weight:500;color:#334155}
-.tab{height:40px;padding:0 14px;border-radius:999px;border:0;background:transparent;font:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
+.inp::placeholder{color:var(--text-muted)}
+.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
+.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
 .tab:hover{background:#f1f5f9;color:#0f172a}
 .tab.on{background:#003087;color:#fff}
-.chip{height:40px;padding:0 14px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:13px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
+.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
 .chip:hover{border-color:#94a3b8}
 .chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:14px;line-height:20px;vertical-align:middle}
+.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
 .row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
+.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
+.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
 .b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
 .b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
 .b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.02em}
+.mono{font-family:var(--font-data);letter-spacing:.02em}
 .fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
 @keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 .flash{animation:gcFlash 900ms ease-out}
@@ -122,32 +123,32 @@ a{color:#003087}a:hover{color:#002a77}
 .scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
 @keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
 
-.sw{position:relative;width:48px;height:28px;border-radius:999px;border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
+.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
 .sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
 .sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
 .t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
 .actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:'Hind Siliguri','Poppins',sans-serif}
+.bn{font-family:var(--font-bn)}
 .pulse{animation:gcPulse 1.6s ease-in-out infinite}
 @keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
-.psec{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#64748b}
+.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
+.psec{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
 .num{font-variant-numeric:tabular-nums}
-.ai{height:30px;padding:0 10px;border-radius:8px;border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
+.ai{height:28px;padding:0 10px;border-radius:var(--radius-lg);border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
 .ai:hover{border-color:#a78bfa;box-shadow:0 4px 12px -6px rgba(91,33,182,.5)}
 .ai:focus-visible{outline:3px solid rgba(124,58,237,.4);outline-offset:2px}
-.abtn{height:32px;padding:0 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:12.5px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.abtn{height:32px;padding:0 12px;border-radius:var(--radius-lg);border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .abtn:hover{background:#f1f5f9}
 .ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0}
-.ptab{position:relative;height:48px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:13.5px;font-weight:500;color:#64748b;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:600}
+.ptab{position:relative;height:52px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:var(--weight-medium)}
 .ptab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2.5px;border-radius:3px 3px 0 0;background:#003087}
-.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#eef2f6;color:#475569;font-size:11px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
 .ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
-.thumb{width:44px;height:44px;flex-shrink:0;border-radius:10px;border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#003087}
+.thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
 `;
 
 // ---- markup ----
@@ -158,13 +159,14 @@ export default class WarrantyClaimsScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="WarrantyClaims">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "1440px", height: "1640px", background: "#eef2f7", padding: "12px", display: "flex", gap: "12px", overflow: "hidden" }}>
+        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
           <__Sidebar sticky="" active="stock-wclaims" />
-          <main style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "16px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
             <__Topbar crumb="Stock" page={"Warranty claims & serial numbers"} placeholder="Search invoice, phone, serial or IMEI" />
-            <div style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
+              <__PageHeader title={"Warranty claims & serial numbers"} />
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ flexGrow: "1", fontSize: "14px", lineHeight: "20px", color: "#475569" }}>Find any sold item by invoice, phone, serial or IMEI. The system checks the warranty by itself and keeps the customer updated.</div>
+                <div style={{ flexGrow: "1", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#475569" }}>Find any sold item by invoice, phone, serial or IMEI. The system checks the warranty by itself and keeps the customer updated.</div>
                 <__Link href="/warranty-policies" className="btn line">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
@@ -184,7 +186,7 @@ export default class WarrantyClaimsScreen extends Component {
                 </button>
               </div>
               {v.hasMsg ? (<>
-                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: 14px; font-weight: 500;`)}>
+                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-lg); background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: var(--text-sm); font-weight: var(--weight-medium);`)}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <circle cx="12" cy="12" r="10" />
                     <path d="m9 12 2 2 4-4" />
@@ -192,48 +194,48 @@ export default class WarrantyClaimsScreen extends Component {
                   <span>{v.msg}</span>
                 </div>
               </>) : null}
-              <div style={{ display: "flex", gap: "16px" }}>
+              <div className="gc-cardrow" style={{ display: "flex", gap: "16px" }}>
                 <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "12px", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
                       <path d="m9 12 2 2 4-4" />
                     </svg>
                   </span>
                   <div>
-                    <div style={{ fontSize: "26px", lineHeight: "34px", fontWeight: "700", color: "#003087" }}>{v.kOpen}</div>
-                    <div style={{ fontSize: "13px", lineHeight: "18px", color: "#475569" }}>Open claims</div>
-                    <div style={{ fontSize: "12px", lineHeight: "16px", color: "#64748b" }}>{v.kOpenSub}</div>
+                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#003087" }}>{v.kOpen}</div>
+                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Open claims</div>
+                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>{v.kOpenSub}</div>
                   </div>
                 </div>
                 <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "12px", background: "#e7f8f1", color: "#047857", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#e7f8f1", color: "#047857", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <circle cx="12" cy="12" r="10" />
                       <path d="M12 6v6l4 2" />
                     </svg>
                   </span>
                   <div>
-                    <div style={{ fontSize: "26px", lineHeight: "34px", fontWeight: "700", color: "#047857" }}>6.4 days</div>
-                    <div style={{ fontSize: "13px", lineHeight: "18px", color: "#475569" }}>Average turnaround</div>
-                    <div style={{ fontSize: "12px", lineHeight: "16px", color: "#64748b" }}>Promise: 7–15 days</div>
+                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#047857" }}>6.4 days</div>
+                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Average turnaround</div>
+                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Promise: 7–15 days</div>
                   </div>
                 </div>
                 <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "12px", background: "#ffece6", color: "#b83210", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#ffece6", color: "#b83210", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <circle cx="12" cy="12" r="10" />
                       <path d="m4.9 4.9 14.2 14.2" />
                     </svg>
                   </span>
                   <div>
-                    <div style={{ fontSize: "26px", lineHeight: "34px", fontWeight: "700", color: "#b83210" }}>3</div>
-                    <div style={{ fontSize: "13px", lineHeight: "18px", color: "#475569" }}>Rejected this month</div>
-                    <div style={{ fontSize: "12px", lineHeight: "16px", color: "#64748b" }}>All with a reason sent</div>
+                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#b83210" }}>3</div>
+                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Rejected this month</div>
+                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>All with a reason sent</div>
                   </div>
                 </div>
                 <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "12px", background: "#eef2f6", color: "#475569", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#eef2f6", color: "#475569", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
                       <path d="m3.3 7 8.7 5 8.7-5" />
@@ -241,27 +243,27 @@ export default class WarrantyClaimsScreen extends Component {
                     </svg>
                   </span>
                   <div>
-                    <div style={{ fontSize: "26px", lineHeight: "34px", fontWeight: "700", color: "#0f172a" }}>1,284</div>
-                    <div style={{ fontSize: "13px", lineHeight: "18px", color: "#475569" }}>Under warranty now</div>
-                    <div style={{ fontSize: "12px", lineHeight: "16px", color: "#64748b" }}>Units sold with a warranty</div>
+                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>1,284</div>
+                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Under warranty now</div>
+                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Units sold with a warranty</div>
                   </div>
                 </div>
               </div>
               <section className="pcard" style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: "14px" }}>
                 <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                  <div style={{ display: "inline-flex", padding: "3px", borderRadius: "999px", background: "#eef2f6" }}>
+                  <div style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
                     {__list(v.byOpts).map((by, $index) => (<React.Fragment key={$index}>
-                        <button type="button" onClick={by?.pick} aria-pressed={by?.on} style={__sx(`height: 34px; padding: 0 14px; border: 0; border-radius: 999px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; background: ${by?.bg ?? ""}; color: ${by?.fg ?? ""};`)}>{by?.l}</button>
+                        <button type="button" onClick={by?.pick} aria-pressed={by?.on} style={__sx(`height: 34px; padding: 0 14px; border: 0; border-radius: var(--radius-full); font: inherit; font-size: var(--text-xs-plus); font-weight: var(--weight-medium); cursor: pointer; background: ${by?.bg ?? ""}; color: ${by?.fg ?? ""};`)}>{by?.l}</button>
                       </React.Fragment>))}
                   </div>
                   <label style={{ position: "relative", flexGrow: "1", display: "block" }}>
-                    <span style={{ position: "absolute", left: "14px", top: "12px", color: "#64748b" }}>
+                    <span style={{ position: "absolute", left: "14px", top: "12px", color: "var(--text-muted)" }}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <circle cx="11" cy="11" r="8" />
                         <path d="m21 21-4.3-4.3" />
                       </svg>
                     </span>
-                    <input className="inp mono" value={v.q} onInput={v.typeQ} onChange={v.typeQ} aria-label="Look up" style={{ paddingLeft: "44px", height: "46px", fontSize: "15px" }} />
+                    <input className="inp mono" value={v.q} onInput={v.typeQ} onChange={v.typeQ} aria-label="Look up" style={{ paddingLeft: "44px", height: "46px", fontSize: "var(--text-sm-plus)" }} />
                   </label>
                   <button type="button" className="btn solid" onClick={v.lookup}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -277,35 +279,35 @@ export default class WarrantyClaimsScreen extends Component {
                   </button>
                 </div>
                 {v.hasHit ? (<>
-                  <div className="fade" style={__sx(`display: flex; align-items: center; gap: 18px; padding: 16px 18px; border-radius: 14px; border: 1.5px solid ${v.hitBd ?? ""}; background: ${v.hitBg ?? ""};`)}>
+                  <div className="fade" style={__sx(`display: flex; align-items: center; gap: 18px; padding: 16px 18px; border-radius: var(--radius-xl); border: 1.5px solid ${v.hitBd ?? ""}; background: ${v.hitBg ?? ""};`)}>
                     <span className="thumb" style={{ width: "52px", height: "52px", background: "#fff" }}>
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
                         <path d="M12 18h.01" />
                       </svg>
                     </span>
-                    <div style={{ flexGrow: "1", display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 1fr", gap: "14px", fontSize: "13px" }}>
+                    <div style={{ flexGrow: "1", display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 1fr", gap: "14px", fontSize: "var(--text-xs-plus)" }}>
                       <div>
-                        <div style={{ fontSize: "15px", fontWeight: "700", color: "#0f172a" }}>Galaxy A55 5G · 8/256 GB</div>
+                        <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Galaxy A55 5G · 8/256 GB</div>
                         <div className="mono" style={{ color: "#475569" }}>IMEI 350912118845201</div>
                       </div>
                       <div>
-                        <div style={{ color: "#64748b" }}>Customer</div>
-                        <div style={{ fontWeight: "600" }}>Rahima K. · 017••••4521</div>
+                        <div style={{ color: "var(--text-muted)" }}>Customer</div>
+                        <div style={{ fontWeight: "var(--weight-medium)" }}>Rahima K. · 017••••4521</div>
                       </div>
                       <div>
-                        <div style={{ color: "#64748b" }}>Sold</div>
-                        <div style={{ fontWeight: "600" }}>INV-24817 · 12 Feb 2026</div>
+                        <div style={{ color: "var(--text-muted)" }}>Sold</div>
+                        <div style={{ fontWeight: "var(--weight-medium)" }}>INV-24817 · 12 Feb 2026</div>
                       </div>
                       <div>
-                        <div style={{ color: "#64748b" }}>Policy (as sold)</div>
-                        <div style={{ fontWeight: "600" }}>Smartphone brand warranty v2</div>
+                        <div style={{ color: "var(--text-muted)" }}>Policy (as sold)</div>
+                        <div style={{ fontWeight: "var(--weight-medium)" }}>Smartphone brand warranty v2</div>
                       </div>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: "0" }}>
-                      <div style={__sx(`font-size: 12px; font-weight: 600; color: ${v.hitFg ?? ""};`)}>{v.hitSt}</div>
-                      <div style={__sx(`font-size: 18px; font-weight: 700; color: ${v.hitFg ?? ""};`)}>{v.hitLeft}</div>
-                      <div style={{ fontSize: "12px", color: "#64748b" }}>Ends 12 Feb 2027</div>
+                      <div style={__sx(`font-size: var(--text-xs); font-weight: var(--weight-medium); color: ${v.hitFg ?? ""};`)}>{v.hitSt}</div>
+                      <div style={__sx(`font-size: var(--text-lg); font-weight: var(--weight-semibold); color: ${v.hitFg ?? ""};`)}>{v.hitLeft}</div>
+                      <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Ends 12 Feb 2027</div>
                     </div>
                     <button type="button" className="btn solid" onClick={v.openClaim}>Open a claim</button>
                   </div>
@@ -325,70 +327,72 @@ export default class WarrantyClaimsScreen extends Component {
                       <div style={{ flexGrow: "1", minWidth: "0" }}>
                         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", padding: "14px 16px", borderBottom: "1px solid #eef2f6" }}>
                           {__list(v.fchips).map((fc, $index) => (<React.Fragment key={$index}>
-                              <button type="button" className={fc?.cls} onClick={fc?.pick} aria-pressed={fc?.on} style={{ height: "34px" }}>{fc?.l}<span style={{ fontSize: "11px", opacity: ".7" }}>{fc?.c}</span></button>
+                              <button type="button" className={fc?.cls} onClick={fc?.pick} aria-pressed={fc?.on} style={{ height: "36px" }}>{fc?.l}<span style={{ fontSize: "var(--text-xs)", opacity: ".7" }}>{fc?.c}</span></button>
                             </React.Fragment>))}
                         </div>
-                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                          <thead>
-                            <tr>
-                              <th className="th">Claim</th>
-                              <th className="th">Product</th>
-                              <th className="th">Customer</th>
-                              <th className="th">Issue</th>
-                              <th className="th">Status</th>
-                              <th className="th">Open</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {__list(v.claims).map((cl, $index) => (<React.Fragment key={$index}>
-                                <tr className="row" onClick={cl?.pick} style={__sx(`cursor: pointer; background: ${cl?.rowBg ?? ""};`)}>
-                                  <td className="td mono" style={{ fontWeight: "700" }}>{cl?.id}</td>
-                                  <td className="td">
-                                    <div style={{ fontWeight: "600" }}>{cl?.p}</div>
-                                    <div className="mono" style={{ fontSize: "12px", color: "#64748b" }}>{cl?.sn}</div>
-                                  </td>
-                                  <td className="td" style={{ color: "#334155" }}>{cl?.c}</td>
-                                  <td className="td" style={{ color: "#334155", maxWidth: "180px" }}>{cl?.i}</td>
-                                  <td className="td">
-                                    <span style={__sx(`display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: ${cl?.sb ?? ""}; color: ${cl?.sf ?? ""}; white-space: nowrap;`)}>{cl?.st}</span>
-                                  </td>
-                                  <td className="td num" style={__sx(`color: ${cl?.dc ?? ""}; font-weight: 600;`)}>{cl?.d}</td>
-                                </tr>
-                              </React.Fragment>))}
-                          </tbody>
-                        </table>
+                        <div className="gc-table-wrap">
+                          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                            <thead>
+                              <tr>
+                                <th className="th">Claim</th>
+                                <th className="th">Product</th>
+                                <th className="th">Customer</th>
+                                <th className="th">Issue</th>
+                                <th className="th">Status</th>
+                                <th className="th">Open</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {__list(v.claims).map((cl, $index) => (<React.Fragment key={$index}>
+                                  <tr className="row" onClick={cl?.pick} style={__sx(`cursor: pointer; background: ${cl?.rowBg ?? ""};`)}>
+                                    <td className="td mono" style={{ fontWeight: "var(--weight-semibold)" }}>{cl?.id}</td>
+                                    <td className="td">
+                                      <div style={{ fontWeight: "var(--weight-medium)" }}>{cl?.p}</div>
+                                      <div className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{cl?.sn}</div>
+                                    </td>
+                                    <td className="td" style={{ color: "#334155" }}>{cl?.c}</td>
+                                    <td className="td" style={{ color: "#334155", maxWidth: "180px" }}>{cl?.i}</td>
+                                    <td className="td">
+                                      <span style={__sx(`display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: var(--weight-medium); background: ${cl?.sb ?? ""}; color: ${cl?.sf ?? ""}; white-space: nowrap;`)}>{cl?.st}</span>
+                                    </td>
+                                    <td className="td num" style={__sx(`color: ${cl?.dc ?? ""}; font-weight: var(--weight-medium);`)}>{cl?.d}</td>
+                                  </tr>
+                                </React.Fragment>))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
-                      <aside style={{ width: "400px", flexShrink: "0", borderLeft: "1px solid #eef2f6", padding: "20px", display: "flex", flexDirection: "column", gap: "16px", background: "#fbfcfe" }}>
+                      <aside className="gc-side" style={{ width: "400px", flexShrink: "0", borderLeft: "1px solid #eef2f6", padding: "20px", display: "flex", flexDirection: "column", gap: "16px", background: "#fbfcfe" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                           <div style={{ flexGrow: "1" }}>
-                            <div className="mono" style={{ fontSize: "18px", fontWeight: "700" }}>{v.dId}</div>
-                            <div style={{ fontSize: "13px", color: "#64748b" }}>{v.dP} · {v.dC}</div>
+                            <div className="mono" style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>{v.dId}</div>
+                            <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.dP} · {v.dC}</div>
                           </div>
-                          <span style={__sx(`display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: ${v.dPill?.sb ?? ""}; color: ${v.dPill?.sf ?? ""}; white-space: nowrap;`)}>{v.dPill?.st}</span>
+                          <span style={__sx(`display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: var(--weight-medium); background: ${v.dPill?.sb ?? ""}; color: ${v.dPill?.sf ?? ""}; white-space: nowrap;`)}>{v.dPill?.st}</span>
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
                           {__list(v.steps).map((sp, $index) => (<React.Fragment key={$index}>
                               <div style={{ display: "flex", gap: "12px", alignItems: "stretch" }}>
                                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                                  <span style={__sx(`width: 22px; height: 22px; border-radius: 999px; background: ${sp?.dot ?? ""}; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center;`)}>{sp?.n}</span>
+                                  <span style={__sx(`width: 22px; height: 22px; border-radius: var(--radius-full); background: ${sp?.dot ?? ""}; color: #fff; font-size: var(--text-xs); font-weight: var(--weight-medium); display: flex; align-items: center; justify-content: center;`)}>{sp?.n}</span>
                                   <span style={__sx(`width: 2px; flex-grow: 1; background: ${sp?.line ?? ""}; min-height: 12px;`)} />
                                 </div>
                                 <div style={{ paddingBottom: "10px" }}>
-                                  <div style={__sx(`font-size: 13.5px; font-weight: 600; color: ${sp?.fg ?? ""};`)}>{sp?.l}</div>
-                                  <div style={{ fontSize: "12px", color: "#64748b" }}>{sp?.when}</div>
+                                  <div style={__sx(`font-size: var(--text-sm); font-weight: var(--weight-medium); color: ${sp?.fg ?? ""};`)}>{sp?.l}</div>
+                                  <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{sp?.when}</div>
                                 </div>
                               </div>
                             </React.Fragment>))}
                         </div>
-                        <div style={{ padding: "12px 14px", borderRadius: "12px", background: "#fff", border: "1px solid #e6eaf0", fontSize: "13px", display: "flex", flexDirection: "column", gap: "6px" }}>
-                          <div style={{ display: "flex", gap: "8px", alignItems: "center", color: "#047857", fontWeight: "600" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <div style={{ padding: "12px 14px", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e6eaf0", fontSize: "var(--text-xs-plus)", display: "flex", flexDirection: "column", gap: "6px" }}>
+                          <div style={{ display: "flex", gap: "8px", alignItems: "center", color: "#047857", fontWeight: "var(--weight-medium)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <circle cx="12" cy="12" r="10" />
   <path d="m9 12 2 2 4-4" />
 </svg>{v.dCheck}</div>
                           <div style={{ color: "#334155" }}><b>Issue:</b> {v.dI}</div>
                           <div style={{ display: "flex", gap: "8px" }}>
-                            <span style={{ width: "64px", height: "48px", borderRadius: "8px", background: "linear-gradient(160deg,#475569,#0f172a)" }} />
-                            <span style={{ width: "64px", height: "48px", borderRadius: "8px", background: "linear-gradient(160deg,#64748b,#1e293b)" }} />
+                            <span style={{ width: "64px", height: "48px", borderRadius: "var(--radius-lg)", background: "linear-gradient(160deg,#475569,#0f172a)" }} />
+                            <span style={{ width: "64px", height: "48px", borderRadius: "var(--radius-lg)", background: "linear-gradient(160deg,#64748b,#1e293b)" }} />
                           </div>
                         </div>
                         <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -401,7 +405,7 @@ export default class WarrantyClaimsScreen extends Component {
                             <option>Reject with reason</option>
                           </select>
                         </label>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 14px", borderRadius: "12px", background: "#dcfce7", color: "#14532d", fontSize: "12.5px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 14px", borderRadius: "var(--radius-xl)", background: "#dcfce7", color: "#14532d", fontSize: "var(--text-xs-plus)" }}>
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
                           </svg>
@@ -414,12 +418,12 @@ export default class WarrantyClaimsScreen extends Component {
                         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                           <span className="psec">Claims by brand · 90 days</span>
                           {__list(v.byBrand).map((bb, $index) => (<React.Fragment key={$index}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs-plus)" }}>
                                 <span style={{ width: "70px" }}>{bb?.l}</span>
-                                <div style={{ flexGrow: "1", height: "8px", borderRadius: "999px", background: "#eef2f6" }}>
-                                  <div style={__sx(`width: ${bb?.w ?? ""}; height: 100%; border-radius: 999px; background: #0a5bd0;`)} />
+                                <div style={{ flexGrow: "1", height: "8px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
+                                  <div style={__sx(`width: ${bb?.w ?? ""}; height: 100%; border-radius: var(--radius-full); background: #0a5bd0;`)} />
                                 </div>
-                                <span className="num" style={{ width: "20px", textAlign: "right", fontWeight: "600" }}>{bb?.n}</span>
+                                <span className="num" style={{ width: "20px", textAlign: "right", fontWeight: "var(--weight-medium)" }}>{bb?.n}</span>
                               </div>
                             </React.Fragment>))}
                         </div>
@@ -432,7 +436,7 @@ export default class WarrantyClaimsScreen extends Component {
                     <div style={{ display: "flex" }}>
                       <div style={{ flexGrow: "1", minWidth: "0" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", borderBottom: "1px solid #eef2f6" }}>
-                          <span style={{ flexGrow: "1", fontSize: "13.5px", color: "#475569" }}>Every piece with its own number — from the day it arrives to the day its warranty ends.</span>
+                          <span style={{ flexGrow: "1", fontSize: "var(--text-sm)", color: "#475569" }}>Every piece with its own number — from the day it arrives to the day its warranty ends.</span>
                           <button type="button" className="btn line sm">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                               <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
@@ -450,35 +454,37 @@ export default class WarrantyClaimsScreen extends Component {
                             <span>CSV</span>
                           </button>
                         </div>
-                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                          <thead>
-                            <tr>
-                              <th className="th">Serial / IMEI</th>
-                              <th className="th">Product</th>
-                              <th className="th">Batch · supplier</th>
-                              <th className="th">Status</th>
-                              <th className="th">Customer</th>
-                              <th className="th">Warranty ends</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {__list(v.sns).map((sr, $index) => (<React.Fragment key={$index}>
-                                <tr className="row">
-                                  <td className="td mono" style={{ fontWeight: "600" }}>{sr?.no}</td>
-                                  <td className="td">{sr?.p}</td>
-                                  <td className="td" style={{ color: "#475569" }}>{sr?.b}</td>
-                                  <td className="td">
-                                    <span style={__sx(`display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: ${sr?.sb ?? ""}; color: ${sr?.sf ?? ""}; white-space: nowrap;`)}>{sr?.st}</span>
-                                  </td>
-                                  <td className="td" style={{ color: "#334155" }}>{sr?.c}</td>
-                                  <td className="td">{sr?.e}</td>
-                                </tr>
-                              </React.Fragment>))}
-                          </tbody>
-                        </table>
+                        <div className="gc-table-wrap">
+                          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                            <thead>
+                              <tr>
+                                <th className="th">Serial / IMEI</th>
+                                <th className="th">Product</th>
+                                <th className="th">Batch · supplier</th>
+                                <th className="th">Status</th>
+                                <th className="th">Customer</th>
+                                <th className="th">Warranty ends</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {__list(v.sns).map((sr, $index) => (<React.Fragment key={$index}>
+                                  <tr className="row">
+                                    <td className="td mono" style={{ fontWeight: "var(--weight-medium)" }}>{sr?.no}</td>
+                                    <td className="td">{sr?.p}</td>
+                                    <td className="td" style={{ color: "#475569" }}>{sr?.b}</td>
+                                    <td className="td">
+                                      <span style={__sx(`display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: var(--weight-medium); background: ${sr?.sb ?? ""}; color: ${sr?.sf ?? ""}; white-space: nowrap;`)}>{sr?.st}</span>
+                                    </td>
+                                    <td className="td" style={{ color: "#334155" }}>{sr?.c}</td>
+                                    <td className="td">{sr?.e}</td>
+                                  </tr>
+                                </React.Fragment>))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
-                      <aside style={{ width: "380px", flexShrink: "0", borderLeft: "1px solid #eef2f6", padding: "20px", display: "flex", flexDirection: "column", gap: "14px", background: "#fbfcfe" }}>
-                        <div style={{ fontSize: "16px", fontWeight: "600" }}>Add numbers for received goods</div>
+                      <aside className="gc-side" style={{ width: "380px", flexShrink: "0", borderLeft: "1px solid #eef2f6", padding: "20px", display: "flex", flexDirection: "column", gap: "14px", background: "#fbfcfe" }}>
+                        <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>Add numbers for received goods</div>
                         <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                           <span className="lbl">Goods received</span>
                           <select className="inp" aria-label="Received batch">
@@ -486,39 +492,39 @@ export default class WarrantyClaimsScreen extends Component {
                             <option>GRN-0927 · Redmi Note 13 · 12 pcs</option>
                             <option>{"GRN-0919 · Laptop 14\" · 6 pcs"}</option>
                           </select>
-                          <span style={{ fontSize: "12px", lineHeight: "16px", color: "#64748b" }}>Only products set to keep serial or IMEI numbers show here</span>
+                          <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Only products set to keep serial or IMEI numbers show here</span>
                         </label>
                         <div>
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", marginBottom: "6px" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-xs-plus)", marginBottom: "6px" }}>
                             <span>Scanned</span>
                             <b>{v.scanN} of 20</b>
                           </div>
-                          <div style={{ height: "10px", borderRadius: "999px", background: "#eef2f6", overflow: "hidden" }}>
-                            <div style={__sx(`width: ${v.scanW ?? ""}; height: 100%; background: #10b981; border-radius: 999px;`)} />
+                          <div style={{ height: "10px", borderRadius: "var(--radius-full)", background: "#eef2f6", overflow: "hidden" }}>
+                            <div style={__sx(`width: ${v.scanW ?? ""}; height: 100%; background: #10b981; border-radius: var(--radius-full);`)} />
                           </div>
                         </div>
                         <div style={{ display: "flex", gap: "8px" }}>
                           <input className="inp mono" value={v.scanIn} onInput={v.typeScan} onChange={v.typeScan} aria-label="Scan IMEI" placeholder="Scan or type IMEI 1" />
                           <button type="button" className="btn solid" onClick={v.addScan}>Add</button>
                         </div>
-                        <div style={{ fontSize: "12.5px", color: "#64748b" }}>Dual-SIM phones ask for IMEI 2 right after. Duplicates are blocked.</div>
+                        <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Dual-SIM phones ask for IMEI 2 right after. Duplicates are blocked.</div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                           {__list(v.recent).map((rc, $index) => (<React.Fragment key={$index}>
-                              <div className="mono" style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", padding: "8px 10px", borderRadius: "8px", background: "#fff", border: "1px solid #eef2f6" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <div className="mono" style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", padding: "8px 10px", borderRadius: "var(--radius-lg)", background: "#fff", border: "1px solid #eef2f6" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M20 6 9 17l-5-5" />
 </svg>{rc?.t}</div>
                             </React.Fragment>))}
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                          <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "10px", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                               <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
                               <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
                             </svg>
                           </span>
                           <div style={{ flexGrow: "1" }}>
-                            <div style={{ fontSize: "14px", lineHeight: "20px", fontWeight: "600", color: "#0f172a" }}>Warranty ending reminder</div>
-                            <div style={{ fontSize: "13px", lineHeight: "18px", color: "#64748b" }}>SMS the customer 30 days before it ends</div>
+                            <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Warranty ending reminder</div>
+                            <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>SMS the customer 30 days before it ends</div>
                           </div>
                           <button type="button" role="switch" aria-checked={v.remind?.on} aria-label="Warranty ending reminder" className={v.remind?.cls} onClick={v.remind?.toggle} />
                         </div>

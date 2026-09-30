@@ -40,20 +40,20 @@ class Component extends DCLogic {
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `
-body{margin:0;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;background:#e9eef5;color:#475569;-webkit-font-smoothing:antialiased}
+body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#475569;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
 a{color:#003087;text-decoration:none}a:hover{color:#002a77}
-.mono{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;letter-spacing:0}
+.mono{font-family:var(--font-data);font-size:var(--text-xs);letter-spacing:0}
 .num{font-variant-numeric:tabular-nums}
-.card{background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 6px 18px -8px rgba(15,23,42,.10)}
+.card{background:#fff;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 6px 18px -8px rgba(15,23,42,.10)}
 .lift{transition:transform 220ms cubic-bezier(.23,1,.32,1),box-shadow 220ms cubic-bezier(.23,1,.32,1)}
 .lift:hover{transform:translateY(-2px);box-shadow:0 1px 2px rgba(15,23,42,.05),0 16px 32px -14px rgba(15,23,42,.22)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:10px;border:0;font:inherit;font-size:14px;font-weight:500;cursor:pointer;text-decoration:none;transition:background-color 180ms ease,color 180ms ease,transform 160ms cubic-bezier(.23,1,.32,1)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;text-decoration:none;transition:background-color 180ms ease,color 180ms ease,transform 160ms cubic-bezier(.23,1,.32,1)}
 .btn:active{transform:scale(.97)}
 .btn:focus-visible,.stepbtn:focus-visible{outline:3px solid rgba(0,48,135,.45);outline-offset:2px}
 .solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
 .ghost{background:rgba(0,48,135,.08);color:#003087}.ghost:hover{background:rgba(0,48,135,.15);color:#003087}
-.stepbtn{display:flex;width:100%;align-items:center;gap:14px;min-height:64px;padding:10px 14px;border:0;border-radius:12px;background:transparent;font:inherit;text-align:left;cursor:pointer;color:#334155;transition:background-color 180ms ease,transform 160ms cubic-bezier(.23,1,.32,1)}
+.stepbtn{display:flex;width:100%;align-items:center;gap:14px;min-height:64px;padding:10px 14px;border:0;border-radius:var(--radius-xl);background:transparent;font:inherit;text-align:left;cursor:pointer;color:#334155;transition:background-color 180ms ease,transform 160ms cubic-bezier(.23,1,.32,1)}
 .stepbtn:hover{background:#f1f5f9}
 .stepbtn:active{transform:scale(.98)}
 .stepbtn.on{background:#fff;box-shadow:0 1px 2px rgba(15,23,42,.05),0 8px 20px -10px rgba(15,23,42,.25)}
@@ -73,18 +73,18 @@ export default class CoreStepsScreen extends Component {
             <aside style={{ background: "#012169", color: "#fff", padding: "40px 24px 32px", position: "relative", overflow: "hidden" }}>
               <div style={{ position: "absolute", inset: "0", background: "repeating-linear-gradient(115deg,rgba(255,255,255,.04) 0 1px,transparent 1px 46px)", pointerEvents: "none" }} />
               <div style={{ position: "relative" }}>
-                <__Link href="/core-plan" style={{ display: "inline-flex", alignItems: "center", gap: "6px", minHeight: "44px", fontSize: "13px", color: "#7fd4f5" }}>← Build plan overview</__Link>
-                <p style={{ margin: "14px 0 0", padding: "0 12px", fontSize: "12px", fontWeight: "600", letterSpacing: ".2em", textTransform: "uppercase", color: "#7fd4f5" }}>Step explorer</p>
-                <h1 style={{ margin: "8px 0 18px", padding: "0 12px", fontSize: "26px", lineHeight: "1.2", fontWeight: "700", letterSpacing: "-.02em", color: "#fff" }}>Platform core, step by step</h1>
-                <nav aria-label="Build steps" style={{ display: "grid", gap: "2px", padding: "10px", borderRadius: "16px", background: "#f1f5f9" }}>
+                <__Link href="/core-plan" style={{ display: "inline-flex", alignItems: "center", gap: "6px", minHeight: "44px", fontSize: "var(--text-xs-plus)", color: "#7fd4f5" }}>← Build plan overview</__Link>
+                <p style={{ margin: "14px 0 0", padding: "0 12px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-caps)", textTransform: "uppercase", color: "#7fd4f5" }}>Step explorer</p>
+                <h1 style={{ margin: "8px 0 18px", padding: "0 12px", fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#fff" }}>Platform core, step by step</h1>
+                <nav aria-label="Build steps" style={{ display: "grid", gap: "2px", padding: "10px", borderRadius: "var(--radius-xl)", background: "#f1f5f9" }}>
                   {__list(v.list).map((it, $index) => (<React.Fragment key={$index}>
                       {it?.showPhase ? (<>
-                        <div style={__sx(`padding:12px 12px 4px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:${it?.phColor ?? ""}`)}>{it?.phLabel}</div>
+                        <div style={__sx(`padding:12px 12px 4px;font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:${it?.phColor ?? ""}`)}>{it?.phLabel}</div>
                       </>) : null}
                       <button className={it?.cls} onClick={it?.pick} aria-current={it?.current}>
-                        <span className="num" style={__sx(`flex:none;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:999px;border:1.5px solid ${it?.dotBd ?? ""};background:${it?.dotBg ?? ""};color:${it?.dotFg ?? ""};font-size:13px;font-weight:600`)}>{it?.nn}</span>
+                        <span className="num" style={__sx(`flex:none;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:var(--radius-full);border:1.5px solid ${it?.dotBd ?? ""};background:${it?.dotBg ?? ""};color:${it?.dotFg ?? ""};font-size:var(--text-xs-plus);font-weight:var(--weight-medium)`)}>{it?.nn}</span>
                         {" "}
-                        <span style={{ fontSize: "14px", fontWeight: "500" }}>{it?.title}</span>
+                        <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>{it?.title}</span>
                       </button>
                     </React.Fragment>))}
                 </nav>
@@ -93,64 +93,64 @@ export default class CoreStepsScreen extends Component {
             <main style={{ padding: "40px 56px 40px", display: "flex", flexDirection: "column", minWidth: "0" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 {__list(v.segs).map((g, $index) => (<React.Fragment key={$index}>
-                    <span style={__sx(`flex:1;height:6px;border-radius:6px;background:${g?.bg ?? ""};transition:background-color 240ms cubic-bezier(.23,1,.32,1)`)} />
+                    <span style={__sx(`flex:1;height:6px;border-radius:var(--radius-md);background:${g?.bg ?? ""};transition:background-color 240ms cubic-bezier(.23,1,.32,1)`)} />
                   </React.Fragment>))}
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "14px" }}>
-                <span className="num" style={{ fontSize: "13px", fontWeight: "500", color: "#64748b" }}>{v.stepOf}</span>
-                <span style={__sx(`display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:999px;background:${v.cur?.soft ?? ""};color:${v.cur?.t ?? ""};font-size:12px;font-weight:600`)}>Phase {v.cur?.ph} · {v.cur?.phname}</span>
+                <span className="num" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>{v.stepOf}</span>
+                <span style={__sx(`display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:var(--radius-full);background:${v.cur?.soft ?? ""};color:${v.cur?.t ?? ""};font-size:var(--text-xs);font-weight:var(--weight-medium)`)}>Phase {v.cur?.ph} · {v.cur?.phname}</span>
               </div>
               <div style={{ display: "flex", alignItems: "flex-start", gap: "24px", marginTop: "22px" }}>
-                <span className="num" style={__sx(`flex:none;font-size:96px;line-height:.85;font-weight:700;letter-spacing:-.05em;color:${v.cur?.c ?? ""}`)}>{v.cur?.nn}</span>
+                <span className="num" style={__sx(`flex:none;font-size:96px;line-height:.85;font-weight:var(--weight-semibold);letter-spacing:var(--tracking-tight);color:${v.cur?.c ?? ""}`)}>{v.cur?.nn}</span>
                 <div style={{ minWidth: "0" }}>
-                  <h2 style={{ margin: "0", fontSize: "34px", lineHeight: "1.12", fontWeight: "700", letterSpacing: "-.025em", color: "#0f172a", textWrap: "balance" }}>{v.cur?.title}</h2>
-                  <p style={{ margin: "10px 0 0", maxWidth: "760px", fontSize: "16px", lineHeight: "1.6", color: "#475569", textWrap: "pretty" }}>{v.cur?.sub}</p>
+                  <h2 style={{ margin: "0", fontSize: "var(--text-3xl)", lineHeight: "1.12", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a", textWrap: "balance" }}>{v.cur?.title}</h2>
+                  <p style={{ margin: "10px 0 0", maxWidth: "760px", fontSize: "var(--text-base)", lineHeight: "1.6", color: "#475569", textWrap: "pretty" }}>{v.cur?.sub}</p>
                 </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.35fr) minmax(0,1fr)", gap: "20px", marginTop: "30px", flex: "1", minHeight: "0" }}>
                 <section className="card" style={{ padding: "26px 28px" }}>
-                  <h3 style={{ margin: "0", fontSize: "12px", fontWeight: "600", letterSpacing: ".14em", textTransform: "uppercase", color: "#64748b" }}>What gets built</h3>
+                  <h3 style={{ margin: "0", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>What gets built</h3>
                   <ol style={{ listStyle: "none", margin: "16px 0 0", padding: "0", display: "grid", gap: "4px" }}>
                     {__list(v.builds).map((b, $index) => (<React.Fragment key={$index}>
                         <li style={{ display: "grid", gridTemplateColumns: "34px minmax(0,1fr)", gap: "8px", padding: "10px 0", borderTop: "1px solid #eef2f6" }}>
-                          <span className="mono num" style={__sx(`padding-top:2px;color:${v.cur?.t ?? ""};font-weight:500`)}>{b?.k}</span>
-                          <span style={{ fontSize: "14px", lineHeight: "1.55", color: "#334155" }}>{b?.text}</span>
+                          <span className="mono num" style={__sx(`padding-top:2px;color:${v.cur?.t ?? ""};font-weight:var(--weight-medium)`)}>{b?.k}</span>
+                          <span style={{ fontSize: "var(--text-sm)", lineHeight: "1.55", color: "#334155" }}>{b?.text}</span>
                         </li>
                       </React.Fragment>))}
                   </ol>
                 </section>
                 <div style={{ display: "flex", flexDirection: "column", gap: "20px", minWidth: "0" }}>
                   <section className="card" style={{ padding: "22px 24px" }}>
-                    <h3 style={{ margin: "0", fontSize: "12px", fontWeight: "600", letterSpacing: ".14em", textTransform: "uppercase", color: "#64748b" }}>Tables and services</h3>
+                    <h3 style={{ margin: "0", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Tables and services</h3>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "12px" }}>
                       {__list(v.tables).map((t, $index) => (<React.Fragment key={$index}>
-                          <span className="mono" style={{ display: "inline-flex", alignItems: "center", height: "28px", padding: "0 10px", borderRadius: "7px", background: "#0f172a", color: "#e2e8f0" }}>{t?.t}</span>
+                          <span className="mono" style={{ display: "inline-flex", alignItems: "center", height: "28px", padding: "0 10px", borderRadius: "var(--radius-md)", background: "#0f172a", color: "#e2e8f0" }}>{t?.t}</span>
                         </React.Fragment>))}
                     </div>
-                    <h3 style={{ margin: "22px 0 0", fontSize: "12px", fontWeight: "600", letterSpacing: ".14em", textTransform: "uppercase", color: "#64748b" }}>Modules touched</h3>
+                    <h3 style={{ margin: "22px 0 0", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Modules touched</h3>
                     <div style={{ display: "grid", gap: "6px", marginTop: "12px" }}>
                       {__list(v.mods).map((m, $index) => (<React.Fragment key={$index}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13px", color: "#334155" }}><span className="mono" style={__sx(`flex:none;min-width:52px;display:inline-flex;justify-content:center;height:24px;align-items:center;padding:0 6px;border-radius:6px;background:${v.cur?.soft ?? ""};color:${v.cur?.t ?? ""};font-weight:500`)}>{m?.key}</span>{m?.name}</div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs-plus)", color: "#334155" }}><span className="mono" style={__sx(`flex:none;min-width:52px;display:inline-flex;justify-content:center;height:24px;align-items:center;padding:0 6px;border-radius:var(--radius-md);background:${v.cur?.soft ?? ""};color:${v.cur?.t ?? ""};font-weight:var(--weight-medium)`)}>{m?.key}</span>{m?.name}</div>
                         </React.Fragment>))}
                     </div>
                   </section>
-                  <section style={{ padding: "22px 24px", borderRadius: "16px", background: "#012169", color: "#fff" }}>
+                  <section style={{ padding: "22px 24px", borderRadius: "var(--radius-xl)", background: "#012169", color: "#fff" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#7fd4f5" }}>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M4 21V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16" />
                         <path d="M4 21h16M9 12h.01" />
                       </svg>
-                      <span style={{ fontSize: "12px", fontWeight: "600", letterSpacing: ".14em", textTransform: "uppercase" }}>Gate to pass</span>
+                      <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase" }}>Gate to pass</span>
                     </div>
-                    <p style={{ margin: "10px 0 0", fontSize: "16px", lineHeight: "1.5", fontWeight: "500", color: "#fff" }}>{v.cur?.gate}</p>
+                    <p style={{ margin: "10px 0 0", fontSize: "var(--text-base)", lineHeight: "1.5", fontWeight: "var(--weight-medium)", color: "#fff" }}>{v.cur?.gate}</p>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "12px", marginTop: "18px", paddingTop: "16px", borderTop: "1px solid rgba(255,255,255,.14)" }}>
                       <div>
-                        <div style={{ fontSize: "11px", fontWeight: "600", letterSpacing: ".1em", textTransform: "uppercase", color: "#99b3d6" }}>Depends on</div>
-                        <div style={{ marginTop: "4px", fontSize: "14px", color: "#fff" }}>{v.cur?.depends}</div>
+                        <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "#99b3d6" }}>Depends on</div>
+                        <div style={{ marginTop: "4px", fontSize: "var(--text-sm)", color: "#fff" }}>{v.cur?.depends}</div>
                       </div>
                       <div>
-                        <div style={{ fontSize: "11px", fontWeight: "600", letterSpacing: ".1em", textTransform: "uppercase", color: "#99b3d6" }}>Unlocks</div>
-                        <div style={{ marginTop: "4px", fontSize: "14px", color: "#fff" }}>{v.cur?.unlocks}</div>
+                        <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "#99b3d6" }}>Unlocks</div>
+                        <div style={{ marginTop: "4px", fontSize: "var(--text-sm)", color: "#fff" }}>{v.cur?.unlocks}</div>
                       </div>
                     </div>
                   </section>

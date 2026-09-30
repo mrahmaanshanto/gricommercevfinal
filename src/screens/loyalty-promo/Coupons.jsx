@@ -7,6 +7,8 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+import { PageHeader as __PageHeader, EmptyState as __EmptyState } from '@/components/ui';
+import { toast as __toast } from '@/runtime/ui';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -24,22 +26,33 @@ var C = [
   { id: 6, code: 'FREESHIP', gets: 'Free delivery', rule: 'On bills of ৳1,500 or more', where: 'Website', who: 'Everyone', dates: '8 – 14 Sep', left: 'Ended', used: 211, limit: 0, sales: 58900, st: 'ended', on: false },
   { id: 7, code: 'SORRY100', gets: '৳100 off', rule: 'Any bill', where: 'Website + POS', who: 'One customer per code', dates: 'No end date', left: 'Always on', used: 4, limit: 20, sales: 5200, st: 'off', on: false }
 ];
+function setQuery(key, value) { if (typeof window === 'undefined') return; var u = new URL(window.location.href); if (value) u.searchParams.set(key, value); else u.searchParams.delete(key); window.history.replaceState(window.history.state, '', u.pathname + u.search + u.hash); }
+function getQuery(key) { if (typeof window === 'undefined') return ''; return new URLSearchParams(window.location.search).get(key) || ''; }
+function tabKeys(e) { var k = e.key; if (k !== 'ArrowRight' && k !== 'ArrowLeft' && k !== 'Home' && k !== 'End') return; var tabs = Array.prototype.slice.call(e.currentTarget.querySelectorAll('[role="tab"]')); var i = tabs.indexOf(document.activeElement); if (i < 0) return; e.preventDefault(); var n = k === 'Home' ? 0 : k === 'End' ? tabs.length - 1 : (i + (k === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length; tabs[n].focus(); tabs[n].click(); }
 var TABS = [{ k: 'live', label: 'Running' }, { k: 'soon', label: 'Coming soon' }, { k: 'ended', label: 'Ended' }, { k: 'off', label: 'Turned off' }];
 class Component extends DCLogic {
+  componentDidMount() { var t = getQuery('status'); if (TABS.some(function (x) { return x.k === t; })) this.setState({ tab: t }); }
   componentWillUnmount() { clearTimeout(this.t); }
   renderVals() {
     var self = this, s = this.state || {}, tab = s.tab || 'live', sw = s.sw || {};
     var isOn = function (c) { return sw[c.id] == null ? c.on : sw[c.id]; };
-    var flash = function (m) { clearTimeout(self.t); self.setState({ msg: m }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 2400); };
-    var rows = C.filter(function (c) { return c.st === tab; }).map(function (c) {
+    var flash = function (m, o) { __toast(m, o || {}); };
+    // A running code that is switched off moves to "Turned off"; switching it back on returns it to "Running".
+    var eff = function (c) { var on = isOn(c); if (c.st === 'live' && !on) return 'off'; if (c.st === 'off' && on) return 'live'; return c.st; };
+    var rows = C.filter(function (c) { return eff(c) === tab; }).map(function (c) {
       var on = isOn(c), pct = c.limit ? Math.round(c.used / c.limit * 100) : Math.min(100, Math.round(c.used / 3));
       return { code: c.code, gets: c.gets, rule: c.rule, where: c.where, who: c.who, dates: c.dates, left: c.left, leftColor: /2 days|Ended/.test(c.left) ? '#b83210' : '#64748b',
         used: c.limit ? c.used + ' of ' + c.limit : c.used + ' times', pct: pct + '%', sales: c.sales ? bdt(c.sales) : '—', on: on, swCls: on ? 'sw on' : 'sw',
-        copy: function () { flash(c.code + ' copied. Paste it in your Facebook post or SMS.'); },
-        toggle: function () { var q = assign({}, sw); q[c.id] = !on; self.setState({ sw: q }); flash(c.code + (on ? ' turned off. Customers can’t use it now.' : ' turned on.')); } };
+        copy: function () { try { if (navigator.clipboard) navigator.clipboard.writeText(c.code); } catch (e) { /* clipboard blocked: the toast still tells the code */ } flash(c.code + ' copied. Paste it in your Facebook post or SMS.'); },
+        toggle: function () { var q = assign({}, sw); q[c.id] = !on; self.setState({ sw: q });
+          var undo = function () { self.setState(function (p) { var r = assign({}, (p && p.sw) || {}); r[c.id] = on; return { sw: r }; }); };
+          var moved = c.st === 'live' || c.st === 'off';
+          flash(c.code + (on ? ' turned off. Customers can’t use it now.' : ' turned on.') + (moved ? (on ? ' Find it under Turned off.' : ' Find it under Running.') : ''), { undo: undo }); } };
     });
-    var cnt = {}; TABS.forEach(function (t) { cnt[t.k] = C.filter(function (c) { return c.st === t.k; }).length; });
-    return { tabs: mkTabs(this, TABS, tab, 'tab', cnt), rows: rows, empty: !rows.length, nLive: cnt.live, hasMsg: !!s.msg, msg: s.msg || '' };
+    var cnt = {}; TABS.forEach(function (t) { cnt[t.k] = C.filter(function (c) { return eff(c) === t.k; }).length; });
+    var tabs = mkTabs(this, TABS, tab, 'tab', cnt).map(function (t, i) { var k = TABS[i].k; return assign(t, { id: 'cp-tab-' + k, pick: function () { self.setState({ tab: k }); setQuery('status', k === 'live' ? '' : k); } }); });
+    var curLabel = TABS.filter(function (t) { return t.k === tab; })[0].label;
+    return { tabs: tabs, tabId: 'cp-tab-' + tab, rows: rows, empty: !rows.length, emptyTitle: 'No codes under “' + curLabel + '”', showRunning: function () { self.setState({ tab: 'live' }); setQuery('status', ''); }, notRunning: tab !== 'live', nLive: cnt.live, hasMsg: false, msg: '' };
   }
 }
 function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
@@ -47,44 +60,44 @@ function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `
-body{margin:0;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
+body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
 a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:12px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:8px;color:#475569;font-size:14px;font-weight:500;letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
+.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
+.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
 .nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
 .nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:11px;line-height:16px;font-weight:600;letter-spacing:.08em;color:#64748b;padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:8px;border:0;font:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
+.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
 .btn:hover{text-decoration:none}
 .btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
 .soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
 .line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
 .warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:15px}
-.sm{height:36px;padding:0 12px;font-size:13px}
-.ib{width:40px;height:40px;border-radius:999px;border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
+.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
+.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
 .ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font:inherit;font-size:14px;color:#1e293b;transition:border-color 200ms}
+.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
 .inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:#64748b}
-.lbl{font-size:13px;line-height:18px;font-weight:500;color:#334155}
-.tab{height:40px;padding:0 14px;border-radius:999px;border:0;background:transparent;font:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
+.inp::placeholder{color:var(--text-muted)}
+.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
+.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
 .tab:hover{background:#f1f5f9;color:#0f172a}
 .tab.on{background:#003087;color:#fff}
-.chip{height:40px;padding:0 14px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:13px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
+.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
 .chip:hover{border-color:#94a3b8}
 .chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:14px;line-height:20px;vertical-align:middle}
+.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
 .row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
+.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
+.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
 .b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
 .b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
 .b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.02em}
+.mono{font-family:var(--font-data);letter-spacing:.02em}
 .fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
 @keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 .flash{animation:gcFlash 900ms ease-out}
@@ -92,14 +105,14 @@ a{color:#003087}a:hover{color:#002a77}
 .scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
 @keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
 
-.sw{position:relative;width:48px;height:28px;border-radius:999px;border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
+.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
 .sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
 .sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
 .t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
 .actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:'Hind Siliguri','Poppins',sans-serif}
+.bn{font-family:var(--font-bn)}
 .pulse{animation:gcPulse 1.6s ease-in-out infinite}
 @keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
@@ -113,14 +126,15 @@ export default class CouponsScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="Coupons">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "1440px", height: "1000px", background: "#eef2f7", padding: "12px", display: "flex", gap: "12px", overflow: "hidden" }}>
+        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
           <__Sidebar sticky="" active="promo-coupons" />
-          <main style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "16px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
             <__Topbar crumb="Promo" page="Discount codes" placeholder="Search a code" />
-            <div style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <div style={{ display: "flex", gap: "16px" }}>
+            <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
+              <__PageHeader title="Discount codes" />
+              <div className="gc-cardrow" style={{ display: "flex", gap: "16px" }}>
                 <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "12px", background: "#e7f8f1", color: "#047857", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#e7f8f1", color: "#047857", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
                       <path d="M9 9h.01" />
@@ -129,13 +143,13 @@ export default class CouponsScreen extends Component {
                     </svg>
                   </span>
                   <div>
-                    <div style={{ fontSize: "26px", lineHeight: "34px", fontWeight: "700", color: "#047857" }}>{v.nLive}</div>
-                    <div style={{ fontSize: "13px", lineHeight: "18px", color: "#475569" }}>Codes running</div>
-                    <div style={{ fontSize: "12px", lineHeight: "16px", color: "#64748b" }}>right now</div>
+                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#047857" }}>{v.nLive}</div>
+                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Codes running</div>
+                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>right now</div>
                   </div>
                 </div>
                 <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "12px", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                       <circle cx="9" cy="7" r="4" />
@@ -144,13 +158,13 @@ export default class CouponsScreen extends Component {
                     </svg>
                   </span>
                   <div>
-                    <div style={{ fontSize: "26px", lineHeight: "34px", fontWeight: "700", color: "#003087" }}>642</div>
-                    <div style={{ fontSize: "13px", lineHeight: "18px", color: "#475569" }}>Used this month</div>
-                    <div style={{ fontSize: "12px", lineHeight: "16px", color: "#64748b" }}>times</div>
+                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#003087" }}>642</div>
+                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Used this month</div>
+                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>times</div>
                   </div>
                 </div>
                 <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "12px", background: "#e0f3fb", color: "#0089c3", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#e0f3fb", color: "var(--accent-text)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <circle cx="8" cy="21" r="1" />
                       <circle cx="19" cy="21" r="1" />
@@ -158,13 +172,13 @@ export default class CouponsScreen extends Component {
                     </svg>
                   </span>
                   <div>
-                    <div style={{ fontSize: "26px", lineHeight: "34px", fontWeight: "700", color: "#0f172a" }}>৳2,14,800</div>
-                    <div style={{ fontSize: "13px", lineHeight: "18px", color: "#475569" }}>Sales with codes</div>
-                    <div style={{ fontSize: "12px", lineHeight: "16px", color: "#64748b" }}>this month</div>
+                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>৳2,14,800</div>
+                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Sales with codes</div>
+                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>this month</div>
                   </div>
                 </div>
                 <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "12px", background: "#fff4e0", color: "#a14f06", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#fff4e0", color: "#a14f06", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M19 5 5 19" />
                       <circle cx="6.5" cy="6.5" r="2.5" />
@@ -172,14 +186,14 @@ export default class CouponsScreen extends Component {
                     </svg>
                   </span>
                   <div>
-                    <div style={{ fontSize: "26px", lineHeight: "34px", fontWeight: "700", color: "#a14f06" }}>৳19,420</div>
-                    <div style={{ fontSize: "13px", lineHeight: "18px", color: "#475569" }}>Discount given</div>
-                    <div style={{ fontSize: "12px", lineHeight: "16px", color: "#64748b" }}>this month</div>
+                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#a14f06" }}>৳19,420</div>
+                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Discount given</div>
+                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>this month</div>
                   </div>
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ flexGrow: "1", fontSize: "14px", lineHeight: "20px", color: "#475569" }}>A discount code gives money off when the customer types it on your website or tells it at the counter.</div>
+                <div style={{ flexGrow: "1", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#475569" }}>A discount code gives money off when the customer types it on your website or tells it at the counter.</div>
                 <__Link href="/new-coupon" className="btn solid">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M5 12h14" />
@@ -189,15 +203,15 @@ export default class CouponsScreen extends Component {
                 </__Link>
               </div>
               <section className="card" style={{ overflow: "hidden" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "14px 16px", borderBottom: "1px solid #e2e8f0", flexWrap: "wrap" }}>
+                <div role="tablist" aria-label="Discount codes by status" onKeyDown={tabKeys} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "14px 16px", borderBottom: "1px solid #e2e8f0", flexWrap: "wrap" }}>
                   {__list(v.tabs).map((tb, $index) => (<React.Fragment key={$index}>
-                      <button type="button" className={tb?.cls} aria-pressed={tb?.on} onClick={tb?.pick}>{tb?.label}{tb?.hasCount ? (<>
-  <span style={__sx(`min-width: 22px; height: 20px; padding: 0 6px; border-radius: 999px; background: ${tb?.countBg ?? ""}; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center;`)}>{tb?.count}</span>
+                      <button type="button" role="tab" id={tb?.id} aria-selected={tb?.on} aria-controls="cp-panel" tabIndex={tb?.on ? 0 : -1} className={tb?.cls} onClick={tb?.pick}>{tb?.label}{tb?.hasCount ? (<>
+  <span style={__sx(`min-width: 22px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: ${tb?.countBg ?? ""}; font-size: var(--text-xs); font-weight: var(--weight-medium); display: inline-flex; align-items: center; justify-content: center;`)}>{tb?.count}</span>
 </>) : null}</button>
                     </React.Fragment>))}
                 </div>
                 {v.hasMsg ? (<>
-                  <div className="fade" role="status" style={{ margin: "14px 16px 0", display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", borderRadius: "10px", background: "#e7f8f1", color: "#065f46", fontSize: "14px", fontWeight: "500" }}>
+                  <div className="fade" role="status" style={{ margin: "14px 16px 0", display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", borderRadius: "var(--radius-lg)", background: "#e7f8f1", color: "#065f46", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <circle cx="12" cy="12" r="10" />
                       <path d="m9 12 2 2 4-4" />
@@ -205,60 +219,62 @@ export default class CouponsScreen extends Component {
                     <span>{v.msg}</span>
                   </div>
                 </>) : null}
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr>
-                      <th className="th">Code</th>
-                      <th className="th">Customer gets</th>
-                      <th className="th">Where</th>
-                      <th className="th">Dates</th>
-                      <th className="th">Used</th>
-                      <th className="th" style={{ textAlign: "right" }}>Sales</th>
-                      <th className="th">On / off</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {__list(v.rows).map((r, $index) => (<React.Fragment key={$index}>
-                        <tr className="row">
-                          <td className="td">
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <span className="mono" style={{ padding: "5px 10px", borderRadius: "6px", border: "1.5px dashed #003087", background: "#f2f6fc", fontWeight: "700", color: "#003087" }}>{r?.code}</span>
-                              <button type="button" className="ib" aria-label={`Copy code ${r?.code ?? ""}`} onClick={r?.copy} style={{ width: "32px", height: "32px" }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <rect width="14" height="14" x="8" y="8" rx="2" />
-                                  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-                                </svg>
-                              </button>
-                            </div>
-                          </td>
-                          <td className="td">
-                            <div style={{ fontWeight: "600" }}>{r?.gets}</div>
-                            <div style={{ fontSize: "12px", lineHeight: "16px", color: "#64748b" }}>{r?.rule}</div>
-                          </td>
-                          <td className="td">
-                            <div>{r?.where}</div>
-                            <div style={{ fontSize: "12px", lineHeight: "16px", color: "#64748b" }}>{r?.who}</div>
-                          </td>
-                          <td className="td" style={{ whiteSpace: "nowrap" }}>
-                            <div>{r?.dates}</div>
-                            <div style={__sx(`font-size: 12px; line-height: 16px; color: ${r?.leftColor ?? ""};`)}>{r?.left}</div>
-                          </td>
-                          <td className="td" style={{ minWidth: "140px" }}>
-                            <div style={{ fontSize: "13px", fontWeight: "500" }}>{r?.used}</div>
-                            <div style={{ height: "6px", marginTop: "6px", borderRadius: "999px", background: "#eef2f6", overflow: "hidden" }}>
-                              <div style={__sx(`width: ${r?.pct ?? ""}; height: 100%; border-radius: 999px; background: #0a5bd0;`)} />
-                            </div>
-                          </td>
-                          <td className="td" style={{ textAlign: "right", fontWeight: "600" }}>{r?.sales}</td>
-                          <td className="td">
-                            <button type="button" role="switch" aria-checked={r?.on} aria-label={`Turn ${r?.code ?? ""} on or off`} className={r?.swCls} onClick={r?.toggle} />
-                          </td>
-                        </tr>
-                      </React.Fragment>))}
-                  </tbody>
-                </table>
+                <div className="gc-table-wrap" role="tabpanel" id="cp-panel" aria-labelledby={v.tabId}>
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr>
+                        <th className="th">Code</th>
+                        <th className="th">Customer gets</th>
+                        <th className="th">Where</th>
+                        <th className="th">Dates</th>
+                        <th className="th">Used</th>
+                        <th className="th" style={{ textAlign: "right" }}>Sales</th>
+                        <th className="th">On / off</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {__list(v.rows).map((r, $index) => (<React.Fragment key={$index}>
+                          <tr className="row">
+                            <td className="td">
+                              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <span className="mono" style={{ padding: "5px 10px", borderRadius: "var(--radius-md)", border: "1.5px dashed #003087", background: "#f2f6fc", fontWeight: "var(--weight-semibold)", color: "#003087" }}>{r?.code}</span>
+                                <button type="button" className="ib" aria-label={`Copy code ${r?.code ?? ""}`} onClick={r?.copy} style={{ width: "32px", height: "32px" }}>
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <rect width="14" height="14" x="8" y="8" rx="2" />
+                                    <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </td>
+                            <td className="td">
+                              <div style={{ fontWeight: "var(--weight-medium)" }}>{r?.gets}</div>
+                              <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>{r?.rule}</div>
+                            </td>
+                            <td className="td">
+                              <div>{r?.where}</div>
+                              <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>{r?.who}</div>
+                            </td>
+                            <td className="td" style={{ whiteSpace: "nowrap" }}>
+                              <div>{r?.dates}</div>
+                              <div style={__sx(`font-size: var(--text-xs); line-height: 16px; color: ${r?.leftColor ?? ""};`)}>{r?.left}</div>
+                            </td>
+                            <td className="td" style={{ minWidth: "140px" }}>
+                              <div style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>{r?.used}</div>
+                              <div style={{ height: "6px", marginTop: "6px", borderRadius: "var(--radius-full)", background: "#eef2f6", overflow: "hidden" }}>
+                                <div style={__sx(`width: ${r?.pct ?? ""}; height: 100%; border-radius: var(--radius-full); background: #0a5bd0;`)} />
+                              </div>
+                            </td>
+                            <td className="td" style={{ textAlign: "right", fontWeight: "var(--weight-medium)" }}>{r?.sales}</td>
+                            <td className="td">
+                              <button type="button" role="switch" aria-checked={r?.on} aria-label={`Turn ${r?.code ?? ""} on or off`} className={r?.swCls} onClick={r?.toggle} />
+                            </td>
+                          </tr>
+                        </React.Fragment>))}
+                    </tbody>
+                  </table>
+                </div>
                 {v.empty ? (<>
-                  <div style={{ padding: "40px", textAlign: "center", fontSize: "14px", color: "#64748b" }}>No codes here.</div>
+                  <__EmptyState icon="ticket-percent" title={v.emptyTitle} body="Codes move here when their status changes." actionLabel={v.notRunning ? "Show running codes" : undefined} onAction={v.showRunning} />
                 </>) : null}
               </section>
             </div>

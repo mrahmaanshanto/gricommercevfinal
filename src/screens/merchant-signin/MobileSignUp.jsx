@@ -90,22 +90,22 @@ class Component extends DCLogic {
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `
-body{margin:0;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;background:#ffffff;color:#1e293b;-webkit-font-smoothing:antialiased}
+body{margin:0;font-family:var(--font-sans);background:#ffffff;color:#1e293b;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
-a{color:#003087;font-weight:500;text-decoration:none}a:hover{color:#002a77;text-decoration:underline}
-.inp{width:100%;height:48px;padding:0 14px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;font:inherit;font-size:15px;color:#1e293b;transition:border-color 200ms cubic-bezier(0,0,.2,1)}
-.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}.inp::placeholder{color:#64748b}
-.lbl{font-size:13px;line-height:18px;font-weight:500;color:#334155}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:52px;padding:0 24px;border-radius:10px;border:0;font:inherit;font-size:15px;font-weight:500;letter-spacing:.02em;cursor:pointer;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
+a{color:#003087;font-weight:var(--weight-medium);text-decoration:none}a:hover{color:#002a77;text-decoration:underline}
+.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms cubic-bezier(0,0,.2,1)}
+.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}.inp::placeholder{color:var(--text-muted)}
+.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.02em;cursor:pointer;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
 .btn:hover{text-decoration:none}
 .btn:focus-visible,.opt:focus-visible,.pick:focus-visible,.ctl:focus-visible,.dot:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
 .ghost{background:transparent;color:#334155}.ghost:hover{background:#f1f5f9;color:#0f172a}
 .line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f8fafc;border-color:#94a3b8}
-.opt{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:16px;border-radius:14px;border:1.5px solid #e2e8f0;background:#fff;font:inherit;text-align:left;cursor:pointer;transition:border-color 200ms,background-color 200ms,box-shadow 200ms}
+.opt{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:16px;border-radius:var(--radius-xl);border:1.5px solid #e2e8f0;background:#fff;font:inherit;text-align:left;cursor:pointer;transition:border-color 200ms,background-color 200ms,box-shadow 200ms}
 .opt:hover{border-color:#94a3b8}
 .opt.on{border-color:#003087;background:rgba(0,48,135,.04);box-shadow:0 0 0 3px rgba(0,48,135,.08)}
-.pick{height:42px;padding:0 16px;border-radius:999px;border:1.5px solid #e2e8f0;background:#fff;font:inherit;font-size:14px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:border-color 200ms,background-color 200ms,color 200ms}
+.pick{height:44px;padding:0 16px;border-radius:var(--radius-full);border:1.5px solid #e2e8f0;background:#fff;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:border-color 200ms,background-color 200ms,color 200ms}
 .pick:hover{border-color:#94a3b8}
 .pick.on{border-color:#003087;background:#003087;color:#fff}
 .step{animation:stIn 460ms cubic-bezier(.16,1,.3,1) both}
@@ -123,16 +123,16 @@ a{color:#003087;font-weight:500;text-decoration:none}a:hover{color:#002a77;text-
 @keyframes qt{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 .qtb{animation:qtb 700ms cubic-bezier(.16,1,.3,1) both}
 @keyframes qtb{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-.bar{flex-grow:1;height:3px;border-radius:999px;background:rgba(255,255,255,.28);overflow:hidden}
-.fill{height:3px;border-radius:999px;background:#ffffff;width:0}
+.bar{flex-grow:1;height:3px;border-radius:var(--radius-full);background:rgba(255,255,255,.28);overflow:hidden}
+.fill{height:3px;border-radius:var(--radius-full);background:#ffffff;width:0}
 .fill.done{width:100%}
 .fill.run-a{animation:fillA 6.5s linear forwards}.fill.run-b{animation:fillB 6.5s linear forwards}
 @keyframes fillA{from{width:0}to{width:100%}}@keyframes fillB{from{width:0}to{width:100%}}
 .paused .fill{animation-play-state:paused}
-.ctl{width:44px;height:44px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(1,33,105,.35);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background-color 200ms}
+.ctl{width:44px;height:44px;border-radius:var(--radius-full);border:1px solid rgba(255,255,255,.35);background:rgba(1,33,105,.35);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background-color 200ms}
 .ctl:hover{background:rgba(255,255,255,.18)}
-.seg{flex-grow:1;height:6px;border-radius:999px;background:#e9eef5;overflow:hidden}
-.seg>div{height:6px;border-radius:999px;background:#003087;transition:width 500ms cubic-bezier(.16,1,.3,1)}
+.seg{flex-grow:1;height:6px;border-radius:var(--radius-full);background:#e9eef5;overflow:hidden}
+.seg>div{height:6px;border-radius:var(--radius-full);background:#003087;transition:width 500ms cubic-bezier(.16,1,.3,1)}
 .box{transition:border-color 200ms,box-shadow 200ms}
 .digit{animation:dg 220ms cubic-bezier(0,0,.2,1)}
 @keyframes dg{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -173,7 +173,7 @@ export default class MobileSignUpScreen extends Component {
             </div>
             <div style={{ position: "absolute", left: "20px", right: "20px", top: "34px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <img src="/assets/820d4a69b45ed8fa40c9bc6015985c0e.png" alt="GridCommerce" style={{ height: "24px", width: "auto", display: "block" }} />
-              <button type="button" className="ctl" aria-label={v.pauseLabel} onClick={v.togglePause} style={{ width: "40px", height: "40px" }}>
+              <button type="button" className="ctl" aria-label={v.pauseLabel} onClick={v.togglePause} style={{ width: "36px", height: "36px" }}>
                 {v.isPaused ? (<>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <polygon points="6 3 20 12 6 21 6 3" />
@@ -192,26 +192,26 @@ export default class MobileSignUpScreen extends Component {
             <button type="button" className="tap" style={{ right: "0" }} aria-label="Next story" onClick={v.nextSlide} />
             <div style={{ position: "absolute", left: "20px", right: "20px", bottom: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
               <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                <span style={{ height: "26px", padding: "0 10px", borderRadius: "999px", background: "rgba(255,255,255,.16)", color: "#fff", fontSize: "11px", fontWeight: "500", display: "inline-flex", alignItems: "center" }}>{v.cur?.tag}</span>
-                <span style={{ height: "26px", padding: "0 10px", borderRadius: "999px", background: "#ff9800", color: "#3b1d00", fontSize: "11px", fontWeight: "600", display: "inline-flex", alignItems: "center" }}>Sample story</span>
+                <span style={{ height: "24px", padding: "0 8px", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.16)", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center" }}>{v.cur?.tag}</span>
+                <span style={{ height: "24px", padding: "0 8px", borderRadius: "var(--radius-full)", background: "#ff9800", color: "#3b1d00", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center" }}>Sample story</span>
               </div>
               {__list(v.curList).map((q, $index) => (<React.Fragment key={$index}>
                   <div className={q?.cls} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                    <p style={{ margin: "0", fontSize: "22px", lineHeight: "30px", fontWeight: "500", letterSpacing: "-0.01em", color: "#ffffff", textWrap: "pretty" }}>“{q?.quote}”</p>
+                    <p style={{ margin: "0", fontSize: "var(--text-2xl)", lineHeight: "30px", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-tight)", color: "#ffffff", textWrap: "pretty" }}>“{q?.quote}”</p>
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <div style={{ width: "36px", height: "36px", borderRadius: "999px", background: "rgba(255,255,255,.16)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "600", fontSize: "14px" }}>{q?.initial}</div>
+                      <div style={{ width: "36px", height: "36px", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.16)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "var(--weight-medium)", fontSize: "var(--text-sm)" }}>{q?.initial}</div>
                       <div>
-                        <div style={{ fontSize: "14px", fontWeight: "600", color: "#fff" }}>{q?.who}</div>
-                        <div style={{ fontSize: "12px", color: "rgba(255,255,255,.78)" }}>{q?.where}</div>
+                        <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#fff" }}>{q?.who}</div>
+                        <div style={{ fontSize: "var(--text-xs)", color: "rgba(255,255,255,.78)" }}>{q?.where}</div>
                       </div>
                     </div>
                   </div>
                 </React.Fragment>))}
-              <button type="button" className="btn wbtn" onClick={v.start} style={{ width: "100%", height: "56px", marginTop: "8px", fontSize: "16px", fontWeight: "600" }}>Create my shop — free<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <button type="button" className="btn wbtn" onClick={v.start} style={{ width: "100%", height: "52px", marginTop: "8px", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>Create my shop — free<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M5 12h14" />
   <path d="m12 5 7 7-7 7" />
 </svg></button>
-              <__Link href="/mobile-sign-in" style={{ alignSelf: "center", color: "#ffffff", fontSize: "14px", fontWeight: "500", minHeight: "44px", display: "inline-flex", alignItems: "center" }}>I already have an account</__Link>
+              <__Link href="/mobile-sign-in" style={{ alignSelf: "center", color: "#ffffff", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", minHeight: "44px", display: "inline-flex", alignItems: "center" }}>I already have an account</__Link>
             </div>
           </div>
         </>) : null}
@@ -232,7 +232,7 @@ export default class MobileSignUpScreen extends Component {
                         </div>
                       </React.Fragment>))}
                   </div>
-                  <div style={{ marginTop: "6px", fontSize: "12px", color: "#64748b" }}>Step {v.stepNo} of 5 · {v.stepName}</div>
+                  <div style={{ marginTop: "6px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Step {v.stepNo} of 5 · {v.stepName}</div>
                 </div>
               </div>
             </>) : null}
@@ -245,13 +245,13 @@ export default class MobileSignUpScreen extends Component {
               {v.s1 ? (<>
                 <div className={v.anim} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
                   <div>
-                    <h1 style={{ margin: "0", fontSize: "26px", lineHeight: "32px", fontWeight: "700", letterSpacing: "-0.02em", color: "#0f172a" }}>Let’s set up your shop</h1>
-                    <p style={{ margin: "8px 0 0", fontSize: "14px", lineHeight: "22px", color: "#475569" }}>Two minutes. No card needed — start free.</p>
+                    <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>Let’s set up your shop</h1>
+                    <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", lineHeight: "22px", color: "#475569" }}>Two minutes. No card needed — start free.</p>
                   </div>
-                  <button type="button" className="btn line" style={{ width: "100%", height: "50px" }}><span style={{ fontSize: "17px", fontWeight: "700", color: "#003087" }}>G</span>Continue with Google</button>
+                  <button type="button" className="btn line" style={{ width: "100%", height: "52px" }}><span style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#003087" }}>G</span>Continue with Google</button>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <div style={{ flexGrow: "1", height: "1px", background: "#e2e8f0" }} />
-                    <span style={{ fontSize: "12px", color: "#64748b" }}>or with mobile number</span>
+                    <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>or with mobile number</span>
                     <div style={{ flexGrow: "1", height: "1px", background: "#e2e8f0" }} />
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -261,15 +261,15 @@ export default class MobileSignUpScreen extends Component {
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                     <label className="lbl" htmlFor="m-phone">Mobile number</label>
                     <div style={{ position: "relative" }}>
-                      <span style={{ position: "absolute", left: "14px", top: "0", height: "48px", display: "flex", alignItems: "center", gap: "10px", fontSize: "15px", fontWeight: "500", color: "#334155", pointerEvents: "none" }}>+880<span style={{ width: "1px", height: "22px", background: "#cbd5e1" }} /></span>
-                      <input id="m-phone" className="inp" type="tel" inputMode="numeric" autoComplete="tel-national" placeholder="1XXX-XXXXXX" value={v.phone} onChange={v.setPhone} style={{ paddingLeft: "78px", fontSize: "16px" }} />
+                      <span style={{ position: "absolute", left: "14px", top: "0", height: "48px", display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)", color: "#334155", pointerEvents: "none" }}>+880<span style={{ width: "1px", height: "22px", background: "#cbd5e1" }} /></span>
+                      <input id="m-phone" className="inp" type="tel" inputMode="numeric" autoComplete="tel-national" placeholder="1XXX-XXXXXX" value={v.phone} onChange={v.setPhone} style={{ paddingLeft: "78px", fontSize: "var(--text-base)" }} />
                     </div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                     <label className="lbl" htmlFor="m-pw">Create a password</label>
                     <div style={{ position: "relative" }}>
-                      <input id="m-pw" className="inp" type={v.pwType} autoComplete="new-password" placeholder="At least 8 characters" style={{ paddingRight: "52px", fontSize: "16px" }} />
-                      <button type="button" className="ctl" onClick={v.togglePw} aria-label={v.pwLabel} style={{ position: "absolute", right: "2px", top: "2px", border: "0", background: "transparent", color: "#64748b" }}>
+                      <input id="m-pw" className="inp" type={v.pwType} autoComplete="new-password" placeholder="At least 8 characters" style={{ paddingRight: "52px", fontSize: "var(--text-base)" }} />
+                      <button type="button" className="ctl" onClick={v.togglePw} aria-label={v.pwLabel} style={{ position: "absolute", right: "2px", top: "2px", border: "0", background: "transparent", color: "var(--text-muted)" }}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
                           <circle cx="12" cy="12" r="3" />
@@ -277,18 +277,18 @@ export default class MobileSignUpScreen extends Component {
                       </button>
                     </div>
                   </div>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "18px", color: "#64748b" }}>By continuing you agree to the <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "18px", color: "var(--text-muted)" }}>By continuing you agree to the <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.</p>
                 </div>
               </>) : null}
               {v.s2 ? (<>
                 <div className={v.anim} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                   <div>
-                    <h1 style={{ margin: "0", fontSize: "26px", lineHeight: "32px", fontWeight: "700", letterSpacing: "-0.02em", color: "#0f172a" }}>Check your SMS</h1>
-                    <p style={{ margin: "8px 0 0", fontSize: "14px", lineHeight: "22px", color: "#475569" }}>We sent a 6-digit code to <strong style={{ fontWeight: "600", color: "#0f172a" }}>+880 {v.phoneFmt}</strong>.</p>
+                    <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>Check your SMS</h1>
+                    <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", lineHeight: "22px", color: "#475569" }}>We sent a 6-digit code to <strong style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>+880 {v.phoneFmt}</strong>.</p>
                   </div>
-                  <div style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: "8px" }}>
+                  <div className="gc-cols-6" style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: "8px" }}>
                     {__list(v.boxes).map((b, $index) => (<React.Fragment key={$index}>
-                        <div className="box" style={__sx(`height: 58px; border-radius: 12px; border: 1.5px solid ${b?.border ?? ""}; box-shadow: ${b?.ring ?? ""}; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 600; color: #0f172a; background: #fff;`)}>
+                        <div className="box" style={__sx(`height: 58px; border-radius: var(--radius-xl); border: 1.5px solid ${b?.border ?? ""}; box-shadow: ${b?.ring ?? ""}; display: flex; align-items: center; justify-content: center; font-size: var(--text-2xl); font-weight: var(--weight-semibold); color: #0f172a; background: #fff;`)}>
                           {b?.has ? (<>
                             <span className="digit">{b?.d}</span>
                           </>) : null}
@@ -297,13 +297,13 @@ export default class MobileSignUpScreen extends Component {
                           </>) : null}
                         </div>
                       </React.Fragment>))}
-                    <input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength="6" aria-label="6-digit code" onInput={v.onCode} onFocus={v.cf} onBlur={v.cb} style={{ position: "absolute", inset: "0", width: "100%", height: "100%", opacity: "0", border: "0", fontSize: "16px" }} />
+                    <input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength="6" aria-label="6-digit code" onInput={v.onCode} onFocus={v.cf} onBlur={v.cb} style={{ position: "absolute", inset: "0", width: "100%", height: "100%", opacity: "0", border: "0", fontSize: "var(--text-base)" }} />
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "14px", color: "#475569" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "var(--text-sm)", color: "#475569" }}>
                     <span>Resend code in 0:24</span>
                     <div style={{ display: "flex", gap: "16px" }}>
-                      <button type="button" onClick={v.back} style={{ border: "0", background: "none", padding: "0", minHeight: "44px", font: "inherit", color: "#003087", fontWeight: "500", cursor: "pointer" }}>Change number</button>
-                      <button type="button" onClick={v.fillCode} style={{ border: "0", background: "none", padding: "0", minHeight: "44px", font: "inherit", color: "#003087", fontWeight: "500", cursor: "pointer" }}>Use demo code</button>
+                      <button type="button" onClick={v.back} style={{ border: "0", background: "none", padding: "0", minHeight: "44px", font: "inherit", color: "#003087", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Change number</button>
+                      <button type="button" onClick={v.fillCode} style={{ border: "0", background: "none", padding: "0", minHeight: "44px", font: "inherit", color: "#003087", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Use demo code</button>
                     </div>
                   </div>
                 </div>
@@ -311,17 +311,17 @@ export default class MobileSignUpScreen extends Component {
               {v.s3 ? (<>
                 <div className={v.anim} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
                   <div>
-                    <h1 style={{ margin: "0", fontSize: "26px", lineHeight: "32px", fontWeight: "700", letterSpacing: "-0.02em", color: "#0f172a" }}>What do you sell, {v.first}?</h1>
-                    <p style={{ margin: "8px 0 0", fontSize: "14px", lineHeight: "22px", color: "#475569" }}>We’ll set up the right categories and product fields.</p>
+                    <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>What do you sell, {v.first}?</h1>
+                    <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", lineHeight: "22px", color: "#475569" }}>We’ll set up the right categories and product fields.</p>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                     <label className="lbl" htmlFor="m-biz">Business name</label>
-                    <input id="m-biz" className="inp" type="text" placeholder="e.g. Nusrat’s Closet" value={v.biz} onChange={v.setBiz} style={{ fontSize: "16px" }} />
+                    <input id="m-biz" className="inp" type="text" placeholder="e.g. Nusrat’s Closet" value={v.biz} onChange={v.setBiz} style={{ fontSize: "var(--text-base)" }} />
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "10px" }}>
+                  <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "10px" }}>
                     {__list(v.cats).map((c, $index) => (<React.Fragment key={$index}>
                         <button type="button" className={c?.cls} aria-pressed={c?.on} onClick={c?.pick} style={{ padding: "14px", gap: "8px", minHeight: "96px" }}>
-                          <span style={__sx(`width: 36px; height: 36px; border-radius: 10px; background: ${c?.tint ?? ""}; color: ${c?.fg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
+                          <span style={__sx(`width: 36px; height: 36px; border-radius: var(--radius-lg); background: ${c?.tint ?? ""}; color: ${c?.fg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
                             {c?.is_fashion ? (<>
                               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                 <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
@@ -359,7 +359,7 @@ export default class MobileSignUpScreen extends Component {
                               </svg>
                             </>) : null}
                           </span>
-                          <span style={{ fontSize: "14px", lineHeight: "18px", fontWeight: "600", color: "#0f172a" }}>{c?.label}</span>
+                          <span style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{c?.label}</span>
                         </button>
                       </React.Fragment>))}
                   </div>
@@ -368,11 +368,11 @@ export default class MobileSignUpScreen extends Component {
               {v.s4 ? (<>
                 <div className={v.anim} style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
                   <div>
-                    <h1 style={{ margin: "0", fontSize: "26px", lineHeight: "32px", fontWeight: "700", letterSpacing: "-0.02em", color: "#0f172a" }}>How do you sell today?</h1>
-                    <p style={{ margin: "8px 0 0", fontSize: "14px", lineHeight: "22px", color: "#475569" }}>Pick all that fit.</p>
+                    <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>How do you sell today?</h1>
+                    <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", lineHeight: "22px", color: "#475569" }}>Pick all that fit.</p>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                    <span style={{ fontSize: "14px", fontWeight: "600", color: "#0f172a" }}>Where do customers find you?</span>
+                    <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Where do customers find you?</span>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                       {__list(v.where).map((x, $index) => (<React.Fragment key={$index}>
                           <button type="button" className={x?.cls} aria-pressed={x?.on} onClick={x?.pick}>{x?.label}</button>
@@ -380,7 +380,7 @@ export default class MobileSignUpScreen extends Component {
                     </div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                    <span style={{ fontSize: "14px", fontWeight: "600", color: "#0f172a" }}>Orders in a month</span>
+                    <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Orders in a month</span>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                       {__list(v.size).map((x, $index) => (<React.Fragment key={$index}>
                           <button type="button" className={x?.cls} aria-pressed={x?.on} onClick={x?.pick}>{x?.label}</button>
@@ -388,7 +388,7 @@ export default class MobileSignUpScreen extends Component {
                     </div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                    <span style={{ fontSize: "14px", fontWeight: "600", color: "#0f172a" }}>How do customers pay?</span>
+                    <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>How do customers pay?</span>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                       {__list(v.pay).map((x, $index) => (<React.Fragment key={$index}>
                           <button type="button" className={x?.cls} aria-pressed={x?.on} onClick={x?.pick}>{x?.label}</button>
@@ -400,35 +400,35 @@ export default class MobileSignUpScreen extends Component {
               {v.s5 ? (<>
                 <div className={v.anim} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
                   <div>
-                    <h1 style={{ margin: "0", fontSize: "26px", lineHeight: "32px", fontWeight: "700", letterSpacing: "-0.02em", color: "#0f172a" }}>Pick your shop link</h1>
-                    <p style={{ margin: "8px 0 0", fontSize: "14px", lineHeight: "22px", color: "#475569" }}>Customers order from here. Add your own domain later.</p>
+                    <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>Pick your shop link</h1>
+                    <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", lineHeight: "22px", color: "#475569" }}>Customers order from here. Add your own domain later.</p>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                     <label className="lbl" htmlFor="m-slug">Shop link</label>
-                    <input id="m-slug" className="inp" type="text" value={v.slug} onChange={v.setSlug} style={{ fontSize: "16px" }} />
+                    <input id="m-slug" className="inp" type="text" value={v.slug} onChange={v.setSlug} style={{ fontSize: "var(--text-base)" }} />
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#047857", fontWeight: "500" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", color: "#047857", fontWeight: "var(--weight-medium)" }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <circle cx="12" cy="12" r="10" />
                       <path d="m9 12 2 2 4-4" />
                     </svg>
                     <span>Available</span>
                   </div>
-                  <div style={{ border: "1px solid #e2e8f0", borderRadius: "14px", overflow: "hidden" }}>
-                    <div style={{ padding: "10px 14px", background: "#f1f5f9", borderBottom: "1px solid #e2e8f0", fontSize: "12px", color: "#475569", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.slug}.[your-platform-domain]</div>
+                  <div style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", overflow: "hidden" }}>
+                    <div style={{ padding: "10px 14px", background: "#f1f5f9", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs)", color: "#475569", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.slug}.[your-platform-domain]</div>
                     <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                        <span style={{ fontSize: "15px", fontWeight: "700", color: "#0f172a" }}>{v.bizOr}</span>
-                        <span style={{ fontSize: "11px", color: "#64748b" }}>{v.catLabel}</span>
+                        <span style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{v.bizOr}</span>
+                        <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{v.catLabel}</span>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "8px" }}>
-                        <div style={{ height: "60px", borderRadius: "8px", background: "#e0f3fb" }} />
-                        <div style={{ height: "60px", borderRadius: "8px", background: "#e9eef5" }} />
-                        <div style={{ height: "60px", borderRadius: "8px", background: "#e0f3fb" }} />
+                      <div className="gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "8px" }}>
+                        <div style={{ height: "60px", borderRadius: "var(--radius-lg)", background: "#e0f3fb" }} />
+                        <div style={{ height: "60px", borderRadius: "var(--radius-lg)", background: "#e9eef5" }} />
+                        <div style={{ height: "60px", borderRadius: "var(--radius-lg)", background: "#e0f3fb" }} />
                       </div>
                       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                        <span style={{ height: "26px", padding: "0 10px", borderRadius: "999px", background: "#003087", color: "#fff", fontSize: "11px", fontWeight: "500", display: "inline-flex", alignItems: "center" }}>Order now</span>
-                        <span style={{ height: "26px", padding: "0 10px", borderRadius: "999px", background: "#f1f5f9", color: "#334155", fontSize: "11px", fontWeight: "500", display: "inline-flex", alignItems: "center" }}>{v.payLine}</span>
+                        <span style={{ height: "24px", padding: "0 8px", borderRadius: "var(--radius-full)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center" }}>Order now</span>
+                        <span style={{ height: "24px", padding: "0 8px", borderRadius: "var(--radius-full)", background: "#f1f5f9", color: "#334155", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center" }}>{v.payLine}</span>
                       </div>
                     </div>
                   </div>
@@ -441,16 +441,16 @@ export default class MobileSignUpScreen extends Component {
                     <path className="ck-m" d="M17 29l7 7 15-15" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <div className="rise" style={{ animationDelay: "400ms" }}>
-                    <h1 style={{ margin: "0", fontSize: "26px", lineHeight: "32px", fontWeight: "700", letterSpacing: "-0.02em", color: "#0f172a" }}>{v.bizOr} is ready</h1>
-                    <p style={{ margin: "8px 0 0", fontSize: "14px", lineHeight: "22px", color: "#475569" }}>Start with these — picked from your answers.</p>
+                    <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>{v.bizOr} is ready</h1>
+                    <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", lineHeight: "22px", color: "#475569" }}>Start with these — picked from your answers.</p>
                   </div>
                   <div className="rise" style={{ display: "flex", flexDirection: "column", gap: "8px", animationDelay: "560ms" }}>
                     {__list(v.todo).map((t, $index) => (<React.Fragment key={$index}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", border: "1px solid #e2e8f0", borderRadius: "12px" }}>
-                          <span style={{ width: "24px", height: "24px", borderRadius: "999px", border: "2px solid #cbd5e1", flexShrink: "0" }} />
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)" }}>
+                          <span style={{ width: "24px", height: "24px", borderRadius: "var(--radius-full)", border: "2px solid #cbd5e1", flexShrink: "0" }} />
                           <div style={{ flexGrow: "1" }}>
-                            <div style={{ fontSize: "14px", fontWeight: "600", color: "#0f172a" }}>{t?.title}</div>
-                            <div style={{ fontSize: "12px", lineHeight: "17px", color: "#64748b" }}>{t?.sub}</div>
+                            <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{t?.title}</div>
+                            <div style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>{t?.sub}</div>
                           </div>
                         </div>
                       </React.Fragment>))}
@@ -460,16 +460,16 @@ export default class MobileSignUpScreen extends Component {
             </div>
             <div style={{ flexShrink: "0", padding: "12px 20px 24px", borderTop: "1px solid #eef2f6", display: "flex", gap: "10px" }}>
               {v.canSkip ? (<>
-                <button type="button" className="btn ghost" onClick={v.next} style={{ height: "56px" }}>Skip</button>
+                <button type="button" className="btn ghost" onClick={v.next} style={{ height: "52px" }}>Skip</button>
               </>) : null}
               {v.inFlow ? (<>
-                <button type="button" className="btn solid" onClick={v.next} style={{ flexGrow: "1", height: "56px", fontSize: "16px" }}>{v.nextLabel}<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <button type="button" className="btn solid" onClick={v.next} style={{ flexGrow: "1", height: "52px", fontSize: "var(--text-base)" }}>{v.nextLabel}<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M5 12h14" />
   <path d="m12 5 7 7-7 7" />
 </svg></button>
               </>) : null}
               {v.s6 ? (<>
-                <__Link href="/merchant-overview" className="btn solid" style={{ flexGrow: "1", height: "56px", fontSize: "16px" }}>Go to my dashboard<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <__Link href="/merchant-overview" className="btn solid" style={{ flexGrow: "1", height: "56px", fontSize: "var(--text-base)" }}>Go to my dashboard<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M5 12h14" />
   <path d="m12 5 7 7-7 7" />
 </svg></__Link>

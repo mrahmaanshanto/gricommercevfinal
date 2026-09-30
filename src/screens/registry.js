@@ -1532,7 +1532,7 @@ export const SCREENS = [
   },
   {
     "name": "DevReference",
-    "route": "/dev-reference",
+    "route": "/dev/dev-reference",
     "folder": "dev-reference",
     "title": "DevReference",
     "description": "One-page implementation spec — every token, type step, spacing unit, radius, shadow and component recipe with copyable variable names and class strings.",
@@ -1543,7 +1543,7 @@ export const SCREENS = [
   },
   {
     "name": "FlowOnboarding",
-    "route": "/flow-onboarding",
+    "route": "/dev/flow-onboarding",
     "folder": "dev-reference",
     "title": "Flow · Onboarding",
     "description": "Developer reference — Onboarding flow.",
@@ -1554,7 +1554,7 @@ export const SCREENS = [
   },
   {
     "name": "FlowOrders",
-    "route": "/flow-orders",
+    "route": "/dev/flow-orders",
     "folder": "dev-reference",
     "title": "Flow · Orders",
     "description": "Developer reference — Order flow.",
@@ -1565,7 +1565,7 @@ export const SCREENS = [
   },
   {
     "name": "FlowPayments",
-    "route": "/flow-payments",
+    "route": "/dev/flow-payments",
     "folder": "dev-reference",
     "title": "Flow · Payments",
     "description": "Developer reference — Payment flow.",
@@ -1576,7 +1576,7 @@ export const SCREENS = [
   },
   {
     "name": "FlowProducts",
-    "route": "/flow-products",
+    "route": "/dev/flow-products",
     "folder": "dev-reference",
     "title": "Flow · Products",
     "description": "Developer reference — Product flow.",
@@ -1587,7 +1587,7 @@ export const SCREENS = [
   },
   {
     "name": "FlowPurchase",
-    "route": "/flow-purchase",
+    "route": "/dev/flow-purchase",
     "folder": "dev-reference",
     "title": "Flow · Purchase & stock",
     "description": "Developer reference — Purchase and stock flow.",
@@ -1598,7 +1598,7 @@ export const SCREENS = [
   },
   {
     "name": "FlowStaff",
-    "route": "/flow-staff",
+    "route": "/dev/flow-staff",
     "folder": "dev-reference",
     "title": "Flow · Staff & HR",
     "description": "Developer reference — Staff and HR flow.",
@@ -1609,7 +1609,7 @@ export const SCREENS = [
   },
   {
     "name": "IconSet",
-    "route": "/icon-set",
+    "route": "/dev/icon-set",
     "folder": "dev-reference",
     "title": "Icon set",
     "description": "Developer reference — Icon set. Imported from Retail Commerce and merged.",
@@ -1620,7 +1620,7 @@ export const SCREENS = [
   },
   {
     "name": "UIKit01Shell",
-    "route": "/ui-kit01-shell",
+    "route": "/dev/ui-kit01-shell",
     "folder": "dev-reference",
     "title": "UI kit 01 · Shell & navigation",
     "description": "UI kit — Shell & navigation.",
@@ -1631,7 +1631,7 @@ export const SCREENS = [
   },
   {
     "name": "UIKit02Actions",
-    "route": "/ui-kit02-actions",
+    "route": "/dev/ui-kit02-actions",
     "folder": "dev-reference",
     "title": "UI kit 02 · Actions, badges & icons",
     "description": "UI kit — Buttons, badges & identity.",
@@ -1642,7 +1642,7 @@ export const SCREENS = [
   },
   {
     "name": "UIKit03Controls",
-    "route": "/ui-kit03-controls",
+    "route": "/dev/ui-kit03-controls",
     "folder": "dev-reference",
     "title": "UI kit 03 · Form controls",
     "description": "UI kit — Form controls.",
@@ -1653,7 +1653,7 @@ export const SCREENS = [
   },
   {
     "name": "UIKit04FormLayouts",
-    "route": "/ui-kit04-form-layouts",
+    "route": "/dev/ui-kit04-form-layouts",
     "folder": "dev-reference",
     "title": "UI kit 04 · Form layouts",
     "description": "UI kit — Form layouts.",
@@ -1664,7 +1664,7 @@ export const SCREENS = [
   },
   {
     "name": "UIKit05Tables",
-    "route": "/ui-kit05-tables",
+    "route": "/dev/ui-kit05-tables",
     "folder": "dev-reference",
     "title": "UI kit 05 · Tables",
     "description": "UI kit — Tables & lists.",
@@ -1675,7 +1675,7 @@ export const SCREENS = [
   },
   {
     "name": "UIKit06Data",
-    "route": "/ui-kit06-data",
+    "route": "/dev/ui-kit06-data",
     "folder": "dev-reference",
     "title": "UI kit 06 · KPI tiles & charts",
     "description": "UI kit — Data display & charts.",
@@ -1686,7 +1686,7 @@ export const SCREENS = [
   },
   {
     "name": "UIKit07Feedback",
-    "route": "/ui-kit07-feedback",
+    "route": "/dev/ui-kit07-feedback",
     "folder": "dev-reference",
     "title": "UI kit 07 · Feedback & overlays",
     "description": "UI kit — Feedback & overlays.",
@@ -1697,7 +1697,7 @@ export const SCREENS = [
   },
   {
     "name": "UIKit08Commerce",
-    "route": "/ui-kit08-commerce",
+    "route": "/dev/ui-kit08-commerce",
     "folder": "dev-reference",
     "title": "UI kit 08 · Commerce components",
     "description": "UI kit — Commerce components.",
@@ -1708,7 +1708,7 @@ export const SCREENS = [
   },
   {
     "name": "UIKit09Templates",
-    "route": "/ui-kit09-templates",
+    "route": "/dev/ui-kit09-templates",
     "folder": "dev-reference",
     "title": "UI kit 09 · Page templates",
     "description": "UI kit — Page templates.",
@@ -1916,6 +1916,50 @@ export const SCREENS = [
     "interactive": true
   },
   {
+    "name": "OrderLink",
+    "route": "/order-link",
+    "folder": "storefront",
+    "title": "Order link (customer page)",
+    "description": "Customer page opened from an order link: details, delivery, payment terms, submit as a pending order.",
+    "canvasPage": "08 · Storefront",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "PosManage",
+    "route": "/pos-manage",
+    "folder": "pos-register",
+    "title": "POS management",
+    "description": "POS back office: register counters at a branch or warehouse, counter employees and their shifts, cash pickups and register settings.",
+    "canvasPage": "10 · POS register",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "Pos",
+    "route": "/pos",
+    "folder": "pos-register",
+    "title": "Point of sale",
+    "description": "The POS register: open shift, sale, one-page checkout, held sales, returns and exchanges, cash pickups, keyboard shortcuts, offline mode and the end-of-shift report in one screen.",
+    "canvasPage": "10 · POS register",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "NewOrder",
+    "route": "/new-order",
+    "folder": "merchant-orders",
+    "title": "Create order",
+    "description": "Create an order by hand: products, customer, discount, delivery, VAT and payment.",
+    "canvasPage": "02 · Merchant console",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
     "name": "MerchantOrders",
     "route": "/merchant-orders",
     "folder": "merchant-orders",
@@ -2060,7 +2104,7 @@ export const SCREENS = [
   },
   {
     "name": "PosRegister",
-    "route": "/pos-register",
+    "route": "/dev/storyboards/pos-register",
     "folder": "pos-register",
     "title": "PosRegister",
     "description": "Counter-ready point of sale: context bar, product grid, pinned sale panel, split tender, keypad, held sales, returns, register open/close and offline states.",
@@ -2177,17 +2221,6 @@ export const SCREENS = [
     "canvasPage": "05 · Stocks & Inventory",
     "width": 1440,
     "height": 1600,
-    "interactive": true
-  },
-  {
-    "name": "BuyGoods",
-    "route": "/buy-goods",
-    "folder": "purchase-stock",
-    "title": "Buy goods",
-    "description": "Purchase — Buy goods. Imported from Retail Commerce and merged.",
-    "canvasPage": "04 · Purchase",
-    "width": 1440,
-    "height": 1400,
     "interactive": true
   },
   {
@@ -2313,7 +2346,7 @@ export const SCREENS = [
   },
   {
     "name": "Structure",
-    "route": "/structure",
+    "route": "/dev/structure",
     "folder": "purchase-stock",
     "title": "Structure — menu, PO journey, barcodes",
     "description": "",
@@ -2466,25 +2499,113 @@ export const SCREENS = [
     "interactive": true
   },
   {
-    "name": "WholesaleInvoiceEdit",
-    "route": "/wholesale-invoice-edit",
-    "folder": "sales",
-    "title": "Wholesale invoice · edit",
-    "description": "Sales — Wholesale invoice. Imported from Retail Commerce and merged.",
-    "canvasPage": "22 · Sales & wholesale",
+    "name": "StockHolds",
+    "route": "/stock-holds",
+    "folder": "purchase-stock",
+    "title": "Stock holds",
+    "description": "Stocks & Inventory — stock held for online orders and retail orders, damaged stock, and what is free to sell at each warehouse or branch.",
+    "canvasPage": "21 · Purchase & stock",
     "width": 1440,
-    "height": 1500,
+    "height": 900,
     "interactive": true
   },
   {
-    "name": "WholesaleInvoices",
-    "route": "/wholesale-invoices",
+    "name": "SalesInvoice",
+    "route": "/sales-invoice",
     "folder": "sales",
-    "title": "Wholesale invoices",
-    "description": "Sales — Wholesale invoices. Imported from Retail Commerce and merged.",
+    "title": "Invoice",
+    "description": "Sales — one order in full: items, customer, payment history, receive payment with the payment methods, and the customer's previous orders.",
     "canvasPage": "22 · Sales & wholesale",
     "width": 1440,
-    "height": 1250,
+    "height": 1100,
+    "interactive": true
+  },
+  {
+    "name": "WholesaleOrders",
+    "route": "/wholesale-orders",
+    "folder": "sales",
+    "title": "Wholesale orders",
+    "description": "Orders — wholesale orders with their delivery: not delivered, partly delivered or delivered, pieces sent, and payment.",
+    "canvasPage": "22 · Sales & wholesale",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "ReturnHistory",
+    "route": "/return-history",
+    "folder": "purchase-stock",
+    "title": "Returns & exchanges",
+    "description": "Stocks & Inventory — history of every return and exchange from online, retail and wholesale orders.",
+    "canvasPage": "21 · Purchase & stock",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "WholesaleCustomer",
+    "route": "/wholesale-customer",
+    "folder": "customers-crm",
+    "title": "Wholesale customer",
+    "description": "Customers — profile of a wholesale customer with the entire purchase history: orders, products bought, payments and returns.",
+    "canvasPage": "05 · Customers",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "CourierReturns",
+    "route": "/courier-returns",
+    "folder": "merchant-orders",
+    "title": "Courier returns",
+    "description": "Orders — receive parcels the courier brings back: full or partial, good or damaged.",
+    "canvasPage": "03 · Orders",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "CustomerStatement",
+    "route": "/customer-statement",
+    "folder": "customers-crm",
+    "title": "Customer statement",
+    "description": "Customers — ledger of one customer: invoices, payments, credit and returns with a running balance.",
+    "canvasPage": "05 · Customers",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "StockAdjustments",
+    "route": "/stock-adjustments",
+    "folder": "purchase-stock",
+    "title": "Stock adjustments",
+    "description": "Stocks & Inventory — add or remove stock with a reason, with manager approval.",
+    "canvasPage": "21 · Purchase & stock",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "MoneyBook",
+    "route": "/money-book",
+    "folder": "accounts",
+    "title": "Money book",
+    "description": "Accounts — every account's balance and every money movement: sales, invoice payments, refunds, supplier payments, cash pickups.",
+    "canvasPage": "24 · Accounts",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "SalesInvoices",
+    "route": "/sales-invoices",
+    "folder": "sales",
+    "title": "Invoices",
+    "description": "Sales — one invoice list by payment status (Unpaid, Paid, All): take payment, edit and send again. Wholesale sales are made in New sale.",
+    "canvasPage": "22 · Sales & wholesale",
+    "width": 1440,
+    "height": 900,
     "interactive": true
   },
   {
@@ -2643,7 +2764,7 @@ export const SCREENS = [
   },
   {
     "name": "SettingsConsole",
-    "route": "/settings-console",
+    "route": "/dev/storyboards/settings-console",
     "folder": "settings-console",
     "title": "SettingsConsole",
     "description": "Settings console: grouped searchable nav for 23 tabs, sticky save bar, explained fields with live previews, credential cards, media manager, matrix tables and AI usage reporting.",
@@ -2654,7 +2775,7 @@ export const SCREENS = [
   },
   {
     "name": "SiteMap",
-    "route": "/site-map",
+    "route": "/dev/site-map",
     "folder": "site-map",
     "title": "SiteMap",
     "description": "Entry point for the GridCommerce screen set — links every marketing, console, POS and settings template together.",

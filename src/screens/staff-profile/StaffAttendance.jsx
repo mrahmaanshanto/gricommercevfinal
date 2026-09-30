@@ -144,70 +144,70 @@ export default class StaffAttendanceScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="StaffAttendance">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "16px", fontFamily: "Poppins,'Hind Siliguri',ui-sans-serif,system-ui,sans-serif", color: "#475569" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "340px minmax(0,1fr)", gap: "16px", alignItems: "start" }}>
-            <section style={{ display: "flex", flexDirection: "column", gap: "13px", borderRadius: "8px", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
-              <h2 style={{ margin: "0", fontSize: "15px", lineHeight: "22px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.assigned}</h2>
-              <div style={{ borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "12px 14px" }}>
-                <p style={{ margin: "0", fontSize: "22px", fontWeight: "700", letterSpacing: "-.025em", color: "#1e293b" }}>10:00 – 18:00</p>
-                <p style={{ margin: "2px 0 0", fontSize: "13px", fontWeight: "500", color: "#64748b" }}>{v.t?.morningShift} · {v.t?.eightHours}</p>
+        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "16px", fontFamily: "var(--font-sans)", color: "#475569" }}>
+          <div className="gc-split" style={{ display: "grid", gridTemplateColumns: "340px minmax(0,1fr)", gap: "16px", alignItems: "start" }}>
+            <section style={{ display: "flex", flexDirection: "column", gap: "13px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+              <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.assigned}</h2>
+              <div style={{ borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.06)", padding: "12px 14px" }}>
+                <p style={{ margin: "0", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#1e293b" }}>10:00 – 18:00</p>
+                <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>{v.t?.morningShift} · {v.t?.eightHours}</p>
               </div>
-              <dl style={{ margin: "0", display: "flex", flexDirection: "column", gap: "9px", fontSize: "13px" }}>
+              <dl style={{ margin: "0", display: "flex", flexDirection: "column", gap: "9px", fontSize: "var(--text-xs-plus)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <dt style={{ margin: "0", flex: "1", color: "#64748b" }}>{v.t?.grace}</dt>
-                  <dd style={{ margin: "0", fontWeight: "500", color: "#1e293b" }}>{v.t?.tenMin}</dd>
+                  <dt style={{ margin: "0", flex: "1", color: "var(--text-muted)" }}>{v.t?.grace}</dt>
+                  <dd style={{ margin: "0", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{v.t?.tenMin}</dd>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <dt style={{ margin: "0", flex: "1", color: "#64748b" }}>{v.t?.weeklyOff}</dt>
-                  <dd style={{ margin: "0", fontWeight: "500", color: "#1e293b" }}>{v.t?.friday}</dd>
+                  <dt style={{ margin: "0", flex: "1", color: "var(--text-muted)" }}>{v.t?.weeklyOff}</dt>
+                  <dd style={{ margin: "0", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{v.t?.friday}</dd>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <dt style={{ margin: "0", flex: "1", color: "#64748b" }}>{v.t?.checkInMethod}</dt>
-                  <dd style={{ margin: "0", fontWeight: "500", color: "#1e293b" }}>{v.t?.posPin}</dd>
+                  <dt style={{ margin: "0", flex: "1", color: "var(--text-muted)" }}>{v.t?.checkInMethod}</dt>
+                  <dd style={{ margin: "0", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{v.t?.posPin}</dd>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <dt style={{ margin: "0", flex: "1", color: "#64748b" }}>{v.t?.overtimeRule}</dt>
-                  <dd style={{ margin: "0", fontWeight: "500", color: "#1e293b" }}>{v.t?.afterThirty}</dd>
+                  <dt style={{ margin: "0", flex: "1", color: "var(--text-muted)" }}>{v.t?.overtimeRule}</dt>
+                  <dd style={{ margin: "0", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{v.t?.afterThirty}</dd>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <dt style={{ margin: "0", flex: "1", color: "#64748b" }}>{v.t?.effective}</dt>
-                  <dd style={{ margin: "0", fontWeight: "500", color: "#1e293b" }}>02 Mar 2026</dd>
+                  <dt style={{ margin: "0", flex: "1", color: "var(--text-muted)" }}>{v.t?.effective}</dt>
+                  <dd style={{ margin: "0", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>02 Mar 2026</dd>
                 </div>
               </dl>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <button className="dc-h677" type="button" onClick={v.openShift} style={{ flex: "1", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "7px", height: "36px", border: "none", borderRadius: "8px", background: "#003087", fontFamily: "inherit", fontSize: "13.5px", fontWeight: "500", letterSpacing: ".025em", color: "#fff", cursor: "pointer" }}><__Icon name="repeat" strokeWidth="1.75" width="15" height="15" />{v.t?.changeShift}</button>
-                <button className="dc-h678" type="button" onClick={v.openCorrection} style={{ flex: "none", display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 13px", fontFamily: "inherit", fontSize: "13.5px", fontWeight: "500", letterSpacing: ".025em", color: "#475569", cursor: "pointer" }}><__Icon name="pencil-line" strokeWidth="1.75" width="15" height="15" />{v.t?.correction}</button>
+                <button className="dc-h677" type="button" onClick={v.openShift} style={{ flex: "1", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "7px", height: "36px", border: "none", borderRadius: "var(--radius-lg)", background: "#003087", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#fff", cursor: "pointer" }}><__Icon name="repeat" strokeWidth="1.75" width="15" height="15" />{v.t?.changeShift}</button>
+                <button className="dc-h678" type="button" onClick={v.openCorrection} style={{ flex: "none", display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#475569", cursor: "pointer" }}><__Icon name="pencil-line" strokeWidth="1.75" width="15" height="15" />{v.t?.correction}</button>
               </div>
             </section>
-            <section style={{ display: "flex", flexDirection: "column", gap: "14px", borderRadius: "8px", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+            <section style={{ display: "flex", flexDirection: "column", gap: "14px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <h2 style={{ margin: "0", flex: "1", fontSize: "15px", lineHeight: "22px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.roster}</h2>
-                <span style={{ fontSize: "12.5px", fontWeight: "500", color: "#64748b" }}>14 – 20 Sep 2026</span>
+                <h2 style={{ margin: "0", flex: "1", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.roster}</h2>
+                <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>14 – 20 Sep 2026</span>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(7,minmax(0,1fr))", gap: "8px" }}>
                 {__list(v.roster).map((r, $index) => (<React.Fragment key={$index}>
                     {r?.today ? (<>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", border: "1px solid rgba(0,48,135,.25)", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "11px 10px" }}>
-                        <span style={{ fontSize: "11.5px", fontWeight: "600", letterSpacing: ".04em", color: "#94a3b8" }}>{r?.dow}</span>
-                        <span style={{ fontSize: "13px", fontWeight: "600", color: "#1e293b" }}>{r?.date}</span>
-                        <span style={{ fontSize: "12px", fontWeight: "500", color: "#1e293b" }}>{r?.shift}</span>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11.5px", color: "#64748b" }}><__Icon name={r?.icon} strokeWidth="1.75" width="12" height="12" />{r?.note}</span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", border: "1px solid rgba(0,48,135,.25)", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.06)", padding: "11px 10px" }}>
+                        <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".04em", color: "var(--text-muted)" }}>{r?.dow}</span>
+                        <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{r?.date}</span>
+                        <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{r?.shift}</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><__Icon name={r?.icon} strokeWidth="1.75" width="12" height="12" />{r?.note}</span>
                       </div>
                     </>) : null}
                     {r?.working ? (<>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "11px 10px" }}>
-                        <span style={{ fontSize: "11.5px", fontWeight: "600", letterSpacing: ".04em", color: "#94a3b8" }}>{r?.dow}</span>
-                        <span style={{ fontSize: "13px", fontWeight: "600", color: "#1e293b" }}>{r?.date}</span>
-                        <span style={{ fontSize: "12px", fontWeight: "500", color: "#1e293b" }}>{r?.shift}</span>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11.5px", color: "#64748b" }}><__Icon name={r?.icon} strokeWidth="1.75" width="12" height="12" />{r?.note}</span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "11px 10px" }}>
+                        <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".04em", color: "var(--text-muted)" }}>{r?.dow}</span>
+                        <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{r?.date}</span>
+                        <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{r?.shift}</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><__Icon name={r?.icon} strokeWidth="1.75" width="12" height="12" />{r?.note}</span>
                       </div>
                     </>) : null}
                     {r?.off ? (<>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "11px 10px" }}>
-                        <span style={{ fontSize: "11.5px", fontWeight: "600", letterSpacing: ".04em", color: "#94a3b8" }}>{r?.dow}</span>
-                        <span style={{ fontSize: "13px", fontWeight: "600", color: "#1e293b" }}>{r?.date}</span>
-                        <span style={{ fontSize: "12px", fontWeight: "500", color: "#94a3b8" }}>{r?.shift}</span>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11.5px", color: "#64748b" }}><__Icon name={r?.icon} strokeWidth="1.75" width="12" height="12" />{r?.note}</span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "11px 10px" }}>
+                        <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".04em", color: "var(--text-muted)" }}>{r?.dow}</span>
+                        <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{r?.date}</span>
+                        <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>{r?.shift}</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><__Icon name={r?.icon} strokeWidth="1.75" width="12" height="12" />{r?.note}</span>
                       </div>
                     </>) : null}
                   </React.Fragment>))}
@@ -215,173 +215,175 @@ export default class StaffAttendanceScreen extends Component {
             </section>
           </div>
           {v.hasData ? (<>
-            <div style={{ display: "grid", gridTemplateColumns: "420px minmax(0,1fr)", gap: "16px", alignItems: "start" }}>
-              <section style={{ display: "flex", flexDirection: "column", gap: "12px", borderRadius: "8px", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+            <div className="gc-split" style={{ display: "grid", gridTemplateColumns: "420px minmax(0,1fr)", gap: "16px", alignItems: "start" }}>
+              <section style={{ display: "flex", flexDirection: "column", gap: "12px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <h2 style={{ margin: "0", flex: "1", fontSize: "15px", lineHeight: "22px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.september}</h2>
-                  <button className="dc-h679" type="button" aria-label={v.t?.prevMonth} style={{ width: "30px", height: "30px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", color: "#64748b", cursor: "pointer" }}>
+                  <h2 style={{ margin: "0", flex: "1", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.september}</h2>
+                  <button className="dc-h679" type="button" aria-label={v.t?.prevMonth} style={{ width: "28px", height: "28px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", color: "var(--text-muted)", cursor: "pointer" }}>
                     <__Icon name="chevron-left" strokeWidth="1.75" width="15" height="15" />
                   </button>
-                  <button className="dc-h680" type="button" aria-label={v.t?.nextMonth} style={{ width: "30px", height: "30px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", color: "#64748b", cursor: "pointer" }}>
+                  <button className="dc-h680" type="button" aria-label={v.t?.nextMonth} style={{ width: "28px", height: "28px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", color: "var(--text-muted)", cursor: "pointer" }}>
                     <__Icon name="chevron-right" strokeWidth="1.75" width="15" height="15" />
                   </button>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(7,minmax(0,1fr))", gap: "5px" }}>
                   {__list(v.dows).map((d, $index) => (<React.Fragment key={$index}>
-                      <span style={{ textAlign: "center", fontSize: "11px", fontWeight: "600", letterSpacing: ".04em", color: "#94a3b8" }}>{d?.label}</span>
+                      <span style={{ textAlign: "center", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".04em", color: "var(--text-muted)" }}>{d?.label}</span>
                     </React.Fragment>))}
                   {__list(v.cal).map((c, $index) => (<React.Fragment key={$index}>
                       {c?.blank ? (<>
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2px", aspectRatio: "1", borderRadius: "8px", background: "transparent" }} />
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2px", aspectRatio: "1", borderRadius: "var(--radius-lg)", background: "transparent" }} />
                       </>) : null}
                       {c?.isPresent ? (<>
-                        <div title={c?.title} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2px", aspectRatio: "1", borderRadius: "8px", background: "rgba(16,185,129,.12)", color: "#047857" }}>
-                          <span style={{ fontSize: "12px", fontWeight: "500", fontVariantNumeric: "tabular-nums", color: "#1e293b" }}>{c?.num}</span>
+                        <div title={c?.title} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2px", aspectRatio: "1", borderRadius: "var(--radius-lg)", background: "rgba(16,185,129,.12)", color: "#047857" }}>
+                          <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", fontVariantNumeric: "tabular-nums", color: "#1e293b" }}>{c?.num}</span>
                           <__Icon name="check" strokeWidth="1.75" width="12" height="12" />
                         </div>
                       </>) : null}
                       {c?.isLate ? (<>
-                        <div title={c?.title} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2px", aspectRatio: "1", borderRadius: "8px", background: "rgba(255,152,0,.16)", color: "#b45309" }}>
-                          <span style={{ fontSize: "12px", fontWeight: "500", fontVariantNumeric: "tabular-nums", color: "#1e293b" }}>{c?.num}</span>
+                        <div title={c?.title} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2px", aspectRatio: "1", borderRadius: "var(--radius-lg)", background: "rgba(255,152,0,.16)", color: "#b45309" }}>
+                          <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", fontVariantNumeric: "tabular-nums", color: "#1e293b" }}>{c?.num}</span>
                           <__Icon name="clock" strokeWidth="1.75" width="12" height="12" />
                         </div>
                       </>) : null}
                       {c?.isLeave ? (<>
-                        <div title={c?.title} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2px", aspectRatio: "1", borderRadius: "8px", background: "rgba(0,156,222,.14)", color: "#0089c3" }}>
-                          <span style={{ fontSize: "12px", fontWeight: "500", fontVariantNumeric: "tabular-nums", color: "#1e293b" }}>{c?.num}</span>
+                        <div title={c?.title} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2px", aspectRatio: "1", borderRadius: "var(--radius-lg)", background: "rgba(0,156,222,.14)", color: "var(--accent-text)" }}>
+                          <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", fontVariantNumeric: "tabular-nums", color: "#1e293b" }}>{c?.num}</span>
                           <__Icon name="palmtree" strokeWidth="1.75" width="12" height="12" />
                         </div>
                       </>) : null}
                       {c?.isHoliday ? (<>
-                        <div title={c?.title} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2px", aspectRatio: "1", borderRadius: "8px", background: "rgba(240,0,185,.1)", color: "#a21caf" }}>
-                          <span style={{ fontSize: "12px", fontWeight: "500", fontVariantNumeric: "tabular-nums", color: "#1e293b" }}>{c?.num}</span>
+                        <div title={c?.title} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2px", aspectRatio: "1", borderRadius: "var(--radius-lg)", background: "rgba(240,0,185,.1)", color: "#a21caf" }}>
+                          <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", fontVariantNumeric: "tabular-nums", color: "#1e293b" }}>{c?.num}</span>
                           <__Icon name="flag" strokeWidth="1.75" width="12" height="12" />
                         </div>
                       </>) : null}
                       {c?.isOff ? (<>
-                        <div title={c?.title} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2px", aspectRatio: "1", borderRadius: "8px", background: "#f1f5f9", color: "#94a3b8" }}>
-                          <span style={{ fontSize: "12px", fontWeight: "500", fontVariantNumeric: "tabular-nums", color: "#1e293b" }}>{c?.num}</span>
+                        <div title={c?.title} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2px", aspectRatio: "1", borderRadius: "var(--radius-lg)", background: "#f1f5f9", color: "var(--text-muted)" }}>
+                          <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", fontVariantNumeric: "tabular-nums", color: "#1e293b" }}>{c?.num}</span>
                           <__Icon name="minus" strokeWidth="1.75" width="12" height="12" />
                         </div>
                       </>) : null}
                       {c?.isFuture ? (<>
-                        <div title={c?.title} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2px", aspectRatio: "1", borderRadius: "8px", background: "#f8fafc", color: "#cbd5e1" }}>
-                          <span style={{ fontSize: "12px", fontWeight: "500", fontVariantNumeric: "tabular-nums", color: "#94a3b8" }}>{c?.num}</span>
+                        <div title={c?.title} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2px", aspectRatio: "1", borderRadius: "var(--radius-lg)", background: "#f8fafc", color: "#cbd5e1" }}>
+                          <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", fontVariantNumeric: "tabular-nums", color: "var(--text-muted)" }}>{c?.num}</span>
                         </div>
                       </>) : null}
                     </React.Fragment>))}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", paddingTop: "2px" }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "12px", color: "#64748b" }}><span style={{ display: "grid", placeItems: "center", width: "18px", height: "18px", borderRadius: "5px", background: "rgba(16,185,129,.12)", color: "#047857" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><span style={{ display: "grid", placeItems: "center", width: "18px", height: "18px", borderRadius: "var(--radius-sm)", background: "rgba(16,185,129,.12)", color: "#047857" }}>
   <__Icon name="check" strokeWidth="1.75" width="11" height="11" />
 </span>{v.t?.present}</span>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "12px", color: "#64748b" }}><span style={{ display: "grid", placeItems: "center", width: "18px", height: "18px", borderRadius: "5px", background: "rgba(255,152,0,.16)", color: "#b45309" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><span style={{ display: "grid", placeItems: "center", width: "18px", height: "18px", borderRadius: "var(--radius-sm)", background: "rgba(255,152,0,.16)", color: "#b45309" }}>
   <__Icon name="clock" strokeWidth="1.75" width="11" height="11" />
 </span>{v.t?.late}</span>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "12px", color: "#64748b" }}><span style={{ display: "grid", placeItems: "center", width: "18px", height: "18px", borderRadius: "5px", background: "rgba(255,87,36,.12)", color: "#c2410c" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><span style={{ display: "grid", placeItems: "center", width: "18px", height: "18px", borderRadius: "var(--radius-sm)", background: "rgba(255,87,36,.12)", color: "#c2410c" }}>
   <__Icon name="x" strokeWidth="1.75" width="11" height="11" />
 </span>{v.t?.absent}</span>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "12px", color: "#64748b" }}><span style={{ display: "grid", placeItems: "center", width: "18px", height: "18px", borderRadius: "5px", background: "rgba(0,156,222,.14)", color: "#0089c3" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><span style={{ display: "grid", placeItems: "center", width: "18px", height: "18px", borderRadius: "var(--radius-sm)", background: "rgba(0,156,222,.14)", color: "var(--accent-text)" }}>
   <__Icon name="palmtree" strokeWidth="1.75" width="11" height="11" />
 </span>{v.t?.leaveWord}</span>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "12px", color: "#64748b" }}><span style={{ display: "grid", placeItems: "center", width: "18px", height: "18px", borderRadius: "5px", background: "rgba(240,0,185,.1)", color: "#a21caf" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><span style={{ display: "grid", placeItems: "center", width: "18px", height: "18px", borderRadius: "var(--radius-sm)", background: "rgba(240,0,185,.1)", color: "#a21caf" }}>
   <__Icon name="flag" strokeWidth="1.75" width="11" height="11" />
 </span>{v.t?.holiday}</span>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "12px", color: "#64748b" }}><span style={{ display: "grid", placeItems: "center", width: "18px", height: "18px", borderRadius: "5px", background: "#f1f5f9", color: "#94a3b8" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><span style={{ display: "grid", placeItems: "center", width: "18px", height: "18px", borderRadius: "var(--radius-sm)", background: "#f1f5f9", color: "var(--text-muted)" }}>
   <__Icon name="minus" strokeWidth="1.75" width="11" height="11" />
 </span>{v.t?.weeklyOff}</span>
                 </div>
               </section>
-              <section style={{ borderRadius: "8px", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", overflow: "hidden" }}>
+              <section style={{ borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", overflow: "hidden" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "18px 20px 12px" }}>
-                  <h2 style={{ margin: "0", flex: "1", fontSize: "15px", lineHeight: "22px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.dailyLog}</h2>
-                  <button className="dc-h681" type="button" style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "32px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 12px", fontFamily: "inherit", fontSize: "12.5px", fontWeight: "500", letterSpacing: ".025em", color: "#475569", cursor: "pointer" }}><__Icon name="download" strokeWidth="1.75" width="14" height="14" />{v.t?.export}</button>
+                  <h2 style={{ margin: "0", flex: "1", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.dailyLog}</h2>
+                  <button className="dc-h681" type="button" style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "32px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#475569", cursor: "pointer" }}><__Icon name="download" strokeWidth="1.75" width="14" height="14" />{v.t?.export}</button>
                 </div>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <caption style={{ position: "absolute", width: "1px", height: "1px", overflow: "hidden", clipPath: "inset(50%)" }}>{v.t?.logCaption}</caption>
-                  <thead>
-                    <tr>
-                      <th scope="col" style={{ padding: "8px 14px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "11px", fontWeight: "600", letterSpacing: ".025em", textTransform: "uppercase", color: "#64748b", textAlign: "left", whiteSpace: "nowrap" }}>{v.t?.colDate}</th>
-                      <th scope="col" style={{ padding: "8px 14px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "11px", fontWeight: "600", letterSpacing: ".025em", textTransform: "uppercase", color: "#64748b", textAlign: "left", whiteSpace: "nowrap" }}>{v.t?.colIn}</th>
-                      <th scope="col" style={{ padding: "8px 14px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "11px", fontWeight: "600", letterSpacing: ".025em", textTransform: "uppercase", color: "#64748b", textAlign: "left", whiteSpace: "nowrap" }}>{v.t?.colOut}</th>
-                      <th scope="col" style={{ padding: "8px 14px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "11px", fontWeight: "600", letterSpacing: ".025em", textTransform: "uppercase", color: "#64748b", textAlign: "left", whiteSpace: "nowrap" }}>{v.t?.colSource}</th>
-                      <th scope="col" style={{ padding: "8px 14px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "11px", fontWeight: "600", letterSpacing: ".025em", textTransform: "uppercase", color: "#64748b", textAlign: "right", whiteSpace: "nowrap" }}>{v.t?.colLate}</th>
-                      <th scope="col" style={{ padding: "8px 14px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "11px", fontWeight: "600", letterSpacing: ".025em", textTransform: "uppercase", color: "#64748b", textAlign: "right", whiteSpace: "nowrap" }}>{v.t?.colOt}</th>
-                      <th scope="col" style={{ padding: "8px 14px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "11px", fontWeight: "600", letterSpacing: ".025em", textTransform: "uppercase", color: "#64748b", textAlign: "left", whiteSpace: "nowrap" }}>{v.t?.colNote}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {__list(v.log).map((r, $index) => (<React.Fragment key={$index}>
-                        <tr style={{ background: "#fff" }}>
-                          <td style={{ padding: "11px 14px", borderBottom: "1px solid #e2e8f0", fontSize: "13px", fontWeight: "500", color: "#1e293b", whiteSpace: "nowrap" }}>{r?.date}</td>
-                          <td style={{ padding: "11px 14px", borderBottom: "1px solid #e2e8f0", fontSize: "13px", color: "#475569", fontVariantNumeric: "tabular-nums" }}>{r?.in}</td>
-                          <td style={{ padding: "11px 14px", borderBottom: "1px solid #e2e8f0", fontSize: "13px", color: "#475569", fontVariantNumeric: "tabular-nums" }}>{r?.out}</td>
-                          <td style={{ padding: "11px 14px", borderBottom: "1px solid #e2e8f0", fontSize: "13px", color: "#475569", whiteSpace: "nowrap" }}>
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}><__Icon name={r?.srcIcon} strokeWidth="1.75" width="13" height="13" style={{ color: "#94a3b8" }} />{r?.src}</span>
-                          </td>
-                          {r?.isLate ? (<>
-                            <td style={{ padding: "11px 14px", borderBottom: "1px solid #e2e8f0", textAlign: "right", fontSize: "13px", fontWeight: "600", color: "#b45309", fontVariantNumeric: "tabular-nums" }}>{r?.late}</td>
-                          </>) : null}
-                          {r?.onTime ? (<>
-                            <td style={{ padding: "11px 14px", borderBottom: "1px solid #e2e8f0", textAlign: "right", fontSize: "13px", fontWeight: "500", color: "#94a3b8", fontVariantNumeric: "tabular-nums" }}>—</td>
-                          </>) : null}
-                          <td style={{ padding: "11px 14px", borderBottom: "1px solid #e2e8f0", textAlign: "right", fontSize: "13px", color: "#475569", fontVariantNumeric: "tabular-nums" }}>{r?.ot}</td>
-                          <td style={{ padding: "11px 14px", borderBottom: "1px solid #e2e8f0", fontSize: "12.5px", color: "#64748b", textWrap: "pretty" }}>{r?.note}</td>
-                        </tr>
-                      </React.Fragment>))}
-                  </tbody>
-                </table>
+                <div className="gc-table-wrap">
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <caption style={{ position: "absolute", width: "1px", height: "1px", overflow: "hidden", clipPath: "inset(50%)" }}>{v.t?.logCaption}</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col" style={{ padding: "8px 14px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textTransform: "uppercase", color: "var(--text-muted)", textAlign: "left", whiteSpace: "nowrap" }}>{v.t?.colDate}</th>
+                        <th scope="col" style={{ padding: "8px 14px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textTransform: "uppercase", color: "var(--text-muted)", textAlign: "left", whiteSpace: "nowrap" }}>{v.t?.colIn}</th>
+                        <th scope="col" style={{ padding: "8px 14px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textTransform: "uppercase", color: "var(--text-muted)", textAlign: "left", whiteSpace: "nowrap" }}>{v.t?.colOut}</th>
+                        <th scope="col" style={{ padding: "8px 14px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textTransform: "uppercase", color: "var(--text-muted)", textAlign: "left", whiteSpace: "nowrap" }}>{v.t?.colSource}</th>
+                        <th scope="col" style={{ padding: "8px 14px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textTransform: "uppercase", color: "var(--text-muted)", textAlign: "right", whiteSpace: "nowrap" }}>{v.t?.colLate}</th>
+                        <th scope="col" style={{ padding: "8px 14px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textTransform: "uppercase", color: "var(--text-muted)", textAlign: "right", whiteSpace: "nowrap" }}>{v.t?.colOt}</th>
+                        <th scope="col" style={{ padding: "8px 14px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textTransform: "uppercase", color: "var(--text-muted)", textAlign: "left", whiteSpace: "nowrap" }}>{v.t?.colNote}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {__list(v.log).map((r, $index) => (<React.Fragment key={$index}>
+                          <tr style={{ background: "#fff" }}>
+                            <td style={{ padding: "11px 14px", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b", whiteSpace: "nowrap" }}>{r?.date}</td>
+                            <td style={{ padding: "11px 14px", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs-plus)", color: "#475569", fontVariantNumeric: "tabular-nums" }}>{r?.in}</td>
+                            <td style={{ padding: "11px 14px", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs-plus)", color: "#475569", fontVariantNumeric: "tabular-nums" }}>{r?.out}</td>
+                            <td style={{ padding: "11px 14px", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs-plus)", color: "#475569", whiteSpace: "nowrap" }}>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}><__Icon name={r?.srcIcon} strokeWidth="1.75" width="13" height="13" style={{ color: "var(--text-muted)" }} />{r?.src}</span>
+                            </td>
+                            {r?.isLate ? (<>
+                              <td style={{ padding: "11px 14px", borderBottom: "1px solid #e2e8f0", textAlign: "right", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#b45309", fontVariantNumeric: "tabular-nums" }}>{r?.late}</td>
+                            </>) : null}
+                            {r?.onTime ? (<>
+                              <td style={{ padding: "11px 14px", borderBottom: "1px solid #e2e8f0", textAlign: "right", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>—</td>
+                            </>) : null}
+                            <td style={{ padding: "11px 14px", borderBottom: "1px solid #e2e8f0", textAlign: "right", fontSize: "var(--text-xs-plus)", color: "#475569", fontVariantNumeric: "tabular-nums" }}>{r?.ot}</td>
+                            <td style={{ padding: "11px 14px", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", textWrap: "pretty" }}>{r?.note}</td>
+                          </tr>
+                        </React.Fragment>))}
+                    </tbody>
+                  </table>
+                </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 20px" }}>
-                  <p style={{ margin: "0", flex: "1", fontSize: "12.5px", color: "#64748b" }}>{v.t?.logMeta}</p>
-                  <button className="dc-h682" type="button" style={{ height: "30px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 11px", fontFamily: "inherit", fontSize: "12.5px", fontWeight: "500", color: "#475569", cursor: "pointer" }}>{v.t?.showAll}</button>
+                  <p style={{ margin: "0", flex: "1", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.t?.logMeta}</p>
+                  <button className="dc-h682" type="button" style={{ height: "28px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#475569", cursor: "pointer" }}>{v.t?.showAll}</button>
                 </div>
               </section>
             </div>
           </>) : null}
           {v.noData ? (<>
-            <section style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "11px", borderRadius: "8px", background: "#fff", padding: "48px 20px", textAlign: "center", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
-              <span style={{ display: "grid", placeItems: "center", width: "60px", height: "60px", borderRadius: "16px", background: "#f1f5f9", color: "#94a3b8" }}>
+            <section style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "11px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "48px 20px", textAlign: "center", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+              <span style={{ display: "grid", placeItems: "center", width: "60px", height: "60px", borderRadius: "var(--radius-xl)", background: "#f1f5f9", color: "var(--text-muted)" }}>
                 <__Icon name="calendar-off" strokeWidth="1.75" width="28" height="28" />
               </span>
-              <h2 style={{ margin: "0", fontSize: "16px", fontWeight: "600", color: "#1e293b" }}>{v.t?.emptyTitle}</h2>
-              <p style={{ margin: "0", maxWidth: "420px", fontSize: "13.5px", lineHeight: "21px", color: "#64748b", textWrap: "pretty" }}>{v.t?.emptyBody}</p>
+              <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#1e293b" }}>{v.t?.emptyTitle}</h2>
+              <p style={{ margin: "0", maxWidth: "420px", fontSize: "var(--text-sm)", lineHeight: "21px", color: "var(--text-muted)", textWrap: "pretty" }}>{v.t?.emptyBody}</p>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <button className="dc-h683" type="button" onClick={v.openShift} style={{ height: "36px", border: "none", borderRadius: "8px", background: "#003087", padding: "0 15px", fontFamily: "inherit", fontSize: "14px", fontWeight: "500", letterSpacing: ".025em", color: "#fff", cursor: "pointer" }}>{v.t?.assignShift}</button>
-                <button className="dc-h684" type="button" onClick={v.openCorrection} style={{ height: "36px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 15px", fontFamily: "inherit", fontSize: "14px", fontWeight: "500", letterSpacing: ".025em", color: "#475569", cursor: "pointer" }}>{v.t?.addManual}</button>
+                <button className="dc-h683" type="button" onClick={v.openShift} style={{ height: "36px", border: "none", borderRadius: "var(--radius-lg)", background: "#003087", padding: "0 15px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#fff", cursor: "pointer" }}>{v.t?.assignShift}</button>
+                <button className="dc-h684" type="button" onClick={v.openCorrection} style={{ height: "36px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 15px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#475569", cursor: "pointer" }}>{v.t?.addManual}</button>
               </div>
             </section>
           </>) : null}
           {v.sheet ? (<>
             <div role="presentation" onClick={v.closeSheet} style={{ position: "fixed", inset: "0", zIndex: "200", display: "grid", placeItems: "center", background: "rgba(15,23,42,.6)", padding: "24px" }}>
-              <div role="dialog" aria-modal="true" aria-label={v.sheetTitle} onClick={v.stop} style={{ width: "100%", maxWidth: "520px", borderRadius: "8px", background: "#fff", boxShadow: "0 26px 60px -20px rgba(15,23,42,.5)" }}>
+              <div role="dialog" aria-modal="true" aria-label={v.sheetTitle} onClick={v.stop} style={{ width: "100%", maxWidth: "520px", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 26px 60px -20px rgba(15,23,42,.5)" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "20px 22px 0" }}>
-                  <span style={{ display: "grid", placeItems: "center", width: "38px", height: "38px", flex: "none", borderRadius: "8px", background: "rgba(0,48,135,.1)", color: "#003087" }}>
+                  <span style={{ display: "grid", placeItems: "center", width: "38px", height: "38px", flex: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.1)", color: "#003087" }}>
                     <__Icon name={v.sheetIcon} strokeWidth="1.75" width="20" height="20" />
                   </span>
                   <div style={{ flex: "1", minWidth: "0" }}>
-                    <h2 style={{ margin: "0", fontSize: "16px", fontWeight: "600", color: "#1e293b" }}>{v.sheetTitle}</h2>
-                    <p style={{ margin: "4px 0 0", fontSize: "13px", lineHeight: "19px", color: "#64748b", textWrap: "pretty" }}>{v.sheetBody}</p>
+                    <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#1e293b" }}>{v.sheetTitle}</h2>
+                    <p style={{ margin: "4px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "var(--text-muted)", textWrap: "pretty" }}>{v.sheetBody}</p>
                   </div>
-                  <button className="dc-h685" type="button" onClick={v.closeSheet} aria-label="Close" style={{ width: "30px", height: "30px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "8px", background: "none", color: "#94a3b8", cursor: "pointer" }}>
+                  <button className="dc-h685" type="button" onClick={v.closeSheet} aria-label="Close" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-lg)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>
                     <__Icon name="x" strokeWidth="1.75" width="17" height="17" />
                   </button>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "16px 22px 0" }}>
                   {__list(v.sheetFields).map((f, $index) => (<React.Fragment key={$index}>
                       <label style={{ display: "block" }}>
-                        <span style={{ display: "block", marginBottom: "6px", fontSize: "12px", fontWeight: "500", letterSpacing: ".025em", color: "#64748b" }}>{f?.label}</span>
+                        <span style={{ display: "block", marginBottom: "6px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>{f?.label}</span>
                         {" "}
-                        <input className="dc-f686" type="text" defaultValue={f?.value} placeholder={f?.placeholder} style={{ width: "100%", height: "36px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 11px", fontFamily: "inherit", fontSize: "13.5px", color: "#1e293b" }} />
+                        <input className="dc-f686" type="text" defaultValue={f?.value} placeholder={f?.placeholder} style={{ width: "100%", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontFamily: "inherit", fontSize: "var(--text-sm)", color: "#1e293b" }} />
                       </label>
                     </React.Fragment>))}
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "9px", borderRadius: "8px", background: "rgba(255,152,0,.1)", padding: "11px 13px" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: "9px", borderRadius: "var(--radius-lg)", background: "rgba(255,152,0,.1)", padding: "11px 13px" }}>
                     <__Icon name="shield-alert" strokeWidth="1.75" width="17" height="17" style={{ flex: "none", marginTop: "1px", color: "#b45309" }} />
-                    <p style={{ margin: "0", fontSize: "12.5px", lineHeight: "19px", color: "#1e293b", textWrap: "pretty" }}>{v.sheetWarning}</p>
+                    <p style={{ margin: "0", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "#1e293b", textWrap: "pretty" }}>{v.sheetWarning}</p>
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "8px", marginTop: "18px", padding: "14px 22px", borderTop: "1px solid #e2e8f0", background: "#f8fafc" }}>
-                  <button className="dc-h687" type="button" onClick={v.closeSheet} style={{ height: "36px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 15px", fontFamily: "inherit", fontSize: "14px", fontWeight: "500", letterSpacing: ".025em", color: "#475569", cursor: "pointer" }}>{v.t?.cancel}</button>
-                  <button className="dc-h688" type="button" onClick={v.closeSheet} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", border: "none", borderRadius: "8px", background: "#003087", padding: "0 16px", fontFamily: "inherit", fontSize: "14px", fontWeight: "500", letterSpacing: ".025em", color: "#fff", cursor: "pointer" }}><__Icon name="send" strokeWidth="1.75" width="16" height="16" />{v.sheetVerb}</button>
+                  <button className="dc-h687" type="button" onClick={v.closeSheet} style={{ height: "36px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 15px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#475569", cursor: "pointer" }}>{v.t?.cancel}</button>
+                  <button className="dc-h688" type="button" onClick={v.closeSheet} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", border: "none", borderRadius: "var(--radius-lg)", background: "#003087", padding: "0 16px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#fff", cursor: "pointer" }}><__Icon name="send" strokeWidth="1.75" width="16" height="16" />{v.sheetVerb}</button>
                 </div>
               </div>
             </div>

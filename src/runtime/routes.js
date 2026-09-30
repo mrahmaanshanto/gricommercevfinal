@@ -17,11 +17,36 @@ export function isScreenHref(href) {
   return typeof href === 'string' && DC_RE.test(href);
 }
 
+// Reference screens and storyboards are served under /dev, away from the product routes.
+const DEV_ROUTES = {
+  "DevReference": "/dev/dev-reference",
+  "FlowOnboarding": "/dev/flow-onboarding",
+  "FlowOrders": "/dev/flow-orders",
+  "FlowPayments": "/dev/flow-payments",
+  "FlowProducts": "/dev/flow-products",
+  "FlowPurchase": "/dev/flow-purchase",
+  "FlowStaff": "/dev/flow-staff",
+  "IconSet": "/dev/icon-set",
+  "UIKit01Shell": "/dev/ui-kit01-shell",
+  "UIKit02Actions": "/dev/ui-kit02-actions",
+  "UIKit03Controls": "/dev/ui-kit03-controls",
+  "UIKit04FormLayouts": "/dev/ui-kit04-form-layouts",
+  "UIKit05Tables": "/dev/ui-kit05-tables",
+  "UIKit06Data": "/dev/ui-kit06-data",
+  "UIKit07Feedback": "/dev/ui-kit07-feedback",
+  "UIKit08Commerce": "/dev/ui-kit08-commerce",
+  "UIKit09Templates": "/dev/ui-kit09-templates",
+  "PosRegister": "/dev/storyboards/pos-register",
+  "Structure": "/dev/structure",
+  "SettingsConsole": "/dev/storyboards/settings-console",
+  "SiteMap": "/dev/site-map"
+};
+
 /** Maps a design link to its app route. Anything else is returned unchanged. */
 export function routeOf(href) {
   if (!isScreenHref(href)) return href;
   const [, name, hash] = href.match(DC_RE);
-  return '/' + kebab(name) + (hash || '');
+  return (DEV_ROUTES[name] || '/' + kebab(name)) + (hash || '');
 }
 
 /** `/_blob/<id>` (the design canvas' asset store) -> `/assets/<id>.<ext>` */

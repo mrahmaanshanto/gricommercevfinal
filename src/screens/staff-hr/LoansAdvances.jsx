@@ -7,6 +7,8 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+import { PageHeader as __PageHeader } from '@/components/ui';
+import { toast as __toast, confirmDialog as __confirm } from '@/runtime/ui';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -40,7 +42,7 @@ var STAFF = [
   ['EMP-0161', 'Jannatul Ferdous', 'Social media executive', 'Marketing', 'Head office', 'office', 12000, 'Part-time', 'active', '01404-XX8872', '3 Aug 2026', 'Marketing'],
   ['EMP-0112', 'Kamrul Islam', 'Senior sales associate', 'Store operations', 'Dhanmondi branch', 'evening', 19000, 'Full-time', 'suspended', '01670-XX2254', '11 Apr 2021', 'Sales staff']
 ];
-var SHIFTS = { morning: ['Morning', '9:00 am – 5:00 pm', '#e0f3fb', '#075985'], evening: ['Evening', '1:00 pm – 9:00 pm', '#f3e8ff', '#6d28d9'], warehouse: ['Warehouse', '8:00 am – 4:00 pm', '#fff4e0', '#a14f06'], office: ['Office', '9:30 am – 6:00 pm', '#e7f8f1', '#047857'], night: ['Night guard', '9:00 pm – 7:00 am', '#e2e8f0', '#334155'] };
+var SHIFTS = { morning: ['Morning', '9:00 AM – 5:00 PM', '#e0f3fb', '#075985'], evening: ['Evening', '1:00 PM – 9:00 PM', '#f3e8ff', '#6d28d9'], warehouse: ['Warehouse', '8:00 AM – 4:00 PM', '#fff4e0', '#a14f06'], office: ['Office', '9:30 AM – 6:00 PM', '#e7f8f1', '#047857'], night: ['Night guard', '9:00 PM – 7:00 AM', '#e2e8f0', '#334155'] };
 var AV = [['#e0f3fb', '#075985'], ['#f3e8ff', '#6d28d9'], ['#fff4e0', '#a14f06'], ['#e7f8f1', '#047857'], ['#ffece6', '#b83210'], ['#e0e7ff', '#3730a3']];
 function ini(n) { var p = n.split(' '); return (p[0].charAt(0) + (p[1] || '').charAt(0)).toUpperCase(); }
 function av(n, i) { var c = AV[i % AV.length]; return { ini: ini(n), ab: c[0], af: c[1] }; }
@@ -59,9 +61,13 @@ class Component extends DCLogic {
       kOut: bdt(out), kReq: String(LN.filter(function (_, i) { return stat(i) === 'req'; }).length),
       tabs: pTabs(self, [{ k: 'open', label: 'Running' }, { k: 'req', label: 'Requests' }, { k: 'done', label: 'Paid back' }], tab, 'tab', { open: LN.filter(function (_, i) { return stat(i) === 'run'; }).length, req: LN.filter(function (_, i) { return stat(i) === 'req'; }).length }),
       rows: LN.map(function (l, i) { return [l, i]; }).filter(function (x) { var k = stat(x[1]); return tab === 'open' ? k === 'run' : tab === 'req' ? k === 'req' : k === 'done' || k === 'no'; }).map(function (x) { var l = x[0], i = x[1], r = STAFF[l[0]], k = stat(i);
-        var set = function (v2, m, bad) { var nn = assign({}, st); nn[i] = v2; self.setState({ st: nn }); toast(self, m, bad); };
+        // Writes one row's status; `null` puts it back to the demo data's own value.
+        var put = function (v2) { self.setState(function (p) { var nn = assign({}, (p && p.st) || {}); if (v2 == null) delete nn[i]; else nn[i] = v2; return { st: nn }; }); };
+        var prev = st[i] == null ? null : st[i], what = l[1].toLowerCase();
         return assign(av(r[1], l[0]), { n: r[1], des: r[2], link: PROFILE, type: l[1], d: l[2], amt: bdt(l[3]), w: l[4] / l[3] * 100 + '%', pd: bdt(l[4]) + ' of ' + bdt(l[3]), emi: bdt(l[5]), next: l[6], req: k === 'req', nreq: k !== 'req', pt: k === 'run' ? 'Running' : k === 'no' ? 'Rejected' : 'Paid back', pb: k === 'run' ? '#e0f2fe' : k === 'no' ? '#ffece6' : '#e7f8f1', pf: k === 'run' ? '#075985' : k === 'no' ? '#b83210' : '#047857',
-          yes: function () { set('run', r[1] + '’s advance approved. ' + bdt(l[5]) + ' will be cut from October and November.'); }, no: function () { set('no', 'Rejected. ' + r[1] + ' gets an SMS.', true); } }); }),
+          yes: function () { put('run'); __toast(r[1] + '’s ' + what + ' approved. ' + bdt(l[5]) + ' will be cut from October and November.', { undo: function () { put(prev); } }); },
+          no: function () { __confirm({ title: 'Reject ' + r[1] + '’s ' + what + '?', body: bdt(l[3]) + ' ' + what + ' asked on ' + l[2] + '. ' + r[1] + ' will be told by SMS and no money is paid out.', confirmLabel: 'Reject ' + what, tone: 'danger' }).then(function (ok) { if (!ok) return; put('no'); __toast('Rejected. ' + r[1] + ' gets an SMS.', { tone: 'info' }); }); },
+          yesAria: 'Approve ' + r[1] + '’s ' + what + ' of ' + bdt(l[3]), noAria: 'Reject ' + r[1] + '’s ' + what + ' of ' + bdt(l[3]) }); }),
       showNew: s.nw !== false, openNew: function () { self.setState({ nw: true }); }, closeNew: function () { self.setState({ nw: false }); },
       types: segv(self, [['adv', 'Advance'], ['loan', 'Loan']], typ, 'typ'),
       amt: amt, typeAmt: function (e) { self.setState({ amt: e.target.value }); }, n: n, setN: function (e) { self.setState({ n: e.target.value }); },
@@ -74,46 +80,51 @@ class Component extends DCLogic {
 
 // ---- styles (from the design's <helmet>) ----
 
-const CSS = `.pcard{overflow-x:auto}.pcard th,.pcard td{white-space:normal;padding-left:8px!important;padding-right:8px!important}.pcard th{font-size:10.5px!important;letter-spacing:.04em!important}
+const CSS = `.pcard{overflow-x:auto}
+.plink{display:block;min-height:24px;line-height:24px}
+.pexp{width:28px;height:28px;flex-shrink:0;padding:0;border:0;border-radius:var(--radius-lg);background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background-color 200ms}
+.pexp:hover{background:#e2e8f0;color:#0f172a}
+.pexp:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
+.pexp[aria-expanded="true"]{background:rgba(0,48,135,.1);color:#003087}
 
-body{margin:0;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
+body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
 a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:12px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:8px;color:#475569;font-size:14px;font-weight:500;letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
+.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
+.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
 .nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
 .nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:11px;line-height:16px;font-weight:600;letter-spacing:.08em;color:#64748b;padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:8px;border:0;font:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
+.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
 .btn:hover{text-decoration:none}
 .btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
 .soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
 .line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
 .warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:15px}
-.sm{height:36px;padding:0 12px;font-size:13px}
-.ib{width:40px;height:40px;border-radius:999px;border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
+.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
+.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
 .ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font:inherit;font-size:14px;color:#1e293b;transition:border-color 200ms}
+.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
 .inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:#64748b}
-.lbl{font-size:13px;line-height:18px;font-weight:500;color:#334155}
-.tab{height:40px;padding:0 14px;border-radius:999px;border:0;background:transparent;font:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
+.inp::placeholder{color:var(--text-muted)}
+.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
+.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
 .tab:hover{background:#f1f5f9;color:#0f172a}
 .tab.on{background:#003087;color:#fff}
-.chip{height:40px;padding:0 14px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:13px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
+.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
 .chip:hover{border-color:#94a3b8}
 .chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:14px;line-height:20px;vertical-align:middle}
+.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.td{padding:12px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
 .row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
+.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
+.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
 .b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
 .b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
 .b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.02em}
+.mono{font-family:var(--font-data);letter-spacing:.02em}
 .fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
 @keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 .flash{animation:gcFlash 900ms ease-out}
@@ -121,32 +132,32 @@ a{color:#003087}a:hover{color:#002a77}
 .scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
 @keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
 
-.sw{position:relative;width:48px;height:28px;border-radius:999px;border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
+.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
 .sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
 .sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
 .t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
 .actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:'Hind Siliguri','Poppins',sans-serif}
+.bn{font-family:var(--font-bn)}
 .pulse{animation:gcPulse 1.6s ease-in-out infinite}
 @keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
-.psec{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#64748b}
+.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
+.psec{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
 .num{font-variant-numeric:tabular-nums}
-.ai{height:30px;padding:0 10px;border-radius:8px;border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
+.ai{height:28px;padding:0 10px;border-radius:var(--radius-lg);border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
 .ai:hover{border-color:#a78bfa;box-shadow:0 4px 12px -6px rgba(91,33,182,.5)}
 .ai:focus-visible{outline:3px solid rgba(124,58,237,.4);outline-offset:2px}
-.abtn{height:32px;padding:0 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:12.5px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.abtn{height:32px;padding:0 12px;border-radius:var(--radius-lg);border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .abtn:hover{background:#f1f5f9}
 .ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0}
-.ptab{position:relative;height:48px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:13.5px;font-weight:500;color:#64748b;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:600}
+.ptab{position:relative;height:52px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:var(--weight-medium)}
 .ptab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2.5px;border-radius:3px 3px 0 0;background:#003087}
-.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#eef2f6;color:#475569;font-size:11px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
 .ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
-.thumb{width:44px;height:44px;flex-shrink:0;border-radius:10px;border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#003087}
+.thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
 `;
 
 // ---- markup ----
@@ -157,13 +168,14 @@ export default class LoansAdvancesScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="LoansAdvances">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "1440px", height: "1300px", background: "#eef2f7", padding: "12px", display: "flex", gap: "12px", overflow: "hidden" }}>
+        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
           <__Sidebar sticky="" active="hr-loans" />
-          <main style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "16px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
             <__Topbar crumb={"Staff & HR"} page={"Loans & advances"} placeholder="Search staff by name, phone or code" />
-            <div style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
+              <__PageHeader title={"Loans & advances"} />
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ flexGrow: "1", fontSize: "14px", lineHeight: "20px", color: "#475569" }}>Money given to staff ahead of salary. Instalments are cut from payroll by themselves until it is paid back.</div>
+                <div style={{ flexGrow: "1", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#475569" }}>Money given to staff ahead of salary. Instalments are cut from payroll by themselves until it is paid back.</div>
                 <button type="button" className="btn solid" onClick={v.openNew}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M5 12h14" />
@@ -173,7 +185,7 @@ export default class LoansAdvancesScreen extends Component {
                 </button>
               </div>
               {v.hasMsg ? (<>
-                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: 14px; font-weight: 500;`)}>
+                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-lg); background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: var(--text-sm); font-weight: var(--weight-medium);`)}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <circle cx="12" cy="12" r="10" />
                     <path d="m9 12 2 2 4-4" />
@@ -181,22 +193,22 @@ export default class LoansAdvancesScreen extends Component {
                   <span>{v.msg}</span>
                 </div>
               </>) : null}
-              <div style={{ display: "flex", gap: "16px" }}>
+              <div className="gc-cardrow" style={{ display: "flex", gap: "16px" }}>
                 <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "12px", background: "#ffece6", color: "#b83210", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#ffece6", color: "#b83210", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />
                       <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />
                     </svg>
                   </span>
                   <div>
-                    <div style={{ fontSize: "26px", lineHeight: "34px", fontWeight: "700", color: "#b83210" }}>{v.kOut}</div>
-                    <div style={{ fontSize: "13px", lineHeight: "18px", color: "#475569" }}>Outstanding</div>
-                    <div style={{ fontSize: "12px", lineHeight: "16px", color: "#64748b" }}>Still to recover</div>
+                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#b83210" }}>{v.kOut}</div>
+                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Outstanding</div>
+                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Still to recover</div>
                   </div>
                 </div>
                 <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "12px", background: "#eef2f6", color: "#475569", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#eef2f6", color: "#475569", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <rect width="20" height="12" x="2" y="6" rx="2" />
                       <circle cx="12" cy="12" r="2" />
@@ -204,35 +216,35 @@ export default class LoansAdvancesScreen extends Component {
                     </svg>
                   </span>
                   <div>
-                    <div style={{ fontSize: "26px", lineHeight: "34px", fontWeight: "700", color: "#0f172a" }}>৳10,900</div>
-                    <div style={{ fontSize: "13px", lineHeight: "18px", color: "#475569" }}>Recover in September</div>
-                    <div style={{ fontSize: "12px", lineHeight: "16px", color: "#64748b" }}>From 3 salaries</div>
+                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>৳10,900</div>
+                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Recover in September</div>
+                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>From 3 salaries</div>
                   </div>
                 </div>
                 <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "12px", background: "#fff4e0", color: "#a14f06", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#fff4e0", color: "#a14f06", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <circle cx="12" cy="12" r="10" />
                       <path d="M12 6v6l4 2" />
                     </svg>
                   </span>
                   <div>
-                    <div style={{ fontSize: "26px", lineHeight: "34px", fontWeight: "700", color: "#a14f06" }}>{v.kReq}</div>
-                    <div style={{ fontSize: "13px", lineHeight: "18px", color: "#475569" }}>Requests waiting</div>
-                    <div style={{ fontSize: "12px", lineHeight: "16px", color: "#64748b" }}>From the staff app</div>
+                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#a14f06" }}>{v.kReq}</div>
+                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Requests waiting</div>
+                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>From the staff app</div>
                   </div>
                 </div>
                 <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "12px", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
                       <path d="m9 12 2 2 4-4" />
                     </svg>
                   </span>
                   <div>
-                    <div style={{ fontSize: "26px", lineHeight: "34px", fontWeight: "700", color: "#003087" }}>50% of basic</div>
-                    <div style={{ fontSize: "13px", lineHeight: "18px", color: "#475569" }}>Limit</div>
-                    <div style={{ fontSize: "12px", lineHeight: "16px", color: "#64748b" }}>Per advance · set in HR setup</div>
+                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#003087" }}>50% of basic</div>
+                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Limit</div>
+                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Per advance · set in HR setup</div>
                   </div>
                 </div>
               </div>
@@ -245,62 +257,64 @@ export default class LoansAdvancesScreen extends Component {
 </>) : null}</button>
                       </React.Fragment>))}
                   </div>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr>
-                        <th className="th">Staff</th>
-                        <th className="th">Type</th>
-                        <th className="th">Given</th>
-                        <th className="th" style={{ textAlign: "right" }}>Amount</th>
-                        <th className="th">Paid back</th>
-                        <th className="th" style={{ textAlign: "right" }}>Per month</th>
-                        <th className="th">Next cut</th>
-                        <th className="th">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {__list(v.rows).map((ln, $index) => (<React.Fragment key={$index}>
-                          <tr className="row">
-                            <td className="td">
-                              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                <span style={__sx(`width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: ${ln?.ab ?? ""}; color: ${ln?.af ?? ""}; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;`)}>{ln?.ini}</span>
-                                <div style={{ minWidth: "0" }}>
-                                  <__A href={ln?.link} style={{ display: "block", fontWeight: "600", color: "#0f172a", textDecoration: "none" }}>{ln?.n}</__A>
-                                  <div style={{ fontSize: "12px", color: "#64748b" }}>{ln?.des}</div>
+                  <div className="gc-table-wrap">
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr>
+                          <th className="th">Staff</th>
+                          <th className="th">Type</th>
+                          <th className="th">Given</th>
+                          <th className="th" style={{ textAlign: "right" }}>Amount</th>
+                          <th className="th">Paid back</th>
+                          <th className="th" style={{ textAlign: "right" }}>Per month</th>
+                          <th className="th">Next cut</th>
+                          <th className="th">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {__list(v.rows).map((ln, $index) => (<React.Fragment key={$index}>
+                            <tr className="row">
+                              <td className="td">
+                                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                  <span style={__sx(`width: 36px; height: 36px; flex-shrink: 0; border-radius: var(--radius-full); background: ${ln?.ab ?? ""}; color: ${ln?.af ?? ""}; display: inline-flex; align-items: center; justify-content: center; font-size: var(--text-xs); font-weight: var(--weight-medium);`)}>{ln?.ini}</span>
+                                  <div style={{ minWidth: "0" }}>
+                                    <__A href={ln?.link} className="plink" style={{ fontWeight: "var(--weight-medium)", color: "#0f172a", textDecoration: "none" }}>{ln?.n}</__A>
+                                    <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{ln?.des}</div>
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="td">{ln?.type}</td>
-                            <td className="td" style={{ color: "#475569" }}>{ln?.d}</td>
-                            <td className="td num" style={{ textAlign: "right", fontWeight: "600" }}>{ln?.amt}</td>
-                            <td className="td" style={{ width: "170px" }}>
-                              <div style={{ height: "8px", borderRadius: "999px", background: "#eef2f6", overflow: "hidden" }}>
-                                <div style={__sx(`width: ${ln?.w ?? ""}; height: 100%; background: #10b981;`)} />
-                              </div>
-                              <div style={{ fontSize: "12px", color: "#64748b", marginTop: "3px" }}>{ln?.pd}</div>
-                            </td>
-                            <td className="td num" style={{ textAlign: "right" }}>{ln?.emi}</td>
-                            <td className="td" style={{ color: "#475569" }}>{ln?.next}</td>
-                            <td className="td">
-                              {ln?.req ? (<>
-                                <div style={{ display: "flex", gap: "6px" }}>
-                                  <button type="button" className="abtn" onClick={ln?.no}>Reject</button>
-                                  <button type="button" className="btn solid sm" onClick={ln?.yes}>Approve</button>
+                              </td>
+                              <td className="td">{ln?.type}</td>
+                              <td className="td" style={{ color: "#475569" }}>{ln?.d}</td>
+                              <td className="td num" style={{ textAlign: "right", fontWeight: "var(--weight-medium)" }}>{ln?.amt}</td>
+                              <td className="td" style={{ width: "170px" }}>
+                                <div style={{ height: "8px", borderRadius: "var(--radius-full)", background: "#eef2f6", overflow: "hidden" }}>
+                                  <div style={__sx(`width: ${ln?.w ?? ""}; height: 100%; background: #10b981;`)} />
                                 </div>
-                              </>) : null}
-                              {ln?.nreq ? (<>
-                                <span style={__sx(`display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; background: ${ln?.pb ?? ""}; color: ${ln?.pf ?? ""};`)}>{ln?.pt}</span>
-                              </>) : null}
-                            </td>
-                          </tr>
-                        </React.Fragment>))}
-                    </tbody>
-                  </table>
+                                <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", marginTop: "3px" }}>{ln?.pd}</div>
+                              </td>
+                              <td className="td num" style={{ textAlign: "right" }}>{ln?.emi}</td>
+                              <td className="td" style={{ color: "#475569" }}>{ln?.next}</td>
+                              <td className="td">
+                                {ln?.req ? (<>
+                                  <div style={{ display: "flex", gap: "6px" }}>
+                                    <button type="button" className="abtn" onClick={ln?.no} aria-label={ln?.noAria}>Reject</button>
+                                    <button type="button" className="btn solid sm" onClick={ln?.yes} aria-label={ln?.yesAria}>Approve</button>
+                                  </div>
+                                </>) : null}
+                                {ln?.nreq ? (<>
+                                  <span style={__sx(`display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: var(--weight-medium); white-space: nowrap; background: ${ln?.pb ?? ""}; color: ${ln?.pf ?? ""};`)}>{ln?.pt}</span>
+                                </>) : null}
+                              </td>
+                            </tr>
+                          </React.Fragment>))}
+                      </tbody>
+                    </table>
+                  </div>
                 </section>
                 {v.showNew ? (<>
-                  <aside className="pcard fade" style={{ width: "380px", flexShrink: "0", padding: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>
+                  <aside className="pcard fade gc-side" style={{ width: "380px", flexShrink: "0", padding: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>
                     <div style={{ display: "flex", alignItems: "center" }}>
-                      <h2 style={{ margin: "0", fontSize: "16px", flexGrow: "1" }}>Give advance or loan</h2>
+                      <h2 style={{ margin: "0", fontSize: "var(--text-base)", flexGrow: "1" }}>Give advance or loan</h2>
                       <button type="button" className="ib" onClick={v.closeNew} aria-label="Close">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M18 6 6 18" />
@@ -315,17 +329,17 @@ export default class LoansAdvancesScreen extends Component {
                         <option>Sadia Akter · Cashier</option>
                         <option>Rafi Ahmed · Sales associate</option>
                       </select>
-                      <span style={{ fontSize: "12px", lineHeight: "16px", color: "#64748b" }}>Basic ৳9,900 · limit for one advance ৳4,950</span>
+                      <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Basic ৳9,900 · limit for one advance ৳4,950</span>
                     </label>
                     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                       <span className="lbl">Type</span>
-                      <div style={{ display: "inline-flex", padding: "3px", borderRadius: "999px", background: "#eef2f6" }}>
+                      <div style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
                         {__list(v.types).map((ty, $index) => (<React.Fragment key={$index}>
-                            <button type="button" onClick={ty?.pick} aria-pressed={ty?.on} style={__sx(`height: 34px; padding: 0 16px; border: 0; border-radius: 999px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; background: ${ty?.bg ?? ""}; color: ${ty?.fg ?? ""};`)}>{ty?.l}</button>
+                            <button type="button" onClick={ty?.pick} aria-pressed={ty?.on} style={__sx(`height: 34px; padding: 0 16px; border: 0; border-radius: var(--radius-full); font: inherit; font-size: var(--text-xs-plus); font-weight: var(--weight-medium); cursor: pointer; background: ${ty?.bg ?? ""}; color: ${ty?.fg ?? ""};`)}>{ty?.l}</button>
                           </React.Fragment>))}
                       </div>
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                    <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                       <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                         <span className="lbl">Amount</span>
                         <input className="inp num" value={v.amt} onInput={v.typeAmt} onChange={v.typeAmt} aria-label="Amount" />
@@ -349,13 +363,13 @@ export default class LoansAdvancesScreen extends Component {
                         <option>November 2026 salary</option>
                       </select>
                     </label>
-                    <div style={{ padding: "14px", borderRadius: "12px", background: "#f5f8ff", display: "flex", flexDirection: "column", gap: "4px" }}>
-                      <div style={{ fontSize: "12.5px", color: "#64748b" }}>Cut every month</div>
-                      <div className="num" style={{ fontSize: "24px", fontWeight: "800", color: "#003087" }}>{v.emi}</div>
-                      <div style={{ fontSize: "12.5px", color: "#475569" }}>{v.emiSub}</div>
+                    <div style={{ padding: "14px", borderRadius: "var(--radius-xl)", background: "#f5f8ff", display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Cut every month</div>
+                      <div className="num" style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#003087" }}>{v.emi}</div>
+                      <div style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}>{v.emiSub}</div>
                     </div>
                     {v.over ? (<>
-                      <div style={{ padding: "10px 12px", borderRadius: "10px", background: "#fff4e0", color: "#7a3b04", fontSize: "12.5px" }}>More than the limit — the owner has to approve it.</div>
+                      <div style={{ padding: "10px 12px", borderRadius: "var(--radius-lg)", background: "#fff4e0", color: "#7a3b04", fontSize: "var(--text-xs-plus)" }}>More than the limit — the owner has to approve it.</div>
                     </>) : null}
                     <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                       <span className="lbl">Paid out by</span>

@@ -1,12 +1,14 @@
 import '@/styles/globals.css';
 import { NavigationBridge } from '@/shell/Shell';
+import { Overlays } from '@/components/ui';
+import { GridAi } from '@/components/ui/GridAi';
 
 export const metadata = {
   title: { default: 'GridCommerce', template: '%s · GridCommerce' },
   description: 'GridCommerce merchant web app — front end.',
 };
 
-const FONTS = 'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Hind+Siliguri:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap';
+const FONTS = 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap';
 
 export default function RootLayout({ children }) {
   return (
@@ -19,6 +21,8 @@ export default function RootLayout({ children }) {
       <body>
         {children}
         <NavigationBridge />
+        <Overlays />
+        <GridAi />
       </body>
     </html>
   );

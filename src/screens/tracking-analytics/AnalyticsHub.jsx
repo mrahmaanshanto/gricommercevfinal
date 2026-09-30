@@ -39,14 +39,20 @@ function curve(pts) { if (!pts.length) return ''; var d = 'M' + pts[0][0].toFixe
 function pts(vals, w, h, max, min, padT, padB) { padT = padT || 2; padB = padB || 2; min = min == null ? 0 : min; max = max || Math.max.apply(null, vals) || 1; var n = vals.length; return vals.map(function (v, i) { return [n === 1 ? w / 2 : i * w / (n - 1), padT + (h - padT - padB) * (1 - (v - min) / (max - min || 1))]; }); }
 function sparkP(vals, w, h) { w = w || 160; h = h || 30; var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals); var p = pts(vals, w, h, mx + (mx - mn) * .1, mn - (mx - mn) * .15, 3, 2); var l = curve(p); return { line: l, area: l + ' L' + w + ' ' + h + ' L0 ' + h + ' Z' }; }
 function series(n, base, amp, seed, trend) { var out = []; for (var i = 0; i < n; i++) { var s = Math.sin((i + seed) * 1.7) * .5 + Math.sin((i * 3 + seed) * .9) * .3 + Math.cos(i * .45 + seed) * .2; out.push(Math.max(0, base * (1 + (trend || 0) * (i / n - .5)) + amp * s)); } return out; }
-function delta(p, good) { var up = p >= 0; var ok = good === 'down' ? !up : up; return { d: (up ? '▲ ' : '▼ ') + Math.abs(p) + '%', db: ok ? 'rgba(16,185,129,.16)' : 'rgba(244,63,94,.16)', df: ok ? '#34d399' : '#fb7185' }; }
+function delta(p, good) { var up = p >= 0; var ok = good === 'down' ? !up : up; return { up: up, dir: (up ? 'Up ' : 'Down ') + Math.abs(p) + '%' + (ok ? ', good' : ', worse'), d: Math.abs(p) + '%', db: ok ? 'rgba(16,185,129,.16)' : 'rgba(244,63,94,.16)', df: ok ? '#34d399' : '#fb7185' }; }
 function deltaL(p, good) { var up = p >= 0; var ok = good === 'down' ? !up : up; return { d: (up ? '▲ ' : '▼ ') + Math.abs(p) + '%', db: ok ? '#e7f8f1' : '#ffece6', df: ok ? '#047857' : '#be123c' }; }
-function tile(l, v, s, c, vals, dp, good) { var sp = sparkP(vals); var dl = delta(dp, good); return { l: l, v: v, s: s, c: c, line: sp.line, area: sp.area, d: dl.d, db: dl.db, df: dl.df }; }
-function dseg(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#fff' : 'transparent', fg: on ? '#0b1733' : 'rgba(226,232,240,.85)', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
+function tile(l, v, s, c, vals, dp, good) { var sp = sparkP(vals); var dl = delta(dp, good); return { l: l, v: v, s: s, c: c, line: sp.line, area: sp.area, d: dl.d, up: dl.up, dir: dl.dir, db: dl.db, df: dl.df }; }
+function dseg(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#fff' : 'transparent', fg: on ? 'var(--slate-900)' : 'var(--text-on-dark-muted)', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
 function lseg(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#fff' : 'transparent', fg: on ? '#0b1733' : '#64748b', sh: on ? '0 1px 2px rgba(15,23,42,.08), 0 1px 1px rgba(15,23,42,.04)' : 'none', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
 function ring(pctv, r) { var C = 2 * Math.PI * r; return { da: (C * pctv / 100).toFixed(1) + ' ' + C.toFixed(1) }; }
 function kfmt(n) { return n >= 100000 ? '৳' + (n / 100000).toFixed(n >= 1000000 ? 1 : 2) + 'L' : n >= 1000 ? '৳' + Math.round(n / 1000) + 'k' : '৳' + Math.round(n); }
 var DAYS = []; (function () { for (var i = 0; i < 90; i++) { var d = new Date(Date.UTC(2026, 5, 22 + i)); DAYS.push(d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()]); } })();
+// Non-colour cues: each platform / cost part also gets its own fill pattern, shown in the legends too.
+var PAT = [null, ['repeating-linear-gradient(45deg, rgba(255,255,255,.5) 0 2px, transparent 2px 6px)', 'auto'], ['radial-gradient(rgba(255,255,255,.7) 1.2px, transparent 1.6px)', '5px 5px'], ['repeating-linear-gradient(-45deg, rgba(255,255,255,.5) 0 2px, transparent 2px 6px)', 'auto']];
+function fillOf(c, i) { var pt = PAT[i]; return pt ? { backgroundColor: c, backgroundImage: pt[0], backgroundSize: pt[1] } : { backgroundColor: c }; }
+var RC = function (r) { return r >= 4 ? 'var(--text-success)' : r >= 2.5 ? 'var(--text-warning)' : 'var(--text-danger)'; };
+var RL = function (r) { return r >= 4 ? 'strong' : r >= 2.5 ? 'fair' : 'weak'; };
+var RI = function (r) { return r >= 4 ? 'trending-up' : r >= 2.5 ? 'minus' : 'trending-down'; };
 class Component extends DCLogic {
   componentWillUnmount() { clearTimeout(this.t); }
   renderVals() {
@@ -70,19 +76,20 @@ class Component extends DCLogic {
       periods: dseg(self, PERIOD, per, 'per'), ptabs: dseg(self, [['all', 'All'], ['meta', 'Meta'], ['google', 'Google'], ['tiktok', 'TikTok']], pv, 'pv'),
       pdf: function () { toast(self, 'Branded PDF for the last ' + per + ' days is ready.'); },
       tiles: [tile('Ad spend', bdt(a[0]), 'vs previous', '#fbbf24', sp.slice(-14), 8, 'down'), tile('Delivered revenue', bdt(a[6]), a[5] + ' orders', '#60a5fa', rev.slice(-14), 14), tile('Blended return', x2(blended), 'platforms say ' + x2(a[1] / a[0]), '#a78bfa', series(14, 5, .6, 3, .2), 6), tile('Real return', x2(real), 'after courier, returns', '#34d399', series(14, 4.6, .5, 4, .25), 9), tile('Cost / confirmed', bdt(a[0] / a[4]), a[4] + ' confirmed', '#f472b6', series(14, 160, 14, 6, -.2), -4, 'down'), tile('Cost / delivered', bdt(a[0] / a[5]), 'return rate ' + pct(a[7] / a[5] * 100), '#fb923c', series(14, 185, 16, 8, -.15), -3, 'down')],
-      alerts: [['Meta spend passed ৳4,000 today', 'Daily limit alert · 9:12 am', '#fff4e0', '#b45309'], ['Sylhet returns up to 18%', 'Consider prepaid-only there', '#ffece6', '#be123c'], ['Merchant Center: 12 warnings', 'Missing GTIN on 12 products', '#eef2ff', '#4338ca']].map(function (x) { return { t: x[0], s: x[1], b: x[2], f: x[3] }; }),
+      alerts: [['Meta spend passed ৳4,000 today', 'Daily limit alert · 9:12 AM', 'var(--fill-warning-soft)', 'var(--text-warning)'], ['Sylhet returns up to 18%', 'Consider prepaid-only there', 'var(--fill-error-soft)', 'var(--text-danger)'], ['Merchant Center: 12 warnings', 'Missing GTIN on 12 products', 'var(--fill-info-soft)', 'var(--text-info)']].map(function (x) { return { t: x[0], s: x[1], b: x[2], f: x[3] }; }),
       yax: [mx, mx * .66, mx * .33, 0].map(function (y) { return { t: kfmt(y) }; }),
       revLine: rl, revArea: rl + ' L' + W + ' ' + Hc + ' L0 ' + Hc + ' Z', prevLine: curve(pp), spBars: bars,
+      revPts: (function () { var k = Math.max(1, Math.round(n / 7)); var out = []; for (var i = Math.floor(k / 2); i < n; i += k) out.push({ x: (rp[i][0] / W * 100).toFixed(2) + '%', y: rp[i][1].toFixed(1) + 'px' }); return out; })(),
       cols: rev.map(function (r, i) { return { dt: DAYS[off + i], r: bdt(r), s: bdt(sp[i]), x: x2(r * .9 / sp[i]) }; }),
       xax: [0, .25, .5, .75, 1].map(function (q) { return { t: DAYS[off + Math.min(n - 1, Math.round(q * (n - 1)))] }; }),
       annX: ((n - (per === '7' ? 3 : 12)) / (n - 1) * 100).toFixed(1) + '%',
       d0: dn[0], d1: dn[1], d2: dn[2], mixTot: kfmt(tot * f),
-      mix: ['meta', 'google', 'tiktok'].map(function (k) { return { lg: LOGO[k], l: PL[k][0], c: PC[k], v: bdt(PS[k][0] * f), p: Math.round(PS[k][0] / tot * 100) + '%' }; }),
-      bullets: ['meta', 'google', 'tiktok'].map(function (k) { var p = PS[k], r = netRev(p) / p[0], cl = p[1] / p[0]; return { lg: LOGO[k], l: PL[k][0], c: PC[k], r: x2(r), cl: x2(cl), w: Math.min(100, r / 12 * 100) + '%', cw: Math.min(99, cl / 12 * 100) + '%', rc: r >= 4 ? '#047857' : r >= 2.5 ? '#b45309' : '#be123c' }; }),
-      cmp: ['meta', 'google', 'tiktok'].filter(function (k) { return pv === 'all' || pv === k; }).map(function (k) { var p = PF[k].map(function (x) { return Math.round(x * f); }); var r = netRev(p) / p[0]; var M = 1000000 * f; return { lg: LOGO[k], pl: PL[k][0], c: PC[k], a: (p[6] / M * 100) + '%', b: (p[1] / M * 100) + '%', gw: ((p[1] - p[6]) / M * 100) + '%', dl: bdt(p[6]), cl: bdt(p[1]), gap: '+' + Math.round((p[1] / p[6] - 1) * 100) + '%', roas: x2(r), rc: r >= 4 ? '#047857' : r >= 2.5 ? '#b45309' : '#be123c' }; }),
-      leak: [['Orders placed', a[3]], ['Confirmed', a[4]], ['Shipped', Math.round(a[4] * .97)], ['Delivered', a[5]], ['Kept', a[5] - a[7]]].map(function (x, i, arr) { var prevV = i ? arr[i - 1][1] : x[1]; var lost = prevV - x[1]; return { l: x[0], n: x[1].toLocaleString('en-IN'), w: Math.max(18, x[1] / a[3] * 100) + '%', c: ['#1e3a8a', '#1d4ed8', '#2563eb', '#059669', '#047857'][i], hasStep: i > 0, step: '−' + lost, stepL: ['', 'not confirmed by phone', 'cancelled before pickup', 'failed or refused at door', 'returned after delivery'][i], sc: lost / prevV > .12 ? '#be123c' : '#b45309' }; }),
-      split: (function () { var R = a[6]; var parts = [['Ad spend', a[0], '#f59e0b'], ['Courier', a[5] * COST.courier, '#64748b'], ['Returns', a[7] * COST.ret, '#e11d48'], ['Packing', a[4] * COST.pack, '#94a3b8']]; var used = 0; parts.forEach(function (p) { used += p[1]; }); parts.push(['Left for you', R - used, '#10b981']); return parts.map(function (p) { var w = p[1] / R * 100; return { l: p[0], c: p[2], w: w + '%', t: w > 6 ? '৳' + Math.round(w) : '', v: bdt(p[1]) }; }); })(),
-      nrep: ['meta', 'google', 'tiktok'].map(function (k) { var p = PF[k]; var nn = p[8] / p[5] * 100; return { lg: LOGO[k], pl: PL[k][0], c: PC[k], nw: nn + '%', rw: (100 - nn) + '%', t: Math.round(nn) + '% new · ' + (100 - Math.round(nn)) + '% repeat' }; }),
+      mix: ['meta', 'google', 'tiktok'].map(function (k, i) { return { lg: LOGO[k], l: PL[k][0], c: PC[k], sw: fillOf(PC[k], i), v: bdt(PS[k][0] * f), p: Math.round(PS[k][0] / tot * 100) + '%' }; }),
+      bullets: ['meta', 'google', 'tiktok'].map(function (k) { var p = PS[k], r = netRev(p) / p[0], cl = p[1] / p[0]; return { lg: LOGO[k], l: PL[k][0], c: PC[k], r: x2(r), cl: x2(cl), w: Math.min(100, r / 12 * 100) + '%', cw: Math.min(99, cl / 12 * 100) + '%', rc: RC(r), ri: RI(r), rl: RL(r) }; }),
+      cmp: ['meta', 'google', 'tiktok'].filter(function (k) { return pv === 'all' || pv === k; }).map(function (k) { var p = PF[k].map(function (x) { return Math.round(x * f); }); var r = netRev(p) / p[0]; var M = 1000000 * f; return { lg: LOGO[k], pl: PL[k][0], c: PC[k], a: (p[6] / M * 100) + '%', b: (p[1] / M * 100) + '%', gw: ((p[1] - p[6]) / M * 100) + '%', dl: bdt(p[6]), cl: bdt(p[1]), gap: '+' + Math.round((p[1] / p[6] - 1) * 100) + '%', roas: x2(r), rc: RC(r), ri: RI(r), rl: RL(r) }; }),
+      leak: [['Orders placed', a[3]], ['Confirmed', a[4]], ['Shipped', Math.round(a[4] * .97)], ['Delivered', a[5]], ['Kept', a[5] - a[7]]].map(function (x, i, arr) { var prevV = i ? arr[i - 1][1] : x[1]; var lost = prevV - x[1]; return { l: x[0], n: x[1].toLocaleString('en-IN'), w: Math.max(18, x[1] / a[3] * 100) + '%', c: ['#1e3a8a', '#1d4ed8', '#2563eb', '#047857', '#065f46'][i], hasStep: i > 0, step: lost + ' lost', stepL: ['', 'not confirmed by phone', 'cancelled before pickup', 'failed or refused at door', 'returned after delivery'][i], sc: lost / prevV > .12 ? 'var(--text-danger)' : 'var(--text-warning)' }; }),
+      split: (function () { var R = a[6]; var parts = [['Ad spend', a[0], '#b45309', 0], ['Courier', a[5] * COST.courier, '#475569', 1], ['Returns', a[7] * COST.ret, '#be123c', 2], ['Packing', a[4] * COST.pack, '#64748b', 3]]; var used = 0; parts.forEach(function (p) { used += p[1]; }); parts.push(['Left for you', R - used, '#047857', 0]); return parts.map(function (p) { var w = p[1] / R * 100; return { l: p[0], c: p[2], sw: fillOf(p[2], p[3]), w: w + '%', t: w > 6 ? '৳' + Math.round(w) : '', v: bdt(p[1]) }; }); })(),
+      nrep: ['meta', 'google', 'tiktok'].map(function (k) { var p = PF[k]; var nn = p[8] / p[5] * 100; return { lg: LOGO[k], pl: PL[k][0], c: PC[k], nw: nn + '%', rw: (100 - nn) + '%', rsw: { width: (100 - nn) + '%', backgroundColor: PC[k], opacity: .45, backgroundImage: PAT[1][0] }, t: Math.round(nn) + '% new · ' + (100 - Math.round(nn)) + '% repeat' }; }),
       mRing: ring(16.7, 44),
       msgs: [['1,284', 'New conversations'], ['214', 'Became orders'], ['4 min', 'Average reply'], ['৳48', 'Cost per conversation']].map(function (m) { return { v: m[0], l: m[1] }; })
     };
@@ -93,44 +100,44 @@ class Component extends DCLogic {
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `
-body{margin:0;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
+body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
 a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:12px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:8px;color:#475569;font-size:14px;font-weight:500;letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
+.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
+.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
 .nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
 .nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:11px;line-height:16px;font-weight:600;letter-spacing:.08em;color:#64748b;padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:8px;border:0;font:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
+.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
 .btn:hover{text-decoration:none}
 .btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
 .soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
 .line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
 .warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:15px}
-.sm{height:36px;padding:0 12px;font-size:13px}
-.ib{width:40px;height:40px;border-radius:999px;border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
+.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
+.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
 .ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font:inherit;font-size:14px;color:#1e293b;transition:border-color 200ms}
+.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
 .inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:#64748b}
-.lbl{font-size:13px;line-height:18px;font-weight:500;color:#334155}
-.tab{height:40px;padding:0 14px;border-radius:999px;border:0;background:transparent;font:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
+.inp::placeholder{color:var(--text-muted)}
+.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
+.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
 .tab:hover{background:#f1f5f9;color:#0f172a}
 .tab.on{background:#003087;color:#fff}
-.chip{height:40px;padding:0 14px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:13px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
+.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
 .chip:hover{border-color:#94a3b8}
 .chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:14px;line-height:20px;vertical-align:middle}
+.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
 .row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
+.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
+.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
 .b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
 .b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
 .b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.02em}
+.mono{font-family:var(--font-data);letter-spacing:.02em}
 .fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
 @keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 .flash{animation:gcFlash 900ms ease-out}
@@ -138,46 +145,51 @@ a{color:#003087}a:hover{color:#002a77}
 .scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
 @keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
 
-.sw{position:relative;width:48px;height:28px;border-radius:999px;border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
+.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
 .sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
 .sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
 .t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
 .actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:'Hind Siliguri','Poppins',sans-serif}
+.bn{font-family:var(--font-bn)}
 .pulse{animation:gcPulse 1.6s ease-in-out infinite}
 @keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
-.psec{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#64748b}
+.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
+.psec{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
 .num{font-variant-numeric:tabular-nums}
-.ai{height:30px;padding:0 10px;border-radius:8px;border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
+.ai{height:28px;padding:0 10px;border-radius:var(--radius-lg);border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
 .ai:hover{border-color:#a78bfa;box-shadow:0 4px 12px -6px rgba(91,33,182,.5)}
 .ai:focus-visible{outline:3px solid rgba(124,58,237,.4);outline-offset:2px}
-.abtn{height:32px;padding:0 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:12.5px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.abtn{height:32px;padding:0 12px;border-radius:var(--radius-lg);border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .abtn:hover{background:#f1f5f9}
 .ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0}
-.ptab{position:relative;height:48px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:13.5px;font-weight:500;color:#64748b;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:600}
+.ptab{position:relative;height:52px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:var(--weight-medium)}
 .ptab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2.5px;border-radius:3px 3px 0 0;background:#003087}
-.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#eef2f6;color:#475569;font-size:11px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
 .ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
-.thumb{width:44px;height:44px;flex-shrink:0;border-radius:10px;border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#003087}
+.thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
 
-.tc{background:#fff;border:1px solid #e7ebf2;border-radius:18px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px -20px rgba(15,23,42,.18)}
-.ey{font-size:11px;line-height:14px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#64748b}
+.tc{background:#fff;border:1px solid #e7ebf2;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px -20px rgba(15,23,42,.18)}
+.ey{font-size:var(--text-xs);line-height:17px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
 .ey-d{color:rgba(203,216,238,.7)}
-.tn{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;letter-spacing:-.02em}
-.dl{display:inline-flex;align-items:center;gap:3px;height:22px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums}
-.hero{position:relative;overflow:hidden;border-radius:22px;background:#0b1733;color:#fff;padding:24px 26px}
+.tn{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;letter-spacing:0}
+.dl{display:inline-flex;align-items:center;gap:3px;height:22px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums}
+.hero{position:relative;overflow:hidden;border-radius:var(--radius-xl);background:#0b1733;color:#fff;padding:24px 26px;--accent-text:#7fcff0;--text-success:#6ee7b7;--text-warning:#fcd34d;--text-danger:#fda4af;--text-info:#7dd3fc}
 .hero::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:32px 32px;pointer-events:none}
 .hero>*{position:relative}
-.ht{border-radius:16px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
-.dseg{display:inline-flex;padding:3px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1)}
-.dseg button{height:32px;padding:0 14px;border:0;border-radius:999px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
-.lseg{display:inline-flex;padding:3px;border-radius:12px;background:#f1f4f9;border:1px solid #e7ebf2}
-.lseg button{height:32px;padding:0 13px;border:0;border-radius:9px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease,box-shadow 200ms ease}
+@media (max-width:1100px){.ah-2{grid-template-columns:minmax(0,1fr)!important}.ah-3{grid-template-columns:minmax(0,1fr)!important}}
+.ah-cmp{min-width:760px}
+.pm{position:absolute;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:var(--radius-full);background:#fff;border:2px solid #2563eb;pointer-events:none}
+.ah-split>:first-child{border-radius:var(--radius-lg) 0 0 var(--radius-lg)}.ah-split>:last-child{border-radius:0 var(--radius-lg) var(--radius-lg) 0}
+.lg{display:inline-flex;align-items:center;gap:6px}
+.ht{border-radius:var(--radius-xl);background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.dseg{display:inline-flex;padding:3px;border-radius:var(--radius-full);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1)}
+.dseg button{height:32px;padding:0 14px;border:0;border-radius:var(--radius-full);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
+.lseg{display:inline-flex;padding:3px;border-radius:var(--radius-xl);background:#f1f4f9;border:1px solid #e7ebf2}
+.lseg button{height:32px;padding:0 13px;border:0;border-radius:var(--radius-lg);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease,box-shadow 200ms ease}
 button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .btn,.abtn{transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
 .st>*{animation:taUp 420ms cubic-bezier(.23,1,.32,1) both}
@@ -189,14 +201,14 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 @keyframes taDraw{from{stroke-dashoffset:1600}to{stroke-dashoffset:0}}
 .fadein{animation:taFade 600ms ease both 200ms}@keyframes taFade{from{opacity:0}to{opacity:1}}
 .tt{position:relative}
-.tt .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px) scale(.97);transform-origin:bottom center;opacity:0;pointer-events:none;transition:opacity 125ms ease-out,transform 125ms ease-out;background:#0b1733;color:#fff;border-radius:10px;padding:8px 10px;font-size:12px;white-space:nowrap;box-shadow:0 10px 24px -8px rgba(15,23,42,.45);z-index:5}
-.col{position:relative;flex:1;height:100%;border-radius:6px;transition:background-color 150ms ease}
+.tt .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px) scale(.97);transform-origin:bottom center;opacity:0;pointer-events:none;transition:opacity 125ms ease-out,transform 125ms ease-out;background:#0b1733;color:#fff;border-radius:var(--radius-lg);padding:8px 10px;font-size:var(--text-xs);white-space:nowrap;box-shadow:0 10px 24px -8px rgba(15,23,42,.45);z-index:5}
+.col{position:relative;flex:1;height:100%;border-radius:var(--radius-md);transition:background-color 150ms ease}
 .col .tip{bottom:auto;top:6px}
 .col .cl{position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(15,23,42,.18);opacity:0;transition:opacity 125ms ease}
 @media (hover:hover) and (pointer:fine){.tt:hover .tip,.col:hover .tip{opacity:1;transform:translate(-50%,0) scale(1)}.col:hover .cl{opacity:1}.row:hover{background:#f7f9fd}.tc.lift{transition:box-shadow 200ms ease,transform 200ms cubic-bezier(.23,1,.32,1)}.tc.lift:hover{box-shadow:0 1px 2px rgba(15,23,42,.05),0 18px 40px -20px rgba(15,23,42,.3)}}
 .tb{width:100%;border-collapse:separate;border-spacing:0}
-.tb th{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#64748b;text-align:left;padding:12px 16px;border-bottom:1px solid #eef1f6;background:#fbfcfe;white-space:nowrap}
-.tb td{padding:13px 16px;border-bottom:1px solid #f1f4f8;font-size:13.5px;vertical-align:middle}
+.tb th{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #eef1f6;background:#fbfcfe;white-space:nowrap}
+.tb td{padding:13px 16px;border-bottom:1px solid #f1f4f8;font-size:var(--text-sm);vertical-align:middle}
 .tb tr:last-child td{border-bottom:0}
 .tb .r{text-align:right}
 @media (prefers-reduced-motion:reduce){.st>*,.gr,.draw,.fadein{animation:none}}
@@ -210,50 +222,50 @@ export default class AnalyticsHubScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="AnalyticsHub">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "1440px", height: "2100px", background: "#eef2f7", padding: "12px", display: "flex", gap: "12px", overflow: "hidden" }}>
+        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
           <__Sidebar sticky="" active="ta-hub" />
-          <main style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "16px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
             <__Topbar crumb={"Tracking & analytics"} page="Analytics hub" placeholder="Search campaign, event or product" />
-            <div style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
               <section className="hero st">
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "20px" }}>
-                  <div style={{ flexGrow: "1", minWidth: "0" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "16px 20px", flexWrap: "wrap" }}>
+                  <div style={{ flex: "1 1 320px", minWidth: "0" }}>
                     <div className="ey ey-d">G2 · Analytics hub · {v.perL}</div>
-                    <h2 style={{ margin: "6px 0 0", fontSize: "26px", lineHeight: "32px", fontWeight: "700", letterSpacing: "-.025em" }}>{v.headline}</h2>
-                    <p style={{ margin: "6px 0 0", fontSize: "13.5px", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "640px" }}>Every taka spent on Meta, Google and TikTok, joined to orders that were actually delivered. Platform numbers are shown beside ours — never mixed.</p>
+                    <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.headline}</h1>
+                    <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "640px" }}>Every taka spent on Meta, Google and TikTok, joined to orders that were actually delivered. Platform numbers are shown beside ours — never mixed.</p>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: "0" }}>
-                    <div className="dseg">
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", maxWidth: "100%" }}>
+                    <div className="dseg" role="group" aria-label="Platform">
                       {__list(v.ptabs).map((pv, $index) => (<React.Fragment key={$index}>
                           <button type="button" onClick={pv?.pick} aria-pressed={pv?.on} style={__sx(`background: ${pv?.bg ?? ""}; color: ${pv?.fg ?? ""};`)}>{pv?.l}</button>
                         </React.Fragment>))}
                     </div>
-                    <div className="dseg">
+                    <div className="dseg" role="group" aria-label="Period">
                       {__list(v.periods).map((pd, $index) => (<React.Fragment key={$index}>
                           <button type="button" onClick={pd?.pick} aria-pressed={pd?.on} style={__sx(`background: ${pd?.bg ?? ""}; color: ${pd?.fg ?? ""};`)}>{pd?.l}</button>
                         </React.Fragment>))}
                     </div>
-                    <button type="button" className="btn sm" onClick={v.pdf} style={{ background: "#fff", color: "#0b1733", height: "38px" }}>
+                    <button type="button" className="btn sm" onClick={v.pdf} style={{ background: "#fff", color: "#0b1733", height: "36px" }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                         <path d="m7 10 5 5 5-5" />
                         <path d="M12 15V3" />
                       </svg>
-                      <span>PDF</span>
+                      <span>Download PDF</span>
                     </button>
                   </div>
                 </div>
-                <div className="st" style={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: "10px", marginTop: "20px" }}>
+                <div className="st" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px", marginTop: "20px" }}>
                   {__list(v.tiles).map((ht, $index) => (<React.Fragment key={$index}>
                       <div className="ht">
                         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <span style={__sx(`width: 7px; height: 7px; border-radius: 999px; background: ${ht?.c ?? ""};`)} />
-                          <span style={{ fontSize: "12px", color: "rgba(203,216,238,.85)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ht?.l}</span>
+                          <span aria-hidden="true" style={__sx(`width: 7px; height: 7px; flex-shrink: 0; border-radius: var(--radius-full); background: ${ht?.c ?? ""};`)} />
+                          <span style={{ fontSize: "var(--text-sm)", color: "var(--text-on-dark-muted)" }}>{ht?.l}</span>
                         </div>
-                        <div className="tn" style={{ fontSize: "25px", lineHeight: "30px", fontWeight: "700", color: "#fff" }}>{ht?.v}</div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <span className="dl" style={__sx(`background: ${ht?.db ?? ""}; color: ${ht?.df ?? ""};`)}>{ht?.d}</span>
-                          <span style={{ fontSize: "11.5px", color: "rgba(203,216,238,.7)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ht?.s}</span>
+                        <div className="tn" style={{ fontSize: "var(--text-2xl)", lineHeight: "30px", fontWeight: "var(--weight-semibold)", color: "#fff" }}>{ht?.v}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px 8px", flexWrap: "wrap" }}>
+                          <span className="dl" title={ht?.dir} style={__sx(`background: ${ht?.db ?? ""}; color: ${ht?.df ?? ""};`)}><__Icon name={ht?.up ? "arrow-up" : "arrow-down"} width="12" height="12" aria-hidden="true" /><span className="sr-only">{ht?.up ? "Up " : "Down "}</span>{ht?.d}</span>
+                          <span style={{ fontSize: "var(--text-xs)", color: "var(--text-on-dark-muted)" }}>{ht?.s}</span>
                         </div>
                         <svg width="100%" height="30" viewBox="0 0 160 30" preserveAspectRatio="none" aria-hidden="true" style={{ display: "block", marginTop: "2px" }}>
                           <path d={ht?.area} fill={ht?.c} fillOpacity=".14" />
@@ -264,7 +276,7 @@ export default class AnalyticsHubScreen extends Component {
                 </div>
               </section>
               {v.hasMsg ? (<>
-                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: 14px; font-weight: 500;`)}>
+                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-lg); background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: var(--text-sm); font-weight: var(--weight-medium);`)}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <circle cx="12" cy="12" r="10" />
                     <path d="m9 12 2 2 4-4" />
@@ -272,18 +284,18 @@ export default class AnalyticsHubScreen extends Component {
                   <span>{v.msg}</span>
                 </div>
               </>) : null}
-              <div className="st" style={{ display: "flex", gap: "10px" }}>
+              <div className="st" style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                 {__list(v.alerts).map((at, $index) => (<React.Fragment key={$index}>
-                    <__Link href="/reports-alerts" className="tc lift" style={{ flex: "1", display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", textDecoration: "none", color: "inherit", borderRadius: "14px" }}>
-                      <span style={__sx(`width: 32px; height: 32px; border-radius: 10px; background: ${at?.b ?? ""}; color: ${at?.f ?? ""}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;`)}>
+                    <__Link href="/reports-alerts" className="tc lift" style={{ flex: "1 1 260px", minWidth: "0", display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", textDecoration: "none", color: "inherit", borderRadius: "var(--radius-xl)" }}>
+                      <span style={__sx(`width: 32px; height: 32px; border-radius: var(--radius-lg); background: ${at?.b ?? ""}; color: ${at?.f ?? ""}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;`)}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
                           <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
                         </svg>
                       </span>
                       <span style={{ flexGrow: "1", minWidth: "0" }}>
-                        <span style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>{at?.t}</span>
-                        <span style={{ display: "block", fontSize: "12px", color: "#64748b" }}>{at?.s}</span>
+                        <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{at?.t}</span>
+                        <span style={{ display: "block", fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>{at?.s}</span>
                       </span>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="m9 18 6-6-6-6" />
@@ -291,35 +303,35 @@ export default class AnalyticsHubScreen extends Component {
                     </__Link>
                   </React.Fragment>))}
               </div>
-              <div className="st" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.75fr) minmax(0, 1fr)", gap: "18px", alignItems: "stretch" }}>
+              <div className="st ah-2" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.75fr) minmax(0, 1fr)", gap: "18px", alignItems: "stretch" }}>
                 <section className="tc " style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-                    <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <h2 style={{ margin: "0", fontSize: "15.5px", lineHeight: "22px", fontWeight: "600", color: "#0f172a", letterSpacing: "-.01em" }}>Delivered revenue and ad spend</h2>
-                      <p style={{ margin: "3px 0 0", fontSize: "12.5px", lineHeight: "18px", color: "#64748b" }}>Hover a day to see the numbers</p>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: "8px 12px", flexWrap: "wrap" }}>
+                    <div style={{ flex: "1 1 220px", minWidth: "0" }}>
+                      <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "0" }}>Delivered revenue and ad spend</h2>
+                      <p style={{ margin: "3px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Hover a day to see the numbers</p>
                     </div>
-                    <div style={{ display: "flex", gap: "14px", fontSize: "12px", color: "#475569", alignItems: "center" }}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><span style={{ width: "14px", height: "3px", borderRadius: "3px", background: "#2563eb" }} />Delivered revenue</span>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><span style={{ width: "10px", height: "10px", borderRadius: "3px", background: "#f59e0b" }} />Ad spend</span>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><span style={{ width: "14px", borderTop: "1.5px dashed #94a3b8" }} />Previous period</span>
+                    <div aria-label="Chart legend" role="list" style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", fontSize: "var(--text-xs)", color: "var(--text-body)", alignItems: "center" }}>
+                      <span className="lg" role="listitem"><svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><line x1="0" y1="5" x2="26" y2="5" stroke="#2563eb" strokeWidth="2.2" /><circle cx="13" cy="5" r="3.5" fill="#fff" stroke="#2563eb" strokeWidth="2" /></svg>Delivered revenue (line with points)</span>
+                      <span className="lg" role="listitem"><svg width="14" height="12" viewBox="0 0 14 12" aria-hidden="true"><rect x="0" y="5" width="3" height="7" fill="#b45309" /><rect x="5" y="1" width="3" height="11" fill="#b45309" /><rect x="10" y="4" width="3" height="8" fill="#b45309" /></svg>Ad spend (bars)</span>
+                      <span className="lg" role="listitem"><svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><line x1="0" y1="5" x2="26" y2="5" stroke="#64748b" strokeWidth="1.6" strokeDasharray="4 4" /></svg>Previous period (dashed)</span>
                     </div>
                   </div>
                   <div style={{ position: "relative", height: "262px" }}>
-                    <div style={{ position: "absolute", left: "0", top: "0", bottom: "32px", width: "48px", display: "flex", flexDirection: "column", justifyContent: "space-between", fontSize: "11px", color: "#94a3b8", textAlign: "right", paddingRight: "8px" }}>
+                    <div style={{ position: "absolute", left: "0", top: "0", bottom: "32px", width: "48px", display: "flex", flexDirection: "column", justifyContent: "space-between", fontSize: "var(--text-xs)", color: "var(--text-muted)", textAlign: "right", paddingRight: "8px" }}>
                       {__list(v.yax).map((ya, $index) => (<React.Fragment key={$index}>
                           <span className="tn">{ya?.t}</span>
                         </React.Fragment>))}
                     </div>
                     <div style={{ position: "absolute", left: "52px", right: "0", top: "0", height: "230px" }}>
-                      <svg width="100%" height="230" viewBox="0 0 760 230" preserveAspectRatio="none" aria-label="Revenue and spend chart" style={{ display: "block", overflow: "visible" }}>
+                      <svg width="100%" height="230" viewBox="0 0 760 230" preserveAspectRatio="none" role="img" aria-label="Chart of delivered revenue (line with points), ad spend (bars) and the previous period (dashed line) by day" style={{ display: "block", overflow: "visible" }}>
                         <defs>
                           <linearGradient id="taRevG" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0" stopColor="#2563eb" stopOpacity=".28" />
                             <stop offset="1" stopColor="#2563eb" stopOpacity="0" />
                           </linearGradient>
                           <linearGradient id="taSpG" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0" stopColor="#f59e0b" stopOpacity=".9" />
-                            <stop offset="1" stopColor="#f59e0b" stopOpacity=".55" />
+                            <stop offset="0" stopColor="#b45309" stopOpacity=".9" />
+                            <stop offset="1" stopColor="#b45309" stopOpacity=".6" />
                           </linearGradient>
                         </defs>
                         <line x1="0" x2="760" y1="10" y2="10" stroke="#eef1f6" strokeWidth="1" />
@@ -330,14 +342,15 @@ export default class AnalyticsHubScreen extends Component {
                         <path d={v.spBars} fill="url(#taSpG)" />
                         <path className="fadein" d={v.revArea} fill="url(#taRevG)" />
                         <path className="draw" d={v.revLine} fill="none" stroke="#2563eb" strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-                        <path d={v.prevLine} fill="none" stroke="#94a3b8" strokeWidth="1.4" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+                        <path d={v.prevLine} fill="none" stroke="#64748b" strokeWidth="1.6" strokeDasharray="5 5" vectorEffect="non-scaling-stroke" />
                       </svg>
+                      {__list(v.revPts).map((pt, $index) => (<span key={$index} className="pm fadein" aria-hidden="true" style={{ left: pt?.x, top: pt?.y }} />))}
                       <div style={{ position: "absolute", inset: "0", display: "flex" }}>
                         {__list(v.cols).map((cl, $index) => (<React.Fragment key={$index}>
                             <div className="col tt">
                               <span className="cl" />
                               <div className="tip">
-                                <div style={{ fontWeight: "700", marginBottom: "4px" }}>{cl?.dt}</div>
+                                <div style={{ fontWeight: "var(--weight-semibold)", marginBottom: "4px" }}>{cl?.dt}</div>
                                 <div style={{ display: "flex", gap: "10px" }}>
                                   <span style={{ color: "#93c5fd" }}>Revenue {cl?.r}</span>
                                   <span style={{ color: "#fcd34d" }}>Spend {cl?.s}</span>
@@ -348,11 +361,11 @@ export default class AnalyticsHubScreen extends Component {
                           </React.Fragment>))}
                       </div>
                       <div style={__sx(`position: absolute; left: ${v.annX ?? ""}; top: 6px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; pointer-events: none;`)}>
-                        <span style={{ fontSize: "11px", fontWeight: "700", color: "#0b1733", background: "#fff", border: "1px solid #e2e8f0", borderRadius: "999px", padding: "2px 8px", whiteSpace: "nowrap" }}>Eid gift box launched</span>
+                        <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#0b1733", background: "#fff", border: "1px solid #e2e8f0", borderRadius: "var(--radius-full)", padding: "2px 8px", whiteSpace: "nowrap" }}>Eid gift box launched</span>
                         <span style={{ width: "1px", height: "190px", background: "repeating-linear-gradient(#94a3b8 0 3px, transparent 3px 6px)" }} />
                       </div>
                     </div>
-                    <div style={{ position: "absolute", left: "52px", right: "0", bottom: "0", height: "22px", display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#94a3b8" }}>
+                    <div style={{ position: "absolute", left: "52px", right: "0", bottom: "0", height: "22px", display: "flex", justifyContent: "space-between", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
                       {__list(v.xax).map((xa, $index) => (<React.Fragment key={$index}>
                           <span>{xa?.t}</span>
                         </React.Fragment>))}
@@ -362,30 +375,40 @@ export default class AnalyticsHubScreen extends Component {
                 <section className="tc " style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <h2 style={{ margin: "0", fontSize: "15.5px", lineHeight: "22px", fontWeight: "600", color: "#0f172a", letterSpacing: "-.01em" }}>Where the money went</h2>
+                      <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "0" }}>Where the money went</h2>
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "18px" }}>
                     <div style={{ position: "relative", width: "150px", height: "150px", flexShrink: "0" }}>
                       <svg width="150" height="150" viewBox="0 0 150 150" aria-hidden="true" style={{ transform: "rotate(-90deg)" }}>
+                        <defs>
+                          <pattern id="ahPat1" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                            <rect width="6" height="6" fill="#059669" />
+                            <rect width="2" height="6" fill="#fff" fillOpacity=".5" />
+                          </pattern>
+                          <pattern id="ahPat2" width="5" height="5" patternUnits="userSpaceOnUse">
+                            <rect width="5" height="5" fill="#db2777" />
+                            <circle cx="2.5" cy="2.5" r="1.2" fill="#fff" fillOpacity=".7" />
+                          </pattern>
+                        </defs>
                         <circle cx="75" cy="75" r="58" fill="none" stroke="#eef1f6" strokeWidth="16" />
                         <circle cx="75" cy="75" r="58" fill="none" stroke="#2563eb" strokeWidth="16" strokeDasharray={v.d0?.da} strokeDashoffset={v.d0?.off} />
-                        <circle cx="75" cy="75" r="58" fill="none" stroke="#059669" strokeWidth="16" strokeDasharray={v.d1?.da} strokeDashoffset={v.d1?.off} />
-                        <circle cx="75" cy="75" r="58" fill="none" stroke="#db2777" strokeWidth="16" strokeDasharray={v.d2?.da} strokeDashoffset={v.d2?.off} />
+                        <circle cx="75" cy="75" r="58" fill="none" stroke="url(#ahPat1)" strokeWidth="16" strokeDasharray={v.d1?.da} strokeDashoffset={v.d1?.off} />
+                        <circle cx="75" cy="75" r="58" fill="none" stroke="url(#ahPat2)" strokeWidth="16" strokeDasharray={v.d2?.da} strokeDashoffset={v.d2?.off} />
                       </svg>
                       <div style={{ position: "absolute", inset: "0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                        <span className="ey" style={{ fontSize: "10px" }}>Spend</span>
-                        <span className="tn" style={{ fontSize: "20px", fontWeight: "800", color: "#0f172a" }}>{v.mixTot}</span>
+                        <span className="ey" style={{ fontSize: "var(--text-2xs)" }}>Spend</span>
+                        <span className="tn" style={{ fontSize: "var(--text-xl)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{v.mixTot}</span>
                       </div>
                     </div>
                     <div style={{ flexGrow: "1", display: "flex", flexDirection: "column", gap: "10px" }}>
                       {__list(v.mix).map((mx, $index) => (<React.Fragment key={$index}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px" }}>
-                            <span style={__sx(`width: 10px; height: 10px; border-radius: 3px; background: ${mx?.c ?? ""};`)} />
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)" }}>
+                            <span aria-hidden="true" style={{ width: "14px", height: "14px", borderRadius: "var(--radius-sm)", flexShrink: "0", ...(mx?.sw || {}) }} />
                             <img src={mx?.lg} alt="" width="16" height="16" style={{ width: "16px", height: "16px", objectFit: "contain", flexShrink: "0", display: "block" }} />
                             <span style={{ flexGrow: "1", color: "#334155" }}>{mx?.l}</span>
-                            <span className="tn" style={{ fontWeight: "700", color: "#0f172a" }}>{mx?.v}</span>
-                            <span className="tn" style={{ width: "38px", textAlign: "right", color: "#94a3b8", fontSize: "12px" }}>{mx?.p}</span>
+                            <span className="tn" style={{ fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{mx?.v}</span>
+                            <span className="tn" style={{ width: "38px", textAlign: "right", color: "var(--text-muted)", fontSize: "var(--text-xs)" }}>{mx?.p}</span>
                           </div>
                         </React.Fragment>))}
                     </div>
@@ -397,90 +420,90 @@ export default class AnalyticsHubScreen extends Component {
                         <div>
                           <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "6px" }}>
                             <img src={bu?.lg} alt="" width="16" height="16" style={{ width: "16px", height: "16px", objectFit: "contain", flexShrink: "0", display: "block" }} />
-                            <span style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a", flexGrow: "1" }}>{bu?.l}</span>
-                            <span style={{ fontSize: "11.5px", color: "#94a3b8" }}>claims {bu?.cl}</span>
-                            <span className="tn" style={__sx(`font-size: 14px; font-weight: 800; color: ${bu?.rc ?? ""};`)}>{bu?.r}</span>
+                            <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#0f172a", flexGrow: "1" }}>{bu?.l}</span>
+                            <span style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>claims {bu?.cl}</span>
+                            <span className="tn" title={`Real return is ${bu?.rl ?? ""}`} style={__sx(`display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-sm); font-weight: var(--weight-semibold); color: ${bu?.rc ?? ""};`)}><__Icon name={bu?.ri} width="14" height="14" aria-hidden="true" />{bu?.r}<span className="sr-only"> ({bu?.rl})</span></span>
                           </div>
-                          <div style={{ position: "relative", height: "10px", borderRadius: "999px", background: "#f1f4f9" }}>
-                            <div className="gr" style={__sx(`position: absolute; left: 0; top: 0; bottom: 0; width: ${bu?.w ?? ""}; border-radius: 999px; background: ${bu?.c ?? ""};`)} />
+                          <div style={{ position: "relative", height: "10px", borderRadius: "var(--radius-full)", background: "#f1f4f9" }}>
+                            <div className="gr" style={__sx(`position: absolute; left: 0; top: 0; bottom: 0; width: ${bu?.w ?? ""}; border-radius: var(--radius-full); background: ${bu?.c ?? ""};`)} />
                             <span style={__sx(`position: absolute; top: -3px; bottom: -3px; left: ${bu?.cw ?? ""}; width: 2px; border-radius: 2px; background: #0f172a;`)} />
                           </div>
                         </div>
                       </React.Fragment>))}
                   </div>
-                  <div style={{ fontSize: "11.5px", color: "#94a3b8" }}>Bar = real return · black tick = what the platform claims · scale 0–12×</div>
+                  <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Bar = real return · black tick = what the platform claims · scale 0 to 12x</div>
                 </section>
               </div>
               <section className="tc " style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
-                    <h2 style={{ margin: "0", fontSize: "15.5px", lineHeight: "22px", fontWeight: "600", color: "#0f172a", letterSpacing: "-.01em" }}>What platforms claim vs what was delivered</h2>
-                    <p style={{ margin: "3px 0 0", fontSize: "12.5px", lineHeight: "18px", color: "#64748b" }}>Platforms count an order the moment it is placed. We count it when the courier delivers.</p>
+                    <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "0" }}>What platforms claim vs what was delivered</h2>
+                    <p style={{ margin: "3px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Platforms count an order the moment it is placed. We count it when the courier delivers.</p>
                   </div>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div className="gc-table-wrap"><div className="ah-cmp" style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "var(--text-sm)" }}>
                   {__list(v.cmp).map((cp, $index) => (<React.Fragment key={$index}>
-                      <div className="row" style={{ display: "grid", gridTemplateColumns: "120px minmax(0, 1fr) 110px 110px 110px 96px", alignItems: "center", gap: "16px", padding: "14px 8px", borderRadius: "12px" }}>
+                      <div className="row" style={{ display: "grid", gridTemplateColumns: "120px minmax(0, 1fr) 110px 110px 110px 96px", alignItems: "center", gap: "16px", padding: "14px 8px", borderRadius: "var(--radius-xl)" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                           <img src={cp?.lg} alt="" width="20" height="20" style={{ width: "20px", height: "20px", objectFit: "contain", flexShrink: "0", display: "block" }} />
-                          <span style={{ fontWeight: "700", color: "#0f172a" }}>{cp?.pl}</span>
+                          <span style={{ fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{cp?.pl}</span>
                         </div>
                         <div style={{ position: "relative", height: "28px" }}>
                           <div style={{ position: "absolute", left: "0", right: "0", top: "13px", height: "2px", background: "#eef1f6" }} />
-                          <div className="gr" style={__sx(`position: absolute; left: ${cp?.a ?? ""}; width: ${cp?.gw ?? ""}; top: 12px; height: 4px; background: linear-gradient(90deg, ${cp?.c ?? ""}, #cbd5e1); border-radius: 4px;`)} />
-                          <span className="tt" style={__sx(`position: absolute; left: ${cp?.a ?? ""}; top: 6px; width: 16px; height: 16px; margin-left: -8px; border-radius: 999px; background: ${cp?.c ?? ""}; box-shadow: 0 0 0 3px #fff;`)}>
+                          <div className="gr" style={__sx(`position: absolute; left: ${cp?.a ?? ""}; width: ${cp?.gw ?? ""}; top: 12px; height: 4px; background: linear-gradient(90deg, ${cp?.c ?? ""}, #cbd5e1); border-radius: var(--radius-sm);`)} />
+                          <span className="tt" style={__sx(`position: absolute; left: ${cp?.a ?? ""}; top: 6px; width: 16px; height: 16px; margin-left: -8px; border-radius: var(--radius-full); background: ${cp?.c ?? ""}; box-shadow: 0 0 0 3px #fff;`)}>
                             <span className="tip">Delivered {cp?.dl}</span>
                           </span>
-                          <span className="tt" style={__sx(`position: absolute; left: ${cp?.b ?? ""}; top: 6px; width: 16px; height: 16px; margin-left: -8px; border-radius: 999px; background: #fff; border: 2px solid #94a3b8;`)}>
+                          <span className="tt" style={__sx(`position: absolute; left: ${cp?.b ?? ""}; top: 6px; width: 16px; height: 16px; margin-left: -8px; border-radius: var(--radius-full); background: #fff; border: 2px solid #64748b;`)}>
                             <span className="tip">Platform claims {cp?.cl}</span>
                           </span>
                         </div>
                         <div className="r">
-                          <div className="tn" style={{ fontWeight: "700" }}>{cp?.dl}</div>
-                          <div style={{ fontSize: "11.5px", color: "#94a3b8" }}>delivered</div>
+                          <div className="tn" style={{ fontWeight: "var(--weight-semibold)" }}>{cp?.dl}</div>
+                          <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>delivered</div>
                         </div>
                         <div className="r">
-                          <div className="tn" style={{ fontWeight: "600", color: "#64748b" }}>{cp?.cl}</div>
-                          <div style={{ fontSize: "11.5px", color: "#94a3b8" }}>platform says</div>
+                          <div className="tn" style={{ fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>{cp?.cl}</div>
+                          <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>platform says</div>
                         </div>
                         <div className="r">
-                          <span className="dl" style={{ background: "#fff4e0", color: "#a14f06" }}>{cp?.gap}</span>
-                          <div style={{ fontSize: "11.5px", color: "#94a3b8", marginTop: "3px" }}>overstated</div>
+                          <span className="dl" style={{ background: "var(--fill-warning-soft)", color: "var(--text-warning)" }}>{cp?.gap}</span>
+                          <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", marginTop: "3px" }}>overstated</div>
                         </div>
                         <div className="r">
-                          <div className="tn" style={__sx(`font-size: 16px; font-weight: 800; color: ${cp?.rc ?? ""};`)}>{cp?.roas}</div>
-                          <div style={{ fontSize: "11.5px", color: "#94a3b8" }}>real return</div>
+                          <div className="tn" title={`Real return is ${cp?.rl ?? ""}`} style={__sx(`display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-base); font-weight: var(--weight-semibold); color: ${cp?.rc ?? ""};`)}><__Icon name={cp?.ri} width="16" height="16" aria-hidden="true" />{cp?.roas}<span className="sr-only"> ({cp?.rl})</span></div>
+                          <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>real return</div>
                         </div>
                       </div>
                     </React.Fragment>))}
-                </div>
-                <div style={{ display: "flex", gap: "16px", fontSize: "12px", color: "#64748b", padding: "0 8px" }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><span style={{ width: "12px", height: "12px", borderRadius: "999px", background: "#2563eb" }} />Delivered revenue (GridCommerce)</span>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><span style={{ width: "12px", height: "12px", borderRadius: "999px", border: "2px solid #94a3b8" }} />Revenue the platform claims</span>
+                </div></div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", fontSize: "var(--text-xs)", color: "var(--text-muted)", padding: "0 8px" }}>
+                  <span className="lg"><span aria-hidden="true" style={{ width: "12px", height: "12px", borderRadius: "var(--radius-full)", background: "#2563eb" }} />Filled dot: delivered revenue (GridCommerce)</span>
+                  <span className="lg"><span aria-hidden="true" style={{ width: "12px", height: "12px", borderRadius: "var(--radius-full)", border: "2px solid #64748b" }} />Hollow ring: revenue the platform claims</span>
                 </div>
               </section>
-              <div className="st" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr)", gap: "18px", alignItems: "start" }}>
+              <div className="st ah-3" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr)", gap: "18px", alignItems: "start" }}>
                 <section className="tc " style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <h2 style={{ margin: "0", fontSize: "15.5px", lineHeight: "22px", fontWeight: "600", color: "#0f172a", letterSpacing: "-.01em" }}>Where money leaks</h2>
+                      <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "0" }}>Where money leaks</h2>
                     </div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
                     {__list(v.leak).map((lk, $index) => (<React.Fragment key={$index}>
                         <div>
                           {lk?.hasStep ? (<>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "4px 0 4px 132px", fontSize: "11.5px", color: "#64748b" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "4px 0 4px 132px", fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
                               <span style={{ width: "1px", height: "14px", background: "#cbd5e1", marginLeft: "6px" }} />
-                              <span className="tn" style={__sx(`font-weight: 700; color: ${lk?.sc ?? ""};`)}>{lk?.step}</span>
+                              <span className="tn" style={__sx(`display: inline-flex; align-items: center; gap: 3px; font-weight: var(--weight-semibold); color: ${lk?.sc ?? ""};`)}><__Icon name="arrow-down" width="12" height="12" aria-hidden="true" />{lk?.step}</span>
                               <span>{lk?.stepL}</span>
                             </div>
                           </>) : null}
                           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                            <span style={{ width: "120px", fontSize: "13px", color: "#334155", textAlign: "right" }}>{lk?.l}</span>
+                            <span style={{ width: "120px", fontSize: "var(--text-xs-plus)", color: "#334155", textAlign: "right" }}>{lk?.l}</span>
                             <div style={{ flexGrow: "1", height: "30px" }}>
-                              <div className="gr" style={__sx(`width: ${lk?.w ?? ""}; height: 100%; border-radius: 8px; background: ${lk?.c ?? ""}; display: flex; align-items: center; justify-content: flex-end; padding-right: 10px;`)}>
-                                <span className="tn" style={{ color: "#fff", fontSize: "12.5px", fontWeight: "700" }}>{lk?.n}</span>
+                              <div className="gr" style={__sx(`width: ${lk?.w ?? ""}; height: 100%; border-radius: var(--radius-lg); background: ${lk?.c ?? ""}; display: flex; align-items: center; justify-content: flex-end; padding-right: 10px;`)}>
+                                <span className="tn" style={{ color: "#fff", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-semibold)" }}>{lk?.n}</span>
                               </div>
                             </div>
                           </div>
@@ -489,25 +512,25 @@ export default class AnalyticsHubScreen extends Component {
                   </div>
                   <div style={{ height: "1px", background: "#eef1f6" }} />
                   <div className="ey">Every ৳100 of delivered revenue</div>
-                  <div style={{ display: "flex", height: "34px", borderRadius: "10px", overflow: "hidden" }}>
+                  <div role="img" aria-label={"Split of every 100 taka: " + __list(v.split).map((q) => q.l + " " + q.v).join(", ")} className="ah-split" style={{ display: "flex", height: "34px" }}>
                     {__list(v.split).map((sq, $index) => (<React.Fragment key={$index}>
-                        <div className="tt" style={__sx(`width: ${sq?.w ?? ""}; background: ${sq?.c ?? ""}; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11.5px; font-weight: 700;`)}>
-                          <span>{sq?.t}</span>
+                        <div className="tt" style={{ width: sq?.w, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", ...(sq?.sw || {}) }}>
+                          {sq?.t ? <span style={{ background: sq?.c, padding: "0 4px", borderRadius: "var(--radius-sm)" }}>{sq.t}</span> : null}
                           <span className="tip">{sq?.l} · {sq?.v}</span>
                         </div>
                       </React.Fragment>))}
                   </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", fontSize: "12px", color: "#475569" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 12px", fontSize: "var(--text-xs)", color: "var(--text-body)" }}>
                     {__list(v.split).map((sl, $index) => (<React.Fragment key={$index}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><span style={__sx(`width: 10px; height: 10px; border-radius: 3px; background: ${sl?.c ?? ""};`)} />{sl?.l}</span>
+                        <span className="lg"><span aria-hidden="true" style={{ width: "14px", height: "14px", borderRadius: "var(--radius-sm)", ...(sl?.sw || {}) }} />{sl?.l} · {sl?.v}</span>
                       </React.Fragment>))}
                   </div>
                 </section>
                 <section className="tc " style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <h2 style={{ margin: "0", fontSize: "15.5px", lineHeight: "22px", fontWeight: "600", color: "#0f172a", letterSpacing: "-.01em" }}>New vs repeat buyers</h2>
-                      <p style={{ margin: "3px 0 0", fontSize: "12.5px", lineHeight: "18px", color: "#64748b" }}>Solid = first order ever · light = came back</p>
+                      <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "0" }}>New vs repeat buyers</h2>
+                      <p style={{ margin: "3px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Solid = first order ever · striped = came back</p>
                     </div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
@@ -515,12 +538,12 @@ export default class AnalyticsHubScreen extends Component {
                         <div>
                           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "7px" }}>
                             <img src={nr?.lg} alt="" width="16" height="16" style={{ width: "16px", height: "16px", objectFit: "contain", flexShrink: "0", display: "block" }} />
-                            <span style={{ fontSize: "13px", fontWeight: "600", flexGrow: "1" }}>{nr?.pl}</span>
-                            <span className="tn" style={{ fontSize: "12px", color: "#475569" }}>{nr?.t}</span>
+                            <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", flexGrow: "1" }}>{nr?.pl}</span>
+                            <span className="tn" style={{ fontSize: "var(--text-sm)", color: "var(--text-body)" }}>{nr?.t}</span>
                           </div>
-                          <div style={{ display: "flex", height: "12px", borderRadius: "999px", overflow: "hidden", background: "#f1f4f9" }}>
+                          <div style={{ display: "flex", height: "12px", borderRadius: "var(--radius-full)", overflow: "hidden", background: "#f1f4f9" }}>
                             <div className="gr" style={__sx(`width: ${nr?.nw ?? ""}; background: ${nr?.c ?? ""};`)} />
-                            <div style={__sx(`width: ${nr?.rw ?? ""}; background: ${nr?.c ?? ""}; opacity: .35;`)} />
+                            <div style={nr?.rsw} />
                           </div>
                         </div>
                       </React.Fragment>))}
@@ -529,7 +552,7 @@ export default class AnalyticsHubScreen extends Component {
                 <section className="tc " style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <h2 style={{ margin: "0", fontSize: "15.5px", lineHeight: "22px", fontWeight: "600", color: "#0f172a", letterSpacing: "-.01em" }}>Messages that became orders</h2>
+                      <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "0" }}>Messages that became orders</h2>
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "18px" }}>
@@ -539,15 +562,15 @@ export default class AnalyticsHubScreen extends Component {
                         <circle cx="54" cy="54" r="44" fill="none" stroke="#7c3aed" strokeWidth="10" strokeLinecap="round" strokeDasharray={v.mRing?.da} />
                       </svg>
                       <div style={{ position: "absolute", inset: "0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                        <span className="tn" style={{ fontSize: "20px", fontWeight: "800" }}>16.7%</span>
-                        <span style={{ fontSize: "10.5px", color: "#64748b" }}>to order</span>
+                        <span className="tn" style={{ fontSize: "var(--text-xl)", fontWeight: "var(--weight-semibold)" }}>16.7%</span>
+                        <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>to order</span>
                       </div>
                     </div>
-                    <div style={{ flexGrow: "1", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                    <div className="gc-cols-2" style={{ flexGrow: "1", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
                       {__list(v.msgs).map((mg, $index) => (<React.Fragment key={$index}>
                           <div>
-                            <div className="tn" style={{ fontSize: "17px", fontWeight: "700", color: "#0f172a" }}>{mg?.v}</div>
-                            <div style={{ fontSize: "11.5px", color: "#64748b" }}>{mg?.l}</div>
+                            <div className="tn" style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{mg?.v}</div>
+                            <div style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>{mg?.l}</div>
                           </div>
                         </React.Fragment>))}
                     </div>

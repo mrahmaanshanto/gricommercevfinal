@@ -7,6 +7,7 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+import { PageHeader as __PageHeader } from '@/components/ui';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -20,9 +21,9 @@ function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
 function toast(self, m, bad) { clearTimeout(self.t); self.setState({ msg: m, bad: !!bad }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 2800); }
 function msgV(s) { return { hasMsg: !!s.msg, msg: s.msg || '', msgBg: s.bad ? '#fff4e0' : '#e7f8f1', msgFg: s.bad ? '#7a3b04' : '#065f46' }; }
 var TL = [
-  { tag: 'VIEW', k: 'view', what: 'Looked at Vitamin C Serum (4th time)', sub: 'Stayed 2 min · came from a Facebook post', when: 'Today, 11:20 am' },
-  { tag: 'CART', k: 'cart', what: 'Left 3 items in her cart', sub: 'Sunscreen SPF 50, Lip Balm, Cotton Face Towel · ৳3,240', when: 'Today, 10:45 am' },
-  { tag: 'MSG', k: 'msg', what: 'Cart reminder sent on WhatsApp', sub: 'Reminder 1 · no discount · opened', when: 'Today, 11:45 am' },
+  { tag: 'VIEW', k: 'view', what: 'Looked at Vitamin C Serum (4th time)', sub: 'Stayed 2 min · came from a Facebook post', when: 'Today, 11:20 AM' },
+  { tag: 'CART', k: 'cart', what: 'Left 3 items in her cart', sub: 'Sunscreen SPF 50, Lip Balm, Cotton Face Towel · ৳3,240', when: 'Today, 10:45 AM' },
+  { tag: 'MSG', k: 'msg', what: 'Cart reminder sent on WhatsApp', sub: 'Reminder 1 · no discount · opened', when: 'Today, 11:45 AM' },
   { tag: 'ORD', k: 'order', what: 'Order #GC-10471 delivered', sub: '৳4,860 · paid by bKash · 180 points earned', when: '12 Sep 2026' },
   { tag: 'TIX', k: 'ticket', what: 'Asked about delivery time', sub: 'Support ticket #T-2210 · solved in 14 min', when: '10 Sep 2026' },
   { tag: 'RET', k: 'ret', what: 'Returned Aloe Vera Gel', sub: 'Reason: wrong size · refund ৳650', when: '28 Aug 2026' },
@@ -58,44 +59,44 @@ class Component extends DCLogic {
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `
-body{margin:0;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
+body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
 a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:12px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:8px;color:#475569;font-size:14px;font-weight:500;letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
+.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
+.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
 .nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
 .nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:11px;line-height:16px;font-weight:600;letter-spacing:.08em;color:#64748b;padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:8px;border:0;font:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
+.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
 .btn:hover{text-decoration:none}
 .btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
 .soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
 .line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
 .warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:15px}
-.sm{height:36px;padding:0 12px;font-size:13px}
-.ib{width:40px;height:40px;border-radius:999px;border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
+.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
+.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
 .ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font:inherit;font-size:14px;color:#1e293b;transition:border-color 200ms}
+.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
 .inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:#64748b}
-.lbl{font-size:13px;line-height:18px;font-weight:500;color:#334155}
-.tab{height:40px;padding:0 14px;border-radius:999px;border:0;background:transparent;font:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
+.inp::placeholder{color:var(--text-muted)}
+.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
+.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
 .tab:hover{background:#f1f5f9;color:#0f172a}
 .tab.on{background:#003087;color:#fff}
-.chip{height:40px;padding:0 14px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:13px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
+.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
 .chip:hover{border-color:#94a3b8}
 .chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:14px;line-height:20px;vertical-align:middle}
+.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
 .row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
+.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
+.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
 .b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
 .b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
 .b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.02em}
+.mono{font-family:var(--font-data);letter-spacing:.02em}
 .fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
 @keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 .flash{animation:gcFlash 900ms ease-out}
@@ -103,14 +104,14 @@ a{color:#003087}a:hover{color:#002a77}
 .scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
 @keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
 
-.sw{position:relative;width:48px;height:28px;border-radius:999px;border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
+.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
 .sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
 .sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
 .t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
 .actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:'Hind Siliguri','Poppins',sans-serif}
+.bn{font-family:var(--font-bn)}
 .pulse{animation:gcPulse 1.6s ease-in-out infinite}
 @keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
@@ -124,20 +125,21 @@ export default class CustomerProfileScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="CustomerProfile">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "1440px", height: "1300px", background: "#eef2f7", padding: "12px", display: "flex", gap: "12px", overflow: "hidden" }}>
+        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
           <__Sidebar sticky="" active="customers" />
-          <main style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "16px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
             <__Topbar crumb="Customers" page="Nusrat Jahan" placeholder="Search customer by name or phone" />
-            <div style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
+              <__PageHeader title="Nusrat Jahan" />
               <div style={{ display: "flex", gap: "20px", alignItems: "flex-start" }}>
-                <aside style={{ width: "390px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "16px" }}>
+                <aside className="gc-side" style={{ width: "390px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "16px" }}>
                   <section className="card" style={{ padding: "22px", display: "flex", flexDirection: "column", gap: "16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                      <span style={{ width: "60px", height: "60px", borderRadius: "999px", background: "#e0f3fb", color: "#003087", fontSize: "22px", fontWeight: "700", display: "flex", alignItems: "center", justifyContent: "center" }}>N</span>
+                      <span style={{ width: "60px", height: "60px", borderRadius: "var(--radius-full)", background: "#e0f3fb", color: "#003087", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", display: "flex", alignItems: "center", justifyContent: "center" }}>N</span>
                       <div style={{ flexGrow: "1" }}>
-                        <div style={{ fontSize: "19px", fontWeight: "600" }}>Nusrat Jahan</div>
-                        <div className="mono" style={{ fontSize: "13px", color: "#64748b" }}>01552-3X1-907</div>
-                        <div style={{ fontSize: "13px", color: "#64748b" }}>nusrat.jahan@example.com</div>
+                        <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--weight-semibold)" }}>Nusrat Jahan</div>
+                        <div className="mono" style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>01552-3X1-907</div>
+                        <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>nusrat.jahan@example.com</div>
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
@@ -145,33 +147,33 @@ export default class CustomerProfileScreen extends Component {
                       <span className="badge b-received">Loyal</span>
                       <span className="badge b-approved">Big spender</span>
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                      <div style={{ padding: "12px", borderRadius: "10px", background: "#f8fafc" }}>
-                        <div style={{ fontSize: "12px", color: "#64748b" }}>Total spent</div>
-                        <div style={{ fontSize: "17px", fontWeight: "700" }}>৳58,200</div>
+                    <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                      <div style={{ padding: "12px", borderRadius: "var(--radius-lg)", background: "#f8fafc" }}>
+                        <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Total spent</div>
+                        <div style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>৳58,200</div>
                       </div>
-                      <div style={{ padding: "12px", borderRadius: "10px", background: "#f8fafc" }}>
-                        <div style={{ fontSize: "12px", color: "#64748b" }}>Orders</div>
-                        <div style={{ fontSize: "17px", fontWeight: "700" }}>14</div>
+                      <div style={{ padding: "12px", borderRadius: "var(--radius-lg)", background: "#f8fafc" }}>
+                        <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Orders</div>
+                        <div style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>14</div>
                       </div>
-                      <div style={{ padding: "12px", borderRadius: "10px", background: "#f8fafc" }}>
-                        <div style={{ fontSize: "12px", color: "#64748b" }}>Average order</div>
-                        <div style={{ fontSize: "17px", fontWeight: "700" }}>৳4,157</div>
+                      <div style={{ padding: "12px", borderRadius: "var(--radius-lg)", background: "#f8fafc" }}>
+                        <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Average order</div>
+                        <div style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>৳4,157</div>
                       </div>
-                      <div style={{ padding: "12px", borderRadius: "10px", background: "#f8fafc" }}>
-                        <div style={{ fontSize: "12px", color: "#64748b" }}>Returned</div>
-                        <div style={{ fontSize: "17px", fontWeight: "700" }}>1 order</div>
+                      <div style={{ padding: "12px", borderRadius: "var(--radius-lg)", background: "#f8fafc" }}>
+                        <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Returned</div>
+                        <div style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>1 order</div>
                       </div>
                     </div>
-                    <div style={{ padding: "14px", borderRadius: "12px", background: "#e7f8f1", display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
-                        <span style={{ color: "#065f46", fontWeight: "600" }}>Chance to buy again</span>
-                        <span style={{ color: "#065f46", fontWeight: "700" }}>High</span>
+                    <div style={{ padding: "14px", borderRadius: "var(--radius-xl)", background: "#e7f8f1", display: "flex", flexDirection: "column", gap: "6px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-xs-plus)" }}>
+                        <span style={{ color: "#065f46", fontWeight: "var(--weight-medium)" }}>Chance to buy again</span>
+                        <span style={{ color: "#065f46", fontWeight: "var(--weight-semibold)" }}>High</span>
                       </div>
-                      <div style={{ height: "8px", borderRadius: "999px", background: "rgba(4,120,87,.15)", overflow: "hidden" }}>
-                        <div style={{ width: "78%", height: "100%", borderRadius: "999px", background: "#10b981" }} />
+                      <div style={{ height: "8px", borderRadius: "var(--radius-full)", background: "rgba(4,120,87,.15)", overflow: "hidden" }}>
+                        <div style={{ width: "78%", height: "100%", borderRadius: "var(--radius-full)", background: "#10b981" }} />
                       </div>
-                      <div style={{ fontSize: "12px", color: "#065f46" }}>Usually buys every 3–4 weeks. Last order 6 days ago.</div>
+                      <div style={{ fontSize: "var(--text-xs)", color: "#065f46" }}>Usually buys every 3–4 weeks. Last order 6 days ago.</div>
                     </div>
                     <div style={{ display: "flex", gap: "10px" }}>
                       <button type="button" className="btn line" style={{ flexGrow: "1" }} onClick={v.call}>
@@ -184,62 +186,62 @@ export default class CustomerProfileScreen extends Component {
                   </section>
                   <section className="card" style={{ padding: "8px 22px 12px" }}>
                     <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", padding: "10px 0", borderBottom: "1px solid #eef2f6" }}>
-                      <span style={{ color: "#64748b", marginTop: "2px" }}>
+                      <span style={{ color: "var(--text-muted)", marginTop: "2px" }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                           <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                         </svg>
                       </span>
                       <div>
-                        <div style={{ fontSize: "12px", color: "#64748b" }}>First came from</div>
-                        <div style={{ fontSize: "14px", fontWeight: "500", lineHeight: "20px" }}>Facebook ad · “Eid skin care” campaign</div>
+                        <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>First came from</div>
+                        <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", lineHeight: "20px" }}>Facebook ad · “Eid skin care” campaign</div>
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", padding: "10px 0", borderBottom: "1px solid #eef2f6" }}>
-                      <span style={{ color: "#64748b", marginTop: "2px" }}>
+                      <span style={{ color: "var(--text-muted)", marginTop: "2px" }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <circle cx="11" cy="11" r="8" />
                           <path d="m21 21-4.3-4.3" />
                         </svg>
                       </span>
                       <div>
-                        <div style={{ fontSize: "12px", color: "#64748b" }}>Last visit from</div>
-                        <div style={{ fontSize: "14px", fontWeight: "500", lineHeight: "20px" }}>Google search · “sunscreen price in bd”</div>
+                        <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Last visit from</div>
+                        <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", lineHeight: "20px" }}>Google search · “sunscreen price in bd”</div>
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", padding: "10px 0", borderBottom: "1px solid #eef2f6" }}>
-                      <span style={{ color: "#64748b", marginTop: "2px" }}>
+                      <span style={{ color: "var(--text-muted)", marginTop: "2px" }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" />
                           <circle cx="12" cy="10" r="3" />
                         </svg>
                       </span>
                       <div>
-                        <div style={{ fontSize: "12px", color: "#64748b" }}>Area</div>
-                        <div style={{ fontSize: "14px", fontWeight: "500", lineHeight: "20px" }}>Mirpur, Dhaka (approximate)</div>
+                        <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Area</div>
+                        <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", lineHeight: "20px" }}>Mirpur, Dhaka (approximate)</div>
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", padding: "10px 0", borderBottom: "1px solid #eef2f6" }}>
-                      <span style={{ color: "#64748b", marginTop: "2px" }}>
+                      <span style={{ color: "var(--text-muted)", marginTop: "2px" }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
                           <path d="M12 18h.01" />
                         </svg>
                       </span>
                       <div>
-                        <div style={{ fontSize: "12px", color: "#64748b" }}>Shops on</div>
-                        <div style={{ fontSize: "14px", fontWeight: "500", lineHeight: "20px" }}>Mobile · Android</div>
+                        <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Shops on</div>
+                        <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", lineHeight: "20px" }}>Mobile · Android</div>
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", padding: "10px 0", borderBottom: "1px solid #eef2f6" }}>
-                      <span style={{ color: "#64748b", marginTop: "2px" }}>
+                      <span style={{ color: "var(--text-muted)", marginTop: "2px" }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
                         </svg>
                       </span>
                       <div>
-                        <div style={{ fontSize: "12px", color: "#64748b" }}>Likes messages by</div>
-                        <div style={{ fontSize: "14px", fontWeight: "500", lineHeight: "20px" }}>WhatsApp</div>
+                        <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Likes messages by</div>
+                        <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", lineHeight: "20px" }}>WhatsApp</div>
                       </div>
                     </div>
                   </section>
@@ -251,15 +253,15 @@ export default class CustomerProfileScreen extends Component {
                           <path d="m9 12 2 2 4-4" />
                         </svg>
                       </span>
-                      <span style={{ fontSize: "15px", fontWeight: "600" }}>Safety check</span>
+                      <span style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>Safety check</span>
                       <span className="badge b-received" style={{ marginLeft: "auto" }}>No risk</span>
                     </div>
-                    <div style={{ fontSize: "13px", lineHeight: "20px", color: "#475569" }}>Returns 1 of 14 orders · phone number is valid · address is clear · no other accounts on this device.</div>
+                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "20px", color: "#475569" }}>Returns 1 of 14 orders · phone number is valid · address is clear · no other accounts on this device.</div>
                   </section>
                 </aside>
                 <div style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "16px" }}>
                   {v.hasMsg ? (<>
-                    <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: 14px; font-weight: 500;`)}>
+                    <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-lg); background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: var(--text-sm); font-weight: var(--weight-medium);`)}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <circle cx="12" cy="12" r="10" />
                         <path d="m9 12 2 2 4-4" />
@@ -268,14 +270,14 @@ export default class CustomerProfileScreen extends Component {
                     </div>
                   </>) : null}
                   <section className="card" style={{ padding: "18px 20px", display: "flex", alignItems: "center", gap: "16px", border: "1.5px solid #f6d59a", background: "#fffaf0" }}>
-                    <span style={{ width: "44px", height: "44px", flexShrink: "0", borderRadius: "12px", background: "#fff4e0", color: "#a14f06", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ width: "44px", height: "44px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#fff4e0", color: "#a14f06", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
                       </svg>
                     </span>
                     <div style={{ flexGrow: "1" }}>
-                      <div style={{ fontSize: "15px", fontWeight: "600" }}>Looked at Vitamin C Serum 4 times but didn’t buy</div>
-                      <div style={{ fontSize: "13px", color: "#64748b" }}>A small offer on it often works. It goes to her WhatsApp with a one-time code.</div>
+                      <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>Looked at Vitamin C Serum 4 times but didn’t buy</div>
+                      <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>A small offer on it often works. It goes to her WhatsApp with a one-time code.</div>
                     </div>
                     {v.notSent ? (<>
                       <button type="button" className="btn solid" onClick={v.sendOffer}>Send 10% off</button>
@@ -288,7 +290,7 @@ export default class CustomerProfileScreen extends Component {
                     <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "14px 16px", borderBottom: "1px solid #e2e8f0", flexWrap: "wrap" }}>
                       {__list(v.tabs).map((tb, $index) => (<React.Fragment key={$index}>
                           <button type="button" className={tb?.cls} aria-pressed={tb?.on} onClick={tb?.pick}>{tb?.label}{tb?.hasCount ? (<>
-  <span style={__sx(`min-width: 22px; height: 20px; padding: 0 6px; border-radius: 999px; background: ${tb?.countBg ?? ""}; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center;`)}>{tb?.count}</span>
+  <span style={__sx(`min-width: 22px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: ${tb?.countBg ?? ""}; font-size: var(--text-xs); font-weight: var(--weight-medium); display: inline-flex; align-items: center; justify-content: center;`)}>{tb?.count}</span>
 </>) : null}</button>
                         </React.Fragment>))}
                     </div>
@@ -297,29 +299,29 @@ export default class CustomerProfileScreen extends Component {
                         {__list(v.tl).map((e, $index) => (<React.Fragment key={$index}>
                             <div style={{ display: "flex", gap: "14px" }}>
                               <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                                <span style={__sx(`width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: ${e?.bg ?? ""}; color: ${e?.fg ?? ""}; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;`)}>{e?.tag}</span>
+                                <span style={__sx(`width: 36px; height: 36px; flex-shrink: 0; border-radius: var(--radius-full); background: ${e?.bg ?? ""}; color: ${e?.fg ?? ""}; font-size: var(--text-xs); font-weight: var(--weight-medium); display: flex; align-items: center; justify-content: center;`)}>{e?.tag}</span>
                                 <span style={{ flexGrow: "1", width: "2px", background: "#eef2f6", minHeight: "18px" }} />
                               </div>
                               <div style={{ padding: "6px 0 16px", flexGrow: "1" }}>
                                 <div style={{ display: "flex", gap: "10px", alignItems: "baseline" }}>
-                                  <span style={{ fontSize: "14px", fontWeight: "600" }}>{e?.what}</span>
-                                  <span style={{ marginLeft: "auto", fontSize: "12px", color: "#64748b", whiteSpace: "nowrap" }}>{e?.when}</span>
+                                  <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>{e?.what}</span>
+                                  <span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--text-muted)", whiteSpace: "nowrap" }}>{e?.when}</span>
                                 </div>
-                                <div style={{ fontSize: "13px", lineHeight: "19px", color: "#475569" }}>{e?.sub}</div>
+                                <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "#475569" }}>{e?.sub}</div>
                               </div>
                             </div>
                           </React.Fragment>))}
                       </div>
                     </>) : null}
                     {v.isLooked ? (<>
-                      <div className="fade" style={{ padding: "20px 22px", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "14px" }}>
+                      <div className="fade gc-cols-2" style={{ padding: "20px 22px", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "14px" }}>
                         {__list(v.looked).map((p, $index) => (<React.Fragment key={$index}>
-                            <div style={{ display: "flex", gap: "12px", alignItems: "center", padding: "12px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-                              <span style={__sx(`width: 56px; height: 56px; flex-shrink: 0; border-radius: 10px; background: ${p?.bg ?? ""}; color: #003087; font-size: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center;`)}>{p?.initial}</span>
+                            <div style={{ display: "flex", gap: "12px", alignItems: "center", padding: "12px", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0" }}>
+                              <span style={__sx(`width: 56px; height: 56px; flex-shrink: 0; border-radius: var(--radius-lg); background: ${p?.bg ?? ""}; color: #003087; font-size: var(--text-xl); font-weight: var(--weight-semibold); display: flex; align-items: center; justify-content: center;`)}>{p?.initial}</span>
                               <div style={{ flexGrow: "1", minWidth: "0" }}>
-                                <div style={{ fontSize: "14px", fontWeight: "500" }}>{p?.name}</div>
-                                <div style={{ fontSize: "12px", color: "#64748b" }}>{p?.sub}</div>
-                                <div style={{ fontSize: "14px", fontWeight: "700" }}>{p?.price}</div>
+                                <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>{p?.name}</div>
+                                <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{p?.sub}</div>
+                                <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)" }}>{p?.price}</div>
                               </div>
                               <span className={p?.tagCls}>{p?.tag}</span>
                             </div>
@@ -327,34 +329,34 @@ export default class CustomerProfileScreen extends Component {
                       </div>
                     </>) : null}
                     {v.isSearch ? (<>
-                      <div className="fade" style={{ padding: "20px 22px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                      <div className="fade gc-cols-2" style={{ padding: "20px 22px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                           <div className="lbl">What she searched for</div>
                           {__list(v.searches).map((q, $index) => (<React.Fragment key={$index}>
-                              <div style={__sx(`display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: ${q?.bg ?? ""};`)}>
-                                <span style={{ color: "#64748b" }}>
+                              <div style={__sx(`display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-lg); background: ${q?.bg ?? ""};`)}>
+                                <span style={{ color: "var(--text-muted)" }}>
                                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                     <circle cx="11" cy="11" r="8" />
                                     <path d="m21 21-4.3-4.3" />
                                   </svg>
                                 </span>
-                                <span className="bn" style={{ flexGrow: "1", fontSize: "14px" }}>{q?.q}</span>
-                                <span style={__sx(`font-size: 12px; font-weight: 600; color: ${q?.fg ?? ""};`)}>{q?.res}</span>
+                                <span className="bn" style={{ flexGrow: "1", fontSize: "var(--text-sm)" }}>{q?.q}</span>
+                                <span style={__sx(`font-size: var(--text-xs); font-weight: var(--weight-medium); color: ${q?.fg ?? ""};`)}>{q?.res}</span>
                               </div>
                             </React.Fragment>))}
-                          <div style={{ fontSize: "12px", color: "#a14f06" }}>Searches that found nothing tell you what to stock next.</div>
+                          <div style={{ fontSize: "var(--text-xs)", color: "#a14f06" }}>Searches that found nothing tell you what to stock next.</div>
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                           <div className="lbl">Wishlist</div>
                           {__list(v.wish).map((w, $index) => (<React.Fragment key={$index}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", borderRadius: "var(--radius-lg)", border: "1px solid #e2e8f0" }}>
                                 <span style={{ color: "#db2777" }}>
                                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                     <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
                                   </svg>
                                 </span>
-                                <span style={{ flexGrow: "1", fontSize: "14px" }}>{w?.name}</span>
-                                <span style={{ fontSize: "13px", fontWeight: "600" }}>{w?.price}</span>
+                                <span style={{ flexGrow: "1", fontSize: "var(--text-sm)" }}>{w?.name}</span>
+                                <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>{w?.price}</span>
                               </div>
                             </React.Fragment>))}
                         </div>

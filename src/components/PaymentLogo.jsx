@@ -55,7 +55,7 @@ export function PaymentLogo({ provider, variant = 'mark', size = 34, radius, sty
   const fb = FALLBACK[key];
   if (!fb) return null;
   return (
-    <span role={decorative ? undefined : 'img'} aria-label={decorative ? undefined : alt} style={{ ...tile, background: fb.bg, color: fb.fg, fontSize: Math.max(11, Math.round(size * 0.34)), fontWeight: 700, letterSpacing: '.02em' }}>
+    <span role={decorative ? undefined : 'img'} aria-label={decorative ? undefined : alt} style={{ ...tile, background: fb.bg, color: fb.fg, fontSize: Math.max(11, Math.round(size * 0.34)), fontWeight: 600, letterSpacing: '.02em' }}>
       {fb.text}
     </span>
   );

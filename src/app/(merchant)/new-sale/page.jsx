@@ -1,7 +1,6 @@
-import Screen from '@/screens/sales/NewSale';
+import { redirect } from 'next/navigation';
 
-export const metadata = { title: "New sale" };
-
+// "New sale" opens the POS register.
 export default function Page() {
-  return <Screen />;
+  redirect('/pos');
 }

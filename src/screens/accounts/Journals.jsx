@@ -6,6 +6,7 @@
 import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import { toast as __toast } from '@/runtime/ui';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
@@ -19,7 +20,10 @@ function pTabs(self, list, cur, key, counts) { return mkTabs(self, list, cur, ke
 function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
 function stepN(self, key, def, step, min, max) { var s = self.state || {}; var v = s[key] == null ? def : s[key]; return { v: v, dec: function () { var p = {}; p[key] = Math.max(min, +(v - step).toFixed(2)); self.setState(p); }, inc: function () { var p = {}; p[key] = Math.min(max, +(v + step).toFixed(2)); self.setState(p); } }; }
 function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-function toast(self, m, bad) { clearTimeout(self.t); self.setState({ msg: m, bad: !!bad }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 2800); }
+function toast(self, m, bad) { __toast(m, { tone: bad ? 'error' : 'success' }); }
+function setQuery(key, value) { if (typeof window === 'undefined') return; var u = new URL(window.location.href); if (value) u.searchParams.set(key, value); else u.searchParams.delete(key); window.history.replaceState(window.history.state, '', u.pathname + u.search + u.hash); }
+function getQuery(key) { if (typeof window === 'undefined') return ''; return new URLSearchParams(window.location.search).get(key) || ''; }
+function focusField(id) { setTimeout(function () { var el = document.getElementById(id); if (!el) return; var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); el.focus({ preventScroll: true }); }, 0); }
 function msgV(s) { return { hasMsg: !!s.msg, msg: s.msg || '', msgBg: s.bad ? '#fff4e0' : '#e7f8f1', msgFg: s.bad ? '#7a3b04' : '#065f46' }; }
 function segv(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#0b1733' : 'transparent', fg: on ? '#fff' : '#475569', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
 function lseg(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#fff' : 'transparent', fg: on ? '#0b1733' : '#64748b', sh: on ? '0 1px 2px rgba(15,23,42,.08), 0 1px 1px rgba(15,23,42,.04)' : 'none', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
@@ -73,6 +77,7 @@ var AUTO = [
 var MANUAL = [ ['JV-0012', '27 Sep', 'Reclass Facebook boost paid from cash', 'Manual', [[6060, 3000, 0], [6120, 0, 3000]]], ['JV-0011', '31 Aug', 'Damaged stock written off after count', 'Manual', [[6120, 8600, 0], [1200, 0, 8600]]] ];
 function jTotal(l) { return l.reduce(function (x, r) { return x + r[1]; }, 0); }
 class Component extends DCLogic {
+  componentDidMount() { var t = getQuery('type'); if (t === 'auto' || t === 'manual') this.setState({ f: t }); }
   componentWillUnmount() { clearTimeout(this.t); }
   renderVals() {
     var self = this, s = this.state || {};
@@ -89,8 +94,8 @@ class Component extends DCLogic {
     var v = {
       headline: all.length + ' recent journals · ' + all.filter(function (j) { return j[3] === 'Manual'; }).length + ' manual',
       tiles: [{ l: 'Auto-posted', v: String(all.filter(function (j) { return j[3] !== 'Manual'; }).length), s: 'orders, couriers, payroll, POS', c: '#34d399' }, { l: 'Manual', v: String(all.filter(function (j) { return j[3] === 'Manual'; }).length), s: 'corrections and adjustments', c: '#a78bfa' }, { l: 'Unbalanced', v: '0', s: 'posting is blocked until balanced', c: '#60a5fa' }, { l: 'Month end', v: '30 Sep', s: 'tomorrow', c: '#fbbf24' }],
-      chips: [['all', 'All'], ['auto', 'Auto'], ['manual', 'Manual']].map(function (c) { var on = c[0] === f; return { label: c[1], n: c[0] === 'all' ? all.length : all.filter(function (j) { return c[0] === 'manual' ? j[3] === 'Manual' : j[3] !== 'Manual'; }).length, cls: on ? 'chip on' : 'chip', pick: function () { self.setState({ f: c[0] }); } }; }),
-      list: shown.map(function (j) { var man = j[3] === 'Manual'; return { ref: j[0], d: j[1], desc: j[2], kind: man ? 'Manual' : 'Auto · ' + j[3], kb: man ? '#f3e8ff' : '#e0f2fe', kf: man ? '#6b21a8' : '#075985', amt: tk2(jTotal(j[4])), bg: j[0] === cur[0] ? 'rgba(0,48,135,.05)' : 'transparent', open: function () { self.setState({ sel: j[0] }); } }; }),
+      chips: [['all', 'All'], ['auto', 'Auto'], ['manual', 'Manual']].map(function (c) { var on = c[0] === f; return { label: c[1], n: c[0] === 'all' ? all.length : all.filter(function (j) { return c[0] === 'manual' ? j[3] === 'Manual' : j[3] !== 'Manual'; }).length, on: on, cls: on ? 'chip on' : 'chip', pick: function () { self.setState({ f: c[0] }); setQuery('type', c[0] === 'all' ? '' : c[0]); } }; }),
+      list: shown.map(function (j) { var man = j[3] === 'Manual'; return { ref: j[0], d: j[1], desc: j[2], kind: man ? 'Manual' : 'Auto · ' + j[3], kb: man ? '#f3e8ff' : '#e0f2fe', kf: man ? '#6b21a8' : '#075985', amt: tk2(jTotal(j[4])), on: j[0] === cur[0], bg: j[0] === cur[0] ? 'rgba(0,48,135,.05)' : 'transparent', open: function () { self.setState({ sel: j[0] }); } }; }),
       cur: { ref: cur[0], desc: cur[2], meta: cur[1] + ' 2026 · ' + (cur[3] === 'Manual' ? 'posted by hand' : 'posted automatically from ' + cur[3]), rows: cv.rows, td: cv.td, tc: cv.tc },
       date: s.date || '2026-09-29', onDate: function (e) { self.setState({ date: val(e) }); }, narr: s.narr || '', onNarr: function (e) { self.setState({ narr: val(e) }); },
       aq: s.aq || '', onAq: function (e) { self.setState({ aq: val(e) }); },
@@ -102,57 +107,57 @@ class Component extends DCLogic {
           onCr: function (e) { var n = lines.slice(); n[i] = assign(assign({}, l), { cr: String(val(e) || '').replace(/[^\d.]/g, ''), dr: '' }); setLines(n); },
           rm: function () { if (lines.length <= 2) { toast(self, 'A journal needs at least two lines.', true); return; } var n = lines.slice(); n.splice(i, 1); setLines(n); } }; }),
       addLine: function () { setLines(lines.concat([{ code: 6120, dr: '', cr: '' }])); },
-      pv: pv, formBd: s.pulse ? '#003087' : 'transparent', newJ: function () { self.setState({ pulse: true }); },
+      pv: pv, formBd: s.pulse ? '#003087' : 'transparent', newJ: function () { self.setState({ pulse: true }); focusField('jn'); },
       reset: function () { self.setState({ lines: null, narr: '', pick: null }); },
       post: function () { if (!(s.narr || '').trim()) { toast(self, 'Say what the journal is for.', true); return; } if (!pv.ok) { toast(self, 'Debits and credits must be equal.', true); return; }
         var ref = 'JV-' + String(13 + added.length).padStart(4, '0'); var j = [ref, fmtD(s.date || '2026-09-29'), s.narr, 'Manual', lines.map(function (l) { return [l.code, num(l.dr), num(l.cr)]; }).filter(function (l) { return l[1] || l[2]; })];
         self.setState({ added: [j].concat(added), sel: ref, lines: null, narr: '', pick: null, pulse: false }); toast(self, ref + ' posted: ' + pv.td + ' each side.'); }
     };
-    return assign(v, msgV(s));
+    return assign(v, { hasMsg: false, msg: '' });
   }
 }
 
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `
-body{margin:0;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
+body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
 a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:12px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:8px;color:#475569;font-size:14px;font-weight:500;letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
+.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
+.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
 .nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
 .nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:11px;line-height:16px;font-weight:600;letter-spacing:.08em;color:#64748b;padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:8px;border:0;font:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
+.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
 .btn:hover{text-decoration:none}
 .btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
 .soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
 .line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
 .warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:15px}
-.sm{height:36px;padding:0 12px;font-size:13px}
-.ib{width:40px;height:40px;border-radius:999px;border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
+.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
+.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
 .ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font:inherit;font-size:14px;color:#1e293b;transition:border-color 200ms}
+.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
 .inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:#64748b}
-.lbl{font-size:13px;line-height:18px;font-weight:500;color:#334155}
-.tab{height:40px;padding:0 14px;border-radius:999px;border:0;background:transparent;font:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
+.inp::placeholder{color:var(--text-muted)}
+.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
+.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
 .tab:hover{background:#f1f5f9;color:#0f172a}
 .tab.on{background:#003087;color:#fff}
-.chip{height:40px;padding:0 14px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:13px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
+.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
 .chip:hover{border-color:#94a3b8}
 .chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:14px;line-height:20px;vertical-align:middle}
+.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
 .row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
+.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
+.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
 .b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
 .b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
 .b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.02em}
+.mono{font-family:var(--font-data);letter-spacing:.02em}
 .fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
 @keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 .flash{animation:gcFlash 900ms ease-out}
@@ -160,46 +165,46 @@ a{color:#003087}a:hover{color:#002a77}
 .scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
 @keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
 
-.sw{position:relative;width:48px;height:28px;border-radius:999px;border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
+.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
 .sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
 .sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
 .t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
 .actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:'Hind Siliguri','Poppins',sans-serif}
+.bn{font-family:var(--font-bn)}
 .pulse{animation:gcPulse 1.6s ease-in-out infinite}
 @keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
-.psec{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#64748b}
+.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
+.psec{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
 .num{font-variant-numeric:tabular-nums}
-.ai{height:30px;padding:0 10px;border-radius:8px;border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
+.ai{height:28px;padding:0 10px;border-radius:var(--radius-lg);border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
 .ai:hover{border-color:#a78bfa;box-shadow:0 4px 12px -6px rgba(91,33,182,.5)}
 .ai:focus-visible{outline:3px solid rgba(124,58,237,.4);outline-offset:2px}
-.abtn{height:32px;padding:0 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:12.5px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.abtn{height:32px;padding:0 12px;border-radius:var(--radius-lg);border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .abtn:hover{background:#f1f5f9}
 .ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0}
-.ptab{position:relative;height:48px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:13.5px;font-weight:500;color:#64748b;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:600}
+.ptab{position:relative;height:52px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:var(--weight-medium)}
 .ptab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2.5px;border-radius:3px 3px 0 0;background:#003087}
-.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#eef2f6;color:#475569;font-size:11px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
 .ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
-.thumb{width:44px;height:44px;flex-shrink:0;border-radius:10px;border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#003087}
+.thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
 
-.tc{background:#fff;border:1px solid #e7ebf2;border-radius:18px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px -20px rgba(15,23,42,.18)}
-.ey{font-size:11px;line-height:14px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#64748b}
+.tc{background:#fff;border:1px solid #e7ebf2;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px -20px rgba(15,23,42,.18)}
+.ey{font-size:var(--text-xs);line-height:17px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
 .ey-d{color:rgba(203,216,238,.7)}
-.tn{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;letter-spacing:-.02em}
-.dl{display:inline-flex;align-items:center;gap:3px;height:22px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums}
-.hero{position:relative;overflow:hidden;border-radius:22px;background:#0b1733;color:#fff;padding:24px 26px}
+.tn{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;letter-spacing:0}
+.dl{display:inline-flex;align-items:center;gap:3px;height:22px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums}
+.hero{position:relative;overflow:hidden;border-radius:var(--radius-xl);background:#0b1733;color:#fff;padding:24px 26px;--accent-text:#7fcff0;--text-success:#6ee7b7;--text-warning:#fcd34d;--text-danger:#fda4af;--text-info:#7dd3fc}
 .hero::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:32px 32px;pointer-events:none}
 .hero>*{position:relative}
-.ht{border-radius:16px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
-.dseg{display:inline-flex;padding:3px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1)}
-.dseg button{height:32px;padding:0 14px;border:0;border-radius:999px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
-.lseg{display:inline-flex;padding:3px;border-radius:12px;background:#f1f4f9;border:1px solid #e7ebf2}
-.lseg button{height:32px;padding:0 13px;border:0;border-radius:9px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease,box-shadow 200ms ease}
+.ht{border-radius:var(--radius-xl);background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.dseg{display:inline-flex;padding:3px;border-radius:var(--radius-full);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1)}
+.dseg button{height:32px;padding:0 14px;border:0;border-radius:var(--radius-full);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
+.lseg{display:inline-flex;padding:3px;border-radius:var(--radius-xl);background:#f1f4f9;border:1px solid #e7ebf2}
+.lseg button{height:32px;padding:0 13px;border:0;border-radius:var(--radius-lg);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease,box-shadow 200ms ease}
 button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .btn,.abtn{transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
 .st>*{animation:taUp 420ms cubic-bezier(.23,1,.32,1) both}
@@ -211,39 +216,39 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 @keyframes taDraw{from{stroke-dashoffset:1600}to{stroke-dashoffset:0}}
 .fadein{animation:taFade 600ms ease both 200ms}@keyframes taFade{from{opacity:0}to{opacity:1}}
 .tt{position:relative}
-.tt .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px) scale(.97);transform-origin:bottom center;opacity:0;pointer-events:none;transition:opacity 125ms ease-out,transform 125ms ease-out;background:#0b1733;color:#fff;border-radius:10px;padding:8px 10px;font-size:12px;white-space:nowrap;box-shadow:0 10px 24px -8px rgba(15,23,42,.45);z-index:5}
-.col{position:relative;flex:1;height:100%;border-radius:6px;transition:background-color 150ms ease}
+.tt .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px) scale(.97);transform-origin:bottom center;opacity:0;pointer-events:none;transition:opacity 125ms ease-out,transform 125ms ease-out;background:#0b1733;color:#fff;border-radius:var(--radius-lg);padding:8px 10px;font-size:var(--text-xs);white-space:nowrap;box-shadow:0 10px 24px -8px rgba(15,23,42,.45);z-index:5}
+.col{position:relative;flex:1;height:100%;border-radius:var(--radius-md);transition:background-color 150ms ease}
 .col .tip{bottom:auto;top:6px}
 .col .cl{position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(15,23,42,.18);opacity:0;transition:opacity 125ms ease}
 @media (hover:hover) and (pointer:fine){.tt:hover .tip,.col:hover .tip{opacity:1;transform:translate(-50%,0) scale(1)}.col:hover .cl{opacity:1}.row:hover{background:#f7f9fd}.tc.lift{transition:box-shadow 200ms ease,transform 200ms cubic-bezier(.23,1,.32,1)}.tc.lift:hover{box-shadow:0 1px 2px rgba(15,23,42,.05),0 18px 40px -20px rgba(15,23,42,.3)}}
 .tb{width:100%;border-collapse:separate;border-spacing:0}
-.tb th{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#64748b;text-align:left;padding:12px 16px;border-bottom:1px solid #eef1f6;background:#fbfcfe;white-space:nowrap}
-.tb td{padding:13px 16px;border-bottom:1px solid #f1f4f8;font-size:13.5px;vertical-align:middle}
+.tb th{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #eef1f6;background:#fbfcfe;white-space:nowrap}
+.tb td{padding:13px 16px;border-bottom:1px solid #f1f4f8;font-size:var(--text-sm);vertical-align:middle}
 .tb tr:last-child td{border-bottom:0}
 .tb .r{text-align:right}
 @media (prefers-reduced-motion:reduce){.st>*,.gr,.draw,.fadein{animation:none}}
 
 .pgc>*{flex-shrink:0}.tb th{white-space:normal}.stp2{flex-shrink:0}.pgc>.fill{flex-shrink:1;min-height:0}
 .sec{display:flex;flex-direction:column;gap:14px;padding:20px 22px}
-.h2{margin:0;font-size:15.5px;line-height:22px;font-weight:600;color:#0f172a;letter-spacing:-.01em}
-.sub{margin:2px 0 0;font-size:12.5px;line-height:18px;color:#64748b}
+.h2{margin:0;font-size:var(--text-base);line-height:22px;font-weight:var(--weight-semibold);color:#0f172a;letter-spacing:0}
+.sub{margin:2px 0 0;font-size:var(--text-xs-plus);line-height:18px;color:var(--text-muted)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .chk{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid #f1f4f8}
 .chk:last-child{border-bottom:0}
-.pill{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:999px;background:#f1f4f9;font-size:12px;color:#334155;white-space:nowrap}
-.amt{height:40px;padding:0 16px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#1e293b;cursor:pointer;font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:var(--radius-full);background:#f1f4f9;font-size:var(--text-xs);color:#334155;white-space:nowrap}
+.amt{height:36px;padding:0 16px;border-radius:var(--radius-lg);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:#1e293b;cursor:pointer;font-variant-numeric:tabular-nums}
 .amt.on{border-color:#003087;background:rgba(0,48,135,.06);color:#003087}
 .amt:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.stp2{display:inline-flex;align-items:center;border:1px solid #cbd5e1;border-radius:10px;overflow:hidden;height:40px}
-.stp2 button{width:38px;height:100%;border:0;background:#f8fafc;font:inherit;font-size:16px;cursor:pointer;color:#334155}
-.stp2 span{min-width:64px;text-align:center;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
-.sel{height:44px;padding:0 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font:inherit;font-size:14px;color:#1e293b;width:100%}
-.msgb{max-width:78%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:20px}
-.code{margin:0;padding:12px 14px;border-radius:10px;background:#0b1733;color:#cbd8ee;font-size:12px;line-height:18px;white-space:pre-wrap}
+.stp2{display:inline-flex;align-items:center;border:1px solid #cbd5e1;border-radius:var(--radius-lg);overflow:hidden;height:40px}
+.stp2 button{width:38px;height:100%;border:0;background:#f8fafc;font:inherit;font-size:var(--text-base);cursor:pointer;color:#334155}
+.stp2 span{min-width:64px;text-align:center;font-size:var(--text-sm);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums}
+.sel{height:44px;padding:0 12px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;width:100%}
+.msgb{max-width:78%;padding:10px 14px;border-radius:var(--radius-xl);font-size:var(--text-sm);line-height:20px}
+.code{margin:0;padding:12px 14px;border-radius:var(--radius-lg);background:#0b1733;color:#cbd8ee;font-size:var(--text-xs);line-height:18px;white-space:pre-wrap;--text-muted:#94a3b8}
 .lrow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 16px;border:0;border-bottom:1px solid #f1f4f8;background:transparent;font:inherit;text-align:left;cursor:pointer}
 .lrow:hover{background:#f7f9fd}.lrow.on{background:rgba(0,48,135,.05)}
 .lrow:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:-3px}
-.jt td{padding:9px 14px;font-size:13px;border-bottom:1px solid #f1f4f8}.jt th{padding:9px 14px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#64748b;text-align:left;border-bottom:1px solid #eef1f6;background:#fbfcfe}.jt{width:100%;border-collapse:collapse}.jt .r{text-align:right}.fch{height:32px;font-size:12.5px;padding:0 11px}`;
+.jt td{padding:9px 14px;font-size:var(--text-xs-plus);border-bottom:1px solid #f1f4f8}.jt th{padding:9px 14px;font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted);text-align:left;border-bottom:1px solid #eef1f6;background:#fbfcfe}.jt{width:100%;border-collapse:collapse}.jt .r{text-align:right}.fch{height:32px;font-size:var(--text-xs-plus);padding:0 11px}`;
 
 // ---- markup ----
 
@@ -253,35 +258,35 @@ export default class JournalsScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="Journals">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "1440px", height: "1400px", background: "#eef2f7", padding: "12px", display: "flex", gap: "12px", overflow: "hidden" }}>
+        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
           <__Sidebar sticky="" active="acc-journals" />
-          <main style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "16px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
             <__Topbar crumb="Accounts" page="Journals" placeholder="Search" />
-            <div className="pgc" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "22px" }}>
+            <div className="pgc gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "22px" }}>
               <section className="hero st">
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "20px" }}>
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <div className="ey ey-d">Accounts · Journals</div>
-                    <h2 style={{ margin: "6px 0 0", fontSize: "26px", lineHeight: "32px", fontWeight: "700", letterSpacing: "-.025em" }}>{v.headline}</h2>
-                    <p style={{ margin: "6px 0 0", fontSize: "13.5px", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "680px" }}>Every journal in the books. Most are posted automatically by orders, couriers, payroll and the entry pages; manual journals are for corrections and month-end adjustments.</p>
+                    <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.headline}</h1>
+                    <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "680px" }}>Every journal in the books. Most are posted automatically by orders, couriers, payroll and the entry pages; manual journals are for corrections and month-end adjustments.</p>
                   </div>
-                  <button type="button" className="btn sm" onClick={v.newJ} style={{ background: "#fff", color: "#0b1733", height: "38px", flexShrink: "0" }}>New journal</button>
+                  <button type="button" className="btn sm" onClick={v.newJ} style={{ background: "#fff", color: "#0b1733", height: "36px", flexShrink: "0" }}>New journal</button>
                 </div>
-                <div className="st" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px", marginTop: "20px" }}>
+                <div className="st gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px", marginTop: "20px" }}>
                   {__list(v.tiles).map((ht, $index) => (<React.Fragment key={$index}>
                       <div className="ht">
                         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <span style={__sx(`width: 7px; height: 7px; border-radius: 999px; background: ${ht?.c ?? ""};`)} />
-                          <span style={{ fontSize: "12px", color: "rgba(203,216,238,.85)" }}>{ht?.l}</span>
+                          <span style={__sx(`width: 7px; height: 7px; border-radius: var(--radius-full); background: ${ht?.c ?? ""};`)} />
+                          <span style={{ fontSize: "var(--text-xs)", color: "rgba(203,216,238,.85)" }}>{ht?.l}</span>
                         </div>
-                        <div className="tn" style={{ fontSize: "24px", lineHeight: "30px", fontWeight: "700", color: "#fff" }}>{ht?.v}</div>
-                        <div style={{ fontSize: "11.5px", color: "rgba(203,216,238,.7)" }}>{ht?.s}</div>
+                        <div className="tn" style={{ fontSize: "var(--text-2xl)", lineHeight: "30px", fontWeight: "var(--weight-semibold)", color: "#fff" }}>{ht?.v}</div>
+                        <div style={{ fontSize: "var(--text-xs)", color: "rgba(203,216,238,.7)" }}>{ht?.s}</div>
                       </div>
                     </React.Fragment>))}
                 </div>
               </section>
               {v.hasMsg ? (<>
-                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: 14px; font-weight: 500;`)}>
+                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-lg); background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: var(--text-sm); font-weight: var(--weight-medium);`)}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <circle cx="12" cy="12" r="10" />
                     <path d="m9 12 2 2 4-4" />
@@ -289,25 +294,25 @@ export default class JournalsScreen extends Component {
                   <span>{v.msg}</span>
                 </div>
               </>) : null}
-              <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 520px", gap: "16px", alignItems: "start" }}>
+              <div className="gc-split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 520px", gap: "16px", alignItems: "start" }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                   <section className="tc" style={{ overflow: "hidden" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "14px 16px", borderBottom: "1px solid #eef1f6" }}>
+                    <div role="group" aria-label="Journal type" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "14px 16px", borderBottom: "1px solid #eef1f6" }}>
                       {__list(v.chips).map((ch, $index) => (<React.Fragment key={$index}>
-                          <button type="button" className={ch?.cls} onClick={ch?.pick} style={{ height: "34px" }}>{ch?.label}<span className="pcnt">{ch?.n}</span></button>
+                          <button type="button" className={ch?.cls} aria-pressed={ch?.on} onClick={ch?.pick} style={{ height: "36px" }}>{ch?.label}<span className="pcnt">{ch?.n}</span></button>
                         </React.Fragment>))}
                     </div>
                     {__list(v.list).map((j, $index) => (<React.Fragment key={$index}>
-                        <button type="button" className="lrow" style={__sx(`background: ${j?.bg ?? ""};`)} onClick={j?.open}>
+                        <button type="button" className="lrow" style={__sx(`background: ${j?.bg ?? ""};`)} aria-pressed={j?.on} onClick={j?.open}>
                           <div style={{ flexGrow: "1", minWidth: "0" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                              <span className="mono" style={{ fontSize: "12px", fontWeight: "700", color: "#0f172a" }}>{j?.ref}</span>
+                              <span className="mono" style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{j?.ref}</span>
                               <span className="pill" style={__sx(`background: ${j?.kb ?? ""}; color: ${j?.kf ?? ""};`)}>{j?.kind}</span>
-                              <span style={{ fontSize: "12px", color: "#64748b" }}>{j?.d}</span>
+                              <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{j?.d}</span>
                             </div>
-                            <div style={{ marginTop: "3px", fontSize: "13px", color: "#334155", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{j?.desc}</div>
+                            <div style={{ marginTop: "3px", fontSize: "var(--text-xs-plus)", color: "#334155", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{j?.desc}</div>
                           </div>
-                          <span className="tn" style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>{j?.amt}</span>
+                          <span className="tn" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{j?.amt}</span>
                         </button>
                       </React.Fragment>))}
                   </section>
@@ -316,29 +321,31 @@ export default class JournalsScreen extends Component {
                       <h2 className="h2">{v.cur?.ref} · {v.cur?.desc}</h2>
                       <p className="sub">{v.cur?.meta}</p>
                     </div>
-                    <table className="jt">
-                      <thead>
-                        <tr>
-                          <th>Account</th>
-                          <th className="r">Debit</th>
-                          <th className="r">Credit</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {__list(v.cur?.rows).map((l, $index) => (<React.Fragment key={$index}>
-                            <tr>
-                              <td><span className="mono" style={{ color: "#64748b", marginRight: "8px" }}>{l?.code}</span>{l?.n}</td>
-                              <td className="r tn">{l?.d}</td>
-                              <td className="r tn">{l?.c}</td>
-                            </tr>
-                          </React.Fragment>))}
-                        <tr>
-                          <td style={{ fontWeight: "600" }}>Total</td>
-                          <td className="r tn" style={{ fontWeight: "700" }}>{v.cur?.td}</td>
-                          <td className="r tn" style={{ fontWeight: "700" }}>{v.cur?.tc}</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                    <div className="gc-table-wrap">
+                      <table className="jt">
+                        <thead>
+                          <tr>
+                            <th>Account</th>
+                            <th className="r">Debit</th>
+                            <th className="r">Credit</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {__list(v.cur?.rows).map((l, $index) => (<React.Fragment key={$index}>
+                              <tr>
+                                <td><span className="mono" style={{ color: "var(--text-muted)", marginRight: "8px" }}>{l?.code}</span>{l?.n}</td>
+                                <td className="r tn">{l?.d}</td>
+                                <td className="r tn">{l?.c}</td>
+                              </tr>
+                            </React.Fragment>))}
+                          <tr>
+                            <td style={{ fontWeight: "var(--weight-medium)" }}>Total</td>
+                            <td className="r tn" style={{ fontWeight: "var(--weight-semibold)" }}>{v.cur?.td}</td>
+                            <td className="r tn" style={{ fontWeight: "var(--weight-semibold)" }}>{v.cur?.tc}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
                   </section>
                 </div>
                 <section className="tc sec" style={__sx(`border: 1.5px solid ${v.formBd ?? ""};`)}>
@@ -359,8 +366,8 @@ export default class JournalsScreen extends Component {
                       <input id="jn" className="inp" placeholder="e.g. Correct misposted expense" value={v.narr} onChange={v.onNarr} />
                     </div>
                   </div>
-                  <div style={{ border: "1px solid #eef1f6", borderRadius: "12px", overflow: "hidden" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 110px 110px 34px", gap: "8px", padding: "9px 12px", background: "#fbfcfe", borderBottom: "1px solid #eef1f6", fontSize: "11px", fontWeight: "600", letterSpacing: ".08em", textTransform: "uppercase", color: "#64748b" }}>
+                  <div style={{ border: "1px solid #eef1f6", borderRadius: "var(--radius-xl)", overflow: "hidden" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 110px 110px 34px", gap: "8px", padding: "9px 12px", background: "#fbfcfe", borderBottom: "1px solid #eef1f6", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>
                       <span>Account</span>
                       <span style={{ textAlign: "right" }}>Debit</span>
                       <span style={{ textAlign: "right" }}>Credit</span>
@@ -369,30 +376,30 @@ export default class JournalsScreen extends Component {
                     {__list(v.lines).map((l, $index) => (<React.Fragment key={$index}>
                         <div style={{ borderBottom: "1px solid #f1f4f8" }}>
                           <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 110px 110px 34px", gap: "8px", alignItems: "center", padding: "8px 12px" }}>
-                            <button type="button" className="btn line sm" onClick={l?.pickAcct} style={{ justifyContent: "flex-start", minWidth: "0", overflow: "hidden" }}>
-                              <span className="mono" style={{ color: "#64748b" }}>{l?.code}</span>
+                            <button type="button" className="btn line sm" aria-expanded={l?.picking} aria-label={`Account: ${l?.code ?? ""} ${l?.n ?? ""}. Change account`} onClick={l?.pickAcct} style={{ justifyContent: "flex-start", minWidth: "0", overflow: "hidden" }}>
+                              <span className="mono" style={{ color: "var(--text-muted)" }}>{l?.code}</span>
                               <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l?.n}</span>
                             </button>
-                            <input className="inp tn" aria-label="Debit" inputMode="decimal" value={l?.dr} onChange={l?.onDr} style={{ height: "36px", textAlign: "right", fontSize: "13px" }} />
-                            <input className="inp tn" aria-label="Credit" inputMode="decimal" value={l?.cr} onChange={l?.onCr} style={{ height: "36px", textAlign: "right", fontSize: "13px" }} />
-                            <button type="button" className="ib" aria-label="Remove line" onClick={l?.rm} style={{ width: "32px", height: "32px" }}>✕</button>
+                            <input className="inp tn" aria-label="Debit" inputMode="decimal" value={l?.dr} onChange={l?.onDr} style={{ height: "36px", textAlign: "right", fontSize: "var(--text-xs-plus)" }} />
+                            <input className="inp tn" aria-label="Credit" inputMode="decimal" value={l?.cr} onChange={l?.onCr} style={{ height: "36px", textAlign: "right", fontSize: "var(--text-xs-plus)" }} />
+                            <button type="button" className="ib" aria-label="Remove line" onClick={l?.rm} style={{ width: "32px", height: "32px" }}><__Icon name="x" width="16" height="16" aria-hidden="true" /></button>
                           </div>
                           {l?.picking ? (<>
                             <div style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "0 12px 12px" }}>
-                              <input className="inp" aria-label="Search accounts" placeholder="Search accounts" value={v.aq} onChange={v.onAq} style={{ height: "36px", fontSize: "13px" }} />
+                              <input className="inp" aria-label="Search accounts" placeholder="Search accounts" value={v.aq} onChange={v.onAq} style={{ height: "36px", fontSize: "var(--text-xs-plus)" }} />
                               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", maxHeight: "150px", overflow: "auto" }}>
                                 {__list(l?.opts).map((o, $index) => (<React.Fragment key={$index}>
-                                    <button type="button" className="chip fch" onClick={o?.pick}><span className="mono" style={{ color: "#64748b" }}>{o?.code}</span>{o?.n}</button>
+                                    <button type="button" className="chip fch" onClick={o?.pick}><span className="mono" style={{ color: "var(--text-muted)" }}>{o?.code}</span>{o?.n}</button>
                                   </React.Fragment>))}
                               </div>
                             </div>
                           </>) : null}
                         </div>
                       </React.Fragment>))}
-                    <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 110px 110px 34px", gap: "8px", padding: "10px 12px", background: "#fbfcfe", fontSize: "13px" }}>
-                      <button type="button" className="abtn" onClick={v.addLine} style={{ justifySelf: "start" }}>+ Add line</button>
-                      <span className="tn" style={{ textAlign: "right", fontWeight: "700" }}>{v.pv?.td}</span>
-                      <span className="tn" style={{ textAlign: "right", fontWeight: "700" }}>{v.pv?.tc}</span>
+                    <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 110px 110px 34px", gap: "8px", padding: "10px 12px", background: "#fbfcfe", fontSize: "var(--text-xs-plus)" }}>
+                      <button type="button" className="abtn" onClick={v.addLine} style={{ justifySelf: "start" }}><__Icon name="plus" width="14" height="14" aria-hidden="true" />Add line</button>
+                      <span className="tn" style={{ textAlign: "right", fontWeight: "var(--weight-semibold)" }}>{v.pv?.td}</span>
+                      <span className="tn" style={{ textAlign: "right", fontWeight: "var(--weight-semibold)" }}>{v.pv?.tc}</span>
                       <span />
                     </div>
                   </div>

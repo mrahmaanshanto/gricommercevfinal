@@ -13,7 +13,7 @@ class Component extends DCLogic { renderVals() { return {}; } }
 
 // ---- styles (from the design's <helmet>) ----
 
-const CSS = `body{margin:0;background:#f8fafc;font-family:Poppins,ui-sans-serif,system-ui,sans-serif;color:#475569;font-size:14px}a{color:#003087;text-decoration:none}a:hover{color:#002a77}code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}table{border-collapse:collapse;width:100%}`;
+const CSS = `body{margin:0;background:#f8fafc;font-family:var(--font-sans);color:#475569;font-size:var(--text-sm)}a{color:#003087;text-decoration:none}a:hover{color:#002a77}code,.mono{font-family:var(--font-data)}table{border-collapse:collapse;width:100%}`;
 
 // ---- markup ----
 
@@ -25,29 +25,29 @@ export default class FlowPurchaseScreen extends Component {
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div style={{ width: "1440px", height: "2000px", overflow: "hidden", background: "#f8fafc" }}>
           <header style={{ position: "sticky", top: "0", zIndex: "90", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "16px", padding: "14px 32px", background: "rgba(255,255,255,.86)", backdropFilter: "blur(8px)", borderBottom: "1px solid #e2e8f0" }}>
-            <span style={{ display: "grid", placeItems: "center", width: "32px", height: "32px", borderRadius: "8px", background: "#003087", color: "#fff", fontSize: "15px", fontWeight: "600" }}>G</span>
+            <span style={{ display: "grid", placeItems: "center", width: "32px", height: "32px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>G</span>
             <div style={{ marginRight: "auto" }}>
-              <div style={{ fontSize: "15px", fontWeight: "600", letterSpacing: ".025em", color: "#0f172a" }}>GridCommerce — page flows</div>
-              <div style={{ fontSize: "13px", color: "#94a3b8" }}>State machines behind each merchant area, with the screens that move them.</div>
+              <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#0f172a" }}>GridCommerce — page flows</div>
+              <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>State machines behind each merchant area, with the screens that move them.</div>
             </div>
-            <nav style={{ display: "flex", flexWrap: "wrap", gap: "6px", fontSize: "13px", fontWeight: "500", letterSpacing: ".025em" }}>
-              <__Link href="/dev-reference" style={{ padding: "6px 10px", borderRadius: "9999px", background: "#fff", border: "1px solid #e2e8f0", color: "#475569" }}>Developer reference</__Link>
-              <__Link href="/flow-orders" style={{ padding: "6px 10px", borderRadius: "9999px", background: "#e9eef5", color: "#475569" }}>Orders</__Link>
-              <__Link href="/flow-products" style={{ padding: "6px 10px", borderRadius: "9999px", background: "#e9eef5", color: "#475569" }}>Products</__Link>
-              <__Link href="/flow-purchase" style={{ padding: "6px 10px", borderRadius: "9999px", background: "#003087", color: "#fff" }}>Purchase</__Link>
-              <__Link href="/flow-payments" style={{ padding: "6px 10px", borderRadius: "9999px", background: "#e9eef5", color: "#475569" }}>Payments</__Link>
-              <__Link href="/flow-onboarding" style={{ padding: "6px 10px", borderRadius: "9999px", background: "#e9eef5", color: "#475569" }}>Onboarding</__Link>
-              <__Link href="/flow-staff" style={{ padding: "6px 10px", borderRadius: "9999px", background: "#e9eef5", color: "#475569" }}>Staff</__Link>
+            <nav style={{ display: "flex", flexWrap: "wrap", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)" }}>
+              <__Link href="/dev/dev-reference" style={{ padding: "6px 10px", borderRadius: "var(--radius-full)", background: "#fff", border: "1px solid #e2e8f0", color: "#475569" }}>Developer reference</__Link>
+              <__Link href="/dev/flow-orders" style={{ padding: "6px 10px", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569" }}>Orders</__Link>
+              <__Link href="/dev/flow-products" style={{ padding: "6px 10px", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569" }}>Products</__Link>
+              <__Link href="/dev/flow-purchase" style={{ padding: "6px 10px", borderRadius: "var(--radius-full)", background: "#003087", color: "#fff" }}>Purchase</__Link>
+              <__Link href="/dev/flow-payments" style={{ padding: "6px 10px", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569" }}>Payments</__Link>
+              <__Link href="/dev/flow-onboarding" style={{ padding: "6px 10px", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569" }}>Onboarding</__Link>
+              <__Link href="/dev/flow-staff" style={{ padding: "6px 10px", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569" }}>Staff</__Link>
             </nav>
           </header>
           <main style={{ padding: "28px 32px 40px", display: "flex", flexDirection: "column", gap: "28px" }}>
             <section>
-              <h1 style={{ margin: "0", fontSize: "26px", lineHeight: "32px", fontWeight: "700", color: "#0f172a", letterSpacing: "-.02em" }}>Purchase and stock flow</h1>
-              <p style={{ margin: "6px 0 0", fontSize: "14.5px", lineHeight: "22px", color: "#475569", maxWidth: "860px" }}>How stock arrives from suppliers and moves between branches, with returns, damage and expiry.</p>
+              <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "var(--tracking-tight)" }}>Purchase and stock flow</h1>
+              <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm-plus)", lineHeight: "22px", color: "#475569", maxWidth: "860px" }}>How stock arrives from suppliers and moves between branches, with returns, damage and expiry.</p>
             </section>
-            <section style={{ borderRadius: "8px", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", padding: "18px 20px 12px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "20px", fontSize: "12.5px", color: "#64748b", marginBottom: "10px" }}>
-                <span style={{ fontSize: "14px", fontWeight: "600", color: "#0f172a", marginRight: "auto" }}>Flow</span>
+            <section style={{ borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", padding: "18px 20px 12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "20px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", marginBottom: "10px" }}>
+                <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a", marginRight: "auto" }}>Flow</span>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}><svg width="28" height="8" aria-hidden="true">
   <path d="M0 4 L28 4" stroke="#003087" strokeWidth="2" />
 </svg>Main path</span>
@@ -118,7 +118,7 @@ export default class FlowPurchaseScreen extends Component {
                   </defs>
                   <path d="M8 8 L8 38 L332 38 L332 8" fill="none" stroke="#003087" strokeWidth="1.8" strokeLinejoin="round" markerEnd="url(#ah6)" />
                 </svg>
-                <span style={{ position: "absolute", left: "678px", top: "119px", transform: "translate(-50%, -100%)", maxWidth: "150px", padding: "2px 7px", borderRadius: "6px", background: "#fff", border: "1px solid #e7ebf2", fontSize: "11px", lineHeight: "14px", color: "#475569", textAlign: "center", whiteSpace: "normal" }}>everything arrives</span>
+                <span style={{ position: "absolute", left: "678px", top: "119px", transform: "translate(-50%, -100%)", maxWidth: "150px", padding: "2px 7px", borderRadius: "var(--radius-md)", background: "#fff", border: "1px solid #e7ebf2", fontSize: "var(--text-xs)", lineHeight: "17px", color: "#475569", textAlign: "center", whiteSpace: "normal" }}>everything arrives</span>
                 <svg width="16" height="90" viewBox="0 0 16 90" aria-hidden="true" style={{ position: "absolute", left: "286px", top: "92px", overflow: "visible", pointerEvents: "none" }}>
                   <defs>
                     <marker id="ah7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -127,7 +127,7 @@ export default class FlowPurchaseScreen extends Component {
                   </defs>
                   <path d="M8 8 L8 82" fill="none" stroke="#e11d48" strokeWidth="1.8" strokeLinejoin="round" strokeDasharray="5 4" markerEnd="url(#ah7)" />
                 </svg>
-                <span style={{ position: "absolute", left: "302px", top: "137px", transform: "translateY(-50%)", maxWidth: "150px", padding: "2px 7px", borderRadius: "6px", background: "#fff", border: "1px solid #e7ebf2", fontSize: "11px", lineHeight: "14px", color: "#475569", textAlign: "center", whiteSpace: "normal" }}>rejected</span>
+                <span style={{ position: "absolute", left: "302px", top: "137px", transform: "translateY(-50%)", maxWidth: "150px", padding: "2px 7px", borderRadius: "var(--radius-md)", background: "#fff", border: "1px solid #e7ebf2", fontSize: "var(--text-xs)", lineHeight: "17px", color: "#475569", textAlign: "center", whiteSpace: "normal" }}>rejected</span>
                 <svg width="126" height="128" viewBox="0 0 126 128" aria-hidden="true" style={{ position: "absolute", left: "94px", top: "92px", overflow: "visible", pointerEvents: "none" }}>
                   <defs>
                     <marker id="ah8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -144,7 +144,7 @@ export default class FlowPurchaseScreen extends Component {
                   </defs>
                   <path d="M8 8 L8 82" fill="none" stroke="#e11d48" strokeWidth="1.8" strokeLinejoin="round" strokeDasharray="5 4" markerEnd="url(#ah9)" />
                 </svg>
-                <span style={{ position: "absolute", left: "908px", top: "137px", transform: "translateY(-50%)", maxWidth: "150px", padding: "2px 7px", borderRadius: "6px", background: "#fff", border: "1px solid #e7ebf2", fontSize: "11px", lineHeight: "14px", color: "#475569", textAlign: "center", whiteSpace: "normal" }}>damaged or wrong</span>
+                <span style={{ position: "absolute", left: "908px", top: "137px", transform: "translateY(-50%)", maxWidth: "150px", padding: "2px 7px", borderRadius: "var(--radius-md)", background: "#fff", border: "1px solid #e7ebf2", fontSize: "var(--text-xs)", lineHeight: "17px", color: "#475569", textAlign: "center", whiteSpace: "normal" }}>damaged or wrong</span>
                 <svg width="113" height="90" viewBox="0 0 113 90" aria-hidden="true" style={{ position: "absolute", left: "922px", top: "92px", overflow: "visible", pointerEvents: "none" }}>
                   <defs>
                     <marker id="ah10" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -169,150 +169,150 @@ export default class FlowPurchaseScreen extends Component {
                   </defs>
                   <path d="M8 8 L8 82" fill="none" stroke="#003087" strokeWidth="1.8" strokeLinejoin="round" markerEnd="url(#ah12)" />
                 </svg>
-                <span style={{ position: "absolute", left: "1262px", top: "137px", transform: "translateY(-50%)", maxWidth: "150px", padding: "2px 7px", borderRadius: "6px", background: "#fff", border: "1px solid #e7ebf2", fontSize: "11px", lineHeight: "14px", color: "#475569", textAlign: "center", whiteSpace: "normal" }}>confirmed</span>
-                <div style={{ position: "absolute", left: "20px", top: "24px", width: "164px", height: "76px", boxSizing: "border-box", borderRadius: "12px", background: "#0b1733", border: "1.5px solid #0b1733", padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
-                  <div style={{ fontSize: "13.5px", lineHeight: "17px", fontWeight: "600", color: "#fff" }}>PO draft</div>
-                  <div style={{ fontSize: "11.5px", lineHeight: "15px", color: "rgba(203,216,238,.8)" }}>Items and supplier</div>
+                <span style={{ position: "absolute", left: "1262px", top: "137px", transform: "translateY(-50%)", maxWidth: "150px", padding: "2px 7px", borderRadius: "var(--radius-md)", background: "#fff", border: "1px solid #e7ebf2", fontSize: "var(--text-xs)", lineHeight: "17px", color: "#475569", textAlign: "center", whiteSpace: "normal" }}>confirmed</span>
+                <div style={{ position: "absolute", left: "20px", top: "24px", width: "164px", height: "76px", boxSizing: "border-box", borderRadius: "var(--radius-xl)", background: "#0b1733", border: "1.5px solid #0b1733", padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
+                  <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#fff" }}>PO draft</div>
+                  <div style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "rgba(203,216,238,.8)" }}>Items and supplier</div>
                 </div>
-                <div style={{ position: "absolute", left: "212px", top: "24px", width: "164px", height: "76px", boxSizing: "border-box", borderRadius: "12px", background: "#003087", border: "1.5px solid #003087", padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
-                  <div style={{ fontSize: "13.5px", lineHeight: "17px", fontWeight: "600", color: "#fff" }}>Awaiting approval</div>
-                  <div style={{ fontSize: "11.5px", lineHeight: "15px", color: "rgba(203,216,238,.85)" }}>Above the approval limit</div>
+                <div style={{ position: "absolute", left: "212px", top: "24px", width: "164px", height: "76px", boxSizing: "border-box", borderRadius: "var(--radius-xl)", background: "#003087", border: "1.5px solid #003087", padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
+                  <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#fff" }}>Awaiting approval</div>
+                  <div style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "rgba(203,216,238,.85)" }}>Above the approval limit</div>
                 </div>
-                <div style={{ position: "absolute", left: "404px", top: "24px", width: "164px", height: "76px", boxSizing: "border-box", borderRadius: "12px", background: "#003087", border: "1.5px solid #003087", padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
-                  <div style={{ fontSize: "13.5px", lineHeight: "17px", fontWeight: "600", color: "#fff" }}>Sent to supplier</div>
-                  <div style={{ fontSize: "11.5px", lineHeight: "15px", color: "rgba(203,216,238,.85)" }}>PDF or WhatsApp</div>
+                <div style={{ position: "absolute", left: "404px", top: "24px", width: "164px", height: "76px", boxSizing: "border-box", borderRadius: "var(--radius-xl)", background: "#003087", border: "1.5px solid #003087", padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
+                  <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#fff" }}>Sent to supplier</div>
+                  <div style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "rgba(203,216,238,.85)" }}>PDF or WhatsApp</div>
                 </div>
-                <div style={{ position: "absolute", left: "596px", top: "24px", width: "164px", height: "76px", boxSizing: "border-box", borderRadius: "12px", background: "#fff4e0", border: "1.5px solid #f59e0b", padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
-                  <div style={{ fontSize: "13.5px", lineHeight: "17px", fontWeight: "600", color: "#7a3b04" }}>Partially received</div>
-                  <div style={{ fontSize: "11.5px", lineHeight: "15px", color: "#a14f06" }}>Some lines short</div>
+                <div style={{ position: "absolute", left: "596px", top: "24px", width: "164px", height: "76px", boxSizing: "border-box", borderRadius: "var(--radius-xl)", background: "#fff4e0", border: "1.5px solid #f59e0b", padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
+                  <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#7a3b04" }}>Partially received</div>
+                  <div style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "#a14f06" }}>Some lines short</div>
                 </div>
-                <div style={{ position: "absolute", left: "788px", top: "24px", width: "164px", height: "76px", boxSizing: "border-box", borderRadius: "12px", background: "#003087", border: "1.5px solid #003087", padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
-                  <div style={{ fontSize: "13.5px", lineHeight: "17px", fontWeight: "600", color: "#fff" }}>Fully received</div>
-                  <div style={{ fontSize: "11.5px", lineHeight: "15px", color: "rgba(203,216,238,.85)" }}>All lines matched</div>
+                <div style={{ position: "absolute", left: "788px", top: "24px", width: "164px", height: "76px", boxSizing: "border-box", borderRadius: "var(--radius-xl)", background: "#003087", border: "1.5px solid #003087", padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
+                  <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#fff" }}>Fully received</div>
+                  <div style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "rgba(203,216,238,.85)" }}>All lines matched</div>
                 </div>
-                <div style={{ position: "absolute", left: "980px", top: "24px", width: "164px", height: "76px", boxSizing: "border-box", borderRadius: "12px", background: "#e7f8f1", border: "1.5px solid #10b981", padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
-                  <div style={{ fontSize: "13.5px", lineHeight: "17px", fontWeight: "600", color: "#065f46" }}>Stock updated</div>
-                  <div style={{ fontSize: "11.5px", lineHeight: "15px", color: "#047857" }}>Per branch or warehouse</div>
+                <div style={{ position: "absolute", left: "980px", top: "24px", width: "164px", height: "76px", boxSizing: "border-box", borderRadius: "var(--radius-xl)", background: "#e7f8f1", border: "1.5px solid #10b981", padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
+                  <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#065f46" }}>Stock updated</div>
+                  <div style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "#047857" }}>Per branch or warehouse</div>
                 </div>
-                <div style={{ position: "absolute", left: "1172px", top: "24px", width: "164px", height: "76px", boxSizing: "border-box", borderRadius: "12px", background: "#003087", border: "1.5px solid #003087", padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
-                  <div style={{ fontSize: "13.5px", lineHeight: "17px", fontWeight: "600", color: "#fff" }}>Transfer</div>
-                  <div style={{ fontSize: "11.5px", lineHeight: "15px", color: "rgba(203,216,238,.85)" }}>Between branches</div>
+                <div style={{ position: "absolute", left: "1172px", top: "24px", width: "164px", height: "76px", boxSizing: "border-box", borderRadius: "var(--radius-xl)", background: "#003087", border: "1.5px solid #003087", padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
+                  <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#fff" }}>Transfer</div>
+                  <div style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "rgba(203,216,238,.85)" }}>Between branches</div>
                 </div>
-                <div style={{ position: "absolute", left: "212px", top: "174px", width: "164px", height: "76px", boxSizing: "border-box", borderRadius: "12px", background: "#ffece6", border: "1.5px solid #f43f5e", padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
-                  <div style={{ fontSize: "13.5px", lineHeight: "17px", fontWeight: "600", color: "#8a2410" }}>Rejected</div>
-                  <div style={{ fontSize: "11.5px", lineHeight: "15px", color: "#b83210" }}>Back to draft</div>
+                <div style={{ position: "absolute", left: "212px", top: "174px", width: "164px", height: "76px", boxSizing: "border-box", borderRadius: "var(--radius-xl)", background: "#ffece6", border: "1.5px solid #f43f5e", padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
+                  <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#8a2410" }}>Rejected</div>
+                  <div style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "#b83210" }}>Back to draft</div>
                 </div>
-                <div style={{ position: "absolute", left: "788px", top: "174px", width: "164px", height: "76px", boxSizing: "border-box", borderRadius: "12px", background: "#ffece6", border: "1.5px solid #f43f5e", padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
-                  <div style={{ fontSize: "13.5px", lineHeight: "17px", fontWeight: "600", color: "#8a2410" }}>Supplier return</div>
-                  <div style={{ fontSize: "11.5px", lineHeight: "15px", color: "#b83210" }}>Damaged or wrong items</div>
+                <div style={{ position: "absolute", left: "788px", top: "174px", width: "164px", height: "76px", boxSizing: "border-box", borderRadius: "var(--radius-xl)", background: "#ffece6", border: "1.5px solid #f43f5e", padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
+                  <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#8a2410" }}>Supplier return</div>
+                  <div style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "#b83210" }}>Damaged or wrong items</div>
                 </div>
-                <div style={{ position: "absolute", left: "980px", top: "174px", width: "164px", height: "76px", boxSizing: "border-box", borderRadius: "12px", background: "#ffece6", border: "1.5px solid #f43f5e", padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
-                  <div style={{ fontSize: "13.5px", lineHeight: "17px", fontWeight: "600", color: "#8a2410" }}>Damage or expiry</div>
-                  <div style={{ fontSize: "11.5px", lineHeight: "15px", color: "#b83210" }}>Written off</div>
+                <div style={{ position: "absolute", left: "980px", top: "174px", width: "164px", height: "76px", boxSizing: "border-box", borderRadius: "var(--radius-xl)", background: "#ffece6", border: "1.5px solid #f43f5e", padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
+                  <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#8a2410" }}>Damage or expiry</div>
+                  <div style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "#b83210" }}>Written off</div>
                 </div>
-                <div style={{ position: "absolute", left: "1172px", top: "174px", width: "164px", height: "76px", boxSizing: "border-box", borderRadius: "12px", background: "#e7f8f1", border: "1.5px solid #10b981", padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
-                  <div style={{ fontSize: "13.5px", lineHeight: "17px", fontWeight: "600", color: "#065f46" }}>Transfer received</div>
-                  <div style={{ fontSize: "11.5px", lineHeight: "15px", color: "#047857" }}>Destination confirms</div>
+                <div style={{ position: "absolute", left: "1172px", top: "174px", width: "164px", height: "76px", boxSizing: "border-box", borderRadius: "var(--radius-xl)", background: "#e7f8f1", border: "1.5px solid #10b981", padding: "10px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
+                  <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#065f46" }}>Transfer received</div>
+                  <div style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "#047857" }}>Destination confirms</div>
                 </div>
               </div>
             </section>
-            <section style={{ borderRadius: "8px", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", overflow: "hidden" }}>
-              <div style={{ padding: "16px 20px", fontSize: "14px", fontWeight: "600", color: "#0f172a" }}>States</div>
-              <table style={{ borderCollapse: "collapse", width: "100%", fontSize: "13.5px", color: "#475569" }}>
+            <section style={{ borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", overflow: "hidden" }}>
+              <div style={{ padding: "16px 20px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>States</div>
+              <table style={{ borderCollapse: "collapse", width: "100%", fontSize: "var(--text-sm)", color: "#475569" }}>
                 <thead>
                   <tr>
-                    <th style={{ textAlign: "left", padding: "11px 16px", fontSize: "12px", fontWeight: "600", textTransform: "uppercase", letterSpacing: ".025em", color: "#94a3b8", borderBottom: "1px solid #e2e8f0", background: "#fbfcfe" }}>State</th>
-                    <th style={{ textAlign: "left", padding: "11px 16px", fontSize: "12px", fontWeight: "600", textTransform: "uppercase", letterSpacing: ".025em", color: "#94a3b8", borderBottom: "1px solid #e2e8f0", background: "#fbfcfe" }}>Triggered by</th>
-                    <th style={{ textAlign: "left", padding: "11px 16px", fontSize: "12px", fontWeight: "600", textTransform: "uppercase", letterSpacing: ".025em", color: "#94a3b8", borderBottom: "1px solid #e2e8f0", background: "#fbfcfe" }}>Screen</th>
-                    <th style={{ textAlign: "left", padding: "11px 16px", fontSize: "12px", fontWeight: "600", textTransform: "uppercase", letterSpacing: ".025em", color: "#94a3b8", borderBottom: "1px solid #e2e8f0", background: "#fbfcfe" }}>Next states</th>
+                    <th style={{ textAlign: "left", padding: "11px 16px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)", borderBottom: "1px solid #e2e8f0", background: "#fbfcfe" }}>State</th>
+                    <th style={{ textAlign: "left", padding: "11px 16px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)", borderBottom: "1px solid #e2e8f0", background: "#fbfcfe" }}>Triggered by</th>
+                    <th style={{ textAlign: "left", padding: "11px 16px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)", borderBottom: "1px solid #e2e8f0", background: "#fbfcfe" }}>Screen</th>
+                    <th style={{ textAlign: "left", padding: "11px 16px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)", borderBottom: "1px solid #e2e8f0", background: "#fbfcfe" }}>Next states</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8", fontWeight: "600", color: "#0f172a", whiteSpace: "nowrap" }}>PO draft</td>
+                    <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8", fontWeight: "var(--weight-medium)", color: "#0f172a", whiteSpace: "nowrap" }}>PO draft</td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>Staff creates a purchase order</td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>
-                      <code style={{ fontSize: "12.5px", color: "#003087" }}>NewPO</code>
+                      <code style={{ fontSize: "var(--text-xs-plus)", color: "#003087" }}>NewPO</code>
                     </td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>Awaiting approval, Sent to supplier</td>
                   </tr>
                   <tr>
-                    <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8", fontWeight: "600", color: "#0f172a", whiteSpace: "nowrap" }}>Awaiting approval</td>
+                    <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8", fontWeight: "var(--weight-medium)", color: "#0f172a", whiteSpace: "nowrap" }}>Awaiting approval</td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>PO total above the owner's limit</td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>
-                      <code style={{ fontSize: "12.5px", color: "#003087" }}>PurchaseOrders</code>
+                      <code style={{ fontSize: "var(--text-xs-plus)", color: "#003087" }}>PurchaseOrders</code>
                     </td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>Sent to supplier, Rejected</td>
                   </tr>
                   <tr>
-                    <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8", fontWeight: "600", color: "#0f172a", whiteSpace: "nowrap" }}>Rejected</td>
+                    <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8", fontWeight: "var(--weight-medium)", color: "#0f172a", whiteSpace: "nowrap" }}>Rejected</td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>Approver</td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>
-                      <code style={{ fontSize: "12.5px", color: "#003087" }}>PODetail</code>
+                      <code style={{ fontSize: "var(--text-xs-plus)", color: "#003087" }}>PODetail</code>
                     </td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>PO draft</td>
                   </tr>
                   <tr>
-                    <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8", fontWeight: "600", color: "#0f172a", whiteSpace: "nowrap" }}>Sent to supplier</td>
+                    <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8", fontWeight: "var(--weight-medium)", color: "#0f172a", whiteSpace: "nowrap" }}>Sent to supplier</td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>Staff sends the PO as PDF or WhatsApp</td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>
-                      <code style={{ fontSize: "12.5px", color: "#003087" }}>PODetail</code>
+                      <code style={{ fontSize: "var(--text-xs-plus)", color: "#003087" }}>PODetail</code>
                     </td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>Partially received, Fully received</td>
                   </tr>
                   <tr>
-                    <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8", fontWeight: "600", color: "#0f172a", whiteSpace: "nowrap" }}>Partially received</td>
+                    <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8", fontWeight: "var(--weight-medium)", color: "#0f172a", whiteSpace: "nowrap" }}>Partially received</td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>Goods received with short lines</td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>
-                      <code style={{ fontSize: "12.5px", color: "#003087" }}>ReceiveGoods</code>
+                      <code style={{ fontSize: "var(--text-xs-plus)", color: "#003087" }}>ReceiveGoods</code>
                     </td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>Fully received</td>
                   </tr>
                   <tr>
-                    <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8", fontWeight: "600", color: "#0f172a", whiteSpace: "nowrap" }}>Fully received</td>
+                    <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8", fontWeight: "var(--weight-medium)", color: "#0f172a", whiteSpace: "nowrap" }}>Fully received</td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>All lines received</td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>
-                      <code style={{ fontSize: "12.5px", color: "#003087" }}>ReceiveGoods</code>
+                      <code style={{ fontSize: "var(--text-xs-plus)", color: "#003087" }}>ReceiveGoods</code>
                     </td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>Stock updated, Supplier return</td>
                   </tr>
                   <tr>
-                    <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8", fontWeight: "600", color: "#0f172a", whiteSpace: "nowrap" }}>Supplier return</td>
+                    <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8", fontWeight: "var(--weight-medium)", color: "#0f172a", whiteSpace: "nowrap" }}>Supplier return</td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>Damaged, wrong or excess items</td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>
-                      <code style={{ fontSize: "12.5px", color: "#003087" }}>SupplierReturn</code>
+                      <code style={{ fontSize: "var(--text-xs-plus)", color: "#003087" }}>SupplierReturn</code>
                     </td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>Stock updated</td>
                   </tr>
                   <tr>
-                    <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8", fontWeight: "600", color: "#0f172a", whiteSpace: "nowrap" }}>Stock updated</td>
+                    <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8", fontWeight: "var(--weight-medium)", color: "#0f172a", whiteSpace: "nowrap" }}>Stock updated</td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>Automatic on receipt or return</td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>
-                      <code style={{ fontSize: "12.5px", color: "#003087" }}>Stock</code>
+                      <code style={{ fontSize: "var(--text-xs-plus)", color: "#003087" }}>Stock</code>
                     </td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>Transfer, Damage or expiry</td>
                   </tr>
                   <tr>
-                    <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8", fontWeight: "600", color: "#0f172a", whiteSpace: "nowrap" }}>Damage or expiry</td>
+                    <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8", fontWeight: "var(--weight-medium)", color: "#0f172a", whiteSpace: "nowrap" }}>Damage or expiry</td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>Staff reports damage, or an expiry check</td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>
-                      <code style={{ fontSize: "12.5px", color: "#003087" }}>ExpiryDisposal, ExpiryDisposal</code>
+                      <code style={{ fontSize: "var(--text-xs-plus)", color: "#003087" }}>ExpiryDisposal, ExpiryDisposal</code>
                     </td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>—</td>
                   </tr>
                   <tr>
-                    <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8", fontWeight: "600", color: "#0f172a", whiteSpace: "nowrap" }}>Transfer</td>
+                    <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8", fontWeight: "var(--weight-medium)", color: "#0f172a", whiteSpace: "nowrap" }}>Transfer</td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>Staff moves stock between branches or warehouses</td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>
-                      <code style={{ fontSize: "12.5px", color: "#003087" }}>NewTransfer, Transfers</code>
+                      <code style={{ fontSize: "var(--text-xs-plus)", color: "#003087" }}>NewTransfer, Transfers</code>
                     </td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>Transfer received</td>
                   </tr>
                   <tr>
-                    <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8", fontWeight: "600", color: "#0f172a", whiteSpace: "nowrap" }}>Transfer received</td>
+                    <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8", fontWeight: "var(--weight-medium)", color: "#0f172a", whiteSpace: "nowrap" }}>Transfer received</td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>Destination branch confirms</td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>
-                      <code style={{ fontSize: "12.5px", color: "#003087" }}>Transfers</code>
+                      <code style={{ fontSize: "var(--text-xs-plus)", color: "#003087" }}>Transfers</code>
                     </td>
                     <td style={{ padding: "9px 16px", borderBottom: "1px solid #f1f4f8" }}>—</td>
                   </tr>
@@ -320,62 +320,62 @@ export default class FlowPurchaseScreen extends Component {
               </table>
             </section>
             <section>
-              <div style={{ fontSize: "14px", fontWeight: "600", color: "#0f172a", marginBottom: "12px" }}>Screens involved</div>
+              <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a", marginBottom: "12px" }}>Screens involved</div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "12px" }}>
-                <__Link href="/new-po" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "8px", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
-                  <code style={{ fontSize: "13px", fontWeight: "600", color: "#003087" }}>NewPO.dc.html</code>
-                  <span style={{ fontSize: "12.5px", lineHeight: "18px", color: "#475569" }}>Create a PO with items, costs and supplier.</span>
-                  <span className="mono" style={{ fontSize: "11px", color: "#94a3b8" }}>templates/purchase-stock/NewPO.dc.html</span>
+                <__Link href="/new-po" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
+                  <code style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087" }}>NewPO.dc.html</code>
+                  <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Create a PO with items, costs and supplier.</span>
+                  <span className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>templates/purchase-stock/NewPO.dc.html</span>
                 </__Link>
-                <__Link href="/purchase-orders" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "8px", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
-                  <code style={{ fontSize: "13px", fontWeight: "600", color: "#003087" }}>PurchaseOrders.dc.html</code>
-                  <span style={{ fontSize: "12.5px", lineHeight: "18px", color: "#475569" }}>All POs by state, approvals queue.</span>
-                  <span className="mono" style={{ fontSize: "11px", color: "#94a3b8" }}>templates/purchase-stock/PurchaseOrders.dc.html</span>
+                <__Link href="/purchase-orders" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
+                  <code style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087" }}>PurchaseOrders.dc.html</code>
+                  <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>All POs by state, approvals queue.</span>
+                  <span className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>templates/purchase-stock/PurchaseOrders.dc.html</span>
                 </__Link>
-                <__Link href="/po-detail" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "8px", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
-                  <code style={{ fontSize: "13px", fontWeight: "600", color: "#003087" }}>PODetail.dc.html</code>
-                  <span style={{ fontSize: "12.5px", lineHeight: "18px", color: "#475569" }}>One PO: approve, send, track receipts.</span>
-                  <span className="mono" style={{ fontSize: "11px", color: "#94a3b8" }}>templates/purchase-stock/PODetail.dc.html</span>
+                <__Link href="/po-detail" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
+                  <code style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087" }}>PODetail.dc.html</code>
+                  <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>One PO: approve, send, track receipts.</span>
+                  <span className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>templates/purchase-stock/PODetail.dc.html</span>
                 </__Link>
-                <__Link href="/receive-goods" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "8px", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
-                  <code style={{ fontSize: "13px", fontWeight: "600", color: "#003087" }}>ReceiveGoods.dc.html</code>
-                  <span style={{ fontSize: "12.5px", lineHeight: "18px", color: "#475569" }}>Receive full or partial lines, note damage.</span>
-                  <span className="mono" style={{ fontSize: "11px", color: "#94a3b8" }}>templates/purchase-stock/ReceiveGoods.dc.html</span>
+                <__Link href="/receive-goods" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
+                  <code style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087" }}>ReceiveGoods.dc.html</code>
+                  <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Receive full or partial lines, note damage.</span>
+                  <span className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>templates/purchase-stock/ReceiveGoods.dc.html</span>
                 </__Link>
-                <__Link href="/suppliers" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "8px", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
-                  <code style={{ fontSize: "13px", fontWeight: "600", color: "#003087" }}>Suppliers.dc.html</code>
-                  <span style={{ fontSize: "12.5px", lineHeight: "18px", color: "#475569" }}>Supplier list, terms and open POs.</span>
-                  <span className="mono" style={{ fontSize: "11px", color: "#94a3b8" }}>templates/purchase-stock/Suppliers.dc.html</span>
+                <__Link href="/suppliers" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
+                  <code style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087" }}>Suppliers.dc.html</code>
+                  <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Supplier list, terms and open POs.</span>
+                  <span className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>templates/purchase-stock/Suppliers.dc.html</span>
                 </__Link>
-                <__Link href="/supplier-return" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "8px", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
-                  <code style={{ fontSize: "13px", fontWeight: "600", color: "#003087" }}>SupplierReturn.dc.html</code>
-                  <span style={{ fontSize: "12.5px", lineHeight: "18px", color: "#475569" }}>Return damaged or wrong items to a supplier.</span>
-                  <span className="mono" style={{ fontSize: "11px", color: "#94a3b8" }}>templates/purchase-stock/SupplierReturn.dc.html</span>
+                <__Link href="/supplier-return" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
+                  <code style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087" }}>SupplierReturn.dc.html</code>
+                  <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Return damaged or wrong items to a supplier.</span>
+                  <span className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>templates/purchase-stock/SupplierReturn.dc.html</span>
                 </__Link>
-                <__Link href="/transfers" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "8px", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
-                  <code style={{ fontSize: "13px", fontWeight: "600", color: "#003087" }}>Transfers.dc.html</code>
-                  <span style={{ fontSize: "12.5px", lineHeight: "18px", color: "#475569" }}>Transfers between branches and warehouses.</span>
-                  <span className="mono" style={{ fontSize: "11px", color: "#94a3b8" }}>templates/purchase-stock/Transfers.dc.html</span>
+                <__Link href="/transfers" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
+                  <code style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087" }}>Transfers.dc.html</code>
+                  <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Transfers between branches and warehouses.</span>
+                  <span className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>templates/purchase-stock/Transfers.dc.html</span>
                 </__Link>
-                <__Link href="/new-transfer" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "8px", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
-                  <code style={{ fontSize: "13px", fontWeight: "600", color: "#003087" }}>NewTransfer.dc.html</code>
-                  <span style={{ fontSize: "12.5px", lineHeight: "18px", color: "#475569" }}>Start a transfer and pick items.</span>
-                  <span className="mono" style={{ fontSize: "11px", color: "#94a3b8" }}>templates/purchase-stock/NewTransfer.dc.html</span>
+                <__Link href="/new-transfer" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
+                  <code style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087" }}>NewTransfer.dc.html</code>
+                  <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Start a transfer and pick items.</span>
+                  <span className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>templates/purchase-stock/NewTransfer.dc.html</span>
                 </__Link>
-                <__Link href="/stock" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "8px", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
-                  <code style={{ fontSize: "13px", fontWeight: "600", color: "#003087" }}>Stock.dc.html</code>
-                  <span style={{ fontSize: "12.5px", lineHeight: "18px", color: "#475569" }}>Current stock per branch and variant.</span>
-                  <span className="mono" style={{ fontSize: "11px", color: "#94a3b8" }}>templates/purchase-stock/Stock.dc.html</span>
+                <__Link href="/stock" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
+                  <code style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087" }}>Stock.dc.html</code>
+                  <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Current stock per branch and variant.</span>
+                  <span className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>templates/purchase-stock/Stock.dc.html</span>
                 </__Link>
-                <__Link href="/expiry-disposal" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "8px", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
-                  <code style={{ fontSize: "13px", fontWeight: "600", color: "#003087" }}>ExpiryDisposal.dc.html</code>
-                  <span style={{ fontSize: "12.5px", lineHeight: "18px", color: "#475569" }}>Write off damaged stock with a reason.</span>
-                  <span className="mono" style={{ fontSize: "11px", color: "#94a3b8" }}>templates/purchase-stock/ExpiryDisposal.dc.html</span>
+                <__Link href="/expiry-disposal" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
+                  <code style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087" }}>ExpiryDisposal.dc.html</code>
+                  <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Write off damaged stock with a reason.</span>
+                  <span className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>templates/purchase-stock/ExpiryDisposal.dc.html</span>
                 </__Link>
-                <__Link href="/expiry-disposal" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "8px", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
-                  <code style={{ fontSize: "13px", fontWeight: "600", color: "#003087" }}>ExpiryDisposal.dc.html</code>
-                  <span style={{ fontSize: "12.5px", lineHeight: "18px", color: "#475569" }}>Expiring batches and disposal.</span>
-                  <span className="mono" style={{ fontSize: "11px", color: "#94a3b8" }}>templates/purchase-stock/ExpiryDisposal.dc.html</span>
+                <__Link href="/expiry-disposal" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "14px 16px", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", border: "1px solid transparent" }}>
+                  <code style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087" }}>ExpiryDisposal.dc.html</code>
+                  <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Expiring batches and disposal.</span>
+                  <span className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>templates/purchase-stock/ExpiryDisposal.dc.html</span>
                 </__Link>
               </div>
             </section>

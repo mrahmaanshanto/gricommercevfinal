@@ -160,7 +160,7 @@ const CSS = `.dc-h665:hover{background:#f8fafc !important;border-color:#cbd5e1 !
 .dc-h666:hover{background:#f1f5f9 !important}
 .dc-h667:hover{background:#f1f5f9 !important}
 .dc-h668:hover{background:#f8fafc !important}
-.dc-h669:hover{border-color:#cbd5e1 !important;color:#64748b !important}
+.dc-h669:hover{border-color:#cbd5e1 !important;color:var(--text-muted) !important}
 .dc-h670:hover{border-color:#cbd5e1 !important;background:#f8fafc !important}
 .dc-f671:focus,.dc-f671:focus-visible,.dc-f671:focus-within{border-color:#003087 !important}
 .dc-f672:focus,.dc-f672:focus-visible,.dc-f672:focus-within{border-color:#003087 !important}
@@ -174,49 +174,49 @@ export default class StaffAccessScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="StaffAccess">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "100%", display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: "16px", alignItems: "start", fontFamily: "Poppins,'Hind Siliguri',ui-sans-serif,system-ui,sans-serif", color: "#475569" }}>
+        <div className="gc-split" style={{ width: "100%", display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: "16px", alignItems: "start", fontFamily: "var(--font-sans)", color: "#475569" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
-            <section style={{ display: "flex", flexDirection: "column", gap: "14px", borderRadius: "8px", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+            <section style={{ display: "flex", flexDirection: "column", gap: "14px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                <h2 style={{ margin: "0", flex: "1", minWidth: "160px", fontSize: "15px", lineHeight: "22px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.roleTitle}</h2>
-                <a href="#" style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12.5px", fontWeight: "500", letterSpacing: ".025em", color: "#003087", textDecoration: "underline", textUnderlineOffset: "3px" }}><__Icon name="plus" strokeWidth="1.75" width="14" height="14" />{v.t?.createRole}</a>
+                <h2 style={{ margin: "0", flex: "1", minWidth: "160px", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.roleTitle}</h2>
+                <a href="#" style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#003087", textDecoration: "underline", textUnderlineOffset: "3px" }}><__Icon name="plus" strokeWidth="1.75" width="14" height="14" />{v.t?.createRole}</a>
               </div>
               <div role="radiogroup" aria-label={v.t?.roleTitle} style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                 {__list(v.roles).map((r, $index) => (<React.Fragment key={$index}>
                     {r?.sel ? (<>
-                      <button type="button" role="radio" aria-checked="true" onClick={r?.act} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", border: "1px solid rgba(0,48,135,.25)", borderRadius: "8px", background: "rgba(0,48,135,.1)", padding: "0 13px", fontFamily: "inherit", fontSize: "13.5px", fontWeight: "600", letterSpacing: ".025em", cursor: "pointer", color: "#003087" }}><__Icon name={r?.icon} strokeWidth="1.75" width="15" height="15" />{r?.label}</button>
+                      <button type="button" role="radio" aria-checked="true" onClick={r?.act} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", border: "1px solid rgba(0,48,135,.25)", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.1)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer", color: "#003087" }}><__Icon name={r?.icon} strokeWidth="1.75" width="15" height="15" />{r?.label}</button>
                     </>) : null}
                     {r?.unsel ? (<>
-                      <button className="dc-h665" type="button" role="radio" aria-checked="false" onClick={r?.act} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 13px", fontFamily: "inherit", fontSize: "13.5px", fontWeight: "500", letterSpacing: ".025em", cursor: "pointer", color: "#475569" }}><__Icon name={r?.icon} strokeWidth="1.75" width="15" height="15" />{r?.label}</button>
+                      <button className="dc-h665" type="button" role="radio" aria-checked="false" onClick={r?.act} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer", color: "#475569" }}><__Icon name={r?.icon} strokeWidth="1.75" width="15" height="15" />{r?.label}</button>
                     </>) : null}
                   </React.Fragment>))}
               </div>
-              <p style={{ margin: "0", fontSize: "13px", lineHeight: "20px", color: "#64748b", textWrap: "pretty" }}>{v.roleNote}</p>
+              <p style={{ margin: "0", fontSize: "var(--text-xs-plus)", lineHeight: "20px", color: "var(--text-muted)", textWrap: "pretty" }}>{v.roleNote}</p>
             </section>
-            <section style={{ borderRadius: "8px", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", overflow: "hidden" }}>
+            <section style={{ borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", overflow: "hidden" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "18px 20px 14px", flexWrap: "wrap" }}>
                 <div style={{ flex: "1", minWidth: "200px" }}>
-                  <h2 style={{ margin: "0", fontSize: "15px", lineHeight: "22px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.matrixTitle}</h2>
-                  <p style={{ margin: "2px 0 0", fontSize: "12.5px", color: "#64748b" }}>{v.matrixMeta}</p>
+                  <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.matrixTitle}</h2>
+                  <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.matrixMeta}</p>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <button className="dc-h666" type="button" onClick={v.expandAll} style={{ height: "32px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 12px", fontFamily: "inherit", fontSize: "12.5px", fontWeight: "500", letterSpacing: ".025em", color: "#475569", cursor: "pointer" }}>{v.expandLabel}</button>
-                  <button className="dc-h667" type="button" onClick={v.resetAll} style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "32px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 12px", fontFamily: "inherit", fontSize: "12.5px", fontWeight: "500", letterSpacing: ".025em", color: "#475569", cursor: "pointer" }}><__Icon name="rotate-ccw" strokeWidth="1.75" width="14" height="14" />{v.t?.resetToRole}</button>
+                  <button className="dc-h666" type="button" onClick={v.expandAll} style={{ height: "32px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#475569", cursor: "pointer" }}>{v.expandLabel}</button>
+                  <button className="dc-h667" type="button" onClick={v.resetAll} style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "32px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#475569", cursor: "pointer" }}><__Icon name="rotate-ccw" strokeWidth="1.75" width="14" height="14" />{v.t?.resetToRole}</button>
                 </div>
               </div>
               {__list(v.areas).map((a, $index) => (<React.Fragment key={$index}>
                   <div style={{ borderTop: "1px solid #e2e8f0" }}>
                     <button className="dc-h668" type="button" onClick={a?.toggleOpen} aria-expanded={a?.open} style={{ display: "flex", alignItems: "center", gap: "12px", width: "100%", border: "none", background: "#fff", padding: "12px 20px", fontFamily: "inherit", textAlign: "left", cursor: "pointer" }}>
-                      <span style={{ display: "grid", placeItems: "center", width: "30px", height: "30px", flex: "none", borderRadius: "8px", background: "#f1f5f9", color: "#475569" }}>
+                      <span style={{ display: "grid", placeItems: "center", width: "30px", height: "30px", flex: "none", borderRadius: "var(--radius-lg)", background: "#f1f5f9", color: "#475569" }}>
                         <__Icon name={a?.icon} strokeWidth="1.75" width="16" height="16" />
                       </span>
                       <span style={{ flex: "1", minWidth: "0" }}>
-                        <span style={{ display: "block", fontSize: "13.5px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{a?.label}</span>
+                        <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{a?.label}</span>
                         {" "}
-                        <span style={{ display: "block", marginTop: "1px", fontSize: "12px", color: "#64748b" }}>{a?.summary}</span>
+                        <span style={{ display: "block", marginTop: "1px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{a?.summary}</span>
                       </span>
                       {a?.hasOv ? (<>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "22px", flex: "none", borderRadius: "9999px", background: "rgba(255,152,0,.14)", padding: "0 9px", fontSize: "11.5px", fontWeight: "600", color: "#b45309" }}><__Icon name="pencil" strokeWidth="1.75" width="12" height="12" />{a?.tagText}</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "22px", flex: "none", borderRadius: "var(--radius-full)", background: "rgba(255,152,0,.14)", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#b45309" }}><__Icon name="pencil" strokeWidth="1.75" width="12" height="12" />{a?.tagText}</span>
                       </>) : null}
                       <span style={{ display: "flex", alignItems: "center", gap: "4px", flex: "none" }}>
                         {__list(a?.dots).map((d, $index) => (<React.Fragment key={$index}>
@@ -231,153 +231,153 @@ export default class StaffAccessScreen extends Component {
                             </>) : null}
                           </React.Fragment>))}
                       </span>
-                      <__Icon name={a?.chev} strokeWidth="1.75" width="17" height="17" style={{ flex: "none", color: "#94a3b8" }} />
+                      <__Icon name={a?.chev} strokeWidth="1.75" width="17" height="17" style={{ flex: "none", color: "var(--text-muted)" }} />
                     </button>
                     {a?.open ? (<>
                       <div style={{ padding: "4px 20px 16px 62px", background: "#fff" }}>
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(6,minmax(0,1fr))", gap: "8px" }}>
+                        <div className="gc-cols-6" style={{ display: "grid", gridTemplateColumns: "repeat(6,minmax(0,1fr))", gap: "8px" }}>
                           {__list(a?.cells).map((c, $index) => (<React.Fragment key={$index}>
                               <div style={{ position: "relative" }}>
                                 {c?.plainOn ? (<>
-                                  <button type="button" onClick={c?.act} aria-pressed="true" aria-label={c?.aria} style={{ display: "flex", alignItems: "center", gap: "7px", width: "100%", height: "44px", border: "1px solid rgba(0,48,135,.18)", borderRadius: "8px", background: "rgba(0,48,135,.08)", padding: "0 10px", fontFamily: "inherit", fontSize: "12.5px", fontWeight: "600", letterSpacing: ".025em", textAlign: "left", cursor: "pointer", color: "#003087" }}>
+                                  <button type="button" onClick={c?.act} aria-pressed="true" aria-label={c?.aria} style={{ display: "flex", alignItems: "center", gap: "7px", width: "100%", height: "44px", border: "1px solid rgba(0,48,135,.18)", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.08)", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textAlign: "left", cursor: "pointer", color: "#003087" }}>
                                     <__Icon name={c?.icon} strokeWidth="1.75" width="15" height="15" style={{ flex: "none" }} />
                                     <span style={{ flex: "1", minWidth: "0" }}>{c?.label}</span>
                                   </button>
                                 </>) : null}
                                 {c?.plainOff ? (<>
-                                  <button className="dc-h669" type="button" onClick={c?.act} aria-pressed="false" aria-label={c?.aria} style={{ display: "flex", alignItems: "center", gap: "7px", width: "100%", height: "44px", border: "1px solid #e9eef5", borderRadius: "8px", background: "#f8fafc", padding: "0 10px", fontFamily: "inherit", fontSize: "12.5px", fontWeight: "500", letterSpacing: ".025em", textAlign: "left", cursor: "pointer", color: "#94a3b8" }}>
+                                  <button className="dc-h669" type="button" onClick={c?.act} aria-pressed="false" aria-label={c?.aria} style={{ display: "flex", alignItems: "center", gap: "7px", width: "100%", height: "44px", border: "1px solid #e9eef5", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textAlign: "left", cursor: "pointer", color: "var(--text-muted)" }}>
                                     <__Icon name={c?.icon} strokeWidth="1.75" width="15" height="15" style={{ flex: "none" }} />
                                     <span style={{ flex: "1", minWidth: "0" }}>{c?.label}</span>
                                   </button>
                                 </>) : null}
                                 {c?.ovOn ? (<>
-                                  <button type="button" onClick={c?.act} aria-pressed="true" aria-label={c?.aria} style={{ display: "flex", alignItems: "center", gap: "7px", width: "100%", height: "44px", border: "1px solid #f4b740", borderRadius: "8px", background: "rgba(255,152,0,.1)", padding: "0 10px", fontFamily: "inherit", fontSize: "12.5px", fontWeight: "600", letterSpacing: ".025em", textAlign: "left", cursor: "pointer", color: "#9a3412" }}>
+                                  <button type="button" onClick={c?.act} aria-pressed="true" aria-label={c?.aria} style={{ display: "flex", alignItems: "center", gap: "7px", width: "100%", height: "44px", border: "1px solid #f4b740", borderRadius: "var(--radius-lg)", background: "rgba(255,152,0,.1)", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textAlign: "left", cursor: "pointer", color: "#9a3412" }}>
                                     <__Icon name={c?.icon} strokeWidth="1.75" width="15" height="15" style={{ flex: "none" }} />
                                     <span style={{ flex: "1", minWidth: "0" }}>{c?.label}</span>
-                                    <span style={{ fontSize: "10px", fontWeight: "700", letterSpacing: ".06em", color: "#b45309" }}>{v.t?.override}</span>
+                                    <span style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", color: "#b45309" }}>{v.t?.override}</span>
                                   </button>
                                 </>) : null}
                                 {c?.ovOff ? (<>
-                                  <button type="button" onClick={c?.act} aria-pressed="false" aria-label={c?.aria} style={{ display: "flex", alignItems: "center", gap: "7px", width: "100%", height: "44px", border: "1px solid #f4b740", borderRadius: "8px", background: "#fff7ed", padding: "0 10px", fontFamily: "inherit", fontSize: "12.5px", fontWeight: "500", letterSpacing: ".025em", textAlign: "left", cursor: "pointer", color: "#9a3412" }}>
+                                  <button type="button" onClick={c?.act} aria-pressed="false" aria-label={c?.aria} style={{ display: "flex", alignItems: "center", gap: "7px", width: "100%", height: "44px", border: "1px solid #f4b740", borderRadius: "var(--radius-lg)", background: "#fff7ed", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", textAlign: "left", cursor: "pointer", color: "#9a3412" }}>
                                     <__Icon name={c?.icon} strokeWidth="1.75" width="15" height="15" style={{ flex: "none" }} />
                                     <span style={{ flex: "1", minWidth: "0" }}>{c?.label}</span>
-                                    <span style={{ fontSize: "10px", fontWeight: "700", letterSpacing: ".06em", color: "#b45309" }}>{v.t?.override}</span>
+                                    <span style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", color: "#b45309" }}>{v.t?.override}</span>
                                   </button>
                                 </>) : null}
                                 {c?.isOv ? (<>
-                                  <button type="button" onClick={c?.reset} aria-label={c?.resetAria} title={c?.resetAria} style={{ position: "absolute", top: "-7px", right: "-7px", width: "22px", height: "22px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "9999px", background: "#fff", color: "#b45309", cursor: "pointer", boxShadow: "0 1px 3px 0 rgba(48,46,56,.12)" }}>
+                                  <button type="button" onClick={c?.reset} aria-label={c?.resetAria} title={c?.resetAria} style={{ position: "absolute", top: "-7px", right: "-7px", width: "22px", height: "22px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-full)", background: "#fff", color: "#b45309", cursor: "pointer", boxShadow: "0 1px 3px 0 rgba(48,46,56,.12)" }}>
                                     <__Icon name="rotate-ccw" strokeWidth="1.75" width="12" height="12" />
                                   </button>
                                 </>) : null}
                               </div>
                             </React.Fragment>))}
                         </div>
-                        <p style={{ margin: "10px 0 0", fontSize: "12px", lineHeight: "18px", color: "#94a3b8", textWrap: "pretty" }}>{a?.note}</p>
+                        <p style={{ margin: "10px 0 0", fontSize: "var(--text-xs)", lineHeight: "18px", color: "var(--text-muted)", textWrap: "pretty" }}>{a?.note}</p>
                       </div>
                     </>) : null}
                   </div>
                 </React.Fragment>))}
             </section>
-            <section style={{ display: "flex", flexDirection: "column", gap: "14px", borderRadius: "8px", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
-              <h2 style={{ margin: "0", fontSize: "15px", lineHeight: "22px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.scopeTitle}</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "10px" }}>
+            <section style={{ display: "flex", flexDirection: "column", gap: "14px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+              <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.scopeTitle}</h2>
+              <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "10px" }}>
                 {__list(v.scopes).map((s, $index) => (<React.Fragment key={$index}>
                     {s?.sel ? (<>
-                      <button type="button" onClick={s?.act} aria-pressed="true" style={{ display: "flex", alignItems: "center", gap: "11px", border: "1px solid rgba(0,48,135,.22)", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "12px 13px", fontFamily: "inherit", textAlign: "left", cursor: "pointer" }}>
-                        <span style={{ display: "grid", placeItems: "center", width: "20px", height: "20px", flex: "none", border: "1px solid #003087", borderRadius: "6px", background: "#003087", color: "#fff" }}>
+                      <button type="button" onClick={s?.act} aria-pressed="true" style={{ display: "flex", alignItems: "center", gap: "11px", border: "1px solid rgba(0,48,135,.22)", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.06)", padding: "12px 13px", fontFamily: "inherit", textAlign: "left", cursor: "pointer" }}>
+                        <span style={{ display: "grid", placeItems: "center", width: "20px", height: "20px", flex: "none", border: "1px solid #003087", borderRadius: "var(--radius-md)", background: "#003087", color: "#fff" }}>
                           <__Icon name="check" strokeWidth="1.75" width="13" height="13" />
                         </span>
                         <span style={{ flex: "1", minWidth: "0" }}>
-                          <span style={{ display: "block", fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>{s?.label}</span>
-                          <span style={{ display: "block", fontSize: "12px", color: "#64748b" }}>{s?.meta}</span>
+                          <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{s?.label}</span>
+                          <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{s?.meta}</span>
                         </span>
                       </button>
                     </>) : null}
                     {s?.unsel ? (<>
-                      <button className="dc-h670" type="button" onClick={s?.act} aria-pressed="false" style={{ display: "flex", alignItems: "center", gap: "11px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "12px 13px", fontFamily: "inherit", textAlign: "left", cursor: "pointer" }}>
-                        <span style={{ display: "grid", placeItems: "center", width: "20px", height: "20px", flex: "none", border: "1px solid #cbd5e1", borderRadius: "6px", background: "#fff", color: "#94a3b8" }}>
+                      <button className="dc-h670" type="button" onClick={s?.act} aria-pressed="false" style={{ display: "flex", alignItems: "center", gap: "11px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "12px 13px", fontFamily: "inherit", textAlign: "left", cursor: "pointer" }}>
+                        <span style={{ display: "grid", placeItems: "center", width: "20px", height: "20px", flex: "none", border: "1px solid #cbd5e1", borderRadius: "var(--radius-md)", background: "#fff", color: "var(--text-muted)" }}>
                           <__Icon name="minus" strokeWidth="1.75" width="13" height="13" />
                         </span>
                         <span style={{ flex: "1", minWidth: "0" }}>
-                          <span style={{ display: "block", fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>{s?.label}</span>
-                          <span style={{ display: "block", fontSize: "12px", color: "#64748b" }}>{s?.meta}</span>
+                          <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{s?.label}</span>
+                          <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{s?.meta}</span>
                         </span>
                       </button>
                     </>) : null}
                   </React.Fragment>))}
               </div>
             </section>
-            <section style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "16px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "14px", borderRadius: "8px", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
-                <h2 style={{ margin: "0", fontSize: "15px", lineHeight: "22px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.visTitle}</h2>
+            <section className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "16px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+                <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.visTitle}</h2>
                 {__list(v.vis).map((v, $index) => (<React.Fragment key={$index}>
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       <div style={{ flex: "1", minWidth: "0" }}>
-                        <p style={{ margin: "0", fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>{v?.label}</p>
-                        <p style={{ margin: "1px 0 0", fontSize: "12px", color: "#64748b", textWrap: "pretty" }}>{v?.help}</p>
+                        <p style={{ margin: "0", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{v?.label}</p>
+                        <p style={{ margin: "1px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)", textWrap: "pretty" }}>{v?.help}</p>
                       </div>
-                      <div role="group" aria-label={v?.label} style={{ display: "flex", alignItems: "center", gap: "2px", height: "34px", flex: "none", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#f8fafc", padding: "3px" }}>
+                      <div role="group" aria-label={v?.label} style={{ display: "flex", alignItems: "center", gap: "2px", height: "34px", flex: "none", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "3px" }}>
                         {v?.offSel ? (<>
-                          <button type="button" onClick={v?.setOff} aria-pressed="true" style={{ height: "26px", border: "none", borderRadius: "6px", padding: "0 10px", fontFamily: "inherit", fontSize: "12px", fontWeight: "600", cursor: "pointer", background: "#fff", color: "#1e293b", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)" }}>{v?.offLabel}</button>
+                          <button type="button" onClick={v?.setOff} aria-pressed="true" style={{ height: "28px", border: "none", borderRadius: "var(--radius-md)", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer", background: "#fff", color: "#1e293b", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)" }}>{v?.offLabel}</button>
                         </>) : null}
                         {v?.offUnsel ? (<>
-                          <button type="button" onClick={v?.setOff} aria-pressed="false" style={{ height: "26px", border: "none", borderRadius: "6px", padding: "0 10px", fontFamily: "inherit", fontSize: "12px", fontWeight: "500", cursor: "pointer", background: "transparent", color: "#64748b" }}>{v?.offLabel}</button>
+                          <button type="button" onClick={v?.setOff} aria-pressed="false" style={{ height: "28px", border: "none", borderRadius: "var(--radius-md)", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer", background: "transparent", color: "var(--text-muted)" }}>{v?.offLabel}</button>
                         </>) : null}
                         {v?.onSel ? (<>
-                          <button type="button" onClick={v?.setOn} aria-pressed="true" style={{ height: "26px", border: "none", borderRadius: "6px", padding: "0 10px", fontFamily: "inherit", fontSize: "12px", fontWeight: "600", cursor: "pointer", background: "#fff", color: "#1e293b", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)" }}>{v?.onLabel}</button>
+                          <button type="button" onClick={v?.setOn} aria-pressed="true" style={{ height: "28px", border: "none", borderRadius: "var(--radius-md)", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer", background: "#fff", color: "#1e293b", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)" }}>{v?.onLabel}</button>
                         </>) : null}
                         {v?.onUnsel ? (<>
-                          <button type="button" onClick={v?.setOn} aria-pressed="false" style={{ height: "26px", border: "none", borderRadius: "6px", padding: "0 10px", fontFamily: "inherit", fontSize: "12px", fontWeight: "500", cursor: "pointer", background: "transparent", color: "#64748b" }}>{v?.onLabel}</button>
+                          <button type="button" onClick={v?.setOn} aria-pressed="false" style={{ height: "28px", border: "none", borderRadius: "var(--radius-md)", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer", background: "transparent", color: "var(--text-muted)" }}>{v?.onLabel}</button>
                         </>) : null}
                       </div>
                     </div>
                   </React.Fragment>))}
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "14px", borderRadius: "8px", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
-                <h2 style={{ margin: "0", fontSize: "15px", lineHeight: "22px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.limitsTitle}</h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+                <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.limitsTitle}</h2>
                 {__list(v.limits).map((l, $index) => (<React.Fragment key={$index}>
                     <label style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       <span style={{ flex: "1", minWidth: "0" }}>
-                        <span style={{ display: "block", fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>{l?.label}</span>
-                        <span style={{ display: "block", fontSize: "12px", color: "#64748b" }}>{l?.help}</span>
+                        <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{l?.label}</span>
+                        <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{l?.help}</span>
                       </span>
-                      <span className="dc-f671" style={{ display: "flex", alignItems: "center", height: "36px", flex: "none", width: "122px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 10px", gap: "6px" }}>
-                        <span style={{ fontSize: "13px", color: "#64748b" }}>{l?.prefix}</span>
-                        <input type="text" value={l?.value} onChange={l?.act} aria-label={l?.label} style={{ width: "100%", minWidth: "0", border: "none", outline: "none", background: "none", fontFamily: "inherit", fontSize: "13.5px", fontWeight: "600", color: "#1e293b", textAlign: "right", fontVariantNumeric: "tabular-nums" }} />
-                        <span style={{ fontSize: "13px", color: "#64748b" }}>{l?.suffix}</span>
+                      <span className="dc-f671" style={{ display: "flex", alignItems: "center", height: "36px", flex: "none", width: "122px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 10px", gap: "6px" }}>
+                        <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{l?.prefix}</span>
+                        <input type="text" value={l?.value} onChange={l?.act} aria-label={l?.label} style={{ width: "100%", minWidth: "0", border: "none", outline: "none", background: "none", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b", textAlign: "right", fontVariantNumeric: "tabular-nums" }} />
+                        <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{l?.suffix}</span>
                       </span>
                     </label>
                   </React.Fragment>))}
               </div>
             </section>
-            <section style={{ display: "flex", flexDirection: "column", gap: "14px", borderRadius: "8px", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
-              <h2 style={{ margin: "0", fontSize: "15px", lineHeight: "22px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.securityTitle}</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "14px" }}>
+            <section style={{ display: "flex", flexDirection: "column", gap: "14px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+              <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.securityTitle}</h2>
+              <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "14px" }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                   {__list(v.security).map((sw, $index) => (<React.Fragment key={$index}>
                       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                         <div style={{ flex: "1", minWidth: "0" }}>
-                          <p style={{ margin: "0", fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>{sw?.label}</p>
-                          <p style={{ margin: "1px 0 0", fontSize: "12px", color: "#64748b", textWrap: "pretty" }}>{sw?.help}</p>
+                          <p style={{ margin: "0", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{sw?.label}</p>
+                          <p style={{ margin: "1px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)", textWrap: "pretty" }}>{sw?.help}</p>
                         </div>
                         {sw?.isOn ? (<>
-                          <button type="button" onClick={sw?.act} role="switch" aria-checked="true" aria-label={sw?.label} style={{ position: "relative", width: "44px", height: "26px", flex: "none", border: "none", borderRadius: "9999px", cursor: "pointer", background: "#003087" }}>
-                            <span style={{ position: "absolute", top: "3px", left: "21px", width: "20px", height: "20px", borderRadius: "9999px", background: "#fff", boxShadow: "0 1px 3px 0 rgba(48,46,56,.3)", transition: "left .2s cubic-bezier(0,0,.2,1)" }} />
+                          <button type="button" onClick={sw?.act} role="switch" aria-checked="true" aria-label={sw?.label} style={{ position: "relative", width: "44px", height: "28px", flex: "none", border: "none", borderRadius: "var(--radius-full)", cursor: "pointer", background: "#003087" }}>
+                            <span style={{ position: "absolute", top: "3px", left: "21px", width: "20px", height: "20px", borderRadius: "var(--radius-full)", background: "#fff", boxShadow: "0 1px 3px 0 rgba(48,46,56,.3)", transition: "left .2s cubic-bezier(0,0,.2,1)" }} />
                           </button>
                         </>) : null}
                         {sw?.isOff ? (<>
-                          <button type="button" onClick={sw?.act} role="switch" aria-checked="false" aria-label={sw?.label} style={{ position: "relative", width: "44px", height: "26px", flex: "none", border: "none", borderRadius: "9999px", cursor: "pointer", background: "#cbd5e1" }}>
-                            <span style={{ position: "absolute", top: "3px", left: "3px", width: "20px", height: "20px", borderRadius: "9999px", background: "#fff", boxShadow: "0 1px 3px 0 rgba(48,46,56,.3)", transition: "left .2s cubic-bezier(0,0,.2,1)" }} />
+                          <button type="button" onClick={sw?.act} role="switch" aria-checked="false" aria-label={sw?.label} style={{ position: "relative", width: "44px", height: "28px", flex: "none", border: "none", borderRadius: "var(--radius-full)", cursor: "pointer", background: "#cbd5e1" }}>
+                            <span style={{ position: "absolute", top: "3px", left: "3px", width: "20px", height: "20px", borderRadius: "var(--radius-full)", background: "#fff", boxShadow: "0 1px 3px 0 rgba(48,46,56,.3)", transition: "left .2s cubic-bezier(0,0,.2,1)" }} />
                           </button>
                         </>) : null}
                       </div>
                     </React.Fragment>))}
                   <label style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <span style={{ flex: "1", minWidth: "0" }}>
-                      <span style={{ display: "block", fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>{v.t?.sessionTimeout}</span>
-                      <span style={{ display: "block", fontSize: "12px", color: "#64748b" }}>{v.t?.sessionHelp}</span>
+                      <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{v.t?.sessionTimeout}</span>
+                      <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{v.t?.sessionHelp}</span>
                     </span>
-                    <select className="dc-f672" onChange={v.setTimeout2} aria-label={v.t?.sessionTimeout} style={{ height: "36px", flex: "none", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 9px", fontFamily: "inherit", fontSize: "13px", fontWeight: "500", color: "#1e293b", cursor: "pointer" }}>
+                    <select className="dc-f672" onChange={v.setTimeout2} aria-label={v.t?.sessionTimeout} style={{ height: "36px", flex: "none", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 9px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b", cursor: "pointer" }}>
                       <option>{v.t?.min30}</option>
                       <option>{v.t?.hr2}</option>
                       <option>{v.t?.hr8}</option>
@@ -386,19 +386,19 @@ export default class StaffAccessScreen extends Component {
                   </label>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <p style={{ margin: "0", fontSize: "12px", fontWeight: "600", letterSpacing: ".025em", color: "#64748b" }}>{v.t?.trusted}</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>{v.t?.trusted}</p>
                   {__list(v.devices).map((d, $index) => (<React.Fragment key={$index}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", borderRadius: "8px", background: "#f8fafc", padding: "9px 11px" }}>
-                        <__Icon name={d?.icon} strokeWidth="1.75" width="17" height="17" style={{ flex: "none", color: "#64748b" }} />
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "9px 11px" }}>
+                        <__Icon name={d?.icon} strokeWidth="1.75" width="17" height="17" style={{ flex: "none", color: "var(--text-muted)" }} />
                         <div style={{ flex: "1", minWidth: "0" }}>
-                          <p style={{ margin: "0", fontSize: "12.5px", fontWeight: "500", color: "#1e293b" }}>{d?.name}</p>
-                          <p style={{ margin: "0", fontSize: "11.5px", color: "#94a3b8" }}>{d?.meta}</p>
+                          <p style={{ margin: "0", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{d?.name}</p>
+                          <p style={{ margin: "0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{d?.meta}</p>
                         </div>
                         {d?.live ? (<>
-                          <button className="dc-h673" type="button" onClick={d?.act} style={{ height: "28px", flex: "none", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 10px", fontFamily: "inherit", fontSize: "12px", fontWeight: "500", color: "#c2410c", cursor: "pointer" }}>{d?.btn}</button>
+                          <button className="dc-h673" type="button" onClick={d?.act} style={{ height: "28px", flex: "none", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#c2410c", cursor: "pointer" }}>{d?.btn}</button>
                         </>) : null}
                         {d?.out ? (<>
-                          <span style={{ display: "inline-flex", alignItems: "center", height: "28px", flex: "none", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#f8fafc", padding: "0 10px", fontSize: "12px", fontWeight: "500", color: "#94a3b8" }}>{d?.btn}</span>
+                          <span style={{ display: "inline-flex", alignItems: "center", height: "28px", flex: "none", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "0 10px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>{d?.btn}</span>
                         </>) : null}
                       </div>
                     </React.Fragment>))}
@@ -407,17 +407,17 @@ export default class StaffAccessScreen extends Component {
             </section>
           </div>
           <aside style={{ display: "flex", flexDirection: "column", gap: "16px", position: "sticky", top: "0" }}>
-            <section style={{ display: "flex", flexDirection: "column", gap: "10px", borderRadius: "8px", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
-              <h2 style={{ margin: "0", fontSize: "15px", lineHeight: "22px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.historyTitle}</h2>
+            <section style={{ display: "flex", flexDirection: "column", gap: "10px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+              <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.historyTitle}</h2>
               <ol style={{ margin: "0", padding: "0", listStyle: "none", display: "flex", flexDirection: "column", gap: "11px" }}>
                 {__list(v.history).map((h, $index) => (<React.Fragment key={$index}>
                     <li style={{ display: "flex", alignItems: "flex-start", gap: "9px" }}>
-                      <span style={{ display: "grid", placeItems: "center", width: "26px", height: "26px", flex: "none", borderRadius: "8px", background: "#f1f5f9", color: "#475569" }}>
+                      <span style={{ display: "grid", placeItems: "center", width: "26px", height: "26px", flex: "none", borderRadius: "var(--radius-lg)", background: "#f1f5f9", color: "#475569" }}>
                         <__Icon name={h?.icon} strokeWidth="1.75" width="13" height="13" />
                       </span>
                       <div style={{ minWidth: "0" }}>
-                        <p style={{ margin: "0", fontSize: "12.5px", fontWeight: "500", color: "#1e293b", textWrap: "pretty" }}>{h?.text}</p>
-                        <p style={{ margin: "1px 0 0", fontSize: "11.5px", color: "#94a3b8" }}>{h?.when}</p>
+                        <p style={{ margin: "0", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b", textWrap: "pretty" }}>{h?.text}</p>
+                        <p style={{ margin: "1px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{h?.when}</p>
                       </div>
                     </li>
                   </React.Fragment>))}

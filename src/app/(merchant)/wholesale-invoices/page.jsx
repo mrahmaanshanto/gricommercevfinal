@@ -1,7 +1,6 @@
-import Screen from '@/screens/sales/WholesaleInvoices';
+import { redirect } from 'next/navigation';
 
-export const metadata = { title: "Wholesale invoices" };
-
+// Wholesale no longer has its own screens: invoices are one list, made from New sale.
 export default function Page() {
-  return <Screen />;
+  redirect('/sales-invoices');
 }

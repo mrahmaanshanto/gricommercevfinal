@@ -81,7 +81,7 @@ class Component extends DCLogic {
       sendTest: function () {
         if (!pidOk) { toast(self, 'Add a valid Pixel ID before testing.', true); self.setState({ step: 2 }); return; }
         if (!/^TEST\d{3,6}$/.test(tcode)) { toast(self, 'Test codes look like TEST48213. Copy it from the Test events tab.', true); return; }
-        self.setState({ tested: true, step: 5 }); toast(self, 'Test Purchase sent to Meta with ' + tcode + ' · ৳2,450 BDT · browser and server merged.');
+        self.setState({ tested: true, step: 5 }); toast(self, 'Test Purchase sent to Meta with ' + tcode + ' · ৳৳2,450 · browser and server merged.');
       },
       testC: tested ? '#047857' : '#64748b', testNote: tested ? 'Received in Events Manager · 1 event after merging' : 'The event appears in Events Manager within about 30 seconds.',
       liveCls: live ? 'soft' : tested ? 'solid' : 'line', liveLabel: live ? 'Live' : 'Go live',
@@ -97,44 +97,44 @@ class Component extends DCLogic {
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `
-body{margin:0;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
+body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
 a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:12px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:8px;color:#475569;font-size:14px;font-weight:500;letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
+.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
+.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
 .nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
 .nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:11px;line-height:16px;font-weight:600;letter-spacing:.08em;color:#64748b;padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:8px;border:0;font:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
+.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
 .btn:hover{text-decoration:none}
 .btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
 .soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
 .line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
 .warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:15px}
-.sm{height:36px;padding:0 12px;font-size:13px}
-.ib{width:40px;height:40px;border-radius:999px;border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
+.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
+.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
 .ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font:inherit;font-size:14px;color:#1e293b;transition:border-color 200ms}
+.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
 .inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:#64748b}
-.lbl{font-size:13px;line-height:18px;font-weight:500;color:#334155}
-.tab{height:40px;padding:0 14px;border-radius:999px;border:0;background:transparent;font:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
+.inp::placeholder{color:var(--text-muted)}
+.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
+.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
 .tab:hover{background:#f1f5f9;color:#0f172a}
 .tab.on{background:#003087;color:#fff}
-.chip{height:40px;padding:0 14px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:13px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
+.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
 .chip:hover{border-color:#94a3b8}
 .chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:14px;line-height:20px;vertical-align:middle}
+.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
 .row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
+.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
+.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
 .b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
 .b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
 .b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.02em}
+.mono{font-family:var(--font-data);letter-spacing:.02em}
 .fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
 @keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 .flash{animation:gcFlash 900ms ease-out}
@@ -142,46 +142,46 @@ a{color:#003087}a:hover{color:#002a77}
 .scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
 @keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
 
-.sw{position:relative;width:48px;height:28px;border-radius:999px;border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
+.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
 .sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
 .sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
 .t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
 .actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:'Hind Siliguri','Poppins',sans-serif}
+.bn{font-family:var(--font-bn)}
 .pulse{animation:gcPulse 1.6s ease-in-out infinite}
 @keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
-.psec{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#64748b}
+.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
+.psec{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
 .num{font-variant-numeric:tabular-nums}
-.ai{height:30px;padding:0 10px;border-radius:8px;border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
+.ai{height:28px;padding:0 10px;border-radius:var(--radius-lg);border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
 .ai:hover{border-color:#a78bfa;box-shadow:0 4px 12px -6px rgba(91,33,182,.5)}
 .ai:focus-visible{outline:3px solid rgba(124,58,237,.4);outline-offset:2px}
-.abtn{height:32px;padding:0 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:12.5px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.abtn{height:32px;padding:0 12px;border-radius:var(--radius-lg);border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .abtn:hover{background:#f1f5f9}
 .ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0}
-.ptab{position:relative;height:48px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:13.5px;font-weight:500;color:#64748b;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:600}
+.ptab{position:relative;height:52px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:var(--weight-medium)}
 .ptab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2.5px;border-radius:3px 3px 0 0;background:#003087}
-.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#eef2f6;color:#475569;font-size:11px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
 .ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
-.thumb{width:44px;height:44px;flex-shrink:0;border-radius:10px;border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#003087}
+.thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
 
-.tc{background:#fff;border:1px solid #e7ebf2;border-radius:18px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px -20px rgba(15,23,42,.18)}
-.ey{font-size:11px;line-height:14px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#64748b}
+.tc{background:#fff;border:1px solid #e7ebf2;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px -20px rgba(15,23,42,.18)}
+.ey{font-size:var(--text-xs);line-height:17px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
 .ey-d{color:rgba(203,216,238,.7)}
-.tn{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;letter-spacing:-.02em}
-.dl{display:inline-flex;align-items:center;gap:3px;height:22px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums}
-.hero{position:relative;overflow:hidden;border-radius:22px;background:#0b1733;color:#fff;padding:24px 26px}
+.tn{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;letter-spacing:0}
+.dl{display:inline-flex;align-items:center;gap:3px;height:22px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums}
+.hero{position:relative;overflow:hidden;border-radius:var(--radius-xl);background:#0b1733;color:#fff;padding:24px 26px;--accent-text:#7fcff0;--text-success:#6ee7b7;--text-warning:#fcd34d;--text-danger:#fda4af;--text-info:#7dd3fc}
 .hero::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:32px 32px;pointer-events:none}
 .hero>*{position:relative}
-.ht{border-radius:16px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
-.dseg{display:inline-flex;padding:3px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1)}
-.dseg button{height:32px;padding:0 14px;border:0;border-radius:999px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
-.lseg{display:inline-flex;padding:3px;border-radius:12px;background:#f1f4f9;border:1px solid #e7ebf2}
-.lseg button{height:32px;padding:0 13px;border:0;border-radius:9px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease,box-shadow 200ms ease}
+.ht{border-radius:var(--radius-xl);background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.dseg{display:inline-flex;padding:3px;border-radius:var(--radius-full);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1)}
+.dseg button{height:32px;padding:0 14px;border:0;border-radius:var(--radius-full);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
+.lseg{display:inline-flex;padding:3px;border-radius:var(--radius-xl);background:#f1f4f9;border:1px solid #e7ebf2}
+.lseg button{height:32px;padding:0 13px;border:0;border-radius:var(--radius-lg);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease,box-shadow 200ms ease}
 button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .btn,.abtn{transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
 .st>*{animation:taUp 420ms cubic-bezier(.23,1,.32,1) both}
@@ -193,28 +193,28 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 @keyframes taDraw{from{stroke-dashoffset:1600}to{stroke-dashoffset:0}}
 .fadein{animation:taFade 600ms ease both 200ms}@keyframes taFade{from{opacity:0}to{opacity:1}}
 .tt{position:relative}
-.tt .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px) scale(.97);transform-origin:bottom center;opacity:0;pointer-events:none;transition:opacity 125ms ease-out,transform 125ms ease-out;background:#0b1733;color:#fff;border-radius:10px;padding:8px 10px;font-size:12px;white-space:nowrap;box-shadow:0 10px 24px -8px rgba(15,23,42,.45);z-index:5}
-.col{position:relative;flex:1;height:100%;border-radius:6px;transition:background-color 150ms ease}
+.tt .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px) scale(.97);transform-origin:bottom center;opacity:0;pointer-events:none;transition:opacity 125ms ease-out,transform 125ms ease-out;background:#0b1733;color:#fff;border-radius:var(--radius-lg);padding:8px 10px;font-size:var(--text-xs);white-space:nowrap;box-shadow:0 10px 24px -8px rgba(15,23,42,.45);z-index:5}
+.col{position:relative;flex:1;height:100%;border-radius:var(--radius-md);transition:background-color 150ms ease}
 .col .tip{bottom:auto;top:6px}
 .col .cl{position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(15,23,42,.18);opacity:0;transition:opacity 125ms ease}
 @media (hover:hover) and (pointer:fine){.tt:hover .tip,.col:hover .tip{opacity:1;transform:translate(-50%,0) scale(1)}.col:hover .cl{opacity:1}.row:hover{background:#f7f9fd}.tc.lift{transition:box-shadow 200ms ease,transform 200ms cubic-bezier(.23,1,.32,1)}.tc.lift:hover{box-shadow:0 1px 2px rgba(15,23,42,.05),0 18px 40px -20px rgba(15,23,42,.3)}}
 .tb{width:100%;border-collapse:separate;border-spacing:0}
-.tb th{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#64748b;text-align:left;padding:12px 16px;border-bottom:1px solid #eef1f6;background:#fbfcfe;white-space:nowrap}
-.tb td{padding:13px 16px;border-bottom:1px solid #f1f4f8;font-size:13.5px;vertical-align:middle}
+.tb th{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #eef1f6;background:#fbfcfe;white-space:nowrap}
+.tb td{padding:13px 16px;border-bottom:1px solid #f1f4f8;font-size:var(--text-sm);vertical-align:middle}
 .tb tr:last-child td{border-bottom:0}
 .tb .r{text-align:right}
 @media (prefers-reduced-motion:reduce){.st>*,.gr,.draw,.fadein{animation:none}}
 
-.gm{width:52px;height:52px;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.sp{display:flex;flex-direction:column;align-items:center;gap:8px;border:0;background:transparent;font:inherit;cursor:pointer;padding:4px;border-radius:10px;width:128px;flex-shrink:0}
+.gm{width:52px;height:52px;border-radius:var(--radius-xl);background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sp{display:flex;flex-direction:column;align-items:center;gap:8px;border:0;background:transparent;font:inherit;cursor:pointer;padding:4px;border-radius:var(--radius-lg);width:128px;flex-shrink:0}
 .sp:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.sn{width:34px;height:34px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;transition:background-color 200ms,color 200ms,box-shadow 200ms}
+.sn{width:34px;height:34px;border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs-plus);font-weight:var(--weight-semibold);transition:background-color 200ms,color 200ms,box-shadow 200ms}
 .sec{transition:border-color 200ms,box-shadow 200ms}
-.secn{width:24px;height:24px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
-.code{margin:0;padding:14px 16px;border-radius:12px;background:#0b1733;color:#cbd8ee;font-size:12px;line-height:19px;white-space:pre;overflow-x:auto}
-.code .k{color:#93c5fd}.code .s{color:#86efac}.code .c{color:#64748b}
-.err{font-size:12.5px;color:#b83210}
-.pill{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:999px;background:#f1f4f9;font-size:12px;color:#334155}
+.secn{width:24px;height:24px;border-radius:var(--radius-full);display:inline-flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:var(--weight-medium);flex-shrink:0}
+.code{margin:0;padding:14px 16px;border-radius:var(--radius-xl);background:#0b1733;color:#cbd8ee;font-size:var(--text-xs);line-height:19px;white-space:pre;overflow-x:auto;--text-muted:#94a3b8}
+.code .k{color:#93c5fd}.code .s{color:#86efac}.code .c{color:var(--text-muted)}
+.err{font-size:var(--text-xs-plus);color:#b83210}
+.pill{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:var(--radius-full);background:#f1f4f9;font-size:var(--text-xs);color:#334155}
 
 .pgc>*{flex-shrink:0}.tb th{white-space:normal}.stp2{flex-shrink:0}.pgc>.fill{flex-shrink:1;min-height:0}
 `;
@@ -227,16 +227,16 @@ export default class SetupMetaPixelScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="SetupMetaPixel">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "1440px", height: "1800px", background: "#eef2f7", padding: "12px", display: "flex", gap: "12px", overflow: "hidden" }}>
+        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
           <__Sidebar sticky="" active="ta-setup" />
-          <main style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "16px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
             <__Topbar crumb={"Tracking & analytics"} page="Meta Pixel setup" placeholder="Search guides, events or tags" />
-            <div className="pgc" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div className="pgc gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <__Link href="/setup-guide" className="abtn" style={{ textDecoration: "none" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="m15 18-6-6 6-6" />
 </svg>Setup guides</__Link>
-                <span style={{ fontSize: "12.5px", color: "#64748b" }}>Step 3 of 6 in the recommended order</span>
+                <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Step 3 of 6 in the recommended order</span>
               </div>
               <section className="hero st" style={{ padding: "22px 26px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "18px" }}>
@@ -245,20 +245,20 @@ export default class SetupMetaPixelScreen extends Component {
                   </span>
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <div className="ey ey-d">{"G3 · Meta Pixel & CAPI"}</div>
-                    <h2 style={{ margin: "4px 0 0", fontSize: "24px", lineHeight: "30px", fontWeight: "700", letterSpacing: "-.025em" }}>{v.headline}</h2>
-                    <p style={{ margin: "4px 0 0", fontSize: "13.5px", lineHeight: "20px", color: "rgba(226,232,240,.78)" }}>Browser pixel plus Conversions API, so Facebook and Instagram ads see orders even when the pixel is blocked.</p>
+                    <h1 style={{ margin: "4px 0 0", fontSize: "var(--text-2xl)", lineHeight: "30px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.headline}</h1>
+                    <p style={{ margin: "4px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)" }}>Browser pixel plus Conversions API, so Facebook and Instagram ads see orders even when the pixel is blocked.</p>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px", width: "220px", flexShrink: "0" }}>
-                    <span style={{ fontSize: "12px", color: "rgba(203,216,238,.8)" }}>{v.progLabel}</span>
-                    <div style={{ width: "100%", height: "8px", borderRadius: "999px", background: "rgba(255,255,255,.12)", overflow: "hidden" }}>
-                      <div className="gr" style={__sx(`width: ${v.progW ?? ""}; height: 100%; background: #34d399; border-radius: 999px;`)} />
+                    <span style={{ fontSize: "var(--text-xs)", color: "rgba(203,216,238,.8)" }}>{v.progLabel}</span>
+                    <div style={{ width: "100%", height: "8px", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.12)", overflow: "hidden" }}>
+                      <div className="gr" style={__sx(`width: ${v.progW ?? ""}; height: 100%; background: #34d399; border-radius: var(--radius-full);`)} />
                     </div>
-                    <span style={{ fontSize: "12px", color: "rgba(203,216,238,.65)" }}>About 12 minutes in total</span>
+                    <span style={{ fontSize: "var(--text-xs)", color: "rgba(203,216,238,.65)" }}>About 12 minutes in total</span>
                   </div>
                 </div>
               </section>
               {v.hasMsg ? (<>
-                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: 14px; font-weight: 500;`)}>
+                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-lg); background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: var(--text-sm); font-weight: var(--weight-medium);`)}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <circle cx="12" cy="12" r="10" />
                     <path d="m9 12 2 2 4-4" />
@@ -278,7 +278,7 @@ export default class SetupMetaPixelScreen extends Component {
                           </>) : null}
                           {p?.todo ? (<>{p?.n}</>) : null}
                         </span>
-                        <span style={__sx(`font-size: 12.5px; line-height: 16px; text-align: center; font-weight: ${p?.fw ?? ""}; color: ${p?.tc ?? ""};`)}>{p?.t}</span>
+                        <span style={__sx(`font-size: var(--text-xs-plus); line-height: 18px; text-align: center; font-weight: ${p?.fw ?? ""}; color: ${p?.tc ?? ""};`)}>{p?.t}</span>
                       </button>
                       {p?.line ? (<>
                         <div style={__sx(`flex-grow: 1; height: 2px; margin-top: 21px; border-radius: 2px; background: ${p?.lc ?? ""};`)} />
@@ -286,26 +286,26 @@ export default class SetupMetaPixelScreen extends Component {
                     </React.Fragment>))}
                 </div>
               </nav>
-              <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 380px", gap: "16px", alignItems: "start" }}>
+              <div className="gc-split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 380px", gap: "16px", alignItems: "start" }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                   <section className="tc sec" style={__sx(`padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; border-color: ${v.bd1 ?? ""}; box-shadow: ${v.sh1 ?? ""};`)}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
                       <span className="secn" style={__sx(`background: ${v.nb1 ?? ""}; color: ${v.nf1 ?? ""};`)}>1</span>
                       <div style={{ flexGrow: "1", minWidth: "0" }}>
-                        <h2 style={{ margin: "0", fontSize: "15.5px", lineHeight: "22px", fontWeight: "600", color: "#0f172a" }}>Create the Pixel in Events Manager</h2>
-                        <p style={{ margin: "2px 0 0", fontSize: "12.5px", lineHeight: "18px", color: "#64748b" }}>In Meta Events Manager choose Connect data, then Web, and name the pixel after the store domain.</p>
+                        <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Create the Pixel in Events Manager</h2>
+                        <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>In Meta Events Manager choose Connect data, then Web, and name the pixel after the store domain.</p>
                       </div>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                       <button type="button" className="btn line sm" onClick={v.openEM}>Open Events Manager</button>
-                      <span className="bn" style={{ fontSize: "12.5px", color: "#64748b" }}>বিজনেস ম্যানেজারে অ্যাডমিন অ্যাক্সেস লাগবে।</span>
+                      <span className="bn" style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>বিজনেস ম্যানেজারে অ্যাডমিন অ্যাক্সেস লাগবে।</span>
                     </div>
                   </section>
                   <section className="tc sec" style={__sx(`padding: 20px 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-color: ${v.bd23 ?? ""}; box-shadow: ${v.sh23 ?? ""};`)}>
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px", minWidth: "0" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                         <span className="secn" style={__sx(`background: ${v.nb2 ?? ""}; color: ${v.nf2 ?? ""};`)}>2</span>
-                        <h2 style={{ margin: "0", fontSize: "15.5px", fontWeight: "600", color: "#0f172a" }}>Paste the Pixel ID</h2>
+                        <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Paste the Pixel ID</h2>
                       </div>
                       <label className="lbl" htmlFor="pid">Pixel ID</label>
                       <input id="pid" className="inp mono" inputMode="numeric" placeholder="15 or 16 digits" value={v.pid} onChange={v.onPid} style={__sx(`border-color: ${v.pidBorder ?? ""};`)} />
@@ -313,13 +313,13 @@ export default class SetupMetaPixelScreen extends Component {
                         <span className="err">A Pixel ID has 15 or 16 digits. Copy it from the pixel's Settings tab.</span>
                       </>) : null}
                       {v.pidOk ? (<>
-                        <span style={{ fontSize: "12.5px", color: "#047857" }}>Valid · pixel “GridShop store” found</span>
+                        <span style={{ fontSize: "var(--text-xs-plus)", color: "#047857" }}>Valid · pixel “GridShop store” found</span>
                       </>) : null}
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px", minWidth: "0" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                         <span className="secn" style={__sx(`background: ${v.nb3 ?? ""}; color: ${v.nf3 ?? ""};`)}>3</span>
-                        <h2 style={{ margin: "0", fontSize: "15.5px", fontWeight: "600", color: "#0f172a" }}>Generate the Conversions API token</h2>
+                        <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Generate the Conversions API token</h2>
                       </div>
                       <label className="lbl" htmlFor="tok">Access token</label>
                       <div style={{ position: "relative" }}>
@@ -331,48 +331,50 @@ export default class SetupMetaPixelScreen extends Component {
                           </svg>
                         </button>
                       </div>
-                      <span style={{ fontSize: "12.5px", color: "#64748b" }}>{v.tokNote}</span>
+                      <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.tokNote}</span>
                     </div>
                   </section>
                   <section className="tc sec" style={__sx(`padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; border-color: ${v.bd4 ?? ""}; box-shadow: ${v.sh4 ?? ""};`)}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
                       <span className="secn" style={__sx(`background: ${v.nb4 ?? ""}; color: ${v.nf4 ?? ""};`)}>4</span>
                       <div style={{ flexGrow: "1", minWidth: "0" }}>
-                        <h2 style={{ margin: "0", fontSize: "15.5px", lineHeight: "22px", fontWeight: "600", color: "#0f172a" }}>Map events</h2>
-                        <p style={{ margin: "2px 0 0", fontSize: "12.5px", lineHeight: "18px", color: "#64748b" }}>Choose which events go from the browser, the store server, or both. Both is best: the server copy covers blocked browsers.</p>
+                        <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Map events</h2>
+                        <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Choose which events go from the browser, the store server, or both. Both is best: the server copy covers blocked browsers.</p>
                       </div>
                     </div>
-                    <div style={{ border: "1px solid #eef1f6", borderRadius: "12px", overflow: "hidden" }}>
-                      <table className="tb">
-                        <thead>
-                          <tr>
-                            <th>Meta event</th>
-                            <th>Fires when</th>
-                            <th>Value</th>
-                            <th style={{ textAlign: "center" }}>Browser</th>
-                            <th style={{ textAlign: "center" }}>Server</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {__list(v.evs).map((e, $index) => (<React.Fragment key={$index}>
-                              <tr className="row">
-                                <td>
-                                  <span className="mono" style={{ fontWeight: "600", color: "#0f172a" }}>{e?.n}</span>
-                                </td>
-                                <td style={{ color: "#475569" }}>{e?.w}</td>
-                                <td className="tn" style={{ color: "#0f172a" }}>{e?.v}</td>
-                                <td style={{ textAlign: "center" }}>
-                                  <button type="button" className={e?.bCls} role="switch" aria-checked={e?.bOn} aria-label={`${e?.n ?? ""} from browser`} onClick={e?.bT} />
-                                </td>
-                                <td style={{ textAlign: "center" }}>
-                                  <button type="button" className={e?.sCls} role="switch" aria-checked={e?.sOn} aria-label={`${e?.n ?? ""} from server`} onClick={e?.sT} />
-                                </td>
-                              </tr>
-                            </React.Fragment>))}
-                        </tbody>
-                      </table>
+                    <div style={{ border: "1px solid #eef1f6", borderRadius: "var(--radius-xl)", overflow: "hidden" }}>
+                      <div className="gc-table-wrap">
+                        <table className="tb">
+                          <thead>
+                            <tr>
+                              <th>Meta event</th>
+                              <th>Fires when</th>
+                              <th>Value</th>
+                              <th style={{ textAlign: "center" }}>Browser</th>
+                              <th style={{ textAlign: "center" }}>Server</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {__list(v.evs).map((e, $index) => (<React.Fragment key={$index}>
+                                <tr className="row">
+                                  <td>
+                                    <span className="mono" style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{e?.n}</span>
+                                  </td>
+                                  <td style={{ color: "#475569" }}>{e?.w}</td>
+                                  <td className="tn" style={{ color: "#0f172a" }}>{e?.v}</td>
+                                  <td style={{ textAlign: "center" }}>
+                                    <button type="button" className={e?.bCls} role="switch" aria-checked={e?.bOn} aria-label={`${e?.n ?? ""} from browser`} onClick={e?.bT} />
+                                  </td>
+                                  <td style={{ textAlign: "center" }}>
+                                    <button type="button" className={e?.sCls} role="switch" aria-checked={e?.sOn} aria-label={`${e?.n ?? ""} from server`} onClick={e?.sT} />
+                                  </td>
+                                </tr>
+                              </React.Fragment>))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12.5px", color: "#64748b" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>
                       <span>{v.evSummary}</span>
                       <span style={{ flexGrow: "1" }} />
                       <span className="pill">Currency BDT</span>
@@ -389,65 +391,65 @@ export default class SetupMetaPixelScreen extends Component {
                         <text x="40" y="45" textAnchor="middle" fontSize="18" fontWeight="700" fill="#0f172a" fontFamily="Poppins, sans-serif">{v.emq}</text>
                       </svg>
                       <div>
-                        <div style={{ fontSize: "14px", fontWeight: "600", color: "#0f172a" }}>Match score</div>
-                        <div style={{ fontSize: "12.5px", lineHeight: "18px", color: "#64748b" }}>{v.emqNote}</div>
+                        <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Match score</div>
+                        <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>{v.emqNote}</div>
                       </div>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", borderTop: "1px solid #f1f4f8" }}>
                       {__list(v.facts).map((f, $index) => (<React.Fragment key={$index}>
-                          <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", padding: "9px 0", borderBottom: "1px solid #f1f4f8", fontSize: "13px" }}>
-                            <span style={{ color: "#64748b" }}>{f?.l}</span>
-                            <span style={{ color: "#0f172a", fontWeight: "600", textAlign: "right" }}>{f?.v}</span>
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", padding: "9px 0", borderBottom: "1px solid #f1f4f8", fontSize: "var(--text-xs-plus)" }}>
+                            <span style={{ color: "var(--text-muted)" }}>{f?.l}</span>
+                            <span style={{ color: "#0f172a", fontWeight: "var(--weight-medium)", textAlign: "right" }}>{f?.v}</span>
                           </div>
                         </React.Fragment>))}
                     </div>
                   </section>
                   <section className="tc" style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                    <h2 style={{ margin: "0", fontSize: "14.5px", fontWeight: "600", color: "#0f172a" }}>How duplicates are avoided</h2>
-                    <p style={{ margin: "0", fontSize: "13px", lineHeight: "19px", color: "#475569" }}>Each event gets one <span className="mono" style={{ color: "#0f172a" }}>event_id</span>, sent by both the browser and the server. Meta keeps the first copy and drops the second, so a Purchase sent twice counts once.</p>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px" }}>
+                    <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>How duplicates are avoided</h2>
+                    <p style={{ margin: "0", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "#475569" }}>Each event gets one <span className="mono" style={{ color: "#0f172a" }}>event_id</span>, sent by both the browser and the server. Meta keeps the first copy and drops the second, so a Purchase sent twice counts once.</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)" }}>
                       <span className="pill">Browser · evt_7f3a91</span>
-                      <span style={{ color: "#94a3b8" }}>+</span>
+                      <span style={{ color: "var(--text-muted)" }}>+</span>
                       <span className="pill">Server · evt_7f3a91</span>
-                      <span style={{ color: "#94a3b8" }}>=</span>
+                      <span style={{ color: "var(--text-muted)" }}>=</span>
                       <span className="badge b-received">1 purchase</span>
                     </div>
-                    <span className="bn" style={{ fontSize: "12.5px", color: "#64748b" }}>একই event_id থাকলে অর্ডার দুইবার গোনা হয় না।</span>
+                    <span className="bn" style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>একই event_id থাকলে অর্ডার দুইবার গোনা হয় না।</span>
                   </section>
                   <section className="tc" style={{ overflow: "hidden" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 14px 12px 18px", borderBottom: "1px solid #eef1f6" }}>
-                      <h2 style={{ margin: "0", flexGrow: "1", fontSize: "14.5px", fontWeight: "600", color: "#0f172a" }}>Browser snippet</h2>
+                      <h2 style={{ margin: "0", flexGrow: "1", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Browser snippet</h2>
                       <button type="button" className="abtn" onClick={v.copy}>Copy</button>
                     </div>
                     <div style={{ padding: "14px" }}>
                       <pre className="code mono"><span className="c">// Added to every page automatically</span>{"\n"}<span className="k">fbq</span>{"("}<span className="s">'init'</span>{", "}<span className="s">'{v.pidShow}'</span>{");\n"}<span className="k">fbq</span>{"("}<span className="s">'track'</span>{", "}<span className="s">'Purchase'</span>{", {\n  value: "}<span className="s">2450</span>{",\n  currency: "}<span className="s">'BDT'</span>{"\n}, { eventID: "}<span className="s">'evt_7f3a91'</span>{" });"}</pre>
                     </div>
-                    <div style={{ padding: "0 18px 14px", fontSize: "12px", color: "#64748b" }}>Only needed for stores that load tags manually. GTM stores already have it.</div>
+                    <div style={{ padding: "0 18px 14px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Only needed for stores that load tags manually. GTM stores already have it.</div>
                   </section>
                   <section className="tc sec" style={__sx(`padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; border-color: ${v.bd5 ?? ""}; box-shadow: ${v.sh5 ?? ""};`)}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
                       <span className="secn" style={__sx(`background: ${v.nb5 ?? ""}; color: ${v.nf5 ?? ""};`)}>5</span>
                       <div style={{ flexGrow: "1", minWidth: "0" }}>
-                        <h2 style={{ margin: "0", fontSize: "15.5px", lineHeight: "22px", fontWeight: "600", color: "#0f172a" }}>Test with a Test Event Code</h2>
-                        <p style={{ margin: "2px 0 0", fontSize: "12.5px", lineHeight: "18px", color: "#64748b" }}>Copy the code from the Test events tab, then send one event from this store.</p>
+                        <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Test with a Test Event Code</h2>
+                        <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Copy the code from the Test events tab, then send one event from this store.</p>
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: "8px" }}>
                       <input className="inp mono" aria-label="Test event code" placeholder="TEST12345" value={v.tcode} onChange={v.onTc} />
                       <button type="button" className="btn solid sm" style={{ height: "44px" }} onClick={v.sendTest}>Send test event</button>
                     </div>
-                    <span style={__sx(`font-size: 12.5px; color: ${v.testC ?? ""};`)}>{v.testNote}</span>
+                    <span style={__sx(`font-size: var(--text-xs-plus); color: ${v.testC ?? ""};`)}>{v.testNote}</span>
                   </section>
                   <section className="tc sec" style={__sx(`padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; border-color: ${v.bd6 ?? ""}; box-shadow: ${v.sh6 ?? ""};`)}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
                       <span className="secn" style={__sx(`background: ${v.nb6 ?? ""}; color: ${v.nf6 ?? ""};`)}>6</span>
                       <div style={{ flexGrow: "1", minWidth: "0" }}>
-                        <h2 style={{ margin: "0", fontSize: "15.5px", lineHeight: "22px", fontWeight: "600", color: "#0f172a" }}>Go live</h2>
-                        <p style={{ margin: "2px 0 0", fontSize: "12.5px", lineHeight: "18px", color: "#64748b" }}>Tests passed? Turn the pixel on for every visitor.</p>
+                        <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Go live</h2>
+                        <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Tests passed? Turn the pixel on for every visitor.</p>
                       </div>
                     </div>
                     <button type="button" className={`btn ${v.liveCls ?? ""}`} onClick={v.goLive} style={{ alignSelf: "flex-start" }}>{v.liveLabel}</button>
-                    <span suppressHydrationWarning style={{ fontSize: "12.5px", color: "#64748b" }}>{v.liveNote}</span>
+                    <span suppressHydrationWarning style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.liveNote}</span>
                   </section>
                 </aside>
               </div>

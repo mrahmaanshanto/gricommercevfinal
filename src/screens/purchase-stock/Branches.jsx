@@ -7,6 +7,17 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+import { PageHeader as __PageHeader, Dialog as __Dialog } from '@/components/ui';
+import { toast as __toast, confirmDialog as __confirm } from '@/runtime/ui';
+import { LOCATIONS } from '@/lib/locations';
+import { allowNegative, setAllowNegative } from '@/lib/stock';
+
+// ---- form helpers: required marker, field error text, invalid attributes, focus the first error ----
+function __Req() { return <span aria-hidden="true" style={{ color: 'var(--text-danger)' }}> *</span>; }
+function __Err({ id, msg }) { return msg ? <span id={id} style={{ display: 'block', fontSize: 'var(--text-xs)', lineHeight: '16px', color: 'var(--text-danger)' }}>{msg}</span> : null; }
+function __inv(err, id) { return err ? { 'aria-invalid': 'true', 'aria-describedby': id } : {}; }
+function __focusSoon(id) { setTimeout(function () { var el = document.getElementById(id); if (el) el.focus(); }, 0); }
+function __without(o, k) { var r = {}; for (var x in (o || {})) if (x !== k) r[x] = o[x]; return r; }
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -20,77 +31,162 @@ function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == nul
 function stepN(self, key, def, step, min, max) { var s = self.state || {}; var v = s[key] == null ? def : s[key]; return { v: v, dec: function () { var p = {}; p[key] = Math.max(min, +(v - step).toFixed(2)); self.setState(p); }, inc: function () { var p = {}; p[key] = Math.min(max, +(v + step).toFixed(2)); self.setState(p); } }; }
 var CHN = { sms: ['SMS', '#e7f8f1', '#047857'], wa: ['WhatsApp', '#dcfce7', '#166534'], email: ['Email', '#e0f2fe', '#075985'] };
 function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-function toast(self, m, bad) { clearTimeout(self.t); self.setState({ msg: m, bad: !!bad }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 2800); }
-function msgV(s) { return { hasMsg: !!s.msg, msg: s.msg || '', msgBg: s.bad ? '#fff4e0' : '#e7f8f1', msgFg: s.bad ? '#7a3b04' : '#065f46' }; }
 function segv(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#0b1733' : 'transparent', fg: on ? '#fff' : '#475569', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
-var BR = [
-  { k: 'dh', code: 'DH-1', n: 'Dhanmondi branch', type: 'Shop', addr: 'House 42, Road 27, Dhanmondi, Dhaka', mgr: 'Rakib Hasan', phone: '01712-XX4410', hours: 'Sat–Thu 10 am – 10 pm', st: 'Open', staff: 4, skus: '842', val: '৳5,12,400', low: 5, sale: '৳64,180', regs: [['Dhanmondi-1 · open', '#10b981'], ['Dhanmondi-2 · open', '#10b981']], tb: '#e0f3fb', tf: '#003087' },
-  { k: 'mp', code: 'MP-1', n: 'Mirpur branch', type: 'Shop', addr: 'Plot 8, Section 10, Mirpur, Dhaka', mgr: 'Nabila Rahman', phone: '01715-XX6630', hours: 'Sat–Thu 10 am – 9 pm', st: 'Open', staff: 3, skus: '615', val: '৳3,88,900', low: 2, sale: '৳41,560', regs: [['Mirpur-1 · open', '#10b981']], tb: '#e7f8f1', tf: '#047857' },
+// "Allow negative stock" is off by default and kept per place (lib/stock allowNegative); the POS
+// register follows it. Turning it on asks first: it lets sales go below zero.
+function negSw(self, pk, name) {
+  var s = self.state || {}, key = 'ng_' + pk, on = s[key] == null ? false : s[key];
+  return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () {
+    if (on) { var p = {}; p[key] = false; setAllowNegative(name, false); self.setState(p); __toast('Negative stock is off at ' + name + '. Selling stops at zero.'); return; }
+    __confirm({ title: 'Allow negative stock at ' + name + '?', body: 'Sales can take stock below zero, counts will go wrong and you may sell goods you do not have. Only turn this on while stock is being received late.', confirmLabel: 'Allow negative stock', tone: 'danger' }).then(function (ok) {
+      if (!ok) return;
+      var p = {}; p[key] = true; setAllowNegative(name, true); self.setState(p); __toast('Negative stock is allowed at ' + name + '. The register can sell past zero there.');
+    });
+  } };
+}
+// demo details of each branch, matched by name; the list of branches comes from lib/locations.
+// The online store is not a place that holds stock, so it is kept as it is.
+var BR_DEMO = [
+  { k: 'dh', code: 'DH-1', n: 'Dhanmondi branch', type: 'Shop', addr: 'House 42, Road 27, Dhanmondi, Dhaka', mgr: 'Rakib Hasan', phone: '01712-XX4410', hours: 'Sat–Thu 10:00 AM – 10:00 PM', st: 'Open', staff: 4, skus: '842', val: '৳5,12,400', low: 5, sale: '৳64,180', regs: [['Dhanmondi-1 · open', '#10b981'], ['Dhanmondi-2 · open', '#10b981']], tb: '#e0f3fb', tf: '#003087' },
+  { k: 'mp', code: 'MP-1', n: 'Mirpur branch', type: 'Shop', addr: 'Plot 8, Section 10, Mirpur, Dhaka', mgr: 'Nabila Rahman', phone: '01715-XX6630', hours: 'Sat–Thu 10:00 AM – 9:00 PM', st: 'Open', staff: 3, skus: '615', val: '৳3,88,900', low: 2, sale: '৳41,560', regs: [['Mirpur-1 · open', '#10b981']], tb: '#e7f8f1', tf: '#047857' },
   { k: 'on', code: 'WEB', n: 'Online store', type: 'Website and apps', addr: 'Ships from Central Warehouse, then the nearest branch with stock', mgr: 'Lamia Sultana', phone: '09612-XX0000', hours: 'Always open', st: 'Open', staff: 2, skus: '1,284', val: 'Uses warehouse', low: 0, sale: '৳1,12,900', regs: [['No POS · website only', '#94a3b8']], tb: '#f3e8ff', tf: '#6d28d9' },
-  { k: 'ut', code: 'UT-1', n: 'Uttara branch', type: 'Shop · opening soon', addr: 'Sector 7, Uttara, Dhaka', mgr: 'Not set', phone: '—', hours: 'From 1 Nov 2026', st: 'Draft', staff: 0, skus: '0', val: '৳0', low: 0, sale: '—', regs: [], tb: '#f1f5f9', tf: '#475569' }
+  { k: 'ut', code: 'UT-1', n: 'Uttara branch', type: 'Shop · opening soon', addr: 'Sector 7, Uttara, Dhaka', mgr: 'Not set', phone: '—', hours: 'From 1 Nov 2026', st: 'Draft', staff: 0, skus: '0', val: '৳0', low: 0, sale: '—', regs: [], tb: '#f1f5f9', tf: '#475569' },
+  { k: 'gl', code: 'GL-1', n: 'Gulshan-1 branch', type: 'Shop', addr: 'Road 11, Gulshan-1, Dhaka', mgr: 'Rakib Hasan', phone: '01713-XX2215', hours: 'Sat–Thu 11:00 AM – 9:00 PM', st: 'Open', staff: 2, skus: '214', val: '৳1,46,800', low: 3, sale: '৳18,320', regs: [], tb: '#fff4e0', tf: '#a14f06' }
 ];
+var BR = LOCATIONS.filter(function (l) { return l.type === 'Branch'; }).map(function (l) {
+  var d = BR_DEMO.filter(function (b) { return b.n === l.name; })[0]
+    || { k: l.id, code: l.name.replace(/[^A-Za-z]/g, '').slice(0, 2).toUpperCase() + '-1', type: 'Shop', mgr: 'Not set', phone: '—', hours: 'Not set', st: l.opening ? 'Draft' : 'Open', staff: 0, skus: '0', val: '৳0', low: 0, sale: '—', regs: [], tb: '#f1f5f9', tf: '#475569' };
+  return assign(assign({}, d), { n: l.name, addr: l.address || d.addr, place: true });
+}).concat(BR_DEMO.filter(function (b) { return b.k === 'on'; }));
+// Every editable value of a branch, with the value it starts from.
+function defOf(B) {
+  var live = B.k !== 'ut' && !B.isNew;
+  return { n: B.n, phone: B.phone, hours: B.hours, mgr: B.mgr, from: 'Central Warehouse', reserve: '2 per product', refill: 'Draft a transfer for me', float: '৳5,000',
+    ship: live, pickup: B.k === 'dh' || B.k === 'mp', showStock: live, closeReq: true };
+}
 class Component extends DCLogic {
-  componentWillUnmount() { clearTimeout(this.t); }
+  componentDidMount() { var p = {}; BR.forEach(function (b) { if (b.place) p['ng_' + b.k] = allowNegative(b.n); }); this.setState(p); }
+  // Stable handlers: the dialog re-runs its focus effect whenever onClose changes.
+  closeAdd = () => { this.setState({ addOpen: false, nb: null, nbErr: '' }); };
   renderVals() {
     var self = this, s = this.state || {};
-    var pk = s.pk || 'dh', B = BR.filter(function (b) { return b.k === pk; })[0], ed = (s.ed || {})[pk] || {};
-    var g = function (k) { return ed[k] != null ? ed[k] : B[k]; };
-    var set = function (k) { return function (e) { var all = assign({}, s.ed || {}); var o = assign({}, all[pk] || {}); o[k] = e.target.value; all[pk] = o; self.setState({ ed: all }); }; };
-    var v = {
-      addBr: function () { toast(self, 'New branch added as a draft. Set stock and staff before you open it.'); },
-      brs: BR.map(function (b) { var on = b.k === pk; var open = b.st === 'Open'; return { code: b.code, n: (s.ed && s.ed[b.k] && s.ed[b.k].n) || b.n, sub: b.type + ' · ' + b.mgr, pt: b.st, pb: open ? '#e7f8f1' : '#f1f5f9', pf: open ? '#047857' : '#475569', tb: b.tb, tf: b.tf,
-        st: [[b.sale, 'Sales today', '#0f172a'], [b.skus, 'SKUs in stock', '#0f172a'], [String(b.low), 'Low stock', b.low ? '#b45309' : '#047857']].map(function (x) { return { v: x[0], l: x[1], c: x[2] }; }), on: on, bd: on ? '#003087' : '#e6eaf0', bg: on ? '#f5f8ff' : '#fff', pick: function () { self.setState({ pk: b.k }); } }; }),
-      dCode: B.code, dType: B.type, dName: g('n'), dAddr: B.addr, dMgr: B.mgr, dPhone: g('phone'), dHours: g('hours'),
-      typeName: set('n'), typePhone: set('phone'), typeHours: set('hours'),
-      dStats: [[B.val, 'Stock value'], [String(B.staff), 'Staff'], [String(B.regs.length), 'POS registers']].map(function (x) { return { v: x[0], l: x[1] }; }),
-      regs: B.regs.map(function (r) { return { l: r[0], c: r[1] }; }), addReg: function () { toast(self, 'New register added — sign it in from the POS app.'); },
-      ship: mkSw(this, 'sh_' + pk, pk !== 'ut'), pickup: mkSw(this, 'pu_' + pk, pk === 'dh' || pk === 'mp'), showStock: mkSw(this, 'ss_' + pk, pk !== 'ut'), closeReq: mkSw(this, 'cr_' + pk, true)
+    var ALL = BR.concat(s.added || []);
+    var pk = s.pk || 'dh', B = ALL.filter(function (b) { return b.k === pk; })[0] || ALL[0];
+    var edAll = s.ed || {}, savedAll = s.saved || {}, errAll = s.errs || {};
+    var baseOf = function (b) { return assign(defOf(b), savedAll[b.k] || {}); };           // last saved values
+    var curOf = function (b) { return assign(baseOf(b), edAll[b.k] || {}); };              // what the form shows
+    var dirtyOf = function (b) { var base = baseOf(b), cur = curOf(b); for (var k in cur) if (cur[k] !== base[k]) return true; return false; };
+    var cur = curOf(B), dirty = dirtyOf(B), errs = errAll[pk] || {};
+    var put = function (k, val) {
+      var all = assign({}, edAll), o = assign({}, all[pk] || {}); o[k] = val; all[pk] = o;
+      var ea = assign({}, errAll); ea[pk] = __without(errs, k);
+      self.setState({ ed: all, errs: ea });
     };
-    return assign(v, msgV(s));
+    var set = function (k) { return function (e) { put(k, e.target.value); }; };
+    var sw = function (k) { var on = !!cur[k]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { put(k, !on); } }; };
+    var dropEdits = function () { var all = assign({}, edAll); delete all[pk]; var ea = assign({}, errAll); delete ea[pk]; self.setState({ ed: all, errs: ea }); };
+    var regsAll = B.regs.concat((s.regs || {})[pk] || []);
+    var nb = s.nb || { n: '', addr: '' };
+    var mgrs = [baseOf(B).mgr, 'Rakib Hasan', 'Nabila Rahman'].filter(function (m, i, arr) { return arr.indexOf(m) === i; });
+    return {
+      // ---- add branch dialog
+      addOpen: !!s.addOpen, nb: nb, nbErr: s.nbErr || '',
+      addBr: function () { self.setState({ addOpen: true, nb: { n: '', addr: '' }, nbErr: '' }); },
+      closeAdd: this.closeAdd,
+      typeNb: function (k) { return function (e) { var o = assign({}, nb); o[k] = e.target.value; self.setState({ nb: o, nbErr: k === 'n' ? '' : (s.nbErr || '') }); }; },
+      submitNb: function (e) {
+        if (e && e.preventDefault) e.preventDefault();
+        var name = nb.n.trim();
+        var taken = ALL.some(function (b) { return curOf(b).n.trim().toLowerCase() === name.toLowerCase(); });
+        if (!name || taken) { self.setState({ nbErr: !name ? 'Enter a name for the branch.' : 'A branch with this name already exists.' }); __focusSoon('nb-name'); return; }
+        var added = s.added || [], k = 'n' + (added.length + 1);
+        var code = (name.replace(/[^A-Za-z]/g, '').slice(0, 2).toUpperCase() || 'BR') + '-' + (added.length + 1);
+        var row = { k: k, isNew: true, code: code, n: name, type: 'Shop · not open yet', addr: nb.addr.trim() || 'Address not set', mgr: 'Not set', phone: '—', hours: 'Not set', st: 'Draft', staff: 0, skus: '0', val: '৳0', low: 0, sale: '—', regs: [], tb: '#f1f5f9', tf: '#475569' };
+        self.setState({ added: added.concat([row]), pk: k, addOpen: false, nb: null, nbErr: '' });
+        __toast(name + ' added as a draft. Set stock and staff before you open it.');
+      },
+      // ---- list
+      brs: ALL.map(function (b) { var on = b.k === pk; var open = b.st === 'Open'; var c = curOf(b); return { code: b.code, n: c.n || b.n, sub: b.type + ' · ' + baseOf(b).mgr, pt: b.st, unsaved: dirtyOf(b), pb: open ? '#e7f8f1' : '#f1f5f9', pf: open ? '#047857' : '#475569', tb: b.tb, tf: b.tf,
+        st: [[b.sale, 'Sales today', '#0f172a'], [b.skus, 'SKUs in stock', '#0f172a'], [String(b.low), 'Low stock', b.low ? '#b45309' : '#047857']].map(function (x) { return { v: x[0], l: x[1], c: x[2] }; }), on: on, bd: on ? '#003087' : '#e6eaf0', bg: on ? '#f5f8ff' : '#fff', pick: function () { self.setState({ pk: b.k }); } }; }),
+      // ---- details form
+      formKey: pk, errs: errs, dirty: dirty,
+      dCode: B.code, dType: B.type, dName: cur.n, dAddr: B.addr, dMgr: cur.mgr, mgrs: mgrs, dPhone: cur.phone, dHours: cur.hours,
+      dFrom: cur.from, dReserve: cur.reserve, dRefill: cur.refill, dFloat: cur.float,
+      typeName: set('n'), typePhone: set('phone'), typeHours: set('hours'), pickMgr: set('mgr'), pickFrom: set('from'), pickReserve: set('reserve'), pickRefill: set('refill'), typeFloat: set('float'),
+      dStats: [[B.val, 'Stock value'], [String(B.staff), 'Staff'], [String(regsAll.length), 'POS registers']].map(function (x) { return { v: x[0], l: x[1] }; }),
+      regs: regsAll.map(function (r) { return { l: r[0], c: r[1] }; }),
+      addReg: function () {
+        var all = assign({}, s.regs || {}), mine = (all[pk] || []).slice();
+        var label = baseOf(B).n.split(' ')[0] + '-' + (regsAll.length + 1);
+        mine.push([label + ' · not signed in', '#94a3b8']); all[pk] = mine; self.setState({ regs: all });
+        __toast(label + ' added. Sign it in from the POS app.');
+      },
+      ship: sw('ship'), pickup: sw('pickup'), showStock: sw('showStock'), closeReq: sw('closeReq'),
+      negStock: B.place ? negSw(self, pk, B.n) : null,
+      // Validate, show the problem under the field and focus it; only a valid form saves.
+      submit: function (e) {
+        if (e && e.preventDefault) e.preventDefault();
+        if (!cur.n.trim()) { var ea = assign({}, errAll); ea[pk] = { n: 'Enter the branch name.' }; self.setState({ errs: ea }); __focusSoon('br-name'); return; }
+        var sv = assign({}, savedAll); sv[pk] = assign(assign({}, savedAll[pk] || {}), assign(assign({}, edAll[pk] || {}), { n: cur.n.trim() }));
+        var all = assign({}, edAll); delete all[pk]; var eb = assign({}, errAll); delete eb[pk];
+        self.setState({ saved: sv, ed: all, errs: eb });
+        __toast(cur.n.trim() + ' saved');
+      },
+      discard: async function () {
+        if (!dirty) return;
+        if (await __confirm({ title: 'Discard unsaved changes?', body: 'Your edits to ' + (baseOf(B).n) + ' will be lost.', confirmLabel: 'Discard', tone: 'danger' })) dropEdits();
+      }
+    };
   }
 }
 
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `
-body{margin:0;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
+body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
 a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:12px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:8px;color:#475569;font-size:14px;font-weight:500;letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
+.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
+.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
 .nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
 .nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:11px;line-height:16px;font-weight:600;letter-spacing:.08em;color:#64748b;padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:8px;border:0;font:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
+.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
 .btn:hover{text-decoration:none}
 .btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
 .soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
 .line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
 .warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:15px}
-.sm{height:36px;padding:0 12px;font-size:13px}
-.ib{width:40px;height:40px;border-radius:999px;border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
+.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
+.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
 .ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font:inherit;font-size:14px;color:#1e293b;transition:border-color 200ms}
+.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
 .inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:#64748b}
-.lbl{font-size:13px;line-height:18px;font-weight:500;color:#334155}
-.tab{height:40px;padding:0 14px;border-radius:999px;border:0;background:transparent;font:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
+.inp::placeholder{color:var(--text-muted)}
+.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
+.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
 .tab:hover{background:#f1f5f9;color:#0f172a}
 .tab.on{background:#003087;color:#fff}
-.chip{height:40px;padding:0 14px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:13px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
+.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
 .chip:hover{border-color:#94a3b8}
 .chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:14px;line-height:20px;vertical-align:middle}
+.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
 .row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
+.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
+.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
 .b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
 .b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
 .b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.02em}
+.mono{font-family:var(--font-data);letter-spacing:.02em}
+.inp[aria-invalid="true"],.stepbox[aria-invalid="true"]{border-color:var(--text-danger)!important}
+.inp[aria-invalid="true"]:focus{border-color:var(--text-danger)}
+.savebar{position:sticky;bottom:12px;z-index:2;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border-radius:var(--radius-xl);border:1px solid #e2e8f0;background:#fff;box-shadow:0 6px 18px rgba(15,23,42,.08)}
+.br-set{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+@media (max-width:1023px){.gc-shell__content :has(> .gc-side){align-items:stretch!important}}
+@media (max-width:767px){.br-hero{flex-direction:column;align-items:stretch!important}.br-hero>div:last-child{grid-template-columns:repeat(3,minmax(0,1fr))!important}.br-set>.inp{width:100%!important}.br-top{flex-wrap:wrap}}
 .fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
 @keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 .flash{animation:gcFlash 900ms ease-out}
@@ -98,32 +194,32 @@ a{color:#003087}a:hover{color:#002a77}
 .scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
 @keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
 
-.sw{position:relative;width:48px;height:28px;border-radius:999px;border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
+.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
 .sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
 .sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
 .t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
 .actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:'Hind Siliguri','Poppins',sans-serif}
+.bn{font-family:var(--font-bn)}
 .pulse{animation:gcPulse 1.6s ease-in-out infinite}
 @keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
-.psec{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#64748b}
+.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
+.psec{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
 .num{font-variant-numeric:tabular-nums}
-.ai{height:30px;padding:0 10px;border-radius:8px;border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
+.ai{height:28px;padding:0 10px;border-radius:var(--radius-lg);border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
 .ai:hover{border-color:#a78bfa;box-shadow:0 4px 12px -6px rgba(91,33,182,.5)}
 .ai:focus-visible{outline:3px solid rgba(124,58,237,.4);outline-offset:2px}
-.abtn{height:32px;padding:0 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:12.5px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.abtn{height:32px;padding:0 12px;border-radius:var(--radius-lg);border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .abtn:hover{background:#f1f5f9}
 .ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0}
-.ptab{position:relative;height:48px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:13.5px;font-weight:500;color:#64748b;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:600}
+.ptab{position:relative;height:52px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:var(--weight-medium)}
 .ptab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2.5px;border-radius:3px 3px 0 0;background:#003087}
-.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#eef2f6;color:#475569;font-size:11px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
 .ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
-.thumb{width:44px;height:44px;flex-shrink:0;border-radius:10px;border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#003087}
+.thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
 `;
 
 // ---- markup ----
@@ -134,13 +230,14 @@ export default class BranchesScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="Branches">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "1440px", height: "1600px", background: "#eef2f7", padding: "12px", display: "flex", gap: "12px", overflow: "hidden" }}>
+        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
           <__Sidebar sticky="" active="stock-branches" />
-          <main style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "16px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
             <__Topbar crumb={"Stocks & Inventory"} page="Branches" placeholder="Search product, SKU, rack or bin" />
-            <div style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ flexGrow: "1", fontSize: "14px", lineHeight: "20px", color: "#475569" }}>Your shops and the online store. Each branch keeps its own stock, POS registers, staff and cash.</div>
+            <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
+              <__PageHeader title="Branches" />
+              <div className="br-top" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ flexGrow: "1", flexBasis: "240px", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#475569" }}>Your shops and the online store. Each branch keeps its own stock, POS registers, staff and cash.</div>
                 <__Link href="/transfers" className="btn line">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M8 3 4 7l4 4" />
@@ -158,50 +255,42 @@ export default class BranchesScreen extends Component {
                   <span>Add branch</span>
                 </button>
               </div>
-              {v.hasMsg ? (<>
-                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: 14px; font-weight: 500;`)}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="m9 12 2 2 4-4" />
-                  </svg>
-                  <span>{v.msg}</span>
-                </div>
-              </>) : null}
               <div style={{ display: "flex", gap: "18px", alignItems: "flex-start" }}>
-                <div style={{ width: "400px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "10px" }}>
+                <div className="gc-side" role="group" aria-label="Branches" style={{ width: "400px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "10px" }}>
                   {__list(v.brs).map((br, $index) => (<React.Fragment key={$index}>
-                      <button type="button" onClick={br?.pick} aria-pressed={br?.on} style={__sx(`text-align: left; padding: 16px; border-radius: 16px; border: 1.5px solid ${br?.bd ?? ""}; background: ${br?.bg ?? ""}; font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 10px;`)}>
+                      <button type="button" onClick={br?.pick} aria-pressed={br?.on} style={__sx(`text-align: left; padding: 16px; border-radius: var(--radius-xl); border: 1.5px solid ${br?.bd ?? ""}; background: ${br?.bg ?? ""}; font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 10px;`)}>
                         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                          <span style={__sx(`width: 42px; height: 42px; border-radius: 12px; background: ${br?.tb ?? ""}; color: ${br?.tf ?? ""}; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px;`)}>{br?.code}</span>
+                          <span style={__sx(`width: 42px; height: 42px; border-radius: var(--radius-xl); background: ${br?.tb ?? ""}; color: ${br?.tf ?? ""}; display: flex; align-items: center; justify-content: center; font-weight: var(--weight-medium); font-size: var(--text-xs);`)}>{br?.code}</span>
                           <div style={{ flexGrow: "1", minWidth: "0" }}>
-                            <div style={{ fontSize: "15px", fontWeight: "700", color: "#0f172a" }}>{br?.n}</div>
-                            <div style={{ fontSize: "12.5px", color: "#64748b" }}>{br?.sub}</div>
+                            <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{br?.n}</div>
+                            <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{br?.sub}</div>
                           </div>
-                          <span style={__sx(`display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; background: ${br?.pb ?? ""}; color: ${br?.pf ?? ""};`)}>{br?.pt}</span>
+                          {br?.unsaved ? <span style={{ display: "inline-flex", alignItems: "center", height: "24px", padding: "0 10px", borderRadius: "var(--radius-full)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", whiteSpace: "nowrap", background: "#fff4e0", color: "var(--text-warning)" }}>Unsaved</span> : null}
+                          <span style={__sx(`display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: var(--weight-medium); white-space: nowrap; background: ${br?.pb ?? ""}; color: ${br?.pf ?? ""};`)}>{br?.pt}</span>
                         </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "8px" }}>
+                        <div className="gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "8px" }}>
                           {__list(br?.st).map((bs, $index) => (<React.Fragment key={$index}>
-                              <div style={{ padding: "8px 10px", borderRadius: "10px", background: "#f7f9fc" }}>
-                                <div className="num" style={__sx(`font-size: 14px; font-weight: 700; color: ${bs?.c ?? ""};`)}>{bs?.v}</div>
-                                <div style={{ fontSize: "11px", color: "#64748b" }}>{bs?.l}</div>
+                              <div style={{ padding: "8px 10px", borderRadius: "var(--radius-lg)", background: "#f7f9fc" }}>
+                                <div className="num" style={__sx(`font-size: var(--text-sm); font-weight: var(--weight-semibold); color: ${bs?.c ?? ""};`)}>{bs?.v}</div>
+                                <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{bs?.l}</div>
                               </div>
                             </React.Fragment>))}
                         </div>
                       </button>
                     </React.Fragment>))}
                 </div>
-                <div style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "18px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "20px 22px", borderRadius: "18px", background: "#0b1733", color: "#fff" }}>
+                <form key={v.formKey} noValidate onSubmit={v.submit} aria-label={`${v.dName} details`} style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "18px" }}>
+                  <div className="br-hero gc-on-dark" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "20px 22px", borderRadius: "var(--radius-xl)", background: "#0b1733", color: "#fff" }}>
                     <div style={{ flexGrow: "1" }}>
-                      <div style={{ fontSize: "12px", opacity: ".7" }}>{v.dCode} · {v.dType}</div>
-                      <h2 style={{ margin: "2px 0 0", fontSize: "22px", fontWeight: "700" }}>{v.dName}</h2>
-                      <div style={{ fontSize: "13px", opacity: ".8", marginTop: "4px" }}>{v.dAddr}</div>
+                      <div style={{ fontSize: "var(--text-xs)", opacity: ".7" }}>{v.dCode} · {v.dType}</div>
+                      <h2 style={{ margin: "2px 0 0", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)" }}>{v.dName}</h2>
+                      <div style={{ fontSize: "var(--text-xs-plus)", opacity: ".8", marginTop: "4px" }}>{v.dAddr}</div>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 110px)", gap: "8px" }}>
                       {__list(v.dStats).map((dsx, $index) => (<React.Fragment key={$index}>
-                          <div style={{ padding: "10px 12px", borderRadius: "12px", background: "rgba(255,255,255,.08)" }}>
-                            <div className="num" style={{ fontSize: "18px", fontWeight: "700" }}>{dsx?.v}</div>
-                            <div style={{ fontSize: "11.5px", opacity: ".75" }}>{dsx?.l}</div>
+                          <div style={{ padding: "10px 12px", borderRadius: "var(--radius-xl)", background: "rgba(255,255,255,.08)" }}>
+                            <div className="num" style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>{dsx?.v}</div>
+                            <div style={{ fontSize: "var(--text-xs)", opacity: ".75" }}>{dsx?.l}</div>
                           </div>
                         </React.Fragment>))}
                     </div>
@@ -209,38 +298,38 @@ export default class BranchesScreen extends Component {
                   <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       <div style={{ flexGrow: "1" }}>
-                        <h2 style={{ margin: "0", fontSize: "16px", lineHeight: "24px", fontWeight: "600", color: "#0f172a" }}>Branch details</h2>
+                        <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Branch details</h2>
+                        <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Fields marked <span style={{ color: "var(--text-danger)" }}>*</span> are required.</p>
                       </div>
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                    <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
                       <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <span className="lbl">Branch name</span>
-                        <input className="inp" value={v.dName} onInput={v.typeName} onChange={v.typeName} aria-label="Branch name" />
+                        <span className="lbl">Branch name<__Req /></span>
+                        <input id="br-name" className="inp" value={v.dName} onChange={v.typeName} aria-label="Branch name" aria-required="true" {...__inv(v.errs?.n, "br-name-err")} />
+                        <__Err id="br-name-err" msg={v.errs?.n} />
                       </label>
-                      <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <span className="lbl">Short code</span>
-                        <div className="inp mono" style={{ display: "flex", alignItems: "center", background: "#f8fafc" }}>{v.dCode}</div>
-                        <span style={{ fontSize: "12px", lineHeight: "16px", color: "#64748b" }}>Printed on receipts and transfer slips</span>
-                      </label>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                        <span className="lbl" id="br-code-lbl">Short code</span>
+                        <div className="inp mono" role="group" aria-labelledby="br-code-lbl" style={{ display: "flex", alignItems: "center", background: "#f8fafc" }}>{v.dCode}</div>
+                        <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Printed on receipts and transfer slips. It cannot be changed.</span>
+                      </div>
                       <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                         <span className="lbl">Manager</span>
-                        <select className="inp" aria-label="Manager">
-                          <option>{v.dMgr}</option>
-                          <option>Rakib Hasan</option>
-                          <option>Nabila Rahman</option>
+                        <select className="inp" aria-label="Manager" value={v.dMgr} onChange={v.pickMgr}>
+                          {__list(v.mgrs).map((m) => (<option key={m} value={m}>{m}</option>))}
                         </select>
                       </label>
                       <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                         <span className="lbl">Phone</span>
-                        <input className="inp" value={v.dPhone} onInput={v.typePhone} onChange={v.typePhone} aria-label="Phone" />
+                        <input className="inp" type="tel" value={v.dPhone} onChange={v.typePhone} aria-label="Phone" />
                       </label>
                       <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                         <span className="lbl">Opening hours</span>
-                        <input className="inp" value={v.dHours} onInput={v.typeHours} onChange={v.typeHours} aria-label="Opening hours" />
+                        <input className="inp" value={v.dHours} onChange={v.typeHours} aria-label="Opening hours" />
                       </label>
                       <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                         <span className="lbl">Gets stock from</span>
-                        <select className="inp" aria-label="Stock from">
+                        <select className="inp" aria-label="Gets stock from" value={v.dFrom} onChange={v.pickFrom}>
                           <option>Central Warehouse</option>
                           <option>Chattogram hub</option>
                         </select>
@@ -248,7 +337,7 @@ export default class BranchesScreen extends Component {
                     </div>
                     <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                       {__list(v.regs).map((rg, $index) => (<React.Fragment key={$index}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "36px", padding: "0 12px", borderRadius: "10px", border: "1px solid #e2e8f0", fontSize: "13px" }}><span style={__sx(`width: 8px; height: 8px; border-radius: 999px; background: ${rg?.c ?? ""};`)} />{rg?.l}</span>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "36px", padding: "0 12px", borderRadius: "var(--radius-lg)", border: "1px solid #e2e8f0", fontSize: "var(--text-xs-plus)" }}><span style={__sx(`width: 8px; height: 8px; border-radius: var(--radius-full); background: ${rg?.c ?? ""};`)} />{rg?.l}</span>
                         </React.Fragment>))}
                       <button type="button" className="abtn" onClick={v.addReg}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M5 12h14" />
@@ -256,15 +345,15 @@ export default class BranchesScreen extends Component {
 </svg>POS register</button>
                     </div>
                   </section>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px", alignItems: "start" }}>
+                  <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px", alignItems: "start" }}>
                     <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                         <div style={{ flexGrow: "1" }}>
-                          <h2 style={{ margin: "0", fontSize: "16px", lineHeight: "24px", fontWeight: "600", color: "#0f172a" }}>Selling from this branch</h2>
+                          <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Selling from this branch</h2>
                         </div>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                        <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "10px", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
                             <path d="M15 18H9" />
@@ -274,13 +363,13 @@ export default class BranchesScreen extends Component {
                           </svg>
                         </span>
                         <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "14px", lineHeight: "20px", fontWeight: "600", color: "#0f172a" }}>Ship online orders from here</div>
-                          <div style={{ fontSize: "13px", lineHeight: "18px", color: "#64748b" }}>Nearby online orders are packed at this branch</div>
+                          <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Ship online orders from here</div>
+                          <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Nearby online orders are packed at this branch</div>
                         </div>
                         <button type="button" role="switch" aria-checked={v.ship?.on} aria-label="Ship online orders from here" className={v.ship?.cls} onClick={v.ship?.toggle} />
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                        <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "10px", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7" />
                             <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
@@ -289,41 +378,41 @@ export default class BranchesScreen extends Component {
                           </svg>
                         </span>
                         <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "14px", lineHeight: "20px", fontWeight: "600", color: "#0f172a" }}>Pickup point</div>
-                          <div style={{ fontSize: "13px", lineHeight: "18px", color: "#64748b" }}>Customers can buy online and collect here</div>
+                          <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Pickup point</div>
+                          <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Customers can buy online and collect here</div>
                         </div>
                         <button type="button" role="switch" aria-checked={v.pickup?.on} aria-label="Pickup point" className={v.pickup?.cls} onClick={v.pickup?.toggle} />
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                        <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "10px", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
                             <circle cx="12" cy="12" r="3" />
                           </svg>
                         </span>
                         <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "14px", lineHeight: "20px", fontWeight: "600", color: "#0f172a" }}>Show this branch’s stock on the website</div>
-                          <div style={{ fontSize: "13px", lineHeight: "18px", color: "#64748b" }}>“Available at Dhanmondi” on the product page</div>
+                          <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Show this branch’s stock on the website</div>
+                          <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>“Available at Dhanmondi” on the product page</div>
                         </div>
                         <button type="button" role="switch" aria-checked={v.showStock?.on} aria-label="Show this branch’s stock on the website" className={v.showStock?.cls} onClick={v.showStock?.toggle} />
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "12px 0", borderBottom: "1px solid #eef2f6" }}>
+                      <div className="br-set" style={{ padding: "12px 0", borderBottom: "1px solid #eef2f6" }}>
                         <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "14px", fontWeight: "600", color: "#0f172a" }}>Keep for walk-in customers</div>
-                          <div style={{ fontSize: "13px", color: "#64748b" }}>Units the website can never take</div>
+                          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Keep for walk-in customers</div>
+                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Units the website can never take</div>
                         </div>
-                        <select className="inp" aria-label="Reserve" style={{ width: "170px" }}>
+                        <select className="inp" aria-label="Keep for walk-in customers" value={v.dReserve} onChange={v.pickReserve} style={{ width: "170px" }}>
                           <option>2 per product</option>
                           <option>None</option>
                           <option>5 per product</option>
                         </select>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "12px 0", borderBottom: "1px solid #eef2f6" }}>
+                      <div className="br-set" style={{ padding: "12px 0", borderBottom: "1px solid #eef2f6" }}>
                         <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "14px", fontWeight: "600", color: "#0f172a" }}>Refill from warehouse</div>
-                          <div style={{ fontSize: "13px", color: "#64748b" }}>When stock falls to its minimum</div>
+                          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Refill from warehouse</div>
+                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>When stock falls to its minimum</div>
                         </div>
-                        <select className="inp" aria-label="Refill" style={{ width: "170px" }}>
+                        <select className="inp" aria-label="Refill from warehouse" value={v.dRefill} onChange={v.pickRefill} style={{ width: "170px" }}>
                           <option>Draft a transfer for me</option>
                           <option>Ask me first</option>
                           <option>Do nothing</option>
@@ -333,40 +422,76 @@ export default class BranchesScreen extends Component {
                     <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                         <div style={{ flexGrow: "1" }}>
-                          <h2 style={{ margin: "0", fontSize: "16px", lineHeight: "24px", fontWeight: "600", color: "#0f172a" }}>Cash and receipts</h2>
+                          <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Cash and receipts</h2>
                         </div>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "12px 0", borderBottom: "1px solid #eef2f6" }}>
+                      <div className="br-set" style={{ padding: "12px 0", borderBottom: "1px solid #eef2f6" }}>
                         <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "14px", fontWeight: "600", color: "#0f172a" }}>Opening cash float</div>
-                          <div style={{ fontSize: "13px", color: "#64748b" }}>Cash in each drawer at the start of the day</div>
+                          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Opening cash float</div>
+                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Cash in each drawer at the start of the day</div>
                         </div>
-                        <input className="inp num" defaultValue="৳5,000" aria-label="Float" style={{ width: "170px" }} />
+                        <input className="inp num" value={v.dFloat} onChange={v.typeFloat} aria-label="Opening cash float" style={{ width: "170px" }} />
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "12px 0", borderBottom: "1px solid #eef2f6" }}>
+                      <div className="br-set" style={{ padding: "12px 0", borderBottom: "1px solid #eef2f6" }}>
                         <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "14px", fontWeight: "600", color: "#0f172a" }}>Receipt header</div>
-                          <div style={{ fontSize: "13px", color: "#64748b" }}>Printed at the top of every receipt</div>
+                          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Receipt header</div>
+                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Printed at the top of every receipt</div>
                         </div>
-                        <div className="inp" style={{ width: "260px", display: "flex", alignItems: "center", background: "#f8fafc" }}>GridShop · {v.dName}</div>
+                        <div className="inp" style={{ width: "260px", maxWidth: "100%", display: "flex", alignItems: "center", background: "#f8fafc" }}>GridShop · {v.dName}</div>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                        <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "10px", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
                             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                           </svg>
                         </span>
                         <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "14px", lineHeight: "20px", fontWeight: "600", color: "#0f172a" }}>Manager must close the day</div>
-                          <div style={{ fontSize: "13px", lineHeight: "18px", color: "#64748b" }}>Cash count and signature before the register locks</div>
+                          <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Manager must close the day</div>
+                          <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Cash count and signature before the register locks</div>
                         </div>
                         <button type="button" role="switch" aria-checked={v.closeReq?.on} aria-label="Manager must close the day" className={v.closeReq?.cls} onClick={v.closeReq?.toggle} />
                       </div>
+                      {v.negStock ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
+                          <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#fff4e0", color: "#a14f06", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <__Icon name="triangle-alert" width="20" height="20" aria-hidden="true" />
+                          </span>
+                          <div style={{ flexGrow: "1" }}>
+                            <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Allow negative stock</div>
+                            <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>The register can sell more than this branch has. Saved at once.</div>
+                          </div>
+                          <button type="button" role="switch" aria-checked={v.negStock.on} aria-label="Allow negative stock" className={v.negStock.cls} onClick={v.negStock.toggle} />
+                        </div>
+                      ) : null}
                     </section>
                   </div>
-                </div>
+                  <div className="savebar">
+                    <span role="status" aria-live="polite" style={{ flexGrow: "1", display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--text-warning)" }}>
+                      {v.dirty ? (<><__Icon name="circle-alert" width="16" height="16" aria-hidden="true" /><span>Unsaved changes</span></>) : null}
+                    </span>
+                    {v.dirty ? <button type="button" className="btn line" onClick={v.discard}>Discard</button> : null}
+                    <button type="submit" className="btn solid">Save changes</button>
+                  </div>
+                </form>
               </div>
+              <__Dialog open={v.addOpen} title="Add branch" onClose={v.closeAdd} footer={<>
+                <button type="button" className="gc-btn gc-btn--neutral" onClick={v.closeAdd}>Cancel</button>
+                <button type="submit" form="nb-form" className="gc-btn gc-btn--solid">Add branch</button>
+              </>}>
+                <form id="nb-form" noValidate onSubmit={v.submitNb} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    <label className="lbl" htmlFor="nb-name">Branch name<__Req /></label>
+                    <input id="nb-name" data-autofocus="" className="inp" value={v.nb?.n} onChange={v.typeNb("n")} placeholder="Example: Uttara branch" autoComplete="off" aria-required="true" {...__inv(v.nbErr, "nb-name-err")} />
+                    <__Err id="nb-name-err" msg={v.nbErr} />
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    <label className="lbl" htmlFor="nb-addr">Address <span style={{ fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>(optional)</span></label>
+                    <input id="nb-addr" className="inp" value={v.nb?.addr} onChange={v.typeNb("addr")} placeholder="House, road, area, city" autoComplete="off" />
+                  </div>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>The branch is added as a draft. It opens for sales after you set its stock and staff.</p>
+                </form>
+              </__Dialog>
             </div>
           </main>
         </div>

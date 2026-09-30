@@ -19,7 +19,7 @@ function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
 function toast(self, m) { clearTimeout(self.t); self.setState({ msg: m }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 3200); }
 function seg(self, opts, cur, key, i, base) { return opts.map(function (o) { var on = o[0] === cur; return { k: o[0], l: o[1 + i], on: on, cls: (base || 'sgb') + (on ? ' on' : ''), pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
 function sw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
-var T = {"menu": ["মেনু", "Menu"], "shop": ["রহমান স্টোর", "GridShop"], "shopInitial": ["র", "R"], "branch": ["মিরপুর শাখা", "Mirpur branch"], "newSale": ["নতুন বেচা", "New sale"], "gDaily": ["প্রতিদিনের কাজ", "Daily work"], "gGoods": ["মাল ও স্টক", "Goods & stock"], "gPeople": ["মানুষজন", "People"], "gAccounts": ["হিসাব", "Accounts"], "nHome": ["হোম", "Home"], "nSalesBook": ["বেচার খাতা", "Sales book"], "nInvoices": ["পাইকারি ও ইনভয়েস", "Wholesale & invoices"], "nReturn": ["ফেরত ও বদল", "Return & exchange"], "nPurchase": ["মাল কেনা", "Purchase"], "nMoney": ["টাকা আসা-যাওয়া", "Money in & out"], "nProducts": ["প্রোডাক্ট", "Products"], "nCategories": ["ক্যাটাগরি", "Categories"], "nBarcode": ["বারকোড", "Barcodes"], "nStock": ["স্টক ও গুদাম", "Stock & warehouses"], "nDamage": ["ড্যামেজ ও মেয়াদ শেষ", "Damaged & expired"], "nWarranty": ["ওয়ারেন্টি", "Warranty"], "nCatalog": ["ক্যাটালগ", "Catalogue"], "nCustomers": ["কাস্টমার ও বাকি", "Customers & dues"], "nSuppliers": ["সাপ্লায়ার ও দেনা", "Suppliers & payables"], "nStaff": ["স্টাফ", "Staff"], "nBook": ["হিসাব খাতা ও খরচ", "Cash book & expenses"], "nVat": ["ভ্যাট", "VAT"], "nReports": ["রিপোর্ট", "Reports"], "nPos": ["POS খুলুন", "Open POS"], "nSettings": ["সেটিংস", "Settings"], "search": ["প্রোডাক্ট, কাস্টমার বা মেমো নম্বর খুঁজুন", "Search products, customers or memo no."], "voiceSearch": ["কথা বলে খুঁজুন", "Search by voice"], "notif": ["নোটিফিকেশন", "Notifications"], "owner": ["মোস্তাফিজ", "Mostafiz"], "ownerInitial": ["মো", "M"], "role": ["মালিক", "Owner"], "aiAsk": ["কথা বলুন", "Ask by voice"], "aiTitle": ["গ্রিড সহকারী", "Grid assistant"], "aiSub": ["বাংলায় বলুন বা লিখুন — যেকোনো স্ক্রিন থেকে", "Speak or type — from any screen"], "close": ["বন্ধ করুন", "Close"], "aiType": ["এখানে লিখুন…", "Type here…"], "aiSpeak": ["কথা বলুন", "Speak"], "back": ["পেছনে", "Back"], "tHome": ["হোম", "Home"], "tSales": ["বেচা", "Sales"], "tStock": ["স্টক", "Stock"], "tMore": ["আরও", "More"], "save": ["সেভ করুন", "Save"], "cancel": ["বাতিল", "Cancel"], "seeAll": ["সব দেখুন", "See all"], "h": ["রিপোর্ট", "Reports"], "hsub": ["সময় বাছুন, তারপর যেকোনো রিপোর্ট দেখুন বা Excel / PDF নামান", "Pick a period, then open any report or download it as Excel / PDF"], "range": ["সময়", "Period"], "from": ["থেকে", "From"], "to": ["পর্যন্ত", "To"], "wa": ["রিপোর্ট প্রতিদিন রাতে WhatsApp-এ পাঠাও", "Send the report on WhatsApp every night"], "waTo": ["রাত ১০টায় এই নম্বরে", "At 10 pm to this number"], "waNum": ["WhatsApp নম্বর", "WhatsApp number"], "view": ["দেখুন", "View"], "close2": ["রিপোর্ট বন্ধ করুন", "Close report"], "pickOne": ["উপরের যেকোনো রিপোর্টে \"দেখুন\" চাপুন — এখানে বড় করে দেখাবে", "Tap \"View\" on any report above — it opens here"], "mMonth": ["মাস", "Month"], "mSales": ["বেচা", "Sales"], "mCogs": ["কেনা দাম", "Buying cost"], "mExp": ["খরচ", "Expenses"], "mProfit": ["লাভ", "Profit"], "total6": ["৬ মাসে মোট", "6-month total"], "legSales": ["বেচা", "Sales"], "legProfit": ["আসল লাভ", "Real profit"], "pNo": ["#", "#"], "pName": ["প্রোডাক্ট", "Product"], "pQty": ["কতগুলো", "Qty"], "pAmt": ["টাকা", "Amount"], "pProfit": ["লাভ", "Profit"], "pShare": ["বেচার ভাগ", "Share of sales"], "fullIn": ["পুরো রিপোর্ট Excel বা PDF-এ নামান", "Download the full report as Excel or PDF"], "pageTitle": ["রিপোর্ট", "Reports"]};
+var T = {"menu": ["মেনু", "Menu"], "shop": ["রহমান স্টোর", "GridShop"], "shopInitial": ["র", "R"], "branch": ["মিরপুর শাখা", "Mirpur branch"], "newSale": ["নতুন বেচা", "New sale"], "gDaily": ["প্রতিদিনের কাজ", "Daily work"], "gGoods": ["মাল ও স্টক", "Goods & stock"], "gPeople": ["মানুষজন", "People"], "gAccounts": ["হিসাব", "Accounts"], "nHome": ["হোম", "Home"], "nSalesBook": ["বেচার খাতা", "Sales book"], "nInvoices": ["পাইকারি ও ইনভয়েস", "Wholesale & invoices"], "nReturn": ["ফেরত ও বদল", "Return & exchange"], "nPurchase": ["মাল কেনা", "Purchase"], "nMoney": ["টাকা আসা-যাওয়া", "Money in & out"], "nProducts": ["প্রোডাক্ট", "Products"], "nCategories": ["ক্যাটাগরি", "Categories"], "nBarcode": ["বারকোড", "Barcodes"], "nStock": ["স্টক ও গুদাম", "Stock & warehouses"], "nDamage": ["ড্যামেজ ও মেয়াদ শেষ", "Damaged & expired"], "nWarranty": ["ওয়ারেন্টি", "Warranty"], "nCatalog": ["ক্যাটালগ", "Catalogue"], "nCustomers": ["কাস্টমার ও বাকি", "Customers & dues"], "nSuppliers": ["সাপ্লায়ার ও দেনা", "Suppliers & payables"], "nStaff": ["স্টাফ", "Staff"], "nBook": ["হিসাব খাতা ও খরচ", "Cash book & expenses"], "nVat": ["ভ্যাট", "VAT"], "nReports": ["রিপোর্ট", "Reports"], "nPos": ["POS খুলুন", "Open POS"], "nSettings": ["সেটিংস", "Settings"], "search": ["প্রোডাক্ট, কাস্টমার বা মেমো নম্বর খুঁজুন", "Search products, customers or memo no."], "voiceSearch": ["কথা বলে খুঁজুন", "Search by voice"], "notif": ["নোটিফিকেশন", "Notifications"], "owner": ["মোস্তাফিজ", "Mostafiz"], "ownerInitial": ["মো", "M"], "role": ["মালিক", "Owner"], "aiAsk": ["কথা বলুন", "Ask by voice"], "aiTitle": ["গ্রিড সহকারী", "Grid assistant"], "aiSub": ["বাংলায় বলুন বা লিখুন — যেকোনো স্ক্রিন থেকে", "Speak or type — from any screen"], "close": ["বন্ধ করুন", "Close"], "aiType": ["এখানে লিখুন…", "Type here…"], "aiSpeak": ["কথা বলুন", "Speak"], "back": ["পেছনে", "Back"], "tHome": ["হোম", "Home"], "tSales": ["বেচা", "Sales"], "tStock": ["স্টক", "Stock"], "tMore": ["আরও", "More"], "save": ["সেভ করুন", "Save"], "cancel": ["বাতিল", "Cancel"], "seeAll": ["সব দেখুন", "See all"], "h": ["রিপোর্ট", "Reports"], "hsub": ["সময় বাছুন, তারপর যেকোনো রিপোর্ট দেখুন বা Excel / PDF নামান", "Pick a period, then open any report or download it as Excel / PDF"], "range": ["সময়", "Period"], "from": ["থেকে", "From"], "to": ["পর্যন্ত", "To"], "wa": ["রিপোর্ট প্রতিদিন রাতে WhatsApp-এ পাঠাও", "Send the report on WhatsApp every night"], "waTo": ["রাত ১০টায় এই নম্বরে", "At 10:00 PM to this number"], "waNum": ["WhatsApp নম্বর", "WhatsApp number"], "view": ["দেখুন", "View"], "close2": ["রিপোর্ট বন্ধ করুন", "Close report"], "pickOne": ["উপরের যেকোনো রিপোর্টে \"দেখুন\" চাপুন — এখানে বড় করে দেখাবে", "Tap \"View\" on any report above — it opens here"], "mMonth": ["মাস", "Month"], "mSales": ["বেচা", "Sales"], "mCogs": ["কেনা দাম", "Buying cost"], "mExp": ["খরচ", "Expenses"], "mProfit": ["লাভ", "Profit"], "total6": ["৬ মাসে মোট", "6-month total"], "legSales": ["বেচা", "Sales"], "legProfit": ["আসল লাভ", "Real profit"], "pNo": ["#", "#"], "pName": ["প্রোডাক্ট", "Product"], "pQty": ["কতগুলো", "Qty"], "pAmt": ["টাকা", "Amount"], "pProfit": ["লাভ", "Profit"], "pShare": ["বেচার ভাগ", "Share of sales"], "fullIn": ["পুরো রিপোর্ট Excel বা PDF-এ নামান", "Download the full report as Excel or PDF"], "pageTitle": ["রিপোর্ট", "Reports"]};
 var AI = [["এই মাসে কোন মাল সবচেয়ে বেশি চলেছে?", "What sold most this month?", "মিনিকেট চাল ২৫ কেজি — ১১৮ বস্তা, ৳২,৩০,১০০। তারপর সয়াবিন তেল ৫ লি. আর চিনি।", "Power bank 20,000 mAh — 118 bags, ৳2,30,100. Then soybean oil 5 L and sugar."], ["গত মাসের লাভ-লস PDF বানাও", "Make last month’s P&L as PDF", "আগস্টের লাভ-লস PDF তৈরি — আসল লাভ ৳১,৭৪,৩০০। WhatsApp-এ পাঠাব?", "August P&L PDF is ready — real profit ৳1,74,300. Send it on WhatsApp?"], ["৬০ দিনের বেশি পুরনো বাকি কত?", "How much due is over 60 days old?", "৬০ দিনের বেশি পুরনো বাকি মোট ৳১৪,৫০০। \"কাস্টমারের বাকি\" রিপোর্টে নাম দেখুন।", "Dues older than 60 days total ৳14,500. Open \"Customer dues\" to see who."]];
 var NAVC = {"stock": "7", "customers": "12", "suppliers": "3"};
 
@@ -164,61 +164,61 @@ return {
 
 const CSS = `
 *{box-sizing:border-box}
-body{margin:0;background:#e9eef5;color:#0f172a;-webkit-font-smoothing:antialiased;font-family:'Hind Siliguri','Poppins',system-ui,sans-serif}
+body{margin:0;background:#e9eef5;color:#0f172a;-webkit-font-smoothing:antialiased;font-family:var(--font-bn)}
 a{color:#003087;text-decoration:none}
 button{font:inherit;color:inherit}
-.fbn{font-family:'Hind Siliguri','Poppins',system-ui,sans-serif}
-.fen{font-family:'Poppins','Hind Siliguri',system-ui,sans-serif}
+.fbn{font-family:var(--font-bn)}
+.fen{font-family:var(--font-sans)}
 .num{font-variant-numeric:tabular-nums}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-.card{background:#fff;border:1px solid #e6eaf0;border-radius:18px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 10px 28px -18px rgba(15,23,42,.14)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 20px;border-radius:12px;border:0;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap;text-decoration:none;transition:background-color 200ms,border-color 200ms}
+.mono{font-family:var(--font-data)}
+.card{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 10px 28px -18px rgba(15,23,42,.14)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;white-space:nowrap;text-decoration:none;transition:background-color 200ms,border-color 200ms}
 .solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
 .line{background:#fff;color:#0f172a;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#0f172a}
 .soft{background:#eef3fb;color:#003087}.soft:hover{background:#e0e9f7;color:#003087}
 .okb{background:#047857;color:#fff}.okb:hover{background:#065f46;color:#fff}
 .dang{background:#fff;color:#b83210;border:1px solid #f3b7a5}.dang:hover{background:#fff4f0;color:#b83210}
-.sm{height:38px;padding:0 14px;font-size:14px;border-radius:10px}
-.big{height:56px;padding:0 26px;font-size:17px;border-radius:14px}
-.ib{width:44px;height:44px;border-radius:12px;border:1px solid #e2e8f0;background:#fff;color:#334155;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-shrink:0}
+.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus);border-radius:var(--radius-lg)}
+.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus);border-radius:var(--radius-lg)}
+.ib{width:36px;height:36px;border-radius:var(--radius-full);border:1px solid #e2e8f0;background:#fff;color:#334155;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-shrink:0}
 .ib:hover{background:#f1f5f9}
-.seg{display:inline-flex;padding:4px;gap:2px;border-radius:12px;background:#e9eef5}
-.sgb{height:36px;padding:0 14px;border:0;border-radius:9px;background:transparent;font-size:14px;font-weight:500;color:#475569;cursor:pointer;white-space:nowrap}
-.sgb.on{background:#fff;color:#003087;font-weight:700;box-shadow:0 1px 3px rgba(15,23,42,.14)}
-.chip{height:38px;padding:0 14px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;font-size:14px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.seg{display:inline-flex;padding:4px;gap:2px;border-radius:var(--radius-xl);background:#e9eef5}
+.sgb{height:36px;padding:0 14px;border:0;border-radius:var(--radius-lg);background:transparent;font-size:var(--text-sm);font-weight:var(--weight-medium);color:#475569;cursor:pointer;white-space:nowrap}
+.sgb.on{background:#fff;color:#003087;font-weight:var(--weight-semibold);box-shadow:0 1px 3px rgba(15,23,42,.14)}
+.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:#eef3fb;color:#003087;font-weight:600}
-.pill{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap}
+.chip.on{border-color:#003087;background:#eef3fb;color:#003087;font-weight:var(--weight-medium)}
+.pill{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-full);font-size:var(--text-xs-plus);font-weight:var(--weight-medium);white-space:nowrap}
 .p-ok{background:#e7f8f1;color:#047857}.p-due{background:#ffece6;color:#b83210}.p-warn{background:#fff4e0;color:#a14f06}.p-info{background:#eef3fb;color:#003087}.p-grey{background:#eef2f6;color:#475569}.p-bk{background:#fdecf5;color:#a3195b}
-.inp{width:100%;height:48px;padding:0 14px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;font:inherit;font-size:15px;color:#0f172a}
+.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#0f172a}
 .inp:focus{outline:none;border-color:#003087;box-shadow:0 0 0 3px rgba(0,48,135,.12)}
-.inp::placeholder{color:#64748b}
-.lbl{font-size:14px;font-weight:600;color:#334155}
+.inp::placeholder{color:var(--text-muted)}
+.lbl{font-size:var(--text-sm);font-weight:var(--weight-medium);color:#334155}
 .fld{display:flex;flex-direction:column;gap:6px;min-width:0}
-.hint{font-size:13px;line-height:18px;color:#64748b}
+.hint{font-size:var(--text-xs-plus);line-height:18px;color:var(--text-muted)}
 .req{color:#b83210}
-.th{font-size:13px;font-weight:600;color:#64748b;text-align:left;padding:10px 14px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:12px 14px;border-bottom:1px solid #f1f5f9;font-size:15px;vertical-align:middle}
+.th{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted);text-align:left;padding:10px 14px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.td{padding:12px 14px;border-bottom:1px solid #f1f5f9;font-size:var(--text-sm);vertical-align:middle}
 .trow:hover{background:#f8fafc}
-.h1{margin:0;font-size:26px;line-height:34px;font-weight:700}
-.h2{margin:0;font-size:18px;line-height:24px;font-weight:700}
-.sub{font-size:14.5px;color:#64748b}
+.h1{margin:0;font-size:var(--text-2xl);line-height:34px;font-weight:var(--weight-semibold)}
+.h2{margin:0;font-size:var(--text-lg);line-height:24px;font-weight:var(--weight-semibold)}
+.sub{font-size:var(--text-sm-plus);color:var(--text-muted)}
 .kpi{padding:18px 20px;display:flex;flex-direction:column;gap:4px}
-.kpi .k{font-size:14.5px;color:#475569;font-weight:500}
-.kpi .v{font-size:28px;line-height:36px;font-weight:700;font-variant-numeric:tabular-nums}
-.sw{position:relative;width:48px;height:28px;border-radius:999px;border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms}
+.kpi .k{font-size:var(--text-sm-plus);color:#475569;font-weight:var(--weight-medium)}
+.kpi .v{font-size:var(--text-3xl);line-height:36px;font-weight:var(--weight-semibold);font-variant-numeric:tabular-nums}
+.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms}
 .sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
 .tabl{display:flex;gap:4px;border-bottom:1px solid #e2e8f0}
-.tl{position:relative;height:46px;padding:0 14px;border:0;background:transparent;font-size:15px;font-weight:500;color:#64748b;cursor:pointer;white-space:nowrap}
-.tl.on{color:#003087;font-weight:700}.tl.on::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:#003087}
+.tl{position:relative;height:44px;padding:0 14px;border:0;background:transparent;font-size:var(--text-sm-plus);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;white-space:nowrap}
+.tl.on{color:#003087;font-weight:var(--weight-semibold)}.tl.on::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:#003087}
 .row{display:flex;align-items:center;gap:12px;padding:14px 16px}
 .row + .row{border-top:1px solid #eef2f6}
-.bar{height:8px;border-radius:999px;background:#eef2f6;overflow:hidden;display:block}.bar>span{display:block;height:8px;border-radius:999px}
-.note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:14px;line-height:20px}
+.bar{height:8px;border-radius:var(--radius-full);background:#eef2f6;overflow:hidden;display:block}.bar>span{display:block;height:8px;border-radius:var(--radius-full)}
+.note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:var(--radius-xl);font-size:var(--text-sm);line-height:20px}
 .n-info{background:#eef3fb;color:#1e3a6e}.n-warn{background:#fff8eb;color:#7a3b04;border:1px solid #fde3b5}.n-ok{background:#e7f8f1;color:#065f46}.n-due{background:#fff4f0;color:#8a2a0d;border:1px solid #f7c9bb}
-.chipq{height:38px;padding:0 12px;border-radius:999px;border:1px solid #d6e0ef;background:#f5f8ff;color:#003087;font-size:13.5px;font-weight:500;cursor:pointer;white-space:nowrap}
-.wave span{display:inline-block;width:4px;margin:0 2px;border-radius:4px;background:#003087;animation:wv 900ms ease-in-out infinite}
+.chipq{height:36px;padding:0 12px;border-radius:var(--radius-full);border:1px solid #d6e0ef;background:#f5f8ff;color:#003087;font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;white-space:nowrap}
+.wave span{display:inline-block;width:4px;margin:0 2px;border-radius:var(--radius-sm);background:#003087;animation:wv 900ms ease-in-out infinite}
 .wave span:nth-child(2){animation-delay:.15s}.wave span:nth-child(3){animation-delay:.3s}.wave span:nth-child(4){animation-delay:.45s}.wave span:nth-child(5){animation-delay:.6s}
 @keyframes wv{0%,100%{height:8px}50%{height:26px}}
 .fade{animation:fd 240ms cubic-bezier(0,0,.2,1)}
@@ -226,32 +226,32 @@ button{font:inherit;color:inherit}
 .btn:focus-visible,.ib:focus-visible,.sgb:focus-visible,.chip:focus-visible,.tl:focus-visible,.sw:focus-visible,.chipq:focus-visible,a:focus-visible,button:focus-visible{outline:3px solid rgba(0,48,135,.45);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
 
-.nav{display:flex;align-items:center;gap:11px;height:38px;padding:0 10px;border-radius:10px;color:#334155;font-size:14.5px;font-weight:500;text-decoration:none;transition:background-color 200ms,color 200ms}
+.nav{display:flex;align-items:center;gap:11px;height:38px;padding:0 10px;border-radius:var(--radius-lg);color:#334155;font-size:var(--text-sm-plus);font-weight:var(--weight-medium);text-decoration:none;transition:background-color 200ms,color 200ms}
 .nav:hover{background:#f1f5f9;color:#0f172a}
-.nav.on{background:rgba(0,48,135,.09);color:#003087;font-weight:700}
-.nav .cnt{margin-left:auto;min-width:24px;height:21px;padding:0 7px;border-radius:999px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
-.navh{font-size:12px;font-weight:600;letter-spacing:.04em;color:#64748b;padding:12px 10px 2px}
-.act{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:16px;border-radius:16px;border:1px solid #e6eaf0;background:#fff;cursor:pointer;text-align:left;text-decoration:none;color:#0f172a;transition:border-color 200ms,box-shadow 200ms}
+.nav.on{background:rgba(0,48,135,.09);color:#003087;font-weight:var(--weight-semibold)}
+.nav .cnt{margin-left:auto;min-width:24px;height:21px;padding:0 7px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
+.navh{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:.04em;color:var(--text-muted);padding:12px 10px 2px}
+.act{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:16px;border-radius:var(--radius-xl);border:1px solid #e6eaf0;background:#fff;cursor:pointer;text-align:left;text-decoration:none;color:#0f172a;transition:border-color 200ms,box-shadow 200ms}
 .act:hover{border-color:#003087;box-shadow:0 8px 20px -12px rgba(0,48,135,.35);color:#0f172a}
-.act .ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center}
+.act .ic{width:44px;height:44px;border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center}
 .alert{display:flex;align-items:center;gap:14px;padding:12px 16px;border-top:1px solid #eef2f6}
-.abtn{height:38px;padding:0 14px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;font-size:14px;font-weight:600;color:#003087;cursor:pointer;white-space:nowrap}
+.abtn{height:36px;padding:0 14px;border-radius:var(--radius-lg);border:1px solid #cbd5e1;background:#fff;font-size:var(--text-sm);font-weight:var(--weight-medium);color:#003087;cursor:pointer;white-space:nowrap}
 .abtn:hover{background:#f1f5f9}
-.mic{position:absolute;right:28px;bottom:28px;height:60px;padding:0 22px 0 8px;border-radius:999px;border:0;background:#003087;color:#fff;display:flex;align-items:center;gap:12px;font-size:16px;font-weight:600;cursor:pointer;box-shadow:0 16px 32px -12px rgba(0,48,135,.6);z-index:20}
-.mic .dotc{width:44px;height:44px;border-radius:999px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center}
+.mic{position:absolute;right:28px;bottom:28px;height:60px;padding:0 22px 0 8px;border-radius:var(--radius-full);border:0;background:#003087;color:#fff;display:flex;align-items:center;gap:12px;font-size:var(--text-base);font-weight:var(--weight-semibold);cursor:pointer;box-shadow:0 16px 32px -12px rgba(0,48,135,.6);z-index:20}
+.mic .dotc{width:44px;height:44px;border-radius:var(--radius-full);background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center}
 .scrim{position:absolute;inset:0;background:rgba(15,23,42,.42);z-index:15}
 .drawer{position:absolute;top:0;right:0;bottom:0;width:520px;background:#fff;z-index:16;display:flex;flex-direction:column;box-shadow:-20px 0 50px -20px rgba(15,23,42,.35)}
-.modal{position:absolute;left:50%;top:120px;transform:translateX(-50%);width:560px;background:#fff;border-radius:20px;z-index:16;box-shadow:0 30px 70px -20px rgba(15,23,42,.45)}
+.modal{position:absolute;left:50%;top:120px;transform:translateX(-50%);width:560px;background:#fff;border-radius:var(--radius-xl);z-index:16;box-shadow:0 30px 70px -20px rgba(15,23,42,.45)}
 
 /* merged: English, compact controls, GridAI button */
-body{font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif}
-.btn{height:40px;padding:0 16px;font-size:14px;border-radius:10px}
-.btn.sm,.sm{height:34px;padding:0 12px;font-size:13px;border-radius:9px}
-.btn.big,.big{height:48px;padding:0 22px;font-size:15px;border-radius:12px}
-.ib{width:40px;height:40px;border-radius:10px}
-.chip{height:34px;padding:0 12px;font-size:13px}
-.sgb{height:32px;padding:0 12px;font-size:13px}
-.gfab{position:absolute;right:28px;bottom:28px;z-index:20;display:inline-flex;align-items:center;gap:10px;height:52px;padding:0 20px 0 16px;border-radius:999px;background:#003087;color:#fff;font-size:15px;font-weight:600;text-decoration:none;box-shadow:0 14px 30px -12px rgba(0,48,135,.6)}
+body{font-family:var(--font-sans)}
+.btn{height:44px;padding:0 18px;font-size:var(--text-sm);border-radius:var(--radius-lg)}
+.btn.sm,.sm{height:34px;padding:0 12px;font-size:var(--text-xs-plus);border-radius:var(--radius-lg)}
+.btn.big,.big{height:48px;padding:0 22px;font-size:var(--text-sm-plus);border-radius:var(--radius-xl)}
+.ib{width:36px;height:36px;border-radius:var(--radius-full)}
+.chip{height:36px;padding:0 14px;font-size:var(--text-xs-plus)}
+.sgb{height:32px;padding:0 12px;font-size:var(--text-xs-plus)}
+.gfab{position:absolute;right:28px;bottom:28px;z-index:20;display:inline-flex;align-items:center;gap:10px;height:52px;padding:0 20px 0 16px;border-radius:var(--radius-full);background:#003087;color:#fff;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);text-decoration:none;box-shadow:0 14px 30px -12px rgba(0,48,135,.6)}
 .gfab:hover{background:#002a77;color:#fff}
 .gfab:focus-visible{outline:3px solid rgba(0,48,135,.45);outline-offset:3px}
 .th,.td{white-space:normal}
@@ -265,13 +265,13 @@ export default class ReportsScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="Reports">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className={v.rootCls} style={{ width: "1440px", height: "1340px", position: "relative", background: "#e9eef5", padding: "12px", display: "flex", gap: "12px", overflow: "hidden" }}>
+        <div className={"gc-shell " + (v.rootCls || "")} style={{ position: "relative", background: "#e9eef5", padding: "12px", display: "flex", gap: "12px" }}>
           <__Sidebar sticky="" active="acc-reports" />
-          <main style={{ flexGrow: "1", minWidth: "0", background: "#f6f8fb", borderRadius: "18px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
+          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f6f8fb", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", position: "relative" }}>
             <__Topbar crumb="Accounts" page="Reports" placeholder="Search products, customers or memo no." />
-            <div style={{ flexGrow: "1", minHeight: "0", padding: "22px 28px 28px", display: "flex", flexDirection: "column", gap: "18px" }}>
+            <div className="gc-shell__content" style={{ flexGrow: "1", minHeight: "0", padding: "22px 28px 28px", display: "flex", flexDirection: "column", gap: "18px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                <span style={{ width: "52px", height: "52px", flexShrink: "0", borderRadius: "15px", background: "#fff", border: "1px solid #e6eaf0", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
+                <span style={{ width: "52px", height: "52px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e6eaf0", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
                   <svg width="38" height="38" viewBox="0 0 48 48" aria-hidden="true">
                     <path d="M11 4H33A3 3 0 0 1 36 7V39A3 3 0 0 1 33 42H11A3 3 0 0 1 8 39V7A3 3 0 0 1 11 4Z" fill="#e0f2fe" />
                     <path d="M11.5 5.5H32.5A2 2 0 0 1 34.5 7.5V38.5A2 2 0 0 1 32.5 40.5H11.5A2 2 0 0 1 9.5 38.5V7.5A2 2 0 0 1 11.5 5.5Z" fill="#ffffff" />
@@ -287,8 +287,8 @@ export default class ReportsScreen extends Component {
                   <h1 className="h1">{v.t?.h}</h1>
                   <div className="sub">{v.t?.hsub}</div>
                 </div>
-                <div className="card" style={{ padding: "8px 12px 8px 10px", display: "flex", alignItems: "center", gap: "12px", borderRadius: "14px" }}>
-                  <span style={{ width: "40px", height: "40px", borderRadius: "11px", background: "#e7f8f1", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div className="card" style={{ padding: "8px 12px 8px 10px", display: "flex", alignItems: "center", gap: "12px", borderRadius: "var(--radius-xl)" }}>
+                  <span style={{ width: "40px", height: "40px", borderRadius: "var(--radius-lg)", background: "#e7f8f1", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <svg width="32" height="32" viewBox="0 0 48 48" aria-hidden="true">
                       <path d="M15.5 3H27.5A4.5 4.5 0 0 1 32 7.5V40.5A4.5 4.5 0 0 1 27.5 45H15.5A4.5 4.5 0 0 1 11 40.5V7.5A4.5 4.5 0 0 1 15.5 3Z" fill="#003087" />
                       <path d="M15.5 7.5H27.5A2 2 0 0 1 29.5 9.5V36.5A2 2 0 0 1 27.5 38.5H15.5A2 2 0 0 1 13.5 36.5V9.5A2 2 0 0 1 15.5 7.5Z" fill="#e0f2fe" />
@@ -301,11 +301,11 @@ export default class ReportsScreen extends Component {
                     </svg>
                   </span>
                   <div style={{ lineHeight: "19px" }}>
-                    <div style={{ fontSize: "14.5px", fontWeight: "600" }}>{v.t?.wa}</div>
+                    <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>{v.t?.wa}</div>
                     <div className="hint">{v.waSub}</div>
                   </div>
                   {v.wa?.on ? (<>
-                    <input className="inp num" defaultValue={v.waNumV} aria-label={v.t?.waNum} style={{ width: "150px", height: "40px", fontWeight: "600" }} />
+                    <input className="inp num" defaultValue={v.waNumV} aria-label={v.t?.waNum} style={{ width: "150px", height: "40px", fontWeight: "var(--weight-medium)" }} />
                   </>) : null}
                   <button type="button" className={v.wa?.cls} aria-pressed={v.wa?.on} aria-label={v.t?.wa} onClick={v.wa?.toggle} />
                 </div>
@@ -338,10 +338,10 @@ export default class ReportsScreen extends Component {
                   </span>
                 </>) : null}
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "14px" }}>
+              <div className="gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "14px" }}>
                 <div className="card" style={__sx(`padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; border: 2px solid ${v.cd?.sales?.bd ?? ""};`)}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: 13px; background: ${v.cd?.sales?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
+                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: var(--radius-xl); background: ${v.cd?.sales?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
                       <svg width="34" height="34" viewBox="0 0 48 48" aria-hidden="true">
                         <path d="M12 5H32A3 3 0 0 1 35 8V39A3 3 0 0 1 32 42H12A3 3 0 0 1 9 39V8A3 3 0 0 1 12 5Z" fill="#0ea5e9" />
                         <path d="M11.5 5H12.5A2.5 2.5 0 0 1 15 7.5V39.5A2.5 2.5 0 0 1 12.5 42H11.5A2.5 2.5 0 0 1 9 39.5V7.5A2.5 2.5 0 0 1 11.5 5Z" fill="#003087" />
@@ -355,7 +355,7 @@ export default class ReportsScreen extends Component {
                       </svg>
                     </span>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <div style={{ fontSize: "15.5px", fontWeight: "700", lineHeight: "20px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.sales?.l}</div>
+                      <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", lineHeight: "22px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.sales?.l}</div>
                       <div className="hint num" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.sales?.kl}</div>
                     </div>
                     <span aria-hidden="true" style={{ width: "78px", height: "30px", flexShrink: "0", display: "flex", alignItems: "flex-end", gap: "2px" }}>
@@ -365,15 +365,15 @@ export default class ReportsScreen extends Component {
                     </span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: 20px; font-weight: 700; color: ${v.cd?.sales?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.sales?.v}</span>
-                    <button type="button" className={v.cd?.sales?.vcls} aria-pressed={v.cd?.sales?.on} onClick={v.cd?.sales?.open} style={{ height: "34px", padding: "0 12px" }}>{v.t?.view}</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.sales?.xls} style={{ height: "34px", padding: "0 10px" }}>Excel</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.sales?.pdf} style={{ height: "34px", padding: "0 10px" }}>PDF</button>
+                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: var(--text-xl); font-weight: var(--weight-semibold); color: ${v.cd?.sales?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.sales?.v}</span>
+                    <button type="button" className={v.cd?.sales?.vcls} aria-pressed={v.cd?.sales?.on} onClick={v.cd?.sales?.open} style={{ height: "36px", padding: "0 12px" }}>{v.t?.view}</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.sales?.xls} style={{ height: "36px", padding: "0 10px" }}>Excel</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.sales?.pdf} style={{ height: "36px", padding: "0 10px" }}>PDF</button>
                   </div>
                 </div>
                 <div className="card" style={__sx(`padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; border: 2px solid ${v.cd?.pl?.bd ?? ""};`)}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: 13px; background: ${v.cd?.pl?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
+                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: var(--radius-xl); background: ${v.cd?.pl?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
                       <svg width="34" height="34" viewBox="0 0 48 48" aria-hidden="true">
                         <path d="M8.5 28H12.5A1.5 1.5 0 0 1 14 29.5V39.5A1.5 1.5 0 0 1 12.5 41H8.5A1.5 1.5 0 0 1 7 39.5V29.5A1.5 1.5 0 0 1 8.5 28Z" fill="#7dd3fc" />
                         <path d="M18.5 22H22.5A1.5 1.5 0 0 1 24 23.5V39.5A1.5 1.5 0 0 1 22.5 41H18.5A1.5 1.5 0 0 1 17 39.5V23.5A1.5 1.5 0 0 1 18.5 22Z" fill="#7dd3fc" />
@@ -383,7 +383,7 @@ export default class ReportsScreen extends Component {
                       </svg>
                     </span>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <div style={{ fontSize: "15.5px", fontWeight: "700", lineHeight: "20px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.pl?.l}</div>
+                      <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", lineHeight: "22px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.pl?.l}</div>
                       <div className="hint num" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.pl?.kl}</div>
                     </div>
                     <span aria-hidden="true" style={{ width: "78px", height: "30px", flexShrink: "0", display: "flex", alignItems: "flex-end", gap: "2px" }}>
@@ -393,15 +393,15 @@ export default class ReportsScreen extends Component {
                     </span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: 20px; font-weight: 700; color: ${v.cd?.pl?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.pl?.v}</span>
-                    <button type="button" className={v.cd?.pl?.vcls} aria-pressed={v.cd?.pl?.on} onClick={v.cd?.pl?.open} style={{ height: "34px", padding: "0 12px" }}>{v.t?.view}</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.pl?.xls} style={{ height: "34px", padding: "0 10px" }}>Excel</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.pl?.pdf} style={{ height: "34px", padding: "0 10px" }}>PDF</button>
+                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: var(--text-xl); font-weight: var(--weight-semibold); color: ${v.cd?.pl?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.pl?.v}</span>
+                    <button type="button" className={v.cd?.pl?.vcls} aria-pressed={v.cd?.pl?.on} onClick={v.cd?.pl?.open} style={{ height: "36px", padding: "0 12px" }}>{v.t?.view}</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.pl?.xls} style={{ height: "36px", padding: "0 10px" }}>Excel</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.pl?.pdf} style={{ height: "36px", padding: "0 10px" }}>PDF</button>
                   </div>
                 </div>
                 <div className="card" style={__sx(`padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; border: 2px solid ${v.cd?.prod?.bd ?? ""};`)}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: 13px; background: ${v.cd?.prod?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
+                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: var(--radius-xl); background: ${v.cd?.prod?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
                       <svg width="34" height="34" viewBox="0 0 48 48" aria-hidden="true">
                         <path d="M10 17H36A2 2 0 0 1 38 19V39A2 2 0 0 1 36 41H10A2 2 0 0 1 8 39V19A2 2 0 0 1 10 17Z" fill="#7dd3fc" />
                         <path d="M8 11H38A2 2 0 0 1 40 13V17A2 2 0 0 1 38 19H8A2 2 0 0 1 6 17V13A2 2 0 0 1 8 11Z" fill="#0ea5e9" />
@@ -411,7 +411,7 @@ export default class ReportsScreen extends Component {
                       </svg>
                     </span>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <div style={{ fontSize: "15.5px", fontWeight: "700", lineHeight: "20px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.prod?.l}</div>
+                      <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", lineHeight: "22px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.prod?.l}</div>
                       <div className="hint num" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.prod?.kl}</div>
                     </div>
                     <span aria-hidden="true" style={{ width: "78px", height: "30px", flexShrink: "0", display: "flex", alignItems: "flex-end", gap: "2px" }}>
@@ -421,15 +421,15 @@ export default class ReportsScreen extends Component {
                     </span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: 20px; font-weight: 700; color: ${v.cd?.prod?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.prod?.v}</span>
-                    <button type="button" className={v.cd?.prod?.vcls} aria-pressed={v.cd?.prod?.on} onClick={v.cd?.prod?.open} style={{ height: "34px", padding: "0 12px" }}>{v.t?.view}</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.prod?.xls} style={{ height: "34px", padding: "0 10px" }}>Excel</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.prod?.pdf} style={{ height: "34px", padding: "0 10px" }}>PDF</button>
+                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: var(--text-xl); font-weight: var(--weight-semibold); color: ${v.cd?.prod?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.prod?.v}</span>
+                    <button type="button" className={v.cd?.prod?.vcls} aria-pressed={v.cd?.prod?.on} onClick={v.cd?.prod?.open} style={{ height: "36px", padding: "0 12px" }}>{v.t?.view}</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.prod?.xls} style={{ height: "36px", padding: "0 10px" }}>Excel</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.prod?.pdf} style={{ height: "36px", padding: "0 10px" }}>PDF</button>
                   </div>
                 </div>
                 <div className="card" style={__sx(`padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; border: 2px solid ${v.cd?.stock?.bd ?? ""};`)}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: 13px; background: ${v.cd?.stock?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
+                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: var(--radius-xl); background: ${v.cd?.stock?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
                       <svg width="34" height="34" viewBox="0 0 48 48" aria-hidden="true">
                         <path d="M8 24H21A2 2 0 0 1 23 26V39A2 2 0 0 1 21 41H8A2 2 0 0 1 6 39V26A2 2 0 0 1 8 24Z" fill="#7dd3fc" />
                         <path d="M13 24h3v7h-3Z" fill="#e0f2fe" />
@@ -442,7 +442,7 @@ export default class ReportsScreen extends Component {
                       </svg>
                     </span>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <div style={{ fontSize: "15.5px", fontWeight: "700", lineHeight: "20px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.stock?.l}</div>
+                      <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", lineHeight: "22px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.stock?.l}</div>
                       <div className="hint num" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.stock?.kl}</div>
                     </div>
                     <span aria-hidden="true" style={{ width: "78px", height: "30px", flexShrink: "0", display: "flex", alignItems: "flex-end", gap: "2px" }}>
@@ -452,15 +452,15 @@ export default class ReportsScreen extends Component {
                     </span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: 20px; font-weight: 700; color: ${v.cd?.stock?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.stock?.v}</span>
-                    <button type="button" className={v.cd?.stock?.vcls} aria-pressed={v.cd?.stock?.on} onClick={v.cd?.stock?.open} style={{ height: "34px", padding: "0 12px" }}>{v.t?.view}</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.stock?.xls} style={{ height: "34px", padding: "0 10px" }}>Excel</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.stock?.pdf} style={{ height: "34px", padding: "0 10px" }}>PDF</button>
+                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: var(--text-xl); font-weight: var(--weight-semibold); color: ${v.cd?.stock?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.stock?.v}</span>
+                    <button type="button" className={v.cd?.stock?.vcls} aria-pressed={v.cd?.stock?.on} onClick={v.cd?.stock?.open} style={{ height: "36px", padding: "0 12px" }}>{v.t?.view}</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.stock?.xls} style={{ height: "36px", padding: "0 10px" }}>Excel</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.stock?.pdf} style={{ height: "36px", padding: "0 10px" }}>PDF</button>
                   </div>
                 </div>
                 <div className="card" style={__sx(`padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; border: 2px solid ${v.cd?.low?.bd ?? ""};`)}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: 13px; background: ${v.cd?.low?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
+                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: var(--radius-xl); background: ${v.cd?.low?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
                       <svg width="34" height="34" viewBox="0 0 48 48" aria-hidden="true">
                         <path d="M24 5C16.5 5 12 10.5 12 18V27L8 33H40L36 27V18C36 10.5 31.5 5 24 5Z" fill="#0ea5e9" />
                         <path d="M23 34H25A3 3 0 0 1 28 37V37A3 3 0 0 1 25 40H23A3 3 0 0 1 20 37V37A3 3 0 0 1 23 34Z" fill="#0ea5e9" />
@@ -468,7 +468,7 @@ export default class ReportsScreen extends Component {
                       </svg>
                     </span>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <div style={{ fontSize: "15.5px", fontWeight: "700", lineHeight: "20px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.low?.l}</div>
+                      <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", lineHeight: "22px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.low?.l}</div>
                       <div className="hint num" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.low?.kl}</div>
                     </div>
                     <span aria-hidden="true" style={{ width: "78px", height: "30px", flexShrink: "0", display: "flex", alignItems: "flex-end", gap: "2px" }}>
@@ -478,15 +478,15 @@ export default class ReportsScreen extends Component {
                     </span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: 20px; font-weight: 700; color: ${v.cd?.low?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.low?.v}</span>
-                    <button type="button" className={v.cd?.low?.vcls} aria-pressed={v.cd?.low?.on} onClick={v.cd?.low?.open} style={{ height: "34px", padding: "0 12px" }}>{v.t?.view}</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.low?.xls} style={{ height: "34px", padding: "0 10px" }}>Excel</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.low?.pdf} style={{ height: "34px", padding: "0 10px" }}>PDF</button>
+                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: var(--text-xl); font-weight: var(--weight-semibold); color: ${v.cd?.low?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.low?.v}</span>
+                    <button type="button" className={v.cd?.low?.vcls} aria-pressed={v.cd?.low?.on} onClick={v.cd?.low?.open} style={{ height: "36px", padding: "0 12px" }}>{v.t?.view}</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.low?.xls} style={{ height: "36px", padding: "0 10px" }}>Excel</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.low?.pdf} style={{ height: "36px", padding: "0 10px" }}>PDF</button>
                   </div>
                 </div>
                 <div className="card" style={__sx(`padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; border: 2px solid ${v.cd?.due?.bd ?? ""};`)}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: 13px; background: ${v.cd?.due?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
+                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: var(--radius-xl); background: ${v.cd?.due?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
                       <svg width="34" height="34" viewBox="0 0 48 48" aria-hidden="true">
                         <path d="M11.5 14.5a7.5 7.5 0 1 0 15.0 0a7.5 7.5 0 1 0 -15.0 0Z" fill="#7dd3fc" />
                         <path d="M14.5 24H23.5A9.5 9.5 0 0 1 33 33.5V33.5A9.5 9.5 0 0 1 23.5 43H14.5A9.5 9.5 0 0 1 5 33.5V33.5A9.5 9.5 0 0 1 14.5 24Z" fill="#0ea5e9" />
@@ -496,7 +496,7 @@ export default class ReportsScreen extends Component {
                       </svg>
                     </span>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <div style={{ fontSize: "15.5px", fontWeight: "700", lineHeight: "20px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.due?.l}</div>
+                      <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", lineHeight: "22px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.due?.l}</div>
                       <div className="hint num" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.due?.kl}</div>
                     </div>
                     <span aria-hidden="true" style={{ width: "78px", height: "30px", flexShrink: "0", display: "flex", alignItems: "flex-end", gap: "2px" }}>
@@ -506,15 +506,15 @@ export default class ReportsScreen extends Component {
                     </span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: 20px; font-weight: 700; color: ${v.cd?.due?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.due?.v}</span>
-                    <button type="button" className={v.cd?.due?.vcls} aria-pressed={v.cd?.due?.on} onClick={v.cd?.due?.open} style={{ height: "34px", padding: "0 12px" }}>{v.t?.view}</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.due?.xls} style={{ height: "34px", padding: "0 10px" }}>Excel</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.due?.pdf} style={{ height: "34px", padding: "0 10px" }}>PDF</button>
+                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: var(--text-xl); font-weight: var(--weight-semibold); color: ${v.cd?.due?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.due?.v}</span>
+                    <button type="button" className={v.cd?.due?.vcls} aria-pressed={v.cd?.due?.on} onClick={v.cd?.due?.open} style={{ height: "36px", padding: "0 12px" }}>{v.t?.view}</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.due?.xls} style={{ height: "36px", padding: "0 10px" }}>Excel</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.due?.pdf} style={{ height: "36px", padding: "0 10px" }}>PDF</button>
                   </div>
                 </div>
                 <div className="card" style={__sx(`padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; border: 2px solid ${v.cd?.pay?.bd ?? ""};`)}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: 13px; background: ${v.cd?.pay?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
+                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: var(--radius-xl); background: ${v.cd?.pay?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
                       <svg width="34" height="34" viewBox="0 0 48 48" aria-hidden="true">
                         <path d="M5 11H27A2 2 0 0 1 29 13V30A2 2 0 0 1 27 32H5A2 2 0 0 1 3 30V13A2 2 0 0 1 5 11Z" fill="#0ea5e9" />
                         <path d="M8.6 16H16.4A1.1 1.1 0 0 1 17.5 17.1V17.099999999999998A1.1 1.1 0 0 1 16.4 18.2H8.6A1.1 1.1 0 0 1 7.5 17.099999999999998V17.1A1.1 1.1 0 0 1 8.6 16Z" fill="#7dd3fc" />
@@ -529,7 +529,7 @@ export default class ReportsScreen extends Component {
                       </svg>
                     </span>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <div style={{ fontSize: "15.5px", fontWeight: "700", lineHeight: "20px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.pay?.l}</div>
+                      <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", lineHeight: "22px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.pay?.l}</div>
                       <div className="hint num" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.pay?.kl}</div>
                     </div>
                     <span aria-hidden="true" style={{ width: "78px", height: "30px", flexShrink: "0", display: "flex", alignItems: "flex-end", gap: "2px" }}>
@@ -539,15 +539,15 @@ export default class ReportsScreen extends Component {
                     </span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: 20px; font-weight: 700; color: ${v.cd?.pay?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.pay?.v}</span>
-                    <button type="button" className={v.cd?.pay?.vcls} aria-pressed={v.cd?.pay?.on} onClick={v.cd?.pay?.open} style={{ height: "34px", padding: "0 12px" }}>{v.t?.view}</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.pay?.xls} style={{ height: "34px", padding: "0 10px" }}>Excel</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.pay?.pdf} style={{ height: "34px", padding: "0 10px" }}>PDF</button>
+                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: var(--text-xl); font-weight: var(--weight-semibold); color: ${v.cd?.pay?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.pay?.v}</span>
+                    <button type="button" className={v.cd?.pay?.vcls} aria-pressed={v.cd?.pay?.on} onClick={v.cd?.pay?.open} style={{ height: "36px", padding: "0 12px" }}>{v.t?.view}</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.pay?.xls} style={{ height: "36px", padding: "0 10px" }}>Excel</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.pay?.pdf} style={{ height: "36px", padding: "0 10px" }}>PDF</button>
                   </div>
                 </div>
                 <div className="card" style={__sx(`padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; border: 2px solid ${v.cd?.exp?.bd ?? ""};`)}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: 13px; background: ${v.cd?.exp?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
+                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: var(--radius-xl); background: ${v.cd?.exp?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
                       <svg width="34" height="34" viewBox="0 0 48 48" aria-hidden="true">
                         <path d="M11 7H28A2 2 0 0 1 30 9V16A2 2 0 0 1 28 18H11A2 2 0 0 1 9 16V9A2 2 0 0 1 11 7Z" fill="#7dd3fc" />
                         <path d="M10 12H34A6 6 0 0 1 40 18V34A6 6 0 0 1 34 40H10A6 6 0 0 1 4 34V18A6 6 0 0 1 10 12Z" fill="#0ea5e9" />
@@ -557,7 +557,7 @@ export default class ReportsScreen extends Component {
                       </svg>
                     </span>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <div style={{ fontSize: "15.5px", fontWeight: "700", lineHeight: "20px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.exp?.l}</div>
+                      <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", lineHeight: "22px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.exp?.l}</div>
                       <div className="hint num" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.exp?.kl}</div>
                     </div>
                     <span aria-hidden="true" style={{ width: "78px", height: "30px", flexShrink: "0", display: "flex", alignItems: "flex-end", gap: "2px" }}>
@@ -567,15 +567,15 @@ export default class ReportsScreen extends Component {
                     </span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: 20px; font-weight: 700; color: ${v.cd?.exp?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.exp?.v}</span>
-                    <button type="button" className={v.cd?.exp?.vcls} aria-pressed={v.cd?.exp?.on} onClick={v.cd?.exp?.open} style={{ height: "34px", padding: "0 12px" }}>{v.t?.view}</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.exp?.xls} style={{ height: "34px", padding: "0 10px" }}>Excel</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.exp?.pdf} style={{ height: "34px", padding: "0 10px" }}>PDF</button>
+                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: var(--text-xl); font-weight: var(--weight-semibold); color: ${v.cd?.exp?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.exp?.v}</span>
+                    <button type="button" className={v.cd?.exp?.vcls} aria-pressed={v.cd?.exp?.on} onClick={v.cd?.exp?.open} style={{ height: "36px", padding: "0 12px" }}>{v.t?.view}</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.exp?.xls} style={{ height: "36px", padding: "0 10px" }}>Excel</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.exp?.pdf} style={{ height: "36px", padding: "0 10px" }}>PDF</button>
                   </div>
                 </div>
                 <div className="card" style={__sx(`padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; border: 2px solid ${v.cd?.vat?.bd ?? ""};`)}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: 13px; background: ${v.cd?.vat?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
+                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: var(--radius-xl); background: ${v.cd?.vat?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
                       <svg width="34" height="34" viewBox="0 0 48 48" aria-hidden="true">
                         <path d="M10 5L38 5L38 42L34 39L30 42L26 39L22 42L18 39L14 42L10 39Z" fill="#e0f2fe" />
                         <path d="M14.7 16a3.8 3.8 0 1 0 7.6 0a3.8 3.8 0 1 0 -7.6 0Z" fill="#0ea5e9" />
@@ -585,7 +585,7 @@ export default class ReportsScreen extends Component {
                       </svg>
                     </span>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <div style={{ fontSize: "15.5px", fontWeight: "700", lineHeight: "20px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.vat?.l}</div>
+                      <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", lineHeight: "22px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.vat?.l}</div>
                       <div className="hint num" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.vat?.kl}</div>
                     </div>
                     <span aria-hidden="true" style={{ width: "78px", height: "30px", flexShrink: "0", display: "flex", alignItems: "flex-end", gap: "2px" }}>
@@ -595,15 +595,15 @@ export default class ReportsScreen extends Component {
                     </span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: 20px; font-weight: 700; color: ${v.cd?.vat?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.vat?.v}</span>
-                    <button type="button" className={v.cd?.vat?.vcls} aria-pressed={v.cd?.vat?.on} onClick={v.cd?.vat?.open} style={{ height: "34px", padding: "0 12px" }}>{v.t?.view}</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.vat?.xls} style={{ height: "34px", padding: "0 10px" }}>Excel</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.vat?.pdf} style={{ height: "34px", padding: "0 10px" }}>PDF</button>
+                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: var(--text-xl); font-weight: var(--weight-semibold); color: ${v.cd?.vat?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.vat?.v}</span>
+                    <button type="button" className={v.cd?.vat?.vcls} aria-pressed={v.cd?.vat?.on} onClick={v.cd?.vat?.open} style={{ height: "36px", padding: "0 12px" }}>{v.t?.view}</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.vat?.xls} style={{ height: "36px", padding: "0 10px" }}>Excel</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.vat?.pdf} style={{ height: "36px", padding: "0 10px" }}>PDF</button>
                   </div>
                 </div>
                 <div className="card" style={__sx(`padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; border: 2px solid ${v.cd?.ret?.bd ?? ""};`)}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: 13px; background: ${v.cd?.ret?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
+                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: var(--radius-xl); background: ${v.cd?.ret?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
                       <svg width="34" height="34" viewBox="0 0 48 48" aria-hidden="true">
                         <path d="M15 19H32A2 2 0 0 1 34 21V36A2 2 0 0 1 32 38H15A2 2 0 0 1 13 36V21A2 2 0 0 1 15 19Z" fill="#7dd3fc" />
                         <path d="M21.5 19h4v8h-4Z" fill="#e0f2fe" />
@@ -612,7 +612,7 @@ export default class ReportsScreen extends Component {
                       </svg>
                     </span>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <div style={{ fontSize: "15.5px", fontWeight: "700", lineHeight: "20px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.ret?.l}</div>
+                      <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", lineHeight: "22px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.ret?.l}</div>
                       <div className="hint num" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.ret?.kl}</div>
                     </div>
                     <span aria-hidden="true" style={{ width: "78px", height: "30px", flexShrink: "0", display: "flex", alignItems: "flex-end", gap: "2px" }}>
@@ -622,15 +622,15 @@ export default class ReportsScreen extends Component {
                     </span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: 20px; font-weight: 700; color: ${v.cd?.ret?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.ret?.v}</span>
-                    <button type="button" className={v.cd?.ret?.vcls} aria-pressed={v.cd?.ret?.on} onClick={v.cd?.ret?.open} style={{ height: "34px", padding: "0 12px" }}>{v.t?.view}</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.ret?.xls} style={{ height: "34px", padding: "0 10px" }}>Excel</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.ret?.pdf} style={{ height: "34px", padding: "0 10px" }}>PDF</button>
+                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: var(--text-xl); font-weight: var(--weight-semibold); color: ${v.cd?.ret?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.ret?.v}</span>
+                    <button type="button" className={v.cd?.ret?.vcls} aria-pressed={v.cd?.ret?.on} onClick={v.cd?.ret?.open} style={{ height: "36px", padding: "0 12px" }}>{v.t?.view}</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.ret?.xls} style={{ height: "36px", padding: "0 10px" }}>Excel</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.ret?.pdf} style={{ height: "36px", padding: "0 10px" }}>PDF</button>
                   </div>
                 </div>
                 <div className="card" style={__sx(`padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; border: 2px solid ${v.cd?.staff?.bd ?? ""};`)}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: 13px; background: ${v.cd?.staff?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
+                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: var(--radius-xl); background: ${v.cd?.staff?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
                       <svg width="34" height="34" viewBox="0 0 48 48" aria-hidden="true">
                         <path d="M15.5 14.5a8.5 8.5 0 1 0 17.0 0a8.5 8.5 0 1 0 -17.0 0Z" fill="#7dd3fc" />
                         <path d="M18.7 5.5H29.3A3.2 3.2 0 0 1 32.5 8.7V8.8A3.2 3.2 0 0 1 29.3 12.0H18.7A3.2 3.2 0 0 1 15.5 8.8V8.7A3.2 3.2 0 0 1 18.7 5.5Z" fill="#003087" />
@@ -640,7 +640,7 @@ export default class ReportsScreen extends Component {
                       </svg>
                     </span>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <div style={{ fontSize: "15.5px", fontWeight: "700", lineHeight: "20px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.staff?.l}</div>
+                      <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", lineHeight: "22px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.staff?.l}</div>
                       <div className="hint num" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.staff?.kl}</div>
                     </div>
                     <span aria-hidden="true" style={{ width: "78px", height: "30px", flexShrink: "0", display: "flex", alignItems: "flex-end", gap: "2px" }}>
@@ -650,15 +650,15 @@ export default class ReportsScreen extends Component {
                     </span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: 20px; font-weight: 700; color: ${v.cd?.staff?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.staff?.v}</span>
-                    <button type="button" className={v.cd?.staff?.vcls} aria-pressed={v.cd?.staff?.on} onClick={v.cd?.staff?.open} style={{ height: "34px", padding: "0 12px" }}>{v.t?.view}</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.staff?.xls} style={{ height: "34px", padding: "0 10px" }}>Excel</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.staff?.pdf} style={{ height: "34px", padding: "0 10px" }}>PDF</button>
+                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: var(--text-xl); font-weight: var(--weight-semibold); color: ${v.cd?.staff?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.staff?.v}</span>
+                    <button type="button" className={v.cd?.staff?.vcls} aria-pressed={v.cd?.staff?.on} onClick={v.cd?.staff?.open} style={{ height: "36px", padding: "0 12px" }}>{v.t?.view}</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.staff?.xls} style={{ height: "36px", padding: "0 10px" }}>Excel</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.staff?.pdf} style={{ height: "36px", padding: "0 10px" }}>PDF</button>
                   </div>
                 </div>
                 <div className="card" style={__sx(`padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; border: 2px solid ${v.cd?.branch?.bd ?? ""};`)}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: 13px; background: ${v.cd?.branch?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
+                    <span style={__sx(`width: 46px; height: 46px; flex-shrink: 0; border-radius: var(--radius-xl); background: ${v.cd?.branch?.bg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
                       <svg width="34" height="34" viewBox="0 0 48 48" aria-hidden="true">
                         <path d="M9 18H39A1 1 0 0 1 40 19V41A1 1 0 0 1 39 42H9A1 1 0 0 1 8 41V19A1 1 0 0 1 9 18Z" fill="#e0f2fe" />
                         <path d="M7 9H41A2 2 0 0 1 43 11V17A2 2 0 0 1 41 19H7A2 2 0 0 1 5 17V11A2 2 0 0 1 7 9Z" fill="#0ea5e9" />
@@ -671,7 +671,7 @@ export default class ReportsScreen extends Component {
                       </svg>
                     </span>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <div style={{ fontSize: "15.5px", fontWeight: "700", lineHeight: "20px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.branch?.l}</div>
+                      <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", lineHeight: "22px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.branch?.l}</div>
                       <div className="hint num" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.cd?.branch?.kl}</div>
                     </div>
                     <span aria-hidden="true" style={{ width: "78px", height: "30px", flexShrink: "0", display: "flex", alignItems: "flex-end", gap: "2px" }}>
@@ -681,17 +681,17 @@ export default class ReportsScreen extends Component {
                     </span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: 20px; font-weight: 700; color: ${v.cd?.branch?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.branch?.v}</span>
-                    <button type="button" className={v.cd?.branch?.vcls} aria-pressed={v.cd?.branch?.on} onClick={v.cd?.branch?.open} style={{ height: "34px", padding: "0 12px" }}>{v.t?.view}</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.branch?.xls} style={{ height: "34px", padding: "0 10px" }}>Excel</button>
-                    <button type="button" className="btn line sm" onClick={v.cd?.branch?.pdf} style={{ height: "34px", padding: "0 10px" }}>PDF</button>
+                    <span className="num" style={__sx(`flex-grow: 1; min-width: 0; font-size: var(--text-xl); font-weight: var(--weight-semibold); color: ${v.cd?.branch?.vfg ?? ""}; white-space: nowrap;`)}>{v.cd?.branch?.v}</span>
+                    <button type="button" className={v.cd?.branch?.vcls} aria-pressed={v.cd?.branch?.on} onClick={v.cd?.branch?.open} style={{ height: "36px", padding: "0 12px" }}>{v.t?.view}</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.branch?.xls} style={{ height: "36px", padding: "0 10px" }}>Excel</button>
+                    <button type="button" className="btn line sm" onClick={v.cd?.branch?.pdf} style={{ height: "36px", padding: "0 10px" }}>PDF</button>
                   </div>
                 </div>
               </div>
               {v.hasPanel ? (<>
                 <section className="card fade" style={{ overflow: "hidden", border: "2px solid #003087" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 18px", borderBottom: "1px solid #eef2f6" }}>
-                    <span style={__sx(`width: 40px; height: 40px; border-radius: 12px; background: ${v.pn?.bg ?? ""}; color: ${v.pn?.fg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
+                    <span style={__sx(`width: 40px; height: 40px; border-radius: var(--radius-xl); background: ${v.pn?.bg ?? ""}; color: ${v.pn?.fg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d={v.pn?.d} />
                       </svg>
@@ -714,37 +714,39 @@ export default class ReportsScreen extends Component {
                   </div>
                   {v.isPl ? (<>
                     <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.35fr) minmax(0, 1fr)", gap: "0" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", borderRight: "1px solid #eef2f6" }}>
-                        <thead>
-                          <tr style={{ background: "#f8fafc" }}>
-                            <th className="th">{v.t?.mMonth}</th>
-                            <th className="th" style={{ textAlign: "right" }}>{v.t?.mSales}</th>
-                            <th className="th" style={{ textAlign: "right" }}>{v.t?.mCogs}</th>
-                            <th className="th" style={{ textAlign: "right" }}>{v.t?.mExp}</th>
-                            <th className="th" style={{ textAlign: "right" }}>{v.t?.mProfit}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {__list(v.plRows).map((m, $index) => (<React.Fragment key={$index}>
-                              <tr className="trow" style={__sx(`background: ${m?.rbg ?? ""};`)}>
-                                <td className="td" style={{ padding: "10px 14px", fontWeight: "600" }}>{m?.l}</td>
-                                <td className="td num" style={{ padding: "10px 14px", textAlign: "right" }}>{m?.sales}</td>
-                                <td className="td num" style={{ padding: "10px 14px", textAlign: "right", color: "#475569" }}>{m?.cogs}</td>
-                                <td className="td num" style={{ padding: "10px 14px", textAlign: "right", color: "#a14f06" }}>{m?.exp}</td>
-                                <td className="td num" style={{ padding: "10px 14px", textAlign: "right", fontWeight: "700", color: "#047857" }}>{m?.net}</td>
-                              </tr>
-                            </React.Fragment>))}
-                          <tr style={{ background: "#f8fafc" }}>
-                            <td className="td" style={{ padding: "11px 14px", fontWeight: "700" }}>{v.t?.total6}</td>
-                            <td className="td num" style={{ padding: "11px 14px", textAlign: "right", fontWeight: "700" }}>{v.pt?.sales}</td>
-                            <td className="td num" style={{ padding: "11px 14px", textAlign: "right", fontWeight: "700", color: "#475569" }}>{v.pt?.cogs}</td>
-                            <td className="td num" style={{ padding: "11px 14px", textAlign: "right", fontWeight: "700", color: "#a14f06" }}>{v.pt?.exp}</td>
-                            <td className="td num" style={{ padding: "11px 14px", textAlign: "right", fontWeight: "700", color: "#047857", fontSize: "17px" }}>{v.pt?.net}</td>
-                          </tr>
-                        </tbody>
-                      </table>
+                      <div className="gc-table-wrap">
+                        <table style={{ width: "100%", borderCollapse: "collapse", borderRight: "1px solid #eef2f6" }}>
+                          <thead>
+                            <tr style={{ background: "#f8fafc" }}>
+                              <th className="th">{v.t?.mMonth}</th>
+                              <th className="th" style={{ textAlign: "right" }}>{v.t?.mSales}</th>
+                              <th className="th" style={{ textAlign: "right" }}>{v.t?.mCogs}</th>
+                              <th className="th" style={{ textAlign: "right" }}>{v.t?.mExp}</th>
+                              <th className="th" style={{ textAlign: "right" }}>{v.t?.mProfit}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {__list(v.plRows).map((m, $index) => (<React.Fragment key={$index}>
+                                <tr className="trow" style={__sx(`background: ${m?.rbg ?? ""};`)}>
+                                  <td className="td" style={{ padding: "10px 14px", fontWeight: "var(--weight-medium)" }}>{m?.l}</td>
+                                  <td className="td num" style={{ padding: "10px 14px", textAlign: "right" }}>{m?.sales}</td>
+                                  <td className="td num" style={{ padding: "10px 14px", textAlign: "right", color: "#475569" }}>{m?.cogs}</td>
+                                  <td className="td num" style={{ padding: "10px 14px", textAlign: "right", color: "#a14f06" }}>{m?.exp}</td>
+                                  <td className="td num" style={{ padding: "10px 14px", textAlign: "right", fontWeight: "var(--weight-semibold)", color: "#047857" }}>{m?.net}</td>
+                                </tr>
+                              </React.Fragment>))}
+                            <tr style={{ background: "#f8fafc" }}>
+                              <td className="td" style={{ padding: "11px 14px", fontWeight: "var(--weight-semibold)" }}>{v.t?.total6}</td>
+                              <td className="td num" style={{ padding: "11px 14px", textAlign: "right", fontWeight: "var(--weight-semibold)" }}>{v.pt?.sales}</td>
+                              <td className="td num" style={{ padding: "11px 14px", textAlign: "right", fontWeight: "var(--weight-semibold)", color: "#475569" }}>{v.pt?.cogs}</td>
+                              <td className="td num" style={{ padding: "11px 14px", textAlign: "right", fontWeight: "var(--weight-semibold)", color: "#a14f06" }}>{v.pt?.exp}</td>
+                              <td className="td num" style={{ padding: "11px 14px", textAlign: "right", fontWeight: "var(--weight-semibold)", color: "#047857", fontSize: "var(--text-lg)" }}>{v.pt?.net}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
                       <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                        <div style={{ display: "flex", gap: "16px", fontSize: "13.5px", color: "#475569" }}>
+                        <div style={{ display: "flex", gap: "16px", fontSize: "var(--text-sm)", color: "#475569" }}>
                           <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><span style={{ width: "12px", height: "12px", borderRadius: "3px", background: "#c9d7ee" }} />{v.t?.legSales}</span>
                           <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><span style={{ width: "12px", height: "12px", borderRadius: "3px", background: "#047857" }} />{v.t?.legProfit}</span>
                         </div>
@@ -752,10 +754,10 @@ export default class ReportsScreen extends Component {
                           {__list(v.plBars).map((m, $index) => (<React.Fragment key={$index}>
                               <div style={{ flex: "1", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "center", gap: "6px" }}>
                                 <span style={{ width: "100%", display: "flex", alignItems: "flex-end", gap: "3px", height: "210px" }}>
-                                  <span style={__sx(`flex: 1; height: ${m?.hs ?? ""}; background: #c9d7ee; border-radius: 5px 5px 2px 2px;`)} />
-                                  <span style={__sx(`flex: 1; height: ${m?.hp ?? ""}; background: #047857; border-radius: 5px 5px 2px 2px;`)} />
+                                  <span style={__sx(`flex: 1; height: ${m?.hs ?? ""}; background: #c9d7ee; border-radius: var(--radius-sm) var(--radius-sm) 2px 2px;`)} />
+                                  <span style={__sx(`flex: 1; height: ${m?.hp ?? ""}; background: #047857; border-radius: var(--radius-sm) var(--radius-sm) 2px 2px;`)} />
                                 </span>
-                                <span style={{ fontSize: "13px", color: "#475569", fontWeight: "600" }}>{m?.l}</span>
+                                <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569", fontWeight: "var(--weight-medium)" }}>{m?.l}</span>
                               </div>
                             </React.Fragment>))}
                         </div>
@@ -763,45 +765,47 @@ export default class ReportsScreen extends Component {
                     </div>
                   </>) : null}
                   {v.isProd ? (<>
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                      <thead>
-                        <tr style={{ background: "#f8fafc" }}>
-                          <th className="th" style={{ width: "48px" }}>{v.t?.pNo}</th>
-                          <th className="th">{v.t?.pName}</th>
-                          <th className="th" style={{ textAlign: "right" }}>{v.t?.pQty}</th>
-                          <th className="th" style={{ textAlign: "right" }}>{v.t?.pAmt}</th>
-                          <th className="th" style={{ textAlign: "right" }}>{v.t?.pProfit}</th>
-                          <th className="th" style={{ width: "250px" }}>{v.t?.pShare}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {__list(v.prods).map((p, $index) => (<React.Fragment key={$index}>
-                            <tr className="trow">
-                              <td className="td num" style={{ padding: "8px 14px" }}>
-                                <span style={__sx(`width: 28px; height: 28px; border-radius: 8px; background: ${p?.nbg ?? ""}; color: ${p?.nfg ?? ""}; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;`)}>{p?.n}</span>
-                              </td>
-                              <td className="td" style={{ padding: "8px 14px", fontWeight: "600" }}>{p?.l}</td>
-                              <td className="td num" style={{ padding: "8px 14px", textAlign: "right", color: "#475569" }}>{p?.q}</td>
-                              <td className="td num" style={{ padding: "8px 14px", textAlign: "right", fontWeight: "700" }}>{p?.amt}</td>
-                              <td className="td num" style={{ padding: "8px 14px", textAlign: "right", fontWeight: "600", color: "#047857" }}>{p?.profit}</td>
-                              <td className="td" style={{ padding: "8px 14px" }}>
-                                <span style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                  <span className="bar" style={{ flexGrow: "1" }}>
-                                    <span style={__sx(`width: ${p?.w ?? ""}; background: #6d28d9;`)} />
+                    <div className="gc-table-wrap">
+                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <thead>
+                          <tr style={{ background: "#f8fafc" }}>
+                            <th className="th" style={{ width: "48px" }}>{v.t?.pNo}</th>
+                            <th className="th">{v.t?.pName}</th>
+                            <th className="th" style={{ textAlign: "right" }}>{v.t?.pQty}</th>
+                            <th className="th" style={{ textAlign: "right" }}>{v.t?.pAmt}</th>
+                            <th className="th" style={{ textAlign: "right" }}>{v.t?.pProfit}</th>
+                            <th className="th" style={{ width: "250px" }}>{v.t?.pShare}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {__list(v.prods).map((p, $index) => (<React.Fragment key={$index}>
+                              <tr className="trow">
+                                <td className="td num" style={{ padding: "8px 14px" }}>
+                                  <span style={__sx(`width: 28px; height: 28px; border-radius: var(--radius-lg); background: ${p?.nbg ?? ""}; color: ${p?.nfg ?? ""}; font-size: var(--text-xs-plus); font-weight: var(--weight-semibold); display: inline-flex; align-items: center; justify-content: center;`)}>{p?.n}</span>
+                                </td>
+                                <td className="td" style={{ padding: "8px 14px", fontWeight: "var(--weight-medium)" }}>{p?.l}</td>
+                                <td className="td num" style={{ padding: "8px 14px", textAlign: "right", color: "#475569" }}>{p?.q}</td>
+                                <td className="td num" style={{ padding: "8px 14px", textAlign: "right", fontWeight: "var(--weight-semibold)" }}>{p?.amt}</td>
+                                <td className="td num" style={{ padding: "8px 14px", textAlign: "right", fontWeight: "var(--weight-medium)", color: "#047857" }}>{p?.profit}</td>
+                                <td className="td" style={{ padding: "8px 14px" }}>
+                                  <span style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                    <span className="bar" style={{ flexGrow: "1" }}>
+                                      <span style={__sx(`width: ${p?.w ?? ""}; background: #6d28d9;`)} />
+                                    </span>
+                                    <span className="num" style={{ width: "44px", textAlign: "right", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#475569" }}>{p?.pct}</span>
                                   </span>
-                                  <span className="num" style={{ width: "44px", textAlign: "right", fontSize: "14px", fontWeight: "600", color: "#475569" }}>{p?.pct}</span>
-                                </span>
-                              </td>
-                            </tr>
-                          </React.Fragment>))}
-                      </tbody>
-                    </table>
+                                </td>
+                              </tr>
+                            </React.Fragment>))}
+                        </tbody>
+                      </table>
+                    </div>
                   </>) : null}
                   {v.isGen ? (<>
                     <div style={{ display: "flex", gap: "24px", padding: "18px 20px", alignItems: "flex-start" }}>
                       <div style={{ width: "280px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <span className="num" style={__sx(`font-size: 34px; line-height: 42px; font-weight: 700; color: ${v.pn?.vfg ?? ""};`)}>{v.pn?.v}</span>
-                        <span className="hint num" style={{ fontSize: "14px" }}>{v.pn?.kl}</span>
+                        <span className="num" style={__sx(`font-size: var(--text-3xl); line-height: 42px; font-weight: var(--weight-semibold); color: ${v.pn?.vfg ?? ""};`)}>{v.pn?.v}</span>
+                        <span className="hint num" style={{ fontSize: "var(--text-sm)" }}>{v.pn?.kl}</span>
                         <span aria-hidden="true" style={{ height: "70px", display: "flex", alignItems: "flex-end", gap: "4px", marginTop: "8px" }}>
                           {__list(v.pn?.sp).map((b, $index) => (<React.Fragment key={$index}>
                               <span style={__sx(`flex: 1; height: ${b?.hb ?? ""}; background: ${b?.bg ?? ""}; border-radius: 3px 3px 0 0;`)} />
@@ -812,9 +816,9 @@ export default class ReportsScreen extends Component {
                       <div style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "12px" }}>
                         {__list(v.pn?.parts).map((x, $index) => (<React.Fragment key={$index}>
                             <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
-                              <div style={{ display: "flex", fontSize: "15px" }}>
-                                <span style={{ flexGrow: "1", fontWeight: "500" }}>{x?.l}</span>
-                                <span className="num" style={{ fontWeight: "700" }}>{x?.v}</span>
+                              <div style={{ display: "flex", fontSize: "var(--text-sm-plus)" }}>
+                                <span style={{ flexGrow: "1", fontWeight: "var(--weight-medium)" }}>{x?.l}</span>
+                                <span className="num" style={{ fontWeight: "var(--weight-semibold)" }}>{x?.v}</span>
                               </div>
                               <span className="bar" style={{ height: "10px" }}>
                                 <span style={__sx(`height: 10px; width: ${x?.w ?? ""}; background: ${x?.c ?? ""};`)} />
@@ -827,7 +831,7 @@ export default class ReportsScreen extends Component {
                 </section>
               </>) : null}
               {v.noPanel ? (<>
-                <div className="card fade" style={{ padding: "28px", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", textAlign: "center", color: "#64748b", fontSize: "15px", borderStyle: "dashed" }}>
+                <div className="card fade" style={{ padding: "28px", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", textAlign: "center", color: "var(--text-muted)", fontSize: "var(--text-sm-plus)", borderStyle: "dashed" }}>
                   <svg width="52" height="52" viewBox="0 0 48 48" aria-hidden="true">
                     <path d="M11 4H33A3 3 0 0 1 36 7V39A3 3 0 0 1 33 42H11A3 3 0 0 1 8 39V7A3 3 0 0 1 11 4Z" fill="#e0f2fe" />
                     <path d="M11.5 5.5H32.5A2 2 0 0 1 34.5 7.5V38.5A2 2 0 0 1 32.5 40.5H11.5A2 2 0 0 1 9.5 38.5V7.5A2 2 0 0 1 11.5 5.5Z" fill="#ffffff" />
@@ -844,7 +848,7 @@ export default class ReportsScreen extends Component {
             </div>
           </main>
           {v.hasMsg ? (<>
-            <div className="fade" role="status" style={{ position: "absolute", top: "90px", left: "50%", transform: "translateX(-50%)", zIndex: "30", display: "flex", alignItems: "center", gap: "10px", padding: "12px 18px", borderRadius: "14px", background: "#0f172a", color: "#fff", fontSize: "15px", fontWeight: "500", boxShadow: "0 16px 36px -14px rgba(15,23,42,.6)", maxWidth: "640px" }}>
+            <div className="fade gc-on-dark" role="status" style={{ position: "absolute", top: "90px", left: "50%", transform: "translateX(-50%)", zIndex: "30", display: "flex", alignItems: "center", gap: "10px", padding: "12px 18px", borderRadius: "var(--radius-xl)", background: "#0f172a", color: "#fff", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)", boxShadow: "0 16px 36px -14px rgba(15,23,42,.6)", maxWidth: "640px" }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M20 6 9 17l-5-5" />
               </svg>

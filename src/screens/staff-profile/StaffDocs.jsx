@@ -62,124 +62,124 @@ export default class StaffDocsScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="StaffDocs">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "16px", fontFamily: "Poppins,'Hind Siliguri',ui-sans-serif,system-ui,sans-serif", color: "#475569" }}>
-          <section style={{ display: "flex", flexDirection: "column", gap: "14px", borderRadius: "8px", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "16px", fontFamily: "var(--font-sans)", color: "#475569" }}>
+          <section style={{ display: "flex", flexDirection: "column", gap: "14px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
               <div style={{ flex: "1", minWidth: "200px" }}>
-                <h2 style={{ margin: "0", fontSize: "15px", lineHeight: "22px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.title}</h2>
-                <p style={{ margin: "2px 0 0", fontSize: "12.5px", color: "#64748b" }}>{v.t?.meta}</p>
+                <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.title}</h2>
+                <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.t?.meta}</p>
               </div>
-              <button className="dc-h701" type="button" style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", border: "none", borderRadius: "8px", background: "#003087", padding: "0 15px", fontFamily: "inherit", fontSize: "14px", fontWeight: "500", letterSpacing: ".025em", color: "#fff", cursor: "pointer" }}><__Icon name="upload" strokeWidth="1.75" width="16" height="16" />{v.t?.upload}</button>
+              <button className="dc-h701" type="button" style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", border: "none", borderRadius: "var(--radius-lg)", background: "#003087", padding: "0 15px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#fff", cursor: "pointer" }}><__Icon name="upload" strokeWidth="1.75" width="16" height="16" />{v.t?.upload}</button>
             </div>
-            <ul style={{ margin: "0", padding: "0", listStyle: "none", display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "12px" }}>
-              <li style={{ display: "flex", alignItems: "center", gap: "13px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "14px 15px" }}>
-                <span style={{ display: "grid", placeItems: "center", width: "40px", height: "40px", flex: "none", borderRadius: "8px", background: "rgba(0,48,135,.1)", color: "#003087" }}>
+            <ul className="gc-cols-2" style={{ margin: "0", padding: "0", listStyle: "none", display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "12px" }}>
+              <li style={{ display: "flex", alignItems: "center", gap: "13px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "14px 15px" }}>
+                <span style={{ display: "grid", placeItems: "center", width: "40px", height: "40px", flex: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.1)", color: "#003087" }}>
                   <__Icon name="file-text" strokeWidth="1.75" width="19" height="19" />
                 </span>
                 <div style={{ flex: "1", minWidth: "0" }}>
-                  <p style={{ margin: "0", fontSize: "13.5px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b", textWrap: "pretty" }}>{v.t?.doc1}</p>
-                  <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#64748b" }}>{v.t?.doc1Meta}</p>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", marginTop: "6px", height: "22px", borderRadius: "9999px", background: "rgba(16,185,129,.12)", padding: "0 9px", fontSize: "11.5px", fontWeight: "600", color: "#047857" }}><__Icon name="check" strokeWidth="1.75" width="12" height="12" />{v.t?.verified}</span>
+                  <p style={{ margin: "0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#1e293b", textWrap: "pretty" }}>{v.t?.doc1}</p>
+                  <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{v.t?.doc1Meta}</p>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", marginTop: "6px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.12)", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#047857" }}><__Icon name="check" strokeWidth="1.75" width="12" height="12" />{v.t?.verified}</span>
                 </div>
                 <span style={{ display: "flex", alignItems: "center", gap: "4px", flex: "none" }}>
-                  <button className="dc-h702" type="button" aria-label={`${v.t?.view ?? ""} — ${v.t?.doc1 ?? ""}`} title={v.t?.view} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", color: "#64748b", cursor: "pointer" }}>
+                  <button className="dc-h702" type="button" aria-label={`${v.t?.view ?? ""} — ${v.t?.doc1 ?? ""}`} title={v.t?.view} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", color: "var(--text-muted)", cursor: "pointer" }}>
                     <__Icon name="eye" strokeWidth="1.75" width="15" height="15" />
                   </button>
-                  <button className="dc-h703" type="button" aria-label={`${v.t?.download ?? ""} — ${v.t?.doc1 ?? ""}`} title={v.t?.download} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", color: "#64748b", cursor: "pointer" }}>
+                  <button className="dc-h703" type="button" aria-label={`${v.t?.download ?? ""} — ${v.t?.doc1 ?? ""}`} title={v.t?.download} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", color: "var(--text-muted)", cursor: "pointer" }}>
                     <__Icon name="download" strokeWidth="1.75" width="15" height="15" />
                   </button>
                 </span>
               </li>
-              <li style={{ display: "flex", alignItems: "center", gap: "13px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "14px 15px" }}>
-                <span style={{ display: "grid", placeItems: "center", width: "40px", height: "40px", flex: "none", borderRadius: "8px", background: "rgba(0,156,222,.12)", color: "#0089c3" }}>
+              <li style={{ display: "flex", alignItems: "center", gap: "13px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "14px 15px" }}>
+                <span style={{ display: "grid", placeItems: "center", width: "40px", height: "40px", flex: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,156,222,.12)", color: "var(--accent-text)" }}>
                   <__Icon name="id-card" strokeWidth="1.75" width="19" height="19" />
                 </span>
                 <div style={{ flex: "1", minWidth: "0" }}>
-                  <p style={{ margin: "0", fontSize: "13.5px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b", textWrap: "pretty" }}>{v.t?.doc2}</p>
-                  <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#64748b" }}>{v.t?.doc2Meta}</p>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", marginTop: "6px", height: "22px", borderRadius: "9999px", background: "rgba(16,185,129,.12)", padding: "0 9px", fontSize: "11.5px", fontWeight: "600", color: "#047857" }}><__Icon name="check" strokeWidth="1.75" width="12" height="12" />{v.t?.verified}</span>
+                  <p style={{ margin: "0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#1e293b", textWrap: "pretty" }}>{v.t?.doc2}</p>
+                  <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{v.t?.doc2Meta}</p>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", marginTop: "6px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.12)", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#047857" }}><__Icon name="check" strokeWidth="1.75" width="12" height="12" />{v.t?.verified}</span>
                 </div>
                 <span style={{ display: "flex", alignItems: "center", gap: "4px", flex: "none" }}>
-                  <button className="dc-h704" type="button" aria-label={`${v.t?.view ?? ""} — ${v.t?.doc2 ?? ""}`} title={v.t?.view} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", color: "#64748b", cursor: "pointer" }}>
+                  <button className="dc-h704" type="button" aria-label={`${v.t?.view ?? ""} — ${v.t?.doc2 ?? ""}`} title={v.t?.view} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", color: "var(--text-muted)", cursor: "pointer" }}>
                     <__Icon name="eye" strokeWidth="1.75" width="15" height="15" />
                   </button>
-                  <button className="dc-h705" type="button" aria-label={`${v.t?.download ?? ""} — ${v.t?.doc2 ?? ""}`} title={v.t?.download} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", color: "#64748b", cursor: "pointer" }}>
+                  <button className="dc-h705" type="button" aria-label={`${v.t?.download ?? ""} — ${v.t?.doc2 ?? ""}`} title={v.t?.download} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", color: "var(--text-muted)", cursor: "pointer" }}>
                     <__Icon name="download" strokeWidth="1.75" width="15" height="15" />
                   </button>
                 </span>
               </li>
-              <li style={{ display: "flex", alignItems: "center", gap: "13px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "14px 15px" }}>
-                <span style={{ display: "grid", placeItems: "center", width: "40px", height: "40px", flex: "none", borderRadius: "8px", background: "rgba(16,185,129,.12)", color: "#047857" }}>
+              <li style={{ display: "flex", alignItems: "center", gap: "13px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "14px 15px" }}>
+                <span style={{ display: "grid", placeItems: "center", width: "40px", height: "40px", flex: "none", borderRadius: "var(--radius-lg)", background: "rgba(16,185,129,.12)", color: "#047857" }}>
                   <__Icon name="graduation-cap" strokeWidth="1.75" width="19" height="19" />
                 </span>
                 <div style={{ flex: "1", minWidth: "0" }}>
-                  <p style={{ margin: "0", fontSize: "13.5px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b", textWrap: "pretty" }}>{v.t?.doc3}</p>
-                  <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#64748b" }}>{v.t?.doc3Meta}</p>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", marginTop: "6px", height: "22px", borderRadius: "9999px", background: "rgba(16,185,129,.12)", padding: "0 9px", fontSize: "11.5px", fontWeight: "600", color: "#047857" }}><__Icon name="check" strokeWidth="1.75" width="12" height="12" />{v.t?.verified}</span>
+                  <p style={{ margin: "0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#1e293b", textWrap: "pretty" }}>{v.t?.doc3}</p>
+                  <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{v.t?.doc3Meta}</p>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", marginTop: "6px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.12)", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#047857" }}><__Icon name="check" strokeWidth="1.75" width="12" height="12" />{v.t?.verified}</span>
                 </div>
                 <span style={{ display: "flex", alignItems: "center", gap: "4px", flex: "none" }}>
-                  <button className="dc-h706" type="button" aria-label={`${v.t?.view ?? ""} — ${v.t?.doc3 ?? ""}`} title={v.t?.view} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", color: "#64748b", cursor: "pointer" }}>
+                  <button className="dc-h706" type="button" aria-label={`${v.t?.view ?? ""} — ${v.t?.doc3 ?? ""}`} title={v.t?.view} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", color: "var(--text-muted)", cursor: "pointer" }}>
                     <__Icon name="eye" strokeWidth="1.75" width="15" height="15" />
                   </button>
-                  <button className="dc-h707" type="button" aria-label={`${v.t?.download ?? ""} — ${v.t?.doc3 ?? ""}`} title={v.t?.download} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", color: "#64748b", cursor: "pointer" }}>
+                  <button className="dc-h707" type="button" aria-label={`${v.t?.download ?? ""} — ${v.t?.doc3 ?? ""}`} title={v.t?.download} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", color: "var(--text-muted)", cursor: "pointer" }}>
                     <__Icon name="download" strokeWidth="1.75" width="15" height="15" />
                   </button>
                 </span>
               </li>
-              <li style={{ display: "flex", alignItems: "center", gap: "13px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "14px 15px" }}>
-                <span style={{ display: "grid", placeItems: "center", width: "40px", height: "40px", flex: "none", borderRadius: "8px", background: "rgba(240,0,185,.08)", color: "#a21caf" }}>
+              <li style={{ display: "flex", alignItems: "center", gap: "13px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "14px 15px" }}>
+                <span style={{ display: "grid", placeItems: "center", width: "40px", height: "40px", flex: "none", borderRadius: "var(--radius-lg)", background: "rgba(240,0,185,.08)", color: "#a21caf" }}>
                   <__Icon name="award" strokeWidth="1.75" width="19" height="19" />
                 </span>
                 <div style={{ flex: "1", minWidth: "0" }}>
-                  <p style={{ margin: "0", fontSize: "13.5px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b", textWrap: "pretty" }}>{v.t?.doc4}</p>
-                  <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#64748b" }}>{v.t?.doc4Meta}</p>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", marginTop: "6px", height: "22px", borderRadius: "9999px", background: "rgba(16,185,129,.12)", padding: "0 9px", fontSize: "11.5px", fontWeight: "600", color: "#047857" }}><__Icon name="check" strokeWidth="1.75" width="12" height="12" />{v.t?.verified}</span>
+                  <p style={{ margin: "0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#1e293b", textWrap: "pretty" }}>{v.t?.doc4}</p>
+                  <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{v.t?.doc4Meta}</p>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", marginTop: "6px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.12)", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#047857" }}><__Icon name="check" strokeWidth="1.75" width="12" height="12" />{v.t?.verified}</span>
                 </div>
                 <span style={{ display: "flex", alignItems: "center", gap: "4px", flex: "none" }}>
-                  <button className="dc-h708" type="button" aria-label={`${v.t?.view ?? ""} — ${v.t?.doc4 ?? ""}`} title={v.t?.view} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", color: "#64748b", cursor: "pointer" }}>
+                  <button className="dc-h708" type="button" aria-label={`${v.t?.view ?? ""} — ${v.t?.doc4 ?? ""}`} title={v.t?.view} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", color: "var(--text-muted)", cursor: "pointer" }}>
                     <__Icon name="eye" strokeWidth="1.75" width="15" height="15" />
                   </button>
-                  <button className="dc-h709" type="button" aria-label={`${v.t?.download ?? ""} — ${v.t?.doc4 ?? ""}`} title={v.t?.download} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", color: "#64748b", cursor: "pointer" }}>
+                  <button className="dc-h709" type="button" aria-label={`${v.t?.download ?? ""} — ${v.t?.doc4 ?? ""}`} title={v.t?.download} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", color: "var(--text-muted)", cursor: "pointer" }}>
                     <__Icon name="download" strokeWidth="1.75" width="15" height="15" />
                   </button>
                 </span>
               </li>
-              <li style={{ display: "flex", alignItems: "center", gap: "13px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "14px 15px" }}>
-                <span style={{ display: "grid", placeItems: "center", width: "40px", height: "40px", flex: "none", borderRadius: "8px", background: "rgba(255,152,0,.14)", color: "#b45309" }}>
+              <li style={{ display: "flex", alignItems: "center", gap: "13px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "14px 15px" }}>
+                <span style={{ display: "grid", placeItems: "center", width: "40px", height: "40px", flex: "none", borderRadius: "var(--radius-lg)", background: "rgba(255,152,0,.14)", color: "#b45309" }}>
                   <__Icon name="landmark" strokeWidth="1.75" width="19" height="19" />
                 </span>
                 <div style={{ flex: "1", minWidth: "0" }}>
-                  <p style={{ margin: "0", fontSize: "13.5px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b", textWrap: "pretty" }}>{v.t?.doc5}</p>
-                  <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#64748b" }}>{v.t?.doc5Meta}</p>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", marginTop: "6px", height: "22px", borderRadius: "9999px", background: "rgba(255,152,0,.14)", padding: "0 9px", fontSize: "11.5px", fontWeight: "600", color: "#b45309" }}><__Icon name="clock" strokeWidth="1.75" width="12" height="12" />{v.t?.awaiting}</span>
+                  <p style={{ margin: "0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#1e293b", textWrap: "pretty" }}>{v.t?.doc5}</p>
+                  <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{v.t?.doc5Meta}</p>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", marginTop: "6px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(255,152,0,.14)", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#b45309" }}><__Icon name="clock" strokeWidth="1.75" width="12" height="12" />{v.t?.awaiting}</span>
                 </div>
                 <span style={{ display: "flex", alignItems: "center", gap: "4px", flex: "none" }}>
-                  <button className="dc-h710" type="button" aria-label={`${v.t?.view ?? ""} — ${v.t?.doc5 ?? ""}`} title={v.t?.view} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", color: "#64748b", cursor: "pointer" }}>
+                  <button className="dc-h710" type="button" aria-label={`${v.t?.view ?? ""} — ${v.t?.doc5 ?? ""}`} title={v.t?.view} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", color: "var(--text-muted)", cursor: "pointer" }}>
                     <__Icon name="eye" strokeWidth="1.75" width="15" height="15" />
                   </button>
-                  <button className="dc-h711" type="button" aria-label={`${v.t?.download ?? ""} — ${v.t?.doc5 ?? ""}`} title={v.t?.download} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", color: "#64748b", cursor: "pointer" }}>
+                  <button className="dc-h711" type="button" aria-label={`${v.t?.download ?? ""} — ${v.t?.doc5 ?? ""}`} title={v.t?.download} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", color: "var(--text-muted)", cursor: "pointer" }}>
                     <__Icon name="download" strokeWidth="1.75" width="15" height="15" />
                   </button>
                 </span>
               </li>
               <li>
-                <button className="dc-h712" type="button" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "7px", width: "100%", height: "100%", minHeight: "96px", border: "2px dashed #cbd5e1", borderRadius: "8px", background: "#f8fafc", padding: "16px", fontFamily: "inherit", cursor: "pointer" }}>
-                  <__Icon name="upload-cloud" strokeWidth="1.75" width="22" height="22" style={{ color: "#64748b" }} />
-                  <span style={{ fontSize: "13px", fontWeight: "500", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.dropTitle}</span>
-                  <span style={{ fontSize: "12px", color: "#64748b", textWrap: "pretty" }}>{v.t?.dropBody}</span>
+                <button className="dc-h712" type="button" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "7px", width: "100%", height: "100%", minHeight: "96px", border: "2px dashed #cbd5e1", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "16px", fontFamily: "inherit", cursor: "pointer" }}>
+                  <__Icon name="upload-cloud" strokeWidth="1.75" width="22" height="22" style={{ color: "var(--text-muted)" }} />
+                  <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.dropTitle}</span>
+                  <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", textWrap: "pretty" }}>{v.t?.dropBody}</span>
                 </button>
               </li>
             </ul>
           </section>
-          <section style={{ display: "flex", alignItems: "flex-start", gap: "11px", borderRadius: "8px", background: "#fff", padding: "16px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
-            <span style={{ display: "grid", placeItems: "center", width: "32px", height: "32px", flex: "none", borderRadius: "8px", background: "rgba(255,152,0,.12)", color: "#b45309" }}>
+          <section style={{ display: "flex", alignItems: "flex-start", gap: "11px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "16px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+            <span style={{ display: "grid", placeItems: "center", width: "32px", height: "32px", flex: "none", borderRadius: "var(--radius-lg)", background: "rgba(255,152,0,.12)", color: "#b45309" }}>
               <__Icon name="shield-alert" strokeWidth="1.75" width="17" height="17" />
             </span>
             <div style={{ flex: "1", minWidth: "0" }}>
-              <p style={{ margin: "0", fontSize: "13.5px", fontWeight: "600", color: "#1e293b" }}>{v.t?.missingTitle}</p>
-              <p style={{ margin: "2px 0 0", fontSize: "12.5px", lineHeight: "19px", color: "#64748b", textWrap: "pretty" }}>{v.t?.missingBody}</p>
+              <p style={{ margin: "0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{v.t?.missingTitle}</p>
+              <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "var(--text-muted)", textWrap: "pretty" }}>{v.t?.missingBody}</p>
             </div>
-            <button className="dc-h713" type="button" style={{ flex: "none", height: "32px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 12px", fontFamily: "inherit", fontSize: "12.5px", fontWeight: "500", letterSpacing: ".025em", color: "#475569", cursor: "pointer" }}>{v.t?.remind}</button>
+            <button className="dc-h713" type="button" style={{ flex: "none", height: "32px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#475569", cursor: "pointer" }}>{v.t?.remind}</button>
           </section>
         </div>
       </div>

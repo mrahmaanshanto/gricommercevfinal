@@ -238,15 +238,15 @@ export default class StaffCreateScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="StaffCreate">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "100%", minHeight: "100vh", display: "flex", flexDirection: "column", background: "#f8fafc", fontFamily: "Poppins,'Hind Siliguri',ui-sans-serif,system-ui,sans-serif", color: "#475569" }}>
+        <div style={{ width: "100%", minHeight: "100vh", display: "flex", flexDirection: "column", background: "#f8fafc", fontFamily: "var(--font-sans)", color: "#475569" }}>
           <header style={{ flex: "none", display: "flex", alignItems: "center", gap: "14px", height: "56px", padding: "0 24px", borderBottom: "1px solid #e2e8f0", background: "#fff" }}>
-            <span style={{ display: "grid", placeItems: "center", width: "32px", height: "32px", flex: "none", borderRadius: "8px", background: "#003087", fontSize: "14px", fontWeight: "600", color: "#fff" }}>G</span>
+            <span style={{ display: "grid", placeItems: "center", width: "32px", height: "32px", flex: "none", borderRadius: "var(--radius-lg)", background: "#003087", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#fff" }}>G</span>
             <div style={{ flex: "1", minWidth: "0" }}>
-              <p style={{ margin: "0", fontSize: "14px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.title}</p>
-              <p style={{ margin: "0", fontSize: "12px", color: "#64748b" }}>{v.stepMeta}</p>
+              <p style={{ margin: "0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.title}</p>
+              <p style={{ margin: "0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{v.stepMeta}</p>
             </div>
-            <button className="dc-h689" type="button" onClick={v.draft} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "34px", flex: "none", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 13px", fontFamily: "inherit", fontSize: "13px", fontWeight: "500", letterSpacing: ".025em", color: "#475569", cursor: "pointer" }}><__Icon name="save" strokeWidth="1.75" width="15" height="15" />{v.draftLabel}</button>
-            <button className="dc-h690" type="button" onClick={v.close} aria-label={v.t?.close} style={{ width: "34px", height: "34px", flex: "none", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", color: "#64748b", cursor: "pointer" }}>
+            <button className="dc-h689" type="button" onClick={v.draft} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", flex: "none", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#475569", cursor: "pointer" }}><__Icon name="save" strokeWidth="1.75" width="15" height="15" />{v.draftLabel}</button>
+            <button className="dc-h690" type="button" onClick={v.close} aria-label={v.t?.close} style={{ width: "36px", height: "36px", flex: "none", display: "grid", placeItems: "center", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", color: "var(--text-muted)", cursor: "pointer" }}>
               <__Icon name="x" strokeWidth="1.75" width="17" height="17" />
             </button>
           </header>
@@ -256,26 +256,26 @@ export default class StaffCreateScreen extends Component {
                   <li style={{ flex: "1", minWidth: "0", display: "flex", alignItems: "center", gap: "8px" }}>
                     <button type="button" onClick={s?.act} aria-current={s?.current} style={{ display: "flex", alignItems: "center", gap: "9px", minWidth: "0", border: "none", background: "none", padding: "0", fontFamily: "inherit", textAlign: "left", cursor: "pointer" }}>
                       {s?.done ? (<>
-                        <span style={{ display: "grid", placeItems: "center", width: "28px", height: "28px", flex: "none", borderRadius: "9999px", border: "1px solid #003087", background: "#003087", fontSize: "12.5px", fontWeight: "600", color: "#fff" }}>
+                        <span style={{ display: "grid", placeItems: "center", width: "28px", height: "28px", flex: "none", borderRadius: "var(--radius-full)", border: "1px solid #003087", background: "#003087", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#fff" }}>
                           <__Icon name="check" strokeWidth="1.75" width="14" height="14" />
                         </span>
                         {" "}
                         <span style={{ minWidth: "0", display: "block" }}>
-                          <span style={{ display: "block", fontSize: "12.5px", fontWeight: "500", letterSpacing: ".025em", color: "#475569", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s?.label}</span>
+                          <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#475569", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s?.label}</span>
                         </span>
                       </>) : null}
                       {s?.active ? (<>
-                        <span style={{ display: "grid", placeItems: "center", width: "28px", height: "28px", flex: "none", borderRadius: "9999px", border: "1px solid rgba(0,48,135,.25)", background: "rgba(0,48,135,.1)", fontSize: "12.5px", fontWeight: "600", color: "#003087" }}>{s?.n}</span>
+                        <span style={{ display: "grid", placeItems: "center", width: "28px", height: "28px", flex: "none", borderRadius: "var(--radius-full)", border: "1px solid rgba(0,48,135,.25)", background: "rgba(0,48,135,.1)", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087" }}>{s?.n}</span>
                         {" "}
                         <span style={{ minWidth: "0", display: "block" }}>
-                          <span style={{ display: "block", fontSize: "12.5px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s?.label}</span>
+                          <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#1e293b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s?.label}</span>
                         </span>
                       </>) : null}
                       {s?.todo ? (<>
-                        <span style={{ display: "grid", placeItems: "center", width: "28px", height: "28px", flex: "none", borderRadius: "9999px", border: "1px solid #e2e8f0", background: "#fff", fontSize: "12.5px", fontWeight: "600", color: "#94a3b8" }}>{s?.n}</span>
+                        <span style={{ display: "grid", placeItems: "center", width: "28px", height: "28px", flex: "none", borderRadius: "var(--radius-full)", border: "1px solid #e2e8f0", background: "#fff", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>{s?.n}</span>
                         {" "}
                         <span style={{ minWidth: "0", display: "block" }}>
-                          <span style={{ display: "block", fontSize: "12.5px", fontWeight: "500", letterSpacing: ".025em", color: "#94a3b8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s?.label}</span>
+                          <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s?.label}</span>
                         </span>
                       </>) : null}
                     </button>
@@ -293,56 +293,56 @@ export default class StaffCreateScreen extends Component {
             <div style={{ maxWidth: "1000px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "16px" }}>
               {v.isForm ? (<>
                 {__list(v.sections).map((sec, $index) => (<React.Fragment key={$index}>
-                    <section style={{ display: "flex", flexDirection: "column", gap: "16px", borderRadius: "8px", background: "#fff", padding: "20px 22px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+                    <section style={{ display: "flex", flexDirection: "column", gap: "16px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "20px 22px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
                       <div>
-                        <h2 style={{ margin: "0", fontSize: "15px", lineHeight: "22px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{sec?.title}</h2>
-                        <p style={{ margin: "2px 0 0", fontSize: "12.5px", lineHeight: "19px", color: "#64748b", textWrap: "pretty" }}>{sec?.help}</p>
+                        <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{sec?.title}</h2>
+                        <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "var(--text-muted)", textWrap: "pretty" }}>{sec?.help}</p>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "16px" }}>
+                      <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "16px" }}>
                         {__list(sec?.fields).map((f, $index) => (<React.Fragment key={$index}>
                             {f?.wide ? (<>
                               <label style={{ display: "block", gridColumn: "span 2" }}>
                                 <span style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "6px" }}>
-                                  <span style={{ fontSize: "12.5px", fontWeight: "500", letterSpacing: ".025em", color: "#1e293b" }}>{f?.label}</span>
-                                  <span style={{ fontSize: "11.5px", color: "#c2410c" }}>{f?.req}</span>
+                                  <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{f?.label}</span>
+                                  <span style={{ fontSize: "var(--text-xs)", color: "#c2410c" }}>{f?.req}</span>
                                 </span>
                                 {" "}
-                                <input className="dc-f691" type="text" defaultValue={f?.value} placeholder={f?.placeholder} style={{ width: "100%", height: "36px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 11px", fontFamily: "inherit", fontSize: "13.5px", color: "#1e293b" }} />
+                                <input className="dc-f691" type="text" defaultValue={f?.value} placeholder={f?.placeholder} style={{ width: "100%", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontFamily: "inherit", fontSize: "var(--text-sm)", color: "#1e293b" }} />
                                 {f?.hasHelp ? (<>
-                                  <span style={{ display: "block", marginTop: "5px", fontSize: "11.5px", lineHeight: "17px", color: "#64748b", textWrap: "pretty" }}>{f?.help}</span>
+                                  <span style={{ display: "block", marginTop: "5px", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", textWrap: "pretty" }}>{f?.help}</span>
                                 </>) : null}
                               </label>
                             </>) : null}
                             {f?.narrow ? (<>
                               <label style={{ display: "block" }}>
                                 <span style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "6px" }}>
-                                  <span style={{ fontSize: "12.5px", fontWeight: "500", letterSpacing: ".025em", color: "#1e293b" }}>{f?.label}</span>
-                                  <span style={{ fontSize: "11.5px", color: "#c2410c" }}>{f?.req}</span>
+                                  <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{f?.label}</span>
+                                  <span style={{ fontSize: "var(--text-xs)", color: "#c2410c" }}>{f?.req}</span>
                                 </span>
                                 {f?.isText ? (<>
-                                  <input className="dc-f692" type="text" defaultValue={f?.value} placeholder={f?.placeholder} style={{ width: "100%", height: "36px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 11px", fontFamily: "inherit", fontSize: "13.5px", color: "#1e293b" }} />
+                                  <input className="dc-f692" type="text" defaultValue={f?.value} placeholder={f?.placeholder} style={{ width: "100%", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontFamily: "inherit", fontSize: "var(--text-sm)", color: "#1e293b" }} />
                                 </>) : null}
                                 {f?.isSelect ? (<>
-                                  <select className="dc-f693" style={{ width: "100%", height: "36px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 9px", fontFamily: "inherit", fontSize: "13.5px", color: "#1e293b", cursor: "pointer" }}>
+                                  <select className="dc-f693" style={{ width: "100%", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 9px", fontFamily: "inherit", fontSize: "var(--text-sm)", color: "#1e293b", cursor: "pointer" }}>
                                     {__list(f?.options).map((o, $index) => (<React.Fragment key={$index}>
                                         <option>{o?.label}</option>
                                       </React.Fragment>))}
                                   </select>
                                 </>) : null}
                                 {f?.isSeg ? (<>
-                                  <span style={{ display: "inline-flex", alignItems: "center", gap: "2px", height: "36px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#f8fafc", padding: "3px" }}>
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: "2px", height: "36px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "3px" }}>
                                     {__list(f?.segs).map((g, $index) => (<React.Fragment key={$index}>
                                         {g?.on ? (<>
-                                          <button type="button" onClick={g?.act} aria-pressed="true" style={{ height: "28px", border: "none", borderRadius: "6px", padding: "0 12px", fontFamily: "inherit", fontSize: "12.5px", fontWeight: "600", cursor: "pointer", background: "#fff", color: "#1e293b", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)" }}>{g?.label}</button>
+                                          <button type="button" onClick={g?.act} aria-pressed="true" style={{ height: "28px", border: "none", borderRadius: "var(--radius-md)", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", background: "#fff", color: "#1e293b", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)" }}>{g?.label}</button>
                                         </>) : null}
                                         {g?.off ? (<>
-                                          <button className="dc-h694" type="button" onClick={g?.act} aria-pressed="false" style={{ height: "28px", border: "none", borderRadius: "6px", padding: "0 12px", fontFamily: "inherit", fontSize: "12.5px", fontWeight: "500", cursor: "pointer", background: "transparent", color: "#64748b" }}>{g?.label}</button>
+                                          <button className="dc-h694" type="button" onClick={g?.act} aria-pressed="false" style={{ height: "28px", border: "none", borderRadius: "var(--radius-md)", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", background: "transparent", color: "var(--text-muted)" }}>{g?.label}</button>
                                         </>) : null}
                                       </React.Fragment>))}
                                   </span>
                                 </>) : null}
                                 {f?.hasHelp ? (<>
-                                  <span style={{ display: "block", marginTop: "5px", fontSize: "11.5px", lineHeight: "17px", color: "#64748b", textWrap: "pretty" }}>{f?.help}</span>
+                                  <span style={{ display: "block", marginTop: "5px", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", textWrap: "pretty" }}>{f?.help}</span>
                                 </>) : null}
                               </label>
                             </>) : null}
@@ -352,72 +352,72 @@ export default class StaffCreateScreen extends Component {
                   </React.Fragment>))}
               </>) : null}
               {v.isReview ? (<>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "16px 18px" }}>
-                  <span style={{ display: "grid", placeItems: "center", width: "38px", height: "38px", flex: "none", borderRadius: "8px", background: "#003087", color: "#fff" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.06)", padding: "16px 18px" }}>
+                  <span style={{ display: "grid", placeItems: "center", width: "38px", height: "38px", flex: "none", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff" }}>
                     <__Icon name="check-check" strokeWidth="1.75" width="19" height="19" />
                   </span>
                   <div style={{ flex: "1", minWidth: "0" }}>
-                    <p style={{ margin: "0", fontSize: "14px", fontWeight: "600", color: "#1e293b" }}>{v.t?.reviewTitle}</p>
-                    <p style={{ margin: "1px 0 0", fontSize: "12.5px", lineHeight: "19px", color: "#475569", textWrap: "pretty" }}>{v.t?.reviewBody}</p>
+                    <p style={{ margin: "0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{v.t?.reviewTitle}</p>
+                    <p style={{ margin: "1px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "#475569", textWrap: "pretty" }}>{v.t?.reviewBody}</p>
                   </div>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "16px" }}>
+                <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "16px" }}>
                   {__list(v.review).map((g, $index) => (<React.Fragment key={$index}>
-                      <section style={{ display: "flex", flexDirection: "column", gap: "11px", borderRadius: "8px", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+                      <section style={{ display: "flex", flexDirection: "column", gap: "11px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "18px 20px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-                          <span style={{ display: "grid", placeItems: "center", width: "28px", height: "28px", flex: "none", borderRadius: "8px", background: "#f1f5f9", color: "#475569" }}>
+                          <span style={{ display: "grid", placeItems: "center", width: "28px", height: "28px", flex: "none", borderRadius: "var(--radius-lg)", background: "#f1f5f9", color: "#475569" }}>
                             <__Icon name={g?.icon} strokeWidth="1.75" width="15" height="15" />
                           </span>
-                          <h2 style={{ margin: "0", flex: "1", fontSize: "14px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{g?.title}</h2>
-                          <button type="button" onClick={g?.act} style={{ border: "none", background: "none", padding: "0", fontFamily: "inherit", fontSize: "12.5px", fontWeight: "500", letterSpacing: ".025em", color: "#003087", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "3px" }}>{v.t?.edit}</button>
+                          <h2 style={{ margin: "0", flex: "1", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{g?.title}</h2>
+                          <button type="button" onClick={g?.act} style={{ border: "none", background: "none", padding: "0", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#003087", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "3px" }}>{v.t?.edit}</button>
                         </div>
                         <dl style={{ margin: "0", display: "flex", flexDirection: "column", gap: "7px" }}>
                           {__list(g?.rows).map((r, $index) => (<React.Fragment key={$index}>
-                              <div style={{ display: "flex", alignItems: "baseline", gap: "10px", fontSize: "12.5px" }}>
-                                <dt style={{ margin: "0", flex: "none", width: "44%", color: "#64748b" }}>{r?.label}</dt>
-                                <dd style={{ margin: "0", flex: "1", minWidth: "0", fontWeight: "500", color: "#1e293b", textWrap: "pretty" }}>{r?.value}</dd>
+                              <div style={{ display: "flex", alignItems: "baseline", gap: "10px", fontSize: "var(--text-xs-plus)" }}>
+                                <dt style={{ margin: "0", flex: "none", width: "44%", color: "var(--text-muted)" }}>{r?.label}</dt>
+                                <dd style={{ margin: "0", flex: "1", minWidth: "0", fontWeight: "var(--weight-medium)", color: "#1e293b", textWrap: "pretty" }}>{r?.value}</dd>
                               </div>
                             </React.Fragment>))}
                         </dl>
                       </section>
                     </React.Fragment>))}
                 </div>
-                <section style={{ display: "flex", flexDirection: "column", gap: "14px", borderRadius: "8px", background: "#fff", padding: "20px 22px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+                <section style={{ display: "flex", flexDirection: "column", gap: "14px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "20px 22px", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
                   <div>
-                    <h2 style={{ margin: "0", fontSize: "15px", lineHeight: "22px", fontWeight: "600", letterSpacing: ".025em", color: "#1e293b" }}>{v.t?.inviteTitle}</h2>
-                    <p style={{ margin: "2px 0 0", fontSize: "12.5px", lineHeight: "19px", color: "#64748b", textWrap: "pretty" }}>{v.t?.inviteBody}</p>
+                    <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>{v.t?.inviteTitle}</h2>
+                    <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "var(--text-muted)", textWrap: "pretty" }}>{v.t?.inviteBody}</p>
                   </div>
-                  <div role="radiogroup" aria-label={v.t?.inviteTitle} style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "12px" }}>
+                  <div role="radiogroup" aria-label={v.t?.inviteTitle} className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "12px" }}>
                     {__list(v.invites).map((i, $index) => (<React.Fragment key={$index}>
                         {i?.on ? (<>
-                          <button type="button" role="radio" aria-checked="true" onClick={i?.act} style={{ display: "flex", alignItems: "flex-start", gap: "11px", border: "1px solid rgba(0,48,135,.25)", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "14px 15px", fontFamily: "inherit", textAlign: "left", cursor: "pointer" }}>
-                            <span style={{ display: "grid", placeItems: "center", width: "18px", height: "18px", flex: "none", marginTop: "1px", border: "1px solid #003087", borderRadius: "9999px", background: "#fff" }}>
-                              <span style={{ width: "9px", height: "9px", borderRadius: "9999px", background: "#003087" }} />
+                          <button type="button" role="radio" aria-checked="true" onClick={i?.act} style={{ display: "flex", alignItems: "flex-start", gap: "11px", border: "1px solid rgba(0,48,135,.25)", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.06)", padding: "14px 15px", fontFamily: "inherit", textAlign: "left", cursor: "pointer" }}>
+                            <span style={{ display: "grid", placeItems: "center", width: "18px", height: "18px", flex: "none", marginTop: "1px", border: "1px solid #003087", borderRadius: "var(--radius-full)", background: "#fff" }}>
+                              <span style={{ width: "9px", height: "9px", borderRadius: "var(--radius-full)", background: "#003087" }} />
                             </span>
                             <span style={{ flex: "1", minWidth: "0" }}>
-                              <span style={{ display: "block", fontSize: "13.5px", fontWeight: "600", color: "#1e293b" }}>{i?.label}</span>
-                              <span style={{ display: "block", marginTop: "2px", fontSize: "12px", lineHeight: "18px", color: "#64748b", textWrap: "pretty" }}>{i?.help}</span>
+                              <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{i?.label}</span>
+                              <span style={{ display: "block", marginTop: "2px", fontSize: "var(--text-xs)", lineHeight: "18px", color: "var(--text-muted)", textWrap: "pretty" }}>{i?.help}</span>
                             </span>
-                            <__Icon name={i?.icon} strokeWidth="1.75" width="17" height="17" style={{ flex: "none", color: "#64748b" }} />
+                            <__Icon name={i?.icon} strokeWidth="1.75" width="17" height="17" style={{ flex: "none", color: "var(--text-muted)" }} />
                           </button>
                         </>) : null}
                         {i?.off ? (<>
-                          <button className="dc-h695" type="button" role="radio" aria-checked="false" onClick={i?.act} style={{ display: "flex", alignItems: "flex-start", gap: "11px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "14px 15px", fontFamily: "inherit", textAlign: "left", cursor: "pointer" }}>
-                            <span style={{ display: "grid", placeItems: "center", width: "18px", height: "18px", flex: "none", marginTop: "1px", border: "1px solid #cbd5e1", borderRadius: "9999px", background: "#fff" }}>
-                              <span style={{ width: "9px", height: "9px", borderRadius: "9999px", background: "transparent" }} />
+                          <button className="dc-h695" type="button" role="radio" aria-checked="false" onClick={i?.act} style={{ display: "flex", alignItems: "flex-start", gap: "11px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "14px 15px", fontFamily: "inherit", textAlign: "left", cursor: "pointer" }}>
+                            <span style={{ display: "grid", placeItems: "center", width: "18px", height: "18px", flex: "none", marginTop: "1px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-full)", background: "#fff" }}>
+                              <span style={{ width: "9px", height: "9px", borderRadius: "var(--radius-full)", background: "transparent" }} />
                             </span>
                             <span style={{ flex: "1", minWidth: "0" }}>
-                              <span style={{ display: "block", fontSize: "13.5px", fontWeight: "600", color: "#1e293b" }}>{i?.label}</span>
-                              <span style={{ display: "block", marginTop: "2px", fontSize: "12px", lineHeight: "18px", color: "#64748b", textWrap: "pretty" }}>{i?.help}</span>
+                              <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{i?.label}</span>
+                              <span style={{ display: "block", marginTop: "2px", fontSize: "var(--text-xs)", lineHeight: "18px", color: "var(--text-muted)", textWrap: "pretty" }}>{i?.help}</span>
                             </span>
-                            <__Icon name={i?.icon} strokeWidth="1.75" width="17" height="17" style={{ flex: "none", color: "#64748b" }} />
+                            <__Icon name={i?.icon} strokeWidth="1.75" width="17" height="17" style={{ flex: "none", color: "var(--text-muted)" }} />
                           </button>
                         </>) : null}
                       </React.Fragment>))}
                   </div>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "9px", borderRadius: "8px", background: "#f8fafc", padding: "12px 14px" }}>
-                    <__Icon name="info" strokeWidth="1.75" width="17" height="17" style={{ flex: "none", marginTop: "1px", color: "#64748b" }} />
-                    <p style={{ margin: "0", fontSize: "12.5px", lineHeight: "19px", color: "#475569", textWrap: "pretty" }}>{v.t?.inviteNote}</p>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: "9px", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "12px 14px" }}>
+                    <__Icon name="info" strokeWidth="1.75" width="17" height="17" style={{ flex: "none", marginTop: "1px", color: "var(--text-muted)" }} />
+                    <p style={{ margin: "0", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "#475569", textWrap: "pretty" }}>{v.t?.inviteNote}</p>
                   </div>
                 </section>
               </>) : null}
@@ -425,27 +425,27 @@ export default class StaffCreateScreen extends Component {
           </div>
           <div style={{ flex: "none", display: "flex", alignItems: "center", gap: "12px", height: "68px", padding: "0 24px", borderTop: "1px solid #e2e8f0", background: "#fff", boxShadow: "0 -8px 22px -14px rgba(15,23,42,.25)" }}>
             <div style={{ maxWidth: "1000px", width: "100%", margin: "0 auto", display: "flex", alignItems: "center", gap: "12px" }}>
-              <button className="dc-h696" type="button" onClick={v.back} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", flex: "none", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 14px", fontFamily: "inherit", fontSize: "14px", fontWeight: "500", letterSpacing: ".025em", color: "#475569", cursor: "pointer" }}><__Icon name="arrow-left" strokeWidth="1.75" width="16" height="16" />{v.backLabel}</button>
-              <p style={{ margin: "0", flex: "1", minWidth: "0", fontSize: "12.5px", color: "#64748b", textWrap: "pretty" }}>{v.footNote}</p>
+              <button className="dc-h696" type="button" onClick={v.back} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", flex: "none", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 14px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#475569", cursor: "pointer" }}><__Icon name="arrow-left" strokeWidth="1.75" width="16" height="16" />{v.backLabel}</button>
+              <p style={{ margin: "0", flex: "1", minWidth: "0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", textWrap: "pretty" }}>{v.footNote}</p>
               {v.isForm ? (<>
-                <button className="dc-h697" type="button" onClick={v.next} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", flex: "none", border: "none", borderRadius: "8px", background: "#003087", padding: "0 16px", fontFamily: "inherit", fontSize: "14px", fontWeight: "500", letterSpacing: ".025em", color: "#fff", cursor: "pointer" }}>{v.t?.continue}<__Icon name="arrow-right" strokeWidth="1.75" width="16" height="16" /></button>
+                <button className="dc-h697" type="button" onClick={v.next} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", flex: "none", border: "none", borderRadius: "var(--radius-lg)", background: "#003087", padding: "0 16px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#fff", cursor: "pointer" }}>{v.t?.continue}<__Icon name="arrow-right" strokeWidth="1.75" width="16" height="16" /></button>
               </>) : null}
               {v.isReview ? (<>
-                <button className="dc-h698" type="button" onClick={v.create} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", flex: "none", border: "none", borderRadius: "8px", background: "#003087", padding: "0 16px", fontFamily: "inherit", fontSize: "14px", fontWeight: "500", letterSpacing: ".025em", color: "#fff", cursor: "pointer" }}><__Icon name="send" strokeWidth="1.75" width="16" height="16" />{v.t?.createVerb}</button>
+                <button className="dc-h698" type="button" onClick={v.create} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", flex: "none", border: "none", borderRadius: "var(--radius-lg)", background: "#003087", padding: "0 16px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#fff", cursor: "pointer" }}><__Icon name="send" strokeWidth="1.75" width="16" height="16" />{v.t?.createVerb}</button>
               </>) : null}
             </div>
           </div>
           {v.done ? (<>
             <div style={{ position: "fixed", inset: "0", zIndex: "220", display: "grid", placeItems: "center", background: "rgba(15,23,42,.6)", padding: "24px" }}>
-              <div role="dialog" aria-modal="true" aria-label={v.t?.doneTitle} style={{ width: "100%", maxWidth: "460px", borderRadius: "8px", background: "#fff", padding: "26px", textAlign: "center", boxShadow: "0 26px 60px -20px rgba(15,23,42,.5)" }}>
-                <span style={{ display: "grid", placeItems: "center", width: "56px", height: "56px", margin: "0 auto 14px", borderRadius: "16px", background: "rgba(16,185,129,.12)", color: "#047857" }}>
+              <div role="dialog" aria-modal="true" aria-label={v.t?.doneTitle} style={{ width: "100%", maxWidth: "460px", borderRadius: "var(--radius-lg)", background: "#fff", padding: "26px", textAlign: "center", boxShadow: "0 26px 60px -20px rgba(15,23,42,.5)" }}>
+                <span style={{ display: "grid", placeItems: "center", width: "56px", height: "56px", margin: "0 auto 14px", borderRadius: "var(--radius-xl)", background: "rgba(16,185,129,.12)", color: "#047857" }}>
                   <__Icon name="check" strokeWidth="1.75" width="28" height="28" />
                 </span>
-                <h2 style={{ margin: "0", fontSize: "17px", fontWeight: "600", color: "#1e293b" }}>{v.t?.doneTitle}</h2>
-                <p style={{ margin: "7px 0 0", fontSize: "13px", lineHeight: "20px", color: "#64748b", textWrap: "pretty" }}>{v.t?.doneBody}</p>
+                <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#1e293b" }}>{v.t?.doneTitle}</h2>
+                <p style={{ margin: "7px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "20px", color: "var(--text-muted)", textWrap: "pretty" }}>{v.t?.doneBody}</p>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginTop: "18px" }}>
-                  <button className="dc-h699" type="button" onClick={v.close} style={{ height: "36px", border: "none", borderRadius: "8px", background: "#003087", padding: "0 16px", fontFamily: "inherit", fontSize: "14px", fontWeight: "500", letterSpacing: ".025em", color: "#fff", cursor: "pointer" }}>{v.t?.doneCta}</button>
-                  <button className="dc-h700" type="button" onClick={v.restart} style={{ height: "36px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 15px", fontFamily: "inherit", fontSize: "14px", fontWeight: "500", letterSpacing: ".025em", color: "#475569", cursor: "pointer" }}>{v.t?.addAnother}</button>
+                  <button className="dc-h699" type="button" onClick={v.close} style={{ height: "36px", border: "none", borderRadius: "var(--radius-lg)", background: "#003087", padding: "0 16px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#fff", cursor: "pointer" }}>{v.t?.doneCta}</button>
+                  <button className="dc-h700" type="button" onClick={v.restart} style={{ height: "36px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 15px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#475569", cursor: "pointer" }}>{v.t?.addAnother}</button>
                 </div>
               </div>
             </div>

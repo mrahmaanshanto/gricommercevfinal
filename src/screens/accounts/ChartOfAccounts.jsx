@@ -6,6 +6,8 @@
 import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import { toast as __toast } from '@/runtime/ui';
+import { EmptyState as __EmptyState } from '@/components/ui';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
@@ -19,7 +21,10 @@ function pTabs(self, list, cur, key, counts) { return mkTabs(self, list, cur, ke
 function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
 function stepN(self, key, def, step, min, max) { var s = self.state || {}; var v = s[key] == null ? def : s[key]; return { v: v, dec: function () { var p = {}; p[key] = Math.max(min, +(v - step).toFixed(2)); self.setState(p); }, inc: function () { var p = {}; p[key] = Math.min(max, +(v + step).toFixed(2)); self.setState(p); } }; }
 function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-function toast(self, m, bad) { clearTimeout(self.t); self.setState({ msg: m, bad: !!bad }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 2800); }
+function toast(self, m, bad) { __toast(m, { tone: bad ? 'error' : 'success' }); }
+function setQuery(key, value) { if (typeof window === 'undefined') return; var u = new URL(window.location.href); if (value) u.searchParams.set(key, value); else u.searchParams.delete(key); window.history.replaceState(window.history.state, '', u.pathname + u.search + u.hash); }
+function getQuery(key) { if (typeof window === 'undefined') return ''; return new URLSearchParams(window.location.search).get(key) || ''; }
+function focusField(id) { setTimeout(function () { var el = document.getElementById(id); if (!el) return; var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); el.focus({ preventScroll: true }); }, 0); }
 function msgV(s) { return { hasMsg: !!s.msg, msg: s.msg || '', msgBg: s.bad ? '#fff4e0' : '#e7f8f1', msgFg: s.bad ? '#7a3b04' : '#065f46' }; }
 function segv(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#0b1733' : 'transparent', fg: on ? '#fff' : '#475569', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
 function lseg(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#fff' : 'transparent', fg: on ? '#0b1733' : '#64748b', sh: on ? '0 1px 2px rgba(15,23,42,.08), 0 1px 1px rgba(15,23,42,.04)' : 'none', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
@@ -66,6 +71,7 @@ function shortName(code) { return { 1010: 'Cash · Dhanmondi', 1011: 'Cash · Mi
 var GROUPS = ['Assets', 'Liabilities', 'Equity', 'Income', 'Expenses'];
 var RANGE = { Assets: [1000, 1999, 'D'], Liabilities: [2000, 2999, 'C'], Equity: [3000, 3999, 'C'], Income: [4000, 4999, 'C'], Expenses: [5000, 6999, 'D'] };
 class Component extends DCLogic {
+  componentDidMount() { var g = getQuery('group'), q = getQuery('q'), p = {}; if (GROUPS.indexOf(g) >= 0) p.g = g; if (q) p.q = q; if (Object.keys(p).length) this.setState(p); }
   componentWillUnmount() { clearTimeout(this.t); }
   renderVals() {
     var self = this, s = this.state || {};
@@ -75,66 +81,77 @@ class Component extends DCLogic {
     var profit = sum('Income') - sum('Expenses');
     var used = list.filter(function (a) { return a[2] === ng; }).map(function (a) { return a[0]; }), r = RANGE[ng], nc = r[0] + 10;
     while (used.indexOf(nc) >= 0 && nc < r[1]) nc += 10; if (used.indexOf(nc) >= 0) { nc = r[0] + 1; while (used.indexOf(nc) >= 0) nc++; }
+    var codeTxt = s.code == null ? String(nc) : s.code, er = s.err || {};
     var v = {
       headline: 'Books balance · ' + tk2(dr) + ' on each side',
       tiles: [{ l: 'Assets', v: tk2(sum('Assets')), s: 'cash, bank, stock, receivables', c: '#34d399' }, { l: 'Liabilities', v: tk2(sum('Liabilities')), s: 'suppliers, loan, VAT', c: '#fb7185' }, { l: 'Owner’s equity', v: tk2(3000000 - 180000 + profit), s: 'capital less drawings plus profit', c: '#60a5fa' }, { l: 'Profit since March', v: tk2(profit), s: tk2(sum('Income')) + ' income', c: '#fbbf24' }],
-      chips: [['all', 'All']].concat(GROUPS.map(function (g) { return [g, g]; })).map(function (c) { var on = c[0] === gsel; return { label: c[1], cls: on ? 'chip on' : 'chip', pick: function () { self.setState({ g: c[0] }); } }; }),
-      q: s.q || '', onQ: function (e) { self.setState({ q: val(e) }); },
+      chips: [['all', 'All']].concat(GROUPS.map(function (g) { return [g, g]; })).map(function (c) { var on = c[0] === gsel; return { label: c[1], on: on, cls: on ? 'chip on' : 'chip', pick: function () { self.setState({ g: c[0] }); setQuery('group', c[0] === 'all' ? '' : c[0]); } }; }),
+      q: s.q || '', onQ: function (e) { var x = val(e); self.setState({ q: x }); setQuery('q', String(x || '').trim()); },
+      clearFilters: function () { self.setState({ q: '', g: 'all' }); setQuery('q', ''); setQuery('group', ''); },
       groups: GROUPS.filter(function (g) { return gsel === 'all' || g === gsel; }).map(function (g) { var rows = list.filter(function (a) { return a[2] === g && (!q || (a[0] + ' ' + a[1]).toLowerCase().indexOf(q) >= 0); });
-        return { n: g, cnt: rows.length, total: tk2(sum(g)), rows: rows.map(function (a) { var contra = (g === 'Equity' && a[3] === 'D'); return { code: String(a[0]), n: a[1], auto: !!a[5], manual: !a[5], src: a[5], side: a[3] === 'D' ? 'Debit' : 'Credit', bal: (contra ? '−' : '') + tk2(a[4]), c: a[4] === 0 ? '#94a3b8' : contra ? '#b83210' : '#0f172a' }; }) }; }).filter(function (g) { return g.rows.length; }),
+        return { n: g, cnt: rows.length, total: tk2(sum(g)), rows: rows.map(function (a) { var contra = (g === 'Equity' && a[3] === 'D'); return { code: String(a[0]), n: a[1], auto: !!a[5], manual: !a[5], src: a[5], side: a[3] === 'D' ? 'Debit' : 'Credit', bal: (contra ? '−' : '') + tk2(a[4]), c: a[4] === 0 ? 'var(--text-muted)' : contra ? '#b83210' : '#0f172a' }; }) }; }).filter(function (g) { return g.rows.length; }),
       tb: [{ l: 'Total debits', v: tk2(dr) }, { l: 'Total credits', v: tk2(cr) }, { l: 'Difference', v: tk2(Math.abs(dr - cr)) }],
       tbL: Math.abs(dr - cr) < .005 ? 'Balanced' : 'Out of balance', tbBg: Math.abs(dr - cr) < .005 ? '#e7f8f1' : '#ffece6', tbFg: Math.abs(dr - cr) < .005 ? '#047857' : '#b83210',
-      gOpts: GROUPS.map(function (g) { var on = g === ng; return { l: g, cls: on ? 'chip on fch' : 'chip fch', pick: function () { self.setState({ ng: g }); } }; }),
-      nm: s.nm || '', onNm: function (e) { self.setState({ nm: val(e) }); }, nextCode: String(nc), nextSide: r[2] === 'D' ? 'debit' : 'credit',
-      formBd: s.pulse ? '#003087' : 'transparent', focusForm: function () { self.setState({ pulse: true }); },
-      addAcct: function () { var n = (s.nm || '').trim(); if (!n) { toast(self, 'Name the account first.', true); return; } if (list.some(function (a) { return a[1].toLowerCase() === n.toLowerCase(); })) { toast(self, 'An account with that name already exists.', true); return; }
-        self.setState({ added: (s.added || []).concat([[nc, n, ng, r[2], 0, '']]), nm: '', g: ng, pulse: false }); toast(self, 'Account ' + nc + ' · ' + n + ' added to ' + ng + '.'); }
+      gOpts: GROUPS.map(function (g) { var on = g === ng; return { l: g, on: on, cls: on ? 'chip on fch' : 'chip fch', pick: function () { self.setState({ ng: g, code: null, err: {} }); } }; }),
+      nm: s.nm || '', onNm: function (e) { self.setState({ nm: val(e), err: assign(assign({}, er), { nm: '' }) }); }, nextCode: String(nc), nextSide: r[2] === 'D' ? 'debit' : 'credit',
+      code: codeTxt, onCode: function (e) { self.setState({ code: String(val(e) || '').replace(/[^\d]/g, '').slice(0, 4), err: assign(assign({}, er), { code: '' }) }); },
+      codeHint: ng + ' use codes ' + r[0] + ' to ' + r[1] + '. Normal balance: ' + (r[2] === 'D' ? 'debit' : 'credit') + '.',
+      errNm: er.nm || '', errCode: er.code || '', badNm: !!er.nm, badCode: !!er.code,
+      formBd: s.pulse ? '#003087' : 'transparent', focusForm: function () { self.setState({ pulse: true }); focusField('an'); },
+      noRows: false,
+      addAcct: function (e) { if (e && e.preventDefault) e.preventDefault();
+        var n = (s.nm || '').trim(), cd = parseInt(codeTxt, 10), errs = {};
+        if (!n) errs.nm = 'Enter the account name.'; else if (list.some(function (a) { return a[1].toLowerCase() === n.toLowerCase(); })) errs.nm = 'An account with that name already exists.';
+        if (!codeTxt) errs.code = 'Enter the account code.'; else if (isNaN(cd) || cd < r[0] || cd > r[1]) errs.code = ng + ' codes run from ' + r[0] + ' to ' + r[1] + '.'; else if (list.some(function (a) { return a[0] === cd; })) errs.code = 'Code ' + cd + ' is already used by ' + aName(cd) + '.';
+        if (errs.nm || errs.code) { self.setState({ err: errs }); focusField(errs.nm ? 'an' : 'ac'); toast(self, errs.nm || errs.code, true); return; }
+        self.setState({ added: (s.added || []).concat([[cd, n, ng, r[2], 0, '']]), nm: '', code: null, err: {}, g: ng, pulse: false }); setQuery('group', ng); toast(self, 'Account ' + cd + ' · ' + n + ' added to ' + ng + '.'); }
     };
-    return assign(v, msgV(s));
+    v.noRows = v.groups.length === 0;
+    return assign(v, { hasMsg: false, msg: '' });
   }
 }
 
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `
-body{margin:0;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
+body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
 a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:12px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:8px;color:#475569;font-size:14px;font-weight:500;letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
+.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
+.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
 .nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
 .nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:11px;line-height:16px;font-weight:600;letter-spacing:.08em;color:#64748b;padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:8px;border:0;font:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
+.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
 .btn:hover{text-decoration:none}
 .btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
 .soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
 .line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
 .warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:15px}
-.sm{height:36px;padding:0 12px;font-size:13px}
-.ib{width:40px;height:40px;border-radius:999px;border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
+.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
+.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
 .ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font:inherit;font-size:14px;color:#1e293b;transition:border-color 200ms}
+.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
 .inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:#64748b}
-.lbl{font-size:13px;line-height:18px;font-weight:500;color:#334155}
-.tab{height:40px;padding:0 14px;border-radius:999px;border:0;background:transparent;font:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
+.inp::placeholder{color:var(--text-muted)}
+.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
+.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
 .tab:hover{background:#f1f5f9;color:#0f172a}
 .tab.on{background:#003087;color:#fff}
-.chip{height:40px;padding:0 14px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:13px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
+.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
 .chip:hover{border-color:#94a3b8}
 .chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:14px;line-height:20px;vertical-align:middle}
+.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
 .row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
+.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
+.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
 .b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
 .b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
 .b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.02em}
+.mono{font-family:var(--font-data);letter-spacing:.02em}
 .fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
 @keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 .flash{animation:gcFlash 900ms ease-out}
@@ -142,46 +159,46 @@ a{color:#003087}a:hover{color:#002a77}
 .scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
 @keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
 
-.sw{position:relative;width:48px;height:28px;border-radius:999px;border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
+.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
 .sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
 .sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
 .t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
 .actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:'Hind Siliguri','Poppins',sans-serif}
+.bn{font-family:var(--font-bn)}
 .pulse{animation:gcPulse 1.6s ease-in-out infinite}
 @keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
-.psec{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#64748b}
+.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
+.psec{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
 .num{font-variant-numeric:tabular-nums}
-.ai{height:30px;padding:0 10px;border-radius:8px;border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
+.ai{height:28px;padding:0 10px;border-radius:var(--radius-lg);border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
 .ai:hover{border-color:#a78bfa;box-shadow:0 4px 12px -6px rgba(91,33,182,.5)}
 .ai:focus-visible{outline:3px solid rgba(124,58,237,.4);outline-offset:2px}
-.abtn{height:32px;padding:0 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:12.5px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.abtn{height:32px;padding:0 12px;border-radius:var(--radius-lg);border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .abtn:hover{background:#f1f5f9}
 .ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0}
-.ptab{position:relative;height:48px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:13.5px;font-weight:500;color:#64748b;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:600}
+.ptab{position:relative;height:52px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:var(--weight-medium)}
 .ptab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2.5px;border-radius:3px 3px 0 0;background:#003087}
-.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#eef2f6;color:#475569;font-size:11px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
 .ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
-.thumb{width:44px;height:44px;flex-shrink:0;border-radius:10px;border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#003087}
+.thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
 
-.tc{background:#fff;border:1px solid #e7ebf2;border-radius:18px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px -20px rgba(15,23,42,.18)}
-.ey{font-size:11px;line-height:14px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#64748b}
+.tc{background:#fff;border:1px solid #e7ebf2;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px -20px rgba(15,23,42,.18)}
+.ey{font-size:var(--text-xs);line-height:17px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
 .ey-d{color:rgba(203,216,238,.7)}
-.tn{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;letter-spacing:-.02em}
-.dl{display:inline-flex;align-items:center;gap:3px;height:22px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums}
-.hero{position:relative;overflow:hidden;border-radius:22px;background:#0b1733;color:#fff;padding:24px 26px}
+.tn{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;letter-spacing:0}
+.dl{display:inline-flex;align-items:center;gap:3px;height:22px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums}
+.hero{position:relative;overflow:hidden;border-radius:var(--radius-xl);background:#0b1733;color:#fff;padding:24px 26px;--accent-text:#7fcff0;--text-success:#6ee7b7;--text-warning:#fcd34d;--text-danger:#fda4af;--text-info:#7dd3fc}
 .hero::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:32px 32px;pointer-events:none}
 .hero>*{position:relative}
-.ht{border-radius:16px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
-.dseg{display:inline-flex;padding:3px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1)}
-.dseg button{height:32px;padding:0 14px;border:0;border-radius:999px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
-.lseg{display:inline-flex;padding:3px;border-radius:12px;background:#f1f4f9;border:1px solid #e7ebf2}
-.lseg button{height:32px;padding:0 13px;border:0;border-radius:9px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease,box-shadow 200ms ease}
+.ht{border-radius:var(--radius-xl);background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.dseg{display:inline-flex;padding:3px;border-radius:var(--radius-full);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1)}
+.dseg button{height:32px;padding:0 14px;border:0;border-radius:var(--radius-full);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
+.lseg{display:inline-flex;padding:3px;border-radius:var(--radius-xl);background:#f1f4f9;border:1px solid #e7ebf2}
+.lseg button{height:32px;padding:0 13px;border:0;border-radius:var(--radius-lg);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease,box-shadow 200ms ease}
 button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .btn,.abtn{transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
 .st>*{animation:taUp 420ms cubic-bezier(.23,1,.32,1) both}
@@ -193,39 +210,39 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 @keyframes taDraw{from{stroke-dashoffset:1600}to{stroke-dashoffset:0}}
 .fadein{animation:taFade 600ms ease both 200ms}@keyframes taFade{from{opacity:0}to{opacity:1}}
 .tt{position:relative}
-.tt .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px) scale(.97);transform-origin:bottom center;opacity:0;pointer-events:none;transition:opacity 125ms ease-out,transform 125ms ease-out;background:#0b1733;color:#fff;border-radius:10px;padding:8px 10px;font-size:12px;white-space:nowrap;box-shadow:0 10px 24px -8px rgba(15,23,42,.45);z-index:5}
-.col{position:relative;flex:1;height:100%;border-radius:6px;transition:background-color 150ms ease}
+.tt .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px) scale(.97);transform-origin:bottom center;opacity:0;pointer-events:none;transition:opacity 125ms ease-out,transform 125ms ease-out;background:#0b1733;color:#fff;border-radius:var(--radius-lg);padding:8px 10px;font-size:var(--text-xs);white-space:nowrap;box-shadow:0 10px 24px -8px rgba(15,23,42,.45);z-index:5}
+.col{position:relative;flex:1;height:100%;border-radius:var(--radius-md);transition:background-color 150ms ease}
 .col .tip{bottom:auto;top:6px}
 .col .cl{position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(15,23,42,.18);opacity:0;transition:opacity 125ms ease}
 @media (hover:hover) and (pointer:fine){.tt:hover .tip,.col:hover .tip{opacity:1;transform:translate(-50%,0) scale(1)}.col:hover .cl{opacity:1}.row:hover{background:#f7f9fd}.tc.lift{transition:box-shadow 200ms ease,transform 200ms cubic-bezier(.23,1,.32,1)}.tc.lift:hover{box-shadow:0 1px 2px rgba(15,23,42,.05),0 18px 40px -20px rgba(15,23,42,.3)}}
 .tb{width:100%;border-collapse:separate;border-spacing:0}
-.tb th{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#64748b;text-align:left;padding:12px 16px;border-bottom:1px solid #eef1f6;background:#fbfcfe;white-space:nowrap}
-.tb td{padding:13px 16px;border-bottom:1px solid #f1f4f8;font-size:13.5px;vertical-align:middle}
+.tb th{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #eef1f6;background:#fbfcfe;white-space:nowrap}
+.tb td{padding:13px 16px;border-bottom:1px solid #f1f4f8;font-size:var(--text-sm);vertical-align:middle}
 .tb tr:last-child td{border-bottom:0}
 .tb .r{text-align:right}
 @media (prefers-reduced-motion:reduce){.st>*,.gr,.draw,.fadein{animation:none}}
 
 .pgc>*{flex-shrink:0}.tb th{white-space:normal}.stp2{flex-shrink:0}.pgc>.fill{flex-shrink:1;min-height:0}
 .sec{display:flex;flex-direction:column;gap:14px;padding:20px 22px}
-.h2{margin:0;font-size:15.5px;line-height:22px;font-weight:600;color:#0f172a;letter-spacing:-.01em}
-.sub{margin:2px 0 0;font-size:12.5px;line-height:18px;color:#64748b}
+.h2{margin:0;font-size:var(--text-base);line-height:22px;font-weight:var(--weight-semibold);color:#0f172a;letter-spacing:0}
+.sub{margin:2px 0 0;font-size:var(--text-xs-plus);line-height:18px;color:var(--text-muted)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .chk{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid #f1f4f8}
 .chk:last-child{border-bottom:0}
-.pill{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:999px;background:#f1f4f9;font-size:12px;color:#334155;white-space:nowrap}
-.amt{height:40px;padding:0 16px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#1e293b;cursor:pointer;font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:var(--radius-full);background:#f1f4f9;font-size:var(--text-xs);color:#334155;white-space:nowrap}
+.amt{height:36px;padding:0 16px;border-radius:var(--radius-lg);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:#1e293b;cursor:pointer;font-variant-numeric:tabular-nums}
 .amt.on{border-color:#003087;background:rgba(0,48,135,.06);color:#003087}
 .amt:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.stp2{display:inline-flex;align-items:center;border:1px solid #cbd5e1;border-radius:10px;overflow:hidden;height:40px}
-.stp2 button{width:38px;height:100%;border:0;background:#f8fafc;font:inherit;font-size:16px;cursor:pointer;color:#334155}
-.stp2 span{min-width:64px;text-align:center;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
-.sel{height:44px;padding:0 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font:inherit;font-size:14px;color:#1e293b;width:100%}
-.msgb{max-width:78%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:20px}
-.code{margin:0;padding:12px 14px;border-radius:10px;background:#0b1733;color:#cbd8ee;font-size:12px;line-height:18px;white-space:pre-wrap}
+.stp2{display:inline-flex;align-items:center;border:1px solid #cbd5e1;border-radius:var(--radius-lg);overflow:hidden;height:40px}
+.stp2 button{width:38px;height:100%;border:0;background:#f8fafc;font:inherit;font-size:var(--text-base);cursor:pointer;color:#334155}
+.stp2 span{min-width:64px;text-align:center;font-size:var(--text-sm);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums}
+.sel{height:44px;padding:0 12px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;width:100%}
+.msgb{max-width:78%;padding:10px 14px;border-radius:var(--radius-xl);font-size:var(--text-sm);line-height:20px}
+.code{margin:0;padding:12px 14px;border-radius:var(--radius-lg);background:#0b1733;color:#cbd8ee;font-size:var(--text-xs);line-height:18px;white-space:pre-wrap;--text-muted:#94a3b8}
 .lrow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 16px;border:0;border-bottom:1px solid #f1f4f8;background:transparent;font:inherit;text-align:left;cursor:pointer}
 .lrow:hover{background:#f7f9fd}.lrow.on{background:rgba(0,48,135,.05)}
 .lrow:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:-3px}
-.jt td{padding:9px 14px;font-size:13px;border-bottom:1px solid #f1f4f8}.jt th{padding:9px 14px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#64748b;text-align:left;border-bottom:1px solid #eef1f6;background:#fbfcfe}.jt{width:100%;border-collapse:collapse}.jt .r{text-align:right}.fch{height:32px;font-size:12.5px;padding:0 11px}`;
+.jt td{padding:9px 14px;font-size:var(--text-xs-plus);border-bottom:1px solid #f1f4f8}.jt th{padding:9px 14px;font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted);text-align:left;border-bottom:1px solid #eef1f6;background:#fbfcfe}.jt{width:100%;border-collapse:collapse}.jt .r{text-align:right}.fch{height:32px;font-size:var(--text-xs-plus);padding:0 11px}`;
 
 // ---- markup ----
 
@@ -235,35 +252,35 @@ export default class ChartOfAccountsScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="ChartOfAccounts">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "1440px", height: "3200px", background: "#eef2f7", padding: "12px", display: "flex", gap: "12px", overflow: "hidden" }}>
+        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
           <__Sidebar sticky="" active="acc-coa" />
-          <main style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "16px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
             <__Topbar crumb="Accounts" page="Chart of accounts" placeholder="Search" />
-            <div className="pgc" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "22px" }}>
+            <div className="pgc gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "22px" }}>
               <section className="hero st">
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "20px" }}>
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <div className="ey ey-d">Accounts · Chart of accounts</div>
-                    <h2 style={{ margin: "6px 0 0", fontSize: "26px", lineHeight: "32px", fontWeight: "700", letterSpacing: "-.025em" }}>{v.headline}</h2>
-                    <p style={{ margin: "6px 0 0", fontSize: "13.5px", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "680px" }}>Every account the books use, grouped as assets, liabilities, equity, income and expenses. Accounts marked Auto are posted by other pages.</p>
+                    <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.headline}</h1>
+                    <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "680px" }}>Every account the books use, grouped as assets, liabilities, equity, income and expenses. Accounts marked Auto are posted by other pages.</p>
                   </div>
-                  <button type="button" className="btn sm" onClick={v.focusForm} style={{ background: "#fff", color: "#0b1733", height: "38px", flexShrink: "0" }}>Add account</button>
+                  <button type="button" className="btn sm" onClick={v.focusForm} style={{ background: "#fff", color: "#0b1733", height: "36px", flexShrink: "0" }}>Add account</button>
                 </div>
-                <div className="st" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px", marginTop: "20px" }}>
+                <div className="st gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px", marginTop: "20px" }}>
                   {__list(v.tiles).map((ht, $index) => (<React.Fragment key={$index}>
                       <div className="ht">
                         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <span style={__sx(`width: 7px; height: 7px; border-radius: 999px; background: ${ht?.c ?? ""};`)} />
-                          <span style={{ fontSize: "12px", color: "rgba(203,216,238,.85)" }}>{ht?.l}</span>
+                          <span style={__sx(`width: 7px; height: 7px; border-radius: var(--radius-full); background: ${ht?.c ?? ""};`)} />
+                          <span style={{ fontSize: "var(--text-xs)", color: "rgba(203,216,238,.85)" }}>{ht?.l}</span>
                         </div>
-                        <div className="tn" style={{ fontSize: "24px", lineHeight: "30px", fontWeight: "700", color: "#fff" }}>{ht?.v}</div>
-                        <div style={{ fontSize: "11.5px", color: "rgba(203,216,238,.7)" }}>{ht?.s}</div>
+                        <div className="tn" style={{ fontSize: "var(--text-2xl)", lineHeight: "30px", fontWeight: "var(--weight-semibold)", color: "#fff" }}>{ht?.v}</div>
+                        <div style={{ fontSize: "var(--text-xs)", color: "rgba(203,216,238,.7)" }}>{ht?.s}</div>
                       </div>
                     </React.Fragment>))}
                 </div>
               </section>
               {v.hasMsg ? (<>
-                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: 14px; font-weight: 500;`)}>
+                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-lg); background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: var(--text-sm); font-weight: var(--weight-medium);`)}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <circle cx="12" cy="12" r="10" />
                     <path d="m9 12 2 2 4-4" />
@@ -271,50 +288,57 @@ export default class ChartOfAccountsScreen extends Component {
                   <span>{v.msg}</span>
                 </div>
               </>) : null}
-              <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 380px", gap: "16px", alignItems: "start" }}>
+              <div className="gc-split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 380px", gap: "16px", alignItems: "start" }}>
                 <section className="tc" style={{ overflow: "hidden" }}>
                   <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px", padding: "14px 16px", borderBottom: "1px solid #eef1f6" }}>
-                    {__list(v.chips).map((ch, $index) => (<React.Fragment key={$index}>
-                        <button type="button" className={ch?.cls} onClick={ch?.pick} style={{ height: "34px" }}>{ch?.label}</button>
-                      </React.Fragment>))}
+                    <div role="group" aria-label="Account group" style={{ display: "contents" }}>
+                      {__list(v.chips).map((ch, $index) => (<React.Fragment key={$index}>
+                          <button type="button" className={ch?.cls} aria-pressed={ch?.on} onClick={ch?.pick} style={{ height: "36px" }}>{ch?.label}</button>
+                        </React.Fragment>))}
+                    </div>
                     <span style={{ flexGrow: "1" }} />
                     <input className="inp" aria-label="Search accounts" placeholder="Search code or name" value={v.q} onChange={v.onQ} style={{ maxWidth: "220px", height: "38px" }} />
                   </div>
-                  <table className="tb">
-                    <thead>
-                      <tr>
-                        <th style={{ width: "80px" }}>Code</th>
-                        <th>Account</th>
-                        <th>Posted by</th>
-                        <th>Side</th>
-                        <th className="r">Balance</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {__list(v.groups).map((g, $index) => (<React.Fragment key={$index}>
-                          <tr style={{ background: "#f7f9fc" }}>
-                            <td colSpan="4" style={{ fontWeight: "700", color: "#0f172a" }}>{g?.n} <span style={{ fontWeight: "400", color: "#64748b" }}>· {g?.cnt} accounts</span></td>
-                            <td className="r tn" style={{ fontWeight: "700", color: "#0f172a" }}>{g?.total}</td>
-                          </tr>
-                          {__list(g?.rows).map((a, $index) => (<React.Fragment key={$index}>
-                              <tr className="row">
-                                <td className="mono" style={{ color: "#475569" }}>{a?.code}</td>
-                                <td style={{ color: "#0f172a", fontWeight: "500" }}>{a?.n}</td>
-                                <td>
-                                  {a?.auto ? (<>
-                                    <span className="pill" style={{ background: "#e0f2fe", color: "#075985" }}>Auto · {a?.src}</span>
-                                  </>) : null}
-                                  {a?.manual ? (<>
-                                    <span style={{ fontSize: "12px", color: "#94a3b8" }}>Entries</span>
-                                  </>) : null}
-                                </td>
-                                <td style={{ color: "#64748b" }}>{a?.side}</td>
-                                <td className="r tn" style={__sx(`color: ${a?.c ?? ""};`)}>{a?.bal}</td>
-                              </tr>
-                            </React.Fragment>))}
-                        </React.Fragment>))}
-                    </tbody>
-                  </table>
+                  <div className="gc-table-wrap">
+                    <table className="tb">
+                      <thead>
+                        <tr>
+                          <th style={{ width: "80px" }}>Code</th>
+                          <th>Account</th>
+                          <th>Posted by</th>
+                          <th>Side</th>
+                          <th className="r">Balance</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {__list(v.groups).map((g, $index) => (<React.Fragment key={$index}>
+                            <tr style={{ background: "#f7f9fc" }}>
+                              <td colSpan="4" style={{ fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{g?.n} <span style={{ fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>· {g?.cnt} accounts</span></td>
+                              <td className="r tn" style={{ fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{g?.total}</td>
+                            </tr>
+                            {__list(g?.rows).map((a, $index) => (<React.Fragment key={$index}>
+                                <tr className="row">
+                                  <td className="mono" style={{ color: "#475569" }}>{a?.code}</td>
+                                  <td style={{ color: "#0f172a", fontWeight: "var(--weight-medium)" }}>{a?.n}</td>
+                                  <td>
+                                    {a?.auto ? (<>
+                                      <span className="pill" style={{ background: "#e0f2fe", color: "#075985" }}>Auto · {a?.src}</span>
+                                    </>) : null}
+                                    {a?.manual ? (<>
+                                      <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Entries</span>
+                                    </>) : null}
+                                  </td>
+                                  <td style={{ color: "var(--text-muted)" }}>{a?.side}</td>
+                                  <td className="r tn" style={__sx(`color: ${a?.c ?? ""};`)}>{a?.bal}</td>
+                                </tr>
+                              </React.Fragment>))}
+                          </React.Fragment>))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {v.noRows ? (
+                    <__EmptyState title="No accounts match" body="Check the code or name, or show every group." actionLabel="Clear filters" onAction={v.clearFilters} />
+                  ) : null}
                 </section>
                 <aside style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                   <section className="tc sec">
@@ -324,34 +348,40 @@ export default class ChartOfAccountsScreen extends Component {
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", borderTop: "1px solid #f1f4f8" }}>
                       {__list(v.tb).map((t, $index) => (<React.Fragment key={$index}>
-                          <div style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid #f1f4f8", fontSize: "13px" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid #f1f4f8", fontSize: "var(--text-xs-plus)" }}>
                             <span style={{ color: "#475569" }}>{t?.l}</span>
-                            <span className="tn" style={{ fontWeight: "700", color: "#0f172a" }}>{t?.v}</span>
+                            <span className="tn" style={{ fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{t?.v}</span>
                           </div>
                         </React.Fragment>))}
                     </div>
                     <span className="badge" style={__sx(`align-self: flex-start; background: ${v.tbBg ?? ""}; color: ${v.tbFg ?? ""};`)}>{v.tbL}</span>
                   </section>
-                  <section className="tc sec" style={__sx(`border: 1.5px solid ${v.formBd ?? ""};`)}>
+                  <form className="tc sec" noValidate onSubmit={v.addAcct} aria-labelledby="coa-add-h" style={__sx(`border: 1.5px solid ${v.formBd ?? ""}; scroll-margin-top: 96px;`)}>
                     <div>
-                      <h2 className="h2">Add an account</h2>
-                      <p className="sub">The code is picked from the group’s range. System accounts cannot be renamed.</p>
+                      <h2 className="h2" id="coa-add-h">Add an account</h2>
+                      <p className="sub">The code is suggested from the group’s range. System accounts cannot be renamed.</p>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
-                      <span className="lbl">Group</span>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                      <span className="lbl" id="coa-grp-l">Group</span>
+                      <div role="group" aria-labelledby="coa-grp-l" style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                         {__list(v.gOpts).map((o, $index) => (<React.Fragment key={$index}>
-                            <button type="button" className={o?.cls} onClick={o?.pick}>{o?.l}</button>
+                            <button type="button" className={o?.cls} aria-pressed={o?.on} onClick={o?.pick}>{o?.l}</button>
                           </React.Fragment>))}
                       </div>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
-                      <label className="lbl" htmlFor="an">Account name</label>
-                      <input id="an" className="inp" placeholder="e.g. Upay merchant" value={v.nm} onChange={v.onNm} />
+                      <label className="lbl" htmlFor="an">Account name <span aria-hidden="true" style={{ color: "var(--text-danger)" }}>*</span></label>
+                      <input id="an" className="inp" placeholder="e.g. Upay merchant" value={v.nm} onChange={v.onNm} required aria-required="true" aria-invalid={v.badNm} aria-describedby={v.badNm ? "an-err" : undefined} style={v.badNm ? { borderColor: "var(--text-danger)" } : undefined} />
+                      {v.badNm ? (<span id="an-err" className="gc-help gc-help--error">{v.errNm}</span>) : null}
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", borderRadius: "10px", background: "#f7f9fc", fontSize: "13px", color: "#334155" }}>Code <span className="mono" style={{ fontWeight: "700", color: "#0f172a" }}>{v.nextCode}</span> · normal balance {v.nextSide}</div>
-                    <button type="button" className="btn solid" onClick={v.addAcct}>Add account</button>
-                  </section>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
+                      <label className="lbl" htmlFor="ac">Account code <span aria-hidden="true" style={{ color: "var(--text-danger)" }}>*</span></label>
+                      <input id="ac" className="inp mono" inputMode="numeric" value={v.code} onChange={v.onCode} required aria-required="true" aria-invalid={v.badCode} aria-describedby={v.badCode ? "ac-err ac-hint" : "ac-hint"} style={v.badCode ? { borderColor: "var(--text-danger)" } : undefined} />
+                      {v.badCode ? (<span id="ac-err" className="gc-help gc-help--error">{v.errCode}</span>) : null}
+                      <span id="ac-hint" style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>{v.codeHint} Next free code: {v.nextCode}.</span>
+                    </div>
+                    <button type="submit" className="btn solid">Add account</button>
+                  </form>
                 </aside>
               </div>
             </div>

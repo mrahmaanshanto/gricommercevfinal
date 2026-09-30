@@ -4,30 +4,169 @@
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
-import __Link from 'next/link';
 import { PaymentLogo } from '@/components/PaymentLogo';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
-import __SetChrome from '@/screens/settings-console/SetChrome';
+import { Icon as __Icon } from '@/runtime/dc';
+import { SettingsSwitcher as __SettingsSwitcher } from '@/shell/Shell';
+import __SetChrome, { SettingsLogic as __SettingsLogic, SetIn as __In, SetErr as __Err, SetSw as __Sw, SetSeg as __Seg, SetChk as __Chk, SetSaveBar as __SaveBar } from '@/screens/settings-console/SetChrome';
+import { toast } from '@/runtime/ui';
+import { formatBDT } from '@/lib/format';
 import __SetRail from '@/screens/settings-console/SetRail';
 import __SetTopbar from '@/screens/settings-console/SetTopbar';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
-class Component extends DCLogic {
-  componentDidMount() { this.paint(); }
-  componentDidUpdate() { this.paint(); }
-  paint() {
-    const go = () => { if (window.lucide && window.lucide.createIcons) window.lucide.createIcons({ attrs: { 'stroke-width': 1.75 } }); };
-    go(); setTimeout(go, 300); setTimeout(go, 900); setTimeout(go, 2500);
+const ONLINE = ["sslcommerz", "eps", "nagad", "bkash", "stripe", "paypal"];
+const GATEWAY_ID = { SSLCommerz: "sslcommerz", EPS: "eps", Nagad: "nagad", Stripe: "stripe", PayPal: "paypal" };
+
+/** What opens under a gateway row: its mode and the two credentials it needs. */
+function GatewayPanel({ f, name }) {
+  const id = GATEWAY_ID[name];
+  if (!id) return <span style={{ display: "block", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "#475569" }}>{name} needs no credentials. Customers pay the courier in cash, and the money arrives with your courier payout.</span>;
+  const on = !!f.get(id, false);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px" }}>
+        <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Mode</span>
+        <__Seg f={f} n={id + "_mode"} opts={["Sandbox", "Live"]} tone="warn" />
+        <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Sandbox takes test payments only. Live charges real customers.</span>
+      </div>
+      <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px 20px" }}>
+        {[id + "_id", id + "_secret"].map((n) => (
+          <div key={n} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <label htmlFor={f.id(n)} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{f.def(n).l}{on ? <> <span className="set-req" aria-hidden="true">*</span></> : null}</label>
+            <span className="set-box" style={{ display: "flex", alignItems: "center", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)", color: "#1e293b" }}>
+              <__In f={f} n={n} labelled placeholder={on ? "Required while " + name + " is on" : "Not set"} />
+            </span>
+            <__Err f={f} n={n} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+class Component extends __SettingsLogic {
+  formId = "payments";
+  fields = {
+    cash_on_delivery: {l: "Cash on delivery", d: true},
+    sslcommerz: {l: "SSLCommerz", d: true},
+    eps: {l: "EPS", d: true},
+    nagad: {l: "Nagad", d: true},
+    bkash: {l: "bKash", d: true},
+    force_full_payment: {l: "Force full payment", d: false},
+    payment_discount: {l: "Payment discount", d: false},
+    stripe: {l: "Stripe", d: false},
+    paypal: {l: "PayPal", d: false},
+    bkash_send_money: {l: "bKash send money", d: true},
+    rocket_send_money: {l: "Rocket send money", d: false},
+    bank_transfer: {l: "Bank transfer", d: true},
+    bkash_mode: {l: "bKash mode", d: "Live"},
+    bkash_app_key: {l: "App key", d: "••••••••••••4c9f", req: true},
+    bkash_username: {l: "Username", d: "GridShop_bd", req: true},
+    bkash_password: {l: "Password", d: "••••••••••", req: true},
+    bkash_merchant_number: {l: "Merchant number", d: "01811-843300"},
+    bkash_checkout_label: {l: "Checkout label", d: "bKash — pay from app or wallet"},
+    priority: {l: "Priority", d: "100", k: "int", req: true},
+    min_order_amount: {l: "Min order amount", d: "", k: "num"},
+    max_order_amount: {l: "Max order amount", d: "25,000.00", k: "num"},
+    fixed_advance_amount: {l: "Fixed advance amount", d: "৳0.00"},
+    advance_percentage: {l: "Advance percentage", d: "20%", check: (x) => (/^\d{1,2}(\.\d+)?%?$/.test(x) && parseFloat(x) > 0 ? "" : "Enter a percentage from 1 to 99, like 20%.")},
+    discount_type: {l: "Discount type", d: "Percentage"},
+    discount_value: {l: "Discount value", d: "1.5%"},
+    maximum_discount: {l: "Maximum discount", d: "৳150.00"},
+    minimum_order: {l: "Minimum order", d: "৳500.00"},
+    rate_usd: {l: "US Dollar rate in ৳", d: "121.40", k: "num"},
+    rate_eur: {l: "Euro rate in ৳", d: "131.20", k: "num"},
+    rate_gbp: {l: "Pound Sterling rate in ৳", d: "154.75", k: "num"},
+    rate_inr: {l: "Indian Rupee rate in ৳", d: "1.38", k: "num"},
+    offline_bkash_number: {l: "bKash send money number", d: "01811-843300"},
+    offline_rocket_number: {l: "Rocket send money number", d: "018118433001"},
+    offline_bank_account: {l: "Bank transfer account number", d: "1402 3387 9915 004"},
+    mode_full_payment: {l: "Full payment", d: true},
+    mode_delivery_charge_only: {l: "Delivery charge only", d: true},
+    mode_fixed_advance: {l: "Fixed advance", d: false},
+    mode_percentage_advance: {l: "Percentage advance", d: true},
+    mode_required_prepay: {l: "Required prepay (per product)", d: false},
+    inside_dhaka_full_payment: {l: "Inside Dhaka: Full payment", d: true},
+    inside_dhaka_delivery_charge_only: {l: "Inside Dhaka: Delivery charge only", d: true},
+    inside_dhaka_fixed_advance: {l: "Inside Dhaka: Fixed advance", d: false},
+    inside_dhaka_percentage_advance: {l: "Inside Dhaka: Percentage advance", d: true},
+    inside_dhaka_required_prepay: {l: "Inside Dhaka: Required prepay (per product)", d: false},
+    outside_dhaka_full_payment: {l: "Outside Dhaka: Full payment", d: true},
+    outside_dhaka_delivery_charge_only: {l: "Outside Dhaka: Delivery charge only", d: false},
+    outside_dhaka_fixed_advance: {l: "Outside Dhaka: Fixed advance", d: false},
+    outside_dhaka_percentage_advance: {l: "Outside Dhaka: Percentage advance", d: true},
+    outside_dhaka_required_prepay: {l: "Outside Dhaka: Required prepay (per product)", d: false},
+    new_customer_full_payment: {l: "New customer: Full payment", d: true},
+    new_customer_delivery_charge_only: {l: "New customer: Delivery charge only", d: false},
+    new_customer_fixed_advance: {l: "New customer: Fixed advance", d: false},
+    new_customer_percentage_advance: {l: "New customer: Percentage advance", d: true},
+    new_customer_required_prepay: {l: "New customer: Required prepay (per product)", d: false},
+    returning_customer_full_payment: {l: "Returning customer: Full payment", d: true},
+    returning_customer_delivery_charge_only: {l: "Returning customer: Delivery charge only", d: true},
+    returning_customer_fixed_advance: {l: "Returning customer: Fixed advance", d: false},
+    returning_customer_percentage_advance: {l: "Returning customer: Percentage advance", d: true},
+    returning_customer_required_prepay: {l: "Returning customer: Required prepay (per product)", d: false},
+    wholesale_full_payment: {l: "Wholesale: Full payment", d: true},
+    wholesale_delivery_charge_only: {l: "Wholesale: Delivery charge only", d: false},
+    wholesale_fixed_advance: {l: "Wholesale: Fixed advance", d: true},
+    wholesale_percentage_advance: {l: "Wholesale: Percentage advance", d: false},
+    wholesale_required_prepay: {l: "Wholesale: Required prepay (per product)", d: false},
+    vip_full_payment: {l: "VIP: Full payment", d: true},
+    vip_delivery_charge_only: {l: "VIP: Delivery charge only", d: true},
+    vip_fixed_advance: {l: "VIP: Fixed advance", d: true},
+    vip_percentage_advance: {l: "VIP: Percentage advance", d: true},
+    vip_required_prepay: {l: "VIP: Required prepay (per product)", d: false},
+    mobile_and_electronics_full_payment: {l: "Mobile & Electronics: Full payment", d: true},
+    mobile_and_electronics_percentage_advance: {l: "Mobile & Electronics: Percentage advance", d: true},
+    grocery_fresh_delivery_charge_only: {l: "Grocery · Fresh: Delivery charge only", d: true},
+    sslcommerz_mode: {l: "SSLCommerz mode", d: "Live"},
+    sslcommerz_id: {l: "SSLCommerz store ID", d: "GridShop_live", req: (f) => !!f.get("sslcommerz", false)},
+    sslcommerz_secret: {l: "SSLCommerz store password", d: "••••••••••", req: (f) => !!f.get("sslcommerz", false)},
+    eps_mode: {l: "EPS mode", d: "Sandbox"},
+    eps_id: {l: "EPS merchant ID", d: "EPS-TEST-0042", req: (f) => !!f.get("eps", false)},
+    eps_secret: {l: "EPS hash key", d: "••••••••", req: (f) => !!f.get("eps", false)},
+    nagad_mode: {l: "Nagad mode", d: "Live"},
+    nagad_id: {l: "Nagad merchant ID", d: "6801811843300", req: (f) => !!f.get("nagad", false)},
+    nagad_secret: {l: "Nagad private key", d: "••••••••••••", req: (f) => !!f.get("nagad", false)},
+    stripe_mode: {l: "Stripe mode", d: "Sandbox"},
+    stripe_id: {l: "Stripe publishable key", d: "", req: (f) => !!f.get("stripe", false)},
+    stripe_secret: {l: "Stripe secret key", d: "", req: (f) => !!f.get("stripe", false)},
+    paypal_mode: {l: "PayPal mode", d: "Sandbox"},
+    paypal_id: {l: "PayPal client ID", d: "", req: (f) => !!f.get("paypal", false)},
+    paypal_secret: {l: "PayPal client secret", d: "", req: (f) => !!f.get("paypal", false)},
+  };
+  renderVals() {
+    const f = this.f;
+    return {
+      f,
+      badge: (id) => {
+        const on = f.get(id, false);
+        const ready = id === "bkash" || (String(f.get(id + "_id", "")).trim() && String(f.get(id + "_secret", "")).trim());
+        if (!ready) return { text: "Not set up", tone: { background: "#f1f5f9", color: "var(--text-muted)" } };
+        if (!on) return { text: "Off", tone: { background: "#f1f5f9", color: "var(--text-muted)" } };
+        return f.get(id + "_mode", "Live") === "Live"
+          ? { text: "LIVE", tone: { background: "rgba(255,87,36,.12)", color: "var(--text-danger)" } }
+          : { text: "SANDBOX", tone: { background: "rgba(255,152,0,.16)", color: "var(--text-warning)" } };
+      },
+      live: 1 + ONLINE.filter((id) => f.get(id, false) && f.get(id + "_mode", "Live") === "Live").length,
+      sandbox: ONLINE.filter((id) => f.get(id, false) && f.get(id + "_mode", "Live") !== "Live").length,
+      offline: ["bkash_send_money", "rocket_send_money", "bank_transfer"].filter((id) => f.get(id, false)).length,
+      modes: ["mode_full_payment", "mode_delivery_charge_only", "mode_fixed_advance", "mode_percentage_advance", "mode_required_prepay"].filter((id) => f.get(id, false)).length,
+      advance: Math.round(1240 * (Math.min(99, Math.max(0, parseFloat(f.get("advance_percentage", "20")) || 0)) / 100)),
+      test: () => {
+        const bad = ["bkash_app_key", "bkash_username", "bkash_password"].find((n) => this.check(n, f.get(n, "")));
+        if (bad) { this.setState((st) => ({ errs: { ...st.errs, [bad]: this.check(bad, f.get(bad, "")) } }), () => f.focus(bad)); toast("Fill in the bKash credentials before testing.", { tone: "error" }); return; }
+        toast("Connected to bKash in " + f.get("bkash_mode", "Live").toLowerCase() + " mode. Token issued in 380 ms.");
+      },
+      gateway: (name) => <GatewayPanel f={f} name={name} />,
+    };
   }
-  renderVals() { return {}; }
 }
 
 // ---- styles (from the design's <helmet>) ----
 
-const CSS = `html,body{height:100%}
-.dc-h442:hover{background:#f1f5f9 !important;color:#475569 !important}
+const CSS = `.dc-h442:hover{background:#f1f5f9 !important;color:#475569 !important}
 .dc-h443:hover{background:#f1f5f9 !important;color:#475569 !important}
 .dc-h444:hover{background:#f1f5f9 !important;color:#475569 !important}
 .dc-h445:hover{background:#f1f5f9 !important;color:#475569 !important}
@@ -55,262 +194,258 @@ export default class SetPaymentsScreen extends Component {
       <div className="dc-screen ds" data-screen="SetPayments">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         {!this.props.embedded && <__SettingsSwitcher />}
-        <div style={{ position: "relative", width: "100%", minWidth: "1180px", height: "100vh", overflow: "hidden", display: "flex", gap: "12px", padding: "12px", background: "#eef2f7", fontFamily: "Poppins,ui-sans-serif,system-ui,sans-serif", color: "#475569" }}>
-          <div data-dc-import="SetChrome" style={{ flex: "none", height: "100%" }}><__SetChrome embedded /></div>
-          <div style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", overflow: "hidden", border: "1px solid #e2e8f0", borderRadius: "16px", background: "#f8fafc" }}>
-            <div data-dc-import="SetTopbar" style={{ flex: "none", width: "100%" }}><__SetTopbar embedded crumb="Payment Gateway" /></div>
-            <div style={{ flex: "1", minHeight: "0", display: "flex" }}>
-              <div data-dc-import="SetRail" style={{ flex: "none", height: "100%" }}><__SetRail embedded active="payment" /></div>
-              <div style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column" }}>
-                <div style={{ flex: "1", minHeight: "0", overflow: "auto", display: "flex", alignItems: "flex-start", gap: "26px", padding: "22px 26px 26px" }}>
-                  <main style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div className={"set-shell" + (this.props.embedded ? " set-shell--embedded" : "")}>
+          <div data-dc-import="SetChrome" className="set-shell__rail"><__SetChrome embedded /></div>
+          <div className="set-shell__main">
+            <div data-dc-import="SetTopbar" className="set-shell__top"><__SetTopbar embedded crumb="Payment Gateway" /></div>
+            <div className="set-shell__body">
+              <div data-dc-import="SetRail" className="set-shell__nav"><__SetRail embedded active="payment" /></div>
+              <form className="set-shell__col" noValidate onSubmit={v.f.submit}>
+                <div className="set-content">
+                  <main className="set-main">
                     <header style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
                       <span style={{ display: "block", minWidth: "0" }}>
-                        <h1 style={{ margin: "0 0 4px", fontSize: "22px", fontWeight: "600", letterSpacing: "-.015em", color: "#0f172a" }}>Payment Gateway</h1>
-                        <p style={{ margin: "0", maxWidth: "640px", fontSize: "13px", lineHeight: "19px", color: "#64748b", textWrap: "pretty" }}>Ten payment routes on one screen. The list carries the state that matters — on, off, live or sandbox — and only the gateway you open shows its credential form.</p>
+                        <h1 style={{ margin: "0 0 4px", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>Payment Gateway</h1>
+                        <p style={{ margin: "0", maxWidth: "640px", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "var(--text-muted)", textWrap: "pretty" }}>Ten payment routes on one screen. The list carries the state that matters — on, off, live or sandbox — and only the gateway you open shows its credential form.</p>
                       </span>
                       <span style={{ marginLeft: "auto", flex: "none", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "9999px", padding: "0 8px", fontSize: "10.5px", fontWeight: "600", letterSpacing: ".02em", background: "#f1f5f9", color: "#64748b" }}>4 live · 1 sandbox · 3 offline</span>
-                        <span style={{ fontSize: "11.5px", color: "#94a3b8" }}>Last saved 7 Sep 2026, 11:04 am</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>{v.live} live · {v.sandbox} sandbox · {v.offline} offline</span>
+                        <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Last saved 7 Sep 2026, 11:04 AM</span>
                       </span>
                     </header>
-                    <section id="s0" style={{ border: "1px solid #e2e8f0", borderRadius: "12px", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
+                    <section id="s0" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
-                          <span style={{ display: "block", fontSize: "15px", fontWeight: "600", letterSpacing: ".01em", color: "#1e293b" }}>Online gateways</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "12px", color: "#64748b" }}>Enable a gateway here, then open it to enter credentials. Order of the list is the order customers see at checkout.</span>
+                          <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Online gateways</span>
+                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Enable a gateway here, then open it to enter credentials. Order of the list is the order customers see at checkout.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "9999px", padding: "0 8px", fontSize: "10.5px", fontWeight: "600", letterSpacing: ".02em", background: "rgba(255,87,36,.12)", color: "#c2380f" }}>4 live</span>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "9999px", padding: "0 8px", fontSize: "10.5px", fontWeight: "600", letterSpacing: ".02em", background: "rgba(255,152,0,.16)", color: "#b36a00" }}>1 sandbox</span>
-                          <button style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "8px", padding: "0 13px", fontFamily: "inherit", fontSize: "12.5px", fontWeight: "500", cursor: "pointer", border: "none", background: "#f1f5f9", color: "#1e293b" }}><__Icon name="arrow-up-down" strokeWidth="1.75" width="15" height="15" />Reorder</button>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(255,87,36,.12)", color: "var(--text-danger)" }}>{v.live} live</span>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(255,152,0,.16)", color: "var(--text-warning)" }}>{v.sandbox} sandbox</span>
+                          <button type="button" onClick={v.f.say("“Reorder” is not available in the demo yet.")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#f1f5f9", color: "#1e293b" }}><__Icon name="arrow-up-down" strokeWidth="1.75" width="15" height="15" />Reorder</button>
                         </span>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "13px", padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
-                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "9px", background: "#f1f5f9", fontSize: "10.5px", fontWeight: "700", letterSpacing: ".02em", color: "#475569" }}>COD</span>
-                        <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                          <span style={{ display: "block", fontSize: "13.5px", fontWeight: "500", color: "#1e293b" }}>Cash on delivery</span>
-                          <span style={{ display: "block", fontSize: "11.5px", color: "#64748b" }}>No credentials needed · 62% of orders last month</span>
+                      <div className="set-wrap" style={{ display: "flex", alignItems: "center", gap: "13px", padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
+                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#f1f5f9", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", color: "#475569" }}>COD</span>
+                        <span className="set-row__text" style={{ display: "block", flex: "1", minWidth: "0" }}>
+                          <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Cash on delivery</span>
+                          <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>No credentials needed · 62% of orders last month</span>
                         </span>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "9999px", padding: "0 8px", fontSize: "10.5px", fontWeight: "600", letterSpacing: ".02em", background: "#f1f5f9", color: "#64748b" }}>Always live</span>
-                        <span style={{ flex: "none", width: "7px", height: "7px", borderRadius: "9999px", background: "#10b981" }} />
-                        <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "flex-end", width: "38px", height: "22px", borderRadius: "9999px", background: "#003087", padding: "2px", cursor: "pointer" }}>
-                          <span style={{ width: "18px", height: "18px", borderRadius: "9999px", background: "#fff", boxShadow: "0 1px 2px 0 rgba(15,23,42,.3)" }} />
-                        </span>
-                        <button className="dc-h442" aria-label="Expand" style={{ width: "30px", height: "30px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "7px", background: "none", color: "#94a3b8", cursor: "pointer" }}>
-                          <__Icon name="chevron-down" strokeWidth="1.75" width="17" height="17" />
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>Always live</span>
+                        <span style={{ flex: "none", width: "7px", height: "7px", borderRadius: "var(--radius-full)", background: "#10b981" }} />
+                        <__Sw f={v.f} n="cash_on_delivery" />
+                        <button className="dc-h442" {...v.f.disc("gw_cash_on_delivery", false)} aria-label="Cash on delivery settings" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>
+                          <__Icon name="chevron-down" className="set-chev" aria-hidden="true" strokeWidth="1.75" width="17" height="17" />
                         </button>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "13px", padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div {...v.f.panel("gw_cash_on_delivery", false)} style={{ borderBottom: "1px solid #f1f5f9", background: "#f8fafc", padding: "14px 16px" }}>{v.gateway("Cash on delivery")}</div>
+                      <div className="set-wrap" style={{ display: "flex", alignItems: "center", gap: "13px", padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
                         <PaymentLogo provider="sslcommerz" size={34} radius={9} decorative />
-                        <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                          <span style={{ display: "block", fontSize: "13.5px", fontWeight: "500", color: "#1e293b" }}>SSLCommerz</span>
-                          <span style={{ display: "block", fontSize: "11.5px", color: "#64748b" }}>Cards, internet banking and mobile wallets · merchant sellino_live</span>
+                        <span className="set-row__text" style={{ display: "block", flex: "1", minWidth: "0" }}>
+                          <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>SSLCommerz</span>
+                          <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Cards, internet banking and mobile wallets · merchant GridShop_live</span>
                         </span>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "9999px", padding: "0 8px", fontSize: "10.5px", fontWeight: "600", letterSpacing: ".02em", background: "rgba(255,87,36,.12)", color: "#c2380f" }}>LIVE</span>
-                        <span style={{ flex: "none", width: "7px", height: "7px", borderRadius: "9999px", background: "#10b981" }} />
-                        <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "flex-end", width: "38px", height: "22px", borderRadius: "9999px", background: "#003087", padding: "2px", cursor: "pointer" }}>
-                          <span style={{ width: "18px", height: "18px", borderRadius: "9999px", background: "#fff", boxShadow: "0 1px 2px 0 rgba(15,23,42,.3)" }} />
-                        </span>
-                        <button className="dc-h443" aria-label="Expand" style={{ width: "30px", height: "30px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "7px", background: "none", color: "#94a3b8", cursor: "pointer" }}>
-                          <__Icon name="chevron-down" strokeWidth="1.75" width="17" height="17" />
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", ...v.badge("sslcommerz").tone }}>{v.badge("sslcommerz").text}</span>
+                        <span style={{ flex: "none", width: "7px", height: "7px", borderRadius: "var(--radius-full)", background: "#10b981" }} />
+                        <__Sw f={v.f} n="sslcommerz" />
+                        <button className="dc-h443" {...v.f.disc("gw_sslcommerz", false)} aria-label="SSLCommerz settings" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>
+                          <__Icon name="chevron-down" className="set-chev" aria-hidden="true" strokeWidth="1.75" width="17" height="17" />
                         </button>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "13px", padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div {...v.f.panel("gw_sslcommerz", false)} style={{ borderBottom: "1px solid #f1f5f9", background: "#f8fafc", padding: "14px 16px" }}>{v.gateway("SSLCommerz")}</div>
+                      <div className="set-wrap" style={{ display: "flex", alignItems: "center", gap: "13px", padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
                         <PaymentLogo provider="eps" size={34} radius={9} decorative />
-                        <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                          <span style={{ display: "block", fontSize: "13.5px", fontWeight: "500", color: "#1e293b" }}>EPS</span>
-                          <span style={{ display: "block", fontSize: "11.5px", color: "#64748b" }}>Test account · no live credentials entered yet</span>
+                        <span className="set-row__text" style={{ display: "block", flex: "1", minWidth: "0" }}>
+                          <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>EPS</span>
+                          <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Test account · no live credentials entered yet</span>
                         </span>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "9999px", padding: "0 8px", fontSize: "10.5px", fontWeight: "600", letterSpacing: ".02em", background: "rgba(255,152,0,.16)", color: "#b36a00" }}>SANDBOX</span>
-                        <span style={{ flex: "none", width: "7px", height: "7px", borderRadius: "9999px", background: "#ff9800" }} />
-                        <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "flex-end", width: "38px", height: "22px", borderRadius: "9999px", background: "#003087", padding: "2px", cursor: "pointer" }}>
-                          <span style={{ width: "18px", height: "18px", borderRadius: "9999px", background: "#fff", boxShadow: "0 1px 2px 0 rgba(15,23,42,.3)" }} />
-                        </span>
-                        <button className="dc-h444" aria-label="Expand" style={{ width: "30px", height: "30px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "7px", background: "none", color: "#94a3b8", cursor: "pointer" }}>
-                          <__Icon name="chevron-down" strokeWidth="1.75" width="17" height="17" />
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", ...v.badge("eps").tone }}>{v.badge("eps").text}</span>
+                        <span style={{ flex: "none", width: "7px", height: "7px", borderRadius: "var(--radius-full)", background: "#ff9800" }} />
+                        <__Sw f={v.f} n="eps" />
+                        <button className="dc-h444" {...v.f.disc("gw_eps", false)} aria-label="EPS settings" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>
+                          <__Icon name="chevron-down" className="set-chev" aria-hidden="true" strokeWidth="1.75" width="17" height="17" />
                         </button>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "13px", padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
-                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "9px", background: "#f6821f", fontSize: "10.5px", fontWeight: "700", letterSpacing: ".02em", color: "#fff" }}>NGD</span>
-                        <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                          <span style={{ display: "block", fontSize: "13.5px", fontWeight: "500", color: "#1e293b" }}>Nagad</span>
-                          <span style={{ display: "block", fontSize: "11.5px", color: "#64748b" }}>Merchant 6801811843300 · wallet only</span>
+                      <div {...v.f.panel("gw_eps", false)} style={{ borderBottom: "1px solid #f1f5f9", background: "#f8fafc", padding: "14px 16px" }}>{v.gateway("EPS")}</div>
+                      <div className="set-wrap" style={{ display: "flex", alignItems: "center", gap: "13px", padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
+                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#f6821f", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", color: "#fff" }}>NGD</span>
+                        <span className="set-row__text" style={{ display: "block", flex: "1", minWidth: "0" }}>
+                          <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Nagad</span>
+                          <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Merchant 6801811843300 · wallet only</span>
                         </span>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "9999px", padding: "0 8px", fontSize: "10.5px", fontWeight: "600", letterSpacing: ".02em", background: "rgba(255,87,36,.12)", color: "#c2380f" }}>LIVE</span>
-                        <span style={{ flex: "none", width: "7px", height: "7px", borderRadius: "9999px", background: "#10b981" }} />
-                        <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "flex-end", width: "38px", height: "22px", borderRadius: "9999px", background: "#003087", padding: "2px", cursor: "pointer" }}>
-                          <span style={{ width: "18px", height: "18px", borderRadius: "9999px", background: "#fff", boxShadow: "0 1px 2px 0 rgba(15,23,42,.3)" }} />
-                        </span>
-                        <button className="dc-h445" aria-label="Expand" style={{ width: "30px", height: "30px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "7px", background: "none", color: "#94a3b8", cursor: "pointer" }}>
-                          <__Icon name="chevron-down" strokeWidth="1.75" width="17" height="17" />
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", ...v.badge("nagad").tone }}>{v.badge("nagad").text}</span>
+                        <span style={{ flex: "none", width: "7px", height: "7px", borderRadius: "var(--radius-full)", background: "#10b981" }} />
+                        <__Sw f={v.f} n="nagad" />
+                        <button className="dc-h445" {...v.f.disc("gw_nagad", false)} aria-label="Nagad settings" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>
+                          <__Icon name="chevron-down" className="set-chev" aria-hidden="true" strokeWidth="1.75" width="17" height="17" />
                         </button>
                       </div>
-                      <div style={{ border: "1px solid #003087", borderRadius: "10px", margin: "0 10px 10px", background: "#fff", boxShadow: "0 8px 22px -14px rgba(0,48,135,.5)", overflow: "hidden" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "13px", padding: "12px 14px", background: "rgba(0,48,135,.05)" }}>
-                          <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "9px", background: "#e2136e", fontSize: "10.5px", fontWeight: "700", letterSpacing: ".02em", color: "#fff" }}>bK</span>
-                          <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                            <span style={{ display: "block", fontSize: "13.5px", fontWeight: "600", color: "#1e293b" }}>bKash</span>
-                            <span style={{ display: "block", fontSize: "11.5px", color: "#64748b" }}>Tokenised checkout · 31% of online payments</span>
+                      <div {...v.f.panel("gw_nagad", false)} style={{ borderBottom: "1px solid #f1f5f9", background: "#f8fafc", padding: "14px 16px" }}>{v.gateway("Nagad")}</div>
+                      <div style={{ border: "1px solid #003087", borderRadius: "var(--radius-lg)", margin: "0 10px 10px", background: "#fff", boxShadow: "0 8px 22px -14px rgba(0,48,135,.5)", overflow: "hidden" }}>
+                        <div className="set-wrap" style={{ display: "flex", alignItems: "center", gap: "13px", padding: "12px 14px", background: "rgba(0,48,135,.05)" }}>
+                          <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#e2136e", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", color: "#fff" }}>bK</span>
+                          <span className="set-row__text" style={{ display: "block", flex: "1", minWidth: "0" }}>
+                            <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>bKash</span>
+                            <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Tokenised checkout · 31% of online payments</span>
                           </span>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "9999px", padding: "0 8px", fontSize: "10.5px", fontWeight: "600", letterSpacing: ".02em", background: "rgba(255,87,36,.12)", color: "#c2380f" }}>LIVE</span>
-                          <span style={{ flex: "none", width: "7px", height: "7px", borderRadius: "9999px", background: "#10b981" }} />
-                          <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "flex-end", width: "38px", height: "22px", borderRadius: "9999px", background: "#003087", padding: "2px", cursor: "pointer" }}>
-                            <span style={{ width: "18px", height: "18px", borderRadius: "9999px", background: "#fff", boxShadow: "0 1px 2px 0 rgba(15,23,42,.3)" }} />
-                          </span>
-                          <button aria-label="Collapse" style={{ width: "30px", height: "30px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "7px", background: "#fff", color: "#475569", cursor: "pointer" }}>
-                            <__Icon name="chevron-up" strokeWidth="1.75" width="17" height="17" />
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", ...v.badge("bkash").tone }}>{v.badge("bkash").text}</span>
+                          <span style={{ flex: "none", width: "7px", height: "7px", borderRadius: "var(--radius-full)", background: "#10b981" }} />
+                          <__Sw f={v.f} n="bkash" />
+                          <button {...v.f.disc("gw_bkash", true)} aria-label="bKash settings" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#fff", color: "#475569", cursor: "pointer" }}>
+                            <__Icon name="chevron-down" className="set-chev" aria-hidden="true" strokeWidth="1.75" width="17" height="17" />
                           </button>
                         </div>
-                        <div style={{ borderTop: "1px solid #e2e8f0", background: "#f8fafc", padding: "16px" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "11px", border: "1px solid rgba(255,152,0,.4)", borderRadius: "9px", background: "rgba(255,152,0,.08)", padding: "11px 13px" }}>
-                            <__Icon name="triangle-alert" strokeWidth="1.75" width="17" height="17" style={{ flex: "none", color: "#b36a00" }} />
-                            <span style={{ display: "block", flex: "1", minWidth: "0", fontSize: "12.5px", lineHeight: "18px", color: "#7a4a00" }}>Live mode charges real customers on your production merchant account. Refunds must then be issued from the bKash portal — they cannot be reversed here.</span>
-                            <span style={{ flex: "none", display: "inline-flex", alignItems: "center", gap: "2px", height: "34px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "3px" }}>
-                              <span style={{ display: "inline-flex", height: "26px", alignItems: "center", borderRadius: "6px", padding: "0 12px", fontSize: "12px", color: "#64748b" }}>Sandbox</span>
-                              <span style={{ display: "inline-flex", height: "26px", alignItems: "center", gap: "6px", borderRadius: "6px", background: "#b36a00", padding: "0 12px", fontSize: "12px", fontWeight: "600", color: "#fff" }}>Live</span>
-                            </span>
+                        <div {...v.f.panel("gw_bkash", true)} style={{ borderTop: "1px solid #e2e8f0", background: "#f8fafc", padding: "16px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "11px", border: "1px solid rgba(255,152,0,.4)", borderRadius: "var(--radius-lg)", background: "rgba(255,152,0,.08)", padding: "11px 13px" }}>
+                            <__Icon name="triangle-alert" strokeWidth="1.75" width="17" height="17" style={{ flex: "none", color: "var(--text-warning)" }} />
+                            <span style={{ display: "block", flex: "1", minWidth: "0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#7a4a00" }}>Live mode charges real customers on your production merchant account. Refunds must then be issued from the bKash portal — they cannot be reversed here.</span>
+                            <__Seg f={v.f} n="bkash_mode" opts={["Sandbox","Live"]} tone="warn" />
                           </div>
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px 20px", padding: "16px 0 4px" }}>
+                          <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px 20px", padding: "16px 0 4px" }}>
                             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                               <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                                <span style={{ fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>App key <span style={{ color: "#c2380f" }}>*</span></span>
+                                <label htmlFor={v.f.id("bkash_app_key")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>App key <span className="set-req" aria-hidden="true">*</span></label>
                               </span>
-                              <span style={{ fontSize: "12px", lineHeight: "17px", color: "#64748b", maxWidth: "560px" }}>bKash Merchant Portal → Developer → API Keys. Same value as “app_key” in the checkout SDK.</span>
-                              <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "38px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 4px 0 11px", fontSize: "13.5px", color: "#1e293b", fontFamily: "ui-monospace,SFMono-Regular,Menlo,monospace", fontSize: "12.5px" }}>
-                                <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>••••••••••••4c9f</span>
-                                <button className="dc-h446" aria-label="Reveal" title="Reveal" style={{ width: "30px", height: "30px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "7px", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
+                              <span id={v.f.id("bkash_app_key") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>bKash Merchant Portal → Developer → API Keys. Same value as “app_key” in the checkout SDK.</span>
+                              <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 4px 0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)" }}>
+                                <__In f={v.f} n="bkash_app_key" labelled desc />
+                                <button type="button" onClick={v.f.say("Revealing a saved key is recorded in the audit log. It is switched off in this demo.")} className="dc-h446" aria-label="Reveal" title="Reveal" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
                                   <__Icon name="eye" strokeWidth="1.75" width="15" height="15" />
                                 </button>
-                                <button className="dc-h447" aria-label="Copy" title="Copy" style={{ width: "30px", height: "30px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "7px", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
+                                <button type="button" onClick={v.f.copy("bkash_app_key")} className="dc-h447" aria-label="Copy" title="Copy" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
                                   <__Icon name="copy" strokeWidth="1.75" width="15" height="15" />
                                 </button>
                               </span>
+                              <__Err f={v.f} n="bkash_app_key" />
                             </div>
                             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                               <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                                <span style={{ fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>App secret <span style={{ color: "#c2380f" }}>*</span></span>
-                                <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "9999px", padding: "0 8px", fontSize: "10.5px", fontWeight: "600", letterSpacing: ".02em", background: "rgba(16,185,129,.14)", color: "#059669" }}>Saved</span>
+                                <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>App secret <span style={{ color: "var(--text-danger)" }}>*</span></span>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(16,185,129,.14)", color: "var(--text-success)" }}>Saved</span>
                               </span>
-                              <span style={{ fontSize: "12px", lineHeight: "17px", color: "#64748b", maxWidth: "560px" }}>Stored encrypted. Once saved it is never displayed again — replace it if you rotate the key.</span>
-                              <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "38px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#f1f5f9", padding: "0 4px 0 11px", fontSize: "13.5px", color: "#94a3b8" }}>
+                              <span style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Stored encrypted. Once saved it is never displayed again — replace it if you rotate the key.</span>
+                              <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "38px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 4px 0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
                                 <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Secret saved · 17 Aug 2026</span>
-                                <button style={{ height: "30px", border: "none", borderRadius: "7px", background: "#fff", padding: "0 10px", fontFamily: "inherit", fontSize: "11.5px", fontWeight: "500", color: "#003087", cursor: "pointer", boxShadow: "0 1px 2px 0 rgba(48,46,56,.1)" }}>Replace</button>
+                                <button type="button" onClick={v.f.say("“Replace” is not available in the demo yet.")} style={{ height: "28px", border: "none", borderRadius: "var(--radius-md)", background: "#fff", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#003087", cursor: "pointer", boxShadow: "0 1px 2px 0 rgba(48,46,56,.1)" }}>Replace</button>
                               </span>
                             </div>
                             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                               <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                                <span style={{ fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>Username <span style={{ color: "#c2380f" }}>*</span></span>
+                                <label htmlFor={v.f.id("bkash_username")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Username <span className="set-req" aria-hidden="true">*</span></label>
                               </span>
-                              <span style={{ fontSize: "12px", lineHeight: "17px", color: "#64748b", maxWidth: "560px" }}>The merchant username issued with your bKash tokenised checkout account.</span>
-                              <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "38px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 11px", fontSize: "13.5px", color: "#1e293b" }}>
-                                <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>sellino_bd</span>
+                              <span id={v.f.id("bkash_username") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>The merchant username issued with your bKash tokenised checkout account.</span>
+                              <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
+                                <__In f={v.f} n="bkash_username" labelled desc />
                               </span>
+                              <__Err f={v.f} n="bkash_username" />
                             </div>
                             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                               <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                                <span style={{ fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>Password <span style={{ color: "#c2380f" }}>*</span></span>
+                                <label htmlFor={v.f.id("bkash_password")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Password <span className="set-req" aria-hidden="true">*</span></label>
                               </span>
-                              <span style={{ fontSize: "12px", lineHeight: "17px", color: "#64748b", maxWidth: "560px" }}>Rotates every 90 days in the bKash portal. Reveal is logged in the audit trail.</span>
-                              <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "38px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 4px 0 11px", fontSize: "13.5px", color: "#1e293b", fontFamily: "ui-monospace,SFMono-Regular,Menlo,monospace", fontSize: "12.5px" }}>
-                                <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>••••••••••</span>
-                                <button className="dc-h448" aria-label="Reveal" title="Reveal" style={{ width: "30px", height: "30px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "7px", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
+                              <span id={v.f.id("bkash_password") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Rotates every 90 days in the bKash portal. Reveal is logged in the audit trail.</span>
+                              <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 4px 0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)" }}>
+                                <__In f={v.f} n="bkash_password" labelled desc />
+                                <button type="button" onClick={v.f.say("Revealing a saved key is recorded in the audit log. It is switched off in this demo.")} className="dc-h448" aria-label="Reveal" title="Reveal" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
                                   <__Icon name="eye" strokeWidth="1.75" width="15" height="15" />
                                 </button>
-                                <button className="dc-h449" aria-label="Copy" title="Copy" style={{ width: "30px", height: "30px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "7px", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
+                                <button type="button" onClick={v.f.copy("bkash_password")} className="dc-h449" aria-label="Copy" title="Copy" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
                                   <__Icon name="copy" strokeWidth="1.75" width="15" height="15" />
                                 </button>
                               </span>
+                              <__Err f={v.f} n="bkash_password" />
                             </div>
                             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                               <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                                <span style={{ fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>Merchant number</span>
+                                <label htmlFor={v.f.id("bkash_merchant_number")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Merchant number</label>
                               </span>
-                              <span style={{ fontSize: "12px", lineHeight: "17px", color: "#64748b", maxWidth: "560px" }}>Printed on customer receipts and used for offline send-money reconciliation.</span>
-                              <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "38px", width: "220px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 11px", fontSize: "13.5px", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
-                                <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>01811-843300</span>
+                              <span id={v.f.id("bkash_merchant_number") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Printed on customer receipts and used for offline send-money reconciliation.</span>
+                              <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", width: "220px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                                <__In f={v.f} n="bkash_merchant_number" labelled desc />
                               </span>
+                              <__Err f={v.f} n="bkash_merchant_number" />
                             </div>
                             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                               <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                                <span style={{ fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>Checkout label</span>
+                                <label htmlFor={v.f.id("bkash_checkout_label")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Checkout label</label>
                               </span>
-                              <span style={{ fontSize: "12px", lineHeight: "17px", color: "#64748b", maxWidth: "560px" }}>What customers see at checkout. Bangla label falls back to this if unset.</span>
-                              <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "38px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 11px", fontSize: "13.5px", color: "#1e293b" }}>
-                                <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>bKash — pay from app or wallet</span>
+                              <span id={v.f.id("bkash_checkout_label") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>What customers see at checkout. Bangla label falls back to this if unset.</span>
+                              <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
+                                <__In f={v.f} n="bkash_checkout_label" labelled desc />
                               </span>
+                              <__Err f={v.f} n="bkash_checkout_label" />
                             </div>
                           </div>
                           <div style={{ display: "flex", alignItems: "center", gap: "11px", borderTop: "1px solid #e2e8f0", paddingTop: "14px" }}>
-                            <button style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "8px", padding: "0 13px", fontFamily: "inherit", fontSize: "12.5px", fontWeight: "500", cursor: "pointer", border: "1px solid #cbd5e1", background: "#fff", color: "#1e293b" }}><__Icon name="plug-zap" strokeWidth="1.75" width="15" height="15" />Test connection</button>
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", borderRadius: "8px", background: "rgba(16,185,129,.1)", padding: "7px 11px", fontSize: "12px", color: "#047857" }}><__Icon name="circle-check" strokeWidth="1.75" width="15" height="15" style={{ color: "#059669" }} />Connected · grant token issued in 380 ms</span>
-                            <span style={{ marginLeft: "auto", fontSize: "11.5px", color: "#94a3b8" }}>Last tested 7 Sep 2026, 4:12 pm · 62 transactions today</span>
+                            <button type="button" onClick={v.test} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "1px solid #cbd5e1", background: "#fff", color: "#1e293b" }}><__Icon name="plug-zap" strokeWidth="1.75" width="15" height="15" />Test connection</button>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", borderRadius: "var(--radius-lg)", background: "rgba(16,185,129,.1)", padding: "7px 11px", fontSize: "var(--text-xs)", color: "#047857" }}><__Icon name="circle-check" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-success)" }} />Connected · grant token issued in 380 ms</span>
+                            <span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Last tested 7 Sep 2026, 4:12 PM · 62 transactions today</span>
                           </div>
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "10px", borderTop: "1px solid #e2e8f0", background: "#f8fafc", padding: "16px" }}>
                           <span style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                            <span style={{ fontSize: "10.5px", fontWeight: "600", letterSpacing: ".11em", textTransform: "uppercase", color: "#94a3b8" }}>Optional configuration</span>
+                            <span style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Optional configuration</span>
                             <span style={{ height: "1px", flex: "1", background: "#e2e8f0" }} />
-                            <span style={{ fontSize: "11.5px", color: "#94a3b8" }}>3 of 4 configured · collapsed sections keep their values</span>
+                            <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>3 of 4 configured · collapsed sections keep their values</span>
                           </span>
-                          <div style={{ border: "1px solid #e2e8f0", borderRadius: "10px", background: "#fff", overflow: "hidden" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "11px 13px", borderBottom: "1px solid #f1f5f9", background: "#fcfdfe", cursor: "pointer" }}>
-                              <__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ flex: "none", color: "#94a3b8" }} />
+                          <div style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", overflow: "hidden" }}>
+                            <button className="set-disc" {...v.f.disc("opt_webhook_callback_urls", true)} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "11px 13px", borderBottom: "1px solid #f1f5f9", background: "#fcfdfe" }}>
+                              <__Icon name="chevron-down" className="set-disc__chev" aria-hidden="true" strokeWidth="1.75" width="16" height="16" style={{ flex: "none", color: "var(--text-muted)" }} />
                               <__Icon name="link" strokeWidth="1.75" width="16" height="16" style={{ flex: "none", color: "#003087" }} />
                               <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                                <span style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#1e293b" }}>Webhook / callback URLs</span>
-                                <span style={{ display: "block", fontSize: "11.5px", color: "#64748b" }}>Generated for you — paste the IPN URL into the bKash Merchant Portal.</span>
+                                <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Webhook / callback URLs</span>
+                                <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Generated for you — paste the IPN URL into the bKash Merchant Portal.</span>
                               </span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "9999px", padding: "0 8px", fontSize: "10.5px", fontWeight: "600", letterSpacing: ".02em", background: "#f1f5f9", color: "#64748b" }}>Copy only</span>
-                            </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "14px" }}>
-                              <span style={{ display: "block", maxWidth: "720px", fontSize: "11.5px", lineHeight: "17px", color: "#64748b" }}>bKash Merchant Portal → <b style={{ fontWeight: "600", color: "#475569" }}>Application → Callback URL</b>. Tokenised Checkout returns the buyer through the Success URL directly; IPN is optional but recommended — it calls <span style={{ fontFamily: "ui-monospace,SFMono-Regular,Menlo,monospace" }}>payment/status</span> to confirm before the order is marked paid.</span>
-                              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 16px" }}>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>Copy only</span>
+                            </button>
+                            <div {...v.f.panel("opt_webhook_callback_urls", true)} style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "14px" }}>
+                              <span style={{ display: "block", maxWidth: "720px", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>bKash Merchant Portal → <b style={{ fontWeight: "var(--weight-medium)", color: "#475569" }}>Application → Callback URL</b>. Tokenised Checkout returns the buyer through the Success URL directly; IPN is optional but recommended — it calls <span style={{ fontFamily: "var(--font-data)" }}>payment/status</span> to confirm before the order is marked paid.</span>
+                              <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 16px" }}>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
                                   <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                    <span style={{ fontSize: "12px", fontWeight: "500", color: "#1e293b" }}>IPN / Webhook URL</span>
-                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "9999px", padding: "0 8px", fontSize: "10.5px", fontWeight: "600", letterSpacing: ".02em", background: "rgba(255,152,0,.16)", color: "#b36a00" }}>Required</span>
+                                    <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>IPN / Webhook URL</span>
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(255,152,0,.16)", color: "var(--text-warning)" }}>Required</span>
                                   </span>
-                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#f8fafc", padding: "0 4px 0 11px" }}>
-                                    <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "ui-monospace,SFMono-Regular,Menlo,monospace", fontSize: "11.5px", color: "#334155" }}>https://api.selorax.io/api/payments/bkash/ipn?sid=696</span>
-                                    <button className="dc-h450" aria-label="Copy URL" title="Copy URL" style={{ width: "30px", height: "30px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "7px", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
+                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "0 4px 0 11px" }}>
+                                    <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "#334155" }}>https://api.selorax.io/api/payments/bkash/ipn?sid=696</span>
+                                    <button type="button" onClick={v.f.copy("https://api.selorax.io/api/payments/bkash/ipn?sid=696", "URL")} className="dc-h450" aria-label="Copy URL" title="Copy URL" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
                                       <__Icon name="copy" strokeWidth="1.75" width="15" height="15" />
                                     </button>
                                   </span>
-                                  <span style={{ fontSize: "11px", color: "#94a3b8" }}>Last delivery 4:09 pm · 62 callbacks today, none failed</span>
+                                  <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Last delivery 4:09 PM · 62 callbacks today, none failed</span>
                                 </div>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
                                   <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                    <span style={{ fontSize: "12px", fontWeight: "500", color: "#1e293b" }}>Success URL</span>
-                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "9999px", padding: "0 8px", fontSize: "10.5px", fontWeight: "600", letterSpacing: ".02em", background: "#f1f5f9", color: "#64748b" }}>Optional</span>
+                                    <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Success URL</span>
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>Optional</span>
                                   </span>
-                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#f8fafc", padding: "0 4px 0 11px" }}>
-                                    <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "ui-monospace,SFMono-Regular,Menlo,monospace", fontSize: "11.5px", color: "#334155" }}>https://api.selorax.io/api/payments/bkash/success</span>
-                                    <button className="dc-h451" aria-label="Copy URL" title="Copy URL" style={{ width: "30px", height: "30px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "7px", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
-                                      <__Icon name="copy" strokeWidth="1.75" width="15" height="15" />
-                                    </button>
-                                  </span>
-                                </div>
-                                <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
-                                  <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                    <span style={{ fontSize: "12px", fontWeight: "500", color: "#1e293b" }}>Fail URL</span>
-                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "9999px", padding: "0 8px", fontSize: "10.5px", fontWeight: "600", letterSpacing: ".02em", background: "#f1f5f9", color: "#64748b" }}>Optional</span>
-                                  </span>
-                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#f8fafc", padding: "0 4px 0 11px" }}>
-                                    <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "ui-monospace,SFMono-Regular,Menlo,monospace", fontSize: "11.5px", color: "#334155" }}>https://api.selorax.io/api/payments/bkash/fail</span>
-                                    <button className="dc-h452" aria-label="Copy URL" title="Copy URL" style={{ width: "30px", height: "30px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "7px", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
+                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "0 4px 0 11px" }}>
+                                    <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "#334155" }}>https://api.selorax.io/api/payments/bkash/success</span>
+                                    <button type="button" onClick={v.f.copy("https://api.selorax.io/api/payments/bkash/success", "URL")} className="dc-h451" aria-label="Copy URL" title="Copy URL" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
                                       <__Icon name="copy" strokeWidth="1.75" width="15" height="15" />
                                     </button>
                                   </span>
                                 </div>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
                                   <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                    <span style={{ fontSize: "12px", fontWeight: "500", color: "#1e293b" }}>Cancel URL</span>
-                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "9999px", padding: "0 8px", fontSize: "10.5px", fontWeight: "600", letterSpacing: ".02em", background: "#f1f5f9", color: "#64748b" }}>Optional</span>
+                                    <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Fail URL</span>
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>Optional</span>
                                   </span>
-                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#f8fafc", padding: "0 4px 0 11px" }}>
-                                    <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "ui-monospace,SFMono-Regular,Menlo,monospace", fontSize: "11.5px", color: "#334155" }}>https://api.selorax.io/api/payments/bkash/cancel</span>
-                                    <button className="dc-h453" aria-label="Copy URL" title="Copy URL" style={{ width: "30px", height: "30px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "7px", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
+                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "0 4px 0 11px" }}>
+                                    <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "#334155" }}>https://api.selorax.io/api/payments/bkash/fail</span>
+                                    <button type="button" onClick={v.f.copy("https://api.selorax.io/api/payments/bkash/fail", "URL")} className="dc-h452" aria-label="Copy URL" title="Copy URL" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
+                                      <__Icon name="copy" strokeWidth="1.75" width="15" height="15" />
+                                    </button>
+                                  </span>
+                                </div>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                                  <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Cancel URL</span>
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>Optional</span>
+                                  </span>
+                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "0 4px 0 11px" }}>
+                                    <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "#334155" }}>https://api.selorax.io/api/payments/bkash/cancel</span>
+                                    <button type="button" onClick={v.f.copy("https://api.selorax.io/api/payments/bkash/cancel", "URL")} className="dc-h453" aria-label="Copy URL" title="Copy URL" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
                                       <__Icon name="copy" strokeWidth="1.75" width="15" height="15" />
                                     </button>
                                   </span>
@@ -318,331 +453,268 @@ export default class SetPaymentsScreen extends Component {
                               </div>
                             </div>
                           </div>
-                          <div style={{ border: "1px solid #e2e8f0", borderRadius: "10px", background: "#fff", overflow: "hidden" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "11px 13px", borderBottom: "1px solid #f1f5f9", background: "#fcfdfe", cursor: "pointer" }}>
-                              <__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ flex: "none", color: "#94a3b8" }} />
+                          <div style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", overflow: "hidden" }}>
+                            <button className="set-disc" {...v.f.disc("opt_payment_rules", true)} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "11px 13px", borderBottom: "1px solid #f1f5f9", background: "#fcfdfe" }}>
+                              <__Icon name="chevron-down" className="set-disc__chev" aria-hidden="true" strokeWidth="1.75" width="16" height="16" style={{ flex: "none", color: "var(--text-muted)" }} />
                               <__Icon name="sliders-horizontal" strokeWidth="1.75" width="16" height="16" style={{ flex: "none", color: "#003087" }} />
                               <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                                <span style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#1e293b" }}>Payment rules</span>
-                                <span style={{ display: "block", fontSize: "11.5px", color: "#64748b" }}>Order value limits, which payment modes this gateway may serve, and where it sits in the list.</span>
+                                <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Payment rules</span>
+                                <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Order value limits, which payment modes this gateway may serve, and where it sits in the list.</span>
                               </span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "9999px", padding: "0 8px", fontSize: "10.5px", fontWeight: "600", letterSpacing: ".02em", background: "rgba(0,156,222,.14)", color: "#0089c3" }}>3 modes on</span>
-                            </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: "14px", padding: "14px" }}>
-                              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "16px" }}>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(0,156,222,.14)", color: "var(--accent-text)" }}>{v.modes} {v.modes === 1 ? "mode" : "modes"} on</span>
+                            </button>
+                            <div {...v.f.panel("opt_payment_rules", true)} style={{ display: "flex", flexDirection: "column", gap: "14px", padding: "14px" }}>
+                              <div className="gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "16px" }}>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                                   <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                                    <span style={{ fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>Priority</span>
+                                    <label htmlFor={v.f.id("priority")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Priority</label>
                                   </span>
-                                  <span style={{ fontSize: "12px", lineHeight: "17px", color: "#64748b", maxWidth: "560px" }}>Lower shows first at checkout. Ties fall back to alphabetical.</span>
-                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "38px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 11px", fontSize: "13.5px", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
-                                    <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>100</span>
+                                  <span id={v.f.id("priority") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Lower shows first at checkout. Ties fall back to alphabetical.</span>
+                                  <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                                    <__In f={v.f} n="priority" labelled desc />
                                   </span>
+                                  <__Err f={v.f} n="priority" />
                                 </div>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                                   <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                                    <span style={{ fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>Min order amount</span>
+                                    <label htmlFor={v.f.id("min_order_amount")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Min order amount</label>
                                   </span>
-                                  <span style={{ fontSize: "12px", lineHeight: "17px", color: "#64748b", maxWidth: "560px" }}>Gateway is hidden below this subtotal. Leave empty for no floor.</span>
-                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "38px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 11px", fontSize: "13.5px", color: "#94a3b8", fontVariantNumeric: "tabular-nums" }}>
-                                    <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>No minimum</span>
+                                  <span id={v.f.id("min_order_amount") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Gateway is hidden below this subtotal. Leave empty for no floor.</span>
+                                  <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
+                                    <__In f={v.f} n="min_order_amount" labelled desc placeholder="No minimum" />
                                   </span>
+                                  <__Err f={v.f} n="min_order_amount" />
                                 </div>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                                   <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                                    <span style={{ fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>Max order amount</span>
+                                    <label htmlFor={v.f.id("max_order_amount")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Max order amount</label>
                                   </span>
-                                  <span style={{ fontSize: "12px", lineHeight: "17px", color: "#64748b", maxWidth: "560px" }}>Useful where the wallet itself caps a single transaction — bKash allows ৳25,000.</span>
-                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "38px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 11px", fontSize: "13.5px", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
-                                    <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>25,000.00</span>
+                                  <span id={v.f.id("max_order_amount") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Useful where the wallet itself caps a single transaction — bKash allows ৳25,000.</span>
+                                  <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                                    <__In f={v.f} n="max_order_amount" labelled desc />
                                   </span>
+                                  <__Err f={v.f} n="max_order_amount" />
                                 </div>
                               </div>
                               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                                <span style={{ fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>Allowed payment modes</span>
-                                <span style={{ fontSize: "12px", lineHeight: "17px", color: "#64748b", maxWidth: "620px" }}>What a buyer may pay online through this gateway. Anything not ticked falls to cash on delivery.</span>
+                                <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Allowed payment modes</span>
+                                <span style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "620px" }}>What a buyer may pay online through this gateway. Anything not ticked falls to cash on delivery.</span>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "10px", paddingTop: "2px" }}>
                                   <span style={{ display: "flex", gap: "10px" }}>
-                                    <label style={{ display: "flex", alignItems: "flex-start", gap: "9px", flex: "1", minWidth: "0", border: "1px solid #003087", borderRadius: "9px", background: "rgba(0,48,135,.05)", padding: "10px 12px", cursor: "pointer" }}>
-                                      <span style={{ display: "grid", placeItems: "center", width: "16px", height: "16px", flex: "none", marginTop: "1px", border: "none", borderRadius: "4px", background: "#003087", color: "#fff" }}>
-                                        <__Icon name="check" strokeWidth="1.75" width="12" height="12" />
-                                      </span>
-                                      <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                                        <span style={{ display: "block", fontSize: "12.5px", fontWeight: "500", color: "#1e293b" }}>Full payment</span>
-                                        <span style={{ display: "block", paddingTop: "2px", fontSize: "11px", lineHeight: "16px", color: "#64748b" }}>Buyer pays the whole order online.</span>
-                                      </span>
-                                    </label>
-                                    <label style={{ display: "flex", alignItems: "flex-start", gap: "9px", flex: "1", minWidth: "0", border: "1px solid #003087", borderRadius: "9px", background: "rgba(0,48,135,.05)", padding: "10px 12px", cursor: "pointer" }}>
-                                      <span style={{ display: "grid", placeItems: "center", width: "16px", height: "16px", flex: "none", marginTop: "1px", border: "none", borderRadius: "4px", background: "#003087", color: "#fff" }}>
-                                        <__Icon name="check" strokeWidth="1.75" width="12" height="12" />
-                                      </span>
-                                      <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                                        <span style={{ display: "block", fontSize: "12.5px", fontWeight: "500", color: "#1e293b" }}>Delivery charge only</span>
-                                        <span style={{ display: "block", paddingTop: "2px", fontSize: "11px", lineHeight: "16px", color: "#64748b" }}>Buyer pays only the delivery charge; the courier collects the balance.</span>
-                                      </span>
-                                    </label>
+                                    <__Chk f={v.f} n="mode_full_payment" title="Full payment" desc="Buyer pays the whole order online." />
+                                    <__Chk f={v.f} n="mode_delivery_charge_only" title="Delivery charge only" desc="Buyer pays only the delivery charge; the courier collects the balance." />
                                   </span>
                                   <span style={{ display: "flex", gap: "10px" }}>
-                                    <label style={{ display: "flex", alignItems: "flex-start", gap: "9px", flex: "1", minWidth: "0", border: "1px solid #e2e8f0", borderRadius: "9px", background: "#fff", padding: "10px 12px", cursor: "pointer" }}>
-                                      <span style={{ display: "grid", placeItems: "center", width: "16px", height: "16px", flex: "none", marginTop: "1px", border: "1.5px solid #cbd5e1", borderRadius: "4px", background: "#fff", color: "#fff" }} />
-                                      <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                                        <span style={{ display: "block", fontSize: "12.5px", fontWeight: "500", color: "#1e293b" }}>Fixed advance</span>
-                                        <span style={{ display: "block", paddingTop: "2px", fontSize: "11px", lineHeight: "16px", color: "#64748b" }}>Buyer pays a set amount up front.</span>
-                                      </span>
-                                    </label>
-                                    <label style={{ display: "flex", alignItems: "flex-start", gap: "9px", flex: "1", minWidth: "0", border: "1px solid #003087", borderRadius: "9px", background: "rgba(0,48,135,.05)", padding: "10px 12px", cursor: "pointer" }}>
-                                      <span style={{ display: "grid", placeItems: "center", width: "16px", height: "16px", flex: "none", marginTop: "1px", border: "none", borderRadius: "4px", background: "#003087", color: "#fff" }}>
-                                        <__Icon name="check" strokeWidth="1.75" width="12" height="12" />
-                                      </span>
-                                      <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                                        <span style={{ display: "block", fontSize: "12.5px", fontWeight: "500", color: "#1e293b" }}>Percentage advance</span>
-                                        <span style={{ display: "block", paddingTop: "2px", fontSize: "11px", lineHeight: "16px", color: "#64748b" }}>Buyer pays a share of the order up front.</span>
-                                      </span>
-                                    </label>
+                                    <__Chk f={v.f} n="mode_fixed_advance" title="Fixed advance" desc="Buyer pays a set amount up front." />
+                                    <__Chk f={v.f} n="mode_percentage_advance" title="Percentage advance" desc="Buyer pays a share of the order up front." />
                                   </span>
                                   <span style={{ display: "flex", gap: "10px" }}>
-                                    <label style={{ display: "flex", alignItems: "flex-start", gap: "9px", flex: "1", minWidth: "0", border: "1px solid #e2e8f0", borderRadius: "9px", background: "#fff", padding: "10px 12px", cursor: "pointer" }}>
-                                      <span style={{ display: "grid", placeItems: "center", width: "16px", height: "16px", flex: "none", marginTop: "1px", border: "1.5px solid #cbd5e1", borderRadius: "4px", background: "#fff", color: "#fff" }} />
-                                      <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                                        <span style={{ display: "block", fontSize: "12.5px", fontWeight: "500", color: "#1e293b" }}>Required prepay (per product)</span>
-                                        <span style={{ display: "block", paddingTop: "2px", fontSize: "11px", lineHeight: "16px", color: "#64748b" }}>Amount computed from each product’s own prepay rule.</span>
-                                      </span>
-                                    </label>
+                                    <__Chk f={v.f} n="mode_required_prepay" title="Required prepay (per product)" desc="Amount computed from each product’s own prepay rule." />
                                     <span style={{ flex: "1" }} />
                                   </span>
                                 </div>
-                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", borderLeft: "2px solid #e2e8f0", padding: "6px 0 0 14px" }}>
+                                <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", borderLeft: "2px solid #e2e8f0", padding: "6px 0 0 14px" }}>
                                   <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                                     <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                                      <span style={{ fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>Fixed advance amount</span>
+                                      <label htmlFor={v.f.id("fixed_advance_amount")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Fixed advance amount</label>
                                     </span>
-                                    <span style={{ fontSize: "12px", lineHeight: "17px", color: "#64748b", maxWidth: "560px" }}>Disabled — tick “Fixed advance” to set it.</span>
-                                    <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "38px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#f1f5f9", padding: "0 11px", fontSize: "13.5px", color: "#94a3b8", fontVariantNumeric: "tabular-nums" }}>
-                                      <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>৳ 0.00</span>
+                                    <span id={v.f.id("fixed_advance_amount") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Tick “Fixed advance” above to set it.</span>
+                                    <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
+                                      <__In f={v.f} n="fixed_advance_amount" labelled desc dis={!v.f.get("mode_fixed_advance", false)} />
                                     </span>
+                                    <__Err f={v.f} n="fixed_advance_amount" />
                                   </div>
                                   <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                                     <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                                      <span style={{ fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>Advance percentage</span>
+                                      <label htmlFor={v.f.id("advance_percentage")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Advance percentage</label>
                                     </span>
-                                    <span style={{ fontSize: "12px", lineHeight: "17px", color: "#64748b", maxWidth: "560px" }}>Applied to the order subtotal, before delivery charge.</span>
-                                    <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "38px", width: "132px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 11px", fontSize: "13.5px", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
-                                      <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>20%</span>
+                                    <span id={v.f.id("advance_percentage") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Applied to the order subtotal, before delivery charge.</span>
+                                    <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", width: "132px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                                      <__In f={v.f} n="advance_percentage" labelled desc />
                                     </span>
-                                    <span style={{ fontSize: "11.5px", color: "#64748b" }}>A ৳1,240 order asks for <b style={{ fontWeight: "600", color: "#1e293b" }}>৳248</b> now, <b style={{ fontWeight: "600", color: "#1e293b" }}>৳992</b> on delivery.</span>
+                                    <__Err f={v.f} n="advance_percentage" />
+                                    <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>A {formatBDT(1240)} order asks for <b style={{ fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{formatBDT(v.advance)}</b> now, <b style={{ fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{formatBDT(1240 - v.advance)}</b> on delivery.</span>
                                   </div>
                                 </div>
                               </div>
-                              <div style={{ border: "1px solid #e2e8f0", borderRadius: "9px", padding: "2px 13px" }}>
+                              <div style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", padding: "2px 13px" }}>
                                 <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", padding: "12px 0" }}>
                                   <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>Force full payment</span>
-                                    <span style={{ display: "block", paddingTop: "3px", fontSize: "12px", lineHeight: "17px", color: "#64748b", maxWidth: "560px" }}>When this gateway is eligible, cash on delivery is not offered for the order at all.</span>
+                                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Force full payment</span>
+                                    <span style={{ display: "block", paddingTop: "3px", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>When this gateway is eligible, cash on delivery is not offered for the order at all.</span>
                                   </span>
-                                  <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "flex-start", width: "38px", height: "22px", borderRadius: "9999px", background: "#cbd5e1", padding: "2px", cursor: "pointer" }}>
-                                    <span style={{ width: "18px", height: "18px", borderRadius: "9999px", background: "#fff", boxShadow: "0 1px 2px 0 rgba(15,23,42,.2)" }} />
-                                  </span>
+                                  <__Sw f={v.f} n="force_full_payment" />
                                 </div>
                               </div>
                             </div>
                           </div>
-                          <div style={{ border: "1px solid #e2e8f0", borderRadius: "10px", background: "#fff", overflow: "hidden" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "11px 13px", borderBottom: "1px solid #f1f5f9", background: "#fcfdfe", cursor: "pointer" }}>
-                              <__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ flex: "none", color: "#94a3b8" }} />
+                          <div style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", overflow: "hidden" }}>
+                            <button className="set-disc" {...v.f.disc("opt_payment_discount", true)} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "11px 13px", borderBottom: "1px solid #f1f5f9", background: "#fcfdfe" }}>
+                              <__Icon name="chevron-down" className="set-disc__chev" aria-hidden="true" strokeWidth="1.75" width="16" height="16" style={{ flex: "none", color: "var(--text-muted)" }} />
                               <__Icon name="star" strokeWidth="1.75" width="16" height="16" style={{ flex: "none", color: "#003087" }} />
                               <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                                <span style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#1e293b" }}>Payment discount</span>
-                                <span style={{ display: "block", fontSize: "11.5px", color: "#64748b" }}>Reward buyers for paying with this gateway. Applied to the online amount at checkout.</span>
+                                <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Payment discount</span>
+                                <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Reward buyers for paying with this gateway. Applied to the online amount at checkout.</span>
                               </span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "9999px", padding: "0 8px", fontSize: "10.5px", fontWeight: "600", letterSpacing: ".02em", background: "#f1f5f9", color: "#64748b" }}>Off</span>
-                            </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "14px" }}>
-                              <div style={{ border: "1px solid #e2e8f0", borderRadius: "9px", padding: "2px 13px" }}>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: v.f.get("payment_discount", false) ? "rgba(16,185,129,.14)" : "#f1f5f9", color: v.f.get("payment_discount", false) ? "var(--text-success)" : "var(--text-muted)" }}>{v.f.get("payment_discount", false) ? "On" : "Off"}</span>
+                            </button>
+                            <div {...v.f.panel("opt_payment_discount", true)} style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "14px" }}>
+                              <div style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", padding: "2px 13px" }}>
                                 <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", padding: "12px 0" }}>
                                   <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>Payment discount</span>
-                                    <span style={{ display: "block", paddingTop: "3px", fontSize: "12px", lineHeight: "17px", color: "#64748b", maxWidth: "560px" }}>Off — the four fields below are kept but ignored until this is on.</span>
+                                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Payment discount</span>
+                                    <span style={{ display: "block", paddingTop: "3px", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>When off, the four fields below are kept but ignored.</span>
                                   </span>
-                                  <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "flex-start", width: "38px", height: "22px", borderRadius: "9999px", background: "#cbd5e1", padding: "2px", cursor: "pointer" }}>
-                                    <span style={{ width: "18px", height: "18px", borderRadius: "9999px", background: "#fff", boxShadow: "0 1px 2px 0 rgba(15,23,42,.2)" }} />
-                                  </span>
+                                  <__Sw f={v.f} n="payment_discount" />
                                 </div>
                               </div>
-                              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", opacity: ".6" }}>
+                              <div className="gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", opacity: ".6" }}>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                                   <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                                    <span style={{ fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>Discount type</span>
+                                    <label htmlFor={v.f.id("discount_type")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Discount type</label>
                                   </span>
-                                  <span style={{ fontSize: "12px", lineHeight: "17px", color: "#64748b", maxWidth: "560px" }}>Percentage or a flat amount off.</span>
-                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "38px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#f1f5f9", padding: "0 11px", fontSize: "13.5px", color: "#94a3b8" }}>
-                                    <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Percentage</span>
-                                    <__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ color: "#94a3b8" }} />
+                                  <span id={v.f.id("discount_type") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Percentage or a flat amount off.</span>
+                                  <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
+                                    <__In f={v.f} n="discount_type" labelled desc opts={["Percentage","Flat amount"]} dis={!v.f.get("payment_discount", false)} />
+                                    <__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ color: "var(--text-muted)" }} />
                                   </span>
+                                  <__Err f={v.f} n="discount_type" />
                                 </div>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                                   <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                                    <span style={{ fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>Value</span>
+                                    <label htmlFor={v.f.id("discount_value")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Value</label>
                                   </span>
-                                  <span style={{ fontSize: "12px", lineHeight: "17px", color: "#64748b", maxWidth: "560px" }}>bKash merchant cashback is commonly 1–2%.</span>
-                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "38px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#f1f5f9", padding: "0 11px", fontSize: "13.5px", color: "#94a3b8", fontVariantNumeric: "tabular-nums" }}>
-                                    <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>1.5%</span>
+                                  <span id={v.f.id("discount_value") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>bKash merchant cashback is commonly 1–2%.</span>
+                                  <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
+                                    <__In f={v.f} n="discount_value" labelled desc dis={!v.f.get("payment_discount", false)} />
                                   </span>
+                                  <__Err f={v.f} n="discount_value" />
                                 </div>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                                   <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                                    <span style={{ fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>Maximum discount</span>
+                                    <label htmlFor={v.f.id("maximum_discount")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Maximum discount</label>
                                   </span>
-                                  <span style={{ fontSize: "12px", lineHeight: "17px", color: "#64748b", maxWidth: "560px" }}>Caps the reward on large orders.</span>
-                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "38px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#f1f5f9", padding: "0 11px", fontSize: "13.5px", color: "#94a3b8", fontVariantNumeric: "tabular-nums" }}>
-                                    <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>৳ 150.00</span>
+                                  <span id={v.f.id("maximum_discount") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Caps the reward on large orders.</span>
+                                  <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
+                                    <__In f={v.f} n="maximum_discount" labelled desc dis={!v.f.get("payment_discount", false)} />
                                   </span>
+                                  <__Err f={v.f} n="maximum_discount" />
                                 </div>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                                   <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                                    <span style={{ fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>Minimum order</span>
+                                    <label htmlFor={v.f.id("minimum_order")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Minimum order</label>
                                   </span>
-                                  <span style={{ fontSize: "12px", lineHeight: "17px", color: "#64748b", maxWidth: "560px" }}>Below this subtotal no discount is given.</span>
-                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "38px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#f1f5f9", padding: "0 11px", fontSize: "13.5px", color: "#94a3b8", fontVariantNumeric: "tabular-nums" }}>
-                                    <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>৳ 500.00</span>
+                                  <span id={v.f.id("minimum_order") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Below this subtotal no discount is given.</span>
+                                  <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
+                                    <__In f={v.f} n="minimum_order" labelled desc dis={!v.f.get("payment_discount", false)} />
                                   </span>
+                                  <__Err f={v.f} n="minimum_order" />
                                 </div>
                               </div>
-                              <span style={{ display: "flex", alignItems: "center", gap: "9px", borderRadius: "8px", background: "#f1f5f9", padding: "9px 12px", fontSize: "11.5px", color: "#64748b" }}><__Icon name="receipt" strokeWidth="1.75" width="15" height="15" style={{ color: "#94a3b8" }} />Checkout line would read <b style={{ fontWeight: "600", color: "#1e293b" }}>bKash discount −৳18.60</b> on a ৳1,240 order. The discount is your cost, not bKash’s.</span>
+                              <span style={{ display: "flex", alignItems: "center", gap: "9px", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "9px 12px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><__Icon name="receipt" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />Checkout line would read <b style={{ fontWeight: "var(--weight-medium)", color: "#1e293b" }}>bKash discount −৳18.60</b> on a ৳1,240 order. The discount is your cost, not bKash’s.</span>
                             </div>
                           </div>
-                          <div style={{ border: "1px solid #e2e8f0", borderRadius: "10px", background: "#fff", overflow: "hidden" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "11px 13px", borderBottom: "1px solid #f1f5f9", background: "#fcfdfe", cursor: "pointer" }}>
-                              <__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ flex: "none", color: "#94a3b8" }} />
+                          <div style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", overflow: "hidden" }}>
+                            <button className="set-disc" {...v.f.disc("opt_advanced_conditions", true)} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "11px 13px", borderBottom: "1px solid #f1f5f9", background: "#fcfdfe" }}>
+                              <__Icon name="chevron-down" className="set-disc__chev" aria-hidden="true" strokeWidth="1.75" width="16" height="16" style={{ flex: "none", color: "var(--text-muted)" }} />
                               <__Icon name="git-branch" strokeWidth="1.75" width="16" height="16" style={{ flex: "none", color: "#003087" }} />
                               <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                                <span style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#1e293b" }}>Advanced conditions</span>
-                                <span style={{ display: "block", fontSize: "11.5px", color: "#64748b" }}>Different payment modes by delivery area, customer segment and cart category.</span>
+                                <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Advanced conditions</span>
+                                <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Different payment modes by delivery area, customer segment and cart category.</span>
                               </span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "9999px", padding: "0 8px", fontSize: "10.5px", fontWeight: "600", letterSpacing: ".02em", background: "rgba(0,156,222,.14)", color: "#0089c3" }}>2 areas · 4 segments</span>
-                            </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "14px" }}>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(0,156,222,.14)", color: "var(--accent-text)" }}>2 areas · 4 segments</span>
+                            </button>
+                            <div {...v.f.panel("opt_advanced_conditions", true)} style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "14px" }}>
                               <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
                                 <span style={{ display: "block" }}>
-                                  <span style={{ display: "block", fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>Delivery area rules</span>
-                                  <span style={{ display: "block", paddingTop: "2px", fontSize: "12px", color: "#64748b" }}>Restrict the allowed modes by where the buyer wants delivery. Empty means the gateway rules above apply unchanged.</span>
+                                  <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Delivery area rules</span>
+                                  <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Restrict the allowed modes by where the buyer wants delivery. Empty means the gateway rules above apply unchanged.</span>
                                 </span>
-                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", border: "1px solid #e2e8f0", borderRadius: "9px", background: "#fff", padding: "11px 12px" }}>
+                                <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "11px 12px" }}>
                                     <span style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
-                                      <span style={{ fontSize: "12.5px", fontWeight: "600", color: "#1e293b" }}>Inside Dhaka</span>
-                                      <span style={{ fontSize: "11px", color: "#94a3b8" }}>Same-day and next-day zones</span>
+                                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Inside Dhaka</span>
+                                      <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Same-day and next-day zones</span>
                                     </span>
                                     <span style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #003087", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "0 10px", fontSize: "11.5px", fontWeight: "600", color: "#003087", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "none", borderRadius: "4px", background: "#003087", color: "#fff" }}>
-  <__Icon name="check" strokeWidth="1.75" width="10" height="10" />
-</span>Full payment</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #003087", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "0 10px", fontSize: "11.5px", fontWeight: "600", color: "#003087", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "none", borderRadius: "4px", background: "#003087", color: "#fff" }}>
-  <__Icon name="check" strokeWidth="1.75" width="10" height="10" />
-</span>Delivery charge only</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 10px", fontSize: "11.5px", color: "#475569", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "1.5px solid #cbd5e1", borderRadius: "4px", background: "#fff", color: "#fff" }} />Fixed advance</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #003087", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "0 10px", fontSize: "11.5px", fontWeight: "600", color: "#003087", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "none", borderRadius: "4px", background: "#003087", color: "#fff" }}>
-  <__Icon name="check" strokeWidth="1.75" width="10" height="10" />
-</span>Percentage advance</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 10px", fontSize: "11.5px", color: "#475569", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "1.5px solid #cbd5e1", borderRadius: "4px", background: "#fff", color: "#fff" }} />Required prepay (per product)</label>
+                                      <__Chk chip f={v.f} n="inside_dhaka_full_payment" title="Full payment" />
+                                      <__Chk chip f={v.f} n="inside_dhaka_delivery_charge_only" title="Delivery charge only" />
+                                      <__Chk chip f={v.f} n="inside_dhaka_fixed_advance" title="Fixed advance" />
+                                      <__Chk chip f={v.f} n="inside_dhaka_percentage_advance" title="Percentage advance" />
+                                      <__Chk chip f={v.f} n="inside_dhaka_required_prepay" title="Required prepay (per product)" />
                                     </span>
                                   </div>
-                                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", border: "1px solid #e2e8f0", borderRadius: "9px", background: "#fff", padding: "11px 12px" }}>
+                                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "11px 12px" }}>
                                     <span style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
-                                      <span style={{ fontSize: "12.5px", fontWeight: "600", color: "#1e293b" }}>Outside Dhaka</span>
-                                      <span style={{ fontSize: "11px", color: "#94a3b8" }}>Courier network · higher return rate</span>
+                                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Outside Dhaka</span>
+                                      <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Courier network · higher return rate</span>
                                     </span>
                                     <span style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #003087", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "0 10px", fontSize: "11.5px", fontWeight: "600", color: "#003087", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "none", borderRadius: "4px", background: "#003087", color: "#fff" }}>
-  <__Icon name="check" strokeWidth="1.75" width="10" height="10" />
-</span>Full payment</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 10px", fontSize: "11.5px", color: "#475569", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "1.5px solid #cbd5e1", borderRadius: "4px", background: "#fff", color: "#fff" }} />Delivery charge only</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 10px", fontSize: "11.5px", color: "#475569", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "1.5px solid #cbd5e1", borderRadius: "4px", background: "#fff", color: "#fff" }} />Fixed advance</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #003087", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "0 10px", fontSize: "11.5px", fontWeight: "600", color: "#003087", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "none", borderRadius: "4px", background: "#003087", color: "#fff" }}>
-  <__Icon name="check" strokeWidth="1.75" width="10" height="10" />
-</span>Percentage advance</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 10px", fontSize: "11.5px", color: "#475569", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "1.5px solid #cbd5e1", borderRadius: "4px", background: "#fff", color: "#fff" }} />Required prepay (per product)</label>
+                                      <__Chk chip f={v.f} n="outside_dhaka_full_payment" title="Full payment" />
+                                      <__Chk chip f={v.f} n="outside_dhaka_delivery_charge_only" title="Delivery charge only" />
+                                      <__Chk chip f={v.f} n="outside_dhaka_fixed_advance" title="Fixed advance" />
+                                      <__Chk chip f={v.f} n="outside_dhaka_percentage_advance" title="Percentage advance" />
+                                      <__Chk chip f={v.f} n="outside_dhaka_required_prepay" title="Required prepay (per product)" />
                                     </span>
                                   </div>
                                 </div>
                               </div>
                               <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
                                 <span style={{ display: "block" }}>
-                                  <span style={{ display: "block", fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>Customer type rules</span>
-                                  <span style={{ display: "block", paddingTop: "2px", fontSize: "12px", color: "#64748b" }}>Applies to logged-in buyers only — guest checkout skips these and uses the gateway rules.</span>
+                                  <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Customer type rules</span>
+                                  <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Applies to logged-in buyers only — guest checkout skips these and uses the gateway rules.</span>
                                 </span>
-                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", border: "1px solid #e2e8f0", borderRadius: "9px", background: "#fff", padding: "11px 12px" }}>
+                                <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "11px 12px" }}>
                                     <span style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
-                                      <span style={{ fontSize: "12.5px", fontWeight: "600", color: "#1e293b" }}>New customer</span>
-                                      <span style={{ fontSize: "11px", color: "#94a3b8" }}>No completed orders yet</span>
+                                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>New customer</span>
+                                      <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>No completed orders yet</span>
                                     </span>
                                     <span style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #003087", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "0 10px", fontSize: "11.5px", fontWeight: "600", color: "#003087", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "none", borderRadius: "4px", background: "#003087", color: "#fff" }}>
-  <__Icon name="check" strokeWidth="1.75" width="10" height="10" />
-</span>Full payment</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 10px", fontSize: "11.5px", color: "#475569", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "1.5px solid #cbd5e1", borderRadius: "4px", background: "#fff", color: "#fff" }} />Delivery charge only</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 10px", fontSize: "11.5px", color: "#475569", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "1.5px solid #cbd5e1", borderRadius: "4px", background: "#fff", color: "#fff" }} />Fixed advance</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #003087", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "0 10px", fontSize: "11.5px", fontWeight: "600", color: "#003087", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "none", borderRadius: "4px", background: "#003087", color: "#fff" }}>
-  <__Icon name="check" strokeWidth="1.75" width="10" height="10" />
-</span>Percentage advance</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 10px", fontSize: "11.5px", color: "#475569", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "1.5px solid #cbd5e1", borderRadius: "4px", background: "#fff", color: "#fff" }} />Required prepay (per product)</label>
+                                      <__Chk chip f={v.f} n="new_customer_full_payment" title="Full payment" />
+                                      <__Chk chip f={v.f} n="new_customer_delivery_charge_only" title="Delivery charge only" />
+                                      <__Chk chip f={v.f} n="new_customer_fixed_advance" title="Fixed advance" />
+                                      <__Chk chip f={v.f} n="new_customer_percentage_advance" title="Percentage advance" />
+                                      <__Chk chip f={v.f} n="new_customer_required_prepay" title="Required prepay (per product)" />
                                     </span>
                                   </div>
-                                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", border: "1px solid #e2e8f0", borderRadius: "9px", background: "#fff", padding: "11px 12px" }}>
+                                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "11px 12px" }}>
                                     <span style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
-                                      <span style={{ fontSize: "12.5px", fontWeight: "600", color: "#1e293b" }}>Returning customer</span>
-                                      <span style={{ fontSize: "11px", color: "#94a3b8" }}>At least one completed order</span>
+                                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Returning customer</span>
+                                      <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>At least one completed order</span>
                                     </span>
                                     <span style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #003087", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "0 10px", fontSize: "11.5px", fontWeight: "600", color: "#003087", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "none", borderRadius: "4px", background: "#003087", color: "#fff" }}>
-  <__Icon name="check" strokeWidth="1.75" width="10" height="10" />
-</span>Full payment</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #003087", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "0 10px", fontSize: "11.5px", fontWeight: "600", color: "#003087", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "none", borderRadius: "4px", background: "#003087", color: "#fff" }}>
-  <__Icon name="check" strokeWidth="1.75" width="10" height="10" />
-</span>Delivery charge only</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 10px", fontSize: "11.5px", color: "#475569", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "1.5px solid #cbd5e1", borderRadius: "4px", background: "#fff", color: "#fff" }} />Fixed advance</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #003087", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "0 10px", fontSize: "11.5px", fontWeight: "600", color: "#003087", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "none", borderRadius: "4px", background: "#003087", color: "#fff" }}>
-  <__Icon name="check" strokeWidth="1.75" width="10" height="10" />
-</span>Percentage advance</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 10px", fontSize: "11.5px", color: "#475569", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "1.5px solid #cbd5e1", borderRadius: "4px", background: "#fff", color: "#fff" }} />Required prepay (per product)</label>
+                                      <__Chk chip f={v.f} n="returning_customer_full_payment" title="Full payment" />
+                                      <__Chk chip f={v.f} n="returning_customer_delivery_charge_only" title="Delivery charge only" />
+                                      <__Chk chip f={v.f} n="returning_customer_fixed_advance" title="Fixed advance" />
+                                      <__Chk chip f={v.f} n="returning_customer_percentage_advance" title="Percentage advance" />
+                                      <__Chk chip f={v.f} n="returning_customer_required_prepay" title="Required prepay (per product)" />
                                     </span>
                                   </div>
-                                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", border: "1px solid #e2e8f0", borderRadius: "9px", background: "#fff", padding: "11px 12px" }}>
+                                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "11px 12px" }}>
                                     <span style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
-                                      <span style={{ fontSize: "12.5px", fontWeight: "600", color: "#1e293b" }}>Wholesale</span>
-                                      <span style={{ fontSize: "11px", color: "#94a3b8" }}>Merchant-tagged bulk buyer</span>
+                                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Wholesale</span>
+                                      <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Merchant-tagged bulk buyer</span>
                                     </span>
                                     <span style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #003087", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "0 10px", fontSize: "11.5px", fontWeight: "600", color: "#003087", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "none", borderRadius: "4px", background: "#003087", color: "#fff" }}>
-  <__Icon name="check" strokeWidth="1.75" width="10" height="10" />
-</span>Full payment</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 10px", fontSize: "11.5px", color: "#475569", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "1.5px solid #cbd5e1", borderRadius: "4px", background: "#fff", color: "#fff" }} />Delivery charge only</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #003087", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "0 10px", fontSize: "11.5px", fontWeight: "600", color: "#003087", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "none", borderRadius: "4px", background: "#003087", color: "#fff" }}>
-  <__Icon name="check" strokeWidth="1.75" width="10" height="10" />
-</span>Fixed advance</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 10px", fontSize: "11.5px", color: "#475569", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "1.5px solid #cbd5e1", borderRadius: "4px", background: "#fff", color: "#fff" }} />Percentage advance</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 10px", fontSize: "11.5px", color: "#475569", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "1.5px solid #cbd5e1", borderRadius: "4px", background: "#fff", color: "#fff" }} />Required prepay (per product)</label>
+                                      <__Chk chip f={v.f} n="wholesale_full_payment" title="Full payment" />
+                                      <__Chk chip f={v.f} n="wholesale_delivery_charge_only" title="Delivery charge only" />
+                                      <__Chk chip f={v.f} n="wholesale_fixed_advance" title="Fixed advance" />
+                                      <__Chk chip f={v.f} n="wholesale_percentage_advance" title="Percentage advance" />
+                                      <__Chk chip f={v.f} n="wholesale_required_prepay" title="Required prepay (per product)" />
                                     </span>
                                   </div>
-                                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", border: "1px solid #e2e8f0", borderRadius: "9px", background: "#fff", padding: "11px 12px" }}>
+                                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "11px 12px" }}>
                                     <span style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
-                                      <span style={{ fontSize: "12.5px", fontWeight: "600", color: "#1e293b" }}>VIP</span>
-                                      <span style={{ fontSize: "11px", color: "#94a3b8" }}>Merchant-tagged loyalty tier</span>
+                                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>VIP</span>
+                                      <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Merchant-tagged loyalty tier</span>
                                     </span>
                                     <span style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #003087", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "0 10px", fontSize: "11.5px", fontWeight: "600", color: "#003087", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "none", borderRadius: "4px", background: "#003087", color: "#fff" }}>
-  <__Icon name="check" strokeWidth="1.75" width="10" height="10" />
-</span>Full payment</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #003087", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "0 10px", fontSize: "11.5px", fontWeight: "600", color: "#003087", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "none", borderRadius: "4px", background: "#003087", color: "#fff" }}>
-  <__Icon name="check" strokeWidth="1.75" width="10" height="10" />
-</span>Delivery charge only</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #003087", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "0 10px", fontSize: "11.5px", fontWeight: "600", color: "#003087", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "none", borderRadius: "4px", background: "#003087", color: "#fff" }}>
-  <__Icon name="check" strokeWidth="1.75" width="10" height="10" />
-</span>Fixed advance</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #003087", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "0 10px", fontSize: "11.5px", fontWeight: "600", color: "#003087", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "none", borderRadius: "4px", background: "#003087", color: "#fff" }}>
-  <__Icon name="check" strokeWidth="1.75" width="10" height="10" />
-</span>Percentage advance</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", padding: "0 10px", fontSize: "11.5px", color: "#475569", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "1.5px solid #cbd5e1", borderRadius: "4px", background: "#fff", color: "#fff" }} />Required prepay (per product)</label>
+                                      <__Chk chip f={v.f} n="vip_full_payment" title="Full payment" />
+                                      <__Chk chip f={v.f} n="vip_delivery_charge_only" title="Delivery charge only" />
+                                      <__Chk chip f={v.f} n="vip_fixed_advance" title="Fixed advance" />
+                                      <__Chk chip f={v.f} n="vip_percentage_advance" title="Percentage advance" />
+                                      <__Chk chip f={v.f} n="vip_required_prepay" title="Required prepay (per product)" />
                                     </span>
                                   </div>
                                 </div>
@@ -650,45 +722,39 @@ export default class SetPaymentsScreen extends Component {
                               <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
                                 <span style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                                   <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                                    <span style={{ display: "block", fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>Category rules</span>
-                                    <span style={{ display: "block", paddingTop: "2px", fontSize: "12px", color: "#64748b" }}>Force different modes when specific product categories are in the cart. First matching rule wins.</span>
+                                    <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Category rules</span>
+                                    <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Force different modes when specific product categories are in the cart. First matching rule wins.</span>
                                   </span>
-                                  <button style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "8px", padding: "0 13px", fontFamily: "inherit", fontSize: "12.5px", fontWeight: "500", cursor: "pointer", border: "1px solid #cbd5e1", background: "#fff", color: "#1e293b" }}><__Icon name="plus" strokeWidth="1.75" width="15" height="15" />Add rule</button>
+                                  <button type="button" onClick={v.f.say("“Add rule” is not available in the demo yet.")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "1px solid #cbd5e1", background: "#fff", color: "#1e293b" }}><__Icon name="plus" strokeWidth="1.75" width="15" height="15" />Add rule</button>
                                 </span>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: "12px", border: "1px solid #e2e8f0", borderRadius: "9px", background: "#fff", padding: "10px 12px" }}>
-                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "26px", flex: "none", borderRadius: "7px", background: "#f1f5f9", padding: "0 9px", fontSize: "11.5px", fontWeight: "500", color: "#334155" }}><__Icon name="tag" strokeWidth="1.75" width="13" height="13" style={{ color: "#94a3b8" }} />{"Mobile & Electronics"}</span>
+                                  <div style={{ display: "flex", alignItems: "center", gap: "12px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "10px 12px" }}>
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "26px", flex: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#334155" }}><__Icon name="tag" strokeWidth="1.75" width="13" height="13" style={{ color: "var(--text-muted)" }} />{"Mobile & Electronics"}</span>
                                     <__Icon name="arrow-right" strokeWidth="1.75" width="15" height="15" style={{ flex: "none", color: "#cbd5e1" }} />
                                     <span style={{ flex: "1", minWidth: "0", display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #003087", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "0 10px", fontSize: "11.5px", fontWeight: "600", color: "#003087", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "none", borderRadius: "4px", background: "#003087", color: "#fff" }}>
-  <__Icon name="check" strokeWidth="1.75" width="10" height="10" />
-</span>Full payment</label>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #003087", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "0 10px", fontSize: "11.5px", fontWeight: "600", color: "#003087", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "none", borderRadius: "4px", background: "#003087", color: "#fff" }}>
-  <__Icon name="check" strokeWidth="1.75" width="10" height="10" />
-</span>Percentage advance</label>
+                                      <__Chk chip f={v.f} n="mobile_and_electronics_full_payment" title="Full payment" />
+                                      <__Chk chip f={v.f} n="mobile_and_electronics_percentage_advance" title="Percentage advance" />
                                     </span>
                                     <span style={{ flex: "none", display: "flex", gap: "5px" }}>
-                                      <button className="dc-h454" aria-label="Edit rule" title="Edit rule" style={{ width: "30px", height: "30px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "7px", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
+                                      <button type="button" onClick={v.f.say("“Edit rule” is not available in the demo yet.")} className="dc-h454" aria-label="Edit rule" title="Edit rule" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
                                         <__Icon name="pencil" strokeWidth="1.75" width="15" height="15" />
                                       </button>
-                                      <button className="dc-h455" aria-label="Delete rule" title="Delete rule" style={{ width: "30px", height: "30px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "7px", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
+                                      <button type="button" onClick={v.f.say("“Delete rule” is not available in the demo yet.")} className="dc-h455" aria-label="Delete rule" title="Delete rule" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
                                         <__Icon name="trash-2" strokeWidth="1.75" width="15" height="15" />
                                       </button>
                                     </span>
                                   </div>
-                                  <div style={{ display: "flex", alignItems: "center", gap: "12px", border: "1px solid #e2e8f0", borderRadius: "9px", background: "#fff", padding: "10px 12px" }}>
-                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "26px", flex: "none", borderRadius: "7px", background: "#f1f5f9", padding: "0 9px", fontSize: "11.5px", fontWeight: "500", color: "#334155" }}><__Icon name="tag" strokeWidth="1.75" width="13" height="13" style={{ color: "#94a3b8" }} />Grocery · Fresh</span>
+                                  <div style={{ display: "flex", alignItems: "center", gap: "12px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "10px 12px" }}>
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "26px", flex: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#334155" }}><__Icon name="tag" strokeWidth="1.75" width="13" height="13" style={{ color: "var(--text-muted)" }} />Grocery · Fresh</span>
                                     <__Icon name="arrow-right" strokeWidth="1.75" width="15" height="15" style={{ flex: "none", color: "#cbd5e1" }} />
                                     <span style={{ flex: "1", minWidth: "0", display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                                      <label style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "30px", border: "1px solid #003087", borderRadius: "8px", background: "rgba(0,48,135,.06)", padding: "0 10px", fontSize: "11.5px", fontWeight: "600", color: "#003087", cursor: "pointer" }}><span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", flex: "none", border: "none", borderRadius: "4px", background: "#003087", color: "#fff" }}>
-  <__Icon name="check" strokeWidth="1.75" width="10" height="10" />
-</span>Delivery charge only</label>
+                                      <__Chk chip f={v.f} n="grocery_fresh_delivery_charge_only" title="Delivery charge only" />
                                     </span>
                                     <span style={{ flex: "none", display: "flex", gap: "5px" }}>
-                                      <button className="dc-h456" aria-label="Edit rule" title="Edit rule" style={{ width: "30px", height: "30px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "7px", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
+                                      <button type="button" onClick={v.f.say("“Edit rule” is not available in the demo yet.")} className="dc-h456" aria-label="Edit rule" title="Edit rule" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
                                         <__Icon name="pencil" strokeWidth="1.75" width="15" height="15" />
                                       </button>
-                                      <button className="dc-h457" aria-label="Delete rule" title="Delete rule" style={{ width: "30px", height: "30px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "7px", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
+                                      <button type="button" onClick={v.f.say("“Delete rule” is not available in the demo yet.")} className="dc-h457" aria-label="Delete rule" title="Delete rule" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
                                         <__Icon name="trash-2" strokeWidth="1.75" width="15" height="15" />
                                       </button>
                                     </span>
@@ -699,186 +765,179 @@ export default class SetPaymentsScreen extends Component {
                           </div>
                         </div>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "13px", padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
-                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "9px", background: "#635bff", fontSize: "10.5px", fontWeight: "700", letterSpacing: ".02em", color: "#fff" }}>STR</span>
-                        <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                          <span style={{ display: "block", fontSize: "13.5px", fontWeight: "500", color: "#1e293b" }}>Stripe</span>
-                          <span style={{ display: "block", fontSize: "11.5px", color: "#64748b" }}>International cards · not configured</span>
+                      <div className="set-wrap" style={{ display: "flex", alignItems: "center", gap: "13px", padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
+                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#635bff", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", color: "#fff" }}>STR</span>
+                        <span className="set-row__text" style={{ display: "block", flex: "1", minWidth: "0" }}>
+                          <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Stripe</span>
+                          <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>International cards · not configured</span>
                         </span>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "9999px", padding: "0 8px", fontSize: "10.5px", fontWeight: "600", letterSpacing: ".02em", background: "#f1f5f9", color: "#64748b" }}>Not set up</span>
-                        <span style={{ flex: "none", width: "7px", height: "7px", borderRadius: "9999px", border: "1.5px solid #cbd5e1", boxSizing: "border-box" }} />
-                        <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "flex-start", width: "38px", height: "22px", borderRadius: "9999px", background: "#cbd5e1", padding: "2px", cursor: "pointer" }}>
-                          <span style={{ width: "18px", height: "18px", borderRadius: "9999px", background: "#fff", boxShadow: "0 1px 2px 0 rgba(15,23,42,.2)" }} />
-                        </span>
-                        <button className="dc-h458" aria-label="Expand" style={{ width: "30px", height: "30px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "7px", background: "none", color: "#94a3b8", cursor: "pointer" }}>
-                          <__Icon name="chevron-down" strokeWidth="1.75" width="17" height="17" />
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", ...v.badge("stripe").tone }}>{v.badge("stripe").text}</span>
+                        <span style={{ flex: "none", width: "7px", height: "7px", borderRadius: "var(--radius-full)", border: "1.5px solid #cbd5e1", boxSizing: "border-box" }} />
+                        <__Sw f={v.f} n="stripe" />
+                        <button className="dc-h458" {...v.f.disc("gw_stripe", false)} aria-label="Stripe settings" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>
+                          <__Icon name="chevron-down" className="set-chev" aria-hidden="true" strokeWidth="1.75" width="17" height="17" />
                         </button>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "13px", padding: "12px 16px" }}>
-                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "9px", background: "#003087", fontSize: "10.5px", fontWeight: "700", letterSpacing: ".02em", color: "#fff" }}>PP</span>
-                        <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                          <span style={{ display: "block", fontSize: "13.5px", fontWeight: "500", color: "#1e293b" }}>PayPal</span>
-                          <span style={{ display: "block", fontSize: "11.5px", color: "#64748b" }}>Export orders only · unavailable to BD-domiciled merchants</span>
+                      <div {...v.f.panel("gw_stripe", false)} style={{ borderBottom: "1px solid #f1f5f9", background: "#f8fafc", padding: "14px 16px" }}>{v.gateway("Stripe")}</div>
+                      <div className="set-wrap" style={{ display: "flex", alignItems: "center", gap: "13px", padding: "12px 16px" }}>
+                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#003087", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", color: "#fff" }}>PP</span>
+                        <span className="set-row__text" style={{ display: "block", flex: "1", minWidth: "0" }}>
+                          <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>PayPal</span>
+                          <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Export orders only · unavailable to BD-domiciled merchants</span>
                         </span>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "9999px", padding: "0 8px", fontSize: "10.5px", fontWeight: "600", letterSpacing: ".02em", background: "#f1f5f9", color: "#64748b" }}>Not set up</span>
-                        <span style={{ flex: "none", width: "7px", height: "7px", borderRadius: "9999px", border: "1.5px solid #cbd5e1", boxSizing: "border-box" }} />
-                        <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "flex-start", width: "38px", height: "22px", borderRadius: "9999px", background: "#cbd5e1", padding: "2px", cursor: "pointer" }}>
-                          <span style={{ width: "18px", height: "18px", borderRadius: "9999px", background: "#fff", boxShadow: "0 1px 2px 0 rgba(15,23,42,.2)" }} />
-                        </span>
-                        <button className="dc-h459" aria-label="Expand" style={{ width: "30px", height: "30px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "7px", background: "none", color: "#94a3b8", cursor: "pointer" }}>
-                          <__Icon name="chevron-down" strokeWidth="1.75" width="17" height="17" />
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", ...v.badge("paypal").tone }}>{v.badge("paypal").text}</span>
+                        <span style={{ flex: "none", width: "7px", height: "7px", borderRadius: "var(--radius-full)", border: "1.5px solid #cbd5e1", boxSizing: "border-box" }} />
+                        <__Sw f={v.f} n="paypal" />
+                        <button className="dc-h459" {...v.f.disc("gw_paypal", false)} aria-label="PayPal settings" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>
+                          <__Icon name="chevron-down" className="set-chev" aria-hidden="true" strokeWidth="1.75" width="17" height="17" />
                         </button>
                       </div>
+                      <div {...v.f.panel("gw_paypal", false)} style={{ borderBottom: "1px solid #f1f5f9", background: "#f8fafc", padding: "14px 16px" }}>{v.gateway("PayPal")}</div>
                     </section>
-                    <section id="s1" style={{ border: "1px solid #e2e8f0", borderRadius: "12px", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
+                    <section id="s1" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
-                          <span style={{ display: "block", fontSize: "15px", fontWeight: "600", letterSpacing: ".01em", color: "#1e293b" }}>Currency exchange rates</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "12px", color: "#64748b" }}>Base currency is BDT. Used for the AI spend cap, Stripe settlements and export-order pricing.</span>
+                          <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Currency exchange rates</span>
+                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Base currency is Bangladeshi Taka (৳, ISO code BDT). Used for the AI spend cap, Stripe settlements and export-order pricing.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
-                          <span style={{ fontSize: "11.5px", color: "#94a3b8" }}>Fetched 7 Sep, 6:00 am</span>
-                          <button style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "8px", padding: "0 13px", fontFamily: "inherit", fontSize: "12.5px", fontWeight: "500", cursor: "pointer", border: "none", background: "#f1f5f9", color: "#1e293b" }}><__Icon name="refresh-cw" strokeWidth="1.75" width="15" height="15" />Refresh rates</button>
+                          <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Fetched 7 Sep, 6:00 AM</span>
+                          <button type="button" onClick={v.f.say("Exchange rates are up to date. They were fetched today at 6:00 AM.")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#f1f5f9", color: "#1e293b" }}><__Icon name="refresh-cw" strokeWidth="1.75" width="15" height="15" />Refresh rates</button>
                         </span>
                       </div>
                       <div style={{ padding: "6px 0 10px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "0 16px 8px", fontSize: "10.5px", fontWeight: "600", letterSpacing: ".08em", textTransform: "uppercase", color: "#94a3b8" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "0 16px 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>
                           <span style={{ width: "60px", flex: "none" }}>Code</span>
                           <span style={{ flex: "1" }}>Currency</span>
                           <span style={{ width: "40px", flex: "none" }} />
                           <span style={{ width: "150px", flex: "none" }}>Rate in ৳</span>
                           <span style={{ width: "96px", flex: "none", textAlign: "right" }}>30-day</span>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "9px 16px", borderBottom: "1px solid #f1f5f9", fontSize: "12.5px" }}>
-                          <span style={{ width: "60px", flex: "none", fontFamily: "ui-monospace,SFMono-Regular,Menlo,monospace", fontWeight: "600", color: "#1e293b" }}>USD</span>
-                          <span style={{ flex: "1", minWidth: "0", color: "#64748b" }}>US Dollar</span>
-                          <span style={{ width: "40px", flex: "none", textAlign: "right", color: "#94a3b8" }}>1 USD</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "9px 16px", borderBottom: "1px solid #f1f5f9", fontSize: "var(--text-xs-plus)" }}>
+                          <span style={{ width: "60px", flex: "none", fontFamily: "var(--font-data)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>USD</span>
+                          <span style={{ flex: "1", minWidth: "0", color: "var(--text-muted)" }}>US Dollar</span>
+                          <span style={{ width: "40px", flex: "none", textAlign: "right", color: "var(--text-muted)" }}>1 USD</span>
                           <span style={{ width: "150px", flex: "none" }}>
-                            <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "32px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 11px", fontSize: "13.5px", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
-                              <__Icon name="equal" strokeWidth="1.75" width="15" height="15" style={{ color: "#94a3b8" }} />
-                              <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>121.40</span>
+                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                              <__Icon name="equal" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />
+                              <__In f={v.f} n="rate_usd" />
                             </span>
+                            <__Err f={v.f} n="rate_usd" />
                           </span>
-                          <span style={{ width: "96px", flex: "none", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#059669" }}>+0.9%</span>
+                          <span style={{ width: "96px", flex: "none", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--text-success)" }}>+0.9%</span>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "9px 16px", borderBottom: "1px solid #f1f5f9", fontSize: "12.5px" }}>
-                          <span style={{ width: "60px", flex: "none", fontFamily: "ui-monospace,SFMono-Regular,Menlo,monospace", fontWeight: "600", color: "#1e293b" }}>EUR</span>
-                          <span style={{ flex: "1", minWidth: "0", color: "#64748b" }}>Euro</span>
-                          <span style={{ width: "40px", flex: "none", textAlign: "right", color: "#94a3b8" }}>1 EUR</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "9px 16px", borderBottom: "1px solid #f1f5f9", fontSize: "var(--text-xs-plus)" }}>
+                          <span style={{ width: "60px", flex: "none", fontFamily: "var(--font-data)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>EUR</span>
+                          <span style={{ flex: "1", minWidth: "0", color: "var(--text-muted)" }}>Euro</span>
+                          <span style={{ width: "40px", flex: "none", textAlign: "right", color: "var(--text-muted)" }}>1 EUR</span>
                           <span style={{ width: "150px", flex: "none" }}>
-                            <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "32px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 11px", fontSize: "13.5px", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
-                              <__Icon name="equal" strokeWidth="1.75" width="15" height="15" style={{ color: "#94a3b8" }} />
-                              <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>131.20</span>
+                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                              <__Icon name="equal" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />
+                              <__In f={v.f} n="rate_eur" />
                             </span>
+                            <__Err f={v.f} n="rate_eur" />
                           </span>
-                          <span style={{ width: "96px", flex: "none", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#059669" }}>+1.4%</span>
+                          <span style={{ width: "96px", flex: "none", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--text-success)" }}>+1.4%</span>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "9px 16px", borderBottom: "1px solid #f1f5f9", fontSize: "12.5px" }}>
-                          <span style={{ width: "60px", flex: "none", fontFamily: "ui-monospace,SFMono-Regular,Menlo,monospace", fontWeight: "600", color: "#1e293b" }}>GBP</span>
-                          <span style={{ flex: "1", minWidth: "0", color: "#64748b" }}>Pound Sterling</span>
-                          <span style={{ width: "40px", flex: "none", textAlign: "right", color: "#94a3b8" }}>1 GBP</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "9px 16px", borderBottom: "1px solid #f1f5f9", fontSize: "var(--text-xs-plus)" }}>
+                          <span style={{ width: "60px", flex: "none", fontFamily: "var(--font-data)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>GBP</span>
+                          <span style={{ flex: "1", minWidth: "0", color: "var(--text-muted)" }}>Pound Sterling</span>
+                          <span style={{ width: "40px", flex: "none", textAlign: "right", color: "var(--text-muted)" }}>1 GBP</span>
                           <span style={{ width: "150px", flex: "none" }}>
-                            <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "32px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 11px", fontSize: "13.5px", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
-                              <__Icon name="equal" strokeWidth="1.75" width="15" height="15" style={{ color: "#94a3b8" }} />
-                              <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>154.75</span>
+                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                              <__Icon name="equal" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />
+                              <__In f={v.f} n="rate_gbp" />
                             </span>
+                            <__Err f={v.f} n="rate_gbp" />
                           </span>
-                          <span style={{ width: "96px", flex: "none", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#c2380f" }}>−0.3%</span>
+                          <span style={{ width: "96px", flex: "none", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--text-danger)" }}>−0.3%</span>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "9px 16px", fontSize: "12.5px" }}>
-                          <span style={{ width: "60px", flex: "none", fontFamily: "ui-monospace,SFMono-Regular,Menlo,monospace", fontWeight: "600", color: "#1e293b" }}>INR</span>
-                          <span style={{ flex: "1", minWidth: "0", color: "#64748b" }}>Indian Rupee</span>
-                          <span style={{ width: "40px", flex: "none", textAlign: "right", color: "#94a3b8" }}>1 INR</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "9px 16px", fontSize: "var(--text-xs-plus)" }}>
+                          <span style={{ width: "60px", flex: "none", fontFamily: "var(--font-data)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>INR</span>
+                          <span style={{ flex: "1", minWidth: "0", color: "var(--text-muted)" }}>Indian Rupee</span>
+                          <span style={{ width: "40px", flex: "none", textAlign: "right", color: "var(--text-muted)" }}>1 INR</span>
                           <span style={{ width: "150px", flex: "none" }}>
-                            <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "32px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 11px", fontSize: "13.5px", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
-                              <__Icon name="equal" strokeWidth="1.75" width="15" height="15" style={{ color: "#94a3b8" }} />
-                              <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>1.38</span>
+                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                              <__Icon name="equal" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />
+                              <__In f={v.f} n="rate_inr" />
                             </span>
+                            <__Err f={v.f} n="rate_inr" />
                           </span>
-                          <span style={{ width: "96px", flex: "none", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#059669" }}>+0.2%</span>
+                          <span style={{ width: "96px", flex: "none", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--text-success)" }}>+0.2%</span>
                         </div>
                       </div>
                     </section>
-                    <section id="s2" style={{ border: "1px solid #e2e8f0", borderRadius: "12px", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
+                    <section id="s2" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
-                          <span style={{ display: "block", fontSize: "15px", fontWeight: "600", letterSpacing: ".01em", color: "#1e293b" }}>Offline gateways</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "12px", color: "#64748b" }}>Customer pays outside the platform, then submits the transaction ID. Orders wait in “payment review”.</span>
+                          <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Offline gateways</span>
+                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Customer pays outside the platform, then submits the transaction ID. Orders wait in “payment review”.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "9999px", padding: "0 8px", fontSize: "10.5px", fontWeight: "600", letterSpacing: ".02em", background: "rgba(16,185,129,.14)", color: "#059669" }}>2 on</span>
-                          <button style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "8px", padding: "0 13px", fontFamily: "inherit", fontSize: "12.5px", fontWeight: "500", cursor: "pointer", border: "none", background: "#f1f5f9", color: "#1e293b" }}><__Icon name="plus" strokeWidth="1.75" width="15" height="15" />Add gateway</button>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(16,185,129,.14)", color: "var(--text-success)" }}>{v.offline} on</span>
+                          <button type="button" onClick={v.f.say("“Add gateway” is not available in the demo yet.")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#f1f5f9", color: "#1e293b" }}><__Icon name="plus" strokeWidth="1.75" width="15" height="15" />Add gateway</button>
                         </span>
                       </div>
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: "13px", padding: "13px 16px", borderBottom: "1px solid #f1f5f9" }}>
-                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "9px", background: "#e2136e", fontSize: "10.5px", fontWeight: "700", letterSpacing: ".02em", color: "#fff" }}>bK</span>
-                        <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                          <span style={{ display: "block", fontSize: "13.5px", fontWeight: "500", color: "#1e293b" }}>bKash send money</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "11.5px", lineHeight: "16px", color: "#64748b" }}>Instructions shown at checkout, in Bangla and English. 14 orders awaiting review.</span>
+                      <div className="set-wrap" style={{ display: "flex", alignItems: "flex-start", gap: "13px", padding: "13px 16px", borderBottom: "1px solid #f1f5f9" }}>
+                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#e2136e", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", color: "#fff" }}>bK</span>
+                        <span className="set-row__text" style={{ display: "block", flex: "1", minWidth: "0" }}>
+                          <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>bKash send money</span>
+                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Instructions shown at checkout, in Bangla and English. 14 orders awaiting review.</span>
                         </span>
                         <span style={{ width: "230px", flex: "none" }}>
-                          <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "32px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 11px", fontSize: "13.5px", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
-                            <__Icon name="smartphone" strokeWidth="1.75" width="15" height="15" style={{ color: "#94a3b8" }} />
-                            <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>01811-843300</span>
+                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                            <__Icon name="smartphone" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />
+                            <__In f={v.f} n="offline_bkash_number" />
                           </span>
+                          <__Err f={v.f} n="offline_bkash_number" />
                         </span>
-                        <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "flex-end", width: "38px", height: "22px", borderRadius: "9999px", background: "#003087", padding: "2px", cursor: "pointer" }}>
-                          <span style={{ width: "18px", height: "18px", borderRadius: "9999px", background: "#fff", boxShadow: "0 1px 2px 0 rgba(15,23,42,.3)" }} />
-                        </span>
+                        <__Sw f={v.f} n="bkash_send_money" />
                       </div>
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: "13px", padding: "13px 16px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-wrap" style={{ display: "flex", alignItems: "flex-start", gap: "13px", padding: "13px 16px", borderBottom: "1px solid #f1f5f9" }}>
                         <PaymentLogo provider="rocket" size={34} radius={9} decorative />
-                        <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                          <span style={{ display: "block", fontSize: "13.5px", fontWeight: "500", color: "#1e293b" }}>Rocket send money</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "11.5px", lineHeight: "16px", color: "#64748b" }}>Dutch-Bangla mobile banking. Account must include the trailing digit.</span>
+                        <span className="set-row__text" style={{ display: "block", flex: "1", minWidth: "0" }}>
+                          <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Rocket send money</span>
+                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Dutch-Bangla mobile banking. Account must include the trailing digit.</span>
                         </span>
                         <span style={{ width: "230px", flex: "none" }}>
-                          <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "32px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 11px", fontSize: "13.5px", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
-                            <__Icon name="smartphone" strokeWidth="1.75" width="15" height="15" style={{ color: "#94a3b8" }} />
-                            <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>018118433001</span>
+                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                            <__Icon name="smartphone" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />
+                            <__In f={v.f} n="offline_rocket_number" />
                           </span>
+                          <__Err f={v.f} n="offline_rocket_number" />
                         </span>
-                        <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "flex-start", width: "38px", height: "22px", borderRadius: "9999px", background: "#cbd5e1", padding: "2px", cursor: "pointer" }}>
-                          <span style={{ width: "18px", height: "18px", borderRadius: "9999px", background: "#fff", boxShadow: "0 1px 2px 0 rgba(15,23,42,.2)" }} />
-                        </span>
+                        <__Sw f={v.f} n="rocket_send_money" />
                       </div>
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: "13px", padding: "13px 16px" }}>
-                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "9px", background: "#0f172a", fontSize: "10.5px", fontWeight: "700", letterSpacing: ".02em", color: "#fff" }}>BNK</span>
-                        <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                          <span style={{ display: "block", fontSize: "13.5px", fontWeight: "500", color: "#1e293b" }}>Bank transfer</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "11.5px", lineHeight: "16px", color: "#64748b" }}>City Bank PLC · Feni branch · A/C Sellino Smart Commerce Ltd.</span>
+                      <div className="set-wrap" style={{ display: "flex", alignItems: "flex-start", gap: "13px", padding: "13px 16px" }}>
+                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#0f172a", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", color: "#fff" }}>BNK</span>
+                        <span className="set-row__text" style={{ display: "block", flex: "1", minWidth: "0" }}>
+                          <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Bank transfer</span>
+                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>City Bank PLC · Feni branch · A/C GridShop Smart Commerce Ltd.</span>
                         </span>
                         <span style={{ width: "230px", flex: "none" }}>
-                          <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "32px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", padding: "0 11px", fontSize: "13.5px", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
-                            <__Icon name="landmark" strokeWidth="1.75" width="15" height="15" style={{ color: "#94a3b8" }} />
-                            <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>1402 3387 9915 004</span>
+                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                            <__Icon name="landmark" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />
+                            <__In f={v.f} n="offline_bank_account" />
                           </span>
+                          <__Err f={v.f} n="offline_bank_account" />
                         </span>
-                        <span style={{ flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "flex-end", width: "38px", height: "22px", borderRadius: "9999px", background: "#003087", padding: "2px", cursor: "pointer" }}>
-                          <span style={{ width: "18px", height: "18px", borderRadius: "9999px", background: "#fff", boxShadow: "0 1px 2px 0 rgba(15,23,42,.3)" }} />
-                        </span>
+                        <__Sw f={v.f} n="bank_transfer" />
                       </div>
                     </section>
                   </main>
-                  <aside style={{ position: "sticky", top: "0", width: "186px", flex: "none", display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <span style={{ fontSize: "10.5px", fontWeight: "600", letterSpacing: ".11em", textTransform: "uppercase", color: "#94a3b8" }}>On this page</span>
+                  <aside className="set-toc" aria-label="On this page">
+                    <span style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>On this page</span>
                     <div style={{ display: "flex", flexDirection: "column", gap: "1px", borderLeft: "2px solid #e2e8f0" }}>
-                      <a href="#s0" style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "-2px", borderLeft: "2px solid #003087", padding: "6px 10px", fontSize: "12.5px", fontWeight: "600", color: "#003087", textDecoration: "none" }}>Online gateways<span style={{ marginLeft: "auto", fontSize: "11px", fontWeight: "400", color: "#94a3b8" }}>7 + 4</span></a>
-                      <a href="#s1" style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "-2px", borderLeft: "2px solid transparent", padding: "6px 10px", fontSize: "12.5px", color: "#64748b", textDecoration: "none" }}>Exchange rates<span style={{ marginLeft: "auto", fontSize: "11px", fontWeight: "400", color: "#94a3b8" }}>4</span></a>
-                      <a href="#s2" style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "-2px", borderLeft: "2px solid transparent", padding: "6px 10px", fontSize: "12.5px", color: "#64748b", textDecoration: "none" }}>Offline gateways<span style={{ marginLeft: "auto", fontSize: "11px", fontWeight: "400", color: "#94a3b8" }}>3</span></a>
+                      <a href="#s0" style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "-2px", borderLeft: "2px solid #003087", padding: "6px 10px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087", textDecoration: "none" }}>Online gateways<span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>7 + 4</span></a>
+                      <a href="#s1" style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "-2px", borderLeft: "2px solid transparent", padding: "6px 10px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", textDecoration: "none" }}>Exchange rates<span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>4</span></a>
+                      <a href="#s2" style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "-2px", borderLeft: "2px solid transparent", padding: "6px 10px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", textDecoration: "none" }}>Offline gateways<span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>3</span></a>
                     </div>
                     <span style={{ height: "1px", background: "#e2e8f0", margin: "4px 0" }} />
-                    <span style={{ fontSize: "11.5px", lineHeight: "17px", color: "#64748b" }}>Optional configuration keeps its values while collapsed. A gateway in Live mode is marked in red everywhere it appears.</span>
+                    <span style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Optional configuration keeps its values while collapsed. A gateway in Live mode is marked in red everywhere it appears.</span>
                   </aside>
                 </div>
-                <div style={{ flex: "none", display: "flex", alignItems: "center", gap: "14px", height: "64px", padding: "0 26px", borderTop: "1px solid #e2e8f0", background: "#fff", boxShadow: "0 -8px 22px -14px rgba(15,23,42,.25)" }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#475569" }}><__Icon name="circle-check" strokeWidth="1.75" width="17" height="17" style={{ color: "#10b981" }} />All changes saved<span style={{ color: "#94a3b8" }}>· 11:04 am by Ashiq Khan</span></span>
-                  <span style={{ flex: "1" }} />
-                  <span style={{ fontSize: "11.5px", color: "#94a3b8" }}>⌘S saves from anywhere on the page</span>
-                  <span style={{ display: "inline-flex", alignItems: "center", height: "40px", borderRadius: "8px", padding: "0 14px", fontSize: "13px", fontWeight: "500", color: "#cbd5e1", cursor: "not-allowed" }}>Discard</span>
-                  <span style={{ display: "inline-flex", alignItems: "center", height: "40px", borderRadius: "8px", background: "#f1f5f9", padding: "0 18px", fontSize: "13px", fontWeight: "500", letterSpacing: ".02em", color: "#94a3b8", cursor: "not-allowed" }}>Save changes</span>
-                </div>
-              </div>
+                <__SaveBar f={v.f} note="· 11:04 AM by Ashiq Khan" />
+              </form>
             </div>
           </div>
         </div>

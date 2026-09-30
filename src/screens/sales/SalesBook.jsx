@@ -2,11 +2,18 @@
 // Generated from design/templates/sales/SalesBook.dc.html by scripts/convert-design.mjs.
 // Sales book — Sales — Sales book. Imported from Retail Commerce and merged.
 // Edit freely: this file is now the source for the screen.
+// Real sales: counter sales from the POS register (gc.pos.sales) are listed above the demo memos for
+// the chosen dates, go through the same payment and staff filters (their cashiers are added to the staff
+// list), open in the same memo drawer, and are added to the KPI cards (sales, memos, profit at cost,
+// sold on due, returns).
 
 import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+import { POS_KEYS, load } from '@/lib/posStore';
+import { unitCost } from '@/lib/purchaseOrders';
+import { formatDate } from '@/lib/format';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -24,6 +31,7 @@ var AI = [["গতকাল কত বেচা হয়েছিল?", "How mu
 var NAVC = {"stock": "7", "customers": "12", "suppliers": "3"};
 
 class Component extends DCLogic {
+  componentDidMount() { this.setState({ pos: load(POS_KEYS.sales, []) }); }
   componentWillUnmount() { clearTimeout(this.t); }
   renderVals() {
     var self = this, s = this.state || {};
@@ -120,7 +128,7 @@ var bars, barTitle, peakLbl;
 if (rng === 'today' || rng === 'yday') {
   var hv = HOURS[rng], hmx = Math.max.apply(null, hv), hi = hv.indexOf(hmx);
   bars = hv.map(function (v, j) { var h = 8 + j; return { d: bn ? dg(h > 12 ? h - 12 : h, true) + 'টা' : (h > 12 ? h - 12 : h) + (h < 12 ? 'am' : 'pm'), v: kmoney(v), val: v, lab: tm(h, 0), on: j === hi }; });
-  barTitle = L('ঘণ্টা অনুযায়ী বেচা · সকাল ৮টা থেকে রাত ৯টা', 'Sales by hour · 8 am to 9 pm');
+  barTitle = L('ঘণ্টা অনুযায়ী বেচা · সকাল ৮টা থেকে রাত ৯টা', 'Sales by hour · 8:00 AM to 9:00 PM');
   peakLbl = L('সবচেয়ে বেশি: ', 'Busiest: ') + tm(8 + hi, 0) + ' · ' + money(hmx, bn);
 } else {
   var dv = rng === 'week' ? MONTH.slice(22) : rng === 'month' ? MONTH : MONTH.slice(0, 15);
@@ -136,37 +144,105 @@ var pf = {}; payList.forEach(function (o) { pf[o.k] = o; });
 var pfl = function (k) { return { isCash: k === 'cash', isBk: k === 'bkash', isNg: k === 'nagad', isCard: k === 'card', isDuePay: k === 'due' }; };
 var ranges = seg(self, [['today', 'আজ', 'Today'], ['yday', 'গতকাল', 'Yesterday'], ['week', 'এই সপ্তাহ', 'This week'], ['month', 'এই মাস', 'This month'], ['custom', 'তারিখ বাছুন', 'Pick dates']], rng, 'rng', i, 'chip');
 ranges.forEach(function (o) { o.pick = function () { self.setState({ rng: o.k, sel: 0 }); }; });
+
+// ---- real POS sales from this browser --------------------------------------------------------
+var POSL = s.pos || [];
+var DAYMS = 86400000;
+var d0 = new Date(); d0.setHours(0, 0, 0, 0); var today0 = d0.getTime();
+var parseD = function (txt) { var mm = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(unbn(String(txt || '')).trim()); return mm ? new Date(+mm[3], +mm[2] - 1, +mm[1]).getTime() : null; };
+var inRange = function (at) {
+  if (rng === 'today') return at >= today0;
+  if (rng === 'yday') return at >= today0 - DAYMS && at < today0;
+  if (rng === 'week') return at >= today0 - 6 * DAYMS;
+  if (rng === 'month') { var m0 = new Date(today0); m0.setDate(1); return at >= m0.getTime(); }
+  var f = parseD(s.fromTxt == null ? '01/09/2026' : s.fromTxt), tt = parseD(s.toTxt == null ? '15/09/2026' : s.toTxt);
+  return f != null && tt != null && at >= f && at < tt + DAYMS;
+};
+var tenders = function (x) { return (x.tenders || []).filter(function (tn) { return tn.amount > 0; }); };
+var payKey = function (x) {
+  if (x.due > 0) return 'due';
+  var ts = tenders(x).slice().sort(function (a, b) { return b.amount - a.amount; });
+  var mth = ts.length ? String(ts[0].method).toLowerCase() : 'cash';
+  return mth === 'bkash' ? 'bkash' : mth === 'nagad' || mth === 'rocket' ? 'nagad' : mth === 'card' ? 'card' : mth === 'cash' ? 'cash' : 'other';
+};
+var payLabel = function (x) {
+  var ms = tenders(x).map(function (tn) { return tn.method; }).filter(function (mth, j, a) { return a.indexOf(mth) === j; });
+  if (x.due > 0) return ms.length ? L('আংশিক বাকি', 'Part due') : PAY.due[i];
+  return ms.length ? ms.join(' + ') : PAY.cash[i];
+};
+var payLook = function (x) { var k = payKey(x); return PAY[k] || ['', '', '#eef2f6', '#475569']; };
+var costOf = function (x) { return (x.lines || []).reduce(function (a, l) { return a + unitCost(l.name) * l.qty; }, 0); };
+var custOf = function (x) { return (x.customer && x.customer.name) || CU.walk[i]; };
+var stamp = function (at) { var dt = new Date(at); return (rng === 'today' || rng === 'yday' ? '' : formatDate(at).replace(/ \d{4}$/, '') + ' · ') + tm(dt.getHours(), dt.getMinutes()); };
+var liveAll = POSL.filter(function (x) { return inRange(x.at); }).sort(function (a, b) { return b.at - a.at; });
+var live = liveAll.filter(function (x) {
+  return (payF === 'all' || payKey(x) === payF || tenders(x).some(function (tn) { return String(tn.method).toLowerCase() === payF; }))
+    && (stF === 'all' || 'pos:' + x.cashier === stF);
+});
+var liveShown = live.slice(0, 20);
+var cashiers = POSL.map(function (x) { return x.cashier; }).filter(function (n, j, a) { return n && a.indexOf(n) === j; });
+var lv = liveAll.reduce(function (a, x) {
+  var tot = (x.totals && x.totals.total) || 0;
+  var refs = (x.refunds || []).filter(function (rf) { return rf.amount > 0; });
+  return {
+    sales: a.sales + tot, memos: a.memos + 1, profit: a.profit + Math.max(0, tot - costOf(x)),
+    due: a.due + Math.max(0, x.due || 0), dueN: a.dueN + (x.due > 0 ? 1 : 0),
+    ret: a.ret + refs.reduce(function (n, rf) { return n + rf.amount; }, 0), retN: a.retN + refs.length
+  };
+}, { sales: 0, memos: 0, profit: 0, due: 0, dueN: 0, ret: 0, retN: 0 });
+r = assign(assign({}, r), { sales: r.sales + lv.sales, memos: r.memos + lv.memos, profit: r.profit + lv.profit, due: r.due + lv.due, dueN: r.dueN + lv.dueN, ret: r.ret + lv.ret, retN: r.retN + lv.retN });
+var selPos = typeof sel === 'string' && sel.indexOf('pos:') === 0 ? POSL.filter(function (x) { return 'pos:' + x.id === sel; })[0] || null : null;
+var posDetail = function (x) {
+  var tt = x.totals || {}, pl = payLook(x);
+  var disc = (tt.lineDisc || 0) + (tt.cartDisc || 0) + (tt.couponDisc || 0) + (tt.memberDisc || 0) + (tt.pointsDisc || 0);
+  var nm = custOf(x), phone = (x.customer && x.customer.phone) || '';
+  var n = (x.lines || []).length;
+  return assign(pfl(payKey(x)), {
+    title: L('মেমো ', 'Memo ') + x.id, when: formatDate(x.at) + ' · ' + tm(new Date(x.at).getHours(), new Date(x.at).getMinutes()) + (x.counter ? ' · ' + x.counter : ''),
+    pay: payLabel(x), pbg: pl[2], pfg: pl[3],
+    cust: nm, mobile: phone || t.noMobile, ini: x.customer && x.customer.name ? nm.slice(0, 1) : '?', cbg: x.customer && x.customer.name ? '#e0e9f7' : '#eef2f6', cfg: x.customer && x.customer.name ? '#003087' : '#64748b',
+    staff: x.cashier || '—', itemsN: n + (n === 1 ? ' item' : ' items'),
+    lines: (x.lines || []).map(function (l) { return { name: l.name, qp: l.qty + ' × ' + money(l.price, bn), total: money(l.price * l.qty - (l.disc || 0), bn) }; }),
+    sub: money(tt.gross || 0, bn), disc: money(disc, bn), grand: money(tt.total || 0, bn), paid: money(Math.max(0, (tt.total || 0) - Math.max(0, x.due || 0)), bn),
+    isDue: x.due > 0, due: money(Math.max(0, x.due || 0), bn)
+  });
+};
+
 return {
   excel: function () { toast(self, L('এক্সেল ফাইল বানানো হচ্ছে — ' + r.note[0] + ', ' + grp(r.memos) + 'টা মেমো। ডাউনলোডে পাবেন।', 'Building the Excel file — ' + r.note[1] + ', ' + grp(r.memos) + ' memos. Check your downloads.')); },
   ranges: ranges, isCustom: rng === 'custom',
   fromTxt: s.fromTxt == null ? dg('01/09/2026', bn) : s.fromTxt, toTxt: s.toTxt == null ? dg('15/09/2026', bn) : s.toTxt,
   typeFrom: function (e) { self.setState({ fromTxt: e.target.value }); }, typeTo: function (e) { self.setState({ toTxt: e.target.value }); },
   payF: payList, pf: pf,
-  staffF: seg(self, [['all', 'সব স্টাফ', 'All staff'], ['rina', 'রিনা', 'Rina'], ['babu', 'বাবু', 'Babu'], ['sumon', 'সুমন', 'Sumon'], ['owner', 'মোস্তাফিজ', 'Mostafiz']], stF, 'stF', i, 'chip'),
+  staffF: seg(self, [['all', 'সব স্টাফ', 'All staff'], ['rina', 'রিনা', 'Rina'], ['babu', 'বাবু', 'Babu'], ['sumon', 'সুমন', 'Sumon'], ['owner', 'মোস্তাফিজ', 'Mostafiz']].concat(cashiers.map(function (n) { return ['pos:' + n, n, n]; })), stF, 'stF', i, 'chip'),
   k: {
     rangeLbl: bn ? r.lbl[0] : r.lbl[1], sales: money(r.sales, bn), salesNote: r.note[i],
-    memos: grp(r.memos) + L('টা', ''), memosNote: L('গড় মেমো ', 'Average memo ') + money(Math.round(r.sales / r.memos), bn),
-    profit: money(r.profit, bn), profitNote: L('লাভের হার ', 'Margin ') + dg(Math.round(r.profit / r.sales * 100), bn) + '%',
+    memos: grp(r.memos) + L('টা', ''), memosNote: L('গড় ', 'avg ') + money(Math.round(r.sales / r.memos), bn),
+    profit: money(r.profit, bn), profitNote: dg(Math.round(r.profit / r.sales * 100), bn) + '%' + L(' হার', ' margin'),
     due: money(r.due, bn), dueNote: dg(r.dueN, bn) + L(' জন কাস্টমারের কাছে', r.dueN === 1 ? ' customer' : ' customers'),
-    ret: money(r.ret, bn), retNote: dg(r.retN, bn) + L('টা ফেরত / বদল', ' returns / exchanges')
+    ret: money(r.ret, bn), retNote: dg(r.retN, bn) + L('টা ফেরত', ' returns')
   },
   barTitle: barTitle, barPeak: peakLbl, barGap: few ? '10px' : '5px',
   bars: bars.map(function (b) { return { d: b.d, v: b.v, showV: few, tip: b.lab + ' · ' + money(b.val, bn), h: Math.max(4, Math.round(b.val / bmx * (few ? 58 : 76))) + 'px', bg: b.on ? '#003087' : '#c9d7ee', vfg: b.on ? '#003087' : '#64748b', dfg: b.on ? '#003087' : '#64748b', dfw: b.on ? 700 : 500 }; }),
-  caption: L('দেখাচ্ছে ', 'Showing ') + dg(shown.length, bn) + L('টা · ', ' · ') + L('মোট ' + grp(r.memos) + 'টা মেমো · নতুনগুলো আগে', grp(r.memos) + ' memos in all · newest first'),
-  noRows: shown.length === 0,
-  rows: shown.map(function (m) { var p = PAY[m[4]]; var open = function () { self.setState({ sel: m[0] }); };
-    return assign({ no: dg('#' + m[0], bn), time: (r.pre ? r.pre[i] : '') + tm(m[1], m[2]), cust: CU[m[3]][i], items: dg(m[6].length, bn) + L('টা', m[6].length === 1 ? ' item' : ' items'), pay: p[i], pbg: p[2], pfg: p[3], amt: money(total(m), bn), staff: ST[m[5]][i], bg: m[0] === sel ? '#eef3fb' : 'transparent', open: open }, pfl(m[4])); }),
+  caption: L('দেখাচ্ছে ', 'Showing ') + dg(liveShown.length + shown.length, bn) + L('টা · ', ' · ') + L('মোট ' + grp(r.memos) + 'টা মেমো · নতুনগুলো আগে', grp(r.memos) + ' memos in all · newest first'),
+  noRows: liveShown.length + shown.length === 0,
+  rows: liveShown.map(function (x) {
+    var pl = payLook(x), n = (x.lines || []).length, key = 'pos:' + x.id;
+    return assign({ no: x.id, time: stamp(x.at), cust: custOf(x), items: n + (n === 1 ? ' item' : ' items'), pay: payLabel(x), pbg: pl[2], pfg: pl[3], amt: money((x.totals && x.totals.total) || 0, bn), staff: x.cashier || '—', bg: key === sel ? '#eef3fb' : 'transparent', open: function () { self.setState({ sel: key }); } }, pfl(payKey(x)));
+  }).concat(shown.map(function (m) { var p = PAY[m[4]]; var open = function () { self.setState({ sel: m[0] }); };
+    return assign({ no: dg('#' + m[0], bn), time: (r.pre ? r.pre[i] : '') + tm(m[1], m[2]), cust: CU[m[3]][i], items: dg(m[6].length, bn) + L('টা', m[6].length === 1 ? ' item' : ' items'), pay: p[i], pbg: p[2], pfg: p[3], amt: money(total(m), bn), staff: ST[m[5]][i], bg: m[0] === sel ? '#eef3fb' : 'transparent', open: open }, pfl(m[4])); })),
   drawerOpen: !!s.sel, closeDrawer: function () { self.setState({ sel: 0 }); },
-  d: assign(pfl(dm[4]), {
+  retHref: selPos ? '/return-exchange?ref=' + encodeURIComponent(selPos.id) : '/return-exchange',
+  d: selPos ? posDetail(selPos) : assign(pfl(dm[4]), {
     title: L('মেমো ', 'Memo ') + dg('#' + dm[0], bn), when: whenOf(dm), pay: PAY[dm[4]][i], pbg: PAY[dm[4]][2], pfg: PAY[dm[4]][3],
     cust: CU[dm[3]][i], mobile: CU[dm[3]][2] ? dg(CU[dm[3]][2], bn) : t.noMobile, ini: dm[3] === 'walk' ? '?' : CU[dm[3]][i].slice(0, 1), cbg: dm[3] === 'walk' ? '#eef2f6' : '#e0e9f7', cfg: dm[3] === 'walk' ? '#64748b' : '#003087',
     staff: ST[dm[5]][i], itemsN: dg(dm[6].length, bn) + L('টা আইটেম', dm[6].length === 1 ? ' item' : ' items'),
     lines: dm[6].map(function (x) { var p = PR[x[0]]; return { name: p[i], qp: dg(x[1], bn) + ' × ' + money(p[2], bn), total: money(p[2] * x[1], bn) }; }),
     sub: money(dTot, bn), disc: money(0, bn), grand: money(dTot, bn), paid: money(dPaid, bn), isDue: dTot - dPaid > 0, due: money(dTot - dPaid, bn)
   }),
-  reprint: function () { toast(self, L('মেমো ' + dg('#' + dm[0], true) + ' আবার প্রিন্ট হচ্ছে।', 'Printing memo #' + dm[0] + ' again.')); },
+  reprint: function () { toast(self, selPos ? 'Printing memo ' + selPos.id + ' again.' : L('মেমো ' + dg('#' + dm[0], true) + ' আবার প্রিন্ট হচ্ছে।', 'Printing memo #' + dm[0] + ' again.')); },
   editMemo: function () { toast(self, L('মেমো ঠিক করার জন্য খুলছে। সেভ করলে পুরোনোটার পাশে "বদলানো" লেখা থাকবে।', 'Opening the memo for editing. The old version stays marked as "edited".')); },
-  sendSms: function () { toast(self, CU[dm[3]][2] ? L('মেমো SMS করা হলো: ' + dg(CU[dm[3]][2], true), 'Memo sent by SMS to ' + CU[dm[3]][2]) : L('এই কাস্টমারের মোবাইল নম্বর নেই।', 'This customer has no mobile number.')); }
+  sendSms: function () { if (selPos) { var ph = selPos.customer && selPos.customer.phone; toast(self, ph ? 'Memo sent by SMS to ' + ph : 'This customer has no mobile number.'); return; } toast(self, CU[dm[3]][2] ? L('মেমো SMS করা হলো: ' + dg(CU[dm[3]][2], true), 'Memo sent by SMS to ' + CU[dm[3]][2]) : L('এই কাস্টমারের মোবাইল নম্বর নেই।', 'This customer has no mobile number.')); }
 };
 
     })();
@@ -178,61 +254,74 @@ return {
 
 const CSS = `
 *{box-sizing:border-box}
-body{margin:0;background:#e9eef5;color:#0f172a;-webkit-font-smoothing:antialiased;font-family:'Hind Siliguri','Poppins',system-ui,sans-serif}
+body{margin:0;background:#e9eef5;color:#0f172a;-webkit-font-smoothing:antialiased;font-family:var(--font-bn)}
 a{color:#003087;text-decoration:none}
 button{font:inherit;color:inherit}
-.fbn{font-family:'Hind Siliguri','Poppins',system-ui,sans-serif}
-.fen{font-family:'Poppins','Hind Siliguri',system-ui,sans-serif}
+.fbn{font-family:var(--font-bn)}
+.fen{font-family:var(--font-sans)}
 .num{font-variant-numeric:tabular-nums}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-.card{background:#fff;border:1px solid #e6eaf0;border-radius:18px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 10px 28px -18px rgba(15,23,42,.14)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 20px;border-radius:12px;border:0;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap;text-decoration:none;transition:background-color 200ms,border-color 200ms}
+.mono{font-family:var(--font-data)}
+.card{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 10px 28px -18px rgba(15,23,42,.14)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;white-space:nowrap;text-decoration:none;transition:background-color 200ms,border-color 200ms}
 .solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
 .line{background:#fff;color:#0f172a;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#0f172a}
 .soft{background:#eef3fb;color:#003087}.soft:hover{background:#e0e9f7;color:#003087}
 .okb{background:#047857;color:#fff}.okb:hover{background:#065f46;color:#fff}
 .dang{background:#fff;color:#b83210;border:1px solid #f3b7a5}.dang:hover{background:#fff4f0;color:#b83210}
-.sm{height:38px;padding:0 14px;font-size:14px;border-radius:10px}
-.big{height:56px;padding:0 26px;font-size:17px;border-radius:14px}
-.ib{width:44px;height:44px;border-radius:12px;border:1px solid #e2e8f0;background:#fff;color:#334155;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-shrink:0}
+.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus);border-radius:var(--radius-lg)}
+.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus);border-radius:var(--radius-lg)}
+.ib{width:36px;height:36px;border-radius:var(--radius-full);border:1px solid #e2e8f0;background:#fff;color:#334155;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-shrink:0}
 .ib:hover{background:#f1f5f9}
-.seg{display:inline-flex;padding:4px;gap:2px;border-radius:12px;background:#e9eef5}
-.sgb{height:36px;padding:0 14px;border:0;border-radius:9px;background:transparent;font-size:14px;font-weight:500;color:#475569;cursor:pointer;white-space:nowrap}
-.sgb.on{background:#fff;color:#003087;font-weight:700;box-shadow:0 1px 3px rgba(15,23,42,.14)}
-.chip{height:38px;padding:0 14px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;font-size:14px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.seg{display:inline-flex;padding:4px;gap:2px;border-radius:var(--radius-xl);background:#e9eef5}
+.sgb{height:36px;padding:0 14px;border:0;border-radius:var(--radius-lg);background:transparent;font-size:var(--text-sm);font-weight:var(--weight-medium);color:#475569;cursor:pointer;white-space:nowrap}
+.sgb.on{background:#fff;color:#003087;font-weight:var(--weight-semibold);box-shadow:0 1px 3px rgba(15,23,42,.14)}
+.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:#eef3fb;color:#003087;font-weight:600}
-.pill{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap}
+.chip.on{border-color:#003087;background:#eef3fb;color:#003087;font-weight:var(--weight-medium)}
+.sb-filters{padding:10px 12px;display:flex;flex-direction:column;gap:10px}
+.sb-filters__row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.sb-seg{display:flex;align-items:center;gap:2px;margin-right:auto;padding:3px 3px 3px 12px;border-radius:var(--radius-lg);background:var(--slate-150);color:var(--text-muted);overflow-x:auto;scrollbar-width:none}
+.sb-seg svg{flex:none;margin-right:8px}
+.sb-seg button{flex:none;height:38px;padding:0 14px;border:0;border-radius:var(--radius-md);background:none;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-body);white-space:nowrap;cursor:pointer}
+.sb-seg button:hover{color:var(--text-heading)}
+.sb-seg button.is-on{background:#fff;color:var(--primary);box-shadow:0 1px 2px rgba(48,46,56,.12)}
+.sb-pick{position:relative;display:flex;align-items:center;gap:8px;height:44px;padding:0 0 0 12px;border:1px solid var(--border-field);border-radius:var(--radius-lg);background:var(--surface-card);color:var(--text-muted);font-size:var(--text-sm)}
+.sb-pick:focus-within{border-color:var(--primary)}
+.sb-pick svg{flex:none}
+.sb-pick select{height:100%;padding:0 32px 0 2px;border:0;background:transparent;font:inherit;font-weight:var(--weight-medium);color:var(--text-heading);appearance:none;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,var(--text-muted) 50%),linear-gradient(135deg,var(--text-muted) 50%,transparent 50%);background-position:calc(100% - 17px) 19px,calc(100% - 12px) 19px;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+.sb-pick select:focus{outline:none}
+@media (max-width:767px){.sb-seg{width:100%;margin-right:0}.sb-pick{flex:1}}
+.pill{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-full);font-size:var(--text-xs-plus);font-weight:var(--weight-medium);white-space:nowrap}
 .p-ok{background:#e7f8f1;color:#047857}.p-due{background:#ffece6;color:#b83210}.p-warn{background:#fff4e0;color:#a14f06}.p-info{background:#eef3fb;color:#003087}.p-grey{background:#eef2f6;color:#475569}.p-bk{background:#fdecf5;color:#a3195b}
-.inp{width:100%;height:48px;padding:0 14px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;font:inherit;font-size:15px;color:#0f172a}
+.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#0f172a}
 .inp:focus{outline:none;border-color:#003087;box-shadow:0 0 0 3px rgba(0,48,135,.12)}
-.inp::placeholder{color:#64748b}
-.lbl{font-size:14px;font-weight:600;color:#334155}
+.inp::placeholder{color:var(--text-muted)}
+.lbl{font-size:var(--text-sm);font-weight:var(--weight-medium);color:#334155}
 .fld{display:flex;flex-direction:column;gap:6px;min-width:0}
-.hint{font-size:13px;line-height:18px;color:#64748b}
+.hint{font-size:var(--text-xs-plus);line-height:18px;color:var(--text-muted)}
 .req{color:#b83210}
-.th{font-size:13px;font-weight:600;color:#64748b;text-align:left;padding:10px 14px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:12px 14px;border-bottom:1px solid #f1f5f9;font-size:15px;vertical-align:middle}
+.th{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted);text-align:left;padding:10px 14px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.td{padding:12px 14px;border-bottom:1px solid #f1f5f9;font-size:var(--text-sm);vertical-align:middle}
 .trow:hover{background:#f8fafc}
-.h1{margin:0;font-size:26px;line-height:34px;font-weight:700}
-.h2{margin:0;font-size:18px;line-height:24px;font-weight:700}
-.sub{font-size:14.5px;color:#64748b}
+.h1{margin:0;font-size:var(--text-2xl);line-height:34px;font-weight:var(--weight-semibold)}
+.h2{margin:0;font-size:var(--text-lg);line-height:24px;font-weight:var(--weight-semibold)}
+.sub{font-size:var(--text-sm-plus);color:var(--text-muted)}
 .kpi{padding:18px 20px;display:flex;flex-direction:column;gap:4px}
-.kpi .k{font-size:14.5px;color:#475569;font-weight:500}
-.kpi .v{font-size:28px;line-height:36px;font-weight:700;font-variant-numeric:tabular-nums}
-.sw{position:relative;width:48px;height:28px;border-radius:999px;border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms}
+.kpi .k{font-size:var(--text-sm-plus);color:#475569;font-weight:var(--weight-medium)}
+.kpi .v{font-size:var(--text-3xl);line-height:36px;font-weight:var(--weight-semibold);font-variant-numeric:tabular-nums}
+.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms}
 .sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
 .tabl{display:flex;gap:4px;border-bottom:1px solid #e2e8f0}
-.tl{position:relative;height:46px;padding:0 14px;border:0;background:transparent;font-size:15px;font-weight:500;color:#64748b;cursor:pointer;white-space:nowrap}
-.tl.on{color:#003087;font-weight:700}.tl.on::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:#003087}
+.tl{position:relative;height:44px;padding:0 14px;border:0;background:transparent;font-size:var(--text-sm-plus);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;white-space:nowrap}
+.tl.on{color:#003087;font-weight:var(--weight-semibold)}.tl.on::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:#003087}
 .row{display:flex;align-items:center;gap:12px;padding:14px 16px}
 .row + .row{border-top:1px solid #eef2f6}
-.bar{height:8px;border-radius:999px;background:#eef2f6;overflow:hidden;display:block}.bar>span{display:block;height:8px;border-radius:999px}
-.note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:14px;line-height:20px}
+.bar{height:8px;border-radius:var(--radius-full);background:#eef2f6;overflow:hidden;display:block}.bar>span{display:block;height:8px;border-radius:var(--radius-full)}
+.note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:var(--radius-xl);font-size:var(--text-sm);line-height:20px}
 .n-info{background:#eef3fb;color:#1e3a6e}.n-warn{background:#fff8eb;color:#7a3b04;border:1px solid #fde3b5}.n-ok{background:#e7f8f1;color:#065f46}.n-due{background:#fff4f0;color:#8a2a0d;border:1px solid #f7c9bb}
-.chipq{height:38px;padding:0 12px;border-radius:999px;border:1px solid #d6e0ef;background:#f5f8ff;color:#003087;font-size:13.5px;font-weight:500;cursor:pointer;white-space:nowrap}
-.wave span{display:inline-block;width:4px;margin:0 2px;border-radius:4px;background:#003087;animation:wv 900ms ease-in-out infinite}
+.chipq{height:36px;padding:0 12px;border-radius:var(--radius-full);border:1px solid #d6e0ef;background:#f5f8ff;color:#003087;font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;white-space:nowrap}
+.wave span{display:inline-block;width:4px;margin:0 2px;border-radius:var(--radius-sm);background:#003087;animation:wv 900ms ease-in-out infinite}
 .wave span:nth-child(2){animation-delay:.15s}.wave span:nth-child(3){animation-delay:.3s}.wave span:nth-child(4){animation-delay:.45s}.wave span:nth-child(5){animation-delay:.6s}
 @keyframes wv{0%,100%{height:8px}50%{height:26px}}
 .fade{animation:fd 240ms cubic-bezier(0,0,.2,1)}
@@ -240,32 +329,32 @@ button{font:inherit;color:inherit}
 .btn:focus-visible,.ib:focus-visible,.sgb:focus-visible,.chip:focus-visible,.tl:focus-visible,.sw:focus-visible,.chipq:focus-visible,a:focus-visible,button:focus-visible{outline:3px solid rgba(0,48,135,.45);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
 
-.nav{display:flex;align-items:center;gap:11px;height:38px;padding:0 10px;border-radius:10px;color:#334155;font-size:14.5px;font-weight:500;text-decoration:none;transition:background-color 200ms,color 200ms}
+.nav{display:flex;align-items:center;gap:11px;height:38px;padding:0 10px;border-radius:var(--radius-lg);color:#334155;font-size:var(--text-sm-plus);font-weight:var(--weight-medium);text-decoration:none;transition:background-color 200ms,color 200ms}
 .nav:hover{background:#f1f5f9;color:#0f172a}
-.nav.on{background:rgba(0,48,135,.09);color:#003087;font-weight:700}
-.nav .cnt{margin-left:auto;min-width:24px;height:21px;padding:0 7px;border-radius:999px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
-.navh{font-size:12px;font-weight:600;letter-spacing:.04em;color:#64748b;padding:12px 10px 2px}
-.act{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:16px;border-radius:16px;border:1px solid #e6eaf0;background:#fff;cursor:pointer;text-align:left;text-decoration:none;color:#0f172a;transition:border-color 200ms,box-shadow 200ms}
+.nav.on{background:rgba(0,48,135,.09);color:#003087;font-weight:var(--weight-semibold)}
+.nav .cnt{margin-left:auto;min-width:24px;height:21px;padding:0 7px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
+.navh{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:.04em;color:var(--text-muted);padding:12px 10px 2px}
+.act{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:16px;border-radius:var(--radius-xl);border:1px solid #e6eaf0;background:#fff;cursor:pointer;text-align:left;text-decoration:none;color:#0f172a;transition:border-color 200ms,box-shadow 200ms}
 .act:hover{border-color:#003087;box-shadow:0 8px 20px -12px rgba(0,48,135,.35);color:#0f172a}
-.act .ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center}
+.act .ic{width:44px;height:44px;border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center}
 .alert{display:flex;align-items:center;gap:14px;padding:12px 16px;border-top:1px solid #eef2f6}
-.abtn{height:38px;padding:0 14px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;font-size:14px;font-weight:600;color:#003087;cursor:pointer;white-space:nowrap}
+.abtn{height:36px;padding:0 14px;border-radius:var(--radius-lg);border:1px solid #cbd5e1;background:#fff;font-size:var(--text-sm);font-weight:var(--weight-medium);color:#003087;cursor:pointer;white-space:nowrap}
 .abtn:hover{background:#f1f5f9}
-.mic{position:absolute;right:28px;bottom:28px;height:60px;padding:0 22px 0 8px;border-radius:999px;border:0;background:#003087;color:#fff;display:flex;align-items:center;gap:12px;font-size:16px;font-weight:600;cursor:pointer;box-shadow:0 16px 32px -12px rgba(0,48,135,.6);z-index:20}
-.mic .dotc{width:44px;height:44px;border-radius:999px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center}
+.mic{position:absolute;right:28px;bottom:28px;height:60px;padding:0 22px 0 8px;border-radius:var(--radius-full);border:0;background:#003087;color:#fff;display:flex;align-items:center;gap:12px;font-size:var(--text-base);font-weight:var(--weight-semibold);cursor:pointer;box-shadow:0 16px 32px -12px rgba(0,48,135,.6);z-index:20}
+.mic .dotc{width:44px;height:44px;border-radius:var(--radius-full);background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center}
 .scrim{position:absolute;inset:0;background:rgba(15,23,42,.42);z-index:15}
 .drawer{position:absolute;top:0;right:0;bottom:0;width:520px;background:#fff;z-index:16;display:flex;flex-direction:column;box-shadow:-20px 0 50px -20px rgba(15,23,42,.35)}
-.modal{position:absolute;left:50%;top:120px;transform:translateX(-50%);width:560px;background:#fff;border-radius:20px;z-index:16;box-shadow:0 30px 70px -20px rgba(15,23,42,.45)}
+.modal{position:absolute;left:50%;top:120px;transform:translateX(-50%);width:560px;background:#fff;border-radius:var(--radius-xl);z-index:16;box-shadow:0 30px 70px -20px rgba(15,23,42,.45)}
 
 /* merged: English, compact controls, GridAI button */
-body{font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif}
-.btn{height:40px;padding:0 16px;font-size:14px;border-radius:10px}
-.btn.sm,.sm{height:34px;padding:0 12px;font-size:13px;border-radius:9px}
-.btn.big,.big{height:48px;padding:0 22px;font-size:15px;border-radius:12px}
-.ib{width:40px;height:40px;border-radius:10px}
-.chip{height:34px;padding:0 12px;font-size:13px}
-.sgb{height:32px;padding:0 12px;font-size:13px}
-.gfab{position:absolute;right:28px;bottom:28px;z-index:20;display:inline-flex;align-items:center;gap:10px;height:52px;padding:0 20px 0 16px;border-radius:999px;background:#003087;color:#fff;font-size:15px;font-weight:600;text-decoration:none;box-shadow:0 14px 30px -12px rgba(0,48,135,.6)}
+body{font-family:var(--font-sans)}
+.btn{height:44px;padding:0 18px;font-size:var(--text-sm);border-radius:var(--radius-lg)}
+.btn.sm,.sm{height:34px;padding:0 12px;font-size:var(--text-xs-plus);border-radius:var(--radius-lg)}
+.btn.big,.big{height:48px;padding:0 22px;font-size:var(--text-sm-plus);border-radius:var(--radius-xl)}
+.ib{width:36px;height:36px;border-radius:var(--radius-full)}
+.chip{height:36px;padding:0 14px;font-size:var(--text-xs-plus)}
+.sgb{height:32px;padding:0 12px;font-size:var(--text-xs-plus)}
+.gfab{position:absolute;right:28px;bottom:28px;z-index:20;display:inline-flex;align-items:center;gap:10px;height:52px;padding:0 20px 0 16px;border-radius:var(--radius-full);background:#003087;color:#fff;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);text-decoration:none;box-shadow:0 14px 30px -12px rgba(0,48,135,.6)}
 .gfab:hover{background:#002a77;color:#fff}
 .gfab:focus-visible{outline:3px solid rgba(0,48,135,.45);outline-offset:3px}
 .th,.td{white-space:normal}
@@ -279,13 +368,13 @@ export default class SalesBookScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="SalesBook">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className={v.rootCls} style={{ width: "1440px", height: "1350px", position: "relative", background: "#e9eef5", padding: "12px", display: "flex", gap: "12px", overflow: "hidden" }}>
+        <div className={"gc-shell " + (v.rootCls || "")} style={{ position: "relative", background: "#e9eef5", padding: "12px", display: "flex", gap: "12px" }}>
           <__Sidebar sticky="" active="sales-book" />
-          <main style={{ flexGrow: "1", minWidth: "0", background: "#f6f8fb", borderRadius: "18px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
+          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f6f8fb", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", position: "relative" }}>
             <__Topbar crumb="Sales" page="Sales book" placeholder="Search products, customers or memo no." />
-            <div style={{ flexGrow: "1", minHeight: "0", padding: "22px 28px 28px", display: "flex", flexDirection: "column", gap: "18px" }}>
+            <div className="gc-shell__content" style={{ flexGrow: "1", minHeight: "0", padding: "22px 28px 28px", display: "flex", flexDirection: "column", gap: "18px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <span style={{ width: "52px", height: "52px", borderRadius: "15px", background: "#fff", border: "1px solid #e6eaf0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: "0" }}>
+                <span style={{ width: "52px", height: "52px", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e6eaf0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: "0" }}>
                   <svg width="38" height="38" viewBox="0 0 48 48" aria-hidden="true">
                     <path d="M12 5H32A3 3 0 0 1 35 8V39A3 3 0 0 1 32 42H12A3 3 0 0 1 9 39V8A3 3 0 0 1 12 5Z" fill="#0ea5e9" />
                     <path d="M11.5 5H12.5A2.5 2.5 0 0 1 15 7.5V39.5A2.5 2.5 0 0 1 12.5 42H11.5A2.5 2.5 0 0 1 9 39.5V7.5A2.5 2.5 0 0 1 11.5 5Z" fill="#003087" />
@@ -305,182 +394,91 @@ export default class SalesBookScreen extends Component {
                 <button type="button" className="btn line" onClick={v.excel}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M12 5v14M5 12l7 7 7-7" />
 </svg>{v.t?.excel}</button>
-                <__Link href="/new-sale" className="btn solid"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <__Link href="/pos" className="btn solid"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M12 5v14M5 12h14" />
 </svg>{v.t?.newSale}</__Link>
               </div>
-              <section className="card" style={{ padding: "14px 18px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                  <span className="lbl" style={{ width: "100px", flexShrink: "0", display: "flex", alignItems: "center", gap: "8px" }}><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true">
-  <path d="M10 8H38A5 5 0 0 1 43 13V37A5 5 0 0 1 38 42H10A5 5 0 0 1 5 37V13A5 5 0 0 1 10 8Z" fill="#e0f2fe" />
-  <path d="M10.5 9.5H37.5A4 4 0 0 1 41.5 13.5V36.5A4 4 0 0 1 37.5 40.5H10.5A4 4 0 0 1 6.5 36.5V13.5A4 4 0 0 1 10.5 9.5Z" fill="#ffffff" />
-  <path d="M10 8H38A5 5 0 0 1 43 13V14A5 5 0 0 1 38 19H10A5 5 0 0 1 5 14V13A5 5 0 0 1 10 8Z" fill="#0ea5e9" />
-  <path d="M5 14h38v5h-38Z" fill="#0ea5e9" />
-  <path d="M14.7 4H14.7A1.7 1.7 0 0 1 16.4 5.7V11.3A1.7 1.7 0 0 1 14.7 13H14.7A1.7 1.7 0 0 1 13 11.3V5.7A1.7 1.7 0 0 1 14.7 4Z" fill="#003087" />
-  <path d="M33.7 4H33.699999999999996A1.7 1.7 0 0 1 35.4 5.7V11.3A1.7 1.7 0 0 1 33.699999999999996 13H33.7A1.7 1.7 0 0 1 32 11.3V5.7A1.7 1.7 0 0 1 33.7 4Z" fill="#003087" />
-  <path d="M12.2 23H15.8A1.2 1.2 0 0 1 17 24.2V26.8A1.2 1.2 0 0 1 15.8 28H12.2A1.2 1.2 0 0 1 11 26.8V24.2A1.2 1.2 0 0 1 12.2 23Z" fill="#e0f2fe" />
-  <path d="M22.2 23H25.8A1.2 1.2 0 0 1 27 24.2V26.8A1.2 1.2 0 0 1 25.8 28H22.2A1.2 1.2 0 0 1 21 26.8V24.2A1.2 1.2 0 0 1 22.2 23Z" fill="#e0f2fe" />
-  <path d="M32.2 23H35.8A1.2 1.2 0 0 1 37 24.2V26.8A1.2 1.2 0 0 1 35.8 28H32.2A1.2 1.2 0 0 1 31 26.8V24.2A1.2 1.2 0 0 1 32.2 23Z" fill="#0ea5e9" />
-  <path d="M12.2 32H15.8A1.2 1.2 0 0 1 17 33.2V35.8A1.2 1.2 0 0 1 15.8 37H12.2A1.2 1.2 0 0 1 11 35.8V33.2A1.2 1.2 0 0 1 12.2 32Z" fill="#e0f2fe" />
-  <path d="M22.2 32H25.8A1.2 1.2 0 0 1 27 33.2V35.8A1.2 1.2 0 0 1 25.8 37H22.2A1.2 1.2 0 0 1 21 35.8V33.2A1.2 1.2 0 0 1 22.2 32Z" fill="#e0f2fe" />
-  <path d="M32.2 32H35.8A1.2 1.2 0 0 1 37 33.2V35.8A1.2 1.2 0 0 1 35.8 37H32.2A1.2 1.2 0 0 1 31 35.8V33.2A1.2 1.2 0 0 1 32.2 32Z" fill="#e0f2fe" />
-</svg>{v.t?.fDate}</span>
-                  {__list(v.ranges).map((r, $index) => (<React.Fragment key={$index}>
-                      <button type="button" className={r?.cls} aria-pressed={r?.on} onClick={r?.pick}>{r?.l}</button>
-                    </React.Fragment>))}
-                  {v.isCustom ? (<>
-                    <div className="fade" style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "8px", paddingLeft: "14px", borderLeft: "1px solid #e2e8f0" }}>
+              <section className="card sb-filters">
+                <div className="sb-filters__row">
+                  <div className="sb-seg" role="group" aria-label={v.t?.fDate}>
+                    <__Icon name="calendar-days" width="16" height="16" aria-hidden="true" />
+                    {__list(v.ranges).map((r, $index) => (
+                      <button key={$index} type="button" className={r?.on ? 'is-on' : ''} aria-pressed={r?.on} onClick={r?.pick}>{r?.l}</button>
+                    ))}
+                  </div>
+                  <label className="sb-pick">
+                    <__Icon name="wallet" width="16" height="16" aria-hidden="true" />
+                    <span>{v.t?.fPay}</span>
+                    <select aria-label={v.t?.fPay} value={String(Math.max(0, __list(v.payF).findIndex((o) => o?.on)))} onChange={(e) => { const o = __list(v.payF)[Number(e.target.value)]; if (o && o.pick) o.pick(); }}>
+                      {__list(v.payF).map((o, $index) => (<option key={$index} value={String($index)}>{o?.l}</option>))}
+                    </select>
+                  </label>
+                  <label className="sb-pick">
+                    <__Icon name="user-round" width="16" height="16" aria-hidden="true" />
+                    <span>{v.t?.fStaff}</span>
+                    <select aria-label={v.t?.fStaff} value={String(Math.max(0, __list(v.staffF).findIndex((o) => o?.on)))} onChange={(e) => { const o = __list(v.staffF)[Number(e.target.value)]; if (o && o.pick) o.pick(); }}>
+                      {__list(v.staffF).map((o, $index) => (<option key={$index} value={String($index)}>{o?.l}</option>))}
+                    </select>
+                  </label>
+                </div>
+                {v.isCustom ? (<>
+                    <div className="fade" style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                       <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                         <span className="lbl">{v.t?.from}</span>
-                        <span style={{ display: "flex", alignItems: "center", gap: "6px", height: "38px", padding: "0 10px", border: "1px solid #cbd5e1", borderRadius: "10px", background: "#fff", color: "#475569" }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: "6px", height: "38px", padding: "0 10px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", color: "#475569" }}>
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <path d="M3 5h18v16H3zM16 3v4M8 3v4M3 10h18" />
                           </svg>
-                          <input className="num" value={v.fromTxt} onInput={v.typeFrom} onChange={v.typeFrom} aria-label={v.t?.from} style={{ width: "118px", border: "0", outline: "none", font: "inherit", fontSize: "14.5px", color: "#0f172a", background: "transparent" }} />
+                          <input className="num" value={v.fromTxt} onInput={v.typeFrom} onChange={v.typeFrom} aria-label={v.t?.from} style={{ width: "118px", border: "0", outline: "none", font: "inherit", fontSize: "var(--text-sm-plus)", color: "#0f172a", background: "transparent" }} />
                         </span>
                       </label>
                       <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                         <span className="lbl">{v.t?.to}</span>
-                        <span style={{ display: "flex", alignItems: "center", gap: "6px", height: "38px", padding: "0 10px", border: "1px solid #cbd5e1", borderRadius: "10px", background: "#fff", color: "#475569" }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: "6px", height: "38px", padding: "0 10px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", color: "#475569" }}>
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <path d="M3 5h18v16H3zM16 3v4M8 3v4M3 10h18" />
                           </svg>
-                          <input className="num" value={v.toTxt} onInput={v.typeTo} onChange={v.typeTo} aria-label={v.t?.to} style={{ width: "118px", border: "0", outline: "none", font: "inherit", fontSize: "14.5px", color: "#0f172a", background: "transparent" }} />
+                          <input className="num" value={v.toTxt} onInput={v.typeTo} onChange={v.typeTo} aria-label={v.t?.to} style={{ width: "118px", border: "0", outline: "none", font: "inherit", fontSize: "var(--text-sm-plus)", color: "#0f172a", background: "transparent" }} />
                         </span>
                       </label>
                     </div>
-                  </>) : null}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                  <span className="lbl" style={{ width: "100px", flexShrink: "0", display: "flex", alignItems: "center", gap: "8px" }}><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true">
-  <path d="M5 18a12 12 0 1 0 24 0a12 12 0 1 0 -24 0Z" fill="#e0f2fe" />
-  <path d="M19 30a12 12 0 1 0 24 0a12 12 0 1 0 -24 0Z" fill="#e0f2fe" />
-  <path d="M17 24V12M12 16.5l5 -5 5 5" fill="none" stroke="#003087" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-  <path d="M31 24V36M26 31.5l5 5 5 -5" fill="none" stroke="#0ea5e9" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-</svg>{v.t?.fPay}</span>
-                  <button type="button" className={v.pf?.all?.cls} aria-pressed={v.pf?.all?.on} onClick={v.pf?.all?.pick} style={{ padding: "0 14px 0 8px" }}><span style={{ color: "#64748b", display: "flex" }}>
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M3 6h18M7 12h10M10 18h4" />
-  </svg>
-</span>{v.pf?.all?.l}</button>
-                  <button type="button" className={v.pf?.cash?.cls} aria-pressed={v.pf?.cash?.on} onClick={v.pf?.cash?.pick} style={{ padding: "0 14px 0 8px" }}><svg width="22" height="22" viewBox="0 0 48 48" aria-hidden="true">
-  <path d="M6.5 13H41.5A3.5 3.5 0 0 1 45 16.5V33.5A3.5 3.5 0 0 1 41.5 37H6.5A3.5 3.5 0 0 1 3 33.5V16.5A3.5 3.5 0 0 1 6.5 13Z" fill="#003087" />
-  <path d="M8.5 16H39.5A2.5 2.5 0 0 1 42 18.5V31.5A2.5 2.5 0 0 1 39.5 34H8.5A2.5 2.5 0 0 1 6 31.5V18.5A2.5 2.5 0 0 1 8.5 16Z" fill="#0ea5e9" />
-  <path d="M18 25a6 6 0 1 0 12 0a6 6 0 1 0 -12 0Z" fill="#e0f2fe" />
-  <path d="M24.0 21H24.0A1.2 1.2 0 0 1 25.2 22.2V27.8A1.2 1.2 0 0 1 24.0 29H24.0A1.2 1.2 0 0 1 22.8 27.8V22.2A1.2 1.2 0 0 1 24.0 21Z" fill="#003087" />
-  <path d="M8.5 25a2 2 0 1 0 4 0a2 2 0 1 0 -4 0Z" fill="#7dd3fc" />
-  <path d="M35.5 25a2 2 0 1 0 4 0a2 2 0 1 0 -4 0Z" fill="#7dd3fc" />
-</svg>{v.pf?.cash?.l}</button>
-                  <button type="button" className={v.pf?.bkash?.cls} aria-pressed={v.pf?.bkash?.on} onClick={v.pf?.bkash?.pick} style={{ padding: "0 14px 0 8px" }}><span style={{ width: "24px", height: "24px", borderRadius: "7px", background: "#e2136e", display: "flex", alignItems: "center", justifyContent: "center" }}>
-  <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-    <path d="M17 3H31A5 5 0 0 1 36 8V40A5 5 0 0 1 31 45H17A5 5 0 0 1 12 40V8A5 5 0 0 1 17 3Z" fill="#003087" />
-    <path d="M16.5 7H31.5A2 2 0 0 1 33.5 9V37A2 2 0 0 1 31.5 39H16.5A2 2 0 0 1 14.5 37V9A2 2 0 0 1 16.5 7Z" fill="#7dd3fc" />
-    <path d="M22.6 41.5a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0Z" fill="#0ea5e9" />
-    <path d="M19 11H29A2 2 0 0 1 31 13V17A2 2 0 0 1 29 19H19A2 2 0 0 1 17 17V13A2 2 0 0 1 19 11Z" fill="#0ea5e9" />
-    <path d="M18.5 22H29.5A1.5 1.5 0 0 1 31 23.5V23.5A1.5 1.5 0 0 1 29.5 25H18.5A1.5 1.5 0 0 1 17 23.5V23.5A1.5 1.5 0 0 1 18.5 22Z" fill="#ffffff" />
-    <path d="M18.5 27H25.5A1.5 1.5 0 0 1 27 28.5V28.5A1.5 1.5 0 0 1 25.5 30H18.5A1.5 1.5 0 0 1 17 28.5V28.5A1.5 1.5 0 0 1 18.5 27Z" fill="#ffffff" />
-  </svg>
-</span>{v.pf?.bkash?.l}</button>
-                  <button type="button" className={v.pf?.nagad?.cls} aria-pressed={v.pf?.nagad?.on} onClick={v.pf?.nagad?.pick} style={{ padding: "0 14px 0 8px" }}><span style={{ width: "24px", height: "24px", borderRadius: "7px", background: "#f26522", display: "flex", alignItems: "center", justifyContent: "center" }}>
-  <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-    <path d="M17 3H31A5 5 0 0 1 36 8V40A5 5 0 0 1 31 45H17A5 5 0 0 1 12 40V8A5 5 0 0 1 17 3Z" fill="#003087" />
-    <path d="M16.5 7H31.5A2 2 0 0 1 33.5 9V37A2 2 0 0 1 31.5 39H16.5A2 2 0 0 1 14.5 37V9A2 2 0 0 1 16.5 7Z" fill="#7dd3fc" />
-    <path d="M22.6 41.5a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0Z" fill="#0ea5e9" />
-    <path d="M19 11H29A2 2 0 0 1 31 13V17A2 2 0 0 1 29 19H19A2 2 0 0 1 17 17V13A2 2 0 0 1 19 11Z" fill="#0ea5e9" />
-    <path d="M18.5 22H29.5A1.5 1.5 0 0 1 31 23.5V23.5A1.5 1.5 0 0 1 29.5 25H18.5A1.5 1.5 0 0 1 17 23.5V23.5A1.5 1.5 0 0 1 18.5 22Z" fill="#ffffff" />
-    <path d="M18.5 27H25.5A1.5 1.5 0 0 1 27 28.5V28.5A1.5 1.5 0 0 1 25.5 30H18.5A1.5 1.5 0 0 1 17 28.5V28.5A1.5 1.5 0 0 1 18.5 27Z" fill="#ffffff" />
-  </svg>
-</span>{v.pf?.nagad?.l}</button>
-                  <button type="button" className={v.pf?.card?.cls} aria-pressed={v.pf?.card?.on} onClick={v.pf?.card?.pick} style={{ padding: "0 14px 0 8px" }}><svg width="22" height="22" viewBox="0 0 48 48" aria-hidden="true">
-  <path d="M7.5 10H40.5A4.5 4.5 0 0 1 45 14.5V33.5A4.5 4.5 0 0 1 40.5 38H7.5A4.5 4.5 0 0 1 3 33.5V14.5A4.5 4.5 0 0 1 7.5 10Z" fill="#0ea5e9" />
-  <path d="M3 16h42v6h-42Z" fill="#003087" />
-  <path d="M9.8 26H15.2A1.8 1.8 0 0 1 17 27.8V31.2A1.8 1.8 0 0 1 15.2 33H9.8A1.8 1.8 0 0 1 8 31.2V27.8A1.8 1.8 0 0 1 9.8 26Z" fill="#7dd3fc" />
-  <path d="M22.3 28H37.7A1.3 1.3 0 0 1 39 29.3V29.3A1.3 1.3 0 0 1 37.7 30.6H22.3A1.3 1.3 0 0 1 21 29.3V29.3A1.3 1.3 0 0 1 22.3 28Z" fill="#ffffff" />
-</svg>{v.pf?.card?.l}</button>
-                  <button type="button" className={v.pf?.due?.cls} aria-pressed={v.pf?.due?.on} onClick={v.pf?.due?.pick} style={{ padding: "0 14px 0 8px" }}><svg width="22" height="22" viewBox="0 0 48 48" aria-hidden="true">
-  <path d="M11.5 14.5a7.5 7.5 0 1 0 15.0 0a7.5 7.5 0 1 0 -15.0 0Z" fill="#7dd3fc" />
-  <path d="M14.5 24H23.5A9.5 9.5 0 0 1 33 33.5V33.5A9.5 9.5 0 0 1 23.5 43H14.5A9.5 9.5 0 0 1 5 33.5V33.5A9.5 9.5 0 0 1 14.5 24Z" fill="#0ea5e9" />
-  <path d="M25 31a10 10 0 1 0 20 0a10 10 0 1 0 -20 0Z" fill="#0ea5e9" />
-  <path d="M28 31a7 7 0 1 0 14 0a7 7 0 1 0 -14 0Z" fill="#7dd3fc" />
-  <path d="M31 31H39" fill="none" stroke="#fff" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
-</svg>{v.pf?.due?.l}</button>
-                  <span style={{ width: "1px", height: "26px", background: "#e2e8f0", margin: "0 8px" }} />
-                  <span className="lbl" style={{ display: "flex", alignItems: "center", gap: "8px" }}><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true">
-  <path d="M15.5 14.5a8.5 8.5 0 1 0 17.0 0a8.5 8.5 0 1 0 -17.0 0Z" fill="#7dd3fc" />
-  <path d="M18.7 5.5H29.3A3.2 3.2 0 0 1 32.5 8.7V8.8A3.2 3.2 0 0 1 29.3 12.0H18.7A3.2 3.2 0 0 1 15.5 8.8V8.7A3.2 3.2 0 0 1 18.7 5.5Z" fill="#003087" />
-  <path d="M19 25H29A10 10 0 0 1 39 35V35A10 10 0 0 1 29 45H19A10 10 0 0 1 9 35V35A10 10 0 0 1 19 25Z" fill="#003087" />
-  <path d="M18.5 25L24 32L29.5 25Z" fill="#ffffff" />
-  <path d="M22.8 30.5L25.2 30.5L26.8 40L24 43L21.2 40Z" fill="#0ea5e9" />
-</svg>{v.t?.fStaff}</span>
-                  {__list(v.staffF).map((p, $index) => (<React.Fragment key={$index}>
-                      <button type="button" className={p?.cls} aria-pressed={p?.on} onClick={p?.pick}>{p?.l}</button>
-                    </React.Fragment>))}
-                </div>
+                </>) : null}
               </section>
-              <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr 1fr 1fr", gap: "14px" }}>
-                <div style={{ padding: "16px 20px", borderRadius: "18px", background: "#003087", color: "#fff", display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span style={{ width: "40px", height: "40px", borderRadius: "11px", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: "0" }}>
-                      <svg width="30" height="30" viewBox="0 0 48 48" aria-hidden="true">
-                        <path d="M14 16H34A5 5 0 0 1 39 21V38A5 5 0 0 1 34 43H14A5 5 0 0 1 9 38V21A5 5 0 0 1 14 16Z" fill="#0ea5e9" />
-                        <path d="M12 16H36A3 3 0 0 1 39 19V19A3 3 0 0 1 36 22H12A3 3 0 0 1 9 19V19A3 3 0 0 1 12 16Z" fill="#003087" />
-                        <path d="M17 17V13a7 7 0 0 1 14 0V17" fill="none" stroke="#003087" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M26 33a7 7 0 1 0 14 0a7 7 0 1 0 -14 0Z" fill="#0ea5e9" />
-                        <path d="M28.5 33a4.5 4.5 0 1 0 9.0 0a4.5 4.5 0 1 0 -9.0 0Z" fill="#7dd3fc" />
-                        <path d="M33.0 29.5H33.0A1.2 1.2 0 0 1 34.2 30.7V35.3A1.2 1.2 0 0 1 33.0 36.5H33.0A1.2 1.2 0 0 1 31.8 35.3V30.7A1.2 1.2 0 0 1 33.0 29.5Z" fill="#0ea5e9" />
-                      </svg>
-                    </span>
-                    <span style={{ fontSize: "14.5px", fontWeight: "500", opacity: ".85" }}>{v.t?.kSales} · {v.k?.rangeLbl}</span>
+              <div className="gc-kpis gc-kpis--tight">
+                <div className="gc-kpi">
+                  <span className="gc-kpi__icon" style={{ background: "var(--fill-primary-soft)", color: "var(--primary)" }}><__Icon name="shopping-bag" strokeWidth="1.75" width="24" height="24" aria-hidden="true" /></span>
+                  <div className="gc-kpi__text">
+                    <p className="gc-kpi__label">{v.t?.kSales} · {v.k?.rangeLbl}</p>
+                    <p className="gc-kpi__value">{v.k?.sales}</p>
                   </div>
-                  <div className="num" style={{ fontSize: "32px", lineHeight: "40px", fontWeight: "700" }}>{v.k?.sales}</div>
-                  <div className="num" style={{ fontSize: "13.5px", opacity: ".85" }}>{v.k?.salesNote}</div>
                 </div>
-                <div className="card kpi" style={{ padding: "16px 18px" }}>
-                  <div className="k" style={{ display: "flex", alignItems: "center", gap: "8px" }}><svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true">
-  <path d="M11 4H33A3 3 0 0 1 36 7V39A3 3 0 0 1 33 42H11A3 3 0 0 1 8 39V7A3 3 0 0 1 11 4Z" fill="#e0f2fe" />
-  <path d="M11.5 5.5H32.5A2 2 0 0 1 34.5 7.5V38.5A2 2 0 0 1 32.5 40.5H11.5A2 2 0 0 1 9.5 38.5V7.5A2 2 0 0 1 11.5 5.5Z" fill="#ffffff" />
-  <path d="M14.6 10H23.4A1.6 1.6 0 0 1 25 11.6V11.6A1.6 1.6 0 0 1 23.4 13.2H14.6A1.6 1.6 0 0 1 13 11.6V11.6A1.6 1.6 0 0 1 14.6 10Z" fill="#0ea5e9" />
-  <path d="M14.1 17H29.9A1.1 1.1 0 0 1 31 18.1V18.099999999999998A1.1 1.1 0 0 1 29.9 19.2H14.1A1.1 1.1 0 0 1 13 18.099999999999998V18.1A1.1 1.1 0 0 1 14.1 17Z" fill="#e0f2fe" />
-  <path d="M14.1 22H29.9A1.1 1.1 0 0 1 31 23.1V23.099999999999998A1.1 1.1 0 0 1 29.9 24.2H14.1A1.1 1.1 0 0 1 13 23.099999999999998V23.1A1.1 1.1 0 0 1 14.1 22Z" fill="#e0f2fe" />
-  <path d="M14.1 27H23.9A1.1 1.1 0 0 1 25 28.1V28.099999999999998A1.1 1.1 0 0 1 23.9 29.2H14.1A1.1 1.1 0 0 1 13 28.099999999999998V28.1A1.1 1.1 0 0 1 14.1 27Z" fill="#e0f2fe" />
-  <path d="M27 35a8 8 0 1 0 16 0a8 8 0 1 0 -16 0Z" fill="#e0f2fe" />
-  <path d="M28.7 35a6.3 6.3 0 1 0 12.6 0a6.3 6.3 0 1 0 -12.6 0Z" fill="none" stroke="#0ea5e9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  <path d="M32.6 34H37.4A1.1 1.1 0 0 1 38.5 35.1V35.1A1.1 1.1 0 0 1 37.4 36.2H32.6A1.1 1.1 0 0 1 31.5 35.1V35.1A1.1 1.1 0 0 1 32.6 34Z" fill="#0ea5e9" />
-</svg>{v.t?.kMemos}</div>
-                  <div className="v" style={{ fontSize: "26px", lineHeight: "34px" }}>{v.k?.memos}</div>
-                  <div className="num hint">{v.k?.memosNote}</div>
+                <div className="gc-kpi">
+                  <span className="gc-kpi__icon" style={{ background: "var(--fill-accent-soft)", color: "var(--accent-text)" }}><__Icon name="receipt-text" strokeWidth="1.75" width="24" height="24" aria-hidden="true" /></span>
+                  <div className="gc-kpi__text">
+                    <p className="gc-kpi__label">{v.t?.kMemos}</p>
+                    <p className="gc-kpi__value">{v.k?.memos}<small title={v.k?.memosNote}>{v.k?.memosNote}</small></p>
+                  </div>
                 </div>
-                <div className="card kpi" style={{ padding: "16px 18px" }}>
-                  <div className="k" style={{ display: "flex", alignItems: "center", gap: "8px" }}><svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true">
-  <path d="M8.5 28H12.5A1.5 1.5 0 0 1 14 29.5V39.5A1.5 1.5 0 0 1 12.5 41H8.5A1.5 1.5 0 0 1 7 39.5V29.5A1.5 1.5 0 0 1 8.5 28Z" fill="#7dd3fc" />
-  <path d="M18.5 22H22.5A1.5 1.5 0 0 1 24 23.5V39.5A1.5 1.5 0 0 1 22.5 41H18.5A1.5 1.5 0 0 1 17 39.5V23.5A1.5 1.5 0 0 1 18.5 22Z" fill="#7dd3fc" />
-  <path d="M28.5 16H32.5A1.5 1.5 0 0 1 34 17.5V39.5A1.5 1.5 0 0 1 32.5 41H28.5A1.5 1.5 0 0 1 27 39.5V17.5A1.5 1.5 0 0 1 28.5 16Z" fill="#0ea5e9" />
-  <path d="M6 21L16 13L24 17L39 7" fill="none" stroke="#0ea5e9" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
-  <path d="M33 5.5L42.5 4.5L41 13.5Z" fill="#0ea5e9" />
-</svg>{v.t?.kProfit}</div>
-                  <div className="v" style={{ fontSize: "26px", lineHeight: "34px", color: "#047857" }}>{v.k?.profit}</div>
-                  <div className="num hint">{v.k?.profitNote}</div>
+                <div className="gc-kpi">
+                  <span className="gc-kpi__icon" style={{ background: "var(--fill-success-soft)", color: "var(--text-success)" }}><__Icon name="trending-up" strokeWidth="1.75" width="24" height="24" aria-hidden="true" /></span>
+                  <div className="gc-kpi__text">
+                    <p className="gc-kpi__label">{v.t?.kProfit}</p>
+                    <p className="gc-kpi__value">{v.k?.profit}<small title={v.k?.profitNote}>{v.k?.profitNote}</small></p>
+                  </div>
                 </div>
-                <div className="card kpi" style={{ padding: "16px 18px", borderColor: "#f7c9bb", background: "#fffaf8" }}>
-                  <div className="k" style={{ display: "flex", alignItems: "center", gap: "8px" }}><svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true">
-  <path d="M11.5 14.5a7.5 7.5 0 1 0 15.0 0a7.5 7.5 0 1 0 -15.0 0Z" fill="#7dd3fc" />
-  <path d="M14.5 24H23.5A9.5 9.5 0 0 1 33 33.5V33.5A9.5 9.5 0 0 1 23.5 43H14.5A9.5 9.5 0 0 1 5 33.5V33.5A9.5 9.5 0 0 1 14.5 24Z" fill="#0ea5e9" />
-  <path d="M25 31a10 10 0 1 0 20 0a10 10 0 1 0 -20 0Z" fill="#0ea5e9" />
-  <path d="M28 31a7 7 0 1 0 14 0a7 7 0 1 0 -14 0Z" fill="#7dd3fc" />
-  <path d="M31 31H39" fill="none" stroke="#fff" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
-</svg>{v.t?.kDue}</div>
-                  <div className="v" style={{ fontSize: "26px", lineHeight: "34px", color: "#b83210" }}>{v.k?.due}</div>
-                  <div className="num hint">{v.k?.dueNote}</div>
+                <div className="gc-kpi">
+                  <span className="gc-kpi__icon" style={{ background: "var(--fill-error-soft)", color: "var(--text-danger)" }}><__Icon name="user-round-minus" strokeWidth="1.75" width="24" height="24" aria-hidden="true" /></span>
+                  <div className="gc-kpi__text">
+                    <p className="gc-kpi__label">{v.t?.kDue}</p>
+                    <p className="gc-kpi__value">{v.k?.due}<small title={v.k?.dueNote}>{v.k?.dueNote}</small></p>
+                  </div>
                 </div>
-                <div className="card kpi" style={{ padding: "16px 18px", borderColor: "#fde3b5", background: "#fffcf5" }}>
-                  <div className="k" style={{ display: "flex", alignItems: "center", gap: "8px" }}><svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true">
-  <path d="M15 19H32A2 2 0 0 1 34 21V36A2 2 0 0 1 32 38H15A2 2 0 0 1 13 36V21A2 2 0 0 1 15 19Z" fill="#7dd3fc" />
-  <path d="M21.5 19h4v8h-4Z" fill="#e0f2fe" />
-  <path d="M41 25A17 17 0 1 0 36 37" fill="none" stroke="#0ea5e9" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
-  <path d="M35 18L44 22L37 27Z" fill="#0ea5e9" />
-</svg>{v.t?.kRet}</div>
-                  <div className="v" style={{ fontSize: "26px", lineHeight: "34px", color: "#a14f06" }}>{v.k?.ret}</div>
-                  <div className="num hint">{v.k?.retNote}</div>
+                <div className="gc-kpi">
+                  <span className="gc-kpi__icon" style={{ background: "var(--fill-warning-soft)", color: "var(--text-warning)" }}><__Icon name="undo-2" strokeWidth="1.75" width="24" height="24" aria-hidden="true" /></span>
+                  <div className="gc-kpi__text">
+                    <p className="gc-kpi__label">{v.t?.kRet}</p>
+                    <p className="gc-kpi__value">{v.k?.ret}<small title={v.k?.retNote}>{v.k?.retNote}</small></p>
+                  </div>
                 </div>
               </div>
               <section className="card" style={{ padding: "14px 18px 12px", display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -495,17 +493,17 @@ export default class SalesBookScreen extends Component {
                     <path d="M29 34a6 6 0 1 0 12 0a6 6 0 1 0 -12 0Z" fill="none" stroke="#0ea5e9" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
                     <path d="M39.5 38.5L44 43" fill="none" stroke="#0ea5e9" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  <h2 className="h2" style={{ flexGrow: "1", fontSize: "16px" }}>{v.barTitle}</h2>
-                  <span className="num hint" style={{ fontSize: "13.5px" }}>{v.barPeak}</span>
+                  <h2 className="h2" style={{ flexGrow: "1", fontSize: "var(--text-base)" }}>{v.barTitle}</h2>
+                  <span className="num hint" style={{ fontSize: "var(--text-sm)" }}>{v.barPeak}</span>
                 </div>
                 <div style={__sx(`height: 104px; display: flex; align-items: flex-end; gap: ${v.barGap ?? ""};`)}>
                   {__list(v.bars).map((b, $index) => (<React.Fragment key={$index}>
                       <div style={{ flex: "1 1 0", minWidth: "0", display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
                         {b?.showV ? (<>
-                          <span className="num" style={__sx(`font-size: 11.5px; color: ${b?.vfg ?? ""}; font-weight: 600; white-space: nowrap;`)}>{b?.v}</span>
+                          <span className="num" style={__sx(`font-size: var(--text-xs); color: ${b?.vfg ?? ""}; font-weight: var(--weight-medium); white-space: nowrap;`)}>{b?.v}</span>
                         </>) : null}
-                        <span title={b?.tip} style={__sx(`width: 100%; height: ${b?.h ?? ""}; border-radius: 6px 6px 2px 2px; background: ${b?.bg ?? ""};`)} />
-                        <span className="num" style={__sx(`font-size: 12px; color: ${b?.dfg ?? ""}; font-weight: ${b?.dfw ?? ""}; white-space: nowrap;`)}>{b?.d}</span>
+                        <span title={b?.tip} style={__sx(`width: 100%; height: ${b?.h ?? ""}; border-radius: var(--radius-md) var(--radius-md) 2px 2px; background: ${b?.bg ?? ""};`)} />
+                        <span className="num" style={__sx(`font-size: var(--text-xs); color: ${b?.dfg ?? ""}; font-weight: ${b?.dfw ?? ""}; white-space: nowrap;`)}>{b?.d}</span>
                       </div>
                     </React.Fragment>))}
                 </div>
@@ -523,84 +521,86 @@ export default class SalesBookScreen extends Component {
                     <path d="M28.7 35a6.3 6.3 0 1 0 12.6 0a6.3 6.3 0 1 0 -12.6 0Z" fill="none" stroke="#0ea5e9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     <path d="M32.6 34H37.4A1.1 1.1 0 0 1 38.5 35.1V35.1A1.1 1.1 0 0 1 37.4 36.2H32.6A1.1 1.1 0 0 1 31.5 35.1V35.1A1.1 1.1 0 0 1 32.6 34Z" fill="#0ea5e9" />
                   </svg>
-                  <h2 className="h2" style={{ fontSize: "17px" }}>{v.t?.memos}</h2>
+                  <h2 className="h2" style={{ fontSize: "var(--text-lg)" }}>{v.t?.memos}</h2>
                   <span className="num hint" style={{ flexGrow: "1" }}>{v.caption}</span>
                   <span className="hint">{v.t?.tapRow}</span>
                 </div>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr style={{ background: "#f8fafc" }}>
-                      <th className="th">{v.t?.cNo}</th>
-                      <th className="th">{v.t?.cTime}</th>
-                      <th className="th">{v.t?.cCust}</th>
-                      <th className="th">{v.t?.cItems}</th>
-                      <th className="th">{v.t?.cPay}</th>
-                      <th className="th" style={{ textAlign: "right" }}>{v.t?.cAmt}</th>
-                      <th className="th">{v.t?.cStaff}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {__list(v.rows).map((r, $index) => (<React.Fragment key={$index}>
-                        <tr className="trow" onClick={r?.open} style={__sx(`cursor: pointer; background: ${r?.bg ?? ""};`)}>
-                          <td className="td num">
-                            <button type="button" onClick={r?.open} style={{ border: "0", padding: "0", background: "transparent", font: "inherit", fontWeight: "700", color: "#003087", cursor: "pointer" }}>{r?.no}</button>
-                          </td>
-                          <td className="td num" style={{ color: "#475569", whiteSpace: "nowrap" }}>{r?.time}</td>
-                          <td className="td" style={{ fontWeight: "600" }}>{r?.cust}</td>
-                          <td className="td num" style={{ color: "#475569" }}>{r?.items}</td>
-                          <td className="td">
-                            <span className="pill" style={__sx(`background: ${r?.pbg ?? ""}; color: ${r?.pfg ?? ""}; gap: 5px; padding-left: 6px;`)}>{r?.isCash ? (<>
-  <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-    <path d="M6.5 13H41.5A3.5 3.5 0 0 1 45 16.5V33.5A3.5 3.5 0 0 1 41.5 37H6.5A3.5 3.5 0 0 1 3 33.5V16.5A3.5 3.5 0 0 1 6.5 13Z" fill="#003087" />
-    <path d="M8.5 16H39.5A2.5 2.5 0 0 1 42 18.5V31.5A2.5 2.5 0 0 1 39.5 34H8.5A2.5 2.5 0 0 1 6 31.5V18.5A2.5 2.5 0 0 1 8.5 16Z" fill="#0ea5e9" />
-    <path d="M18 25a6 6 0 1 0 12 0a6 6 0 1 0 -12 0Z" fill="#e0f2fe" />
-    <path d="M24.0 21H24.0A1.2 1.2 0 0 1 25.2 22.2V27.8A1.2 1.2 0 0 1 24.0 29H24.0A1.2 1.2 0 0 1 22.8 27.8V22.2A1.2 1.2 0 0 1 24.0 21Z" fill="#003087" />
-    <path d="M8.5 25a2 2 0 1 0 4 0a2 2 0 1 0 -4 0Z" fill="#7dd3fc" />
-    <path d="M35.5 25a2 2 0 1 0 4 0a2 2 0 1 0 -4 0Z" fill="#7dd3fc" />
-  </svg>
-</>) : null}{r?.isBk ? (<>
-  <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-    <path d="M17 3H31A5 5 0 0 1 36 8V40A5 5 0 0 1 31 45H17A5 5 0 0 1 12 40V8A5 5 0 0 1 17 3Z" fill="#003087" />
-    <path d="M16.5 7H31.5A2 2 0 0 1 33.5 9V37A2 2 0 0 1 31.5 39H16.5A2 2 0 0 1 14.5 37V9A2 2 0 0 1 16.5 7Z" fill="#7dd3fc" />
-    <path d="M22.6 41.5a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0Z" fill="#0ea5e9" />
-    <path d="M19 11H29A2 2 0 0 1 31 13V17A2 2 0 0 1 29 19H19A2 2 0 0 1 17 17V13A2 2 0 0 1 19 11Z" fill="#0ea5e9" />
-    <path d="M18.5 22H29.5A1.5 1.5 0 0 1 31 23.5V23.5A1.5 1.5 0 0 1 29.5 25H18.5A1.5 1.5 0 0 1 17 23.5V23.5A1.5 1.5 0 0 1 18.5 22Z" fill="#ffffff" />
-    <path d="M18.5 27H25.5A1.5 1.5 0 0 1 27 28.5V28.5A1.5 1.5 0 0 1 25.5 30H18.5A1.5 1.5 0 0 1 17 28.5V28.5A1.5 1.5 0 0 1 18.5 27Z" fill="#ffffff" />
-  </svg>
-</>) : null}{r?.isNg ? (<>
-  <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-    <path d="M17 3H31A5 5 0 0 1 36 8V40A5 5 0 0 1 31 45H17A5 5 0 0 1 12 40V8A5 5 0 0 1 17 3Z" fill="#003087" />
-    <path d="M16.5 7H31.5A2 2 0 0 1 33.5 9V37A2 2 0 0 1 31.5 39H16.5A2 2 0 0 1 14.5 37V9A2 2 0 0 1 16.5 7Z" fill="#7dd3fc" />
-    <path d="M22.6 41.5a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0Z" fill="#0ea5e9" />
-    <path d="M19 11H29A2 2 0 0 1 31 13V17A2 2 0 0 1 29 19H19A2 2 0 0 1 17 17V13A2 2 0 0 1 19 11Z" fill="#0ea5e9" />
-    <path d="M18.5 22H29.5A1.5 1.5 0 0 1 31 23.5V23.5A1.5 1.5 0 0 1 29.5 25H18.5A1.5 1.5 0 0 1 17 23.5V23.5A1.5 1.5 0 0 1 18.5 22Z" fill="#ffffff" />
-    <path d="M18.5 27H25.5A1.5 1.5 0 0 1 27 28.5V28.5A1.5 1.5 0 0 1 25.5 30H18.5A1.5 1.5 0 0 1 17 28.5V28.5A1.5 1.5 0 0 1 18.5 27Z" fill="#ffffff" />
-  </svg>
-</>) : null}{r?.isCard ? (<>
-  <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-    <path d="M7.5 10H40.5A4.5 4.5 0 0 1 45 14.5V33.5A4.5 4.5 0 0 1 40.5 38H7.5A4.5 4.5 0 0 1 3 33.5V14.5A4.5 4.5 0 0 1 7.5 10Z" fill="#0ea5e9" />
-    <path d="M3 16h42v6h-42Z" fill="#003087" />
-    <path d="M9.8 26H15.2A1.8 1.8 0 0 1 17 27.8V31.2A1.8 1.8 0 0 1 15.2 33H9.8A1.8 1.8 0 0 1 8 31.2V27.8A1.8 1.8 0 0 1 9.8 26Z" fill="#7dd3fc" />
-    <path d="M22.3 28H37.7A1.3 1.3 0 0 1 39 29.3V29.3A1.3 1.3 0 0 1 37.7 30.6H22.3A1.3 1.3 0 0 1 21 29.3V29.3A1.3 1.3 0 0 1 22.3 28Z" fill="#ffffff" />
-  </svg>
-</>) : null}{r?.isDuePay ? (<>
-  <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-    <path d="M11.5 14.5a7.5 7.5 0 1 0 15.0 0a7.5 7.5 0 1 0 -15.0 0Z" fill="#7dd3fc" />
-    <path d="M14.5 24H23.5A9.5 9.5 0 0 1 33 33.5V33.5A9.5 9.5 0 0 1 23.5 43H14.5A9.5 9.5 0 0 1 5 33.5V33.5A9.5 9.5 0 0 1 14.5 24Z" fill="#0ea5e9" />
-    <path d="M25 31a10 10 0 1 0 20 0a10 10 0 1 0 -20 0Z" fill="#0ea5e9" />
-    <path d="M28 31a7 7 0 1 0 14 0a7 7 0 1 0 -14 0Z" fill="#7dd3fc" />
-    <path d="M31 31H39" fill="none" stroke="#fff" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-</>) : null}{r?.pay}</span>
-                          </td>
-                          <td className="td num" style={{ textAlign: "right", fontWeight: "700" }}>{r?.amt}</td>
-                          <td className="td" style={{ color: "#475569" }}>{r?.staff}</td>
-                        </tr>
-                      </React.Fragment>))}
-                  </tbody>
-                </table>
+                <div className="gc-table-wrap">
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr style={{ background: "#f8fafc" }}>
+                        <th className="th">{v.t?.cNo}</th>
+                        <th className="th">{v.t?.cTime}</th>
+                        <th className="th">{v.t?.cCust}</th>
+                        <th className="th">{v.t?.cItems}</th>
+                        <th className="th">{v.t?.cPay}</th>
+                        <th className="th" style={{ textAlign: "right" }}>{v.t?.cAmt}</th>
+                        <th className="th">{v.t?.cStaff}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {__list(v.rows).map((r, $index) => (<React.Fragment key={$index}>
+                          <tr className="trow" onClick={r?.open} style={__sx(`cursor: pointer; background: ${r?.bg ?? ""};`)}>
+                            <td className="td num">
+                              <button type="button" onClick={r?.open} style={{ border: "0", padding: "0", background: "transparent", font: "inherit", fontWeight: "var(--weight-semibold)", color: "#003087", cursor: "pointer" }}>{r?.no}</button>
+                            </td>
+                            <td className="td num" style={{ color: "#475569", whiteSpace: "nowrap" }}>{r?.time}</td>
+                            <td className="td" style={{ fontWeight: "var(--weight-medium)" }}>{r?.cust}</td>
+                            <td className="td num" style={{ color: "#475569" }}>{r?.items}</td>
+                            <td className="td">
+                              <span className="pill" style={__sx(`background: ${r?.pbg ?? ""}; color: ${r?.pfg ?? ""}; gap: 5px; padding-left: 6px;`)}>{r?.isCash ? (<>
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+      <path d="M6.5 13H41.5A3.5 3.5 0 0 1 45 16.5V33.5A3.5 3.5 0 0 1 41.5 37H6.5A3.5 3.5 0 0 1 3 33.5V16.5A3.5 3.5 0 0 1 6.5 13Z" fill="#003087" />
+      <path d="M8.5 16H39.5A2.5 2.5 0 0 1 42 18.5V31.5A2.5 2.5 0 0 1 39.5 34H8.5A2.5 2.5 0 0 1 6 31.5V18.5A2.5 2.5 0 0 1 8.5 16Z" fill="#0ea5e9" />
+      <path d="M18 25a6 6 0 1 0 12 0a6 6 0 1 0 -12 0Z" fill="#e0f2fe" />
+      <path d="M24.0 21H24.0A1.2 1.2 0 0 1 25.2 22.2V27.8A1.2 1.2 0 0 1 24.0 29H24.0A1.2 1.2 0 0 1 22.8 27.8V22.2A1.2 1.2 0 0 1 24.0 21Z" fill="#003087" />
+      <path d="M8.5 25a2 2 0 1 0 4 0a2 2 0 1 0 -4 0Z" fill="#7dd3fc" />
+      <path d="M35.5 25a2 2 0 1 0 4 0a2 2 0 1 0 -4 0Z" fill="#7dd3fc" />
+    </svg>
+  </>) : null}{r?.isBk ? (<>
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+      <path d="M17 3H31A5 5 0 0 1 36 8V40A5 5 0 0 1 31 45H17A5 5 0 0 1 12 40V8A5 5 0 0 1 17 3Z" fill="#003087" />
+      <path d="M16.5 7H31.5A2 2 0 0 1 33.5 9V37A2 2 0 0 1 31.5 39H16.5A2 2 0 0 1 14.5 37V9A2 2 0 0 1 16.5 7Z" fill="#7dd3fc" />
+      <path d="M22.6 41.5a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0Z" fill="#0ea5e9" />
+      <path d="M19 11H29A2 2 0 0 1 31 13V17A2 2 0 0 1 29 19H19A2 2 0 0 1 17 17V13A2 2 0 0 1 19 11Z" fill="#0ea5e9" />
+      <path d="M18.5 22H29.5A1.5 1.5 0 0 1 31 23.5V23.5A1.5 1.5 0 0 1 29.5 25H18.5A1.5 1.5 0 0 1 17 23.5V23.5A1.5 1.5 0 0 1 18.5 22Z" fill="#ffffff" />
+      <path d="M18.5 27H25.5A1.5 1.5 0 0 1 27 28.5V28.5A1.5 1.5 0 0 1 25.5 30H18.5A1.5 1.5 0 0 1 17 28.5V28.5A1.5 1.5 0 0 1 18.5 27Z" fill="#ffffff" />
+    </svg>
+  </>) : null}{r?.isNg ? (<>
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+      <path d="M17 3H31A5 5 0 0 1 36 8V40A5 5 0 0 1 31 45H17A5 5 0 0 1 12 40V8A5 5 0 0 1 17 3Z" fill="#003087" />
+      <path d="M16.5 7H31.5A2 2 0 0 1 33.5 9V37A2 2 0 0 1 31.5 39H16.5A2 2 0 0 1 14.5 37V9A2 2 0 0 1 16.5 7Z" fill="#7dd3fc" />
+      <path d="M22.6 41.5a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0Z" fill="#0ea5e9" />
+      <path d="M19 11H29A2 2 0 0 1 31 13V17A2 2 0 0 1 29 19H19A2 2 0 0 1 17 17V13A2 2 0 0 1 19 11Z" fill="#0ea5e9" />
+      <path d="M18.5 22H29.5A1.5 1.5 0 0 1 31 23.5V23.5A1.5 1.5 0 0 1 29.5 25H18.5A1.5 1.5 0 0 1 17 23.5V23.5A1.5 1.5 0 0 1 18.5 22Z" fill="#ffffff" />
+      <path d="M18.5 27H25.5A1.5 1.5 0 0 1 27 28.5V28.5A1.5 1.5 0 0 1 25.5 30H18.5A1.5 1.5 0 0 1 17 28.5V28.5A1.5 1.5 0 0 1 18.5 27Z" fill="#ffffff" />
+    </svg>
+  </>) : null}{r?.isCard ? (<>
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+      <path d="M7.5 10H40.5A4.5 4.5 0 0 1 45 14.5V33.5A4.5 4.5 0 0 1 40.5 38H7.5A4.5 4.5 0 0 1 3 33.5V14.5A4.5 4.5 0 0 1 7.5 10Z" fill="#0ea5e9" />
+      <path d="M3 16h42v6h-42Z" fill="#003087" />
+      <path d="M9.8 26H15.2A1.8 1.8 0 0 1 17 27.8V31.2A1.8 1.8 0 0 1 15.2 33H9.8A1.8 1.8 0 0 1 8 31.2V27.8A1.8 1.8 0 0 1 9.8 26Z" fill="#7dd3fc" />
+      <path d="M22.3 28H37.7A1.3 1.3 0 0 1 39 29.3V29.3A1.3 1.3 0 0 1 37.7 30.6H22.3A1.3 1.3 0 0 1 21 29.3V29.3A1.3 1.3 0 0 1 22.3 28Z" fill="#ffffff" />
+    </svg>
+  </>) : null}{r?.isDuePay ? (<>
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+      <path d="M11.5 14.5a7.5 7.5 0 1 0 15.0 0a7.5 7.5 0 1 0 -15.0 0Z" fill="#7dd3fc" />
+      <path d="M14.5 24H23.5A9.5 9.5 0 0 1 33 33.5V33.5A9.5 9.5 0 0 1 23.5 43H14.5A9.5 9.5 0 0 1 5 33.5V33.5A9.5 9.5 0 0 1 14.5 24Z" fill="#0ea5e9" />
+      <path d="M25 31a10 10 0 1 0 20 0a10 10 0 1 0 -20 0Z" fill="#0ea5e9" />
+      <path d="M28 31a7 7 0 1 0 14 0a7 7 0 1 0 -14 0Z" fill="#7dd3fc" />
+      <path d="M31 31H39" fill="none" stroke="#fff" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  </>) : null}{r?.pay}</span>
+                            </td>
+                            <td className="td num" style={{ textAlign: "right", fontWeight: "var(--weight-semibold)" }}>{r?.amt}</td>
+                            <td className="td" style={{ color: "#475569" }}>{r?.staff}</td>
+                          </tr>
+                        </React.Fragment>))}
+                    </tbody>
+                  </table>
+                </div>
                 {v.noRows ? (<>
-                  <div style={{ padding: "28px", textAlign: "center", color: "#64748b", fontSize: "15px", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
+                  <div style={{ padding: "28px", textAlign: "center", color: "var(--text-muted)", fontSize: "var(--text-sm-plus)", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
                     <svg width="52" height="52" viewBox="0 0 48 48" aria-hidden="true">
                       <path d="M12 5H32A3 3 0 0 1 35 8V39A3 3 0 0 1 32 42H12A3 3 0 0 1 9 39V8A3 3 0 0 1 12 5Z" fill="#0ea5e9" />
                       <path d="M11.5 5H12.5A2.5 2.5 0 0 1 15 7.5V39.5A2.5 2.5 0 0 1 12.5 42H11.5A2.5 2.5 0 0 1 9 39.5V7.5A2.5 2.5 0 0 1 11.5 5Z" fill="#003087" />
@@ -617,10 +617,10 @@ export default class SalesBookScreen extends Component {
                 </>) : null}
               </section>
               {v.drawerOpen ? (<>
-                <div className="scrim" onClick={v.closeDrawer} aria-hidden="true" />
+                <div role="button" tabIndex={0} className="scrim" onClick={v.closeDrawer} aria-hidden="true" />
                 <section className="drawer fade" aria-label={v.d?.title}>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "18px 22px", borderBottom: "1px solid #eef2f6" }}>
-                    <span style={{ width: "48px", height: "48px", borderRadius: "13px", background: "#eef3fb", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: "0" }}>
+                    <span style={{ width: "48px", height: "48px", borderRadius: "var(--radius-xl)", background: "#eef3fb", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: "0" }}>
                       <svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true">
                         <path d="M11 4H33A3 3 0 0 1 36 7V39A3 3 0 0 1 33 42H11A3 3 0 0 1 8 39V7A3 3 0 0 1 11 4Z" fill="#e0f2fe" />
                         <path d="M11.5 5.5H32.5A2 2 0 0 1 34.5 7.5V38.5A2 2 0 0 1 32.5 40.5H11.5A2 2 0 0 1 9.5 38.5V7.5A2 2 0 0 1 11.5 5.5Z" fill="#ffffff" />
@@ -634,7 +634,7 @@ export default class SalesBookScreen extends Component {
                       </svg>
                     </span>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <h2 className="h2 num" style={{ fontSize: "20px" }}>{v.d?.title}</h2>
+                      <h2 className="h2 num" style={{ fontSize: "var(--text-xl)" }}>{v.d?.title}</h2>
                       <div className="num sub">{v.d?.when}</div>
                     </div>
                     <span className="pill" style={__sx(`background: ${v.d?.pbg ?? ""}; color: ${v.d?.pfg ?? ""}; gap: 5px; padding-left: 6px;`)}>{v.d?.isCash ? (<>
@@ -687,15 +687,15 @@ export default class SalesBookScreen extends Component {
                     </button>
                   </div>
                   <div style={{ flexGrow: "1", overflowY: "auto", padding: "18px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px", borderRadius: "14px", background: "#f8fafc", border: "1px solid #eef2f6" }}>
-                      <span style={__sx(`width: 44px; height: 44px; border-radius: 999px; background: ${v.d?.cbg ?? ""}; color: ${v.d?.cfg ?? ""}; font-weight: 700; font-size: 17px; display: flex; align-items: center; justify-content: center;`)}>{v.d?.ini}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px", borderRadius: "var(--radius-xl)", background: "#f8fafc", border: "1px solid #eef2f6" }}>
+                      <span style={__sx(`width: 44px; height: 44px; border-radius: var(--radius-full); background: ${v.d?.cbg ?? ""}; color: ${v.d?.cfg ?? ""}; font-weight: var(--weight-semibold); font-size: var(--text-lg); display: flex; align-items: center; justify-content: center;`)}>{v.d?.ini}</span>
                       <div style={{ flexGrow: "1", minWidth: "0" }}>
-                        <div style={{ fontSize: "16px", fontWeight: "700" }}>{v.d?.cust}</div>
-                        <div className="num hint" style={{ fontSize: "14px" }}>{v.d?.mobile}</div>
+                        <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>{v.d?.cust}</div>
+                        <div className="num hint" style={{ fontSize: "var(--text-sm)" }}>{v.d?.mobile}</div>
                       </div>
                       <div style={{ textAlign: "right" }}>
                         <div className="hint">{v.t?.soldBy}</div>
-                        <div style={{ fontSize: "15px", fontWeight: "600" }}>{v.d?.staff}</div>
+                        <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>{v.d?.staff}</div>
                       </div>
                     </div>
                     <div>
@@ -713,14 +713,14 @@ export default class SalesBookScreen extends Component {
                       {__list(v.d?.lines).map((ln, $index) => (<React.Fragment key={$index}>
                           <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "11px 0", borderBottom: "1px solid #f1f5f9" }}>
                             <div style={{ flexGrow: "1", minWidth: "0" }}>
-                              <div style={{ fontSize: "15px", fontWeight: "600" }}>{ln?.name}</div>
+                              <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>{ln?.name}</div>
                               <div className="num hint">{ln?.qp}</div>
                             </div>
-                            <span className="num" style={{ fontSize: "15px", fontWeight: "700" }}>{ln?.total}</span>
+                            <span className="num" style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>{ln?.total}</span>
                           </div>
                         </React.Fragment>))}
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "7px", fontSize: "15px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "7px", fontSize: "var(--text-sm-plus)" }}>
                       <div style={{ display: "flex" }}>
                         <span style={{ flexGrow: "1", color: "#475569" }}>{v.t?.subtotal}</span>
                         <span className="num">{v.d?.sub}</span>
@@ -730,15 +730,15 @@ export default class SalesBookScreen extends Component {
                         <span className="num">{v.d?.disc}</span>
                       </div>
                       <div style={{ display: "flex", alignItems: "baseline", paddingTop: "8px", borderTop: "1px dashed #cbd5e1" }}>
-                        <span style={{ flexGrow: "1", fontSize: "17px", fontWeight: "700" }}>{v.t?.grand}</span>
-                        <span className="num" style={{ fontSize: "28px", fontWeight: "700", color: "#003087" }}>{v.d?.grand}</span>
+                        <span style={{ flexGrow: "1", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>{v.t?.grand}</span>
+                        <span className="num" style={{ fontSize: "var(--text-3xl)", fontWeight: "var(--weight-semibold)", color: "#003087" }}>{v.d?.grand}</span>
                       </div>
                       <div style={{ display: "flex" }}>
                         <span style={{ flexGrow: "1", color: "#475569" }}>{v.t?.paid} ({v.d?.pay})</span>
-                        <span className="num" style={{ fontWeight: "600", color: "#047857" }}>{v.d?.paid}</span>
+                        <span className="num" style={{ fontWeight: "var(--weight-medium)", color: "#047857" }}>{v.d?.paid}</span>
                       </div>
                       {v.d?.isDue ? (<>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", borderRadius: "12px", background: "#ffece6", color: "#b83210", fontWeight: "700" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", borderRadius: "var(--radius-xl)", background: "#ffece6", color: "#b83210", fontWeight: "var(--weight-semibold)" }}>
                           <svg width="30" height="30" viewBox="0 0 48 48" aria-hidden="true">
                             <path d="M11.5 14.5a7.5 7.5 0 1 0 15.0 0a7.5 7.5 0 1 0 -15.0 0Z" fill="#7dd3fc" />
                             <path d="M14.5 24H23.5A9.5 9.5 0 0 1 33 33.5V33.5A9.5 9.5 0 0 1 23.5 43H14.5A9.5 9.5 0 0 1 5 33.5V33.5A9.5 9.5 0 0 1 14.5 24Z" fill="#0ea5e9" />
@@ -752,11 +752,11 @@ export default class SalesBookScreen extends Component {
                       </>) : null}
                     </div>
                   </div>
-                  <div style={{ padding: "16px 22px 20px", borderTop: "1px solid #eef2f6", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "10px" }}>
+                  <div className="gc-cols-2" style={{ padding: "16px 22px 20px", borderTop: "1px solid #eef2f6", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "10px" }}>
                     <button type="button" className="btn solid" onClick={v.reprint}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z" />
 </svg>{v.t?.reprint}</button>
-                    <__Link href="/return-exchange" className="btn line"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <__Link href={v.retHref ?? "/return-exchange"} className="btn line"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5" />
 </svg>{v.t?.retEx}</__Link>
                     <button type="button" className="btn line" onClick={v.editMemo}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -771,7 +771,7 @@ export default class SalesBookScreen extends Component {
             </div>
           </main>
           {v.hasMsg ? (<>
-            <div className="fade" role="status" style={{ position: "absolute", top: "90px", left: "50%", transform: "translateX(-50%)", zIndex: "30", display: "flex", alignItems: "center", gap: "10px", padding: "12px 18px", borderRadius: "14px", background: "#0f172a", color: "#fff", fontSize: "15px", fontWeight: "500", boxShadow: "0 16px 36px -14px rgba(15,23,42,.6)", maxWidth: "640px" }}>
+            <div className="fade gc-on-dark" role="status" style={{ position: "absolute", top: "90px", left: "50%", transform: "translateX(-50%)", zIndex: "30", display: "flex", alignItems: "center", gap: "10px", padding: "12px 18px", borderRadius: "var(--radius-xl)", background: "#0f172a", color: "#fff", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)", boxShadow: "0 16px 36px -14px rgba(15,23,42,.6)", maxWidth: "640px" }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M20 6 9 17l-5-5" />
               </svg>

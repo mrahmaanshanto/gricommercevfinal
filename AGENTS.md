@@ -17,4 +17,44 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - `design/` is the read-only design export (reference only).
 - Shared shell: `src/shell/navigation.js` (menu), `gc-sidebar.js`, `gc-topbar.js`, `Shell.jsx`.
 - Routes are `/<kebab-page-name>`; `src/screens/registry.js` lists every screen.
+- One design pattern for every screen, defined in `src/styles/design-system.css` (read the two
+  comment blocks above the type and radius tokens). Screens use tokens, never literals:
+  - Text: main text (body, labels, inputs, buttons, table cells) is 13px `var(--text-sm)`; helper
+    text, small headings, table headers and badges are 12px `var(--text-xs)`. Weights are 400 body,
+    500 labels/buttons/badges, 600 headings and prices; 700 is not used.
+  - Fonts: `var(--font-sans)` everywhere, `var(--font-bn)` for Bangla, `var(--font-data)` for IDs
+    and figures. Monospace (`var(--font-code)`) is for code blocks only.
+  - Shape: buttons, inputs and selects are 44px tall with `var(--radius-lg)` (8px); cards and
+    panels `var(--radius-xl)` (12px); badges, chips, tabs and icon buttons `var(--radius-full)`.
+  - Muted text is `var(--text-muted)`, never `#94a3b8`.
+  `npm run pattern` snaps literals back onto the tokens and re-applies the shell hooks (safe to
+  rerun; needed after `npm run convert`).
+- Layout: no screen has a fixed width. Merchant screens use the shared shell classes (`gc-shell`,
+  `gc-shell__main`, `gc-shell__content`) and the reflow hooks `gc-cols-2…6`, `gc-split`, `gc-side`,
+  `gc-cardrow`, `gc-table-wrap`; their rules are at the end of `design-system.css`. The sidebar is a
+  rail below 1280px and a drawer below 1024px. One `<h1>` per screen (`<PageHeader>` or the hero title).
+- Shared behaviour lives in `src/components/ui` (`Overlays`, `Dialog`, `PageHeader`, `EmptyState`,
+  `ChannelIcon`, `StatusBadge`) and `src/runtime/ui.js` (`toast`, `confirmDialog`, `getLocale`/`setLocale`).
+  Success feedback is a `toast`, destructive actions ask with `confirmDialog`, a control without a
+  handler says so with a toast. `src/lib/format.js` writes money/dates/times; `src/lib/orderStatus.js`
+  is the one list of order statuses (sidebar, tabs, badges and stepper read it).
+- Language: the switch in the account menu and on sign-in calls `setLocale`. Only the shell (menu,
+  top bar, overlays: `src/shell/i18n.js`) and the sign-in page are translated so far.
+- POS: `/pos` (`src/screens/pos-register/Pos.jsx`) is the one register; `/pos-manage` (`PosManage.jsx`) is its
+  back office (counters, employees and shifts, cash pickups, settings). Both read and write
+  `src/lib/posStore.js` (browser storage). Register shortcuts are listed in `SHORTCUTS` in `Pos.jsx` (F1 on screen).
+- Sales has no separate wholesale module. A wholesale customer (`src/lib/customers.js`, with a price list set
+  when the customer is added) is chosen in New sale (`/pos`): the prices load on their own and the sale can be
+  completed as an unpaid invoice. `/sales-invoices` (`src/screens/sales/SalesInvoices.jsx`, `src/lib/invoices.js`)
+  lists invoices as Unpaid or Paid; recording the payment completes the sale and its order.
+- Shared operations data (front end, localStorage): `src/lib/locations.js` is the one list of places (every
+  place dropdown reads it); `src/lib/stock.js` is the catalogue with on hand / held / available / in transit
+  (`stockAt`) and stock moves (`addMove`); `src/lib/stockHolds.js` holds; `src/lib/orders.js` orders;
+  `src/lib/invoices.js` invoices, payments, credit, deliveries; `src/lib/returns.js` return history;
+  `src/components/ManagerPin.jsx` manager approval (demo PIN 1234). `/return-exchange` is the only return flow.
+  Money: `src/lib/ledger.js` (accounts + every movement; post where money actually moves, shown in Accounts › Money book);
+  suppliers: `src/lib/supplierBills.js` (bills from receiving, payments, credit notes). `docs/GridCommerce-flows.pdf` maps the flows.
+- Reference pages (UI kit, flows, site map, storyboards) are under `/dev/…`. They and the POS /
+  settings screen switchers only show in a production build when `NEXT_PUBLIC_SHOW_STORYBOARD=true`.
+- `npm run check:screens` fails when a screen brings back a literal the tokens replace.
 - Check changes with `npm run build` (prerenders every route) and by loading the screen.

@@ -4,6 +4,7 @@
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
+import { loadVat, saveVat } from '@/lib/vat';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
@@ -19,12 +20,15 @@ function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
 function toast(self, m) { clearTimeout(self.t); self.setState({ msg: m }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 3200); }
 function seg(self, opts, cur, key, i, base) { return opts.map(function (o) { var on = o[0] === cur; return { k: o[0], l: o[1 + i], on: on, cls: (base || 'sgb') + (on ? ' on' : ''), pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
 function sw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
-var T = {"menu": ["মেনু", "Menu"], "shop": ["রহমান স্টোর", "GridShop"], "shopInitial": ["র", "R"], "branch": ["মিরপুর শাখা", "Mirpur branch"], "newSale": ["নতুন বেচা", "New sale"], "gDaily": ["প্রতিদিনের কাজ", "Daily work"], "gGoods": ["মাল ও স্টক", "Goods & stock"], "gPeople": ["মানুষজন", "People"], "gAccounts": ["হিসাব", "Accounts"], "nHome": ["হোম", "Home"], "nSalesBook": ["বেচার খাতা", "Sales book"], "nInvoices": ["পাইকারি ও ইনভয়েস", "Wholesale & invoices"], "nReturn": ["ফেরত ও বদল", "Return & exchange"], "nPurchase": ["মাল কেনা", "Purchase"], "nMoney": ["টাকা আসা-যাওয়া", "Money in & out"], "nProducts": ["প্রোডাক্ট", "Products"], "nCategories": ["ক্যাটাগরি", "Categories"], "nBarcode": ["বারকোড", "Barcodes"], "nStock": ["স্টক ও গুদাম", "Stock & warehouses"], "nDamage": ["ড্যামেজ ও মেয়াদ শেষ", "Damaged & expired"], "nWarranty": ["ওয়ারেন্টি", "Warranty"], "nCatalog": ["ক্যাটালগ", "Catalogue"], "nCustomers": ["কাস্টমার ও বাকি", "Customers & dues"], "nSuppliers": ["সাপ্লায়ার ও দেনা", "Suppliers & payables"], "nStaff": ["স্টাফ", "Staff"], "nBook": ["হিসাব খাতা ও খরচ", "Cash book & expenses"], "nVat": ["ভ্যাট", "VAT"], "nReports": ["রিপোর্ট", "Reports"], "nPos": ["POS খুলুন", "Open POS"], "nSettings": ["সেটিংস", "Settings"], "search": ["প্রোডাক্ট, কাস্টমার বা মেমো নম্বর খুঁজুন", "Search products, customers or memo no."], "voiceSearch": ["কথা বলে খুঁজুন", "Search by voice"], "notif": ["নোটিফিকেশন", "Notifications"], "owner": ["মোস্তাফিজ", "Mostafiz"], "ownerInitial": ["মো", "M"], "role": ["মালিক", "Owner"], "aiAsk": ["কথা বলুন", "Ask by voice"], "aiTitle": ["গ্রিড সহকারী", "Grid assistant"], "aiSub": ["বাংলায় বলুন বা লিখুন — যেকোনো স্ক্রিন থেকে", "Speak or type — from any screen"], "close": ["বন্ধ করুন", "Close"], "aiType": ["এখানে লিখুন…", "Type here…"], "aiSpeak": ["কথা বলুন", "Speak"], "back": ["পেছনে", "Back"], "tHome": ["হোম", "Home"], "tSales": ["বেচা", "Sales"], "tStock": ["স্টক", "Stock"], "tMore": ["আরও", "More"], "save": ["সেভ করুন", "Save"], "cancel": ["বাতিল", "Cancel"], "seeAll": ["সব দেখুন", "See all"], "h": ["ভ্যাট", "VAT"], "hsub": ["কাস্টমারের কাছ থেকে কত পেলেন, সাপ্লায়ারকে কত দিলেন, সরকারকে কত জমা দিতে হবে", "What you collected, what you paid suppliers, and what you owe the government"], "month": ["মাস", "Month"], "notReg": ["আমার দোকান ভ্যাট নিবন্ধিত নয়", "My shop is not VAT-registered"], "kOut": ["বেচায় ভ্যাট পেয়েছেন", "VAT collected on sales"], "kOutH": ["কাস্টমারের কাছ থেকে নেওয়া", "Taken from customers"], "kIn": ["কেনায় ভ্যাট দিয়েছেন", "VAT paid on purchases"], "kInH": ["সাপ্লায়ারের চালানে দেওয়া — এটা বাদ যাবে", "On supplier invoices — this is deducted"], "kPay": ["এই মাসে দিতে হবে", "To pay this month"], "kPayH": ["পেয়েছেন − দিয়েছেন", "Collected − paid"], "kDue": ["দেওয়ার শেষ তারিখ", "Last date to pay"], "rates": ["ক্যাটাগরি অনুযায়ী ভ্যাট হার", "VAT rate by category"], "ratesH": ["হার বা \"দামে ধরা আছে\" বদলালে উপরের হিসাব সাথে সাথে বদলাবে", "Change a rate or the \"included\" switch and the totals above update"], "cCat": ["ক্যাটাগরি", "Category"], "cRate": ["ভ্যাট হার", "Rate"], "cInc": ["দামে ভ্যাট ধরা আছে?", "VAT in price?"], "cSales": ["বেচা", "Sales"], "cVat": ["ভ্যাট", "VAT"], "total": ["মোট", "Total"], "inv": ["ভ্যাট চালান (মূসক-৬.৩)", "VAT invoice (Mushak-6.3)"], "invSub": ["মেমো #১০৪২ · রফিক মিয়া · আজ সকাল ১০:৪২", "Memo #1042 · Rafiq Mia · today 10:42 am"], "printInv": ["প্রিন্ট", "Print"], "rForm": ["মূসক-৬.৩", "Mushak-6.3"], "rTitle": ["কর চালান", "Tax invoice"], "rAddr": ["বাড়ি ১২, রোড ৩, মিরপুর-১০, ঢাকা", "House 12, Road 3, Mirpur-10, Dhaka"], "rBin": ["বিআইএন (BIN): ০০০১২৩৪৫৬-০১০১", "BIN: 000123456-0101"], "rNo": ["চালান নং", "Invoice no."], "rNoV": ["#১০৪২", "#1042"], "rDate": ["তারিখ ও সময়", "Date & time"], "rDateV": ["২৯/০৯/২০২৬, সকাল ১০:৪২", "29/09/2026, 10:42 am"], "rBuyer": ["ক্রেতা", "Buyer"], "rBuyerV": ["রফিক মিয়া · ০১৮১২-৩৪৫৬৭৮", "Rafiq Mia · 01812-345678"], "rItem": ["পণ্য", "Item"], "rQty": ["পরিমাণ", "Qty"], "rPrice": ["দাম", "Price"], "rVat": ["ভ্যাট", "VAT"], "rNet": ["ভ্যাট ছাড়া দাম", "Price without VAT"], "rVatT": ["মোট ভ্যাট", "Total VAT"], "rGrand": ["সর্বমোট", "Grand total"], "rFoot": ["দামে ভ্যাট ধরা আছে", "Prices include VAT"], "rSign": ["বিক্রেতার সই", "Seller’s signature"], "ret": ["মাসিক রিটার্ন (মূসক-৯.১)", "Monthly return (Mushak-9.1)"], "c1": ["বেচার হিসাব", "Sales records"], "c2": ["কেনার হিসাব", "Purchase records"], "c3": ["ট্রেজারি চালান", "Treasury challan"], "c3H": ["ব্যাংকে বা অনলাইনে টাকা জমা দিয়ে চালান নম্বর লিখুন", "Pay at the bank or online, then enter the challan number"], "markPaid": ["জমা হয়েছে", "Mark as paid"], "ready": ["তৈরি", "Ready"], "left": ["বাকি", "Pending"], "dl": ["রিপোর্ট নামান", "Download report"], "consult": ["এই হিসাব আপনার খাতা থেকে বানানো। রিটার্ন জমা দেওয়ার আগে একজন ভ্যাট পরামর্শকের সাথে মিলিয়ে নিন।", "These figures come from your own records. Check them with a VAT consultant before you file the return."], "nrH": ["ভ্যাট নিবন্ধন না থাকলে", "If your shop is not VAT-registered"], "nrP": ["তাহলে কাস্টমারের কাছ থেকে ভ্যাট নেবেন না — মেমোতেও ভ্যাট দেখাবে না। বছরে কত বেচেন, তার উপর নিয়ম নির্ভর করে:", "Then do not charge customers VAT — memos will not show VAT either. What applies depends on your yearly sales:"], "nrYou": ["আপনার দোকান", "Your shop"], "nrCalc": ["টার্নওভার ট্যাক্স কত হতে পারে", "What turnover tax could be"], "nrTot": ["টার্নওভার ট্যাক্সের হিসাব রাখুন", "Keep turnover tax records"], "nrTotH": ["প্রতি ৩ মাসে কত দিতে হবে, এখানে দেখাবে", "Shows what is due every 3 months"], "nrConsult": ["নিয়ম বদলাতে পারে। আপনার দোকানে কোনটা খাটে, একজন ভ্যাট পরামর্শকের কাছ থেকে জেনে নিন।", "Rules can change. Ask a VAT consultant which one applies to your shop."], "pageTitle": ["ভ্যাট", "VAT"]};
+var T = {"menu": ["মেনু", "Menu"], "shop": ["রহমান স্টোর", "GridShop"], "shopInitial": ["র", "R"], "branch": ["মিরপুর শাখা", "Mirpur branch"], "newSale": ["নতুন বেচা", "New sale"], "gDaily": ["প্রতিদিনের কাজ", "Daily work"], "gGoods": ["মাল ও স্টক", "Goods & stock"], "gPeople": ["মানুষজন", "People"], "gAccounts": ["হিসাব", "Accounts"], "nHome": ["হোম", "Home"], "nSalesBook": ["বেচার খাতা", "Sales book"], "nInvoices": ["পাইকারি ও ইনভয়েস", "Wholesale & invoices"], "nReturn": ["ফেরত ও বদল", "Return & exchange"], "nPurchase": ["মাল কেনা", "Purchase"], "nMoney": ["টাকা আসা-যাওয়া", "Money in & out"], "nProducts": ["প্রোডাক্ট", "Products"], "nCategories": ["ক্যাটাগরি", "Categories"], "nBarcode": ["বারকোড", "Barcodes"], "nStock": ["স্টক ও গুদাম", "Stock & warehouses"], "nDamage": ["ড্যামেজ ও মেয়াদ শেষ", "Damaged & expired"], "nWarranty": ["ওয়ারেন্টি", "Warranty"], "nCatalog": ["ক্যাটালগ", "Catalogue"], "nCustomers": ["কাস্টমার ও বাকি", "Customers & dues"], "nSuppliers": ["সাপ্লায়ার ও দেনা", "Suppliers & payables"], "nStaff": ["স্টাফ", "Staff"], "nBook": ["হিসাব খাতা ও খরচ", "Cash book & expenses"], "nVat": ["ভ্যাট", "VAT"], "nReports": ["রিপোর্ট", "Reports"], "nPos": ["POS খুলুন", "Open POS"], "nSettings": ["সেটিংস", "Settings"], "search": ["প্রোডাক্ট, কাস্টমার বা মেমো নম্বর খুঁজুন", "Search products, customers or memo no."], "voiceSearch": ["কথা বলে খুঁজুন", "Search by voice"], "notif": ["নোটিফিকেশন", "Notifications"], "owner": ["মোস্তাফিজ", "Mostafiz"], "ownerInitial": ["মো", "M"], "role": ["মালিক", "Owner"], "aiAsk": ["কথা বলুন", "Ask by voice"], "aiTitle": ["গ্রিড সহকারী", "Grid assistant"], "aiSub": ["বাংলায় বলুন বা লিখুন — যেকোনো স্ক্রিন থেকে", "Speak or type — from any screen"], "close": ["বন্ধ করুন", "Close"], "aiType": ["এখানে লিখুন…", "Type here…"], "aiSpeak": ["কথা বলুন", "Speak"], "back": ["পেছনে", "Back"], "tHome": ["হোম", "Home"], "tSales": ["বেচা", "Sales"], "tStock": ["স্টক", "Stock"], "tMore": ["আরও", "More"], "save": ["সেভ করুন", "Save"], "cancel": ["বাতিল", "Cancel"], "seeAll": ["সব দেখুন", "See all"], "h": ["ভ্যাট", "VAT"], "hsub": ["কাস্টমারের কাছ থেকে কত পেলেন, সাপ্লায়ারকে কত দিলেন, সরকারকে কত জমা দিতে হবে", "What you collected, what you paid suppliers, and what you owe the government"], "month": ["মাস", "Month"], "notReg": ["আমার দোকান ভ্যাট নিবন্ধিত নয়", "My shop is not VAT-registered"], "kOut": ["বেচায় ভ্যাট পেয়েছেন", "VAT collected on sales"], "kOutH": ["কাস্টমারের কাছ থেকে নেওয়া", "Taken from customers"], "kIn": ["কেনায় ভ্যাট দিয়েছেন", "VAT paid on purchases"], "kInH": ["সাপ্লায়ারের চালানে দেওয়া — এটা বাদ যাবে", "On supplier invoices — this is deducted"], "kPay": ["এই মাসে দিতে হবে", "To pay this month"], "kPayH": ["পেয়েছেন − দিয়েছেন", "Collected − paid"], "kDue": ["দেওয়ার শেষ তারিখ", "Last date to pay"], "rates": ["ক্যাটাগরি অনুযায়ী ভ্যাট হার", "VAT rate by category"], "ratesH": ["হার বা \"দামে ধরা আছে\" বদলালে উপরের হিসাব সাথে সাথে বদলাবে", "Change a rate or the \"included\" switch and the totals above update"], "cCat": ["ক্যাটাগরি", "Category"], "cRate": ["ভ্যাট হার", "Rate"], "cInc": ["দামে ভ্যাট ধরা আছে?", "VAT in price?"], "cSales": ["বেচা", "Sales"], "cVat": ["ভ্যাট", "VAT"], "total": ["মোট", "Total"], "inv": ["ভ্যাট চালান (মূসক-৬.৩)", "VAT invoice (Mushak-6.3)"], "invSub": ["মেমো #১০৪২ · রফিক মিয়া · আজ সকাল ১০:৪২", "Memo #1042 · Rafiq Mia · today 10:42 AM"], "printInv": ["প্রিন্ট", "Print"], "rForm": ["মূসক-৬.৩", "Mushak-6.3"], "rTitle": ["কর চালান", "Tax invoice"], "rAddr": ["বাড়ি ১২, রোড ৩, মিরপুর-১০, ঢাকা", "House 12, Road 3, Mirpur-10, Dhaka"], "rBin": ["বিআইএন (BIN): ০০০১২৩৪৫৬-০১০১", "BIN: 000123456-0101"], "rNo": ["চালান নং", "Invoice no."], "rNoV": ["#১০৪২", "#1042"], "rDate": ["তারিখ ও সময়", "Date & time"], "rDateV": ["২৯/০৯/২০২৬, সকাল ১০:৪২", "29/09/2026, 10:42 AM"], "rBuyer": ["ক্রেতা", "Buyer"], "rBuyerV": ["রফিক মিয়া · ০১৮১২-৩৪৫৬৭৮", "Rafiq Mia · 01812-345678"], "rItem": ["পণ্য", "Item"], "rQty": ["পরিমাণ", "Qty"], "rPrice": ["দাম", "Price"], "rVat": ["ভ্যাট", "VAT"], "rNet": ["ভ্যাট ছাড়া দাম", "Price without VAT"], "rVatT": ["মোট ভ্যাট", "Total VAT"], "rGrand": ["সর্বমোট", "Grand total"], "rFoot": ["দামে ভ্যাট ধরা আছে", "Prices include VAT"], "rSign": ["বিক্রেতার সই", "Seller’s signature"], "ret": ["মাসিক রিটার্ন (মূসক-৯.১)", "Monthly return (Mushak-9.1)"], "c1": ["বেচার হিসাব", "Sales records"], "c2": ["কেনার হিসাব", "Purchase records"], "c3": ["ট্রেজারি চালান", "Treasury challan"], "c3H": ["ব্যাংকে বা অনলাইনে টাকা জমা দিয়ে চালান নম্বর লিখুন", "Pay at the bank or online, then enter the challan number"], "markPaid": ["জমা হয়েছে", "Mark as paid"], "ready": ["তৈরি", "Ready"], "left": ["বাকি", "Pending"], "dl": ["রিপোর্ট নামান", "Download report"], "consult": ["এই হিসাব আপনার খাতা থেকে বানানো। রিটার্ন জমা দেওয়ার আগে একজন ভ্যাট পরামর্শকের সাথে মিলিয়ে নিন।", "These figures come from your own records. Check them with a VAT consultant before you file the return."], "nrH": ["ভ্যাট নিবন্ধন না থাকলে", "If your shop is not VAT-registered"], "nrP": ["তাহলে কাস্টমারের কাছ থেকে ভ্যাট নেবেন না — মেমোতেও ভ্যাট দেখাবে না। বছরে কত বেচেন, তার উপর নিয়ম নির্ভর করে:", "Then do not charge customers VAT — memos will not show VAT either. What applies depends on your yearly sales:"], "nrYou": ["আপনার দোকান", "Your shop"], "nrCalc": ["টার্নওভার ট্যাক্স কত হতে পারে", "What turnover tax could be"], "nrTot": ["টার্নওভার ট্যাক্সের হিসাব রাখুন", "Keep turnover tax records"], "nrTotH": ["প্রতি ৩ মাসে কত দিতে হবে, এখানে দেখাবে", "Shows what is due every 3 months"], "nrConsult": ["নিয়ম বদলাতে পারে। আপনার দোকানে কোনটা খাটে, একজন ভ্যাট পরামর্শকের কাছ থেকে জেনে নিন।", "Rules can change. Ask a VAT consultant which one applies to your shop."], "pageTitle": ["ভ্যাট", "VAT"]};
 var AI = [["এই মাসে কত ভ্যাট দিতে হবে?", "How much VAT do I owe this month?", "সেপ্টেম্বরে বেচায় ভ্যাট পেয়েছেন ৳৫৪,৫০০, কেনায় দিয়েছেন ৳৩১,২৪০। জমা দিতে হবে ৳২৩,২৬০ — ১৫ অক্টোবরের মধ্যে।", "In September you collected ৳54,500 and paid ৳31,240. You owe ৳23,260 — by 15 October."], ["মেমো ১০৪২-এর ভ্যাট চালান প্রিন্ট করো", "Print the VAT invoice for memo 1042", "মূসক-৬.৩ চালান প্রিন্ট করছি — রফিক মিয়া, মোট ৳২,৪৫০, ভ্যাট ৳১০৯.০৫।", "Printing the Mushak-6.3 invoice — Rafiq Mia, total ৳2,450, VAT ৳109.05."], ["রিটার্ন জমা দিতে আর কী বাকি?", "What is left before I file the return?", "বেচা আর কেনার হিসাব তৈরি। শুধু ট্রেজারি চালানে টাকা জমা দেওয়া বাকি।", "Sales and purchase records are ready. Only the treasury challan payment is pending."]];
 var NAVC = {"stock": "7", "customers": "12", "suppliers": "3"};
 
 class Component extends DCLogic {
   componentWillUnmount() { clearTimeout(this.t); }
+  // the rates and the "not registered" switch are kept, and the POS register charges VAT from them
+  componentDidMount() { if (super.componentDidMount) super.componentDidMount(); const saved = loadVat(); this.setState({ rates: saved.rates, nr: saved.notReg }); }
+  componentDidUpdate(pp, ps) { if (super.componentDidUpdate) super.componentDidUpdate(pp, ps); const s = this.state || {}, o = ps || {}; if (s.rates !== o.rates || s.nr !== o.nr) saveVat({ rates: s.rates || {}, notReg: !!s.nr }); }
   renderVals() {
     var self = this, s = this.state || {};
     var lang = 'en', bn = false, i = bn ? 0 : 1;
@@ -135,61 +139,61 @@ return {
 
 const CSS = `
 *{box-sizing:border-box}
-body{margin:0;background:#e9eef5;color:#0f172a;-webkit-font-smoothing:antialiased;font-family:'Hind Siliguri','Poppins',system-ui,sans-serif}
+body{margin:0;background:#e9eef5;color:#0f172a;-webkit-font-smoothing:antialiased;font-family:var(--font-bn)}
 a{color:#003087;text-decoration:none}
 button{font:inherit;color:inherit}
-.fbn{font-family:'Hind Siliguri','Poppins',system-ui,sans-serif}
-.fen{font-family:'Poppins','Hind Siliguri',system-ui,sans-serif}
+.fbn{font-family:var(--font-bn)}
+.fen{font-family:var(--font-sans)}
 .num{font-variant-numeric:tabular-nums}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-.card{background:#fff;border:1px solid #e6eaf0;border-radius:18px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 10px 28px -18px rgba(15,23,42,.14)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 20px;border-radius:12px;border:0;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap;text-decoration:none;transition:background-color 200ms,border-color 200ms}
+.mono{font-family:var(--font-data)}
+.card{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 10px 28px -18px rgba(15,23,42,.14)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;white-space:nowrap;text-decoration:none;transition:background-color 200ms,border-color 200ms}
 .solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
 .line{background:#fff;color:#0f172a;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#0f172a}
 .soft{background:#eef3fb;color:#003087}.soft:hover{background:#e0e9f7;color:#003087}
 .okb{background:#047857;color:#fff}.okb:hover{background:#065f46;color:#fff}
 .dang{background:#fff;color:#b83210;border:1px solid #f3b7a5}.dang:hover{background:#fff4f0;color:#b83210}
-.sm{height:38px;padding:0 14px;font-size:14px;border-radius:10px}
-.big{height:56px;padding:0 26px;font-size:17px;border-radius:14px}
-.ib{width:44px;height:44px;border-radius:12px;border:1px solid #e2e8f0;background:#fff;color:#334155;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-shrink:0}
+.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus);border-radius:var(--radius-lg)}
+.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus);border-radius:var(--radius-lg)}
+.ib{width:36px;height:36px;border-radius:var(--radius-full);border:1px solid #e2e8f0;background:#fff;color:#334155;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-shrink:0}
 .ib:hover{background:#f1f5f9}
-.seg{display:inline-flex;padding:4px;gap:2px;border-radius:12px;background:#e9eef5}
-.sgb{height:36px;padding:0 14px;border:0;border-radius:9px;background:transparent;font-size:14px;font-weight:500;color:#475569;cursor:pointer;white-space:nowrap}
-.sgb.on{background:#fff;color:#003087;font-weight:700;box-shadow:0 1px 3px rgba(15,23,42,.14)}
-.chip{height:38px;padding:0 14px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;font-size:14px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.seg{display:inline-flex;padding:4px;gap:2px;border-radius:var(--radius-xl);background:#e9eef5}
+.sgb{height:36px;padding:0 14px;border:0;border-radius:var(--radius-lg);background:transparent;font-size:var(--text-sm);font-weight:var(--weight-medium);color:#475569;cursor:pointer;white-space:nowrap}
+.sgb.on{background:#fff;color:#003087;font-weight:var(--weight-semibold);box-shadow:0 1px 3px rgba(15,23,42,.14)}
+.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:#eef3fb;color:#003087;font-weight:600}
-.pill{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap}
+.chip.on{border-color:#003087;background:#eef3fb;color:#003087;font-weight:var(--weight-medium)}
+.pill{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-full);font-size:var(--text-xs-plus);font-weight:var(--weight-medium);white-space:nowrap}
 .p-ok{background:#e7f8f1;color:#047857}.p-due{background:#ffece6;color:#b83210}.p-warn{background:#fff4e0;color:#a14f06}.p-info{background:#eef3fb;color:#003087}.p-grey{background:#eef2f6;color:#475569}.p-bk{background:#fdecf5;color:#a3195b}
-.inp{width:100%;height:48px;padding:0 14px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;font:inherit;font-size:15px;color:#0f172a}
+.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#0f172a}
 .inp:focus{outline:none;border-color:#003087;box-shadow:0 0 0 3px rgba(0,48,135,.12)}
-.inp::placeholder{color:#64748b}
-.lbl{font-size:14px;font-weight:600;color:#334155}
+.inp::placeholder{color:var(--text-muted)}
+.lbl{font-size:var(--text-sm);font-weight:var(--weight-medium);color:#334155}
 .fld{display:flex;flex-direction:column;gap:6px;min-width:0}
-.hint{font-size:13px;line-height:18px;color:#64748b}
+.hint{font-size:var(--text-xs-plus);line-height:18px;color:var(--text-muted)}
 .req{color:#b83210}
-.th{font-size:13px;font-weight:600;color:#64748b;text-align:left;padding:10px 14px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:12px 14px;border-bottom:1px solid #f1f5f9;font-size:15px;vertical-align:middle}
+.th{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted);text-align:left;padding:10px 14px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.td{padding:12px 14px;border-bottom:1px solid #f1f5f9;font-size:var(--text-sm);vertical-align:middle}
 .trow:hover{background:#f8fafc}
-.h1{margin:0;font-size:26px;line-height:34px;font-weight:700}
-.h2{margin:0;font-size:18px;line-height:24px;font-weight:700}
-.sub{font-size:14.5px;color:#64748b}
+.h1{margin:0;font-size:var(--text-2xl);line-height:34px;font-weight:var(--weight-semibold)}
+.h2{margin:0;font-size:var(--text-lg);line-height:24px;font-weight:var(--weight-semibold)}
+.sub{font-size:var(--text-sm-plus);color:var(--text-muted)}
 .kpi{padding:18px 20px;display:flex;flex-direction:column;gap:4px}
-.kpi .k{font-size:14.5px;color:#475569;font-weight:500}
-.kpi .v{font-size:28px;line-height:36px;font-weight:700;font-variant-numeric:tabular-nums}
-.sw{position:relative;width:48px;height:28px;border-radius:999px;border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms}
+.kpi .k{font-size:var(--text-sm-plus);color:#475569;font-weight:var(--weight-medium)}
+.kpi .v{font-size:var(--text-3xl);line-height:36px;font-weight:var(--weight-semibold);font-variant-numeric:tabular-nums}
+.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms}
 .sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
 .tabl{display:flex;gap:4px;border-bottom:1px solid #e2e8f0}
-.tl{position:relative;height:46px;padding:0 14px;border:0;background:transparent;font-size:15px;font-weight:500;color:#64748b;cursor:pointer;white-space:nowrap}
-.tl.on{color:#003087;font-weight:700}.tl.on::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:#003087}
+.tl{position:relative;height:44px;padding:0 14px;border:0;background:transparent;font-size:var(--text-sm-plus);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;white-space:nowrap}
+.tl.on{color:#003087;font-weight:var(--weight-semibold)}.tl.on::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:#003087}
 .row{display:flex;align-items:center;gap:12px;padding:14px 16px}
 .row + .row{border-top:1px solid #eef2f6}
-.bar{height:8px;border-radius:999px;background:#eef2f6;overflow:hidden;display:block}.bar>span{display:block;height:8px;border-radius:999px}
-.note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:14px;line-height:20px}
+.bar{height:8px;border-radius:var(--radius-full);background:#eef2f6;overflow:hidden;display:block}.bar>span{display:block;height:8px;border-radius:var(--radius-full)}
+.note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:var(--radius-xl);font-size:var(--text-sm);line-height:20px}
 .n-info{background:#eef3fb;color:#1e3a6e}.n-warn{background:#fff8eb;color:#7a3b04;border:1px solid #fde3b5}.n-ok{background:#e7f8f1;color:#065f46}.n-due{background:#fff4f0;color:#8a2a0d;border:1px solid #f7c9bb}
-.chipq{height:38px;padding:0 12px;border-radius:999px;border:1px solid #d6e0ef;background:#f5f8ff;color:#003087;font-size:13.5px;font-weight:500;cursor:pointer;white-space:nowrap}
-.wave span{display:inline-block;width:4px;margin:0 2px;border-radius:4px;background:#003087;animation:wv 900ms ease-in-out infinite}
+.chipq{height:36px;padding:0 12px;border-radius:var(--radius-full);border:1px solid #d6e0ef;background:#f5f8ff;color:#003087;font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;white-space:nowrap}
+.wave span{display:inline-block;width:4px;margin:0 2px;border-radius:var(--radius-sm);background:#003087;animation:wv 900ms ease-in-out infinite}
 .wave span:nth-child(2){animation-delay:.15s}.wave span:nth-child(3){animation-delay:.3s}.wave span:nth-child(4){animation-delay:.45s}.wave span:nth-child(5){animation-delay:.6s}
 @keyframes wv{0%,100%{height:8px}50%{height:26px}}
 .fade{animation:fd 240ms cubic-bezier(0,0,.2,1)}
@@ -197,32 +201,32 @@ button{font:inherit;color:inherit}
 .btn:focus-visible,.ib:focus-visible,.sgb:focus-visible,.chip:focus-visible,.tl:focus-visible,.sw:focus-visible,.chipq:focus-visible,a:focus-visible,button:focus-visible{outline:3px solid rgba(0,48,135,.45);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
 
-.nav{display:flex;align-items:center;gap:11px;height:38px;padding:0 10px;border-radius:10px;color:#334155;font-size:14.5px;font-weight:500;text-decoration:none;transition:background-color 200ms,color 200ms}
+.nav{display:flex;align-items:center;gap:11px;height:38px;padding:0 10px;border-radius:var(--radius-lg);color:#334155;font-size:var(--text-sm-plus);font-weight:var(--weight-medium);text-decoration:none;transition:background-color 200ms,color 200ms}
 .nav:hover{background:#f1f5f9;color:#0f172a}
-.nav.on{background:rgba(0,48,135,.09);color:#003087;font-weight:700}
-.nav .cnt{margin-left:auto;min-width:24px;height:21px;padding:0 7px;border-radius:999px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
-.navh{font-size:12px;font-weight:600;letter-spacing:.04em;color:#64748b;padding:12px 10px 2px}
-.act{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:16px;border-radius:16px;border:1px solid #e6eaf0;background:#fff;cursor:pointer;text-align:left;text-decoration:none;color:#0f172a;transition:border-color 200ms,box-shadow 200ms}
+.nav.on{background:rgba(0,48,135,.09);color:#003087;font-weight:var(--weight-semibold)}
+.nav .cnt{margin-left:auto;min-width:24px;height:21px;padding:0 7px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
+.navh{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:.04em;color:var(--text-muted);padding:12px 10px 2px}
+.act{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:16px;border-radius:var(--radius-xl);border:1px solid #e6eaf0;background:#fff;cursor:pointer;text-align:left;text-decoration:none;color:#0f172a;transition:border-color 200ms,box-shadow 200ms}
 .act:hover{border-color:#003087;box-shadow:0 8px 20px -12px rgba(0,48,135,.35);color:#0f172a}
-.act .ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center}
+.act .ic{width:44px;height:44px;border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center}
 .alert{display:flex;align-items:center;gap:14px;padding:12px 16px;border-top:1px solid #eef2f6}
-.abtn{height:38px;padding:0 14px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;font-size:14px;font-weight:600;color:#003087;cursor:pointer;white-space:nowrap}
+.abtn{height:36px;padding:0 14px;border-radius:var(--radius-lg);border:1px solid #cbd5e1;background:#fff;font-size:var(--text-sm);font-weight:var(--weight-medium);color:#003087;cursor:pointer;white-space:nowrap}
 .abtn:hover{background:#f1f5f9}
-.mic{position:absolute;right:28px;bottom:28px;height:60px;padding:0 22px 0 8px;border-radius:999px;border:0;background:#003087;color:#fff;display:flex;align-items:center;gap:12px;font-size:16px;font-weight:600;cursor:pointer;box-shadow:0 16px 32px -12px rgba(0,48,135,.6);z-index:20}
-.mic .dotc{width:44px;height:44px;border-radius:999px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center}
+.mic{position:absolute;right:28px;bottom:28px;height:60px;padding:0 22px 0 8px;border-radius:var(--radius-full);border:0;background:#003087;color:#fff;display:flex;align-items:center;gap:12px;font-size:var(--text-base);font-weight:var(--weight-semibold);cursor:pointer;box-shadow:0 16px 32px -12px rgba(0,48,135,.6);z-index:20}
+.mic .dotc{width:44px;height:44px;border-radius:var(--radius-full);background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center}
 .scrim{position:absolute;inset:0;background:rgba(15,23,42,.42);z-index:15}
 .drawer{position:absolute;top:0;right:0;bottom:0;width:520px;background:#fff;z-index:16;display:flex;flex-direction:column;box-shadow:-20px 0 50px -20px rgba(15,23,42,.35)}
-.modal{position:absolute;left:50%;top:120px;transform:translateX(-50%);width:560px;background:#fff;border-radius:20px;z-index:16;box-shadow:0 30px 70px -20px rgba(15,23,42,.45)}
+.modal{position:absolute;left:50%;top:120px;transform:translateX(-50%);width:560px;background:#fff;border-radius:var(--radius-xl);z-index:16;box-shadow:0 30px 70px -20px rgba(15,23,42,.45)}
 
 /* merged: English, compact controls, GridAI button */
-body{font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif}
-.btn{height:40px;padding:0 16px;font-size:14px;border-radius:10px}
-.btn.sm,.sm{height:34px;padding:0 12px;font-size:13px;border-radius:9px}
-.btn.big,.big{height:48px;padding:0 22px;font-size:15px;border-radius:12px}
-.ib{width:40px;height:40px;border-radius:10px}
-.chip{height:34px;padding:0 12px;font-size:13px}
-.sgb{height:32px;padding:0 12px;font-size:13px}
-.gfab{position:absolute;right:28px;bottom:28px;z-index:20;display:inline-flex;align-items:center;gap:10px;height:52px;padding:0 20px 0 16px;border-radius:999px;background:#003087;color:#fff;font-size:15px;font-weight:600;text-decoration:none;box-shadow:0 14px 30px -12px rgba(0,48,135,.6)}
+body{font-family:var(--font-sans)}
+.btn{height:44px;padding:0 18px;font-size:var(--text-sm);border-radius:var(--radius-lg)}
+.btn.sm,.sm{height:34px;padding:0 12px;font-size:var(--text-xs-plus);border-radius:var(--radius-lg)}
+.btn.big,.big{height:48px;padding:0 22px;font-size:var(--text-sm-plus);border-radius:var(--radius-xl)}
+.ib{width:36px;height:36px;border-radius:var(--radius-full)}
+.chip{height:36px;padding:0 14px;font-size:var(--text-xs-plus)}
+.sgb{height:32px;padding:0 12px;font-size:var(--text-xs-plus)}
+.gfab{position:absolute;right:28px;bottom:28px;z-index:20;display:inline-flex;align-items:center;gap:10px;height:52px;padding:0 20px 0 16px;border-radius:var(--radius-full);background:#003087;color:#fff;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);text-decoration:none;box-shadow:0 14px 30px -12px rgba(0,48,135,.6)}
 .gfab:hover{background:#002a77;color:#fff}
 .gfab:focus-visible{outline:3px solid rgba(0,48,135,.45);outline-offset:3px}
 .th,.td{white-space:normal}
@@ -237,13 +241,13 @@ export default class VatScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="Vat">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className={v.rootCls} style={{ width: "1440px", height: "1500px", position: "relative", background: "#e9eef5", padding: "12px", display: "flex", gap: "12px", overflow: "hidden" }}>
+        <div className={"gc-shell " + (v.rootCls || "")} style={{ position: "relative", background: "#e9eef5", padding: "12px", display: "flex", gap: "12px" }}>
           <__Sidebar sticky="" active="acc-vat" />
-          <main style={{ flexGrow: "1", minWidth: "0", background: "#f6f8fb", borderRadius: "18px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
+          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f6f8fb", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", position: "relative" }}>
             <__Topbar crumb="Accounts" page="VAT" placeholder="Search products, customers or memo no." />
-            <div style={{ flexGrow: "1", minHeight: "0", padding: "22px 28px 28px", display: "flex", flexDirection: "column", gap: "18px" }}>
+            <div className="gc-shell__content" style={{ flexGrow: "1", minHeight: "0", padding: "22px 28px 28px", display: "flex", flexDirection: "column", gap: "18px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                <span style={{ width: "52px", height: "52px", flexShrink: "0", borderRadius: "15px", background: "#fff", border: "1px solid #e6eaf0", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
+                <span style={{ width: "52px", height: "52px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e6eaf0", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
                   <svg width="38" height="38" viewBox="0 0 48 48" aria-hidden="true">
                     <path d="M10 5L38 5L38 42L34 39L30 42L26 39L22 42L18 39L14 42L10 39Z" fill="#e0f2fe" />
                     <path d="M14.7 16a3.8 3.8 0 1 0 7.6 0a3.8 3.8 0 1 0 -7.6 0Z" fill="#0ea5e9" />
@@ -263,7 +267,7 @@ export default class VatScreen extends Component {
                       </React.Fragment>))}
                   </div>
                 </>) : null}
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", height: "48px", padding: "0 12px 0 16px", border: "1px solid #e2e8f0", borderRadius: "12px", background: "#fff", fontSize: "14.5px", fontWeight: "600" }}><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true">
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", height: "48px", padding: "0 12px 0 16px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true">
   <path d="M9 18H39A1 1 0 0 1 40 19V41A1 1 0 0 1 39 42H9A1 1 0 0 1 8 41V19A1 1 0 0 1 9 18Z" fill="#e0f2fe" />
   <path d="M7 9H41A2 2 0 0 1 43 11V17A2 2 0 0 1 41 19H7A2 2 0 0 1 5 17V11A2 2 0 0 1 7 9Z" fill="#0ea5e9" />
   <path d="M11 9h6v10h-6Z" fill="#ffffff" />
@@ -276,7 +280,7 @@ export default class VatScreen extends Component {
               </div>
               {v.isReg ? (<>
                 <div className="fade" style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "14px" }}>
+                  <div className="gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "14px" }}>
                     <div className="card kpi">
                       <span className="k" style={{ display: "flex", alignItems: "center", gap: "10px" }}><svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true">
   <path d="M14 16H34A5 5 0 0 1 39 21V38A5 5 0 0 1 34 43H14A5 5 0 0 1 9 38V21A5 5 0 0 1 14 16Z" fill="#0ea5e9" />
@@ -308,7 +312,7 @@ export default class VatScreen extends Component {
                       <span className="hint">{v.t?.kInH}</span>
                     </div>
                     <div className="card kpi" style={{ background: "#fff4e0", borderColor: "#fde3b5" }}>
-                      <span className="k" style={{ color: "#7a3b04", display: "flex", alignItems: "center", gap: "10px" }}><span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "11px", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <span className="k" style={{ color: "#7a3b04", display: "flex", alignItems: "center", gap: "10px" }}><span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
   <svg width="32" height="32" viewBox="0 0 48 48" aria-hidden="true">
     <path d="M10 5L38 5L38 42L34 39L30 42L26 39L22 42L18 39L14 42L10 39Z" fill="#e0f2fe" />
     <path d="M14.7 16a3.8 3.8 0 1 0 7.6 0a3.8 3.8 0 1 0 -7.6 0Z" fill="#0ea5e9" />
@@ -317,7 +321,7 @@ export default class VatScreen extends Component {
     <path d="M15.2 34H32.8A1.2 1.2 0 0 1 34 35.2V35.199999999999996A1.2 1.2 0 0 1 32.8 36.4H15.2A1.2 1.2 0 0 1 14 35.199999999999996V35.2A1.2 1.2 0 0 1 15.2 34Z" fill="#7dd3fc" />
   </svg>
 </span>{v.t?.kPay}</span>
-                      <span className="v" style={{ color: "#a14f06", fontSize: "32px" }}>{v.k?.pay}</span>
+                      <span className="v" style={{ color: "#a14f06", fontSize: "var(--text-3xl)" }}>{v.k?.pay}</span>
                       <span className="hint" style={{ color: "#7a3b04" }}>{v.t?.kPayH}</span>
                     </div>
                     <div className="card kpi">
@@ -335,7 +339,7 @@ export default class VatScreen extends Component {
   <path d="M22.2 32H25.8A1.2 1.2 0 0 1 27 33.2V35.8A1.2 1.2 0 0 1 25.8 37H22.2A1.2 1.2 0 0 1 21 35.8V33.2A1.2 1.2 0 0 1 22.2 32Z" fill="#e0f2fe" />
   <path d="M32.2 32H35.8A1.2 1.2 0 0 1 37 33.2V35.8A1.2 1.2 0 0 1 35.8 37H32.2A1.2 1.2 0 0 1 31 35.8V33.2A1.2 1.2 0 0 1 32.2 32Z" fill="#e0f2fe" />
 </svg>{v.t?.kDue}</span>
-                      <span className="v" style={{ fontSize: "24px" }}>{v.k?.dueDate}</span>
+                      <span className="v" style={{ fontSize: "var(--text-2xl)" }}>{v.k?.dueDate}</span>
                       <span style={{ display: "flex" }}>
                         <span className={v.k?.dueCls}>{v.k?.dueNote}</span>
                       </span>
@@ -355,49 +359,51 @@ export default class VatScreen extends Component {
                           <div className="hint">{v.t?.ratesH}</div>
                         </div>
                       </div>
-                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                        <thead>
-                          <tr style={{ background: "#f8fafc" }}>
-                            <th className="th">{v.t?.cCat}</th>
-                            <th className="th">{v.t?.cRate}</th>
-                            <th className="th">{v.t?.cInc}</th>
-                            <th className="th" style={{ textAlign: "right" }}>{v.t?.cSales}</th>
-                            <th className="th" style={{ textAlign: "right" }}>{v.t?.cVat}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {__list(v.rows).map((r, $index) => (<React.Fragment key={$index}>
-                              <tr className="trow">
-                                <td className="td" style={{ padding: "8px 14px", fontWeight: "600" }}>
-                                  <span style={{ display: "flex", alignItems: "center", gap: "10px" }}><span style={__sx(`width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; background: ${r?.tint ?? ""}; color: ${r?.fg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
-  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d={r?.icon} />
-  </svg>
-</span>{r?.l}</span>
-                                </td>
-                                <td className="td" style={{ padding: "8px 14px" }}>
-                                  <select className="inp num" value={r?.rate} onInput={r?.setRate} onChange={r?.setRate} aria-label={`${v.t?.cRate ?? ""} ${r?.l ?? ""}`} style={{ width: "96px", height: "40px", padding: "0 10px", fontWeight: "700" }}>
-                                    {__list(r?.opts).map((o, $index) => (<React.Fragment key={$index}>
-                                        <option value={o?.v}>{o?.l}</option>
-                                      </React.Fragment>))}
-                                  </select>
-                                </td>
-                                <td className="td" style={{ padding: "8px 14px" }}>
-                                  <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "14px", color: "#475569" }}><button type="button" className={r?.incCls} aria-pressed={r?.inc} aria-label={`${v.t?.cInc ?? ""} ${r?.l ?? ""}`} onClick={r?.toggleInc} />{r?.incL}</span>
-                                </td>
-                                <td className="td num" style={{ padding: "8px 14px", textAlign: "right" }}>{r?.sales}</td>
-                                <td className="td num" style={__sx(`padding: 8px 14px; text-align: right; font-weight: 700; color: ${r?.vfg ?? ""};`)}>{r?.vat}</td>
-                              </tr>
-                            </React.Fragment>))}
-                          <tr style={{ background: "#f8fafc" }}>
-                            <td className="td" style={{ fontWeight: "700" }}>{v.t?.total}</td>
-                            <td className="td" />
-                            <td className="td" />
-                            <td className="td num" style={{ textAlign: "right", fontWeight: "700" }}>{v.k?.sales}</td>
-                            <td className="td num" style={{ textAlign: "right", fontWeight: "700", color: "#003087" }}>{v.k?.out}</td>
-                          </tr>
-                        </tbody>
-                      </table>
+                      <div className="gc-table-wrap">
+                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                          <thead>
+                            <tr style={{ background: "#f8fafc" }}>
+                              <th className="th">{v.t?.cCat}</th>
+                              <th className="th">{v.t?.cRate}</th>
+                              <th className="th">{v.t?.cInc}</th>
+                              <th className="th" style={{ textAlign: "right" }}>{v.t?.cSales}</th>
+                              <th className="th" style={{ textAlign: "right" }}>{v.t?.cVat}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {__list(v.rows).map((r, $index) => (<React.Fragment key={$index}>
+                                <tr className="trow">
+                                  <td className="td" style={{ padding: "8px 14px", fontWeight: "var(--weight-medium)" }}>
+                                    <span style={{ display: "flex", alignItems: "center", gap: "10px" }}><span style={__sx(`width: 34px; height: 34px; flex-shrink: 0; border-radius: var(--radius-lg); background: ${r?.tint ?? ""}; color: ${r?.fg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={r?.icon} />
+    </svg>
+  </span>{r?.l}</span>
+                                  </td>
+                                  <td className="td" style={{ padding: "8px 14px" }}>
+                                    <select className="inp num" value={r?.rate} onInput={r?.setRate} onChange={r?.setRate} aria-label={`${v.t?.cRate ?? ""} ${r?.l ?? ""}`} style={{ width: "96px", height: "40px", padding: "0 10px", fontWeight: "var(--weight-semibold)" }}>
+                                      {__list(r?.opts).map((o, $index) => (<React.Fragment key={$index}>
+                                          <option value={o?.v}>{o?.l}</option>
+                                        </React.Fragment>))}
+                                    </select>
+                                  </td>
+                                  <td className="td" style={{ padding: "8px 14px" }}>
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "var(--text-sm)", color: "#475569" }}><button type="button" className={r?.incCls} aria-pressed={r?.inc} aria-label={`${v.t?.cInc ?? ""} ${r?.l ?? ""}`} onClick={r?.toggleInc} />{r?.incL}</span>
+                                  </td>
+                                  <td className="td num" style={{ padding: "8px 14px", textAlign: "right" }}>{r?.sales}</td>
+                                  <td className="td num" style={__sx(`padding: 8px 14px; text-align: right; font-weight: var(--weight-semibold); color: ${r?.vfg ?? ""};`)}>{r?.vat}</td>
+                                </tr>
+                              </React.Fragment>))}
+                            <tr style={{ background: "#f8fafc" }}>
+                              <td className="td" style={{ fontWeight: "var(--weight-semibold)" }}>{v.t?.total}</td>
+                              <td className="td" />
+                              <td className="td" />
+                              <td className="td num" style={{ textAlign: "right", fontWeight: "var(--weight-semibold)" }}>{v.k?.sales}</td>
+                              <td className="td num" style={{ textAlign: "right", fontWeight: "var(--weight-semibold)", color: "#003087" }}>{v.k?.out}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
                     </section>
                     <section className="card" style={{ width: "440px", flexShrink: "0", padding: "14px 18px 18px", display: "flex", flexDirection: "column", gap: "12px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -420,44 +426,46 @@ export default class VatScreen extends Component {
   <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z" />
 </svg>{v.t?.printInv}</button>
                       </div>
-                      <div style={{ border: "1.5px solid #94a3b8", borderRadius: "6px", padding: "14px 16px", background: "#fff", display: "flex", flexDirection: "column", gap: "8px", fontSize: "14px" }}>
+                      <div style={{ border: "1.5px solid #94a3b8", borderRadius: "var(--radius-md)", padding: "14px 16px", background: "#fff", display: "flex", flexDirection: "column", gap: "8px", fontSize: "var(--text-sm)" }}>
                         <div style={{ textAlign: "center", lineHeight: "20px" }}>
-                          <div style={{ fontSize: "13px", color: "#475569", fontWeight: "600" }}>{v.t?.rForm}</div>
-                          <div style={{ fontSize: "16px", fontWeight: "700" }}>{v.t?.rTitle}</div>
+                          <div style={{ fontSize: "var(--text-xs-plus)", color: "#475569", fontWeight: "var(--weight-medium)" }}>{v.t?.rForm}</div>
+                          <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>{v.t?.rTitle}</div>
                         </div>
                         <div style={{ textAlign: "center", lineHeight: "20px", paddingBottom: "8px", borderBottom: "1px dashed #94a3b8" }}>
-                          <div style={{ fontSize: "17px", fontWeight: "700" }}>{v.t?.shop}</div>
+                          <div style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>{v.t?.shop}</div>
                           <div style={{ color: "#475569" }}>{v.t?.rAddr}</div>
-                          <div className="num" style={{ fontWeight: "600" }}>{v.t?.rBin}</div>
+                          <div className="num" style={{ fontWeight: "var(--weight-medium)" }}>{v.t?.rBin}</div>
                         </div>
                         <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "2px 10px", lineHeight: "20px" }}>
-                          <span style={{ color: "#64748b" }}>{v.t?.rNo}</span>
-                          <span className="num" style={{ fontWeight: "600" }}>{v.t?.rNoV}</span>
-                          <span style={{ color: "#64748b" }}>{v.t?.rDate}</span>
+                          <span style={{ color: "var(--text-muted)" }}>{v.t?.rNo}</span>
+                          <span className="num" style={{ fontWeight: "var(--weight-medium)" }}>{v.t?.rNoV}</span>
+                          <span style={{ color: "var(--text-muted)" }}>{v.t?.rDate}</span>
                           <span className="num">{v.t?.rDateV}</span>
-                          <span style={{ color: "#64748b" }}>{v.t?.rBuyer}</span>
+                          <span style={{ color: "var(--text-muted)" }}>{v.t?.rBuyer}</span>
                           <span className="num">{v.t?.rBuyerV}</span>
                         </div>
-                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
-                          <thead>
-                            <tr>
-                              <th style={{ textAlign: "left", padding: "5px 0", borderTop: "1px solid #0f172a", borderBottom: "1px solid #0f172a", fontWeight: "700" }}>{v.t?.rItem}</th>
-                              <th style={{ textAlign: "right", padding: "5px 0", borderTop: "1px solid #0f172a", borderBottom: "1px solid #0f172a", fontWeight: "700" }}>{v.t?.rQty}</th>
-                              <th style={{ textAlign: "right", padding: "5px 0", borderTop: "1px solid #0f172a", borderBottom: "1px solid #0f172a", fontWeight: "700" }}>{v.t?.rPrice}</th>
-                              <th style={{ textAlign: "right", padding: "5px 0", borderTop: "1px solid #0f172a", borderBottom: "1px solid #0f172a", fontWeight: "700" }}>{v.t?.rVat}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {__list(v.items).map((it, $index) => (<React.Fragment key={$index}>
-                                <tr>
-                                  <td style={{ padding: "3px 0" }}>{it?.l} <span style={{ color: "#64748b", fontSize: "12.5px" }}>{it?.rate}</span></td>
-                                  <td className="num" style={{ padding: "3px 0", textAlign: "right" }}>{it?.q}</td>
-                                  <td className="num" style={{ padding: "3px 0", textAlign: "right" }}>{it?.amt}</td>
-                                  <td className="num" style={{ padding: "3px 0", textAlign: "right", color: "#475569" }}>{it?.vat}</td>
-                                </tr>
-                              </React.Fragment>))}
-                          </tbody>
-                        </table>
+                        <div className="gc-table-wrap">
+                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
+                            <thead>
+                              <tr>
+                                <th style={{ textAlign: "left", padding: "5px 0", borderTop: "1px solid #0f172a", borderBottom: "1px solid #0f172a", fontWeight: "var(--weight-semibold)" }}>{v.t?.rItem}</th>
+                                <th style={{ textAlign: "right", padding: "5px 0", borderTop: "1px solid #0f172a", borderBottom: "1px solid #0f172a", fontWeight: "var(--weight-semibold)" }}>{v.t?.rQty}</th>
+                                <th style={{ textAlign: "right", padding: "5px 0", borderTop: "1px solid #0f172a", borderBottom: "1px solid #0f172a", fontWeight: "var(--weight-semibold)" }}>{v.t?.rPrice}</th>
+                                <th style={{ textAlign: "right", padding: "5px 0", borderTop: "1px solid #0f172a", borderBottom: "1px solid #0f172a", fontWeight: "var(--weight-semibold)" }}>{v.t?.rVat}</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {__list(v.items).map((it, $index) => (<React.Fragment key={$index}>
+                                  <tr>
+                                    <td style={{ padding: "3px 0" }}>{it?.l} <span style={{ color: "var(--text-muted)", fontSize: "var(--text-xs-plus)" }}>{it?.rate}</span></td>
+                                    <td className="num" style={{ padding: "3px 0", textAlign: "right" }}>{it?.q}</td>
+                                    <td className="num" style={{ padding: "3px 0", textAlign: "right" }}>{it?.amt}</td>
+                                    <td className="num" style={{ padding: "3px 0", textAlign: "right", color: "#475569" }}>{it?.vat}</td>
+                                  </tr>
+                                </React.Fragment>))}
+                            </tbody>
+                          </table>
+                        </div>
                         <div style={{ borderTop: "1px solid #0f172a", paddingTop: "6px", display: "flex", flexDirection: "column", gap: "2px" }}>
                           <div style={{ display: "flex" }}>
                             <span style={{ flexGrow: "1", color: "#475569" }}>{v.t?.rNet}</span>
@@ -467,12 +475,12 @@ export default class VatScreen extends Component {
                             <span style={{ flexGrow: "1", color: "#475569" }}>{v.t?.rVatT}</span>
                             <span className="num">{v.rc?.vat}</span>
                           </div>
-                          <div style={{ display: "flex", fontSize: "16px", fontWeight: "700" }}>
+                          <div style={{ display: "flex", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>
                             <span style={{ flexGrow: "1" }}>{v.t?.rGrand}</span>
                             <span className="num">{v.rc?.grand}</span>
                           </div>
                         </div>
-                        <div style={{ display: "flex", alignItems: "flex-end", paddingTop: "10px", fontSize: "13px", color: "#64748b" }}>
+                        <div style={{ display: "flex", alignItems: "flex-end", paddingTop: "10px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>
                           <span style={{ flexGrow: "1" }}>{v.t?.rFoot}</span>
                           <span style={{ borderTop: "1px solid #94a3b8", paddingTop: "2px", minWidth: "120px", textAlign: "center" }}>{v.t?.rSign}</span>
                         </div>
@@ -495,7 +503,7 @@ export default class VatScreen extends Component {
                         <h2 className="h2">{v.t?.ret}</h2>
                         <div className="hint num">{v.retSub}</div>
                       </div>
-                      <span style={{ fontSize: "14.5px", fontWeight: "600", color: "#334155" }}>{v.t?.dl}</span>
+                      <span style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#334155" }}>{v.t?.dl}</span>
                       <button type="button" className="btn line sm" onClick={v.dlXls}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M12 5v14M5 12l7 7 7-7" />
 </svg>Excel</button>
@@ -503,10 +511,10 @@ export default class VatScreen extends Component {
   <path d="M12 5v14M5 12l7 7 7-7" />
 </svg>PDF</button>
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px" }}>
+                    <div className="gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px" }}>
                       {__list(v.checks).map((x, $index) => (<React.Fragment key={$index}>
-                          <div style={__sx(`display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-radius: 14px; border: 1px solid ${x?.bd ?? ""}; background: ${x?.bg ?? ""};`)}>
-                            <span style={__sx(`width: 34px; height: 34px; flex-shrink: 0; border-radius: 999px; background: ${x?.ibg ?? ""}; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700;`)}>{x?.ic}</span>
+                          <div style={__sx(`display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-radius: var(--radius-xl); border: 1px solid ${x?.bd ?? ""}; background: ${x?.bg ?? ""};`)}>
+                            <span style={__sx(`width: 34px; height: 34px; flex-shrink: 0; border-radius: var(--radius-full); background: ${x?.ibg ?? ""}; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: var(--weight-semibold);`)}>{x?.ic}</span>
                             <div style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "4px" }}>
                               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                 {x?.i0 ? (<>
@@ -547,7 +555,7 @@ export default class VatScreen extends Component {
                                     <path d="M21.8 12.5a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0 -4.4 0Z" fill="#7dd3fc" />
                                   </svg>
                                 </>) : null}
-                                <span style={{ fontSize: "15.5px", fontWeight: "700", flexGrow: "1" }}>{x?.l}</span>
+                                <span style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", flexGrow: "1" }}>{x?.l}</span>
                                 <span className={x?.pcls}>{x?.st}</span>
                               </div>
                               <span className="hint num">{x?.s}</span>
@@ -579,7 +587,7 @@ export default class VatScreen extends Component {
               {v.notReg ? (<>
                 <section className="card fade" style={{ padding: "22px 26px", display: "flex", flexDirection: "column", gap: "16px", maxWidth: "860px" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: "14px" }}>
-                    <span style={{ width: "52px", height: "52px", flexShrink: "0", borderRadius: "15px", background: "#f5f8ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ width: "52px", height: "52px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#f5f8ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <svg width="38" height="38" viewBox="0 0 48 48" aria-hidden="true">
                         <path d="M9 18H39A1 1 0 0 1 40 19V41A1 1 0 0 1 39 42H9A1 1 0 0 1 8 41V19A1 1 0 0 1 9 18Z" fill="#e0f2fe" />
                         <path d="M7 9H41A2 2 0 0 1 43 11V17A2 2 0 0 1 41 19H7A2 2 0 0 1 5 17V11A2 2 0 0 1 7 9Z" fill="#0ea5e9" />
@@ -592,22 +600,22 @@ export default class VatScreen extends Component {
                       </svg>
                     </span>
                     <div>
-                      <h2 className="h2" style={{ fontSize: "20px" }}>{v.t?.nrH}</h2>
-                      <p style={{ margin: "6px 0 0", fontSize: "15.5px", lineHeight: "24px", color: "#334155" }}>{v.t?.nrP}</p>
+                      <h2 className="h2" style={{ fontSize: "var(--text-xl)" }}>{v.t?.nrH}</h2>
+                      <p style={{ margin: "6px 0 0", fontSize: "var(--text-base)", lineHeight: "24px", color: "#334155" }}>{v.t?.nrP}</p>
                     </div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                     {__list(v.tiers).map((x, $index) => (<React.Fragment key={$index}>
-                        <div style={__sx(`display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 14px; border: 2px solid ${x?.bd ?? ""}; background: ${x?.bg ?? ""};`)}>
-                          <span className="num" style={{ width: "210px", flexShrink: "0", fontSize: "16px", fontWeight: "700" }}>{x?.range}</span>
-                          <span style={{ flexGrow: "1", fontSize: "15px", color: "#334155" }}>{x?.rule}</span>
+                        <div style={__sx(`display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: var(--radius-xl); border: 2px solid ${x?.bd ?? ""}; background: ${x?.bg ?? ""};`)}>
+                          <span className="num" style={{ width: "210px", flexShrink: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>{x?.range}</span>
+                          <span style={{ flexGrow: "1", fontSize: "var(--text-sm-plus)", color: "#334155" }}>{x?.rule}</span>
                           {x?.you ? (<>
                             <span className="pill p-info">{v.t?.nrYou}</span>
                           </>) : null}
                         </div>
                       </React.Fragment>))}
                   </div>
-                  <div style={{ padding: "16px 18px", borderRadius: "14px", background: "#f8fafc", border: "1px solid #e6eaf0", display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <div style={{ padding: "16px 18px", borderRadius: "var(--radius-xl)", background: "#f8fafc", border: "1px solid #e6eaf0", display: "flex", flexDirection: "column", gap: "6px" }}>
                     <span className="lbl" style={{ display: "flex", alignItems: "center", gap: "8px" }}><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true">
   <path d="M10 5L38 5L38 42L34 39L30 42L26 39L22 42L18 39L14 42L10 39Z" fill="#e0f2fe" />
   <path d="M14.7 16a3.8 3.8 0 1 0 7.6 0a3.8 3.8 0 1 0 -7.6 0Z" fill="#0ea5e9" />
@@ -615,12 +623,12 @@ export default class VatScreen extends Component {
   <path d="M31 13L17 30" fill="none" stroke="#0ea5e9" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
   <path d="M15.2 34H32.8A1.2 1.2 0 0 1 34 35.2V35.199999999999996A1.2 1.2 0 0 1 32.8 36.4H15.2A1.2 1.2 0 0 1 14 35.199999999999996V35.2A1.2 1.2 0 0 1 15.2 34Z" fill="#7dd3fc" />
 </svg>{v.t?.nrCalc}</span>
-                    <span className="num" style={{ fontSize: "16px" }}>{v.tot?.line}</span>
-                    <span className="num" style={{ fontSize: "26px", fontWeight: "700", color: "#a14f06" }}>{v.tot?.amt}</span>
+                    <span className="num" style={{ fontSize: "var(--text-base)" }}>{v.tot?.line}</span>
+                    <span className="num" style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#a14f06" }}>{v.tot?.amt}</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <div style={{ flexGrow: "1" }}>
-                      <div style={{ fontSize: "15px", fontWeight: "600" }}>{v.t?.nrTot}</div>
+                      <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>{v.t?.nrTot}</div>
                       <div className="hint">{v.t?.nrTotH}</div>
                     </div>
                     <button type="button" className={v.totSw?.cls} aria-pressed={v.totSw?.on} aria-label={v.t?.nrTot} onClick={v.totSw?.toggle} />
@@ -643,7 +651,7 @@ export default class VatScreen extends Component {
             </div>
           </main>
           {v.hasMsg ? (<>
-            <div className="fade" role="status" style={{ position: "absolute", top: "90px", left: "50%", transform: "translateX(-50%)", zIndex: "30", display: "flex", alignItems: "center", gap: "10px", padding: "12px 18px", borderRadius: "14px", background: "#0f172a", color: "#fff", fontSize: "15px", fontWeight: "500", boxShadow: "0 16px 36px -14px rgba(15,23,42,.6)", maxWidth: "640px" }}>
+            <div className="fade gc-on-dark" role="status" style={{ position: "absolute", top: "90px", left: "50%", transform: "translateX(-50%)", zIndex: "30", display: "flex", alignItems: "center", gap: "10px", padding: "12px 18px", borderRadius: "var(--radius-xl)", background: "#0f172a", color: "#fff", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)", boxShadow: "0 16px 36px -14px rgba(15,23,42,.6)", maxWidth: "640px" }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M20 6 9 17l-5-5" />
               </svg>

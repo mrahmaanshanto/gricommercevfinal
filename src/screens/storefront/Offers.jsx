@@ -9,7 +9,7 @@ import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
-var NOW0 = Date.UTC(2026, 8, 18, 12, 14, 0); // 18 Sep 2026, 6:14 pm Dhaka
+var NOW0 = Date.UTC(2026, 8, 18, 12, 14, 0); // 18 Sep 2026, 6:14 PM Dhaka
 function T(d, h, m) { return Date.UTC(2026, d[1] - 1, d[0], (h || 0) - 6, m || 0, 0); }
 function pad(n) { return (n < 10 ? '0' : '') + n; }
 function parts(ms) { if (ms < 0) ms = 0; var s = Math.floor(ms / 1000); return { d: Math.floor(s / 86400), h: Math.floor(s % 86400 / 3600), m: Math.floor(s % 3600 / 60), s: s % 60 }; }
@@ -105,44 +105,44 @@ class Component extends DCLogic {
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `
-body{margin:0;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
+body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
 a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:12px;box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:8px;color:#475569;font-size:14px;font-weight:500;letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
+.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
+.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
 .nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
 .nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:11px;line-height:16px;font-weight:600;letter-spacing:.08em;color:#64748b;padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:8px;border:0;font:inherit;font-size:14px;font-weight:500;letter-spacing:.025em;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
+.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
 .btn:hover{text-decoration:none}
 .btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
 .soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
 .line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
 .warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:15px}
-.sm{height:36px;padding:0 12px;font-size:13px}
-.ib{width:40px;height:40px;border-radius:999px;border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
+.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
+.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
 .ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font:inherit;font-size:14px;color:#1e293b;transition:border-color 200ms}
+.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
 .inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:#64748b}
-.lbl{font-size:13px;line-height:18px;font-weight:500;color:#334155}
-.tab{height:40px;padding:0 14px;border-radius:999px;border:0;background:transparent;font:inherit;font-size:13px;font-weight:500;color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
+.inp::placeholder{color:var(--text-muted)}
+.lbl{font-size:var(--text-sm);line-height:20px;font-weight:var(--weight-medium);color:#334155}
+.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
 .tab:hover{background:#f1f5f9;color:#0f172a}
 .tab.on{background:#003087;color:#fff}
-.chip{height:40px;padding:0 14px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:13px;font-weight:500;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
+.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
 .chip:hover{border-color:#94a3b8}
 .chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:#64748b;text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:14px;line-height:20px;vertical-align:middle}
+.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
 .row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
+.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
+.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
 .b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
 .b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
 .b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.02em}
+.mono{font-family:var(--font-data);letter-spacing:.02em}
 .fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
 @keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 .flash{animation:gcFlash 900ms ease-out}
@@ -150,22 +150,22 @@ a{color:#003087}a:hover{color:#002a77}
 .scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
 @keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
 
-.sw{position:relative;width:48px;height:28px;border-radius:999px;border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
+.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
 .sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
 .sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
 .t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
 .actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:'Hind Siliguri','Poppins',sans-serif}
+.bn{font-family:var(--font-bn)}
 .pulse{animation:gcPulse 1.6s ease-in-out infinite}
 @keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-.sf-nav{font-size:14px;font-weight:500;color:#334155;text-decoration:none;padding:8px 2px;border-bottom:2px solid transparent}
+.sf-nav{font-size:var(--text-sm);font-weight:var(--weight-medium);color:#334155;text-decoration:none;padding:8px 2px;border-bottom:2px solid transparent}
 .sf-nav:hover{color:#003087;text-decoration:none}
 .sf-nav.on{color:#003087;border-bottom-color:#003087}
 .post{transition:box-shadow 200ms,transform 200ms}.post:hover{box-shadow:0 12px 28px -10px rgba(15,23,42,.25);transform:translateY(-2px)}
-.copyb{height:36px;padding:0 12px;border-radius:8px;border:0;background:#003087;color:#fff;font:inherit;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.copyb{height:36px;padding:0 12px;border-radius:var(--radius-lg);border:0;background:#003087;color:#fff;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .copyb:hover{background:#002a77}
 `;
 
@@ -177,27 +177,27 @@ export default class OffersScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="Offers">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "1440px", minHeight: "2380px", background: "#f8fafc", display: "flex", flexDirection: "column" }}>
-          <div className="bn" style={{ height: "36px", background: "#b83210", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", fontSize: "13px", fontWeight: "600" }}>
+        <div className="sf-root" style={{ width: "100%", maxWidth: "1440px", margin: "0 auto", minHeight: "100vh", background: "#f8fafc", display: "flex", flexDirection: "column" }}>
+          <div className="bn" style={{ minHeight: "36px", padding: "6px 16px", textAlign: "center", background: "#b83210", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
             </svg>
             <span>উইকেন্ড মেগা সেল — ৪০% পর্যন্ত ছাড়! কোড: EID300</span>
           </div>
-          <header style={{ height: "76px", background: "#ffffff", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "32px", padding: "0 64px" }}>
+          <header className="sf-header sf-pad" style={{ minHeight: "76px", background: "#ffffff", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "32px", padding: "0 64px" }}>
             <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
-              <span style={{ width: "38px", height: "38px", borderRadius: "10px", background: "#003087", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px", fontWeight: "700" }}>G</span>
-              <span style={{ fontSize: "22px", fontWeight: "700", letterSpacing: "-0.02em", color: "#0f172a" }}>GridShop</span>
+              <span style={{ width: "38px", height: "38px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>G</span>
+              <span style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>GridShop</span>
             </a>
-            <nav aria-label="Shop" style={{ display: "flex", gap: "26px" }}>
+            <nav aria-label="Shop" className="sf-navrow" style={{ display: "flex", gap: "26px" }}>
               <a className="sf-nav" href="#">Home</a>
               <a className="sf-nav" href="#">Skin care</a>
               <a className="sf-nav" href="#">Clothing</a>
               <a className="sf-nav" href="#">Grocery</a>
               <__Link href="/offers" className="sf-nav on">Offers</__Link>
             </nav>
-            <label style={{ position: "relative", flexGrow: "1", maxWidth: "420px", marginLeft: "auto" }}>
-              <span style={{ position: "absolute", left: "14px", top: "12px", color: "#64748b" }}>
+            <label className="sf-search" style={{ position: "relative", flexGrow: "1", maxWidth: "420px", marginLeft: "auto" }}>
+              <span style={{ position: "absolute", left: "14px", top: "12px", color: "var(--text-muted)" }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <circle cx="11" cy="11" r="8" />
                   <path d="m21 21-4.3-4.3" />
@@ -205,7 +205,7 @@ export default class OffersScreen extends Component {
               </span>
               <input className="inp" type="search" placeholder="Search products" aria-label="Search products" style={{ paddingLeft: "44px", background: "#f8fafc" }} />
             </label>
-            <a className="ib" href="#" aria-label="My account">
+            <a className="ib sf-acct" href="#" aria-label="My account">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
@@ -217,25 +217,25 @@ export default class OffersScreen extends Component {
                 <circle cx="19" cy="21" r="1" />
                 <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
               </svg>
-              <span style={{ position: "absolute", top: "0", right: "-2px", minWidth: "18px", height: "18px", borderRadius: "999px", background: "#b83210", color: "#fff", fontSize: "11px", fontWeight: "700", display: "flex", alignItems: "center", justifyContent: "center" }}>3</span>
+              <span style={{ position: "absolute", top: "0", right: "-2px", minWidth: "18px", height: "18px", borderRadius: "var(--radius-full)", background: "#b83210", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", display: "flex", alignItems: "center", justifyContent: "center" }}>3</span>
             </__Link>
           </header>
-          <section style={{ padding: "40px 64px 8px", display: "flex", flexDirection: "column", gap: "18px" }}>
-            <div style={{ fontSize: "13px", color: "#64748b" }}><a href="#" style={{ color: "#64748b" }}>Home</a>{" / Offers & Promotions"}</div>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: "24px" }}>
+          <section className="sf-pad" style={{ padding: "40px 64px 8px", display: "flex", flexDirection: "column", gap: "18px" }}>
+            <div style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}><a href="#" style={{ color: "var(--text-muted)" }}>Home</a>{" / Offers & Promotions"}</div>
+            <div className="sf-titlerow" style={{ display: "flex", alignItems: "flex-end", gap: "24px" }}>
               <div style={{ flexGrow: "1" }}>
-                <h1 style={{ margin: "0", fontSize: "40px", lineHeight: "48px", fontWeight: "700", letterSpacing: "-0.03em", color: "#0f172a" }}>{"Offers & Promotions"}</h1>
-                <div className="bn" style={{ fontSize: "18px", color: "#475569", marginTop: "2px" }}>অফার ও প্রমোশন</div>
-                <p style={{ margin: "10px 0 0", maxWidth: "640px", fontSize: "15px", lineHeight: "24px", color: "#475569" }}>Every deal running in our shop, in one place. Copy a code here, or just pick it at checkout.</p>
+                <h1 style={{ margin: "0", fontSize: "var(--text-4xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>{"Offers & Promotions"}</h1>
+                <div className="bn" style={{ fontSize: "var(--text-lg)", color: "#475569", marginTop: "2px" }}>অফার ও প্রমোশন</div>
+                <p style={{ margin: "10px 0 0", maxWidth: "640px", fontSize: "var(--text-base)", lineHeight: "24px", color: "#475569" }}>Every deal running in our shop, in one place. Copy a code here, or just pick it at checkout.</p>
               </div>
-              <div style={{ display: "flex", gap: "8px" }}>
+              <div className="sf-chips" style={{ display: "flex", gap: "8px" }}>
                 {__list(v.chips).map((f, $index) => (<React.Fragment key={$index}>
-                    <button type="button" className={f?.cls} aria-pressed={f?.on} onClick={f?.pick}>{f?.label}<span style={__sx(`min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: ${f?.cBg ?? ""}; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;`)}>{f?.count}</span></button>
+                    <button type="button" className={f?.cls} aria-pressed={f?.on} onClick={f?.pick}>{f?.label}<span style={__sx(`min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: ${f?.cBg ?? ""}; font-size: var(--text-xs); font-weight: var(--weight-medium); display: inline-flex; align-items: center; justify-content: center;`)}>{f?.count}</span></button>
                   </React.Fragment>))}
               </div>
             </div>
             {v.hasMsg ? (<>
-              <div className="fade" role="status" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 16px", borderRadius: "10px", background: "#e7f8f1", color: "#065f46", fontSize: "14px", fontWeight: "500" }}>
+              <div className="fade" role="status" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 16px", borderRadius: "var(--radius-lg)", background: "#e7f8f1", color: "#065f46", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <circle cx="12" cy="12" r="10" />
                   <path d="m9 12 2 2 4-4" />
@@ -246,39 +246,39 @@ export default class OffersScreen extends Component {
           </section>
           {v.showFeat ? (<>
             {__list(v.posters).map((o, $index) => (<React.Fragment key={$index}>
-                <section className="posterBlock" style={{ padding: "16px 64px 0" }}>
-                  <article aria-label={o?.aria} style={{ display: "flex", borderRadius: "20px", overflow: "hidden", background: "#ffffff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
-                    <div style={__sx(`flex: 0 0 560px; padding: 36px; background: ${o?.cover ?? ""}; color: #fff; display: flex; flex-direction: column; gap: 14px;`)}>
+                <section className="posterBlock sf-pad" style={{ padding: "16px 64px 0" }}>
+                  <article aria-label={o?.aria} className="sf-poster" style={{ display: "flex", borderRadius: "var(--radius-xl)", overflow: "hidden", background: "#ffffff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+                    <div className="sf-poster-lead" style={__sx(`flex: 0 0 560px; padding: 36px; background: ${o?.cover ?? ""}; color: #fff; display: flex; flex-direction: column; gap: 14px;`)}>
                       <div style={{ display: "flex", gap: "8px" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "28px", padding: "0 12px", borderRadius: "999px", background: "rgba(255,255,255,.2)", fontSize: "12px", fontWeight: "700", letterSpacing: ".06em" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "24px", padding: "0 10px", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.2)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
 </svg> FLASH SALE</span>
-                        <span className={o?.pillCls} style={__sx(`display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: 999px; background: #fff; color: ${o?.pillFg ?? ""}; font-size: 12px; font-weight: 700;`)}>{o?.pill}</span>
+                        <span className={o?.pillCls} style={__sx(`display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: var(--radius-full); background: #fff; color: ${o?.pillFg ?? ""}; font-size: var(--text-xs); font-weight: var(--weight-medium);`)}>{o?.pill}</span>
                       </div>
-                      <h2 style={{ margin: "0", fontSize: "36px", lineHeight: "42px", fontWeight: "700", letterSpacing: "-0.02em", color: "#ffffff" }}>{o?.title}</h2>
-                      <p style={{ margin: "0", fontSize: "15px", lineHeight: "22px", opacity: ".92" }}>{o?.blurb}</p>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", fontWeight: "600" }}>
+                      <h2 style={{ margin: "0", fontSize: "var(--text-3xl)", lineHeight: "1.25", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#ffffff" }}>{o?.title}</h2>
+                      <p style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", opacity: ".92" }}>{o?.blurb}</p>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <rect x="3" y="4" width="18" height="18" rx="2" />
                           <path d="M16 2v4M8 2v4M3 10h18" />
                         </svg>
                         <span>{o?.whenLine}</span>
                       </div>
-                      <div style={{ fontSize: "12px", fontWeight: "600", letterSpacing: ".06em", opacity: ".85" }}>{o?.clockLabel}</div>
-                      <div role="timer" aria-live="off" aria-label={o?.clockAria} style={{ display: "flex", gap: "10px" }}>
+                      <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", opacity: ".85" }}>{o?.clockLabel}</div>
+                      <div role="timer" aria-live="off" aria-label={o?.clockAria} className="sf-clock" style={{ display: "flex", gap: "8px" }}>
                         {__list(o?.clock).map((k, $index) => (<React.Fragment key={$index}>
-                            <div style={{ width: "76px", padding: "10px 0", borderRadius: "12px", background: "rgba(15,23,42,.3)", textAlign: "center" }}>
-                              <div className="mono" style={{ fontSize: "30px", lineHeight: "34px", fontWeight: "700" }}>{k?.v}</div>
-                              <div style={{ fontSize: "11px", opacity: ".85" }}>{k?.l}</div>
+                            <div style={{ width: "68px", padding: "8px 0", borderRadius: "var(--radius-lg)", background: "rgba(15,23,42,.28)", textAlign: "center" }}>
+                              <div className="mono" style={{ fontSize: "var(--text-2xl)", lineHeight: "30px", fontWeight: "var(--weight-semibold)" }}>{k?.v}</div>
+                              <div style={{ fontSize: "var(--text-xs)", opacity: ".85" }}>{k?.l}</div>
                             </div>
                           </React.Fragment>))}
                       </div>
                       {o?.isLive ? (<>
                         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                          <div style={{ flexGrow: "1", height: "8px", borderRadius: "999px", background: "rgba(255,255,255,.3)", overflow: "hidden" }}>
-                            <div style={__sx(`width: ${o?.pct ?? ""}; height: 100%; background: #fff; border-radius: 999px;`)} />
+                          <div style={{ flexGrow: "1", height: "8px", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.3)", overflow: "hidden" }}>
+                            <div style={__sx(`width: ${o?.pct ?? ""}; height: 100%; background: #fff; border-radius: var(--radius-full);`)} />
                           </div>
-                          <span style={{ fontSize: "13px", fontWeight: "600" }}>{o?.day}</span>
+                          <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>{o?.day}</span>
                         </div>
                         <a href="#" className="btn big" style={__sx(`align-self: flex-start; background: #ffffff; color: ${o?.pillFg ?? ""}; margin-top: 4px;`)}>Shop the sale <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M5 12h14" />
@@ -296,28 +296,28 @@ export default class OffersScreen extends Component {
                           </button>
                           <a href="#" className="btn big" style={{ background: "rgba(255,255,255,.16)", color: "#fff", border: "1px solid rgba(255,255,255,.5)" }}>See what’s included</a>
                         </div>
-                        <div style={{ fontSize: "12.5px", lineHeight: "18px", opacity: ".9" }}>{o?.remindNote}</div>
+                        <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", opacity: ".9" }}>{o?.remindNote}</div>
                       </>) : null}
                     </div>
                     <div style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "16px", justifyContent: "center" }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "16px" }}>
+                      <div className="sf-products gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "16px" }}>
                         {__list(o?.items).map((p, $index) => (<React.Fragment key={$index}>
                             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                              <div style={__sx(`height: 180px; border-radius: 14px; background: ${p?.bg ?? ""}; position: relative; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: 700; color: #003087;`)}>{p?.initial}<span style={__sx(`position: absolute; top: 10px; left: 10px; padding: 3px 8px; border-radius: 6px; background: ${p?.tagBg ?? ""}; color: #fff; font-size: 12px; font-weight: 700;`)}>{p?.off}</span></div>
-                              <div style={{ fontSize: "14px", fontWeight: "500", lineHeight: "20px" }}>{p?.name}</div>
+                              <div style={__sx(`height: 180px; border-radius: var(--radius-xl); background: ${p?.bg ?? ""}; position: relative; display: flex; align-items: center; justify-content: center; font-size: var(--text-4xl); font-weight: var(--weight-semibold); color: #003087;`)}>{p?.initial}<span style={__sx(`position: absolute; top: 10px; left: 10px; padding: 3px 8px; border-radius: var(--radius-md); background: ${p?.tagBg ?? ""}; color: #fff; font-size: var(--text-xs); font-weight: var(--weight-medium);`)}>{p?.off}</span></div>
+                              <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", lineHeight: "20px" }}>{p?.name}</div>
                               <div>
-                                <span style={__sx(`font-size: 17px; font-weight: 700; color: ${p?.priceFg ?? ""};`)}>{p?.price}</span>
+                                <span style={__sx(`font-size: var(--text-lg); font-weight: var(--weight-semibold); color: ${p?.priceFg ?? ""};`)}>{p?.price}</span>
                                 {" "}
-                                <span style={{ fontSize: "13px", color: "#94a3b8", textDecoration: "line-through" }}>{p?.mrp}</span>
+                                <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", textDecoration: "line-through" }}>{p?.mrp}</span>
                               </div>
                               {p?.live ? (<>
-                                <div style={{ height: "6px", borderRadius: "999px", background: "#fde7d6", overflow: "hidden" }}>
+                                <div style={{ height: "6px", borderRadius: "var(--radius-full)", background: "#fde7d6", overflow: "hidden" }}>
                                   <div style={__sx(`width: ${p?.soldPct ?? ""}; height: 100%; background: #f59e0b;`)} />
                                 </div>
-                                <div style={{ fontSize: "12px", color: "#a14f06" }}>{p?.left}</div>
+                                <div style={{ fontSize: "var(--text-xs)", color: "#a14f06" }}>{p?.left}</div>
                               </>) : null}
                               {p?.soon ? (<>
-                                <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", alignSelf: "flex-start", height: "26px", padding: "0 10px", borderRadius: "999px", background: "#eef2f6", color: "#334155", fontSize: "12px", fontWeight: "600" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", alignSelf: "flex-start", height: "24px", padding: "0 8px", borderRadius: "var(--radius-full)", background: "#eef2f6", color: "#334155", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <rect x="4" y="11" width="16" height="10" rx="2" />
   <path d="M8 11V7a4 4 0 0 1 8 0v4" />
 </svg>{p?.lockText}</div>
@@ -326,17 +326,17 @@ export default class OffersScreen extends Component {
                           </React.Fragment>))}
                       </div>
                       {o?.isSoon ? (<>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", border: "1px dashed #94a3b8", borderRadius: "10px", fontSize: "12.5px", color: "#475569" }}>
-                          <span style={{ fontWeight: "600", color: "#0f172a" }}>Design preview</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", border: "1px dashed #94a3b8", borderRadius: "var(--radius-lg)", fontSize: "var(--text-xs-plus)", color: "#475569" }}>
+                          <span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Design preview</span>
                           <span>See the poster switch from “Starts in” to “Ends in” at the start time.</span>
-                          <button type="button" className="btn" onClick={o?.jump} style={{ height: "34px", padding: "0 12px", marginLeft: "auto", fontSize: "13px", background: "rgba(0,48,135,.08)", color: "#003087" }}>Jump to 10 seconds before start</button>
+                          <button type="button" className="btn" onClick={o?.jump} style={{ height: "36px", padding: "0 12px", marginLeft: "auto", fontSize: "var(--text-sm)", background: "rgba(0,48,135,.08)", color: "#003087" }}>Jump to 10 seconds before start</button>
                         </div>
                       </>) : null}
                       {o?.canReset ? (<>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", border: "1px dashed #94a3b8", borderRadius: "10px", fontSize: "12.5px", color: "#475569" }}>
-                          <span style={{ fontWeight: "600", color: "#0f172a" }}>Design preview</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", border: "1px dashed #94a3b8", borderRadius: "var(--radius-lg)", fontSize: "var(--text-xs-plus)", color: "#475569" }}>
+                          <span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Design preview</span>
                           <span>{o?.resetNote}</span>
-                          <button type="button" className="btn" onClick={o?.reset} style={{ height: "34px", padding: "0 12px", marginLeft: "auto", fontSize: "13px", background: "rgba(0,48,135,.08)", color: "#003087" }}>Back to today</button>
+                          <button type="button" className="btn" onClick={o?.reset} style={{ height: "36px", padding: "0 12px", marginLeft: "auto", fontSize: "var(--text-sm)", background: "rgba(0,48,135,.08)", color: "#003087" }}>Back to today</button>
                         </div>
                       </>) : null}
                     </div>
@@ -344,40 +344,40 @@ export default class OffersScreen extends Component {
                 </section>
               </React.Fragment>))}
           </>) : null}
-          <section style={{ padding: "32px 64px 0", display: "flex", flexDirection: "column", gap: "18px" }}>
+          <section className="sf-pad" style={{ padding: "32px 64px 0", display: "flex", flexDirection: "column", gap: "18px" }}>
             {v.showLive ? (<>
-              <h2 style={{ margin: "0", fontSize: "22px", fontWeight: "700", color: "#0f172a" }}>{v.liveTitle}</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "20px" }}>
+              <h2 style={{ margin: "0", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{v.liveTitle}</h2>
+              <div className="sf-grid3 gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "20px" }}>
                 {__list(v.live).map((o, $index) => (<React.Fragment key={$index}>
-                    <article className="post" style={__sx(`border-radius: 18px; overflow: hidden; background: #ffffff; box-shadow: 0 3px 10px 0 rgba(48,46,56,.06); display: flex; flex-direction: column; opacity: ${o?.op ?? ""};`)}>
+                    <article className="post" style={__sx(`border-radius: var(--radius-xl); overflow: hidden; background: #ffffff; box-shadow: 0 3px 10px 0 rgba(48,46,56,.06); display: flex; flex-direction: column; opacity: ${o?.op ?? ""};`)}>
                       <div style={__sx(`height: 150px; padding: 18px; background: ${o?.cover ?? ""}; color: #fff; display: flex; flex-direction: column; justify-content: space-between; position: relative;`)}>
                         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                          <span style={{ height: "24px", padding: "0 10px", borderRadius: "999px", background: "rgba(255,255,255,.22)", fontSize: "11px", fontWeight: "700", letterSpacing: ".05em", display: "inline-flex", alignItems: "center" }}>{o?.type}</span>
-                          <span style={__sx(`height: 24px; padding: 0 10px; border-radius: 999px; background: ${o?.sBg ?? ""}; color: ${o?.sFg ?? ""}; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center;`)}>{o?.status}</span>
+                          <span style={{ height: "24px", padding: "0 10px", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.22)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".05em", display: "inline-flex", alignItems: "center" }}>{o?.type}</span>
+                          <span style={__sx(`height: 24px; padding: 0 10px; border-radius: var(--radius-full); background: ${o?.sBg ?? ""}; color: ${o?.sFg ?? ""}; font-size: var(--text-xs); font-weight: var(--weight-medium); display: inline-flex; align-items: center;`)}>{o?.status}</span>
                         </div>
-                        <div style={{ fontSize: "34px", lineHeight: "38px", fontWeight: "800", letterSpacing: "-0.03em" }}>{o?.big}</div>
+                        <div style={{ fontSize: "var(--text-3xl)", lineHeight: "38px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{o?.big}</div>
                       </div>
                       <div style={{ padding: "18px", display: "flex", flexDirection: "column", gap: "12px", flexGrow: "1" }}>
-                        <div style={{ fontSize: "12px", color: "#64748b" }}>{o?.posted}</div>
-                        <h3 style={{ margin: "0", fontSize: "18px", lineHeight: "24px", fontWeight: "600", color: "#0f172a" }}>{o?.title}</h3>
-                        <p style={{ margin: "0", fontSize: "14px", lineHeight: "21px", color: "#475569" }}>{o?.blurb}</p>
+                        <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{o?.posted}</div>
+                        <h3 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{o?.title}</h3>
+                        <p style={{ margin: "0", fontSize: "var(--text-sm)", lineHeight: "21px", color: "#475569" }}>{o?.blurb}</p>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "13px" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "var(--text-sm)" }}>
                             <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "#475569" }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <rect width="18" height="18" x="3" y="4" rx="2" />
   <path d="M16 2v4" />
   <path d="M8 2v4" />
   <path d="M3 10h18" />
 </svg>{o?.dayText}</span>
-                            <span className="mono" style={__sx(`font-weight: 700; color: ${o?.leftColor ?? ""};`)}>{o?.left}</span>
+                            <span className="mono" style={__sx(`font-weight: var(--weight-semibold); color: ${o?.leftColor ?? ""};`)}>{o?.left}</span>
                           </div>
-                          <div style={{ height: "6px", borderRadius: "999px", background: "#eef2f6", overflow: "hidden" }}>
-                            <div style={__sx(`width: ${o?.pct ?? ""}; height: 100%; border-radius: 999px; background: ${o?.barColor ?? ""};`)} />
+                          <div style={{ height: "6px", borderRadius: "var(--radius-full)", background: "#eef2f6", overflow: "hidden" }}>
+                            <div style={__sx(`width: ${o?.pct ?? ""}; height: 100%; border-radius: var(--radius-full); background: ${o?.barColor ?? ""};`)} />
                           </div>
                         </div>
                         <div style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: "10px", paddingTop: "12px", borderTop: "1px dashed #e2e8f0" }}>
                           {o?.hasCode ? (<>
-                            <span className="mono" style={__sx(`flex-grow: 1; height: 36px; padding: 0 12px; border-radius: 8px; border: 1.5px dashed ${o?.codeBorder ?? ""}; background: #f8fafc; color: ${o?.codeColor ?? ""}; font-weight: 700; display: flex; align-items: center; text-decoration: ${o?.codeDeco ?? ""};`)}>{o?.code}</span>
+                            <span className="mono" style={__sx(`flex-grow: 1; height: 36px; padding: 0 12px; border-radius: var(--radius-lg); border: 1.5px dashed ${o?.codeBorder ?? ""}; background: #f8fafc; color: ${o?.codeColor ?? ""}; font-weight: var(--weight-semibold); display: flex; align-items: center; text-decoration: ${o?.codeDeco ?? ""};`)}>{o?.code}</span>
                             {o?.canCopy ? (<>
                               <button type="button" className="copyb" onClick={o?.copy} aria-label={`Copy code ${o?.code ?? ""}`}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <rect width="14" height="14" x="8" y="8" rx="2" />
@@ -386,9 +386,9 @@ export default class OffersScreen extends Component {
                             </>) : null}
                           </>) : null}
                           {o?.noCode ? (<>
-                            <span style={{ flexGrow: "1", fontSize: "13px", color: "#475569" }}>{o?.noCodeText}</span>
+                            <span style={{ flexGrow: "1", fontSize: "var(--text-sm)", color: "#475569" }}>{o?.noCodeText}</span>
                           </>) : null}
-                          <__Link href="/offer-detail" style={{ fontSize: "13px", fontWeight: "600", color: "#003087", whiteSpace: "nowrap" }}>Terms <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <__Link href="/offer-detail" style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#003087", whiteSpace: "nowrap" }}>Terms <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="m9 18 6-6-6-6" />
 </svg></__Link>
                         </div>
@@ -399,40 +399,40 @@ export default class OffersScreen extends Component {
             </>) : null}
             {v.showEnded ? (<>
               <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "20px" }}>
-                <h2 style={{ margin: "0", fontSize: "22px", fontWeight: "700", color: "#0f172a" }}>Ended offers</h2>
-                <span style={{ fontSize: "13px", color: "#64748b" }}>These codes don’t work any more. Kept here so you know what’s coming back.</span>
+                <h2 style={{ margin: "0", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Ended offers</h2>
+                <span style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>These codes don’t work any more. Kept here so you know what’s coming back.</span>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "20px" }}>
+              <div className="sf-grid3 gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "20px" }}>
                 {__list(v.ended).map((o, $index) => (<React.Fragment key={$index}>
-                    <article className="post" style={__sx(`border-radius: 18px; overflow: hidden; background: #ffffff; box-shadow: 0 3px 10px 0 rgba(48,46,56,.06); display: flex; flex-direction: column; opacity: ${o?.op ?? ""};`)}>
+                    <article className="post" style={__sx(`border-radius: var(--radius-xl); overflow: hidden; background: #ffffff; box-shadow: 0 3px 10px 0 rgba(48,46,56,.06); display: flex; flex-direction: column; opacity: ${o?.op ?? ""};`)}>
                       <div style={__sx(`height: 150px; padding: 18px; background: ${o?.cover ?? ""}; color: #fff; display: flex; flex-direction: column; justify-content: space-between; position: relative;`)}>
                         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                          <span style={{ height: "24px", padding: "0 10px", borderRadius: "999px", background: "rgba(255,255,255,.22)", fontSize: "11px", fontWeight: "700", letterSpacing: ".05em", display: "inline-flex", alignItems: "center" }}>{o?.type}</span>
-                          <span style={__sx(`height: 24px; padding: 0 10px; border-radius: 999px; background: ${o?.sBg ?? ""}; color: ${o?.sFg ?? ""}; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center;`)}>{o?.status}</span>
+                          <span style={{ height: "24px", padding: "0 10px", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.22)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".05em", display: "inline-flex", alignItems: "center" }}>{o?.type}</span>
+                          <span style={__sx(`height: 24px; padding: 0 10px; border-radius: var(--radius-full); background: ${o?.sBg ?? ""}; color: ${o?.sFg ?? ""}; font-size: var(--text-xs); font-weight: var(--weight-medium); display: inline-flex; align-items: center;`)}>{o?.status}</span>
                         </div>
-                        <div style={{ fontSize: "34px", lineHeight: "38px", fontWeight: "800", letterSpacing: "-0.03em" }}>{o?.big}</div>
+                        <div style={{ fontSize: "var(--text-3xl)", lineHeight: "38px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{o?.big}</div>
                       </div>
                       <div style={{ padding: "18px", display: "flex", flexDirection: "column", gap: "12px", flexGrow: "1" }}>
-                        <div style={{ fontSize: "12px", color: "#64748b" }}>{o?.posted}</div>
-                        <h3 style={{ margin: "0", fontSize: "18px", lineHeight: "24px", fontWeight: "600", color: "#0f172a" }}>{o?.title}</h3>
-                        <p style={{ margin: "0", fontSize: "14px", lineHeight: "21px", color: "#475569" }}>{o?.blurb}</p>
+                        <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{o?.posted}</div>
+                        <h3 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{o?.title}</h3>
+                        <p style={{ margin: "0", fontSize: "var(--text-sm)", lineHeight: "21px", color: "#475569" }}>{o?.blurb}</p>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "13px" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "var(--text-sm)" }}>
                             <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "#475569" }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <rect width="18" height="18" x="3" y="4" rx="2" />
   <path d="M16 2v4" />
   <path d="M8 2v4" />
   <path d="M3 10h18" />
 </svg>{o?.dayText}</span>
-                            <span className="mono" style={__sx(`font-weight: 700; color: ${o?.leftColor ?? ""};`)}>{o?.left}</span>
+                            <span className="mono" style={__sx(`font-weight: var(--weight-semibold); color: ${o?.leftColor ?? ""};`)}>{o?.left}</span>
                           </div>
-                          <div style={{ height: "6px", borderRadius: "999px", background: "#eef2f6", overflow: "hidden" }}>
-                            <div style={__sx(`width: ${o?.pct ?? ""}; height: 100%; border-radius: 999px; background: ${o?.barColor ?? ""};`)} />
+                          <div style={{ height: "6px", borderRadius: "var(--radius-full)", background: "#eef2f6", overflow: "hidden" }}>
+                            <div style={__sx(`width: ${o?.pct ?? ""}; height: 100%; border-radius: var(--radius-full); background: ${o?.barColor ?? ""};`)} />
                           </div>
                         </div>
                         <div style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: "10px", paddingTop: "12px", borderTop: "1px dashed #e2e8f0" }}>
                           {o?.hasCode ? (<>
-                            <span className="mono" style={__sx(`flex-grow: 1; height: 36px; padding: 0 12px; border-radius: 8px; border: 1.5px dashed ${o?.codeBorder ?? ""}; background: #f8fafc; color: ${o?.codeColor ?? ""}; font-weight: 700; display: flex; align-items: center; text-decoration: ${o?.codeDeco ?? ""};`)}>{o?.code}</span>
+                            <span className="mono" style={__sx(`flex-grow: 1; height: 36px; padding: 0 12px; border-radius: var(--radius-lg); border: 1.5px dashed ${o?.codeBorder ?? ""}; background: #f8fafc; color: ${o?.codeColor ?? ""}; font-weight: var(--weight-semibold); display: flex; align-items: center; text-decoration: ${o?.codeDeco ?? ""};`)}>{o?.code}</span>
                             {o?.canCopy ? (<>
                               <button type="button" className="copyb" onClick={o?.copy} aria-label={`Copy code ${o?.code ?? ""}`}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <rect width="14" height="14" x="8" y="8" rx="2" />
@@ -441,9 +441,9 @@ export default class OffersScreen extends Component {
                             </>) : null}
                           </>) : null}
                           {o?.noCode ? (<>
-                            <span style={{ flexGrow: "1", fontSize: "13px", color: "#475569" }}>{o?.noCodeText}</span>
+                            <span style={{ flexGrow: "1", fontSize: "var(--text-sm)", color: "#475569" }}>{o?.noCodeText}</span>
                           </>) : null}
-                          <__Link href="/offer-detail" style={{ fontSize: "13px", fontWeight: "600", color: "#003087", whiteSpace: "nowrap" }}>Terms <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <__Link href="/offer-detail" style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#003087", whiteSpace: "nowrap" }}>Terms <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="m9 18 6-6-6-6" />
 </svg></__Link>
                         </div>
@@ -453,9 +453,9 @@ export default class OffersScreen extends Component {
               </div>
             </>) : null}
           </section>
-          <section style={{ padding: "40px 64px 48px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "20px", padding: "24px 28px", borderRadius: "16px", background: "#003087", color: "#fff" }}>
-              <span style={{ width: "52px", height: "52px", borderRadius: "14px", background: "rgba(255,255,255,.14)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <section className="sf-pad" style={{ padding: "40px 64px 48px" }}>
+            <div className="sf-cta" style={{ display: "flex", alignItems: "center", gap: "20px", padding: "24px 28px", borderRadius: "var(--radius-xl)", background: "#003087", color: "#fff" }}>
+              <span style={{ width: "52px", height: "52px", borderRadius: "var(--radius-xl)", background: "rgba(255,255,255,.14)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
                   <path d="M9 9h.01" />
@@ -464,8 +464,8 @@ export default class OffersScreen extends Component {
                 </svg>
               </span>
               <div style={{ flexGrow: "1" }}>
-                <div style={{ fontSize: "18px", fontWeight: "600" }}>No need to remember codes</div>
-                <div style={{ fontSize: "14px", opacity: ".85" }}>At checkout we show every offer you can use and pick the best one for you.</div>
+                <div style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>No need to remember codes</div>
+                <div style={{ fontSize: "var(--text-sm)", opacity: ".85" }}>At checkout we show every offer you can use and pick the best one for you.</div>
               </div>
               <__Link href="/checkout" className="btn big" style={{ background: "#fff", color: "#003087" }}>Go to checkout <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M5 12h14" />
@@ -473,8 +473,8 @@ export default class OffersScreen extends Component {
 </svg></__Link>
             </div>
           </section>
-          <footer style={{ marginTop: "auto", background: "#0f172a", color: "#cbd5e1", padding: "36px 64px", display: "flex", alignItems: "center", gap: "24px", fontSize: "13px" }}>
-            <span style={{ fontSize: "18px", fontWeight: "700", color: "#fff" }}>GridShop</span>
+          <footer className="sf-footer sf-pad" style={{ marginTop: "auto", background: "#0f172a", color: "#cbd5e1", padding: "36px 64px", display: "flex", alignItems: "center", gap: "24px", fontSize: "var(--text-sm)" }}>
+            <span style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#fff" }}>GridShop</span>
             <span>House 12, Road 5, Dhanmondi, Dhaka</span>
             <span>Call 09610-XXXXXX</span>
             <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px" }}>Powered by <img src="/assets/820d4a69b45ed8fa40c9bc6015985c0e.png" alt="GridCommerce" style={{ height: "18px", objectFit: "contain" }} /></span>

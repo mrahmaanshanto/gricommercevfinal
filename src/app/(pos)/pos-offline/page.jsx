@@ -1,7 +1,6 @@
-import Screen from '@/screens/pos-register/PosOffline';
+import { redirect } from 'next/navigation';
 
-export const metadata = { title: "PosOffline" };
-
+// Replaced by the single POS register.
 export default function Page() {
-  return <Screen />;
+  redirect('/pos');
 }

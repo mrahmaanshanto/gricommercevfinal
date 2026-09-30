@@ -1,7 +1,6 @@
-import Screen from '@/screens/pos-register/PosClose';
+import { redirect } from 'next/navigation';
 
-export const metadata = { title: "PosClose · open / close shift" };
-
+// Replaced by the single POS register.
 export default function Page() {
-  return <Screen />;
+  redirect('/pos?panel=close');
 }

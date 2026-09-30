@@ -18,19 +18,19 @@ class Component extends DCLogic {
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `
-body{margin:0;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;background:#e9eef5;color:#475569;-webkit-font-smoothing:antialiased}
+body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#475569;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
 a{color:#003087;text-decoration:none}a:hover{color:#002a77}
 .num{font-variant-numeric:tabular-nums}
-.card{background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 6px 18px -8px rgba(15,23,42,.10)}
+.card{background:#fff;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 6px 18px -8px rgba(15,23,42,.10)}
 .lift{transition:transform 220ms cubic-bezier(.23,1,.32,1),box-shadow 220ms cubic-bezier(.23,1,.32,1)}
 @media (hover:hover) and (pointer:fine){.lift:hover{transform:translateY(-2px);box-shadow:0 1px 2px rgba(15,23,42,.05),0 16px 32px -14px rgba(15,23,42,.22)}}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:10px;border:0;font:inherit;font-size:14px;font-weight:500;cursor:pointer;text-decoration:none;transition:background-color 180ms ease,color 180ms ease,transform 160ms cubic-bezier(.23,1,.32,1)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;text-decoration:none;transition:background-color 180ms ease,color 180ms ease,transform 160ms cubic-bezier(.23,1,.32,1)}
 .btn:active{transform:scale(.97)}
 .btn:focus-visible,.row:focus-visible{outline:3px solid rgba(0,48,135,.45);outline-offset:2px}
 .ghost{background:rgba(0,48,135,.08);color:#003087}.ghost:hover{background:rgba(0,48,135,.15);color:#003087}
 .onnavy{background:rgba(255,255,255,.1);color:#fff}.onnavy:hover{background:rgba(255,255,255,.18);color:#fff}
-.row{display:grid;align-items:center;border-radius:12px;transition:background-color 180ms ease}
+.row{display:grid;align-items:center;border-radius:var(--radius-xl);transition:background-color 180ms ease}
 .row:hover{background:#f4f7fb}
 @media (prefers-reduced-motion: reduce){.lift,.btn,.row{transition:none}.lift:hover{transform:none}.btn:active{transform:none}}
 `;
@@ -46,26 +46,26 @@ export default class CoreUIDataScreen extends Component {
         <div style={{ width: "1440px", height: "3400px", overflow: "hidden", background: "#e9eef5", position: "relative" }}>
           <header style={{ position: "relative", overflow: "hidden", background: "#012169", color: "#fff", padding: "56px 80px 64px" }}>
             <div style={{ position: "absolute", inset: "0", background: "repeating-linear-gradient(115deg,rgba(255,255,255,.05) 0 1px,transparent 1px 46px)", pointerEvents: "none" }} />
-            <div style={{ position: "absolute", right: "-120px", top: "-160px", width: "520px", height: "520px", borderRadius: "9999px", border: "1px solid rgba(127,212,245,.18)" }} />
-            <div style={{ position: "absolute", right: "-40px", top: "-80px", width: "360px", height: "360px", borderRadius: "9999px", border: "1px solid rgba(127,212,245,.14)" }} />
+            <div style={{ position: "absolute", right: "-120px", top: "-160px", width: "520px", height: "520px", borderRadius: "var(--radius-full)", border: "1px solid rgba(127,212,245,.18)" }} />
+            <div style={{ position: "absolute", right: "-40px", top: "-80px", width: "360px", height: "360px", borderRadius: "var(--radius-full)", border: "1px solid rgba(127,212,245,.14)" }} />
             <div style={{ position: "relative" }}>
               <nav aria-label="Plan boards" style={{ display: "flex", gap: "10px", marginBottom: "40px" }}>
                 <__Link href="/core-ui-plan" className="btn onnavy">← UI design plan</__Link>
                 <__Link href="/core-plan" className="btn onnavy">Build plan overview</__Link>
               </nav>
-              <p style={{ margin: "0", fontSize: "12px", fontWeight: "600", letterSpacing: ".22em", textTransform: "uppercase", color: "#7fd4f5" }}>Core backend UI · Step 1 preview</p>
-              <h1 style={{ margin: "14px 0 0", maxWidth: "960px", fontSize: "52px", lineHeight: "1.06", fontWeight: "700", letterSpacing: "-.03em", color: "#fff", textWrap: "balance" }}>Twelve chart types. Every number says what it means.</h1>
-              <p style={{ margin: "18px 0 0", maxWidth: "800px", fontSize: "17px", lineHeight: "1.6", color: "#cbd8ee", textWrap: "pretty" }}>These are the only charts the console and the merchant core screens use. Each has a job and none is decorative. Built once in step 1 as components, then reused in every step after it. Figures shown are illustrative.</p>
+              <p style={{ margin: "0", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-caps)", textTransform: "uppercase", color: "#7fd4f5" }}>Core backend UI · Step 1 preview</p>
+              <h1 style={{ margin: "14px 0 0", maxWidth: "960px", fontSize: "var(--text-5xl)", lineHeight: "1.06", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#fff", textWrap: "balance" }}>Twelve chart types. Every number says what it means.</h1>
+              <p style={{ margin: "18px 0 0", maxWidth: "800px", fontSize: "var(--text-lg)", lineHeight: "1.6", color: "#cbd8ee", textWrap: "pretty" }}>These are the only charts the console and the merchant core screens use. Each has a job and none is decorative. Built once in step 1 as components, then reused in every step after it. Figures shown are illustrative.</p>
             </div>
           </header>
           <section style={{ padding: "64px 80px 0" }}>
-            <p style={{ margin: "0", fontSize: "12px", fontWeight: "600", letterSpacing: ".18em", textTransform: "uppercase", color: "#0070a0" }}>Chart kit</p>
-            <h2 style={{ margin: "8px 0 0", fontSize: "32px", lineHeight: "1.15", fontWeight: "700", letterSpacing: "-.025em", color: "#0f172a", textWrap: "balance" }}>Twelve charts, each with one job</h2>
+            <p style={{ margin: "0", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-caps)", textTransform: "uppercase", color: "#0070a0" }}>Chart kit</p>
+            <h2 style={{ margin: "8px 0 0", fontSize: "var(--text-3xl)", lineHeight: "1.15", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a", textWrap: "balance" }}>Twelve charts, each with one job</h2>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: "20px", marginTop: "28px" }}>
               <figure className="card" style={{ margin: "0", display: "flex", flexDirection: "column", gap: "14px", padding: "22px 24px 22px" }}>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-                  <figcaption style={{ fontSize: "16px", fontWeight: "600", color: "#0f172a" }}>KPI tile</figcaption>
-                  <span className="num" style={{ fontSize: "12px", fontWeight: "600", color: "#94a3b8" }}>01</span>
+                  <figcaption style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>KPI tile</figcaption>
+                  <span className="num" style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>01</span>
                 </div>
                 <div style={{ padding: "4px 0 6px" }}>
                   <svg viewBox="0 0 360 150" width="100%" height="150" role="img" style={{ display: "block", overflow: "visible" }}>
@@ -79,14 +79,14 @@ export default class CoreUIDataScreen extends Component {
                   </svg>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "12px", borderTop: "1px solid #eef2f7" }}>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Used in</span> · Command centre · Subscription dashboard · Queues</p>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Rule</span> · Number first, change in words and an arrow, sparkline with no axes.</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Used in</span> · Command centre · Subscription dashboard · Queues</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Rule</span> · Number first, change in words and an arrow, sparkline with no axes.</p>
                 </div>
               </figure>
               <figure className="card" style={{ margin: "0", display: "flex", flexDirection: "column", gap: "14px", padding: "22px 24px 22px" }}>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-                  <figcaption style={{ fontSize: "16px", fontWeight: "600", color: "#0f172a" }}>Revenue movement</figcaption>
-                  <span className="num" style={{ fontSize: "12px", fontWeight: "600", color: "#94a3b8" }}>02</span>
+                  <figcaption style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Revenue movement</figcaption>
+                  <span className="num" style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>02</span>
                 </div>
                 <div style={{ padding: "4px 0 6px" }}>
                   <svg viewBox="0 0 360 150" width="100%" height="150" role="img" style={{ display: "block", overflow: "visible" }}>
@@ -117,14 +117,14 @@ export default class CoreUIDataScreen extends Component {
                   </svg>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "12px", borderTop: "1px solid #eef2f7" }}>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Used in</span> · Subscription dashboard</p>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Rule</span> · Gains rise in green, losses fall in warning and error colours, start and end stay navy.</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Used in</span> · Subscription dashboard</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Rule</span> · Gains rise in green, losses fall in warning and error colours, start and end stay navy.</p>
                 </div>
               </figure>
               <figure className="card" style={{ margin: "0", display: "flex", flexDirection: "column", gap: "14px", padding: "22px 24px 22px" }}>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-                  <figcaption style={{ fontSize: "16px", fontWeight: "600", color: "#0f172a" }}>Health score</figcaption>
-                  <span className="num" style={{ fontSize: "12px", fontWeight: "600", color: "#94a3b8" }}>03</span>
+                  <figcaption style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Health score</figcaption>
+                  <span className="num" style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>03</span>
                 </div>
                 <div style={{ padding: "4px 0 6px" }}>
                   <svg viewBox="0 0 360 150" width="100%" height="150" role="img" style={{ display: "block", overflow: "visible" }}>
@@ -149,14 +149,14 @@ export default class CoreUIDataScreen extends Component {
                   </svg>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "12px", borderTop: "1px solid #eef2f7" }}>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Used in</span> · Merchant directory · Merchant 360</p>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Rule</span> · The band name and its shape always sit beside the ring.</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Used in</span> · Merchant directory · Merchant 360</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Rule</span> · The band name and its shape always sit beside the ring.</p>
                 </div>
               </figure>
               <figure className="card" style={{ margin: "0", display: "flex", flexDirection: "column", gap: "14px", padding: "22px 24px 22px" }}>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-                  <figcaption style={{ fontSize: "16px", fontWeight: "600", color: "#0f172a" }}>Signal breakdown</figcaption>
-                  <span className="num" style={{ fontSize: "12px", fontWeight: "600", color: "#94a3b8" }}>04</span>
+                  <figcaption style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Signal breakdown</figcaption>
+                  <span className="num" style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>04</span>
                 </div>
                 <div style={{ padding: "4px 0 6px" }}>
                   <svg viewBox="0 0 360 150" width="100%" height="150" role="img" style={{ display: "block", overflow: "visible" }}>
@@ -189,14 +189,14 @@ export default class CoreUIDataScreen extends Component {
                   </svg>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "12px", borderTop: "1px solid #eef2f7" }}>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Used in</span> · Health score · Endpoints against targets</p>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Rule</span> · One scale, one watch line; anything below it is called out in the error colour.</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Used in</span> · Health score · Endpoints against targets</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Rule</span> · One scale, one watch line; anything below it is called out in the error colour.</p>
                 </div>
               </figure>
               <figure className="card" style={{ margin: "0", display: "flex", flexDirection: "column", gap: "14px", padding: "22px 24px 22px" }}>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-                  <figcaption style={{ fontSize: "16px", fontWeight: "600", color: "#0f172a" }}>Funnel</figcaption>
-                  <span className="num" style={{ fontSize: "12px", fontWeight: "600", color: "#94a3b8" }}>05</span>
+                  <figcaption style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Funnel</figcaption>
+                  <span className="num" style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>05</span>
                 </div>
                 <div style={{ padding: "4px 0 6px" }}>
                   <svg viewBox="0 0 360 150" width="100%" height="150" role="img" style={{ display: "block", overflow: "visible" }}>
@@ -215,14 +215,14 @@ export default class CoreUIDataScreen extends Component {
                   </svg>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "12px", borderTop: "1px solid #eef2f7" }}>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Used in</span> · Trial funnel and cohorts · Command centre</p>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Rule</span> · Stage-to-stage rate is printed, never left for the eye to judge by width.</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Used in</span> · Trial funnel and cohorts · Command centre</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Rule</span> · Stage-to-stage rate is printed, never left for the eye to judge by width.</p>
                 </div>
               </figure>
               <figure className="card" style={{ margin: "0", display: "flex", flexDirection: "column", gap: "14px", padding: "22px 24px 22px" }}>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-                  <figcaption style={{ fontSize: "16px", fontWeight: "600", color: "#0f172a" }}>Cohort retention</figcaption>
-                  <span className="num" style={{ fontSize: "12px", fontWeight: "600", color: "#94a3b8" }}>06</span>
+                  <figcaption style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Cohort retention</figcaption>
+                  <span className="num" style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>06</span>
                 </div>
                 <div style={{ padding: "4px 0 6px" }}>
                   <svg viewBox="0 0 360 150" width="100%" height="150" role="img" style={{ display: "block", overflow: "visible" }}>
@@ -283,14 +283,14 @@ export default class CoreUIDataScreen extends Component {
                   </svg>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "12px", borderTop: "1px solid #eef2f7" }}>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Used in</span> · Trial funnel and cohorts</p>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Rule</span> · One hue; darker means more retained, and every cell carries its number.</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Used in</span> · Trial funnel and cohorts</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Rule</span> · One hue; darker means more retained, and every cell carries its number.</p>
                 </div>
               </figure>
               <figure className="card" style={{ margin: "0", display: "flex", flexDirection: "column", gap: "14px", padding: "22px 24px 22px" }}>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-                  <figcaption style={{ fontSize: "16px", fontWeight: "600", color: "#0f172a" }}>Usage meter</figcaption>
-                  <span className="num" style={{ fontSize: "12px", fontWeight: "600", color: "#94a3b8" }}>07</span>
+                  <figcaption style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Usage meter</figcaption>
+                  <span className="num" style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>07</span>
                 </div>
                 <div style={{ padding: "4px 0 6px" }}>
                   <svg viewBox="0 0 360 150" width="100%" height="150" role="img" style={{ display: "block", overflow: "visible" }}>
@@ -315,14 +315,14 @@ export default class CoreUIDataScreen extends Component {
                   </svg>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "12px", borderTop: "1px solid #eef2f7" }}>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Used in</span> · Plan and usage · Limits and meters · Merchant 360</p>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Rule</span> · A tick at 80 percent; amber past it, error colour at the limit, both named in words.</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Used in</span> · Plan and usage · Limits and meters · Merchant 360</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Rule</span> · A tick at 80 percent; amber past it, error colour at the limit, both named in words.</p>
                 </div>
               </figure>
               <figure className="card" style={{ margin: "0", display: "flex", flexDirection: "column", gap: "14px", padding: "22px 24px 22px" }}>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-                  <figcaption style={{ fontSize: "16px", fontWeight: "600", color: "#0f172a" }}>Cost to serve</figcaption>
-                  <span className="num" style={{ fontSize: "12px", fontWeight: "600", color: "#94a3b8" }}>08</span>
+                  <figcaption style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Cost to serve</figcaption>
+                  <span className="num" style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>08</span>
                 </div>
                 <div style={{ padding: "4px 0 6px" }}>
                   <svg viewBox="0 0 360 150" width="100%" height="150" role="img" style={{ display: "block", overflow: "visible" }}>
@@ -358,14 +358,14 @@ export default class CoreUIDataScreen extends Component {
                   </svg>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "12px", borderTop: "1px solid #eef2f7" }}>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Used in</span> · Cost to serve · Merchant 360</p>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Rule</span> · The plan ceiling is drawn; only stores above it are coloured and ringed.</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Used in</span> · Cost to serve · Merchant 360</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Rule</span> · The plan ceiling is drawn; only stores above it are coloured and ringed.</p>
                 </div>
               </figure>
               <figure className="card" style={{ margin: "0", display: "flex", flexDirection: "column", gap: "14px", padding: "22px 24px 22px" }}>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-                  <figcaption style={{ fontSize: "16px", fontWeight: "600", color: "#0f172a" }}>Uptime strip</figcaption>
-                  <span className="num" style={{ fontSize: "12px", fontWeight: "600", color: "#94a3b8" }}>09</span>
+                  <figcaption style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Uptime strip</figcaption>
+                  <span className="num" style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>09</span>
                 </div>
                 <div style={{ padding: "4px 0 6px" }}>
                   <svg viewBox="0 0 360 150" width="100%" height="150" role="img" style={{ display: "block", overflow: "visible" }}>
@@ -474,14 +474,14 @@ export default class CoreUIDataScreen extends Component {
                   </svg>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "12px", borderTop: "1px solid #eef2f7" }}>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Used in</span> · Platform health · Backup and restore · Status page</p>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Rule</span> · One bar per day; hovering gives the minutes lost and the incident.</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Used in</span> · Platform health · Backup and restore · Status page</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Rule</span> · One bar per day; hovering gives the minutes lost and the incident.</p>
                 </div>
               </figure>
               <figure className="card" style={{ margin: "0", display: "flex", flexDirection: "column", gap: "14px", padding: "22px 24px 22px" }}>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-                  <figcaption style={{ fontSize: "16px", fontWeight: "600", color: "#0f172a" }}>Integration matrix</figcaption>
-                  <span className="num" style={{ fontSize: "12px", fontWeight: "600", color: "#94a3b8" }}>10</span>
+                  <figcaption style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Integration matrix</figcaption>
+                  <span className="num" style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>10</span>
                 </div>
                 <div style={{ padding: "4px 0 6px" }}>
                   <svg viewBox="0 0 360 150" width="100%" height="150" role="img" style={{ display: "block", overflow: "visible" }}>
@@ -555,14 +555,14 @@ export default class CoreUIDataScreen extends Component {
                   </svg>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "12px", borderTop: "1px solid #eef2f7" }}>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Used in</span> · Integration health · Domains · Support console</p>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Rule</span> · Shape carries status: circle, triangle, diamond. Colour only confirms it.</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Used in</span> · Integration health · Domains · Support console</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Rule</span> · Shape carries status: circle, triangle, diamond. Colour only confirms it.</p>
                 </div>
               </figure>
               <figure className="card" style={{ margin: "0", display: "flex", flexDirection: "column", gap: "14px", padding: "22px 24px 22px" }}>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-                  <figcaption style={{ fontSize: "16px", fontWeight: "600", color: "#0f172a" }}>Provisioning pipeline</figcaption>
-                  <span className="num" style={{ fontSize: "12px", fontWeight: "600", color: "#94a3b8" }}>11</span>
+                  <figcaption style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Provisioning pipeline</figcaption>
+                  <span className="num" style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>11</span>
                 </div>
                 <div style={{ padding: "4px 0 6px" }}>
                   <svg viewBox="0 0 360 150" width="100%" height="150" role="img" style={{ display: "block", overflow: "visible" }}>
@@ -599,14 +599,14 @@ export default class CoreUIDataScreen extends Component {
                   </svg>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "12px", borderTop: "1px solid #eef2f7" }}>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Used in</span> · Provisioning monitor · Store being created · Connect domain</p>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Rule</span> · Done, running and waiting differ by fill and line, not by colour alone.</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Used in</span> · Provisioning monitor · Store being created · Connect domain</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Rule</span> · Done, running and waiting differ by fill and line, not by colour alone.</p>
                 </div>
               </figure>
               <figure className="card" style={{ margin: "0", display: "flex", flexDirection: "column", gap: "14px", padding: "22px 24px 22px" }}>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-                  <figcaption style={{ fontSize: "16px", fontWeight: "600", color: "#0f172a" }}>Activity calendar</figcaption>
-                  <span className="num" style={{ fontSize: "12px", fontWeight: "600", color: "#94a3b8" }}>12</span>
+                  <figcaption style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Activity calendar</figcaption>
+                  <span className="num" style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>12</span>
                 </div>
                 <div style={{ padding: "4px 0 6px" }}>
                   <svg viewBox="0 0 360 150" width="100%" height="150" role="img" style={{ display: "block", overflow: "visible" }}>
@@ -770,53 +770,53 @@ export default class CoreUIDataScreen extends Component {
                   </svg>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "12px", borderTop: "1px solid #eef2f7" }}>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Used in</span> · Merchant 360 · Churn-risk queue</p>
-                  <p style={{ margin: "0", fontSize: "12px", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "600", color: "#0f172a" }}>Rule</span> · Twenty-two weeks at a glance; a fading tail is the churn signal staff act on.</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Used in</span> · Merchant 360 · Churn-risk queue</p>
+                  <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "1.5", color: "#475569" }}><span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Rule</span> · Twenty-two weeks at a glance; a fading tail is the churn signal staff act on.</p>
                 </div>
               </figure>
             </div>
           </section>
           <section style={{ padding: "72px 80px 0" }}>
-            <p style={{ margin: "0", fontSize: "12px", fontWeight: "600", letterSpacing: ".18em", textTransform: "uppercase", color: "#0070a0" }}>Colour</p>
-            <h2 style={{ margin: "8px 0 0", fontSize: "32px", lineHeight: "1.15", fontWeight: "700", letterSpacing: "-.025em", color: "#0f172a", textWrap: "balance" }}>Six series colours, one sequential scale, four status bands</h2>
-            <p style={{ margin: "10px 0 0", maxWidth: "760px", fontSize: "15px", lineHeight: "1.65", color: "#475569", textWrap: "pretty" }}>Taken from the GridCommerce design system. Status is always shape plus word plus colour, so every chart still reads in greyscale and for colour-blind staff.</p>
+            <p style={{ margin: "0", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-caps)", textTransform: "uppercase", color: "#0070a0" }}>Colour</p>
+            <h2 style={{ margin: "8px 0 0", fontSize: "var(--text-3xl)", lineHeight: "1.15", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a", textWrap: "balance" }}>Six series colours, one sequential scale, four status bands</h2>
+            <p style={{ margin: "10px 0 0", maxWidth: "760px", fontSize: "var(--text-sm-plus)", lineHeight: "1.65", color: "#475569", textWrap: "pretty" }}>Taken from the GridCommerce design system. Status is always shape plus word plus colour, so every chart still reads in greyscale and for colour-blind staff.</p>
             <div className="card" style={{ marginTop: "28px", padding: "28px", display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "40px" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: "16px" }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <div style={{ height: "56px", borderRadius: "10px", background: "#003087" }} />
-                    <span style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>Navy</span>
-                    <span className="num" style={{ fontSize: "12px", color: "#475569" }}>#003087 · Primary series, totals</span>
+                    <div style={{ height: "56px", borderRadius: "var(--radius-lg)", background: "#003087" }} />
+                    <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Navy</span>
+                    <span className="num" style={{ fontSize: "var(--text-xs)", color: "#475569" }}>#003087 · Primary series, totals</span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <div style={{ height: "56px", borderRadius: "10px", background: "#012169" }} />
-                    <span style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>Deep navy</span>
-                    <span className="num" style={{ fontSize: "12px", color: "#475569" }}>#012169 · Headers, first funnel stage</span>
+                    <div style={{ height: "56px", borderRadius: "var(--radius-lg)", background: "#012169" }} />
+                    <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Deep navy</span>
+                    <span className="num" style={{ fontSize: "var(--text-xs)", color: "#475569" }}>#012169 · Headers, first funnel stage</span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <div style={{ height: "56px", borderRadius: "10px", background: "#009cde" }} />
-                    <span style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>Sky</span>
-                    <span className="num" style={{ fontSize: "12px", color: "#475569" }}>#009cde · Current or live, fills only</span>
+                    <div style={{ height: "56px", borderRadius: "var(--radius-lg)", background: "#009cde" }} />
+                    <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Sky</span>
+                    <span className="num" style={{ fontSize: "var(--text-xs)", color: "#475569" }}>#009cde · Current or live, fills only</span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <div style={{ height: "56px", borderRadius: "10px", background: "#0070a0" }} />
-                    <span style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>Sky text</span>
-                    <span className="num" style={{ fontSize: "12px", color: "#475569" }}>#0070a0 · Sky when it is text</span>
+                    <div style={{ height: "56px", borderRadius: "var(--radius-lg)", background: "#0070a0" }} />
+                    <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Sky text</span>
+                    <span className="num" style={{ fontSize: "var(--text-xs)", color: "#475569" }}>#0070a0 · Sky when it is text</span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <div style={{ height: "56px", borderRadius: "10px", background: "#99d7f2" }} />
-                    <span style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>Light sky</span>
-                    <span className="num" style={{ fontSize: "12px", color: "#475569" }}>#99d7f2 · Secondary series</span>
+                    <div style={{ height: "56px", borderRadius: "var(--radius-lg)", background: "#99d7f2" }} />
+                    <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Light sky</span>
+                    <span className="num" style={{ fontSize: "var(--text-xs)", color: "#475569" }}>#99d7f2 · Secondary series</span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <div style={{ height: "56px", borderRadius: "10px", background: "#94a3b8" }} />
-                    <span style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>Slate</span>
-                    <span className="num" style={{ fontSize: "12px", color: "#475569" }}>#94a3b8 · Previous period, targets</span>
+                    <div style={{ height: "56px", borderRadius: "var(--radius-lg)", background: "#94a3b8" }} />
+                    <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Slate</span>
+                    <span className="num" style={{ fontSize: "var(--text-xs)", color: "#475569" }}>#94a3b8 · Previous period, targets</span>
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a", marginBottom: "8px" }}>Sequential scale · heatmaps and cohorts</div>
-                  <div style={{ display: "flex", gap: "2px", borderRadius: "8px", overflow: "hidden" }}>
+                  <div style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#0f172a", marginBottom: "8px" }}>Sequential scale · heatmaps and cohorts</div>
+                  <div style={{ display: "flex", gap: "2px", borderRadius: "var(--radius-lg)", overflow: "hidden" }}>
                     <div style={{ flexGrow: "1", height: "28px", background: "#003087", opacity: "0.1" }} />
                     <div style={{ flexGrow: "1", height: "28px", background: "#003087", opacity: "0.2" }} />
                     <div style={{ flexGrow: "1", height: "28px", background: "#003087", opacity: "0.3" }} />
@@ -828,144 +828,144 @@ export default class CoreUIDataScreen extends Component {
                     <div style={{ flexGrow: "1", height: "28px", background: "#003087", opacity: "0.9" }} />
                     <div style={{ flexGrow: "1", height: "28px", background: "#003087", opacity: "1.0" }} />
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: "6px", fontSize: "12px", color: "#475569" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: "6px", fontSize: "var(--text-xs)", color: "#475569" }}>
                     <span>Less</span>
                     <span>More</span>
                   </div>
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <div style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>Status bands</div>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 16px", border: "1px solid #e6ebf2", borderRadius: "12px" }}>
+                <div style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Status bands</div>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 16px", border: "1px solid #e6ebf2", borderRadius: "var(--radius-xl)" }}>
                   <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
                     <circle cx="10" cy="10" r="7" fill="#10b981" />
                   </svg>
                   <div>
-                    <div style={{ fontSize: "13px", fontWeight: "600", color: "#047857" }}>Healthy</div>
-                    <div style={{ fontSize: "12px", color: "#475569" }}>Running as expected</div>
+                    <div style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#047857" }}>Healthy</div>
+                    <div style={{ fontSize: "var(--text-xs)", color: "#475569" }}>Running as expected</div>
                   </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 16px", border: "1px solid #e6ebf2", borderRadius: "12px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 16px", border: "1px solid #e6ebf2", borderRadius: "var(--radius-xl)" }}>
                   <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
                     <path d="M10,2 L18,17 L2,17 Z" fill="#ff9800" />
                   </svg>
                   <div>
-                    <div style={{ fontSize: "13px", fontWeight: "600", color: "#b45309" }}>Watch</div>
-                    <div style={{ fontSize: "12px", color: "#475569" }}>Look this week</div>
+                    <div style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#b45309" }}>Watch</div>
+                    <div style={{ fontSize: "var(--text-xs)", color: "#475569" }}>Look this week</div>
                   </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 16px", border: "1px solid #e6ebf2", borderRadius: "12px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 16px", border: "1px solid #e6ebf2", borderRadius: "var(--radius-xl)" }}>
                   <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
                     <rect x="4" y="4" width="12" height="12" fill="#ff5724" transform="rotate(45 10 10)" />
                   </svg>
                   <div>
-                    <div style={{ fontSize: "13px", fontWeight: "600", color: "#c2410c" }}>At risk</div>
-                    <div style={{ fontSize: "12px", color: "#475569" }}>Act today</div>
+                    <div style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#c2410c" }}>At risk</div>
+                    <div style={{ fontSize: "var(--text-xs)", color: "#475569" }}>Act today</div>
                   </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 16px", border: "1px solid #e6ebf2", borderRadius: "12px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 16px", border: "1px solid #e6ebf2", borderRadius: "var(--radius-xl)" }}>
                   <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
                     <circle cx="10" cy="10" r="6" fill="none" stroke="#94a3b8" strokeWidth="2" />
                   </svg>
                   <div>
-                    <div style={{ fontSize: "13px", fontWeight: "600", color: "#475569" }}>No data</div>
-                    <div style={{ fontSize: "12px", color: "#475569" }}>Too new to score</div>
+                    <div style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#475569" }}>No data</div>
+                    <div style={{ fontSize: "var(--text-xs)", color: "#475569" }}>Too new to score</div>
                   </div>
                 </div>
               </div>
             </div>
           </section>
           <section style={{ padding: "72px 80px 80px" }}>
-            <p style={{ margin: "0", fontSize: "12px", fontWeight: "600", letterSpacing: ".18em", textTransform: "uppercase", color: "#0070a0" }}>Rules</p>
-            <h2 style={{ margin: "8px 0 0", fontSize: "32px", lineHeight: "1.15", fontWeight: "700", letterSpacing: "-.025em", color: "#0f172a", textWrap: "balance" }}>How data is written, coloured and moved</h2>
+            <p style={{ margin: "0", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-caps)", textTransform: "uppercase", color: "#0070a0" }}>Rules</p>
+            <h2 style={{ margin: "8px 0 0", fontSize: "var(--text-3xl)", lineHeight: "1.15", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a", textWrap: "balance" }}>How data is written, coloured and moved</h2>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: "20px", marginTop: "28px" }}>
               <div className="card" style={{ padding: "24px" }}>
-                <h3 style={{ margin: "0 0 14px", fontSize: "17px", fontWeight: "700", color: "#0f172a" }}>Numbers</h3>
+                <h3 style={{ margin: "0 0 14px", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Numbers</h3>
                 <ul style={{ margin: "0", padding: "0", listStyle: "none", display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <li style={{ display: "flex", gap: "10px", fontSize: "13px", lineHeight: "1.55", color: "#475569" }}>
+                  <li style={{ display: "flex", gap: "10px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "#475569" }}>
                     <span aria-hidden="true" style={{ flex: "none", width: "6px", height: "6px", marginTop: "8px", borderRadius: "2px", background: "#003087" }} />
                     <span>Taka with thousands separators and tabular figures: ৳88,000.</span>
                   </li>
-                  <li style={{ display: "flex", gap: "10px", fontSize: "13px", lineHeight: "1.55", color: "#475569" }}>
+                  <li style={{ display: "flex", gap: "10px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "#475569" }}>
                     <span aria-hidden="true" style={{ flex: "none", width: "6px", height: "6px", marginTop: "8px", borderRadius: "2px", background: "#003087" }} />
                     <span>Short forms (৳72k) only on chart labels; the full value sits in the tooltip.</span>
                   </li>
-                  <li style={{ display: "flex", gap: "10px", fontSize: "13px", lineHeight: "1.55", color: "#475569" }}>
+                  <li style={{ display: "flex", gap: "10px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "#475569" }}>
                     <span aria-hidden="true" style={{ flex: "none", width: "6px", height: "6px", marginTop: "8px", borderRadius: "2px", background: "#003087" }} />
                     <span>Dates as 05 Aug 2026; times in 24-hour Dhaka time.</span>
                   </li>
-                  <li style={{ display: "flex", gap: "10px", fontSize: "13px", lineHeight: "1.55", color: "#475569" }}>
+                  <li style={{ display: "flex", gap: "10px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "#475569" }}>
                     <span aria-hidden="true" style={{ flex: "none", width: "6px", height: "6px", marginTop: "8px", borderRadius: "2px", background: "#003087" }} />
                     <span>Under a day, relative time (4 min ago) with the exact time on hover.</span>
                   </li>
-                  <li style={{ display: "flex", gap: "10px", fontSize: "13px", lineHeight: "1.55", color: "#475569" }}>
+                  <li style={{ display: "flex", gap: "10px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "#475569" }}>
                     <span aria-hidden="true" style={{ flex: "none", width: "6px", height: "6px", marginTop: "8px", borderRadius: "2px", background: "#003087" }} />
                     <span>Every chart states its period and when it last refreshed.</span>
                   </li>
                 </ul>
               </div>
               <div className="card" style={{ padding: "24px" }}>
-                <h3 style={{ margin: "0 0 14px", fontSize: "17px", fontWeight: "700", color: "#0f172a" }}>Status</h3>
+                <h3 style={{ margin: "0 0 14px", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Status</h3>
                 <ul style={{ margin: "0", padding: "0", listStyle: "none", display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <li style={{ display: "flex", gap: "10px", fontSize: "13px", lineHeight: "1.55", color: "#475569" }}>
+                  <li style={{ display: "flex", gap: "10px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "#475569" }}>
                     <span aria-hidden="true" style={{ flex: "none", width: "6px", height: "6px", marginTop: "8px", borderRadius: "2px", background: "#003087" }} />
                     <span>Every status carries a colour, a shape and a word.</span>
                   </li>
-                  <li style={{ display: "flex", gap: "10px", fontSize: "13px", lineHeight: "1.55", color: "#475569" }}>
+                  <li style={{ display: "flex", gap: "10px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "#475569" }}>
                     <span aria-hidden="true" style={{ flex: "none", width: "6px", height: "6px", marginTop: "8px", borderRadius: "2px", background: "#003087" }} />
                     <span>Four bands only: Healthy, Watch, At risk, No data.</span>
                   </li>
-                  <li style={{ display: "flex", gap: "10px", fontSize: "13px", lineHeight: "1.55", color: "#475569" }}>
+                  <li style={{ display: "flex", gap: "10px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "#475569" }}>
                     <span aria-hidden="true" style={{ flex: "none", width: "6px", height: "6px", marginTop: "8px", borderRadius: "2px", background: "#003087" }} />
                     <span>The error colour is kept for money at risk and outages, so it never becomes wallpaper.</span>
                   </li>
-                  <li style={{ display: "flex", gap: "10px", fontSize: "13px", lineHeight: "1.55", color: "#475569" }}>
+                  <li style={{ display: "flex", gap: "10px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "#475569" }}>
                     <span aria-hidden="true" style={{ flex: "none", width: "6px", height: "6px", marginTop: "8px", borderRadius: "2px", background: "#003087" }} />
                     <span>Text on colour meets 4.5 to 1; status text uses the darker text shades.</span>
                   </li>
                 </ul>
               </div>
               <div className="card" style={{ padding: "24px" }}>
-                <h3 style={{ margin: "0 0 14px", fontSize: "17px", fontWeight: "700", color: "#0f172a" }}>Motion</h3>
+                <h3 style={{ margin: "0 0 14px", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Motion</h3>
                 <ul style={{ margin: "0", padding: "0", listStyle: "none", display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <li style={{ display: "flex", gap: "10px", fontSize: "13px", lineHeight: "1.55", color: "#475569" }}>
+                  <li style={{ display: "flex", gap: "10px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "#475569" }}>
                     <span aria-hidden="true" style={{ flex: "none", width: "6px", height: "6px", marginTop: "8px", borderRadius: "2px", background: "#003087" }} />
                     <span>Charts draw in once, on first load: 280 ms, ease-out cubic-bezier(.23,1,.32,1), 40 ms stagger between tiles.</span>
                   </li>
-                  <li style={{ display: "flex", gap: "10px", fontSize: "13px", lineHeight: "1.55", color: "#475569" }}>
+                  <li style={{ display: "flex", gap: "10px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "#475569" }}>
                     <span aria-hidden="true" style={{ flex: "none", width: "6px", height: "6px", marginTop: "8px", borderRadius: "2px", background: "#003087" }} />
                     <span>No counting-up numbers. Staff read these screens all day, and a number still moving reads as late.</span>
                   </li>
-                  <li style={{ display: "flex", gap: "10px", fontSize: "13px", lineHeight: "1.55", color: "#475569" }}>
+                  <li style={{ display: "flex", gap: "10px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "#475569" }}>
                     <span aria-hidden="true" style={{ flex: "none", width: "6px", height: "6px", marginTop: "8px", borderRadius: "2px", background: "#003087" }} />
                     <span>Filter and range changes retarget in 200 ms from where the data is; nothing restarts from zero.</span>
                   </li>
-                  <li style={{ display: "flex", gap: "10px", fontSize: "13px", lineHeight: "1.55", color: "#475569" }}>
+                  <li style={{ display: "flex", gap: "10px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "#475569" }}>
                     <span aria-hidden="true" style={{ flex: "none", width: "6px", height: "6px", marginTop: "8px", borderRadius: "2px", background: "#003087" }} />
                     <span>Tooltips open in 125 ms, then instantly while moving between points.</span>
                   </li>
-                  <li style={{ display: "flex", gap: "10px", fontSize: "13px", lineHeight: "1.55", color: "#475569" }}>
+                  <li style={{ display: "flex", gap: "10px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "#475569" }}>
                     <span aria-hidden="true" style={{ flex: "none", width: "6px", height: "6px", marginTop: "8px", borderRadius: "2px", background: "#003087" }} />
                     <span>Nothing animates on keyboard actions or the Ctrl K search. Reduced motion keeps opacity only.</span>
                   </li>
                 </ul>
               </div>
               <div className="card" style={{ padding: "24px" }}>
-                <h3 style={{ margin: "0 0 14px", fontSize: "17px", fontWeight: "700", color: "#0f172a" }}>Density</h3>
+                <h3 style={{ margin: "0 0 14px", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Density</h3>
                 <ul style={{ margin: "0", padding: "0", listStyle: "none", display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <li style={{ display: "flex", gap: "10px", fontSize: "13px", lineHeight: "1.55", color: "#475569" }}>
+                  <li style={{ display: "flex", gap: "10px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "#475569" }}>
                     <span aria-hidden="true" style={{ flex: "none", width: "6px", height: "6px", marginTop: "8px", borderRadius: "2px", background: "#003087" }} />
                     <span>Console is dense: 8 px base, 40 px table rows, sticky headers, numbers right-aligned.</span>
                   </li>
-                  <li style={{ display: "flex", gap: "10px", fontSize: "13px", lineHeight: "1.55", color: "#475569" }}>
+                  <li style={{ display: "flex", gap: "10px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "#475569" }}>
                     <span aria-hidden="true" style={{ flex: "none", width: "6px", height: "6px", marginTop: "8px", borderRadius: "2px", background: "#003087" }} />
                     <span>Controls stay 44 px high with a 3 px focus ring, even in dense tables.</span>
                   </li>
-                  <li style={{ display: "flex", gap: "10px", fontSize: "13px", lineHeight: "1.55", color: "#475569" }}>
+                  <li style={{ display: "flex", gap: "10px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "#475569" }}>
                     <span aria-hidden="true" style={{ flex: "none", width: "6px", height: "6px", marginTop: "8px", borderRadius: "2px", background: "#003087" }} />
                     <span>Merchant-side core screens use standard density and are checked at 360 px.</span>
                   </li>
-                  <li style={{ display: "flex", gap: "10px", fontSize: "13px", lineHeight: "1.55", color: "#475569" }}>
+                  <li style={{ display: "flex", gap: "10px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "#475569" }}>
                     <span aria-hidden="true" style={{ flex: "none", width: "6px", height: "6px", marginTop: "8px", borderRadius: "2px", background: "#003087" }} />
                     <span>One primary action per screen; destructive actions name the verb and confirm.</span>
                   </li>
