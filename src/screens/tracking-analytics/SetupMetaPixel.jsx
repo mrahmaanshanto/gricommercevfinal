@@ -447,7 +447,7 @@ export default class SetupMetaPixelScreen extends Component {
                       </div>
                     </div>
                     <button type="button" className={`btn ${v.liveCls ?? ""}`} onClick={v.goLive} style={{ alignSelf: "flex-start" }}>{v.liveLabel}</button>
-                    <span style={{ fontSize: "12.5px", color: "#64748b" }}>{v.liveNote}</span>
+                    <span suppressHydrationWarning style={{ fontSize: "12.5px", color: "#64748b" }}>{v.liveNote}</span>
                   </section>
                 </aside>
               </div>
