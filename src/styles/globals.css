@@ -1,4 +1,5 @@
 @import './design-system.css';
+@import './console-responsive.css';
 
 /* A converted screen's wrapper adds no box of its own. */
 .dc-screen { display: contents; }

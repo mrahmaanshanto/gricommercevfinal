@@ -14,7 +14,8 @@ import { toast } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { Dialog, PageHeader, EmptyState } from '@/components/ui';
 import { formatDate, formatTime } from '@/lib/format';
-import { getHolds, addHolds, closeHold, HOLD_PLACES, HOLD_FILTER_PLACES, HOLD_TYPES, DAMAGED_PLACE } from '@/lib/stockHolds';
+import { getHolds, addHolds, closeHold, HOLD_TYPES, DAMAGED_PLACE } from '@/lib/stockHolds';
+import { usePlaceList } from '@/lib/usePlaces';
 import { CATALOG as STOCK, productBy, stockAt, getMoves } from '@/lib/stock';
 import { addReturn } from '@/lib/returns';
 import { ProductPicker, PICKER_CSS } from '@/components/ProductPicker';
@@ -57,6 +58,8 @@ const ENDINGS = {
 };
 
 export default function StockHolds() {
+  const HOLD_PLACES = usePlaceList('stock');
+  const HOLD_FILTER_PLACES = [...usePlaceList('filter'), DAMAGED_PLACE].filter((x, i, a) => a.indexOf(x) === i);
   const [holds, setHolds] = useState([]);
   const [moves, setMoves] = useState([]);
   const [tab, setTab] = useState('held');

@@ -46,7 +46,7 @@ export default class CoreMonitoringScreen extends Component {
     return (
       <div className="dc-screen" data-screen="CoreMonitoring">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "1440px", height: "1580px", overflow: "hidden", background: "#e9eef5", position: "relative" }}>
+        <div data-board="" style={{ width: "1440px", height: "1580px", overflow: "hidden", background: "#e9eef5", position: "relative" }}>
           <aside style={{ position: "absolute", left: "0", top: "0", bottom: "0", width: "248px", background: "#012169", padding: "26px 16px", display: "flex", flexDirection: "column", gap: "4px" }}>
             <div style={{ padding: "0 10px 22px" }}>
               <div style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "#fff" }}>GridCommerce</div>

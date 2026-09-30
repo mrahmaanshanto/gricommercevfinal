@@ -44,7 +44,7 @@ export default class ChartKitScreen extends Component {
     return (
       <div className="dc-screen" data-screen="ChartKit">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "1440px", height: "4350px", overflow: "hidden", background: "#e9eef5" }}>
+        <div data-board="" style={{ width: "1440px", height: "4350px", overflow: "hidden", background: "#e9eef5" }}>
           <header style={{ position: "relative", overflow: "hidden", background: "#012169", color: "#fff", padding: "36px 80px 40px" }}>
             <div style={{ position: "absolute", inset: "0", background: "repeating-linear-gradient(115deg,rgba(255,255,255,.05) 0 1px,transparent 1px 46px)", pointerEvents: "none" }} />
             <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: "12px" }}>

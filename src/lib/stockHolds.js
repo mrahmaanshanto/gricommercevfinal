@@ -7,11 +7,16 @@
 // Front end only: kept in this browser; starts from demo rows.
 
 const KEY = 'gc.stock.holds';
-import { STOCK_PLACES, DAMAGED_PLACE, placeName } from './locations';
+import { STOCK_PLACES, DAMAGED_PLACE, placeName, getStockPlaces, getFilterPlaces } from './locations';
 
 export const HOLD_PLACES = STOCK_PLACES;
 /** Places a hold can sit at, including the damaged bay (for place filters). */
 export const HOLD_FILTER_PLACES = [...STOCK_PLACES, DAMAGED_PLACE];
+/** Live lists (read them after mount; the constants above are the built-in lists for a first render):
+ *  places a new hold can come from (active places only), and places for filters of past holds
+ *  (active, then deactivated places, then the damaged bay). */
+export const getHoldPlaces = () => (typeof window === 'undefined' ? HOLD_PLACES : getStockPlaces());
+export const getHoldFilterPlaces = () => (typeof window === 'undefined' ? HOLD_FILTER_PLACES : [...getFilterPlaces(), DAMAGED_PLACE]);
 export { DAMAGED_PLACE };
 export const HOLD_TYPES = { online: 'Online order', retail: 'Retail order', damaged: 'Damaged' };
 

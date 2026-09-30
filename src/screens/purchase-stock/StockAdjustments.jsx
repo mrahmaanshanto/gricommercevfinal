@@ -15,7 +15,8 @@ import { Dialog, PageHeader, EmptyState } from '@/components/ui';
 import { ManagerPin } from '@/components/ManagerPin';
 import { ProductPicker, PICKER_CSS } from '@/components/ProductPicker';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
-import { STOCK_PLACES } from '@/lib/locations';
+import { STOCK_PLACES, getStockPlaces, placeName } from '@/lib/locations';
+import { usePlaceList } from '@/lib/usePlaces';
 import { CATALOG, productBy, stockAt, getMoves } from '@/lib/stock';
 import { getHolds } from '@/lib/stockHolds';
 import { MANAGERS, EMPLOYEES } from '@/lib/posStore';
@@ -83,6 +84,8 @@ export default function StockAdjustments() {
   const [errs, setErrs] = useState({});
   const [tab, setTab] = useState('waiting');
   const [place, setPlace] = useState('');
+  const places = usePlaceList('stock');          // new adjustments: live places after mount (built-in list first)
+  const filterPlaces = usePlaceList('filter');   // past adjustments: deactivated places stay findable
   const [pin, setPin] = useState(null);      // { mode: 'new' } | { mode: 'row', row }
   const [reject, setReject] = useState(null); // { row, by, note }
 
@@ -91,7 +94,8 @@ export default function StockAdjustments() {
     reload();
     const q = new URLSearchParams(window.location.search);
     const p = productBy(q.get('sku') || '');
-    const at = STOCK_PLACES.includes(q.get('place')) ? q.get('place') : STOCK_PLACES[0];
+    const live = getStockPlaces(), asked = placeName(q.get('place') || '');
+    const at = live.includes(asked) ? asked : live[0] || STOCK_PLACES[0];
     if (p) setForm(blank(p.sku, at));
     const want = q.get('tab');
     if (TABS.some((x) => x[0] === want)) setTab(want);
@@ -147,7 +151,7 @@ export default function StockAdjustments() {
     setReject(null);
   };
 
-  const here = list.filter((a) => !place || a.place === place);
+  const here = list.filter((a) => !place || placeName(a.place) === place);
   const groups = { waiting: here.filter((a) => a.status === 'waiting'), approved: here.filter((a) => a.status === 'approved'), rejected: here.filter((a) => a.status === 'rejected') };
   const shown = groups[tab];
   const pcs = (rows) => rows.reduce((a, r) => a + r.qty, 0);
@@ -186,7 +190,7 @@ export default function StockAdjustments() {
                     {errs.sku ? <p id="sa-sku-err" className="gc-help gc-help--error" role="alert">{errs.sku}</p> : null}
                   </div>
                   <div className="sa-two">
-                    <div><label className="gc-label" htmlFor="sa-place">Place *</label><select id="sa-place" className="gc-input gc-select" value={form.place} onChange={(e) => set({ place: e.target.value })}>{STOCK_PLACES.map((x) => <option key={x}>{x}</option>)}</select></div>
+                    <div><label className="gc-label" htmlFor="sa-place">Place *</label><select id="sa-place" className="gc-input gc-select" value={form.place} onChange={(e) => set({ place: e.target.value })}>{places.map((x) => <option key={x}>{x}</option>)}</select></div>
                     <div><label className="gc-label" htmlFor="sa-by">Done by</label><select id="sa-by" className="gc-input gc-select" value={form.by} onChange={(e) => set({ by: e.target.value })}>{STAFF.map((x) => <option key={x}>{x}</option>)}</select></div>
                   </div>
                   <div className="sa-qty">
@@ -242,7 +246,7 @@ export default function StockAdjustments() {
                 <div className="gc-tabs" role="tablist" aria-label="Adjustments" style={{ borderBottom: 0, overflow: 'visible', flexWrap: 'wrap' }}>
                   {TABS.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={tab === id} className={'gc-tab sa-tab' + (tab === id ? ' gc-tab--active' : '')} onClick={() => setTab(id)}>{label}<b>{groups[id].length}</b></button>)}
                 </div>
-                <select className="gc-input gc-select sa-place" aria-label="Warehouse or branch" value={place} onChange={(e) => setPlace(e.target.value)}><option value="">All warehouses and branches</option>{STOCK_PLACES.map((x) => <option key={x}>{x}</option>)}</select>
+                <select className="gc-input gc-select sa-place" aria-label="Warehouse or branch" value={place} onChange={(e) => setPlace(e.target.value)}><option value="">All warehouses and branches</option>{filterPlaces.map((x) => <option key={x}>{x}</option>)}</select>
               </div>
               {shown.length === 0 ? <EmptyState icon="clipboard-check" title={tab === 'waiting' ? 'Nothing waiting' : 'Nothing here'} body={tab === 'waiting' ? 'Every adjustment has been approved or rejected.' : 'No adjustments in this group at this place.'} /> : (
                 <div className="gc-table-wrap">

@@ -11,3 +11,7 @@ next-env.d.ts
 backup/
 .impeccable/
 .claude/
+
+# local UI audit helpers
+public/__audit.js
+public/__routes.json

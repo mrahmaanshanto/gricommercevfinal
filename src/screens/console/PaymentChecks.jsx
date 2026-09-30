@@ -44,7 +44,7 @@ export default class PaymentChecksScreen extends Component {
     return (
       <div className="dc-screen" data-screen="PaymentChecks">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "1440px", height: "600px", display: "flex", alignItems: "center", justifyContent: "center", background: "#e9eef5" }}>
+        <div style={{ width: "100%", minHeight: "600px", padding: "24px 16px", display: "flex", alignItems: "center", justifyContent: "center", background: "#e9eef5" }}>
           <div className="card" style={{ maxWidth: "640px", padding: "36px 40px", display: "flex", flexDirection: "column", gap: "14px" }}>
             <span className="pill p-grey" style={{ alignSelf: "flex-start" }}>Removed</span>
             <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Payment checks is no longer a screen</h1>

@@ -19,7 +19,8 @@ import { toast, confirmDialog } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { Dialog, PageHeader } from '@/components/ui';
 import { formatBDT, formatDate } from '@/lib/format';
-import { STOCK_PLACES, DAMAGED_PLACE } from '@/lib/locations';
+import { DAMAGED_PLACE, getReceivingPlaces, placeName } from '@/lib/locations';
+import { usePlaceList } from '@/lib/usePlaces';
 import { productBy, addMove } from '@/lib/stock';
 import { addHolds, closeHold } from '@/lib/stockHolds';
 import { getPOs, getPO, updatePO, unitCost, lineCost, PO_STATUS_TONE } from '@/lib/purchaseOrders';
@@ -170,6 +171,7 @@ export default function ReceiveGoods() {
   const [got, setGot] = useState(DEMO_GOT);
   const [extra, setExtra] = useState({});        // line index -> 'return' (default keeps the extra)
   const [place, setPlace] = useState(DEMO.place);
+  const places = usePlaceList('receiving');   // live places that can receive deliveries (built-in list first)
   const [n, setN] = useState(0);                 // scans so far (drives the simulation)
   const [flash, setFlash] = useState(null);
   const [msg, setMsg] = useState('');
@@ -189,7 +191,7 @@ export default function ReceiveGoods() {
   const load = (no) => {
     const o = orderFrom(no);
     setOrder(o); setGot(o === DEMO ? DEMO_GOT.slice() : o.lines.map(() => 0)); setExtra({});
-    setPlace(STOCK_PLACES.includes(o.place) ? o.place : 'Central Warehouse');
+    setPlace(getReceivingPlaces().includes(placeName(o.place)) ? placeName(o.place) : 'Central Warehouse');
     setN(0); setFlash(null); setMsg(''); setCode(''); setStray(null); setAside([]);
     setCosts(o === DEMO ? DEMO_COSTS : [{ label: 'Transport (van from supplier)', amt: 0, hint: '' }]);
     setChallan(o === DEMO ? 'NF-2231-B' : ''); setPhoto(false); setRep(null); setReport(null); setDone(null);
@@ -507,7 +509,7 @@ export default function ReceiveGoods() {
                     <h2 className="rg-h2">Delivery details</h2>
                     <div className="rg-field">
                       <label className="gc-label" htmlFor="rg-place">Receiving at</label>
-                      <select id="rg-place" className="gc-input gc-select" value={place} onChange={(e) => setPlace(e.target.value)}>{STOCK_PLACES.map((x) => <option key={x}>{x}</option>)}</select>
+                      <select id="rg-place" className="gc-input gc-select" value={place} onChange={(e) => setPlace(e.target.value)}>{places.map((x) => <option key={x}>{x}</option>)}</select>
                       {place !== order.place ? <span className="gc-help">The order said {order.place}.</span> : null}
                     </div>
                     <div className="rg-field">

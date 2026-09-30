@@ -84,6 +84,8 @@ function buildSources() {
     key: 'pos:' + s.id, kind: 'pos', id: s.id, ref: s.id, label: s.id, at: s.at, channel: s.wholesale ? 'Wholesale' : 'Retail',
     customer: s.customer || {}, lines: s.lines, totals: s.totals, due: s.due || 0, place: s.place || placeOf(s.counter), cashier: s.cashier,
     returned: s.returned || {}, orderId: s.orderId || '',
+    // paid (partly) from the customer's wallet: money given back goes back to the wallet by default
+    byWallet: (s.tenders || []).some((x) => x.method === 'Wallet'),
   }));
   getInvoices().filter((inv) => inv.src !== 'pos').forEach((inv) => out.push(shape({
     key: 'inv:' + inv.id, kind: 'invoice', id: inv.id, ref: inv.id, label: inv.id, at: inv.at, channel: 'Wholesale',
@@ -298,7 +300,7 @@ export default function ReturnExchange() {
   const amt = mode === 'ret' ? credit : Math.abs(diff);
   const due = sel ? sel.due : 0;
   const methods = dir === 'in' ? PAY_METHODS : dir === 'out' ? [...PAY_METHODS, 'Store credit', ...(due > 0 ? ['Cut from due'] : [])] : [];
-  const m = methods.includes(method) && (method !== 'Store credit' || phone) ? method : dir === 'out' && due > 0 ? 'Cut from due' : dir === 'even' ? '' : 'Cash';
+  const m = methods.includes(method) && (method !== 'Store credit' || phone) ? method : dir === 'out' && due > 0 ? 'Cut from due' : dir === 'out' && sel && sel.byWallet && phone ? 'Store credit' : dir === 'even' ? '' : 'Cash';
   const cut = m === 'Cut from due' ? r2(Math.min(due, amt)) : 0;
   const rest = m === 'Cut from due' ? r2(amt - cut) : 0;
   const credits = sel && phone ? storeCreditFor(phone) : 0;
@@ -576,7 +578,7 @@ export default function ReturnExchange() {
                               return <button key={id} type="button" className={'re-chip' + (m === id ? ' is-on' : '')} aria-pressed={m === id} disabled={off} title={off ? 'Store credit needs the customer’s mobile number' : undefined} onClick={() => setMethod(id)}>{id === 'Cut from due' ? `Cut from due (${money(due)})` : id}</button>;
                             })}
                           </div>
-                          {m === 'Store credit' ? <p className="gc-help" style={{ margin: 0 }}>{custName} has {money(credits)} store credit now; this adds {money(amt)}.</p> : null}
+                          {m === 'Store credit' ? <p className="gc-help" style={{ margin: 0 }}>{sel && sel.byWallet ? 'The sale was paid from the customer’s wallet, so it goes back to the wallet. ' : ''}{custName} has {money(credits)} store credit now; this adds {money(amt)}.</p> : null}
                           {!phone && dir === 'out' ? <p className="gc-help" style={{ margin: 0 }}>Store credit needs the customer’s mobile number on the sale.</p> : null}
                         </div>
                       ) : null}

@@ -14,7 +14,8 @@ import { Dialog } from '@/components/ui';
 import { formatDate, formatTime } from '@/lib/format';
 import { EMPLOYEES } from '@/lib/posStore';
 import { MERCHANT } from '@/lib/merchant';
-import { LOCATIONS, STOCK_PLACES } from '@/lib/locations';
+import { LOCATIONS, STOCK_PLACES, getStockPlaces, placeByName } from '@/lib/locations';
+import { usePlaceList } from '@/lib/usePlaces';
 import { stockAt, productBy, addMove } from '@/lib/stock';
 import { getHolds, closeHold, addHolds } from '@/lib/stockHolds';
 import { getCustomers, findCustomer } from '@/lib/customers';
@@ -56,6 +57,7 @@ export function DeliveryDialog({ inv, onClose, onDone }) {
   const [meta, setMeta] = useState({ from: STOCK_PLACES[0], how: HOW[0], by: EMPLOYEES[0].name, taker: '', note: '' });
   const [holds, setHolds] = useState([]);
   const [done, setDone] = useState(null);   // the saved order, while its challan is shown
+  const places = usePlaceList('stock');
   const sent = inv ? sentOf(inv) : {};
   const left = (l) => l.qty - (sent[l.id] || 0);
   // opens with everything that is still to go, from the place the stock is held at (if any)
@@ -65,7 +67,7 @@ export function DeliveryDialog({ inv, onClose, onDone }) {
     const heldAt = (all.find((h) => h.ref === inv.id && h.status === 'held') || {}).place;
     setHolds(all); setDone(null);
     setNow(Object.fromEntries(inv.lines.map((l) => [l.id, left(l)])));
-    setMeta((m) => ({ ...m, from: STOCK_PLACES.includes(heldAt) ? heldAt : m.from, taker: '', note: '' }));
+    setMeta((m) => ({ ...m, from: getStockPlaces().includes(heldAt) ? heldAt : getStockPlaces().includes(m.from) ? m.from : getStockPlaces()[0] || m.from, taker: '', note: '' }));
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [inv && inv.id]);
   if (!inv) return null;
@@ -111,7 +113,7 @@ export function DeliveryDialog({ inv, onClose, onDone }) {
   return (
     <Dialog open title={`Deliver · ${inv.id}`} onClose={onClose} width={580}>
       <form className="dl-form" onSubmit={save}>
-        <div><label className="gc-label" htmlFor="dl-from">Goods go out from</label><select id="dl-from" className="gc-input gc-select" value={meta.from} onChange={(e) => setMeta({ ...meta, from: e.target.value })}>{STOCK_PLACES.map((x) => <option key={x}>{x}</option>)}</select></div>
+        <div><label className="gc-label" htmlFor="dl-from">Goods go out from</label><select id="dl-from" className="gc-input gc-select" value={meta.from} onChange={(e) => setMeta({ ...meta, from: e.target.value })}>{places.map((x) => <option key={x}>{x}</option>)}</select></div>
         <div className="dl-quick">
           <button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={() => setNow(Object.fromEntries(inv.lines.map((l) => [l.id, left(l)])))}>Send everything left</button>
           <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setNow({})}>Clear</button>
@@ -168,7 +170,7 @@ export function ChallanDialog({ inv, index, onClose, saved }) {
 export function ChallanPaper({ inv, index }) {
   const d = inv.deliveries[index];
   const cust = typeof window === 'undefined' ? null : findCustomer(getCustomers(), inv.customer.phone);
-  const place = LOCATIONS.find((x) => x.name === d.from);
+  const place = placeByName(d.from) || LOCATIONS.find((x) => x.name === d.from);
   const before = sentOf({ deliveries: inv.deliveries.slice(0, index) });
   const rows = inv.lines.filter((l) => d.lines[l.id]);
   const no = challanNo(inv, index);

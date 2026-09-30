@@ -25,7 +25,7 @@ button{font:inherit;color:inherit}
 .num{font-variant-numeric:tabular-nums}
 .ph{--brand:#003087;--brand2:#0a4bb5;--sky:#009cde;--ink:#0f172a;--body:#475569;--muted:var(--text-muted);--line:#e8edf3;--bg:#f5f7fa;--card:#ffffff;--soft:#eef3fa;
   --ok:#0f9f6e;--okbg:#e7f7f0;--warn:#b45309;--warnbg:#fff4e0;--err:#c2410c;--errbg:#ffece5;
-  position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);font-size:var(--text-sm-plus);line-height:1.5;font-family:var(--font-sans)}
+  position:relative;width:min(390px,100%);height:844px;overflow:hidden;background:var(--bg);font-size:var(--text-sm-plus);line-height:1.5;font-family:var(--font-sans)}
 .sb{position:absolute;top:0;left:0;right:0;height:47px;display:flex;align-items:center;justify-content:space-between;padding:0 28px 0 34px;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);z-index:6}
 .sb .r{display:flex;gap:6px;align-items:center}
 .appbar{position:absolute;top:47px;left:0;right:0;height:56px;display:flex;align-items:center;gap:4px;padding:0 8px;z-index:5;background:var(--bg)}
@@ -104,7 +104,7 @@ export default class AppSystemScreen extends Component {
     return (
       <div className="dc-screen" data-screen="AppSystem">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="ph" style={{ width: "1440px", height: "1150px" }}>
+        <div data-board="" className="ph" style={{ width: "1440px", height: "1150px" }}>
           <div style={{ width: "1440px", height: "1000px", background: "#f5f7fa", padding: "56px 64px", fontFamily: "var(--font-sans)", color: "#0f172a" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
               <img src="/assets/9b6f9ad369f1cbde65271a968e6ba1f1.png" alt="GridCommerce" style={{ height: "40px" }} />

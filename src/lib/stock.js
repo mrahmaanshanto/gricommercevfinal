@@ -10,7 +10,7 @@
 
 import { getHolds } from './stockHolds';
 import { getTransfers, inTransit } from './transfers';
-import { STOCK_PLACES, DAMAGED_PLACE } from './locations';
+import { STOCK_PLACES, DAMAGED_PLACE, namesOf, getPlaces } from './locations';
 
 const MOVES = 'gc.stock.moves';
 // sku, name, variant, barcode, category, retail price, wholesale price, MOQ for wholesale, sold to, on hand by place, in transit by place
@@ -96,10 +96,18 @@ export const productBy = (key, catalog = getCatalog()) => (key ? catalog.find((p
 // ---- negative stock: a place may sell more than it has (set per place in Warehouses / Branches) --
 const NEGATIVE = 'gc.stock.negative';
 const readNegative = () => { try { return JSON.parse(window.localStorage.getItem(NEGATIVE)) || {}; } catch { return {}; } };
-/** Whether a place lets the register sell beyond what is available. Off unless switched on. */
-export const allowNegative = (place) => (typeof window === 'undefined' ? false : !!readNegative()[place]);
+/** Whether a place lets the register sell beyond what is available. Off unless switched on.
+ *  A renamed place keeps its switch (every name it had is checked). */
+export const allowNegative = (place) => {
+  if (typeof window === 'undefined') return false;
+  const all = readNegative();
+  const names = namesOf(place);
+  return names[0] in all ? !!all[names[0]] : names.some((n) => !!all[n]);
+};
+/** Switch negative stock on or off at a place (under every name the place has had). */
 export function setAllowNegative(place, on) {
   const all = readNegative();
+  namesOf(place).forEach((n) => { all[n] = !!on; });
   all[place] = !!on;
   try { window.localStorage.setItem(NEGATIVE, JSON.stringify(all)); } catch { /* ignore */ }
   return all;
@@ -135,19 +143,61 @@ const sum = (list) => list.reduce((a, x) => a + (Number(x.qty) || 0), 0);
 export function stockAt(key, place, holds = getHolds(), moves = getMoves(), transfers = typeof window === 'undefined' ? null : getTransfers()) {
   const p = productBy(key);
   if (!p) return { onHand: 0, held: 0, damaged: 0, available: 0, transit: 0 };
-  const places = place ? [place] : STOCK_PLACES;
+  // a renamed place still counts what was saved under its old names
+  const names = place ? namesOf(place) : null;
+  const isHere = (x) => names.includes(x);
+  const places = place ? names : allStockPlaces();
   const mine = holds.filter((h) => h.product === p.name || h.product === p.sku || (p.aka && h.product === p.aka));
-  const here = (h) => !place || h.place === place;
+  const here = (h) => !place || isHere(h.place);
   const base = places.reduce((a, x) => a + ((p.on || {})[x] || 0), 0);
-  const moved = sum(moves.filter((m) => m.sku === p.sku && m.status === 'done' && (!place || m.place === place)));
+  const moved = sum(moves.filter((m) => m.sku === p.sku && m.status === 'done' && (!place || isHere(m.place))));
   const damaged = sum(mine.filter((h) => h.status === 'damaged' && here(h)));
+  const bay = place === DAMAGED_PLACE;
   // stock moved to the damaged bay has left the shelf it came from
-  const leftShelf = place && place !== DAMAGED_PLACE ? sum(mine.filter((h) => h.status === 'damaged' && h.from === place && h.place !== place)) : 0;
-  const onHand = base + moved - leftShelf + (place === DAMAGED_PLACE ? damaged : 0);
+  const leftShelf = place && !bay ? sum(mine.filter((h) => h.status === 'damaged' && isHere(h.from) && !isHere(h.place))) : 0;
+  const onHand = base + moved - leftShelf + (bay ? damaged : 0);
   const held = sum(mine.filter((h) => h.status === 'held' && here(h)));
   let transit;
   if (transfers) { const t = inTransit(transfers); transit = places.reduce((a, x) => a + ((t[x] && t[x][p.sku]) || 0), 0); }
   else transit = places.reduce((a, x) => a + ((p.transit || {})[x] || 0), 0);
-  const available = place === DAMAGED_PLACE ? 0 : Math.max(0, onHand - held - damaged);
+  const available = bay ? 0 : Math.max(0, onHand - held - damaged);
   return { onHand, held, damaged, available, transit };
+}
+/** Built-in stock places plus every name of the places the merchant added or renamed (browser only). */
+function allStockPlaces() {
+  if (typeof window === 'undefined') return STOCK_PLACES;
+  const extra = [];
+  getPlaces().forEach((pl) => [pl.name, ...pl.aka].forEach((n) => { if (!STOCK_PLACES.includes(n) && !extra.includes(n) && !pl.noSale && !(pl.opening && pl.builtIn)) extra.push(n); }));
+  return extra.length ? STOCK_PLACES.concat(extra) : STOCK_PLACES;
+}
+
+// ---- one place at a glance (Warehouses, Branches, Racks) ------------------------------------------
+/** What one piece is worth on the shelf: its cost when known, else the wholesale price, else retail. */
+export const unitValue = (p) => Number(p.cost ?? p.wholesale ?? p.price) || 0;
+/** A product counts as low at a place when this many or fewer are free to sell there. */
+export const LOW_AT = 5;
+/**
+ * Stock at one place, product by product, with totals:
+ *   { rows: [{ p, onHand, held, damaged, available, transit, value, low }], products, onHand, value, held,
+ *     damaged, transitIn, transitOut, transfersIn, transfersOut, low, negative: rows below zero }
+ * A product is listed when the place has stocked it (base count), or it has any on hand, held or on the way.
+ */
+export function placeStock(place, { holds = getHolds(), moves = getMoves(), transfers = typeof window === 'undefined' ? null : getTransfers(), catalog = getCatalog() } = {}) {
+  const names = namesOf(place);
+  const rows = [];
+  catalog.forEach((p) => {
+    const st = stockAt(p.sku, place, holds, moves, transfers);
+    const stocked = names.some((n) => ((p.on || {})[n] || 0) > 0);
+    if (!stocked && !st.onHand && !st.held && !st.transit && !st.damaged) return;
+    rows.push({ p, ...st, value: Math.max(0, st.onHand) * unitValue(p), low: place !== DAMAGED_PLACE && st.onHand >= 0 && st.available <= LOW_AT });
+  });
+  const add = (k) => rows.reduce((a, r) => a + r[k], 0);
+  const out = (transfers || []).filter((t) => t.status === 'way' && names.includes(t.from));
+  const inn = (transfers || []).filter((t) => t.status === 'way' && names.includes(t.to));
+  const pcs = (list) => list.reduce((a, t) => a + t.lines.reduce((b, l) => b + (Number(l.qty) || 0), 0), 0);
+  return {
+    rows, products: rows.filter((r) => r.onHand > 0).length, onHand: add('onHand'), value: add('value'), held: add('held'), damaged: add('damaged'),
+    transitIn: transfers ? pcs(inn) : add('transit'), transitOut: pcs(out), transfersIn: inn, transfersOut: out,
+    low: rows.filter((r) => r.low).length, negative: rows.filter((r) => r.onHand < 0),
+  };
 }

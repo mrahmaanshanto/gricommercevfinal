@@ -270,7 +270,7 @@ export default class MobileSignInScreen extends Component {
     return (
       <div className="dc-screen" data-screen="MobileSignIn">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div lang={v.langCode} style={{ width: "390px", height: "940px", background: "#f8fafc", display: "flex", flexDirection: "column" }}>
+        <div lang={v.langCode} style={{ width: "min(390px, 100%)", minHeight: "940px", background: "#f8fafc", display: "flex", flexDirection: "column" }}>
           <div className="gc-stripes" style={{ position: "relative", height: "248px", flexShrink: "0", padding: "24px 24px 0", borderRadius: "0 0 28px 28px", overflow: "hidden", color: "#ffffff" }}>
             <svg width="320" height="320" viewBox="0 0 320 320" fill="none" style={{ position: "absolute", right: "-130px", top: "-110px", pointerEvents: "none" }}>
               <circle cx="160" cy="160" r="159" stroke="rgba(0,156,222,0.22)" />

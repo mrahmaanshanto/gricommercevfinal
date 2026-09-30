@@ -13,7 +13,8 @@ import { toast } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { Dialog, PageHeader, EmptyState } from '@/components/ui';
 import { formatDate, formatBDT } from '@/lib/format';
-import { STOCK_PLACES } from '@/lib/locations';
+import { getReceivingPlaces, placeName } from '@/lib/locations';
+import { usePlaceList } from '@/lib/usePlaces';
 import { productBy } from '@/lib/stock';
 import { addPOs, unitCost } from '@/lib/purchaseOrders';
 
@@ -39,9 +40,9 @@ const PRODUCTS = [
 ];
 // suppliers a request can be ordered from: the ones on requests plus the regular suppliers
 const SUPPLIERS = [...new Set([...PRODUCTS.map((p) => p.supplier), 'Techland Imports', 'Dhaka Gadget Hub', 'Mobile Mart', 'Eastern Electronics', 'PowerCell Traders', 'PackRight Supplies'])];
-const PLACES = [...STOCK_PLACES, 'Online orders'];
 // online orders ship from the main warehouse, so that is where their stock is delivered
-const deliverTo = (place) => (STOCK_PLACES.includes(place) ? place : 'Central Warehouse');
+// runs in click handlers only (after mount): the live places that can receive deliveries
+const deliverTo = (place) => (getReceivingPlaces().includes(placeName(place)) ? placeName(place) : 'Central Warehouse');
 const STAFF = ['Tania', 'Karim', 'Rafi', 'Sadia Akter', 'Moumita Das'];
 const day = (d) => new Date(2026, 8, d).getTime();
 const SEED = [
@@ -117,6 +118,8 @@ const CSS = `
 `;
 
 export default function Requests() {
+  const stockPlaces = usePlaceList('stock');       // live places after mount (built-in list first)
+  const receiving = usePlaceList('receiving');
   const [rows, setRows] = useState([]);
   const [tab, setTab] = useState('waiting');
   const [q, setQ] = useState('');
@@ -220,7 +223,7 @@ export default function Requests() {
               description="What the shops and the warehouse are asking you to buy."
               actions={<>
                 <Link href="/purchase-orders" className="gc-btn gc-btn--neutral"><Icon name="file-text" width="18" height="18" aria-hidden="true" /> Purchase orders</Link>
-                <button type="button" className="gc-btn gc-btn--solid" onClick={() => setForm({ product: PRODUCTS[0].name, supplier: PRODUCTS[0].supplier, qty: '', by: STAFF[0], place: PLACES[0], need: '2026-10-05', note: '' })}><Icon name="plus" width="18" height="18" aria-hidden="true" /> New request</button>
+                <button type="button" className="gc-btn gc-btn--solid" onClick={() => setForm({ product: PRODUCTS[0].name, supplier: PRODUCTS[0].supplier, qty: '', by: STAFF[0], place: stockPlaces[0], need: '2026-10-05', note: '' })}><Icon name="plus" width="18" height="18" aria-hidden="true" /> New request</button>
               </>}
             />
 
@@ -303,7 +306,7 @@ export default function Requests() {
             </div>
             <div className="rq-two">
               <div><label className="gc-label" htmlFor="rq-by">Asked by</label><select id="rq-by" className="gc-input gc-select" value={form.by} onChange={(e) => setForm({ ...form, by: e.target.value })}>{STAFF.map((x) => <option key={x}>{x}</option>)}</select></div>
-              <div><label className="gc-label" htmlFor="rq-place">For</label><select id="rq-place" className="gc-input gc-select" value={form.place} onChange={(e) => setForm({ ...form, place: e.target.value })}>{PLACES.map((x) => <option key={x}>{x}</option>)}</select></div>
+              <div><label className="gc-label" htmlFor="rq-place">For</label><select id="rq-place" className="gc-input gc-select" value={form.place} onChange={(e) => setForm({ ...form, place: e.target.value })}>{[...stockPlaces, 'Online orders'].map((x) => <option key={x}>{x}</option>)}</select></div>
             </div>
             <div><label className="gc-label" htmlFor="rq-sup">Buy from</label><select id="rq-sup" className="gc-input gc-select" value={form.supplier} onChange={(e) => setForm({ ...form, supplier: e.target.value })}>{SUPPLIERS.map((x) => <option key={x}>{x}</option>)}</select></div>
             <div><label className="gc-label" htmlFor="rq-note">Why it is needed</label><input id="rq-note" className="gc-input" placeholder="Optional" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} /></div>
@@ -322,7 +325,7 @@ export default function Requests() {
                 <section key={g.supplier} className="rq-po" aria-label={`Purchase order for ${g.supplier}`}>
                   <div className="rq-po__head">
                     <div><h3>{g.supplier}</h3><span className="rq-sub">{g.lines.length} product{g.lines.length === 1 ? '' : 's'} · asked for {g.asked.join(', ')}</span></div>
-                    <div className="rq-po__place"><label className="gc-label" htmlFor={`rq-deliver-${gi}`}>Deliver to</label><select id={`rq-deliver-${gi}`} className="gc-input gc-select" value={g.place} onChange={(e) => setPreview(preview.map((x, i) => (i === gi ? { ...x, place: e.target.value } : x)))}>{STOCK_PLACES.map((x) => <option key={x}>{x}</option>)}</select></div>
+                    <div className="rq-po__place"><label className="gc-label" htmlFor={`rq-deliver-${gi}`}>Deliver to</label><select id={`rq-deliver-${gi}`} className="gc-input gc-select" value={g.place} onChange={(e) => setPreview(preview.map((x, i) => (i === gi ? { ...x, place: e.target.value } : x)))}>{receiving.map((x) => <option key={x}>{x}</option>)}</select></div>
                   </div>
                   <div className="gc-table-wrap">
                     <table className="gc-table gc-table--compact">
@@ -359,7 +362,7 @@ export default function Requests() {
             </div>
             <div className="rq-two">
               <div><label className="gc-label" htmlFor="ap-sup">Supplier</label><select id="ap-sup" className="gc-input gc-select" value={ap.supplier} onChange={(e) => setAp({ ...ap, supplier: e.target.value })}>{SUPPLIERS.map((x) => <option key={x}>{x}</option>)}</select>{ap.supplier !== ap.row.supplier ? <p className="gc-help">Staff suggested {ap.row.supplier}</p> : null}</div>
-              <div><label className="gc-label" htmlFor="ap-place">Deliver to</label><select id="ap-place" className="gc-input gc-select" value={ap.place} onChange={(e) => setAp({ ...ap, place: e.target.value })}>{STOCK_PLACES.map((x) => <option key={x}>{x}</option>)}</select></div>
+              <div><label className="gc-label" htmlFor="ap-place">Deliver to</label><select id="ap-place" className="gc-input gc-select" value={ap.place} onChange={(e) => setAp({ ...ap, place: e.target.value })}>{receiving.map((x) => <option key={x}>{x}</option>)}</select></div>
             </div>
             <div className="rq-sum" role="status"><span>{num(ap.qty)} pcs × {formatBDT(Math.max(0, Number(ap.cost) || 0))} from <b>{ap.supplier}</b></span><span>Order total <b>{formatBDT(num(ap.qty) * Math.max(0, Number(ap.cost) || 0))}</b></span></div>
             <div className="gc-modal__foot" style={{ marginTop: 0 }}>

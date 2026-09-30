@@ -1729,6 +1729,50 @@ export const SCREENS = [
     "interactive": true
   },
   {
+    "name": "BlogEditor",
+    "route": "/blog-editor",
+    "folder": "integrations",
+    "title": "New blog post",
+    "description": "Storefront \u2014 blog post editor: blocks, preview, categories, tags, author, SEO and social share.",
+    "canvasPage": "Storefront",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "BlogCategories",
+    "route": "/blog-categories",
+    "folder": "integrations",
+    "title": "Blog categories",
+    "description": "Storefront \u2014 blog categories with parents, colours, descriptions and SEO.",
+    "canvasPage": "Storefront",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "BlogAuthors",
+    "route": "/blog-authors",
+    "folder": "integrations",
+    "title": "Blog authors",
+    "description": "Storefront \u2014 authors and their roles, bios and social links.",
+    "canvasPage": "Storefront",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "AuthorProfile",
+    "route": "/author-profile",
+    "folder": "integrations",
+    "title": "Author profile",
+    "description": "Storefront \u2014 an author's profile with bio, stats and posts.",
+    "canvasPage": "Storefront",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
     "name": "BlogPosts",
     "route": "/blog-posts",
     "folder": "integrations",

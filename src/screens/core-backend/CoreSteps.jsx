@@ -68,7 +68,7 @@ export default class CoreStepsScreen extends Component {
     return (
       <div className="dc-screen" data-screen="CoreSteps">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "1440px", height: "1180px", overflow: "hidden", background: "#e9eef5", position: "relative" }}>
+        <div data-board="" style={{ width: "1440px", height: "1180px", overflow: "hidden", background: "#e9eef5", position: "relative" }}>
           <div style={{ position: "absolute", inset: "0", display: "grid", gridTemplateColumns: "400px minmax(0,1fr)" }}>
             <aside style={{ background: "#012169", color: "#fff", padding: "40px 24px 32px", position: "relative", overflow: "hidden" }}>
               <div style={{ position: "absolute", inset: "0", background: "repeating-linear-gradient(115deg,rgba(255,255,255,.04) 0 1px,transparent 1px 46px)", pointerEvents: "none" }} />

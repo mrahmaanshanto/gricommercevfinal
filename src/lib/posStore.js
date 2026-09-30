@@ -11,8 +11,10 @@ export const load = (key, fallback) => { try { return JSON.parse(window.localSto
 export const save = (key, value) => { try { window.localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore */ } };
 
 // Branches and warehouses a counter can be registered at (the same places as Stocks & Inventory > Branches).
-import { LOCATIONS as PLACES } from './locations';
+import { LOCATIONS as PLACES, getPlaces } from './locations';
 export const LOCATIONS = PLACES.map((l) => ({ name: l.name, type: l.type }));
+/** Live list of LOCATIONS (read it after mount): the same places, with added ones and without deactivated ones. */
+export const getPosLocations = () => (typeof window === 'undefined' ? LOCATIONS : getPlaces({ active: true }).map((l) => ({ name: l.name, type: l.type })));
 
 // People from Staff who can work a counter or collect cash from one.
 export const EMPLOYEES = [

@@ -11,7 +11,8 @@ import { PageHeader as __PageHeader, EmptyState as __EmptyState, Dialog as __Dia
 import { CATALOG, getCatalog, stockAt, getMoves } from '@/lib/stock';
 import { getHolds } from '@/lib/stockHolds';
 import { getTransfers } from '@/lib/transfers';
-import { STOCK_PLACES } from '@/lib/locations';
+import { STOCK_PLACES, getStockPlaces, getPlaces, placeByName, namesOf } from '@/lib/locations';
+import { getRackData, binsFor, SEED as RACK_SEED } from '@/lib/racks';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -21,7 +22,8 @@ function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.
 // Products come from the catalogue (src/lib/stock.js getCatalog: the demo list plus products saved in
 // Products; a new product starts with 0 on hand everywhere); the numbers per place come from stockAt():
 // on hand, held for orders (stock holds), available to sell and in transit (transfers on the way).
-// Reorder level, rack and cost are this screen's demo data.
+// Reorder level and cost are this screen's demo data. The bin column comes from Racks & bins (src/lib/racks.js binsFor).
+// Places are the live list (getStockPlaces) after mount, the built-in list on the first render.
 var INFO = {
   'GR-RICE-5': [60, 'G-1', 612], 'GR-DAL-1': [40, 'G-2', 130], 'GR-SOY-2': [30, 'G-3', 331], 'GR-MUS-1': [20, 'G-3', 262], 'GR-ATTA-2': [40, 'G-4', 118, true],
   'CL-TEE-BM': [20, 'C-3', 436.2], 'CL-LEG-CL': [10, 'C-4', 980], 'CL-SNK-42': [8, 'C-6', 2150], 'CL-JNS-32': [15, 'C-5', 748],
@@ -38,33 +40,39 @@ var KIND = { adjust: 'Adjusted', count: 'Stock count', transfer: 'Transfer', rec
 var FL = [{ k: 'all', label: 'All' }, { k: 'low', label: 'Low stock' }, { k: 'out', label: 'Out of stock' }, { k: 'exp', label: 'Expiring soon' }];
 class Component extends DCLogic {
   componentDidMount() {
-    var p = { holds: getHolds(), moves: getMoves(), transfers: getTransfers(), catalog: getCatalog() }, f = getQuery('filter'), w = getQuery('warehouse'), q = getQuery('q');
+    var p = { holds: getHolds(), moves: getMoves(), transfers: getTransfers(), catalog: getCatalog(), whs: getStockPlaces(), plist: getPlaces(), racks: getRackData() }, f = getQuery('filter'), w = getQuery('warehouse'), q = getQuery('q');
     if (FL.some(function (x) { return x.k === f; })) p.f = f;
-    if (WHS.some(function (x) { return whKey(x) === w; })) p.wh = w;
+    if (p.whs.some(function (x) { return whKey(x) === w; })) p.wh = w;
     if (q) p.q = q;
     this.setState(p);
   }
   renderVals() {
     var self = this, st = this.state || {}, f = st.f || 'all', wh = st.wh || 'all', q = (st.q || '').trim().toLowerCase();
-    var whName = wh === 'all' ? 'All places' : WHS.filter(function (x) { return whKey(x) === wh; })[0];
+    var whl = st.whs || WHS, plist = st.plist || getPlaces({ saved: [] }), racks = st.racks || RACK_SEED;
+    var whName = wh === 'all' ? 'All places' : whl.filter(function (x) { return whKey(x) === wh; })[0];
     var place = wh === 'all' ? '' : whName;
+    var placeId = place ? (placeByName(place, plist) || {}).id : '';
+    // base count at a place under every name it has had (a renamed place keeps its stock)
+    var baseAt = function (p, x) { return (st.whs ? namesOf(x) : [x]).reduce(function (a, n) { return a + ((p.on || {})[n] || 0); }, 0); };
     // before the browser data is read, show the catalogue's own numbers (same on the server and in the browser)
     var holds = st.holds || [], moves = st.moves || [], transfers = st.transfers || null;
     var all = (st.catalog || CATALOG).map(function (p) {
       var n = stockAt(p.sku, place, holds, moves, transfers), i = info(p);
-      var places = STOCK_PLACES.filter(function (x) { return ((p.on || {})[x] || 0) > 0; }).length;
-      return { p: p, n: n, i: i, places: places };
+      var places = whl.filter(function (x) { return baseAt(p, x) > 0; }).length;
+      // bins from Racks & bins: at the chosen place, or every place
+      var bins = place ? binsFor(placeId, p.sku, racks) : plist.reduce(function (a, pl) { return a.concat(binsFor(pl.id, p.sku, racks)); }, []);
+      return { p: p, n: n, i: i, places: places, bins: bins };
     });
     var isOut = function (r) { return r.n.available === 0; }, isLow = function (r) { return r.n.available > 0 && r.n.available < r.i.re; };
     var rows = all.filter(function (r) {
-      if (place && !(r.p.on || {})[place] && !r.n.onHand && !r.n.transit) return false;
-      if (q && [r.p.name, r.p.sku, r.p.barcode, r.p.variant, r.i.rack].join(' ').toLowerCase().indexOf(q) < 0) return false;
+      if (place && !baseAt(r.p, place) && !r.n.onHand && !r.n.transit) return false;
+      if (q && [r.p.name, r.p.sku, r.p.barcode, r.p.variant].concat(r.bins.map(function (b) { return b.code; })).join(' ').toLowerCase().indexOf(q) < 0) return false;
       if (f === 'low') return isLow(r); if (f === 'out') return isOut(r); if (f === 'exp') return r.i.exp; return true;
     }).map(function (r) {
       var p = r.p, n = r.n, out = isOut(r), low = isLow(r);
       var link = '?sku=' + encodeURIComponent(p.sku) + (place ? '&place=' + encodeURIComponent(place) : '');
       return { name: p.name, code: [p.sku, p.variant].filter(Boolean).join(' · '), initial: p.name.charAt(0),
-        wh: place || (r.places + (r.places === 1 ? ' place' : ' places')), rack: place ? 'Rack ' + r.i.rack : 'All warehouses and branches',
+        wh: place || (r.places + (r.places === 1 ? ' place' : ' places')), rack: !r.bins.length ? 'Not in a bin' : place ? r.bins.map(function (b) { return b.code + ' · ' + b.qty; }).join(', ') : 'In ' + r.bins.length + (r.bins.length === 1 ? ' bin · ' : ' bins · ') + r.bins.reduce(function (a, b) { return a + b.qty; }, 0) + ' pcs',
         onHand: n.onHand, held: n.held, heldHref: '/stock-holds', available: n.available, transit: n.transit, reorder: r.i.re,
         qtyColor: out ? '#b83210' : (low ? '#b4410c' : '#0f172a'), flag: out || low || r.i.exp,
         flagCls: out ? 'badge b-cancelled' : (low ? 'badge b-partial' : 'badge b-approval'), flagText: out ? 'Out' : (low ? 'Low' : 'Expires in 20 days'),
@@ -79,8 +87,8 @@ class Component extends DCLogic {
     var mine = hr ? moves.filter(function (m) { return m.sku === hr.p.sku && m.status === 'done' && (!place || m.place === place); }) : [];
     var liveRows = mine.map(function (m) { var d = new Date(m.at); return { d: d.getDate() + ' ' + MONTHS[d.getMonth()], what: KIND[m.kind] || 'Stock change', qty: (m.qty > 0 ? '+' : '−') + Math.abs(m.qty), col: m.qty > 0 ? 'var(--text-success)' : 'var(--text-danger)', note: [m.reason, m.place, m.by].filter(Boolean).join(' · ') }; });
     return { rows: rows, empty: rows.length === 0,
-      kValue: bdt(value), kInStock: String(inStock), kPlaces: place ? 'at ' + place : 'in ' + STOCK_PLACES.length + ' places', kLow: String(lowN), kOut: String(outN), kBuy: lowN + outN,
-      wh: wh, whOn: wh !== 'all', whOpts: [{ k: 'all', l: 'All places' }].concat(WHS.map(function (x) { return { k: whKey(x), l: x }; })),
+      kValue: bdt(value), kInStock: String(inStock), kPlaces: place ? 'at ' + place : 'in ' + whl.length + ' places', kLow: String(lowN), kOut: String(outN), kBuy: lowN + outN,
+      wh: wh, whOn: wh !== 'all', whOpts: [{ k: 'all', l: 'All places' }].concat(whl.map(function (x) { return { k: whKey(x), l: x }; })),
       onWh: function (e) { var k = e.target.value; self.setState({ wh: k }); setQuery('warehouse', k === 'all' ? '' : k); },
       q: st.q || '', onQ: function (e) { var x = e.target.value; self.setState({ q: x }); setQuery('q', x.trim()); },
       emptyTitle: q ? 'No products match “' + (st.q || '').trim() + '”' : 'No products match these filters',
@@ -298,7 +306,7 @@ export default class StockScreen extends Component {
                     <thead>
                       <tr>
                         <th className="th">Product</th>
-                        <th className="th">Where</th>
+                        <th className="th">Where · bin</th>
                         <th className="th" style={{ textAlign: "right" }}>On hand</th>
                         <th className="th" style={{ textAlign: "right" }}>Held</th>
                         <th className="th" style={{ textAlign: "right" }}>Available</th>

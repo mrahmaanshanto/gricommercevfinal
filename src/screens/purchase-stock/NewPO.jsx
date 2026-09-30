@@ -14,7 +14,7 @@ import { PageHeader as __PageHeader } from '@/components/ui';
 import { toast as __toast, confirmDialog as __confirm } from '@/runtime/ui';
 import { SUPPLIERS, getSuppliers, termsLabel } from '@/lib/supplierBills';
 import { addPOs, getPOs } from '@/lib/purchaseOrders';
-import { STOCK_PLACES } from '@/lib/locations';
+import { STOCK_PLACES, getReceivingPlaces } from '@/lib/locations';
 import { productBy } from '@/lib/stock';
 import { formatBDT, formatDate } from '@/lib/format';
 
@@ -57,7 +57,7 @@ class Component extends DCLogic {
   }
   componentDidMount() {
     var d = new Date(); d.setHours(0, 0, 0, 0);
-    this.setState({ sups: getSuppliers(), pos: getPOs(), today: d.getTime() });
+    this.setState({ sups: getSuppliers(), pos: getPOs(), today: d.getTime(), places: getReceivingPlaces() });   // live places that can receive deliveries
   }
   componentWillUnmount() { clearTimeout(this.t); }
   renderVals() {
@@ -117,7 +117,7 @@ class Component extends DCLogic {
         if (row && TERMS.some(function (t) { return t.d === row.terms; })) p.term = row.terms;
         set(p);
       },
-      place: s.place, places: STOCK_PLACES, placeIn: function (e) { set({ place: e.target.value }); },
+      place: s.place, places: (self.state && self.state.places) || STOCK_PLACES, placeIn: function (e) { set({ place: e.target.value }); },
       inv: s.inv, invIn: function (e) { set({ inv: e.target.value }); },
       scanInv: function () { var c = s.inv || 'INV-' + String(Math.floor(s.today / DAY) % 10000).padStart(4, '0'); set({ inv: c }); __toast('Supplier invoice ' + c + ' read'); },
       note: s.note, noteIn: function (e) { set({ note: e.target.value }); },

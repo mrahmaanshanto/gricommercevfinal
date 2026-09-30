@@ -14,7 +14,7 @@ import { Sidebar, Topbar } from '@/shell/Shell';
 import { Dialog, EmptyState, StatusBadge } from '@/components/ui';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
 import { ORDER_STEPS, orderStatus } from '@/lib/orderStatus';
-import { STOCK_PLACES } from '@/lib/locations';
+import { usePlaceList } from '@/lib/usePlaces';
 import { productBy } from '@/lib/stock';
 import { holdsFor } from '@/lib/stockHolds';
 import { courierHistory } from '@/lib/orderLinks';
@@ -150,6 +150,7 @@ export default function OrderDetail() {
   const [tick, setTick] = useState(0);
   const [action, setAction] = useState('Approve');
   const [place, setPlace] = useState(DEFAULT_HOLD_PLACE);
+  const holdPlaces = usePlaceList('stock');   // live places after mount (built-in list first)
   const [courier, setCourier] = useState(COURIERS[0]);
   const [reason, setReason] = useState(RTO_REASONS[0]);
   const [holdOpen, setHoldOpen] = useState(false);     // hold stock for an order approved without a hold
@@ -290,7 +291,7 @@ export default function OrderDetail() {
         <h3>Approve order for delivery</h3>
         <p>Pick where the stock is held. The items stay held there until the order is delivered, cancelled or comes back.</p>
         <div className="od-two">
-          <div><label className="gc-label" htmlFor="od-place">Hold stock from</label><select id="od-place" className="gc-input gc-select" value={place} onChange={(e) => setPlace(e.target.value)}>{STOCK_PLACES.map((x) => <option key={x}>{x}</option>)}</select></div>
+          <div><label className="gc-label" htmlFor="od-place">Hold stock from</label><select id="od-place" className="gc-input gc-select" value={place} onChange={(e) => setPlace(e.target.value)}>{holdPlaces.map((x) => <option key={x}>{x}</option>)}</select></div>
           <div><label className="gc-label" htmlFor="od-courier">Courier</label><select id="od-courier" className="gc-input gc-select" value={courier} onChange={(e) => setCourier(e.target.value)}>{COURIERS.map((x) => <option key={x}>{x}</option>)}</select></div>
         </div>
         <div className="gc-table-wrap">
@@ -573,7 +574,7 @@ export default function OrderDetail() {
       <Dialog open={holdOpen} title={`Hold stock · ${o.id}`} onClose={() => setHoldOpen(false)} width={480}>
         <form onSubmit={holdStock} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
           <p className="gc-help" style={{ margin: 0 }}>The items are set aside for {o.customer} until the order is delivered, cancelled or comes back.</p>
-          <div><label className="gc-label" htmlFor="od-hold-place">Hold stock from</label><select id="od-hold-place" className="gc-input gc-select" data-autofocus value={place} onChange={(e) => setPlace(e.target.value)}>{STOCK_PLACES.map((x) => <option key={x}>{x}</option>)}</select></div>
+          <div><label className="gc-label" htmlFor="od-hold-place">Hold stock from</label><select id="od-hold-place" className="gc-input gc-select" data-autofocus value={place} onChange={(e) => setPlace(e.target.value)}>{holdPlaces.map((x) => <option key={x}>{x}</option>)}</select></div>
           <p className="gc-help" style={{ margin: 0 }}>{stock.map((x) => `${x.name}: ${x.qty} needed, ${x.known ? x.available + ' free' : 'not in the stock list'}`).join(' · ')}</p>
           <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setHoldOpen(false)}>Cancel</button><button type="submit" className="gc-btn gc-btn--solid">Hold stock</button></div>
         </form>

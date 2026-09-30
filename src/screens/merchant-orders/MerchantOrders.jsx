@@ -11,7 +11,7 @@ import { toast, confirmDialog } from '@/runtime/ui';
 import { navigate } from '@/runtime/routes';
 import { Dialog as __Dialog, EmptyState as __EmptyState, StatusBadge as __StatusBadge } from '@/components/ui';
 import { ORDER_STATUSES, ORDER_TOTAL, orderStatus } from '@/lib/orderStatus';
-import { STOCK_PLACES } from '@/lib/locations';
+import { getStockPlaces } from '@/lib/locations';
 import { holdsFor } from '@/lib/stockHolds';
 import { demoOrders, getOrders, duplicatesOf, orderHref, invoiceHref, availability, approveOrder, cancelOrder, heldText, CAN_APPROVE, CAN_CANCEL, DEFAULT_HOLD_PLACE } from '@/lib/orders';
 
@@ -566,7 +566,7 @@ export default class MerchantOrdersScreen extends Component {
               <div>
                 <label className="gc-label" htmlFor="mo-hold-place">Hold stock from</label>
                 <select id="mo-hold-place" className="gc-input gc-select" data-autofocus value={v.approve.place} onChange={v.approve.setPlace}>
-                  {STOCK_PLACES.map((x) => <option key={x}>{x}</option>)}
+                  {getStockPlaces().map((x) => <option key={x}>{x}</option>)}
                 </select>
               </div>
               <table className="mo-stock">

@@ -128,7 +128,8 @@ class Component extends DCLogic {
 
 // ---- styles (from the design's <helmet>) ----
 
-const CSS = `
+const CSS = `@media (max-width:640px){.dn{width:34px !important;height:34px !important}}
+
 body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
 a{color:#003087}a:hover{color:#002a77}

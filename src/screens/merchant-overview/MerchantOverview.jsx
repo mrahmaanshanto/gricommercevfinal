@@ -19,7 +19,7 @@ import { getOrders, isCounterSale, orderHref } from '@/lib/orders';
 import { CATALOG, stockAt, getMoves } from '@/lib/stock';
 import { getHolds } from '@/lib/stockHolds';
 import { getTransfers } from '@/lib/transfers';
-import { STOCK_PLACES } from '@/lib/locations';
+import { getStockPlaces, namesOf } from '@/lib/locations';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -50,10 +50,14 @@ function readLive() {
     }).sort(function (a, b) { return b.at - a.at; });
   var holds = getHolds(), moves = getMoves(), transfers = getTransfers();
   var low = [];
+  // every active stock place (live list): a product counts where it is stocked (base count or on hand)
+  var live = getStockPlaces();
   CATALOG.forEach(function (p) {
-    Object.keys(p.on).forEach(function (place) {
-      if (STOCK_PLACES.indexOf(place) < 0) return;
-      var left = stockAt(p.sku, place, holds, moves, transfers).available;
+    live.forEach(function (place) {
+      var st = stockAt(p.sku, place, holds, moves, transfers);
+      var stocked = st.onHand > 0 || namesOf(place).some(function (n) { return ((p.on || {})[n] || 0) > 0; });
+      if (!stocked) return;
+      var left = st.available;
       if (left <= LOW_AT) low.push({ name: p.name, sku: p.sku, place: place, left: left, br: branchOf(place) });
     });
   });

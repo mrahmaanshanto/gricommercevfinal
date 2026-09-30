@@ -10,7 +10,7 @@ import { toast } from '@/runtime/ui';
 import { Dialog } from '@/components/ui';
 import { EMPLOYEES } from '@/lib/posStore';
 import { stockAt, productBy } from '@/lib/stock';
-import { getHolds, addHolds, HOLD_PLACES } from '@/lib/stockHolds';
+import { getHolds, addHolds, HOLD_PLACES, getHoldPlaces } from '@/lib/stockHolds';
 import { sentOf, stockOutAtSale } from '@/lib/invoices';
 
 export const HOLD_CSS = `
@@ -79,7 +79,7 @@ export function HoldStockDialog({ inv, onClose, onDone }) {
       <form className="hs-form" onSubmit={save}>
         <p className="gc-help" style={{ margin: 0 }}>The pieces are set aside for {who} and cannot be sold to anyone else until the hold ends in Stock holds.</p>
         <div className="hs-two">
-          <div><label className="gc-label" htmlFor="hs-place">Hold the stock from</label><select id="hs-place" className="gc-input gc-select" data-autofocus value={place} onChange={(e) => setPlace(e.target.value)}>{HOLD_PLACES.map((x) => <option key={x}>{x}</option>)}</select></div>
+          <div><label className="gc-label" htmlFor="hs-place">Hold the stock from</label><select id="hs-place" className="gc-input gc-select" data-autofocus value={place} onChange={(e) => setPlace(e.target.value)}>{getHoldPlaces().map((x) => <option key={x}>{x}</option>)}</select></div>
           <div><label className="gc-label" htmlFor="hs-by">Held by</label><select id="hs-by" className="gc-input gc-select" value={by} onChange={(e) => setBy(e.target.value)}>{EMPLOYEES.map((m) => <option key={m.name}>{m.name}</option>)}</select></div>
         </div>
         <div>

@@ -8,18 +8,27 @@
 //   income    other income (bonus from suppliers, interest, scrap …)
 //   net profit = channel profits − shared costs + other income
 // Liability payments are left out of the ledger costs (they are counted when owed, see liabilities.js).
+// Loyalty (loyalty.js): "Loyalty points used" and "Rewards and referral credit" are costs of the
+// channel. Points used at checkout were already taken off those sales in the sales book, so that
+// part is added back to the channel's sales first: the cost shows once and profit is not cut twice.
 
 import { getEntries } from './ledger';
 import { getItems, costsOf, partnerBy } from './settlements';
 import { getLiabilities, LIAB_TYPES } from './liabilities';
 import { homeOf, CHANNELS } from './categories';
 import { salesByChannel, getSales } from './salesBook';
+import { loyaltyCosts } from './loyalty';
 
 const r2 = (n) => Math.round(n * 100) / 100;
 const COST_KINDS = ['expense', 'salary', 'commission', 'affiliate payout', 'promotion', 'paid out'];
 
-export function profitByChannel(from, to, { sales = getSales(), entries = getEntries(), liabilities = getLiabilities(), items = getItems() } = {}) {
+export function profitByChannel(from, to, { sales = getSales(), entries = getEntries(), liabilities = getLiabilities(), items = getItems(), loyalty = loyaltyCosts(from, to) } = {}) {
   const book = salesByChannel(from, to, sales);
+  // points used at checkout: back into the channel's sales (before the points discount)
+  loyalty.lines.filter((l) => l.onBill && book[l.channel]).forEach((l) => [book[l.channel], book.all].forEach((c) => {
+    c.revenue = r2(c.revenue + l.onBill); c.net = r2(c.net + l.onBill); c.gross = r2(c.gross + l.onBill);
+    c.margin = c.net ? c.gross / c.net : 0; c.avg = c.orders ? c.net / c.orders : 0;
+  }));
   const bucket = () => ({ lines: {}, total: 0 });
   const costs = { Online: bucket(), Retail: bucket(), Wholesale: bucket(), Shared: bucket() };
   const add = (home, label, amount, group) => {
@@ -49,6 +58,8 @@ export function profitByChannel(from, to, { sales = getSales(), entries = getEnt
     const t = LIAB_TYPES[l.type] || LIAB_TYPES.other;
     l.lines.forEach((x) => add(x.channel || l.channel || 'Shared', l.type === 'salary' ? 'Staff salaries' : t.label, x.amount, l.type));
   });
+  // loyalty: points used and rewards given (loyalty.js)
+  loyalty.lines.forEach((l) => add(l.channel, l.label, l.amount, 'loyalty'));
   // other income
   const income = bucket();
   entries.filter((e) => e.kind === 'income' && e.amount > 0 && e.at >= from && e.at < to).forEach((e) => {

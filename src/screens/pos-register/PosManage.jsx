@@ -14,7 +14,7 @@ import { toast, confirmDialog } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { Dialog, PageHeader, EmptyState } from '@/components/ui';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
-import { POS_KEYS, load, getCounters, saveCounters, getShifts, getCash, saveCash, getSettings, saveSettings, shiftReport, nextId, LOCATIONS, EMPLOYEES, MANAGERS, CASH_PLACES, CASH_LABEL, DEFAULT_SETTINGS, postCashMove } from '@/lib/posStore';
+import { POS_KEYS, load, getCounters, saveCounters, getShifts, getCash, saveCash, getSettings, saveSettings, shiftReport, nextId, LOCATIONS, EMPLOYEES, MANAGERS, CASH_PLACES, CASH_LABEL, DEFAULT_SETTINGS, postCashMove, getPosLocations } from '@/lib/posStore';
 
 const TABS = [['counters', 'Counters', 'store'], ['shifts', 'Employees and shifts', 'users'], ['cash', 'Cash pickups', 'hand-coins'], ['settings', 'Settings', 'settings']];
 const PRINTERS = ['Epson TM-T82 · USB', 'Epson TM-T82 · LAN', 'Xprinter XP-80 · USB', 'No printer'];
@@ -360,8 +360,8 @@ export default function PosManage() {
           <form className="pm-form" onSubmit={saveCounter} noValidate>
             <div><label className="gc-label" htmlFor="pm-name">Counter name *</label><input id="pm-name" className={'gc-input' + (err && !form.name.trim() ? ' gc-input--error' : '')} placeholder="For example: Dhanmondi · Counter 3" aria-required="true" data-autofocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
             <div className="pm-two">
-              <div><label className="gc-label" htmlFor="pm-loc">Branch or warehouse *</label><select id="pm-loc" className="gc-input gc-select" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value, stock: e.target.value })}>{LOCATIONS.map((l) => <option key={l.name} value={l.name}>{l.name} · {l.type}</option>)}</select></div>
-              <div><label className="gc-label" htmlFor="pm-stock">Sells stock from</label><select id="pm-stock" className="gc-input gc-select" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })}>{LOCATIONS.map((l) => <option key={l.name}>{l.name}</option>)}</select></div>
+              <div><label className="gc-label" htmlFor="pm-loc">Branch or warehouse *</label><select id="pm-loc" className="gc-input gc-select" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value, stock: e.target.value })}>{getPosLocations().map((l) => <option key={l.name} value={l.name}>{l.name} · {l.type}</option>)}</select></div>
+              <div><label className="gc-label" htmlFor="pm-stock">Sells stock from</label><select id="pm-stock" className="gc-input gc-select" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })}>{getPosLocations().map((l) => <option key={l.name}>{l.name}</option>)}</select></div>
             </div>
             <div className="pm-two">
               <div><label className="gc-label" htmlFor="pm-printer">Receipt printer</label><select id="pm-printer" className="gc-input gc-select" value={form.printer} onChange={(e) => setForm({ ...form, printer: e.target.value })}>{PRINTERS.map((x) => <option key={x}>{x}</option>)}</select></div>

@@ -108,9 +108,14 @@ export const NAV = [
     { id: 'storefront', icon: 'store', label: 'Storefront', children: [
       { id: 'storefront-pages', icon: 'layout-template', label: 'Landing pages', to: 'landing-page-builder/LandingPageBuilder.dc.html' },
       { id: 'storefront-wp', icon: 'refresh-cw', label: 'WordPress sync', to: 'integrations/WooSync.dc.html' },
-      { id: 'storefront-blog', icon: 'newspaper', label: 'Blog posts', to: 'integrations/BlogPosts.dc.html' },
       { id: 'storefront-theme', icon: 'palette', label: 'Theme', to: 'landing-page-builder/LandingPageBuilder.dc.html' },
       { id: 'storefront-nav', icon: 'list', label: 'Navigation', to: 'landing-page-builder/LandingPageBuilder.dc.html' },
+    ] },
+    { id: 'blog', icon: 'newspaper', label: 'Blog', to: 'integrations/BlogPosts.dc.html', children: [
+      { id: 'blog-posts', icon: 'newspaper', label: 'Posts', to: 'integrations/BlogPosts.dc.html' },
+      { id: 'blog-new', icon: 'square-pen', label: 'New post', to: 'integrations/BlogEditor.dc.html' },
+      { id: 'blog-cats', icon: 'folder-tree', label: 'Categories', to: 'integrations/BlogCategories.dc.html' },
+      { id: 'blog-authors', icon: 'user-pen', label: 'Authors', to: 'integrations/BlogAuthors.dc.html' },
     ] },
     { id: 'settings', icon: 'settings', label: 'Settings', to: 'settings-console/SetGeneral.dc.html', children: [
       { id: 'set-store', icon: 'sliders-horizontal', label: 'Store settings', to: 'settings-console/SetGeneral.dc.html' },

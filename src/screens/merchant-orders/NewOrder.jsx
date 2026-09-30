@@ -17,7 +17,7 @@ import { CourierHistory } from '@/components/CourierHistory';
 import { addHolds } from '@/lib/stockHolds';
 import { postEntry, accountForMethod } from '@/lib/ledger';
 import { PARTNERS, getAllPartners, accountForPartner } from '@/lib/settlements';
-import { STOCK_PLACES } from '@/lib/locations';
+import { usePlaceList } from '@/lib/usePlaces';
 import { productBy, stockAt } from '@/lib/stock';
 import { getCustomers, findCustomer, saveCustomerOnce, ADDED_FROM } from '@/lib/customers';
 
@@ -140,6 +140,7 @@ export default function NewOrder() {
   const [method, setMethod] = useState('gw:bkash-pgw');
   const [status, setStatus] = useState('approved');     // a hand-made order is already confirmed with the customer
   const [holdPlace, setHoldPlace] = useState('Central Warehouse');   // where an approved order's stock is held
+  const holdPlaces = usePlaceList('stock');
   const [note, setNote] = useState('');
   const [tags, setTags] = useState([]);
   const [tagText, setTagText] = useState('');
@@ -437,7 +438,7 @@ export default function NewOrder() {
                     <div style={{ marginTop: 'var(--space-3)' }}>
                       <label className="gc-label" htmlFor="no-hold">Hold stock from</label>
                       <select id="no-hold" className="gc-input gc-select" style={{ borderRadius: 'var(--radius-lg)' }} value={holdPlace} onChange={(e) => setHoldPlace(e.target.value)}>
-                        {STOCK_PLACES.map((x) => <option key={x}>{x}</option>)}
+                        {holdPlaces.map((x) => <option key={x}>{x}</option>)}
                       </select>
                       <p className="no-meta" style={{ marginTop: 'var(--space-1-5)' }}>{holdNote}</p>
                     </div>

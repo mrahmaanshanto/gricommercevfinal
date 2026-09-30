@@ -14,7 +14,7 @@ import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher,
 import { PageHeader as __PageHeader } from '@/components/ui';
 import { toast as __toast, confirmDialog as __confirm } from '@/runtime/ui';
 import { ManagerPin } from '@/components/ManagerPin';
-import { STOCK_PLACES } from '@/lib/locations';
+import { STOCK_PLACES, getStockPlaces, placeName } from '@/lib/locations';
 import { CATALOG, productBy, stockAt, getMoves, addMove } from '@/lib/stock';
 import { getHolds } from '@/lib/stockHolds';
 import { formatBDT, formatDateTime } from '@/lib/format';
@@ -35,14 +35,14 @@ function writeDraft(d) { try { if (d) window.localStorage.setItem(DRAFT, JSON.st
 function cost(p) { return Math.round(p.wholesale * 0.85); }
 class Component extends DCLogic {
   componentDidMount() {
-    var d = readDraft(), p = { holds: getHolds(), moves: getMoves() };
-    if (d && STOCK_PLACES.indexOf(d.place) >= 0) assign(p, { place: d.place, area: d.area || 'all', c: d.c || {}, pause: d.pause !== false, started: d.started, run: true });
+    var d = readDraft(), p = { holds: getHolds(), moves: getMoves(), places: getStockPlaces() };   // live places after mount
+    if (d && p.places.indexOf(placeName(d.place)) >= 0) assign(p, { place: placeName(d.place), area: d.area || 'all', c: d.c || {}, pause: d.pause !== false, started: d.started, run: true });
     this.setState(p);
   }
   componentWillUnmount() { clearTimeout(this.t); }
   renderVals() {
     var self = this, s = this.state || {};
-    var place = s.place || STOCK_PLACES[0], area = s.area || 'all', c = s.c || {}, run = !!s.run, fin = s.fin || null, pause = s.pause !== false;
+    var place = s.place || (s.places || STOCK_PLACES)[0], area = s.area || 'all', c = s.c || {}, run = !!s.run, fin = s.fin || null, pause = s.pause !== false;
     var holds = s.holds || [], moves = s.moves || [];
     var prods = CATALOG.filter(function (p) { return (area === 'all' || p.cat === area) && (p.on[place] || stockAt(p.sku, place, holds, moves, null).onHand); });
     var setC = function (sku, v, extra) { var x = assign({}, c); if (v === null) delete x[sku]; else x[sku] = v; self.setState(assign({ c: x }, extra || {})); };
@@ -63,7 +63,7 @@ class Component extends DCLogic {
     var beep = function (p) { var x = assign({}, c); x[p.sku] = (x[p.sku] || 0) + 1; flashMsg(self, 'Beep — +1 ' + p.name, false, { c: x, flash: p.sku, code: '' }); };
     var save = function (patch) { var st = assign({ place: place, area: area, c: c, pause: pause, started: s.started }, patch || {}); writeDraft(st); };
     return assign({
-      run: run, notRun: !run, place: place, places: STOCK_PLACES,
+      run: run, notRun: !run, place: place, places: s.places || STOCK_PLACES,
       onPlace: function (e) { self.setState({ place: e.target.value, c: {} }); },
       areas: mkChips(this, AREAS, area, 'area'), areaLabel: AREAS.filter(function (a) { return a.k === area; })[0].label,
       startCount: function () { var t = Date.now(); self.setState({ run: true, pause: true, c: {}, fin: null, started: t, msg: '' }); writeDraft({ place: place, area: area, c: {}, pause: true, started: t }); __toast('Count started at ' + place + ' · selling is paused there'); },

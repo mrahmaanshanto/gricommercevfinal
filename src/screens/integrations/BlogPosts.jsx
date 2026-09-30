@@ -1,314 +1,286 @@
 'use client';
-// Generated from design/templates/integrations/BlogPosts.dc.html by scripts/convert-design.mjs.
-// Blog posts — Storefront — blog posts synced with WordPress, edited here like in WordPress.
-// Edit freely: this file is now the source for the screen.
+// Blog posts — every post on the storefront blog (gridshop.com.bd/blog), with its status, category,
+// author, views and SEO score.
+//   KPIs       published, drafts, scheduled (next one), views this month
+//   Filters    status tabs with counts, category (a parent includes its sub-categories), author, search, sort
+//   Views      table or cards; tick posts for bulk actions: publish (only posts that pass the publish
+//              checks), move to a category, archive (with undo), delete (asks first)
+//   Links      New post → /blog-editor, a title → /blog-editor?id=, an author → /author-profile?id=,
+//              Categories → /blog-categories, Authors → /blog-authors, WordPress sync → /woo-sync
+// ?tab=published|draft|scheduled|archived opens that tab; ?cat=<categoryId> and ?author=<authorId> filter. Front end only: data from src/lib/blog.js.
 
-import React from 'react';
-import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { Icon } from '@/runtime/dc';
+import { toast, confirmDialog } from '@/runtime/ui';
+import { PageHeader, EmptyState } from '@/components/ui';
+import { formatDate, formatTime } from '@/lib/format';
+import { STATUSES, categoryTree, updatePosts, deletePosts, publishProblems, seoScore, postDate, BLOG_BASE } from '@/lib/blog';
+import { BlogFrame, useBlog, Cover, Avatar, CatChip, PostStatus, SeoDot, queryParam } from './blogShared';
 
-// ---- logic (from the design's <script type="text/x-dc">) ----
-
-function bdt(n) { var neg = n < 0; var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return (neg ? '−' : '') + '৳' + s; }
-var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
-function mkTabs(self, list, cur, key, counts) { return list.map(function (x) { var on = x.k === cur; var c = counts ? counts[x.k] : null; return { label: x.label, on: on, cls: on ? 'tab on' : 'tab', hasCount: c != null, count: c, countBg: on ? 'rgba(255,255,255,0.2)' : '#e9eef5', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-function mkChips(self, list, cur, key) { return list.map(function (x) { var on = x.k === cur; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-function pTabs(self, list, cur, key, counts) { return mkTabs(self, list, cur, key, counts).map(function (x) { x.pcls = x.on ? 'ptab on' : 'ptab'; return x; }); }
-function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
-function stepN(self, key, def, step, min, max) { var s = self.state || {}; var v = s[key] == null ? def : s[key]; return { v: v, dec: function () { var p = {}; p[key] = Math.max(min, +(v - step).toFixed(2)); self.setState(p); }, inc: function () { var p = {}; p[key] = Math.min(max, +(v + step).toFixed(2)); self.setState(p); } }; }
-function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-function toast(self, m, bad) { clearTimeout(self.t); self.setState({ msg: m, bad: !!bad }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 2800); }
-function msgV(s) { return { hasMsg: !!s.msg, msg: s.msg || '', msgBg: s.bad ? '#fff4e0' : '#e7f8f1', msgFg: s.bad ? '#7a3b04' : '#065f46' }; }
-function segv(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#0b1733' : 'transparent', fg: on ? '#fff' : '#475569', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
-function lseg(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#fff' : 'transparent', fg: on ? '#0b1733' : '#64748b', sh: on ? '0 1px 2px rgba(15,23,42,.08), 0 1px 1px rgba(15,23,42,.04)' : 'none', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
-function ring(pctv, r) { var C = 2 * Math.PI * r; return { da: (C * pctv / 100).toFixed(1) + ' ' + C.toFixed(1) }; }
-function curve(pts) { if (!pts.length) return ''; var d = 'M' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1); for (var i = 0; i < pts.length - 1; i++) { var p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2; var c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6, c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6; d += ' C' + c1x.toFixed(1) + ' ' + c1y.toFixed(1) + ' ' + c2x.toFixed(1) + ' ' + c2y.toFixed(1) + ' ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1); } return d; }
-function pts(vals, w, h, max, min, padT, padB) { padT = padT || 2; padB = padB || 2; min = min == null ? 0 : min; max = max || Math.max.apply(null, vals) || 1; var n = vals.length; return vals.map(function (v, i) { return [n === 1 ? w / 2 : i * w / (n - 1), padT + (h - padT - padB) * (1 - (v - min) / (max - min || 1))]; }); }
-function sparkP(vals, w, h) { w = w || 160; h = h || 30; var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals); var p = pts(vals, w, h, mx + (mx - mn) * .1, mn - (mx - mn) * .15, 3, 2); var l = curve(p); return { line: l, area: l + ' L' + w + ' ' + h + ' L0 ' + h + ' Z' }; }
-function series(n, base, amp, seed, trend) { var out = []; for (var i = 0; i < n; i++) { var s = Math.sin((i + seed) * 1.7) * .5 + Math.sin((i * 3 + seed) * .9) * .3 + Math.cos(i * .45 + seed) * .2; out.push(Math.max(0, base * (1 + (trend || 0) * (i / n - .5)) + amp * s)); } return out; }
-
-function val(e) { return e && e.target ? e.target.value : e; }
-
-var CATS = ['Phone care', 'Buying guides', 'Offers', 'Store news'];
-var POSTS = [
-  { id: 'p1', wp: '8812', t: 'How to choose a phone case that lasts', slug: 'choose-phone-case', st: 'pub', u: 'Updated 1 h ago', a: 'Shila Rahman', cats: ['Buying guides', 'Phone care'], img: true, seo: 'Silicone, TPU or armor: which case survives Dhaka streets, and how to match it to your phone.', body: 'A case has one job: keep the phone in one piece. In Dhaka traffic and on crowded buses, drops happen daily.\n\nThree materials cover most needs. Silicone grips well but collects dust. TPU is clear and flexible. Armor cases with a kickstand take the hardest falls.\n\nMatch the case to the exact model: a 16 Pro Max case will not fit a 16 Pro.' },
-  { id: 'p2', wp: '8807', t: 'Puja offers: 10% off chargers and cables', slug: 'puja-offers-2026', st: 'sched', u: 'Publishes 8 Oct, 10:00 AM', a: 'Shanto', cats: ['Offers'], img: true, seo: 'Use code PUJA10 for 10% off chargers and cables until 20 October.', body: 'Use code PUJA10 at checkout for 10% off every charger and cable, until 20 October.' },
-  { id: 'p3', wp: '8790', t: 'Tempered glass or film: what actually protects the screen', slug: 'tempered-glass-vs-film', st: 'draft', u: 'Draft · saved yesterday', a: 'Shila Rahman', cats: ['Phone care'], img: false, seo: '', body: 'Draft: compare 9H tempered glass with PET film for scratch and drop protection.' },
-  { id: 'p4', wp: '8761', t: 'New branch opening in Uttara', slug: 'uttara-branch', st: 'pub', u: 'Published 14 Sep', a: 'Shanto', cats: ['Store news'], img: true, seo: 'GridShop opens its third branch in Sector 7, Uttara.', body: 'The Uttara branch opens soon in Sector 7, with the full phone accessories range and same-day pickup for online orders.' }
-];
-var ST = { pub: ['Published', '#e7f8f1', '#047857'], sched: ['Scheduled', '#e0f2fe', '#075985'], draft: ['Draft', '#f1f5f9', '#475569'] };
-class Component extends DCLogic {
-  componentWillUnmount() { clearTimeout(this.t); }
-  renderVals() {
-    var self = this, s = this.state || {};
-    var ed = s.ed || {}, f = s.f || 'all';
-    var posts = (s.added || []).concat(POSTS).map(function (p) { return assign(assign({}, p), ed[p.id] || {}); });
-    var sel = s.sel || posts[0].id, cur = posts.filter(function (p) { return p.id === sel; })[0];
-    function edit(k, x) { var n = assign({}, ed); n[cur.id] = assign(assign({}, n[cur.id] || {}), (function () { var o = {}; o[k] = x; return o; })()); self.setState({ ed: n, dirty: true }); }
-    var b = ST[cur.st];
-    var wc = (cur.body || '').trim().split(/\s+/).filter(Boolean).length;
-    var seoLen = (cur.seo || '').length;
-    var v = {
-      segs: lseg(self, [['all', 'All'], ['pub', 'Published'], ['sched', 'Scheduled'], ['draft', 'Drafts']], f, 'f'),
-      list: posts.filter(function (p) { return f === 'all' || p.st === f; }).map(function (p) { var on = p.id === cur.id, bb = ST[p.st]; return { t: p.t, u: p.u, st: bb[0], bb: bb[1], bf: bb[2], cls: on ? 'lrow on' : 'lrow', cur: on ? 'true' : 'false', open: function () { self.setState({ sel: p.id, dirty: false }); } }; }),
-      cur: { t: cur.t, slug: cur.slug, body: cur.body, seo: cur.seo, a: cur.a, wp: cur.wp, st: b[0], bb: b[1], bf: b[2] },
-      syncNote: s.dirty ? 'Unsaved changes' : 'In sync with WordPress · ' + cur.u.toLowerCase(),
-      onTitle: function (e) { edit('t', val(e)); }, onSlug: function (e) { edit('slug', String(val(e) || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-')); }, onBody: function (e) { edit('body', val(e)); }, onSeo: function (e) { edit('seo', val(e)); },
-      words: wc + ' words · about ' + Math.max(1, Math.round(wc / 200)) + ' min read',
-      seoCount: seoLen + ' of 160 characters', seoC: seoLen > 160 ? '#b83210' : '#64748b',
-      cats: CATS.map(function (c) { var on = (cur.cats || []).indexOf(c) >= 0; return { l: c, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var list = (cur.cats || []).slice(); if (on) list.splice(list.indexOf(c), 1); else list.push(c); edit('cats', list); } }; }),
-      imgLabel: cur.img ? 'Change image' : 'Add a featured image', pickImg: function () { edit('img', true); toast(self, 'Image added. It uploads to the WordPress media library on save.'); },
-      pubLabel: cur.st === 'pub' ? 'Update post' : cur.st === 'sched' ? 'Update schedule' : 'Publish',
-      publish: function () { if (!(cur.t || '').trim()) { toast(self, 'Add a title first.', true); return; } var n = assign({}, ed); n[cur.id] = assign(assign({}, n[cur.id] || {}), { st: cur.st === 'draft' ? 'pub' : cur.st, u: 'Updated just now' }); self.setState({ ed: n, dirty: false }); toast(self, (cur.st === 'draft' ? 'Published' : 'Updated') + ' on gridshop.com.bd/blog/' + cur.slug + '.'); },
-      saveDraft: function () { var n = assign({}, ed); n[cur.id] = assign(assign({}, n[cur.id] || {}), { st: 'draft', u: 'Draft · saved just now' }); self.setState({ ed: n, dirty: false }); toast(self, 'Saved as a draft in WordPress. It is not visible on the website.'); },
-      newPost: function () { var id = 'n' + ((s.added || []).length + 1); var p = { id: id, wp: 'new', t: 'Untitled post', slug: 'untitled-post', st: 'draft', u: 'Draft · not saved yet', a: 'Shanto', cats: [], img: false, seo: '', body: '' }; self.setState({ added: [p].concat(s.added || []), sel: id, f: 'all' }); }
-    };
-    return assign(v, msgV(s));
-  }
-}
-
-// ---- styles (from the design's <helmet>) ----
+const TABS = [['all', 'All'], ['published', 'Published'], ['draft', 'Drafts'], ['scheduled', 'Scheduled'], ['archived', 'Archived']];
+const SORTS = [['new', 'Newest first'], ['views', 'Most viewed'], ['seo', 'Lowest SEO score'], ['title', 'Title A–Z']];
+const n = (x) => Number(x || 0).toLocaleString('en-IN');
 
 const CSS = `
-body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
-*{box-sizing:border-box}
-a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
-.nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
-.nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
-.btn:hover{text-decoration:none}
-.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
-.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
-.line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
-.warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
-.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
-.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
-.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:var(--text-muted)}
-.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
-.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
-.tab:hover{background:#f1f5f9;color:#0f172a}
-.tab.on{background:#003087;color:#fff}
-.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
-.chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
-.row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
-.b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
-.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
-.b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:var(--font-data);letter-spacing:.02em}
-.fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
-@keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.flash{animation:gcFlash 900ms ease-out}
-@keyframes gcFlash{from{background:#e7f8f1}to{background:transparent}}
-.scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
-@keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
-
-.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
-.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
-.sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
-.t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
-.actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:var(--font-bn)}
-.pulse{animation:gcPulse 1.6s ease-in-out infinite}
-@keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
-@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
-.psec{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
-.num{font-variant-numeric:tabular-nums}
-.ai{height:28px;padding:0 10px;border-radius:var(--radius-lg);border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
-.ai:hover{border-color:#a78bfa;box-shadow:0 4px 12px -6px rgba(91,33,182,.5)}
-.ai:focus-visible{outline:3px solid rgba(124,58,237,.4);outline-offset:2px}
-.abtn{height:32px;padding:0 12px;border-radius:var(--radius-lg);border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-.abtn:hover{background:#f1f5f9}
-.ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0}
-.ptab{position:relative;height:52px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:var(--weight-medium)}
-.ptab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2.5px;border-radius:3px 3px 0 0;background:#003087}
-.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
-.ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
-.thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
-
-.tc{background:#fff;border:1px solid #e7ebf2;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px -20px rgba(15,23,42,.18)}
-.ey{font-size:var(--text-xs);line-height:17px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
-.ey-d{color:rgba(203,216,238,.7)}
-.tn{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;letter-spacing:0}
-.dl{display:inline-flex;align-items:center;gap:3px;height:22px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums}
-.hero{position:relative;overflow:hidden;border-radius:var(--radius-xl);background:#0b1733;color:#fff;padding:24px 26px;--accent-text:#7fcff0;--text-success:#6ee7b7;--text-warning:#fcd34d;--text-danger:#fda4af;--text-info:#7dd3fc}
-.hero::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:32px 32px;pointer-events:none}
-.hero>*{position:relative}
-.ht{border-radius:var(--radius-xl);background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
-.dseg{display:inline-flex;padding:3px;border-radius:var(--radius-full);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1)}
-.dseg button{height:32px;padding:0 14px;border:0;border-radius:var(--radius-full);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
-.lseg{display:inline-flex;padding:3px;border-radius:var(--radius-xl);background:#f1f4f9;border:1px solid #e7ebf2}
-.lseg button{height:32px;padding:0 13px;border:0;border-radius:var(--radius-lg);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease,box-shadow 200ms ease}
-button:active,.btn:active,.abtn:active{transform:scale(.97)}
-.btn,.abtn{transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
-.st>*{animation:taUp 420ms cubic-bezier(.23,1,.32,1) both}
-.st>*:nth-child(2){animation-delay:40ms}.st>*:nth-child(3){animation-delay:80ms}.st>*:nth-child(4){animation-delay:120ms}.st>*:nth-child(5){animation-delay:160ms}.st>*:nth-child(6){animation-delay:200ms}.st>*:nth-child(7){animation-delay:240ms}.st>*:nth-child(8){animation-delay:280ms}
-@keyframes taUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.gr{transform-origin:left center;animation:taGrow 700ms cubic-bezier(.23,1,.32,1) both}
-@keyframes taGrow{from{transform:scaleX(.35);opacity:0}to{transform:none;opacity:1}}
-.draw{stroke-dasharray:1600;stroke-dashoffset:0;animation:taDraw 1100ms cubic-bezier(.77,0,.175,1) both}
-@keyframes taDraw{from{stroke-dashoffset:1600}to{stroke-dashoffset:0}}
-.fadein{animation:taFade 600ms ease both 200ms}@keyframes taFade{from{opacity:0}to{opacity:1}}
-.tt{position:relative}
-.tt .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px) scale(.97);transform-origin:bottom center;opacity:0;pointer-events:none;transition:opacity 125ms ease-out,transform 125ms ease-out;background:#0b1733;color:#fff;border-radius:var(--radius-lg);padding:8px 10px;font-size:var(--text-xs);white-space:nowrap;box-shadow:0 10px 24px -8px rgba(15,23,42,.45);z-index:5}
-.col{position:relative;flex:1;height:100%;border-radius:var(--radius-md);transition:background-color 150ms ease}
-.col .tip{bottom:auto;top:6px}
-.col .cl{position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(15,23,42,.18);opacity:0;transition:opacity 125ms ease}
-@media (hover:hover) and (pointer:fine){.tt:hover .tip,.col:hover .tip{opacity:1;transform:translate(-50%,0) scale(1)}.col:hover .cl{opacity:1}.row:hover{background:#f7f9fd}.tc.lift{transition:box-shadow 200ms ease,transform 200ms cubic-bezier(.23,1,.32,1)}.tc.lift:hover{box-shadow:0 1px 2px rgba(15,23,42,.05),0 18px 40px -20px rgba(15,23,42,.3)}}
-.tb{width:100%;border-collapse:separate;border-spacing:0}
-.tb th{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #eef1f6;background:#fbfcfe;white-space:nowrap}
-.tb td{padding:13px 16px;border-bottom:1px solid #f1f4f8;font-size:var(--text-sm);vertical-align:middle}
-.tb tr:last-child td{border-bottom:0}
-.tb .r{text-align:right}
-@media (prefers-reduced-motion:reduce){.st>*,.gr,.draw,.fadein{animation:none}}
-
-.sec{display:flex;flex-direction:column;gap:14px;padding:20px 22px}
-.h2{margin:0;font-size:var(--text-base);line-height:22px;font-weight:var(--weight-semibold);color:#0f172a;letter-spacing:0}
-.sub{margin:2px 0 0;font-size:var(--text-xs-plus);line-height:18px;color:var(--text-muted)}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.chk{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid #f1f4f8}
-.chk:last-child{border-bottom:0}
-.pill{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:var(--radius-full);background:#f1f4f9;font-size:var(--text-xs);color:#334155;white-space:nowrap}
-.amt{height:36px;padding:0 16px;border-radius:var(--radius-lg);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:#1e293b;cursor:pointer;font-variant-numeric:tabular-nums}
-.amt.on{border-color:#003087;background:rgba(0,48,135,.06);color:#003087}
-.amt:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.stp2{display:inline-flex;align-items:center;border:1px solid #cbd5e1;border-radius:var(--radius-lg);overflow:hidden;height:40px}
-.stp2 button{width:38px;height:100%;border:0;background:#f8fafc;font:inherit;font-size:var(--text-base);cursor:pointer;color:#334155}
-.stp2 span{min-width:64px;text-align:center;font-size:var(--text-sm);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums}
-.sel{height:44px;padding:0 12px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;width:100%}
-.msgb{max-width:78%;padding:10px 14px;border-radius:var(--radius-xl);font-size:var(--text-sm);line-height:20px}
-.code{margin:0;padding:12px 14px;border-radius:var(--radius-lg);background:#0b1733;color:#cbd8ee;font-size:var(--text-xs);line-height:18px;white-space:pre-wrap;--text-muted:#94a3b8}
-.lrow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 16px;border:0;border-bottom:1px solid #f1f4f8;background:transparent;font:inherit;text-align:left;cursor:pointer}
-.lrow:hover{background:#f7f9fd}.lrow.on{background:rgba(0,48,135,.05)}
-.lrow:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:-3px}
-.lseg{display:inline-flex;padding:3px;border-radius:var(--radius-xl);background:#f1f4f9;border:1px solid #e7ebf2}.lseg button{height:32px;padding:0 13px;border:0;border-radius:var(--radius-lg);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer}.pgc>*{flex-shrink:0}.tb th{white-space:normal}.stp2{flex-shrink:0}.pgc>.fill{flex-shrink:1;min-height:0}
+.bp-bar{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle)}
+.bp-bar .gc-input{height:40px}
+.bp-search{position:relative;flex:1 1 220px;min-width:0}
+.bp-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none}
+.bp-search .gc-input{padding-left:38px}
+.bp-filter{flex:0 1 190px;min-width:150px}
+.bp-tab b{margin-left:6px;font-weight:var(--weight-medium);color:var(--text-muted);font-variant-numeric:tabular-nums}
+.bp-bulk{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-5);background:var(--fill-primary-soft);border-top:1px solid var(--border-subtle)}
+.bp-bulk b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--primary);margin-right:auto}
+.bp-bulk .gc-input{height:36px;width:auto;min-width:170px}
+.bp-title{display:block;font-weight:var(--weight-medium);color:var(--text-heading);text-decoration:none;line-height:1.4;min-width:180px;white-space:normal}
+.bp-title:hover{color:var(--text-link);text-decoration:underline}
+.bp-card .gc-table th,.bp-card .gc-table td{padding-left:var(--space-3);padding-right:var(--space-3)}
+.bp-card .gc-table th:first-child,.bp-card .gc-table td:first-child{padding-left:var(--space-5)}
+.bp-author{display:inline-flex;align-items:center;gap:var(--space-2);color:var(--text-body);text-decoration:none;white-space:nowrap}
+.bp-author:hover span{color:var(--text-link);text-decoration:underline}
+.bp-flag{display:inline-flex;align-items:center;gap:4px;margin-left:6px;color:var(--text-warning);font-size:var(--text-xs);vertical-align:middle}
+.bp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:var(--space-4);padding:var(--space-4) var(--space-5) var(--space-5)}
+.bp-tile{position:relative;display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card)}
+.bp-tile.is-on{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
+.bp-tile .bp-pick{position:absolute;top:var(--space-5);left:var(--space-5);z-index:1;background:var(--surface-card)}
+.bp-tile .bp-title{min-width:0;font-size:var(--text-sm-plus)}
+.bp-foot{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);margin-top:auto;font-size:var(--text-xs);color:var(--text-muted)}
+.bp-note{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle);font-size:var(--text-xs);color:var(--text-muted)}
+@media (max-width:599px){.bp-filter{flex:1 1 140px}.bp-bulk .gc-input{flex:1 1 100%}}
 `;
 
-// ---- markup ----
+export default function BlogPosts() {
+  const db = useBlog();
+  const [tab, setTab] = useState('all');
+  const [q, setQ] = useState('');
+  const [cat, setCat] = useState('');
+  const [author, setAuthor] = useState('');
+  const [sort, setSort] = useState('new');
+  const [view, setView] = useState('table');
+  const [sel, setSel] = useState([]);
+  const [moveTo, setMoveTo] = useState('');
 
-export default class BlogPostsScreen extends Component {
-  render() {
-    const v = this.renderVals() || {};
-    return (
-      <div className="dc-screen ds" data-screen="BlogPosts">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
-          <__Sidebar sticky="" active="storefront-blog" />
-          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
-            <__Topbar crumb="Storefront" page="Blog posts" placeholder="Search" />
-            <div className="pgc gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "22px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ flexGrow: "1" }}>
-                  <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "var(--tracking-tight)" }}>Blog posts</h1>
-                  <p className="sub">Synced with WordPress. Edits here update the post on the website within seconds.</p>
-                </div>
-                <__Link href="/woo-sync" className="abtn" style={{ textDecoration: "none" }}>WordPress sync</__Link>
-                <button type="button" className="btn solid sm" onClick={v.newPost}>New post</button>
-              </div>
-              {v.hasMsg ? (<>
-                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-lg); background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: var(--text-sm); font-weight: var(--weight-medium);`)}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="m9 12 2 2 4-4" />
-                  </svg>
-                  <span>{v.msg}</span>
-                </div>
-              </>) : null}
-              <div className="gc-split" style={{ display: "grid", gridTemplateColumns: "380px minmax(0, 1fr)", gap: "16px", alignItems: "start" }}>
-                <section className="tc" style={{ overflow: "hidden" }}>
-                  <div style={{ padding: "12px 14px", borderBottom: "1px solid #eef1f6" }}>
-                    <div className="lseg" role="tablist">
-                      {__list(v.segs).map((m, $index) => (<React.Fragment key={$index}>
-                          <button type="button" role="tab" aria-selected={m?.on} onClick={m?.pick} style={__sx(`background: ${m?.bg ?? ""}; color: ${m?.fg ?? ""}; box-shadow: ${m?.sh ?? ""};`)}>{m?.l}</button>
-                        </React.Fragment>))}
-                    </div>
-                  </div>
-                  {__list(v.list).map((p, $index) => (<React.Fragment key={$index}>
-                      <button type="button" className={p?.cls} onClick={p?.open} aria-current={p?.cur}>
-                        <div style={{ flexGrow: "1", minWidth: "0" }}>
-                          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p?.t}</div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
-                            <span className="badge" style={__sx(`background: ${p?.bb ?? ""}; color: ${p?.bf ?? ""}; height: 22px; font-size: var(--text-xs);`)}>{p?.st}</span>
-                            <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{p?.u}</span>
-                          </div>
-                        </div>
-                      </button>
-                    </React.Fragment>))}
-                </section>
-                <section className="tc" style={{ overflow: "hidden" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 20px", borderBottom: "1px solid #eef1f6" }}>
-                    <span className="badge" style={__sx(`background: ${v.cur?.bb ?? ""}; color: ${v.cur?.bf ?? ""};`)}>{v.cur?.st}</span>
-                    <span style={{ flexGrow: "1", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.syncNote}</span>
-                    <button type="button" className="btn line sm" onClick={v.saveDraft}>Save draft</button>
-                    <button type="button" className="btn solid sm" onClick={v.publish}>{v.pubLabel}</button>
-                  </div>
-                  <div className="gc-split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 260px", gap: "20px", padding: "20px" }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "14px", minWidth: "0" }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                        <label className="lbl" htmlFor="pt">Title</label>
-                        <input id="pt" className="inp" value={v.cur?.t} onChange={v.onTitle} style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", height: "48px" }} />
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                        <label className="lbl" htmlFor="ps">Address</label>
-                        <div style={{ display: "flex", alignItems: "center", gap: "0" }}>
-                          <span style={{ height: "44px", display: "flex", alignItems: "center", padding: "0 10px", border: "1px solid #cbd5e1", borderRight: "0", borderRadius: "var(--radius-lg) 0 0 var(--radius-lg)", background: "#f7f9fc", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>gridshop.com.bd/blog/</span>
-                          <input id="ps" className="inp mono" value={v.cur?.slug} onChange={v.onSlug} style={{ borderRadius: "0 var(--radius-lg) var(--radius-lg) 0" }} />
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                        <label className="lbl" htmlFor="pc">Content</label>
-                        <textarea id="pc" className="inp" rows="11" onChange={v.onBody} style={{ height: "auto", padding: "12px 14px", lineHeight: "22px" }} defaultValue={`${v.cur?.body ?? ""}`} />
-                        <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{v.words}</span>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                        <span className="lbl">Featured image</span>
-                        <button type="button" onClick={v.pickImg} style={{ height: "130px", border: "1.5px dashed #cbd5e1", borderRadius: "var(--radius-lg)", background: "#f7f9fc", font: "inherit", fontSize: "var(--text-xs-plus)", color: "#475569", cursor: "pointer" }}>{v.imgLabel}</button>
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                        <span className="lbl">Categories</span>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                          {__list(v.cats).map((c, $index) => (<React.Fragment key={$index}>
-                              <button type="button" className={c?.cls} aria-pressed={c?.on} onClick={c?.pick} style={{ height: "36px" }}>{c?.l}</button>
-                            </React.Fragment>))}
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                        <label className="lbl" htmlFor="seo">Search description</label>
-                        <textarea id="seo" className="inp" rows="3" onChange={v.onSeo} style={{ height: "auto", padding: "10px 12px", fontSize: "var(--text-xs-plus)" }} defaultValue={`${v.cur?.seo ?? ""}`} />
-                        <span style={__sx(`font-size: var(--text-xs); color: ${v.seoC ?? ""};`)}>{v.seoCount}</span>
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "12px", borderRadius: "var(--radius-lg)", background: "#f7f9fc", fontSize: "var(--text-xs-plus)", color: "#475569" }}>
-                        <span>Author · {v.cur?.a}</span>
-                        <span>WordPress post ID · <span className="mono">{v.cur?.wp}</span></span>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              </div>
-            </div>
-          </main>
-        </div>
+  useEffect(() => {
+    const t = queryParam('tab');
+    if (TABS.some((x) => x[0] === t)) setTab(t);
+    const a = queryParam('author');
+    if (a) setAuthor(a);
+    const c = queryParam('cat');
+    if (c) setCat(c);
+    try { const v = window.localStorage.getItem('gc.blog.view'); if (v === 'cards') setView('cards'); } catch { /* ignore */ }
+  }, []);
+  const pickView = (v) => { setView(v); try { window.localStorage.setItem('gc.blog.view', v); } catch { /* ignore */ } };
+
+  const catById = useMemo(() => Object.fromEntries(db.categories.map((c) => [c.id, c])), [db.categories]);
+  const authorById = useMemo(() => Object.fromEntries(db.authors.map((a) => [a.id, a])), [db.authors]);
+  const tree = useMemo(() => categoryTree(db.categories), [db.categories]);
+
+  // filters other than the tab, so tab counts follow them
+  const base = useMemo(() => {
+    const within = cat ? new Set([cat, ...db.categories.filter((c) => c.parentId === cat).map((c) => c.id)]) : null;
+    const s = q.trim().toLowerCase();
+    return db.posts.filter((p) => (!within || (p.categoryIds || []).some((id) => within.has(id)))
+      && (!author || p.authorId === author)
+      && (!s || [p.title, p.slug, p.excerpt, ...(p.tags || []), (p.seo || {}).focusKeyword].some((x) => String(x || '').toLowerCase().includes(s))));
+  }, [db.posts, db.categories, cat, author, q]);
+  const counts = useMemo(() => {
+    const c = { all: base.length };
+    Object.keys(STATUSES).forEach((k) => { c[k] = base.filter((p) => p.status === k).length; });
+    return c;
+  }, [base]);
+  const shown = useMemo(() => {
+    const list = base.filter((p) => tab === 'all' || p.status === tab);
+    const by = {
+      new: (a, b) => new Date(postDate(b)) - new Date(postDate(a)),
+      views: (a, b) => (b.views || 0) - (a.views || 0),
+      seo: (a, b) => seoScore(a).score - seoScore(b).score,
+      title: (a, b) => a.title.localeCompare(b.title),
+    }[sort];
+    return list.slice().sort(by);
+  }, [base, tab, sort]);
+
+  // KPIs over every post
+  const all = db.posts;
+  const published = all.filter((p) => p.status === 'published').length;
+  const drafts = all.filter((p) => p.status === 'draft').length;
+  const scheduled = all.filter((p) => p.status === 'scheduled').sort((a, b) => new Date(a.publishAt) - new Date(b.publishAt));
+  const monthViews = all.reduce((s, p) => s + (p.viewsMonth || 0), 0);
+
+  const shownIds = shown.map((p) => p.id);
+  const picked = sel.filter((id) => all.some((p) => p.id === id));
+  const allOn = shownIds.length > 0 && shownIds.every((id) => picked.includes(id));
+  const toggle = (id) => setSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  const toggleAll = () => setSel(allOn ? picked.filter((id) => !shownIds.includes(id)) : [...new Set([...picked, ...shownIds])]);
+
+  const bulkPublish = () => {
+    const list = all.filter((p) => picked.includes(p.id) && p.status !== 'published');
+    const ok = list.filter((p) => !publishProblems(p).length);
+    const blocked = list.length - ok.length;
+    if (ok.length) {
+      const now = new Date().toISOString();
+      updatePosts(ok.map((p) => p.id), (p) => ({ status: 'published', autoPublishedAt: null, publishAt: p.status === 'scheduled' || !p.publishAt ? now : p.publishAt }));
+    }
+    if (!list.length) toast('The chosen posts are already published.', { tone: 'info' });
+    else if (!ok.length) toast(`${blocked} post${blocked === 1 ? '' : 's'} can’t go live yet: open each one to add the missing title, category, meta description or cover alt text.`, { tone: 'error' });
+    else toast(`${ok.length} post${ok.length === 1 ? '' : 's'} published${blocked ? ` · ${blocked} still need details before they can go live` : ''}`);
+    setSel([]);
+  };
+  const bulkMove = () => {
+    const c = catById[moveTo];
+    if (!c) { toast('Choose a category to move the posts to.', { tone: 'error' }); return; }
+    updatePosts(picked, { categoryIds: [c.id] });
+    toast(`${picked.length} post${picked.length === 1 ? '' : 's'} moved to ${c.name}`);
+    setSel([]); setMoveTo('');
+  };
+  const bulkArchive = () => {
+    const before = all.filter((p) => picked.includes(p.id)).map((p) => [p.id, p.status]);
+    updatePosts(picked, { status: 'archived' });
+    toast(`${before.length} post${before.length === 1 ? '' : 's'} archived · hidden from the website`, {
+      undo: () => { before.forEach(([id, status]) => updatePosts([id], { status })); toast('Archive undone'); },
+    });
+    setSel([]);
+  };
+  const bulkDelete = async () => {
+    const count = picked.length;
+    const ok = await confirmDialog({ title: `Delete ${count} post${count === 1 ? '' : 's'}?`, body: 'They are removed from the blog and the website for good, with their SEO settings. Archive them instead to keep a copy.', confirmLabel: 'Delete', tone: 'danger' });
+    if (!ok) return;
+    deletePosts(picked);
+    setSel([]);
+    toast(`${count} post${count === 1 ? '' : 's'} deleted`);
+  };
+
+  const dateCell = (p) => {
+    const d = postDate(p);
+    const lead = p.status === 'scheduled' ? 'Publishes' : p.status === 'published' ? (p.autoPublishedAt ? 'Published automatically' : 'Published') : p.status === 'archived' ? 'Was published' : 'Saved';
+    return <>{formatDate(d)}<span className="bl-sub">{lead} · {formatTime(d)}</span></>;
+  };
+  const cats = (p) => (p.categoryIds || []).map((id) => catById[id]).filter(Boolean);
+  const authorLink = (p) => {
+    const a = authorById[p.authorId];
+    if (!a) return <span className="bl-sub">No author</span>;
+    return <Link href={`/author-profile?id=${a.id}`} className="bp-author"><Avatar author={a} size={28} /><span>{a.name}</span></Link>;
+  };
+  const clearFilters = () => { setQ(''); setCat(''); setAuthor(''); setTab('all'); };
+
+  return (
+    <BlogFrame screen="BlogPosts" active="blog-posts" page="Posts" css={CSS}>
+      <PageHeader
+        title="Blog posts"
+        description="Write guides, recipes and offers for the storefront blog. Published posts appear on gridshop.com.bd/blog."
+        actions={<>
+          <Link href="/blog-categories" className="gc-btn gc-btn--neutral"><Icon name="folder-tree" width="18" height="18" aria-hidden="true" /> Categories</Link>
+          <Link href="/blog-authors" className="gc-btn gc-btn--neutral"><Icon name="users" width="18" height="18" aria-hidden="true" /> Authors</Link>
+          <Link href="/blog-editor" className="gc-btn gc-btn--solid"><Icon name="plus" width="18" height="18" aria-hidden="true" /> New post</Link>
+        </>}
+      />
+
+      <div className="gc-kpis">
+        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="globe" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Published</p><p className="gc-kpi__value">{published}<small>live on the website</small></p></div></div>
+        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--surface-subtle)', color: 'var(--text-body)' }}><Icon name="pencil-line" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Drafts</p><p className="gc-kpi__value">{drafts}<small>not visible yet</small></p></div></div>
+        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-info-soft)', color: 'var(--text-info)' }}><Icon name="calendar-clock" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Scheduled</p><p className="gc-kpi__value">{scheduled.length}<small>{scheduled[0] ? `next ${formatDate(scheduled[0].publishAt)}` : 'nothing queued'}</small></p></div></div>
+        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="eye" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Views this month</p><p className="gc-kpi__value">{n(monthViews)}<small>all posts</small></p></div></div>
       </div>
-    );
-  }
+
+      <section className="gc-card bl-card bp-card" aria-label="Posts">
+        <div className="bl-head" style={{ paddingBottom: 0 }}>
+          <div className="gc-tabs" role="tablist" aria-label="Post status" style={{ borderBottom: 0, flexWrap: 'wrap', overflow: 'visible' }}>
+            {TABS.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={tab === id} className={'gc-tab bp-tab' + (tab === id ? ' gc-tab--active' : '')} onClick={() => setTab(id)}>{label}<b>{db.ready ? counts[id] : ''}</b></button>)}
+          </div>
+          <div className="gc-seg" role="group" aria-label="Layout">
+            <button type="button" className={'gc-seg__btn' + (view === 'table' ? ' gc-seg__btn--active' : '')} aria-pressed={view === 'table'} onClick={() => pickView('table')}><Icon name="list" width="16" height="16" aria-hidden="true" style={{ verticalAlign: 'middle' }} /> Table</button>
+            <button type="button" className={'gc-seg__btn' + (view === 'cards' ? ' gc-seg__btn--active' : '')} aria-pressed={view === 'cards'} onClick={() => pickView('cards')}><Icon name="layout-grid" width="16" height="16" aria-hidden="true" style={{ verticalAlign: 'middle' }} /> Cards</button>
+          </div>
+        </div>
+        <div className="bp-bar">
+          <div className="bp-search"><Icon name="search" width="16" height="16" aria-hidden="true" /><input className="gc-input" type="search" placeholder="Search title, tag or keyword" aria-label="Search posts" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+          <select className="gc-input gc-select bp-filter" aria-label="Category" value={cat} onChange={(e) => setCat(e.target.value)}>
+            <option value="">All categories</option>
+            {tree.map((c) => <option key={c.id} value={c.id}>{c.depth ? '— ' : ''}{c.name}</option>)}
+          </select>
+          <select className="gc-input gc-select bp-filter" aria-label="Author" value={author} onChange={(e) => setAuthor(e.target.value)}>
+            <option value="">All authors</option>
+            {db.authors.map((a) => <option key={a.id} value={a.id}>{a.name}{a.active ? '' : ' (inactive)'}</option>)}
+          </select>
+          <select className="gc-input gc-select bp-filter" aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value)}>
+            {SORTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+          </select>
+        </div>
+
+        {picked.length ? (
+          <div className="bp-bulk" role="region" aria-label="Bulk actions">
+            <b>{picked.length} selected</b>
+            <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={bulkPublish}><Icon name="send" width="16" height="16" aria-hidden="true" /> Publish</button>
+            <select className="gc-input gc-select" aria-label="Move to category" value={moveTo} onChange={(e) => setMoveTo(e.target.value)}>
+              <option value="">Move to category…</option>
+              {tree.map((c) => <option key={c.id} value={c.id}>{c.depth ? '— ' : ''}{c.name}</option>)}
+            </select>
+            <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={bulkMove} disabled={!moveTo}>Move</button>
+            <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={bulkArchive}><Icon name="archive" width="16" height="16" aria-hidden="true" /> Archive</button>
+            <button type="button" className="gc-btn gc-btn--sm gc-btn--error gc-btn--outlined" onClick={bulkDelete}><Icon name="trash-2" width="16" height="16" aria-hidden="true" /> Delete</button>
+            <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => setSel([])}>Clear</button>
+          </div>
+        ) : null}
+
+        {!db.ready ? <div style={{ minHeight: 240 }} aria-busy="true" /> : shown.length === 0 ? (
+          <EmptyState icon="newspaper" title={db.posts.length ? 'No posts match' : 'No posts yet'} body={db.posts.length ? 'Try another status, category, author or search.' : 'Write the first post for the storefront blog.'} actionLabel={db.posts.length ? 'Clear filters' : undefined} onAction={clearFilters} />
+        ) : view === 'table' ? (
+          <div className="gc-table-wrap">
+            <table className="gc-table gc-table--compact gc-table--hoverable">
+              <thead><tr>
+                <th scope="col" style={{ width: 44 }}><input type="checkbox" className="gc-check" aria-label="Select all shown posts" checked={allOn} onChange={toggleAll} /></th>
+                <th scope="col">Post</th><th scope="col">Category</th><th scope="col">Author</th><th scope="col">Status</th><th scope="col">Date</th><th scope="col" className="bl-num">Views</th><th scope="col">SEO</th><th scope="col"><span className="sr-only">Actions</span></th>
+              </tr></thead>
+              <tbody>
+                {shown.map((p) => (
+                  <tr key={p.id} aria-selected={picked.includes(p.id)}>
+                    <td><input type="checkbox" className="gc-check" aria-label={`Select ${p.title || 'untitled post'}`} checked={picked.includes(p.id)} onChange={() => toggle(p.id)} /></td>
+                    <td>
+                      <div className="bl-row">
+                        <Cover cover={p.cover} thumb />
+                        <div style={{ minWidth: 0 }}>
+                          <Link href={`/blog-editor?id=${p.id}`} className="bp-title">{p.title || 'Untitled post'}{p.featured ? <span className="bp-flag" title="Featured"><Icon name="star" width="12" height="12" aria-hidden="true" /><span className="sr-only">Featured</span></span> : null}</Link>
+                          <span className="bl-id">/{p.slug || '—'}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td><div className="bl-wrap">{cats(p).length ? cats(p).map((c) => <CatChip key={c.id} cat={c} />) : <span className="bl-sub">None</span>}</div></td>
+                    <td>{authorLink(p)}</td>
+                    <td><PostStatus status={p.status} /></td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{dateCell(p)}</td>
+                    <td className="bl-num">{p.status === 'draft' || p.status === 'scheduled' ? '—' : n(p.views)}</td>
+                    <td><SeoDot post={p} /></td>
+                    <td><Link href={`/blog-editor?id=${p.id}`} className="gc-btn gc-btn--xs gc-btn--neutral" aria-label={`Edit ${p.title || 'untitled post'}`}>Edit</Link></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="bp-grid">
+            {shown.map((p) => (
+              <article key={p.id} className={'bp-tile' + (picked.includes(p.id) ? ' is-on' : '')}>
+                <input type="checkbox" className="gc-check bp-pick" aria-label={`Select ${p.title || 'untitled post'}`} checked={picked.includes(p.id)} onChange={() => toggle(p.id)} />
+                <Cover cover={p.cover} />
+                <div className="bl-wrap"><PostStatus status={p.status} />{cats(p).map((c) => <CatChip key={c.id} cat={c} />)}</div>
+                <Link href={`/blog-editor?id=${p.id}`} className="bp-title">{p.title || 'Untitled post'}</Link>
+                {p.excerpt ? <p className="bl-sub" style={{ margin: 0 }}>{p.excerpt}</p> : null}
+                <div className="bp-foot">
+                  {authorLink(p)}
+                  <span>{formatDate(postDate(p))}</span>
+                  {p.status === 'published' || p.status === 'archived' ? <span><Icon name="eye" width="12" height="12" aria-hidden="true" style={{ verticalAlign: 'middle' }} /> {n(p.views)}</span> : null}
+                  <SeoDot post={p} />
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+        <div className="bp-note">
+          <Icon name="info" width="14" height="14" aria-hidden="true" />
+          <span>Posts live at <span className="bl-id">{BLOG_BASE}…</span> and sync to WordPress when a connection is set up.</span>
+          <Link href="/woo-sync" className="bl-link">WordPress sync</Link>
+        </div>
+      </section>
+    </BlogFrame>
+  );
 }

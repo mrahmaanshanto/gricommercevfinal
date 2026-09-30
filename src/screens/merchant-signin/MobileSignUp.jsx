@@ -157,7 +157,7 @@ export default class MobileSignUpScreen extends Component {
       <div className="dc-screen" data-screen="MobileSignUp">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         {v.s0 ? (<>
-          <div className={v.carCls} role="region" aria-roledescription="carousel" aria-label="Merchant stories" style={{ position: "relative", width: "390px", height: "844px", overflow: "hidden", background: "#012169" }}>
+          <div className={v.carCls} role="region" aria-roledescription="carousel" aria-label="Merchant stories" style={{ position: "relative", width: "min(390px, 100%)", height: "844px", overflow: "hidden", background: "#012169" }}>
             {__list(v.slides).map((sl, $index) => (<React.Fragment key={$index}>
                 <div className={sl?.cls} aria-hidden={sl?.hidden}>
                   <img src={sl?.img} alt={sl?.alt} />
@@ -216,7 +216,7 @@ export default class MobileSignUpScreen extends Component {
           </div>
         </>) : null}
         {v.inApp ? (<>
-          <div style={{ width: "390px", height: "844px", background: "#ffffff", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={{ width: "min(390px, 100%)", height: "844px", background: "#ffffff", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             {v.inFlow ? (<>
               <div style={{ flexShrink: "0", padding: "12px 16px 8px 8px", display: "flex", alignItems: "center", gap: "8px" }}>
                 <button type="button" className="ctl" aria-label="Back" onClick={v.back} style={{ border: "0", background: "transparent", color: "#0f172a" }}>

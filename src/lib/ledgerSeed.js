@@ -69,4 +69,16 @@ const paidOut = (partner, ids, feePct, received, bank, when) => {
 paidOut('bkash-pgw', ['SI-001', 'SI-002', 'SI-003'], 1.5, 4442.35, 'BRAC Bank current', at(30, 16));
 paidOut('steadfast', ['SI-032', 'SI-033'], 1, 3108.38, 'City Bank current', at(30, 17));
 
+// customer wallet money that moved (loyalty.js demo wallet history, same ids in its `ledger` field):
+// top-ups came into bKash / Nagad, one balance was paid back. The two August rows net to zero.
+const W = (id, when, account, amount, kind, party, ref, note) => ({ id, at: when, account, amount, kind, party, ref, note, by: 'Shanto', seed: true });
+rows.push(
+  W('LS-W01', at(2, 10, 15), 'bkash', 2500, 'wallet top-up', 'Farzana Akter · 01711245518', '8QZ4LT2WAK', 'Customer wallet top-up'),
+  W('LS-W02', at(12, 13, 5), 'bkash', 2000, 'wallet top-up', 'Rakibul Hasan · 01819072332', '9HX2K7QP1M', 'Customer wallet top-up'),
+  W('LS-W03', at(5, 11, 40), 'nagad', 1000, 'wallet top-up', 'Tanvir Ahmed · 01914622045', '71KD02MZ', 'Customer wallet top-up'),
+  W('LS-W04', at(9, 20, 10), 'bkash', 1000, 'wallet top-up', 'Mahmudul Islam · 01733808614', '5RB8QW3NXE', 'Customer wallet top-up'),
+  W('LS-W05', new Date(2026, 7, 20, 10, 0).getTime(), 'nagad', 600, 'wallet top-up', 'Arif Rahman · 01890226153', '3NQ7HD82', 'Customer wallet top-up'),
+  W('LS-W06', new Date(2026, 7, 27, 19, 30).getTime(), 'nagad', -600, 'wallet refund', 'Arif Rahman · 01890226153', 'Wallet', 'Cash-out sent to 01890-226153'),
+);
+
 export const LEDGER_SEED = rows.sort((a, b) => b.at - a.at);

@@ -6,6 +6,8 @@
 //   Pay      tick the people to pay now (part payments allowed), pay each from their usual account
 //            or everyone from one account, and say who paid. Every line paid posts to the money book.
 //   Add      a new liability with its lines; "Fill from payroll" copies the month's 13 staff salaries.
+//   Held for customers  read-only: the ৳ value of loyalty points customers hold and the money in
+//            customer wallets (and advances on invoices), from src/lib/loyalty.js. Paid back on /wallet.
 // ?id=<liability id> opens that liability's Pay window. Front end only: src/lib/liabilities.js.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -19,6 +21,7 @@ import { OWN_ACCOUNTS, balanceOf } from '@/lib/ledger';
 import { clockNow, startOfDay, dayKey } from '@/lib/settlements';
 import { getLiabilities, LIAB_TYPES, LIAB_TONE, LIAB_SEED, paidOf, leftOf, liabStatus, addLiability, payLiability } from '@/lib/liabilities';
 import { AccPage, AccountSelect, useBooks, money, accName, accBrand } from './accShared';
+import { getMembers, pointsLiability, walletLiability } from '@/lib/loyalty';
 
 const STAFF = ['Rumana Islam', 'Rakib Hasan', 'Nabila Rahman', 'Staff'];
 const CHANNELS = ['Shared', 'Online', 'Retail', 'Wholesale'];
@@ -107,6 +110,17 @@ const CSS = `
 .lb-erow{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.3fr) minmax(90px,.8fr) minmax(0,1.2fr) auto;gap:var(--space-2);align-items:center}
 .lb-ehead{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
 .lb-ebar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-2)}
+.lb-held{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--space-3);padding:0 var(--space-5) var(--space-4)}
+.lb-held > div{display:flex;flex-direction:column;gap:2px;min-width:0;padding:var(--space-3) var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card)}
+.lb-held > div.is-key{background:var(--fill-primary-soft)}
+.lb-held span{font-size:var(--text-xs);color:var(--text-muted)}
+.lb-held b{font-family:var(--font-data);font-variant-numeric:tabular-nums;font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.lb-held .is-key b{color:var(--primary)}
+.lb-heldtop{padding:0 var(--space-5) var(--space-5)}
+.lb-heldtop h3{margin:0 0 var(--space-1);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.lb-heldtop .gc-table-wrap{border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
+.lb-heldtop .ac-mini{margin:0}
+.lb-heldtop .ac-mini tr:last-child td{border-bottom:0}
 @media (max-width:1024px){.lb-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.lb-acts{grid-column:1 / -1;justify-content:flex-start}}
 @media (max-width:640px){.lb-row{grid-template-columns:minmax(0,1fr)}.lb-line{grid-template-columns:auto minmax(0,1fr)}.lb-line .gc-input{grid-column:2}.lb-erow{grid-template-columns:1fr 1fr}.lb-ehead{display:none}}
 `;
@@ -202,9 +216,63 @@ export default function Liabilities() {
         )}
       </section>
 
+      <HeldForCustomers />
+
       {payL ? <PayDialog l={payL} onClose={() => setPayId('')} /> : null}
       {adding && data ? <AddDialog now={data.now} onClose={() => setAdding(false)} /> : null}
     </AccPage>
+  );
+}
+
+/** Read-only: what the shop holds for customers — loyalty points (a promise of a discount, at the
+ *  value of a point) and wallet money / advances. It is theirs until used, spent or paid back. */
+function HeldForCustomers() {
+  const [d, setD] = useState(null);
+  useEffect(() => {
+    const read = () => { const members = getMembers(); setD({ pts: pointsLiability(members), w: walletLiability(members) }); };
+    read();
+    const evs = ['gc:loyalty', 'gc:ledger', 'storage'];
+    evs.forEach((e) => window.addEventListener(e, read));
+    return () => evs.forEach((e) => window.removeEventListener(e, read));
+  }, []);
+  const total = d ? r2(d.pts.value + d.w.total) : 0;
+  const top = d ? d.w.customers.slice(0, 5) : [];
+  return (
+    <section className="gc-card ac-card" aria-labelledby="lb-held">
+      <div className="ac-head">
+        <div><h2 id="lb-held">Held for customers</h2><p>Loyalty points (a promise of a discount) and money customers keep in their wallet. It is theirs until they use it or take it back, so there is nothing to pay today.</p></div>
+        <div className="ac-row-actions">
+          <Link href="/loyalty" className="gc-btn gc-btn--sm gc-btn--neutral">Loyalty</Link>
+          <Link href="/wallet?tab=wallets" className="gc-btn gc-btn--sm gc-btn--neutral">Customer wallets</Link>
+        </div>
+      </div>
+      <div className="lb-held">
+        <div><span>Points outstanding</span><b>{d ? money(d.pts.value) : '—'}</b><span>{d ? `${d.pts.points.toLocaleString('en-IN')} points at ${money(d.pts.pointValue)} · ${plural(d.pts.members, 'member')}` : ''}</span></div>
+        <div><span>Customer wallets</span><b>{d ? money(d.w.wallets) : '—'}</b><span>{d ? plural(d.w.customers.filter((c) => c.wallet > 0).length, 'customer') : ''}</span></div>
+        {d && d.w.advances ? <div><span>Advances on invoices</span><b>{money(d.w.advances)}</b><span>{plural(d.w.customers.filter((c) => c.advance > 0).length, 'customer')}</span></div> : null}
+        <div className="is-key"><span>Held in all</span><b>{d ? money(total) : '—'}</b><span>points value + wallet money</span></div>
+      </div>
+      {top.length ? (
+        <div className="lb-heldtop">
+          <h3>Most money held</h3>
+          <div className="gc-table-wrap">
+            <table className="ac-mini">
+              <thead><tr><th scope="col">Customer</th><th scope="col" className="ac-num">Wallet</th><th scope="col" className="ac-num">Advance</th><th scope="col" className="ac-num">Held</th></tr></thead>
+              <tbody>
+                {top.map((c) => (
+                  <tr key={c.phone}>
+                    <td><span className="ac-strong">{c.name}</span> <span className="ac-fig ac-sub" style={{ display: 'inline' }}>{c.phone}</span></td>
+                    <td className="ac-num ac-fig">{c.wallet ? money(c.wallet) : '—'}</td>
+                    <td className="ac-num ac-fig">{c.advance ? money(c.advance) : '—'}</td>
+                    <td className="ac-num ac-fig ac-strong">{money(c.total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
+    </section>
   );
 }
 

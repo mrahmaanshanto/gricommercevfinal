@@ -9,7 +9,7 @@ import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 import { PageHeader as __PageHeader } from '@/components/ui';
 import { toast as __toast, confirmDialog as __confirm } from '@/runtime/ui';
-import { STOCK_PLACES } from '@/lib/locations';
+import { STOCK_PLACES, getStockPlaces, placeName } from '@/lib/locations';
 import { CATALOG, productBy, stockAt, getMoves } from '@/lib/stock';
 import { getHolds } from '@/lib/stockHolds';
 import { addTransfer } from '@/lib/transfers';
@@ -37,7 +37,16 @@ var LOCS = STOCK_PLACES;
 var TP = CATALOG.map(function (p) { return { sku: p.sku, name: p.name, code: p.sku + ' · ' + p.variant, barcode: p.barcode, cost: p.wholesale }; });
 var SCAN = ['SK-SUN-50', 'CL-TEE-BM', 'SK-SUN-50', 'EL-EAR-PRO'].map(function (sku) { return TP.findIndex(function (x) { return x.sku === sku; }); });
 class Component extends DCLogic {
-  componentDidMount() { this.setState({ holds: getHolds(), moves: getMoves() }); }
+  componentDidMount() {
+    // live places, and ?from=<place> / ?to=<place> from a link (Warehouses, Branches: "New transfer")
+    var locs = getStockPlaces(), q = new URLSearchParams(window.location.search), p = { holds: getHolds(), moves: getMoves(), locs: locs };
+    var want = function (k) { var v = q.get(k); v = v ? placeName(v) : ''; return v && locs.indexOf(v) >= 0 ? v : ''; };
+    var from = want('from') || 'Central Warehouse', to = want('to');
+    if (want('from')) p.from = from;
+    if (to && to !== from) p.to = to;
+    else if (from === 'Dhanmondi branch' || locs.indexOf('Dhanmondi branch') < 0) p.to = locs.filter(function (x) { return x !== from; })[0] || '';
+    this.setState(p);
+  }
   componentWillUnmount() { clearTimeout(this.t); }
   renderVals() {
     var self = this, s = this.state || {};
@@ -69,7 +78,7 @@ class Component extends DCLogic {
       return !first;
     };
     return assign({
-      errs: errs, itemsErr: (lines.length === 0 || tooMany) ? errs.items : '', locs: LOCS, by: by,
+      errs: errs, itemsErr: (lines.length === 0 || tooMany) ? errs.items : '', locs: s.locs || LOCS, by: by,
       byIn: function (e) { self.setState({ by: e.target.value, errs: __without(errs, 'by') }); },
       fromIn: function (e) { self.setState({ from: e.target.value, errs: __without(__without(errs, 'from'), 'to') }); },
       toIn: function (e) { self.setState({ to: e.target.value, errs: __without(errs, 'to') }); },

@@ -1,355 +1,204 @@
 'use client';
-// Generated from design/templates/loyalty-promo/Referrals.dc.html by scripts/convert-design.mjs.
-// Referrals — Loyalty, rewards & promo — Referrals.
-// Edit freely: this file is now the source for the screen.
+// Referrals — "Invite a friend": customers share a code; when a friend's first order is delivered,
+// the customer earns a reward.
+//   Top      customers sharing, friends who joined, their sales, rewards given and still to pay,
+//            and what invites cost this month.
+//   Rule     the reward (a share of the friend's first order, or points each), saved to the settings.
+//   Sharers  who brought the most new buyers; "Pay reward" gives what is due into the wallet (reward
+//            credit, no money moves) or in cash / bKash / bank from an account (ledger 'referral
+//            reward', −). Either way it is an Online cost ("Rewards and referral credit").
+//   Invites  every friend who joined with a code this month and what their invite earned.
+// Front end only: src/lib/loyalty.js.
 
-import React from 'react';
-import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
-import { PageHeader as __PageHeader } from '@/components/ui';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Icon } from '@/runtime/dc';
+import { toast } from '@/runtime/ui';
+import { Dialog, EmptyState } from '@/components/ui';
+import { formatDate } from '@/lib/format';
+import { balanceOf } from '@/lib/ledger';
+import { getReferrers, getReferralRecords, payReferral, getLoyaltySettings, saveLoyaltySettings, getMembers, monthRange, DEFAULT_SETTINGS } from '@/lib/loyalty';
+import { clockNow } from '@/lib/settlements';
+import { AccountSelect, accName } from '@/screens/accounts/accShared';
+import { LoyPage, Kpi, Stepper, useLoyalty, money, pts, plural } from './loyShared';
 
-// ---- logic (from the design's <script type="text/x-dc">) ----
-
-function bdt(n) { var neg = n < 0; var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return (neg ? '−' : '') + '৳' + s; }
-var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
-function mkTabs(self, list, cur, key, counts) { return list.map(function (x) { var on = x.k === cur; var c = counts ? counts[x.k] : null; return { label: x.label, on: on, cls: on ? 'tab on' : 'tab', hasCount: c != null, count: c, countBg: on ? 'rgba(255,255,255,0.2)' : '#e9eef5', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-function mkChips(self, list, cur, key) { return list.map(function (x) { var on = x.k === cur; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
-function stepN(self, key, def, step, min, max) { var s = self.state || {}; var v = s[key] == null ? def : s[key]; return { v: v, dec: function () { var p = {}; p[key] = Math.max(min, +(v - step).toFixed(2)); self.setState(p); }, inc: function () { var p = {}; p[key] = Math.min(max, +(v + step).toFixed(2)); self.setState(p); } }; }
-var R = [
-  { id: 1, name: 'Farzana Akter', phone: '01711-2X4-518', code: 'FARZANA10', joined: 24, bought: 19, sales: 86400, earned: 4320, due: 1120 },
-  { id: 2, name: 'Rakibul Hasan', phone: '01819-0X7-332', code: 'RAKIB250', joined: 17, bought: 12, sales: 51250, earned: 2560, due: 640 },
-  { id: 3, name: 'Nusrat Jahan', phone: '01552-3X1-907', code: 'NUSRAT22', joined: 11, bought: 9, sales: 32800, earned: 1640, due: 0 },
-  { id: 4, name: 'Tanvir Ahmed', phone: '01914-6X2-045', code: 'TANVIR7', joined: 8, bought: 5, sales: 18900, earned: 945, due: 310 },
-  { id: 5, name: 'Sharmin Sultana', phone: '01678-4X9-281', code: 'SHARMIN5', joined: 6, bought: 4, sales: 12450, earned: 620, due: 0 }
-];
-class Component extends DCLogic {
-  componentWillUnmount() { clearTimeout(this.t); }
-  renderVals() {
-    var self = this, s = this.state || {}, kind = s.kind || 'points', paid = s.paid || {};
-    var rv = kind === 'points' ? stepN(this, 'rvP', 100, 10, 10, 1000) : stepN(this, 'rvC', 5, 1, 1, 30);
-    var rows = R.map(function (r, i) {
-      var isPaid = !!paid[r.id], due = isPaid ? 0 : r.due;
-      return { rank: i + 1, rankBg: i === 0 ? '#fff4e0' : '#eef2f6', rankFg: i === 0 ? '#a14f06' : '#475569', name: r.name, phone: r.phone, code: r.code, joined: r.joined, bought: r.bought, sales: bdt(r.sales), earned: bdt(r.earned), due: due ? bdt(due) : '—',
-        canPay: due > 0, paid: isPaid,
-        pay: function () { var p = assign({}, paid); p[r.id] = true; clearTimeout(self.t); self.setState({ paid: p, msg: bdt(r.due) + ' moved to ' + r.name + '’s wallet. They can spend it or cash out.' }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 2600); } };
-    });
-    return {
-      kinds: [{ k: 'points', label: 'Give points' }, { k: 'comm', label: 'Give % of sale (commission)' }].map(function (o) { var on = o.k === kind; return { label: o.label, on: on, bg: on ? '#003087' : 'transparent', fg: on ? '#fff' : '#475569', pick: function () { self.setState({ kind: o.k }); } }; }),
-      rv: rv, ruleQ: kind === 'points' ? 'Both the customer and the friend get' : 'Customer gets this share of the friend’s first order', ruleUnit: kind === 'points' ? 'points each' : '%',
-      friendGets: kind === 'points' ? rv.v + ' welcome points' : '5% off the first order',
-      youGet: kind === 'points' ? rv.v + ' points (' + bdt(rv.v) + ')' : rv.v + '% of the order, in the wallet',
-      rows: rows, hasMsg: !!s.msg, msg: s.msg || ''
-    };
-  }
-}
-function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-
-// ---- styles (from the design's <helmet>) ----
-
+const STATUS = { due: ['Not paid yet', 'warning'], given: ['Given', 'success'], waiting: ['No order yet', 'slate'] };
+const HOW = { wallet: 'Into wallet', cash: 'Paid', points: 'As points' };
 const CSS = `
-body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
-*{box-sizing:border-box}
-a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
-.nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
-.nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
-.btn:hover{text-decoration:none}
-.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
-.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
-.line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
-.warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
-.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
-.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
-.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:var(--text-muted)}
-.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
-.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
-.tab:hover{background:#f1f5f9;color:#0f172a}
-.tab.on{background:#003087;color:#fff}
-.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
-.chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
-.row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
-.b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
-.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
-.b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:var(--font-data);letter-spacing:.02em}
-.fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
-@keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.flash{animation:gcFlash 900ms ease-out}
-@keyframes gcFlash{from{background:#e7f8f1}to{background:transparent}}
-.scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
-@keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
-
-.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
-.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
-.sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
-.t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
-.actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:var(--font-bn)}
-.pulse{animation:gcPulse 1.6s ease-in-out infinite}
-@keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
-@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+.rf-rule{display:flex;flex-direction:column;gap:var(--space-4);padding:var(--space-5)}
+.rf-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3)}
+.rf-row > span:first-child{flex:1 1 220px;min-width:0;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.rf-gets{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+.rf-gets > div{padding:var(--space-3) var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-subtle)}
+.rf-gets span{display:block;font-size:var(--text-xs);color:var(--text-muted)}
+.rf-gets b{display:block;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.rf-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-3);padding:0 var(--space-5) var(--space-5)}
+.rf-step{display:flex;flex-direction:column;gap:4px;padding:var(--space-4);border-radius:var(--radius-xl);background:var(--surface-subtle)}
+.rf-step span{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--primary)}
+.rf-step b{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.rf-step small{font-size:var(--text-xs);color:var(--text-muted)}
+.rf-rank{display:grid;place-items:center;width:28px;height:28px;border-radius:var(--radius-full);background:var(--surface-subtle);font-family:var(--font-data);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-body)}
+.rf-rank.is-top{background:var(--fill-warning-soft);color:var(--text-warning)}
+.rf-code{font-family:var(--font-data);font-size:var(--text-xs);padding:2px 8px;border-radius:var(--radius-full);background:var(--fill-primary-soft);color:var(--primary)}
+@media (max-width:760px){.rf-steps{grid-template-columns:minmax(0,1fr)}.rf-gets{grid-template-columns:minmax(0,1fr)}}
 `;
 
-// ---- markup ----
+export default function Referrals() {
+  const tick = useLoyalty();
+  const [rule, setRule] = useState(DEFAULT_SETTINGS.referral);
+  const [dirty, setDirty] = useState(false);
+  const [pay, setPay] = useState(null);   // referrer row
 
-export default class ReferralsScreen extends Component {
-  render() {
-    const v = this.renderVals() || {};
-    return (
-      <div className="dc-screen ds" data-screen="Referrals">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
-          <__Sidebar sticky="" active="loy-referrals" />
-          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
-            <__Topbar crumb={"Loyalty & rewards"} page="Invite a friend" placeholder="Search customer by name or phone" />
-            <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <__PageHeader title="Invite a friend" />
-              <div className="gc-cardrow" style={{ display: "flex", gap: "16px" }}>
-                <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#e0f3fb", color: "var(--accent-text)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <circle cx="18" cy="5" r="3" />
-                      <circle cx="6" cy="12" r="3" />
-                      <circle cx="18" cy="19" r="3" />
-                      <line x1="8.59" x2="15.42" y1="13.51" y2="17.49" />
-                      <line x1="15.41" x2="8.59" y1="6.51" y2="10.49" />
-                    </svg>
-                  </span>
-                  <div>
-                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>214</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Customers sharing</div>
-                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>have an invite code</div>
-                  </div>
-                </div>
-                <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                    </svg>
-                  </span>
-                  <div>
-                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#003087" }}>386</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>New customers from invites</div>
-                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>this year</div>
-                  </div>
-                </div>
-                <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#e7f8f1", color: "#047857", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <circle cx="8" cy="21" r="1" />
-                      <circle cx="19" cy="21" r="1" />
-                      <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-                    </svg>
-                  </span>
-                  <div>
-                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#047857" }}>৳4,82,300</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Sales from invites</div>
-                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>this year</div>
-                  </div>
-                </div>
-                <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#fff4e0", color: "#a14f06", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="3" y="8" width="18" height="4" rx="1" />
-                      <path d="M12 8v13" />
-                      <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" />
-                      <path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5" />
-                    </svg>
-                  </span>
-                  <div>
-                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#a14f06" }}>৳24,115</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Rewards given</div>
-                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>points + commission</div>
-                  </div>
-                </div>
-              </div>
-              <section className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "20px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <div>
-                    <h2 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>How “Invite a friend” works</h2>
-                    <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Customers share their code. When the friend’s first order is delivered, the reward is given.</p>
-                  </div>
-                  <div style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }} role="radiogroup" aria-label="Reward type">
-                    {__list(v.kinds).map((o, $index) => (<React.Fragment key={$index}>
-                        <button type="button" role="radio" aria-checked={o?.on} onClick={o?.pick} style={__sx(`height: 36px; padding: 0 16px; border: 0; border-radius: var(--radius-full); font: inherit; font-size: var(--text-xs-plus); font-weight: var(--weight-medium); cursor: pointer; background: ${o?.bg ?? ""}; color: ${o?.fg ?? ""};`)}>{o?.label}</button>
-                      </React.Fragment>))}
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: "20px", alignItems: "flex-start" }}>
-                  <div style={{ flex: "1 1 0", display: "flex", gap: "14px", alignItems: "flex-start" }}>
-                    <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <circle cx="18" cy="5" r="3" />
-                        <circle cx="6" cy="12" r="3" />
-                        <circle cx="18" cy="19" r="3" />
-                        <line x1="8.59" x2="15.42" y1="13.51" y2="17.49" />
-                        <line x1="15.41" x2="8.59" y1="6.51" y2="10.49" />
-                      </svg>
-                    </span>
-                    <div>
-                      <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", color: "var(--accent-text)" }}>STEP 1</div>
-                      <div style={{ fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Customer shares code</div>
-                      <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>From the app, website or SMS — e.g. RAKIB250</div>
-                    </div>
-                  </div>
-                  <span style={{ color: "#cbd5e1", paddingTop: "12px" }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M5 12h14" />
-                      <path d="m12 5 7 7-7 7" />
-                    </svg>
-                  </span>
-                  <div style={{ flex: "1 1 0", display: "flex", gap: "14px", alignItems: "flex-start" }}>
-                    <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <circle cx="8" cy="21" r="1" />
-                        <circle cx="19" cy="21" r="1" />
-                        <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-                      </svg>
-                    </span>
-                    <div>
-                      <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", color: "var(--accent-text)" }}>STEP 2</div>
-                      <div style={{ fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Friend buys for the first time</div>
-                      <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Friend enters the code and gets {v.friendGets}</div>
-                    </div>
-                  </div>
-                  <span style={{ color: "#cbd5e1", paddingTop: "12px" }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M5 12h14" />
-                      <path d="m12 5 7 7-7 7" />
-                    </svg>
-                  </span>
-                  <div style={{ flex: "1 1 0", display: "flex", gap: "14px", alignItems: "flex-start" }}>
-                    <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <rect x="3" y="8" width="18" height="4" rx="1" />
-                        <path d="M12 8v13" />
-                        <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" />
-                        <path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5" />
-                      </svg>
-                    </span>
-                    <div>
-                      <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", color: "var(--accent-text)" }}>STEP 3</div>
-                      <div style={{ fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Customer gets a reward</div>
-                      <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>{v.youGet} after delivery</div>
-                    </div>
-                  </div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 16px", borderRadius: "var(--radius-xl)", background: "#f8fafc", border: "1px solid #e2e8f0" }}>
-                  <span style={{ flexGrow: "1", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>{v.ruleQ}</span>
-                  <div style={{ display: "inline-flex", alignItems: "center", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", overflow: "hidden", background: "#fff" }}>
-                    <button type="button" className="ib" aria-label="Less reward" onClick={v.rv?.dec} style={{ borderRadius: "0" }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M5 12h14" />
-                      </svg>
-                    </button>
-                    <span style={{ minWidth: "44px", textAlign: "center", fontWeight: "var(--weight-medium)" }}>{v.rv?.v}</span>
-                    <button type="button" className="ib" aria-label="More reward" onClick={v.rv?.inc} style={{ borderRadius: "0" }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M5 12h14" />
-                        <path d="M12 5v14" />
-                      </svg>
-                    </button>
-                  </div>
-                  <span style={{ minWidth: "60px", fontSize: "var(--text-sm)", color: "#334155" }}>{v.ruleUnit}</span>
-                </div>
-              </section>
-              <section className="card" style={{ overflow: "hidden" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "16px", borderBottom: "1px solid #e2e8f0" }}>
-                  <div>
-                    <h2 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Top sharers</h2>
-                    <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Customers who brought the most new buyers</p>
-                  </div>
-                </div>
-                {v.hasMsg ? (<>
-                  <div className="fade" role="status" style={{ margin: "14px 16px 0", display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", borderRadius: "var(--radius-lg)", background: "#e7f8f1", color: "#065f46", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <circle cx="12" cy="12" r="10" />
-                      <path d="m9 12 2 2 4-4" />
-                    </svg>
-                    <span>{v.msg}</span>
-                  </div>
-                </>) : null}
-                <div className="gc-table-wrap">
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr>
-                        <th className="th">Customer</th>
-                        <th className="th">Invite code</th>
-                        <th className="th" style={{ textAlign: "right" }}>Friends joined</th>
-                        <th className="th" style={{ textAlign: "right" }}>Friends’ sales</th>
-                        <th className="th" style={{ textAlign: "right" }}>Earned</th>
-                        <th className="th" style={{ textAlign: "right" }}>Not paid yet</th>
-                        <th className="th" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {__list(v.rows).map((r, $index) => (<React.Fragment key={$index}>
-                          <tr className="row">
-                            <td className="td">
-                              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                                <span style={__sx(`width: 32px; height: 32px; flex-shrink: 0; border-radius: var(--radius-full); background: ${r?.rankBg ?? ""}; color: ${r?.rankFg ?? ""}; display: flex; align-items: center; justify-content: center; font-size: var(--text-xs-plus); font-weight: var(--weight-semibold);`)}>{r?.rank}</span>
-                                <div>
-                                  <div style={{ fontWeight: "var(--weight-medium)" }}>{r?.name}</div>
-                                  <div className="mono" style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>{r?.phone}</div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="td">
-                              <span className="mono" style={{ padding: "4px 10px", borderRadius: "var(--radius-md)", border: "1px dashed #94a3b8", fontWeight: "var(--weight-medium)", color: "#003087" }}>{r?.code}</span>
-                            </td>
-                            <td className="td" style={{ textAlign: "right" }}>
-                              <b>{r?.joined}</b>
-                              {" "}
-                              <span style={{ color: "var(--text-muted)", fontSize: "var(--text-xs)" }}>({r?.bought} bought)</span>
-                            </td>
-                            <td className="td" style={{ textAlign: "right" }}>{r?.sales}</td>
-                            <td className="td" style={{ textAlign: "right", color: "#047857", fontWeight: "var(--weight-medium)" }}>{r?.earned}</td>
-                            <td className="td" style={{ textAlign: "right", fontWeight: "var(--weight-semibold)" }}>{r?.due}</td>
-                            <td className="td" style={{ textAlign: "right" }}>
-                              {r?.canPay ? (<>
-                                <button type="button" className="btn soft sm" onClick={r?.pay}>
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                    <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />
-                                    <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />
-                                  </svg>
-                                  <span>Move to wallet</span>
-                                </button>
-                              </>) : null}
-                              {r?.paid ? (<>
-                                <span className="badge b-received">Paid</span>
-                              </>) : null}
-                            </td>
-                          </tr>
-                        </React.Fragment>))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            </div>
-          </main>
-        </div>
+  useEffect(() => { if (tick === 1) setRule(getLoyaltySettings().referral); }, [tick]);
+  const setR = (patch) => { setRule((r) => ({ ...r, ...patch })); setDirty(true); };
+
+  const data = useMemo(() => {
+    if (!tick) return null;
+    const now = clockNow();
+    const records = getReferralRecords();
+    const referrers = getReferrers(records, getMembers({ now }));
+    const [m0, m1] = monthRange(now);
+    const [l0, l1] = monthRange(now, -1);
+    const cost = (a, b) => records.filter((r) => r.status === 'given' && r.how !== 'points' && r.givenAt >= a && r.givenAt < b).reduce((s, r) => s + r.reward, 0);
+    const total = (k) => referrers.reduce((s, r) => s + r[k], 0);
+    return {
+      pv: getLoyaltySettings().pointValue, records, referrers, joined: total('joined'), bought: total('bought'), sales: total('sales'), earned: total('earned'), due: total('due'),
+      month: cost(m0, m1), last: cost(l0, l1), lastLabel: new Date(l0).toLocaleString('en', { month: 'long' }),
+      names: Object.fromEntries(referrers.map((r) => [r.phone, r.name])),
+    };
+  }, [tick]);
+
+  const saveRule = () => {
+    const s = getLoyaltySettings();
+    saveLoyaltySettings({ ...s, referral: rule });
+    setDirty(false);
+    toast('Invite reward saved · it counts from the next friend’s first order');
+  };
+
+  return (
+    <LoyPage screen="Referrals" active="loy-referrals" title="Invite a friend" css={CSS}
+      description="Customers share their code. When a friend’s first order is delivered, the customer gets a reward. Rewards are a cost of your online sales.">
+      <div className="gc-kpis gc-kpis--tight">
+        <Kpi icon="share-2" label="Customers sharing" value={data ? pts(data.referrers.length) : '—'} sub="have an invite code" />
+        <Kpi icon="user-plus" tone="success" label="Friends who joined" value={data ? pts(data.joined) : '—'} sub={data ? `${pts(data.bought)} bought · ${money(data.sales)} sales` : ''} />
+        <Kpi icon="gift" tone="info" label="Rewards given" value={data ? money(data.earned) : '—'} sub={data ? `${money(data.due)} not paid yet` : ''} />
+        <Kpi icon="receipt" tone="warning" label="Invite cost this month" value={data ? money(data.month) : '—'} sub={data ? `${data.lastLabel}: ${money(data.last)}` : ''} />
       </div>
-    );
-  }
+
+      <section className="gc-card ac-card" aria-labelledby="rf-how">
+        <div className="ac-head"><div><h2 id="rf-how">How “Invite a friend” works</h2><p>The reward is given when the friend’s first order is delivered.</p></div></div>
+        <div className="rf-steps">
+          <div className="rf-step"><span>Step 1</span><b>Customer shares the code</b><small>From the app, website or SMS, for example RAKIB250</small></div>
+          <div className="rf-step"><span>Step 2</span><b>Friend buys for the first time</b><small>{rule.kind === 'comm' ? `and gets ${rule.friendPoints} welcome points` : `and gets ${rule.points} welcome points`}</small></div>
+          <div className="rf-step"><span>Step 3</span><b>Customer gets a reward</b><small>{rule.kind === 'comm' ? `${rule.pct}% of the friend’s first order, in the wallet or paid out` : `${rule.points} points (${money(rule.points * (data ? data.pv : DEFAULT_SETTINGS.pointValue))})`}</small></div>
+        </div>
+      </section>
+
+      <section className="gc-card rf-rule" aria-labelledby="rf-rule">
+        <div className="ac-head" style={{ padding: 0 }}><div><h2 id="rf-rule">Reward</h2><p>What the customer who invited gets for each friend’s first order.</p></div></div>
+        <div className="ac-seg" role="group" aria-label="Reward type" style={{ alignSelf: 'flex-start' }}>
+          <button type="button" aria-pressed={rule.kind === 'comm'} onClick={() => setR({ kind: 'comm' })}>Share of the first order</button>
+          <button type="button" aria-pressed={rule.kind === 'points'} onClick={() => setR({ kind: 'points' })}>Points each</button>
+        </div>
+        <div className="rf-row">
+          <span>{rule.kind === 'comm' ? 'The customer gets this share of the friend’s first order' : 'Both the customer and the friend get'}</span>
+          {rule.kind === 'comm' ? <Stepper label="percent" value={rule.pct} min={1} max={30} onChange={(v) => setR({ pct: v })} /> : <Stepper label="points each" value={rule.points} step={10} min={10} max={1000} onChange={(v) => setR({ points: v })} />}
+          <span className="ac-sub" style={{ display: 'inline', minWidth: 64 }}>{rule.kind === 'comm' ? '%' : 'points each'}</span>
+        </div>
+        <div className="rf-gets">
+          <div><span>The friend gets</span><b>{rule.kind === 'comm' ? rule.friendPoints : rule.points} welcome points</b></div>
+          <div><span>The customer gets</span><b>{rule.kind === 'comm' ? `${rule.pct}% of the order (e.g. ${money(5000 * rule.pct / 100)} on ${money(5000)})` : `${rule.points} points`}</b></div>
+        </div>
+        <div className="ac-row-actions" style={{ justifyContent: 'flex-start' }}>
+          <button type="button" className="gc-btn gc-btn--solid" onClick={saveRule} disabled={!dirty}><Icon name="check" width="18" height="18" aria-hidden="true" /> Save reward</button>
+          {dirty ? <button type="button" className="gc-btn gc-btn--neutral" onClick={() => { setRule(getLoyaltySettings().referral); setDirty(false); }}>Undo</button> : null}
+        </div>
+      </section>
+
+      <section className="gc-card ac-card" aria-labelledby="rf-top">
+        <div className="ac-head"><div><h2 id="rf-top">Top sharers</h2><p>Customers who brought the most new buyers</p></div></div>
+        {!data ? <EmptyState icon="loader" title="Reading invites" /> : (
+          <div className="gc-table-wrap">
+            <table className="gc-table gc-table--compact gc-table--hoverable">
+              <thead><tr><th scope="col">#</th><th scope="col">Customer</th><th scope="col">Invite code</th><th scope="col" className="ac-num">Friends joined</th><th scope="col" className="ac-num">Bought</th><th scope="col" className="ac-num">Friends’ sales</th><th scope="col" className="ac-num">Earned</th><th scope="col" className="ac-num">Not paid yet</th><th scope="col"><span className="sr-only">Pay</span></th></tr></thead>
+              <tbody>
+                {data.referrers.map((r, i) => (
+                  <tr key={r.phone}>
+                    <td><span className={'rf-rank' + (i === 0 ? ' is-top' : '')}>{i + 1}</span></td>
+                    <td><div className="ly-who"><span className="ly-ava" aria-hidden="true">{r.name.charAt(0)}</span><span><b>{r.name}</b><small>{r.phone}</small></span></div></td>
+                    <td><span className="rf-code">{r.code}</span></td>
+                    <td className="ac-num ac-fig">{pts(r.joined)}</td>
+                    <td className="ac-num ac-fig">{pts(r.bought)}</td>
+                    <td className="ac-num ac-fig">{money(r.sales)}</td>
+                    <td className="ac-num ac-fig">{money(r.earned)}</td>
+                    <td className="ac-num ac-fig ac-strong">{r.due ? money(r.due) : '—'}</td>
+                    <td><div className="ac-row-actions">{r.due ? <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => setPay(r)} aria-label={`Pay ${r.name} ${money(r.due)}`}>Pay reward</button> : <span className="gc-badge gc-badge--success">Paid</span>}</div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="gc-card ac-card" aria-labelledby="rf-list">
+        <div className="ac-head"><div><h2 id="rf-list">Recent invites</h2><p>{data ? `${plural(data.records.length, 'friend')} joined with a code` : ''}</p></div></div>
+        {!data ? null : data.records.length === 0 ? <EmptyState icon="share-2" title="No invites yet" body="Friends who join with a code show here." /> : (
+          <div className="gc-table-wrap">
+            <table className="gc-table gc-table--compact">
+              <thead><tr><th scope="col">Friend</th><th scope="col">Invited by</th><th scope="col">Joined</th><th scope="col">First order</th><th scope="col" className="ac-num">Reward</th><th scope="col">Status</th></tr></thead>
+              <tbody>
+                {data.records.map((r) => (
+                  <tr key={r.id}>
+                    <td><span className="ac-strong">{r.friend}</span><span className="ac-sub ac-fig">{r.id}</span></td>
+                    <td>{data.names[r.referrer] || r.referrer}</td>
+                    <td>{formatDate(r.joinedAt)}</td>
+                    <td>{r.order ? <><span className="ac-fig">{r.order.ref}</span><span className="ac-sub">{money(r.order.amount)}</span></> : '—'}</td>
+                    <td className="ac-num ac-fig">{r.reward ? money(r.reward) : '—'}{r.how === 'points' && r.points ? <span className="ac-sub">{pts(r.points)} points</span> : null}</td>
+                    <td><span className={'gc-badge gc-badge--' + STATUS[r.status][1]}>{STATUS[r.status][0]}</span>{r.status === 'given' ? <span className="ac-sub">{HOW[r.how] || 'Given'}{r.account ? ' · ' + accName(r.account) : ''} · {formatDate(r.givenAt)}</span> : null}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {pay ? <PayDialog r={pay} onClose={() => setPay(null)} /> : null}
+    </LoyPage>
+  );
+}
+
+function PayDialog({ r, onClose }) {
+  const due = r.records.filter((x) => x.status === 'due');
+  const [how, setHow] = useState('wallet');
+  const [account, setAccount] = useState('bkash');
+  const total = due.reduce((a, x) => a + x.reward, 0);
+  const short = how === 'cash' && total > balanceOf(account);
+  const save = (e) => {
+    e.preventDefault();
+    const done = payReferral(due.map((x) => x.id), { how, account });
+    if (done.error) { toast(done.error, { tone: 'error' }); return; }
+    toast(how === 'wallet' ? `${money(done.total)} moved to ${done.name}’s wallet · they can spend it or cash out` : `${money(done.total)} paid to ${done.name} from ${accName(account)}`);
+    onClose();
+  };
+  return (
+    <Dialog open title={`Pay invite reward · ${r.name}`} onClose={onClose} width={600}
+      footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={onClose}>Cancel</button><button type="submit" form="rf-pay" className="gc-btn gc-btn--solid">{how === 'wallet' ? 'Move to wallet' : 'Record payment'} · {money(total)}</button></>}>
+      <form id="rf-pay" className="ac-form" onSubmit={save} noValidate>
+        <div className="gc-table-wrap">
+          <table className="ac-mini">
+            <thead><tr><th scope="col">Friend</th><th scope="col">First order</th><th scope="col" className="ac-num">Order</th><th scope="col" className="ac-num">Reward</th></tr></thead>
+            <tbody>{due.map((x) => <tr key={x.id}><td>{x.friend}</td><td className="ac-fig">{x.order ? x.order.ref : '—'}</td><td className="ac-num">{x.order ? money(x.order.amount) : '—'}</td><td className="ac-num ac-strong">{money(x.reward)}</td></tr>)}</tbody>
+          </table>
+        </div>
+        <div className="ac-opts" role="radiogroup" aria-label="How to pay">
+          <label className={'ac-opt' + (how === 'wallet' ? ' is-on' : '')}><input type="radio" name="rf-how" checked={how === 'wallet'} onChange={() => setHow('wallet')} /><span><b>Into their wallet</b><small>No money moves now. They spend it on an order or ask for a cash-out.</small></span></label>
+          <label className={'ac-opt' + (how === 'cash' ? ' is-on' : '')}><input type="radio" name="rf-how" checked={how === 'cash'} onChange={() => setHow('cash')} /><span><b>Pay in cash, bKash or bank</b><small>The money leaves the account you choose.</small></span></label>
+        </div>
+        {how === 'cash' ? <AccountSelect id="rf-account" label="Paid from" value={account} onChange={setAccount} /> : null}
+        {short ? <div className="ac-note ac-note--warn" role="status"><Icon name="triangle-alert" width="16" height="16" aria-hidden="true" /><span><b>Not enough money.</b> {accName(account)} has {money(balanceOf(account))}.</span></div> : null}
+        <div className="ac-note ac-note--info"><Icon name="book-open" width="16" height="16" aria-hidden="true" /><span>{money(total)} counts as an Online cost under “Rewards and referral credit” in Sales &amp; profit.{how === 'wallet' ? ' It is also money you hold for the customer until it is spent.' : ''}</span></div>
+      </form>
+    </Dialog>
+  );
 }

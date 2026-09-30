@@ -5,7 +5,9 @@
 //                 not stored), plus the money payment partners (gateways, couriers) still hold.
 //                 "Remind" copies a polite reminder to paste into SMS or WhatsApp.
 //   You owe       open supplier bills grouped by supplier, aged by due date, and liabilities
-//                 (salaries, sales commission, affiliate payouts, promotions) not fully paid.
+//                 (salaries, sales commission, affiliate payouts, promotions) not fully paid, and a
+//                 line for what is held for customers (loyalty points + wallet money, loyalty.js),
+//                 which is not in the "You owe" total: customers use it rather than being paid.
 // ?tab=get|owe picks the tab. Front end only: reads src/lib/invoices.js, supplierBills.js,
 // liabilities.js and settlements.js; paying happens on Suppliers and Liabilities.
 
@@ -21,6 +23,7 @@ import { getInvoices } from '@/lib/invoices';
 import { getBills, billLeft, getSuppliers, findSupplier, dayStart, daysFrom } from '@/lib/supplierBills';
 import { getLiabilities, leftOf, liabStatus, LIAB_TYPES, LIAB_TONE } from '@/lib/liabilities';
 import { getPartners, heldBy, clockNow } from '@/lib/settlements';
+import { getMembers, pointsLiability, walletLiability } from '@/lib/loyalty';
 import { AccPage, useBooks, money } from './accShared';
 
 const TABS = [['get', 'You will get'], ['owe', 'You owe']];
@@ -152,12 +155,18 @@ export default function Dues() {
     const liabLeft = r2(liabs.reduce((a, l) => a + leftOf(l), 0));
     const lateLiabs = liabs.filter((l) => liabStatus(l, now) === 'Overdue');
 
+    // ---- held for customers (loyalty points and wallet money): shown, not added to "You owe"
+    const loyMembers = getMembers();
+    const loyPts = pointsLiability(loyMembers);
+    const loyWallet = walletLiability(loyMembers);
+    const forCustomers = { points: loyPts.value, wallets: loyWallet.total, total: r2(loyPts.value + loyWallet.total), count: loyWallet.customers.length };
+
     const get = r2(customerDue + held);
     const owe = r2(supplierLeft + liabLeft);
     const overdueGet = r2(lateInvoices.reduce((a, i) => a + i.due, 0));
     const overdueOwe = r2(lateBills.reduce((a, b) => a + billLeft(b), 0) + lateLiabs.reduce((a, l) => a + leftOf(l), 0));
     return {
-      now, today, customers, getAges, customerDue, partners, held, supplierRows, oweAges, supplierLeft, liabs, liabLeft,
+      now, today, customers, getAges, customerDue, partners, held, supplierRows, oweAges, supplierLeft, liabs, liabLeft, forCustomers,
       get, owe, net: r2(get - owe),
       overdue: { get: overdueGet, owe: overdueOwe, getCount: lateInvoices.length, oweCount: lateBills.length + lateLiabs.length },
     };
@@ -317,6 +326,12 @@ export default function Dues() {
           </table>
         </div>
       )}
+      <Link href="/wallet?tab=wallets" className="du-partner" style={{ marginTop: 'var(--space-4)' }}>
+        <span className="du-type" aria-hidden="true"><span><Icon name="wallet" width="16" height="16" /></span></span>
+        <span className="du-text"><b>Customer wallets and points</b><small>{money(data.forCustomers.wallets)} wallet money and advances · {money(data.forCustomers.points)} in loyalty points · not in the total above: customers use it when they buy, or ask for it back</small></span>
+        <span className="du-amt">{money(data.forCustomers.total)}</span>
+        <Icon name="chevron-right" width="18" height="18" aria-hidden="true" />
+      </Link>
     </>
   ) : null;
 

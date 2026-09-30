@@ -10,6 +10,11 @@
 // deliveries take them out later. Products come from the stock catalogue (demo list + products saved
 // in Products). A place with "Allow negative stock" on lets the register sell past zero.
 // Money taken and cash drawer movements post to the ledger (lib/ledger).
+// Loyalty (lib/loyalty): the mobile number finds the member; the level's counter discount, the value of
+// a point, the earn rate, the level multiplier and each product's points (Off / Normal / Double) come
+// from the loyalty settings. Points earned and used are read by loyalty.js from the saved sale, and the
+// register's points store is kept in step. A member can pay from their customer wallet (Alt 7): no
+// money moves, the wallet balance goes down.
 // Returns and exchanges have one flow: the Return & exchange page (/return-exchange?ref=<sale id>).
 // Front end only: the shift, held sales and completed sales are kept in this browser.
 // Counters, employees, shifts, cash movements and settings are shared with POS management (posStore).
@@ -30,9 +35,11 @@ import { getCustomers, findCustomer, tierOf, tierPrice, phoneDigits, saveCustome
 import { dueForPhone, recordDelivery, challanNo } from '@/lib/invoices';
 import { CATALOG, getCatalog, productBy, stockAt, getMoves, addMove, allowNegative } from '@/lib/stock';
 import { getHolds, addHolds } from '@/lib/stockHolds';
-import { STOCK_PLACES } from '@/lib/locations';
+import { STOCK_PLACES, getStockPlaces, placeName } from '@/lib/locations';
+import { usePlaceList } from '@/lib/usePlaces';
 import { navigate } from '@/runtime/routes';
 import { ManagerPin } from '@/components/ManagerPin';
+import { getMembers as getLoyaltyMembers, getLoyaltySettings, getProductPoints, pointsForSale, spendWallet, syncPosPoints, DEFAULT_SETTINGS as LOYALTY_DEFAULTS } from '@/lib/loyalty';
 import { POS_CSS } from './posStyles';
 
 const ITEMS = [
@@ -66,7 +73,7 @@ const NO_STOCK = { onHand: 0, held: 0, damaged: 0, available: 0, transit: 0 };
 const returnsHref = (sale, mode) => '/return-exchange' + (sale ? `?ref=${encodeURIComponent(sale.id)}${mode ? '&mode=' + mode : ''}` : '');
 // who approved a manager-only change on a line
 const approvalNote = (l) => (l.priceBy && l.priceBy === l.discBy ? `Price and discount set by ${l.priceBy}` : [l.priceBy && `Price set by ${l.priceBy}`, l.discBy && `Discount by ${l.discBy}`].filter(Boolean).join(' · '));
-const POINT_VALUE = 0.5; // taka per loyalty point
+// members known only to the register (loyalty.js members come first); their points store is KEYS.points
 const MEMBERS = [
   { phone: '01811843300', name: 'Shirin Akter', tier: 'Gold', tierPct: 5, points: 240 },
   { phone: '01553336655', name: 'Nusrat Jahan', tier: 'Silver', tierPct: 2, points: 80 },
@@ -82,7 +89,8 @@ const TENDERS = [
   { id: 'Rocket', logo: 'rocket', key: 'Alt 5' },
 ];
 const CREDIT = 'Due / credit';
-const TENDER_KEYS = [...TENDERS.map((m) => m.id), CREDIT];
+const WALLET = 'Wallet';   // the member's customer wallet (lib/loyalty): no money moves at the counter
+const TENDER_KEYS = [...TENDERS.map((m) => m.id), CREDIT, WALLET];
 const SHORTCUTS = [
   ['While selling', [
     ['F2', 'Search products'], ['F3', 'Scan or type a SKU'], ['+  −', 'Quantity of the last item (scan field empty)'], ['Delete', 'Remove the last item (scan field empty)'],
@@ -90,7 +98,7 @@ const SHORTCUTS = [
     ['F10', 'Cash drawer: pickup, cash in, paid out'], ['Alt N', 'New sale'], ['Alt X', 'Cancel sale'], ['Alt Z', 'End shift'], ['F1', 'This list'], ['Esc', 'Close a window'],
   ]],
   ['At checkout', [
-    ['Enter', 'Take the amount and complete the sale'], ['F4', 'Complete the sale'], ['Alt 1 – 5', 'Cash, Card, bKash, Nagad, Rocket'], ['Alt 6', 'Due / credit'],
+    ['Enter', 'Take the amount and complete the sale'], ['F4', 'Complete the sale'], ['Alt 1 – 5', 'Cash, Card, bKash, Nagad, Rocket'], ['Alt 6', 'Due / credit'], ['Alt 7', 'Customer wallet (members)'],
     ['Alt A', 'Amount received'], ['Alt M', 'Customer mobile number'], ['Alt D', 'Discount'], ['Alt C', 'Coupon code'], ['Alt R', 'Use member points'],
     ['Alt P', 'Print receipt on or off'], ['Alt T', 'Wholesale: customer takes the goods now, on or off'], ['Enter', 'New sale, once the receipt shows'],
   ]],
@@ -103,7 +111,9 @@ const focusId = (id) => window.setTimeout(() => { const el = document.getElement
 
 // `vat` is the saved VAT setup (Accounts > VAT): each line is taxed at the rate of its category,
 // on its share of what is left after every discount.
-function totalsOf(lines, discount, coupon, member, redeem, vat) {
+// `loy` is the loyalty settings: value of a point, the least points that can be used, and the most of
+// the bill points can pay.
+function totalsOf(lines, discount, coupon, member, redeem, vat, loy = LOYALTY_DEFAULTS) {
   const gross = lines.reduce((s, l) => s + l.price * l.qty, 0);
   const lineDisc = lines.reduce((s, l) => s + Math.min(l.price * l.qty, l.disc || 0), 0);
   let left = gross - lineDisc;
@@ -114,8 +124,10 @@ function totalsOf(lines, discount, coupon, member, redeem, vat) {
   left -= couponDisc;
   const memberDisc = member ? Math.round(left * member.tierPct) / 100 : 0;
   left -= memberDisc;
-  const pointsUsed = member && redeem ? Math.min(member.points, Math.floor(left / POINT_VALUE)) : 0;
-  const pointsDisc = pointsUsed * POINT_VALUE;
+  const pv = loy.pointValue || 0.5;
+  const canUse = member && redeem && member.points >= (loy.minUse || 0);
+  const pointsUsed = canUse ? Math.max(0, Math.min(member.points, Math.floor((left * Math.min(100, loy.maxPct || 100) / 100) / pv))) : 0;
+  const pointsDisc = r2(pointsUsed * pv);
   left -= pointsDisc;
   const base = gross - lineDisc;
   const share = base ? left / base : 0;
@@ -139,6 +151,7 @@ export default function Pos() {
   const [brand, setBrand] = useState('');
   const [view, setView] = useState('grid');
   const [warehouse, setWarehouse] = useState(WAREHOUSES[0]);
+  const warehouses = usePlaceList('stock');   // live places after mount (built-in list first)
   const [coupon, setCoupon] = useState('');
   const [couponText, setCouponText] = useState('');
   const [requireFull, setRequireFull] = useState(true);
@@ -150,6 +163,9 @@ export default function Pos() {
   const [cash, setCash] = useState([]);               // cash pickups, cash added, paid out
   const [book, setBook] = useState([]);               // the customer book (Customers page)
   const [points, setPoints] = useState({});           // member phone -> points balance
+  const [loy, setLoy] = useState(LOYALTY_DEFAULTS);   // loyalty settings (lib/loyalty)
+  const [loyMembers, setLoyMembers] = useState([]);   // loyalty members with points and wallet balances
+  const [ptModes, setPtModes] = useState({});         // product points: sku -> normal | double | off
   const [panel, setPanel] = useState('');             // '' | checkout | held | recent | return | edit | customer | cash | keys | close
   const [tenders, setTenders] = useState([]);         // part payments already taken: [{ method, amount }]
   const [tender, setTender] = useState({ method: 'Cash', amount: '' }); // amount '' means "all that is still due"
@@ -176,7 +192,8 @@ export default function Pos() {
     const open = load(KEYS.shift, null);
     setShift(open);
     const at = open && list.find((c) => c.name === open.counter);
-    if (at && WAREHOUSES.includes(at.stock)) setWarehouse(at.stock);
+    const livePlaces = getStockPlaces(), placeWant = at ? placeName(at.stock) : '';
+    if (placeWant && livePlaces.includes(placeWant)) setWarehouse(placeWant); else if (livePlaces.length && !livePlaces.includes(WAREHOUSES[0])) setWarehouse(livePlaces[0]);
     setHeld(load(KEYS.held, []));
     setSales(load(KEYS.sales, []));
     setCash(getCash());
@@ -184,6 +201,7 @@ export default function Pos() {
     setBook(getCustomers());
     setProducts(posProducts(getCatalog()));
     setPoints(load(KEYS.points, {}));
+    setLoy(getLoyaltySettings()); setLoyMembers(getLoyaltyMembers()); setPtModes(getProductPoints());
     const want = new URLSearchParams(window.location.search).get('panel');
     if (['recent', 'held', 'close', 'cash', 'keys'].includes(want)) setPanel(want);
     setLoc(getLocale());
@@ -205,9 +223,12 @@ export default function Pos() {
   // Membership is never asked for: the customer's mobile number finds it, and points are added on their own.
   const phoneKey = customer.phone.replace(/[^0-9]/g, '').replace(/^88/, '');
   const member = useMemo(() => {
+    if (!phoneKey || !loy.on.points || !loy.on.pos) return null;
+    const lm = loyMembers.find((m) => m.phone === phoneKey);
+    if (lm) { const tl = lm.tierObj || {}; return { phone: lm.phone, name: lm.name, tier: tl.name || 'Member', tierPct: tl.pct || 0, mult: tl.mult || 1, points: lm.points, wallet: loy.on.wallet ? lm.wallet : 0 }; }
     const hit = MEMBERS.find((m) => m.phone === phoneKey);
-    return hit ? { ...hit, points: points[hit.phone] ?? hit.points } : null;
-  }, [phoneKey, points]);
+    return hit ? { ...hit, mult: 1, points: points[hit.phone] ?? hit.points, wallet: 0 } : null;
+  }, [phoneKey, points, loyMembers, loy]);
   // A wholesale customer is detected the same way: their price list loads on its own and the sale
   // may be completed without payment, as an unpaid invoice.
   const buyer = useMemo(() => findCustomer(book, phoneKey), [book, phoneKey]);
@@ -232,8 +253,13 @@ export default function Pos() {
   // "Allow negative stock" at this place (Warehouses / Branches): sell past what is available, with a warning
   const negOk = useMemo(() => ready && allowNegative(warehouse), [ready, warehouse]);
   const overToast = (name, avail) => toast(`${name}: selling past the ${avail} available at ${warehouse}. Negative stock is allowed here.`, { tone: 'info' });
-  const t = totalsOf(lines, discount, coupon, member, redeem, vat);
+  const t = totalsOf(lines, discount, coupon, member, redeem, vat, loy);
+  // points this sale earns: each line after its share of the discounts, by the product's points setting
+  const earnShare = t.gross - t.lineDisc ? t.taxable / (t.gross - t.lineDisc) : 0;
+  const earnNow = member ? pointsForSale(lines.map((l) => ({ sku: l.sku || (productBy(l.name) || {}).sku, amount: (l.price * l.qty - Math.min(l.price * l.qty, l.disc || 0)) * earnShare })), { mult: member.mult || 1 }, loy, ptModes) : 0;
   const paid = tenders.reduce((s, x) => s + x.amount, 0);
+  const walletTaken = tenders.filter((x) => x.method === WALLET).reduce((s, x) => s + x.amount, 0);
+  const walletLeft = member ? Math.max(0, r2((member.wallet || 0) - walletTaken)) : 0;   // wallet money still free for this sale
   const due = Math.max(0, r2(t.total - paid));
   const pending = due ? (tender.amount === '' ? due : num(tender.amount)) : 0;   // what the amount field adds
   const stillDue = Math.max(0, r2(due - pending));
@@ -355,12 +381,18 @@ export default function Pos() {
     setCoupon(code); setCouponText(code); toast(`Coupon ${code} applied`);
   };
   const pickTender = (id) => {
+    if (id === WALLET) {
+      if (!member) { toast('Type the member’s mobile number to pay from their wallet', { tone: 'error' }); focusId('pos-mobile'); return; }
+      if (!walletLeft) { toast(`${member.name} has no wallet money to use`, { tone: 'error' }); return; }
+      setTender({ method: WALLET, amount: String(Math.min(due, walletLeft)) }); focusId('pos-amt'); return;
+    }
     const m = TENDERS.find((x) => x.id === id);
     if (offline && !(m && m.offline)) { toast('Offline: only cash can be taken right now', { tone: 'error' }); return; }
     if (id === CREDIT && requireFull && !tier) { toast('Turn off “Require full payment” to leave money on the customer’s account', { tone: 'error' }); return; }
     setTender({ method: id, amount: '' }); focusId('pos-amt');
   };
   const tooMuch = () => {
+    if (tender.method === WALLET && pending > walletLeft + 0.001) { toast(`Only ${money(walletLeft)} in ${member ? member.name + '’s' : 'the'} wallet`, { tone: 'error' }); return true; }
     if (tender.method === 'Cash' || pending <= due) return false;
     toast(`${tender.method} cannot be more than the ${money(due)} still due`, { tone: 'error' });
     return true;
@@ -386,7 +418,9 @@ export default function Pos() {
       return;
     }
     const onAccount = list.filter((x) => x.method === CREDIT).reduce((s, x) => s + x.amount, 0);
-    const earned = member ? Math.floor(t.total / 100) : 0;
+    const earned = earnNow;
+    const fromWallet = r2(list.filter((x) => x.method === WALLET).reduce((s, x) => s + x.amount, 0));
+    if (fromWallet && (!member || fromWallet > (member.wallet || 0) + 0.001)) { toast(`Only ${money(member ? member.wallet : 0)} in the wallet`, { tone: 'error' }); return; }
     const who = { name: customer.name || (member ? member.name : buyer ? buyer.name : ''), phone: customer.phone };
     const owed = r2(stillDue + onAccount);
     // the sale also shows under Orders > POS / Retail orders; an unpaid one stays Pending until it is paid
@@ -416,7 +450,14 @@ export default function Pos() {
     postSaleTenders(sale);
     // a mobile number that is not in the customer book yet is kept there
     if (who.phone && !findCustomer(book, who.phone) && saveCustomerOnce({ name: customer.name || (member ? member.name : ''), phone: who.phone, types: ['Retail'], addedFrom: ADDED_FROM.pos })) setBook(getCustomers());
-    if (member) { const bal = { ...points, [member.phone]: member.points - t.pointsUsed + earned }; setPoints(bal); save(KEYS.points, bal); }
+    // wallet money used: the balance the shop holds for the member goes down (no money moves)
+    if (fromWallet) spendWallet({ phone: member.phone, amount: fromWallet, ref: orderNo, by: shift.cashier, channel: tier ? 'Wholesale' : 'Retail', where: shift.counter });
+    // points: loyalty.js reads them from the saved sale; the register's points store follows
+    if (member) {
+      if (loyMembers.some((m) => m.phone === member.phone) || fromWallet) syncPosPoints(member.phone);
+      else save(KEYS.points, { ...points, [member.phone]: member.points - t.pointsUsed + earned });
+      setPoints(load(KEYS.points, {})); setLoyMembers(getLoyaltyMembers());
+    }
     setReceipt(done); clearSale(); focusId('pos-newsale');
     if (printReceipt) toast('Receipt sent to the printer');
   };
@@ -440,7 +481,7 @@ export default function Pos() {
     if (!at || !openForm.cashier) { toast('Choose the counter and the employee working it', { tone: 'error' }); return; }
     const next = { counter: at.name, counterId: at.id, cashier: openForm.cashier, float: num(openForm.float), openedAt: Date.now() };
     setShift(next); save(KEYS.shift, next);
-    if (WAREHOUSES.includes(at.stock)) setWarehouse(at.stock);
+    if (warehouses.includes(placeName(at.stock))) setWarehouse(placeName(at.stock));
     toast(`${at.name} opened by ${next.cashier} with ${formatBDT(next.float)} in the drawer`);
   };
   const rep = shift ? shiftReport(shift, sales, cash) : null;   // what this shift sold and the cash it should hold
@@ -527,7 +568,7 @@ export default function Pos() {
       if (k.panel === 'checkout') {
         if (e.key === 'F4') return run(k.complete);
         if (k.receipt) { if (alt === 'KeyP') run(k.reprint); return; }
-        const n = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6'].indexOf(alt);
+        const n = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7'].indexOf(alt);
         if (n >= 0) return run(() => k.pickTender(TENDER_KEYS[n]));
         if (alt === 'KeyA') return run(() => focusId('pos-amt'));
         if (alt === 'KeyM') return run(() => focusId('pos-mobile'));
@@ -706,7 +747,7 @@ export default function Pos() {
           </header>
 
           <div className="pos-selrow">
-            {pick('Stock from', 'warehouse', warehouse, WAREHOUSES, changeWarehouse)}
+            {pick('Stock from', 'warehouse', warehouse, warehouses, changeWarehouse)}
             <Link href="/pos-manage" className="pos-sel" title="Counters are registered in POS management">
               <span className="pos-sel__ico" aria-hidden="true"><Icon name="store" width="16" height="16" /></span>
               <span><span className="pos-sel__label">Counter</span><span className="pos-sel__value">{counterId} · {shift.counter}</span></span>
@@ -798,9 +839,9 @@ export default function Pos() {
                 <div className="pos-member" role="status">
                   <div className="pos-member__head">
                     <span className="pos-sel__ico pos-sel__ico--sky" aria-hidden="true">{member.name.split(' ').map((w) => w[0]).join('').slice(0, 2)}</span>
-                    <span><b>{member.name} · {member.tier} member</b><small>{member.tierPct}% off applied · this sale adds {Math.floor(t.total / 100)} points to the {member.points} they have</small></span>
+                    <span><b>{member.name} · {member.tier} member</b><small>{member.tierPct ? `${member.tierPct}% off applied · ` : ''}this sale adds {earnNow} points to the {member.points} they have{loy.on.wallet ? ` · wallet ${money(member.wallet || 0)}` : ''}</small></span>
                   </div>
-                  <label className="pos-check"><input type="checkbox" className="gc-check" checked={redeem} disabled={!member.points} onChange={(e) => setRedeem(e.target.checked)} />Pay with points ({member.points} points = {money(member.points * POINT_VALUE)})<kbd>Alt R</kbd></label>
+                  <label className="pos-check"><input type="checkbox" className="gc-check" checked={redeem} disabled={!member.points || member.points < (loy.minUse || 0)} onChange={(e) => setRedeem(e.target.checked)} />{member.points < (loy.minUse || 0) ? `Points can be used from ${loy.minUse} (${member.points} now)` : `Pay with points (${member.points} points = ${money(member.points * loy.pointValue)}, up to ${loy.maxPct}% of the bill)`}<kbd>Alt R</kbd></label>
                 </div>
               ) : null}
 
@@ -845,9 +886,14 @@ export default function Pos() {
                   </button>
                 ))}
                 <button type="button" className={'pos-tender pos-tender--dashed' + (tender.method === CREDIT ? ' is-on' : '')} aria-pressed={tender.method === CREDIT} disabled={(requireFull && !tier) || (offline && !tier)} onClick={() => pickTender(CREDIT)}><Icon name={tier ? 'file-text' : 'clock'} width="18" height="18" aria-hidden="true" /><span>{tier ? 'Unpaid' : 'Due'}</span><kbd>Alt 6</kbd></button>
+                {member && loy.on.wallet ? (
+                  <button type="button" className={'pos-tender' + (tender.method === WALLET ? ' is-on' : '')} aria-pressed={tender.method === WALLET} disabled={!walletLeft} onClick={() => pickTender(WALLET)} aria-label={`Customer wallet, ${money(walletLeft)} free`}>
+                    <Icon name="wallet" width="18" height="18" aria-hidden="true" /><span>Wallet · {money(walletLeft)}</span><kbd>Alt 7</kbd>
+                  </button>
+                ) : null}
               </div>
               <form className="pos-tenderform" onSubmit={amountEnter}>
-                <div className="pos-tenderform__head"><label htmlFor="pos-amt">{tender.method === 'Cash' ? 'Cash received' : tender.method === CREDIT ? 'Left unpaid on the invoice' : tender.method + ' amount'} <kbd>Alt A</kbd></label><span>{tenders.length ? 'Remaining ' : 'To pay '}{money(due)}</span></div>
+                <div className="pos-tenderform__head"><label htmlFor="pos-amt">{tender.method === 'Cash' ? 'Cash received' : tender.method === CREDIT ? 'Left unpaid on the invoice' : tender.method === WALLET ? `From the wallet (up to ${money(walletLeft)})` : tender.method + ' amount'} <kbd>Alt A</kbd></label><span>{tenders.length ? 'Remaining ' : 'To pay '}{money(due)}</span></div>
                 <div className="pos-bigfield"><span aria-hidden="true">৳</span><input id="pos-amt" type="number" min="0" step="0.01" inputMode="decimal" data-autofocus placeholder={due.toFixed(2)} value={tender.amount} onChange={(e) => setTender({ ...tender, amount: e.target.value })} /></div>
                 {tender.method === 'Cash' && due ? (
                   <div className="pos-quick" role="group" aria-label="Quick cash amounts">

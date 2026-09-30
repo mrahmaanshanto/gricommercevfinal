@@ -18,11 +18,12 @@ import { Dialog, EmptyState } from '@/components/ui';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
 import { getHolds, closeHold, DAMAGED_PLACE } from '@/lib/stockHolds';
 import { productBy, addMove } from '@/lib/stock';
-import { STOCK_PLACES } from '@/lib/locations';
+import { STOCK_PLACES, getStockPlaces, placeByName, placeName } from '@/lib/locations';
 import { unitCost } from '@/lib/purchaseOrders';
 
 const WRITE_OFF_REASONS = ['Broken beyond repair', 'Expired', 'Leaked or spoiled', 'Eaten by rats or pests', 'Water damage', 'Missing parts'];
-const cameFromShelf = (h) => !!h.from && h.from !== DAMAGED_PLACE && STOCK_PLACES.includes(h.from);
+// any shelf place, also one renamed or deactivated since (the pieces were counted there)
+const cameFromShelf = (h) => !!h.from && h.from !== DAMAGED_PLACE && (STOCK_PLACES.includes(h.from) || !!placeByName(h.from));
 
 const CSS = `
 .dsp{overflow:hidden;font-family:var(--font-sans)}
@@ -81,7 +82,7 @@ export default function DamagedStockPanel() {
     if (p) {
       if (cameFromShelf(h)) {
         // ending the hold puts the pieces back where they came from; move them when they go elsewhere
-        if (h.from !== to) {
+        if (placeName(h.from) !== placeName(to)) {
           addMove({ sku: p.sku, place: h.from, qty: -h.qty, kind: 'transfer', reason: `Repaired · sent to ${to}`, by: 'Staff', ref: h.id });
           addMove({ sku: p.sku, place: to, qty: h.qty, kind: 'repaired', reason: `Repaired · from ${DAMAGED_PLACE}`, by: 'Staff', ref: h.id });
         }
@@ -126,7 +127,7 @@ export default function DamagedStockPanel() {
                   <td>{formatDate(h.closedAt || h.at)}<span className="dsp-sub">{formatTime(h.closedAt || h.at)} · {h.by}</span></td>
                   <td>
                     <div className="dsp-actions">
-                      <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setRepair({ hold: h, place: cameFromShelf(h) ? h.from : STOCK_PLACES[0] })} aria-label={`Repaired, put ${h.product} back on sale`}><Icon name="wrench" width="16" height="16" aria-hidden="true" /> Repaired</button>
+                      <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => { const live = getStockPlaces(); setRepair({ hold: h, place: cameFromShelf(h) && live.includes(placeName(h.from)) ? placeName(h.from) : live[0] }); }} aria-label={`Repaired, put ${h.product} back on sale`}><Icon name="wrench" width="16" height="16" aria-hidden="true" /> Repaired</button>
                       <Link href={supplierHref(h)} className="gc-btn gc-btn--sm gc-btn--neutral" aria-label={`Send ${h.product} back to the supplier`}><Icon name="undo-2" width="16" height="16" aria-hidden="true" /> To supplier</Link>
                       <button type="button" className="gc-btn gc-btn--sm gc-btn--soft gc-btn--error" onClick={() => setDispose({ hold: h, reason: WRITE_OFF_REASONS[0], note: '' })} aria-label={`Write off ${h.product}`}><Icon name="trash-2" width="16" height="16" aria-hidden="true" /> Write off</button>
                     </div>
@@ -153,7 +154,7 @@ export default function DamagedStockPanel() {
         {repair ? (
           <form className="dsp-form" onSubmit={doRepair}>
             <p className="dsp-sub" style={{ margin: 0 }}>{repair.hold.qty} pcs were repaired or checked and can be sold again. They leave {DAMAGED_PLACE}.</p>
-            <div><label className="gc-label" htmlFor="dsp-place">Put it on sale at</label><select id="dsp-place" className="gc-input gc-select" value={repair.place} onChange={(e) => setRepair({ ...repair, place: e.target.value })}>{STOCK_PLACES.map((x) => <option key={x}>{x}</option>)}</select></div>
+            <div><label className="gc-label" htmlFor="dsp-place">Put it on sale at</label><select id="dsp-place" className="gc-input gc-select" value={repair.place} onChange={(e) => setRepair({ ...repair, place: e.target.value })}>{getStockPlaces().map((x) => <option key={x}>{x}</option>)}</select></div>
             <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setRepair(null)}>Cancel</button><button type="submit" className="gc-btn gc-btn--solid">Back on sale</button></div>
           </form>
         ) : null}
