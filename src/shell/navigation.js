@@ -76,12 +76,12 @@ export const NAV = [
   ] },
   { label: 'Staff & HR', items: [
     { id: 'hr-home', icon: 'layout-grid', label: 'HR dashboard', to: 'staff-hr/HrDashboard.dc.html' },
-    { id: 'hr-staff', icon: 'contact', label: 'All staff', count: 14, to: 'staff-hr/AllStaff.dc.html' },
+    { id: 'hr-staff', icon: 'contact', label: 'All staff', to: 'staff-hr/AllStaff.dc.html' },
     { id: 'hr-attendance', icon: 'calendar-check', label: 'Attendance', to: 'staff-hr/Attendance.dc.html' },
     { id: 'hr-shifts', icon: 'calendar-clock', label: 'Shifts & roster', to: 'staff-hr/Shifts.dc.html' },
-    { id: 'hr-leave', icon: 'plane', label: 'Leave', count: 4, to: 'staff-hr/Leave.dc.html' },
+    { id: 'hr-leave', icon: 'plane', label: 'Leave', to: 'staff-hr/Leave.dc.html' },
     { id: 'hr-payroll', icon: 'banknote', label: 'Payroll', to: 'staff-hr/Payroll.dc.html' },
-    { id: 'hr-loans', icon: 'hand-coins', label: 'Loans & advances', count: 1, to: 'staff-hr/LoansAdvances.dc.html' },
+    { id: 'hr-loans', icon: 'hand-coins', label: 'Loans & advances', to: 'staff-hr/LoansAdvances.dc.html' },
     { id: 'hr-setup', icon: 'settings-2', label: 'HR setup', to: 'staff-hr/HrSetup.dc.html' },
   ] },
   { label: 'Promo', items: [

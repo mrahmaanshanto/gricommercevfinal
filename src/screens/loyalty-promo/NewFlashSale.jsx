@@ -495,7 +495,7 @@ export default class NewFlashSaleScreen extends Component {
                         </div>
                       </>) : null}
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-sm)", color: "#334155" }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px", fontSize: "var(--text-sm)", color: "#334155" }}>
                       <span>Same discount for all:</span>
                       {__list(v.pcts).map((c, $index) => (<React.Fragment key={$index}>
                           <button type="button" className={c?.cls} onClick={c?.pick}>{c?.label}</button>

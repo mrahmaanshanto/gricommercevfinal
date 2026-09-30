@@ -1,383 +1,216 @@
 'use client';
-// Generated from design/templates/staff-hr/AllStaff.dc.html by scripts/convert-design.mjs.
-// All staff — Staff & HR — All staff.
-// Edit freely: this file is now the source for the screen.
+// All staff — the one staff list (src/lib/hr.js). Add or edit a person (place, usual shift, salary,
+// login role, and how and from which account they are paid); every HR page reads the same list.
+// "Today" comes from Attendance, "On leave" from approved leave.
 
-import React from 'react';
-import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
-import { PageHeader as __PageHeader } from '@/components/ui';
-
-// ---- logic (from the design's <script type="text/x-dc">) ----
-
-function bdt(n) { var neg = n < 0; var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return (neg ? '−' : '') + '৳' + s; }
-var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
-function mkTabs(self, list, cur, key, counts) { return list.map(function (x) { var on = x.k === cur; var c = counts ? counts[x.k] : null; return { label: x.label, on: on, cls: on ? 'tab on' : 'tab', hasCount: c != null, count: c, countBg: on ? 'rgba(255,255,255,0.2)' : '#e9eef5', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-function mkChips(self, list, cur, key) { return list.map(function (x) { var on = x.k === cur; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-function pTabs(self, list, cur, key, counts) { return mkTabs(self, list, cur, key, counts).map(function (x) { x.pcls = x.on ? 'ptab on' : 'ptab'; return x; }); }
-function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
-function stepN(self, key, def, step, min, max) { var s = self.state || {}; var v = s[key] == null ? def : s[key]; return { v: v, dec: function () { var p = {}; p[key] = Math.max(min, +(v - step).toFixed(2)); self.setState(p); }, inc: function () { var p = {}; p[key] = Math.min(max, +(v + step).toFixed(2)); self.setState(p); } }; }
-var CHN = { sms: ['SMS', '#e7f8f1', '#047857'], wa: ['WhatsApp', '#dcfce7', '#166534'], email: ['Email', '#e0f2fe', '#075985'] };
-function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-function toast(self, m, bad) { clearTimeout(self.t); self.setState({ msg: m, bad: !!bad }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 2800); }
-function msgV(s) { return { hasMsg: !!s.msg, msg: s.msg || '', msgBg: s.bad ? '#fff4e0' : '#e7f8f1', msgFg: s.bad ? '#7a3b04' : '#065f46' }; }
-function segv(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#0b1733' : 'transparent', fg: on ? '#fff' : '#475569', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
-// [code, name, designation, department, branch, shift, basic(gross), type, status, phone, joined, role]
-var STAFF = [
-  ['EMP-0118', 'Rakib Hasan', 'Branch manager', 'Store operations', 'Dhanmondi branch', 'morning', 38000, 'Full-time', 'active', '01712-XX4410', '3 Feb 2022', 'Manager'],
-  ['EMP-0142', 'Sadia Akter', 'Cashier', 'Store operations', 'Dhanmondi branch', 'morning', 22000, 'Full-time', 'active', '01712-XX8821', '12 Mar 2024', 'Cashier'],
-  ['EMP-0151', 'Rafi Ahmed', 'Sales associate', 'Store operations', 'Dhanmondi branch', 'evening', 16000, 'Full-time', 'active', '01819-XX2207', '8 Jan 2025', 'Sales staff'],
-  ['EMP-0121', 'Nabila Rahman', 'Branch manager', 'Store operations', 'Mirpur branch', 'morning', 35000, 'Full-time', 'active', '01715-XX6630', '19 Jun 2022', 'Manager'],
-  ['EMP-0149', 'Moumita Das', 'Cashier', 'Store operations', 'Mirpur branch', 'evening', 20000, 'Full-time', 'leave', '01911-XX0194', '2 Sep 2024', 'Cashier'],
-  ['EMP-0160', 'Arif Rahman', 'Sales associate', 'Store operations', 'Mirpur branch', 'morning', 16000, 'Probation', 'probation', '01633-XX5582', '1 Jul 2026', 'Sales staff'],
-  ['EMP-0133', 'Tareq Aziz', 'Stock keeper', 'Warehouse', 'Central Warehouse', 'warehouse', 18000, 'Full-time', 'active', '01556-XX7713', '14 Oct 2023', 'Stock staff'],
-  ['EMP-0155', 'Sabbir Hossain', 'Packer', 'Warehouse', 'Central Warehouse', 'warehouse', 14000, 'Full-time', 'active', '01798-XX3301', '5 May 2025', 'Stock staff'],
-  ['EMP-0145', 'Jahid Hasan', 'Delivery rider', 'Delivery', 'Central Warehouse', 'warehouse', 15000, 'Full-time', 'active', '01877-XX9046', '21 Nov 2024', 'Rider'],
-  ['EMP-0163', 'Sohel Rana', 'Security guard', 'Warehouse', 'Central Warehouse', 'night', 12500, 'Contract', 'active', '01309-XX1128', '10 Feb 2026', 'No login'],
-  ['EMP-0137', 'Lamia Sultana', 'Customer care', 'Customer care', 'Head office', 'office', 20000, 'Full-time', 'active', '01521-XX4467', '7 Aug 2023', 'Support'],
-  ['EMP-0158', 'Rumana Islam', 'Accountant', 'Accounts', 'Head office', 'office', 40000, 'Full-time', 'active', '01711-XX0625', '15 Jan 2023', 'Accounts'],
-  ['EMP-0161', 'Jannatul Ferdous', 'Social media executive', 'Marketing', 'Head office', 'office', 12000, 'Part-time', 'active', '01404-XX8872', '3 Aug 2026', 'Marketing'],
-  ['EMP-0112', 'Kamrul Islam', 'Senior sales associate', 'Store operations', 'Dhanmondi branch', 'evening', 19000, 'Full-time', 'suspended', '01670-XX2254', '11 Apr 2021', 'Sales staff']
-];
-var SHIFTS = { morning: ['Morning', '9:00 AM – 5:00 PM', '#e0f3fb', '#075985'], evening: ['Evening', '1:00 PM – 9:00 PM', '#f3e8ff', '#6d28d9'], warehouse: ['Warehouse', '8:00 AM – 4:00 PM', '#fff4e0', '#a14f06'], office: ['Office', '9:30 AM – 6:00 PM', '#e7f8f1', '#047857'], night: ['Night guard', '9:00 PM – 7:00 AM', '#e2e8f0', '#334155'] };
-var AV = [['#e0f3fb', '#075985'], ['#f3e8ff', '#6d28d9'], ['#fff4e0', '#a14f06'], ['#e7f8f1', '#047857'], ['#ffece6', '#b83210'], ['#e0e7ff', '#3730a3']];
-function ini(n) { var p = n.split(' '); return (p[0].charAt(0) + (p[1] || '').charAt(0)).toUpperCase(); }
-function av(n, i) { var c = AV[i % AV.length]; return { ini: ini(n), ab: c[0], af: c[1] }; }
-var PROFILE = '../staff-profile/StaffProfile.dc.html';
-var TD = { 'EMP-0151': ['Late · 1:24 PM', '#b45309'], 'EMP-0160': ['Late · 9:18 AM', '#b45309'], 'EMP-0149': ['On sick leave', '#1d4ed8'], 'EMP-0161': ['Starts 2:00 PM', '#64748b'], 'EMP-0112': ['—', '#94a3b8'] };
-var ST = { active: ['Active', '#e7f8f1', '#047857'], leave: ['On leave', '#e0f2fe', '#075985'], probation: ['Probation', '#fff4e0', '#a14f06'], suspended: ['Suspended', '#ffece6', '#b83210'] };
-class Component extends DCLogic {
-  componentWillUnmount() { clearTimeout(this.t); }
-  renderVals() {
-    var self = this, s = this.state || {};
-    var f = s.f || 'all', br = s.br || 'all', q = (s.q || '').toLowerCase(), view = s.view || this.props.view || 'table', sel = s.sel || [];
-    var list = STAFF.map(function (r, i) { return [r, i]; }).filter(function (x) { var r = x[0]; return (f === 'all' || r[8] === f) && (br === 'all' || r[4] === br) && (!q || (r[1] + r[0] + r[9]).toLowerCase().indexOf(q) >= 0); });
-    var cnt = function (k) { return STAFF.filter(function (r) { return k === 'all' || r[8] === k; }).length; };
-    var tot = 0; STAFF.forEach(function (r) { if (r[8] !== 'suspended') tot += r[6]; });
-    var v = {
-      kAll: String(STAFF.length), kPay: bdt(tot),
-      imp: function () { toast(self, 'Download the template, fill one row per person, upload it back.'); }, exp: function () { toast(self, 'Staff list exported as CSV.'); },
-      chips: [['all', 'All'], ['active', 'Active'], ['probation', 'Probation'], ['leave', 'On leave'], ['suspended', 'Suspended']].map(function (c) { var on = c[0] === f; return { l: c[1], c: cnt(c[0]), on: on, cls: on ? 'chip on' : 'chip', pick: function () { self.setState({ f: c[0] }); } }; }),
-      br: br, setBr: function (e) { self.setState({ br: e.target.value }); }, q: s.q || '', typeQ: function (e) { self.setState({ q: e.target.value }); },
-      views: segv(self, [['table', 'Table'], ['cards', 'Cards']], view, 'view'), isTable: view === 'table', isCards: view === 'cards', none: !list.length,
-      rows: list.map(function (x) { var r = x[0], i = x[1]; var sh = SHIFTS[r[5]]; var st = ST[r[8]]; var t = TD[r[0]] || ['Present · in on time', '#047857']; var on = sel.indexOf(r[0]) >= 0;
-        return assign(av(r[1], i), { n: r[1], code: r[0] + ' · ' + r[9], phone: r[9], des: r[2], dep: r[3], type: r[7], br: r[4], sh: sh[0] + ' ' + sh[1], sb: sh[2], sf: sh[3], today: t[0], tc: t[1], role: r[11], sal: bdt(r[6]), pt: st[0], pb: st[1], pf: st[2], link: PROFILE, on: on,
-          tick: function () { self.setState({ sel: on ? sel.filter(function (c) { return c !== r[0]; }) : sel.concat([r[0]]) }); } }); }),
-      hasSel: sel.length > 0, selN: sel.length,
-      bulkMsg: function () { toast(self, 'SMS drafted for ' + sel.length + ' staff.'); }, bulkShift: function () { toast(self, 'Pick a shift in Shifts & roster — ' + sel.length + ' staff selected.'); }, bulkCsv: function () { toast(self, sel.length + ' staff exported.'); }
-    };
-    return assign(v, msgV(s));
-  }
-}
-
-// ---- styles (from the design's <helmet>) ----
+import React, { useState } from 'react';
+import { Icon } from '@/runtime/dc';
+import { toast } from '@/runtime/ui';
+import { Dialog, EmptyState } from '@/components/ui';
+import { formatDate } from '@/lib/format';
+import { fromKey } from '@/lib/settlements';
+import { AccountSelect } from '@/screens/accounts/accShared';
+import {
+  todayKey, cellOf, statusOf, saveStaff, nextStaffCode, shiftBy, t12, HR_PLACES, PAY_METHODS, STAFF_TYPES, LOGIN_ROLES, STAFF_STATUS, basicOf,
+} from '@/lib/hr';
+import { HrPage, useHr, Person, Avatar, ShiftChip, StaffStatus, money } from './hrShared';
 
 const CSS = `
-body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
-*{box-sizing:border-box}
-a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
-.nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
-.nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
-.btn:hover{text-decoration:none}
-.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
-.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
-.line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
-.warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
-.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
-.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
-.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:var(--text-muted)}
-.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
-.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
-.tab:hover{background:#f1f5f9;color:#0f172a}
-.tab.on{background:#003087;color:#fff}
-.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
-.chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
-.row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
-.b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
-.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
-.b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:var(--font-data);letter-spacing:.02em}
-.fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
-@keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.flash{animation:gcFlash 900ms ease-out}
-@keyframes gcFlash{from{background:#e7f8f1}to{background:transparent}}
-.scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
-@keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
-
-.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
-.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
-.sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
-.t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
-.actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:var(--font-bn)}
-.pulse{animation:gcPulse 1.6s ease-in-out infinite}
-@keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
-@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
-.psec{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
-.num{font-variant-numeric:tabular-nums}
-.ai{height:28px;padding:0 10px;border-radius:var(--radius-lg);border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
-.ai:hover{border-color:#a78bfa;box-shadow:0 4px 12px -6px rgba(91,33,182,.5)}
-.ai:focus-visible{outline:3px solid rgba(124,58,237,.4);outline-offset:2px}
-.abtn{height:32px;padding:0 12px;border-radius:var(--radius-lg);border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-.abtn:hover{background:#f1f5f9}
-.ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0}
-.ptab{position:relative;height:52px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:var(--weight-medium)}
-.ptab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2.5px;border-radius:3px 3px 0 0;background:#003087}
-.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
-.ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
-.thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
+.as-search{position:relative;min-width:220px;flex:1 1 220px;max-width:320px}
+.as-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted)}
+.as-search input{padding-left:38px}
+.as-place{width:auto;min-width:190px}
+.as-sel{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-5);background:var(--fill-primary-soft);border-bottom:1px solid var(--border-subtle);font-size:var(--text-sm)}
+.as-sel b{font-weight:var(--weight-semibold);color:var(--primary);margin-right:auto}
+.as-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:var(--space-3);padding:var(--space-4) var(--space-5)}
+.as-card{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card);text-align:left;font:inherit;cursor:pointer;min-width:0}
+.as-card:hover{border-color:var(--primary);box-shadow:var(--shadow-sm)}
+.as-card b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.as-chips{display:flex;flex-wrap:wrap;gap:6px}
+.as-sec{margin:0;font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
+@media (max-width:640px){.as-search{max-width:none}.as-place{width:100%}}
 `;
+const FILTERS = [['all', 'All'], ['active', 'Active'], ['probation', 'Probation'], ['leave', 'On leave'], ['suspended', 'Suspended']];
+const TODAY = { P: ['Present · on time', 'hr-in'], L: ['Late', 'hr-warn'], A: ['Absent', 'hr-out'], HD: ['Half day', 'hr-warn'], V: ['On leave', ''], U: ['Unpaid leave', ''], W: ['Weekly off', ''], H: ['Holiday', ''], S: ['—', ''], wait: ['Not in yet', ''], '?': ['Not marked', 'hr-warn'], '·': ['—', ''] };
+const csvOf = (rows) => rows.map((r) => r.map((x) => `"${String(x ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+function download(name, text) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv' })); a.download = name; a.click(); }
 
-// ---- markup ----
+export default function AllStaff() {
+  const { S } = useHr();
+  const today = todayKey(S);
+  const [f, setF] = useState('all');
+  const [place, setPlace] = useState('');
+  const [q, setQ] = useState('');
+  const [view, setView] = useState('table');
+  const [sel, setSel] = useState([]);
+  const [form, setForm] = useState(null);
+  const [assign, setAssign] = useState(null);
 
-export default class AllStaffScreen extends Component {
-  render() {
-    const v = this.renderVals() || {};
-    return (
-      <div className="dc-screen ds" data-screen="AllStaff">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
-          <__Sidebar sticky="" active="hr-staff" />
-          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
-            <__Topbar crumb={"Staff & HR"} page="All staff" placeholder="Search staff by name, phone or code" />
-            <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <__PageHeader title="All staff" />
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ flexGrow: "1", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#475569" }}>Everyone who works for you — shop, warehouse, riders and office. <span className="bn">সব কর্মী এক জায়গায়।</span></div>
-                <button type="button" className="btn line" onClick={v.imp}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <path d="M17 8 12 3 7 8" />
-                    <path d="M12 3v12" />
-                  </svg>
-                  <span>Import CSV</span>
-                </button>
-                <button type="button" className="btn line" onClick={v.exp}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <path d="m7 10 5 5 5-5" />
-                    <path d="M12 15V3" />
-                  </svg>
-                  <span>Export</span>
-                </button>
-                <__Link href="/staff-profile" className="btn solid">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M5 12h14" />
-                    <path d="M12 5v14" />
-                  </svg>
-                  <span>Add staff</span>
-                </__Link>
-              </div>
-              {v.hasMsg ? (<>
-                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-lg); background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: var(--text-sm); font-weight: var(--weight-medium);`)}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="m9 12 2 2 4-4" />
-                  </svg>
-                  <span>{v.msg}</span>
-                </div>
-              </>) : null}
-              <div className="gc-cardrow" style={{ display: "flex", gap: "16px" }}>
-                <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                    </svg>
-                  </span>
-                  <div>
-                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{v.kAll}</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Total staff</div>
-                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Across 4 locations</div>
-                  </div>
-                </div>
-                <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#e7f8f1", color: "#047857", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <circle cx="12" cy="12" r="10" />
-                      <path d="m9 12 2 2 4-4" />
-                    </svg>
-                  </span>
-                  <div>
-                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#047857" }}>11</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Present today</div>
-                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>2 late · 1 on leave</div>
-                  </div>
-                </div>
-                <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#fff4e0", color: "#a14f06", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect width="20" height="12" x="2" y="6" rx="2" />
-                      <circle cx="12" cy="12" r="2" />
-                      <path d="M6 12h.01M18 12h.01" />
-                    </svg>
-                  </span>
-                  <div>
-                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{v.kPay}</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Monthly salary</div>
-                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Gross, before deductions</div>
-                  </div>
-                </div>
-                <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#f3e8ff", color: "#6d28d9", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
-                      <path d="m9 12 2 2 4-4" />
-                    </svg>
-                  </span>
-                  <div>
-                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#003087" }}>12</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>With admin login</div>
-                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>2 roles changed this month</div>
-                  </div>
-                </div>
-              </div>
-              <section className="pcard" style={{ overflow: "hidden" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", borderBottom: "1px solid #eef2f6", flexWrap: "wrap" }}>
-                  {__list(v.chips).map((ch, $index) => (<React.Fragment key={$index}>
-                      <button type="button" className={ch?.cls} onClick={ch?.pick} aria-pressed={ch?.on} style={{ height: "36px" }}>{ch?.l}<span style={{ fontSize: "var(--text-xs)", opacity: ".7" }}>{ch?.c}</span></button>
-                    </React.Fragment>))}
-                  <span style={{ flexGrow: "1" }} />
-                  <select className="inp" value={v.br} onChange={v.setBr} aria-label="Branch" style={{ width: "190px", height: "38px" }}>
-                    <option value="all">All locations</option>
-                    <option value="Dhanmondi branch">Dhanmondi branch</option>
-                    <option value="Mirpur branch">Mirpur branch</option>
-                    <option value="Central Warehouse">Central Warehouse</option>
-                    <option value="Head office">Head office</option>
-                  </select>
-                  <label style={{ position: "relative", width: "240px", display: "block" }}>
-                    <span style={{ position: "absolute", left: "12px", top: "9px", color: "var(--text-muted)" }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <circle cx="11" cy="11" r="8" />
-                        <path d="m21 21-4.3-4.3" />
-                      </svg>
-                    </span>
-                    <input className="inp" value={v.q} onInput={v.typeQ} onChange={v.typeQ} placeholder="Name, phone or EMP code" aria-label="Search staff" style={{ height: "38px", paddingLeft: "38px" }} />
-                  </label>
-                  <div style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
-                    {__list(v.views).map((vw, $index) => (<React.Fragment key={$index}>
-                        <button type="button" onClick={vw?.pick} aria-pressed={vw?.on} style={__sx(`height: 34px; padding: 0 16px; border: 0; border-radius: var(--radius-full); font: inherit; font-size: var(--text-xs-plus); font-weight: var(--weight-medium); cursor: pointer; background: ${vw?.bg ?? ""}; color: ${vw?.fg ?? ""};`)}>{vw?.l}</button>
-                      </React.Fragment>))}
-                  </div>
-                </div>
-                {v.hasSel ? (<>
-                  <div className="fade gc-on-dark" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 16px", background: "#0b1733", color: "#fff", fontSize: "var(--text-sm)" }}>
-                    <b>{v.selN} selected</b>
-                    <span style={{ flexGrow: "1" }} />
-                    <button type="button" className="btn sm" onClick={v.bulkMsg} style={{ background: "rgba(255,255,255,.12)", color: "#fff" }}>Send SMS</button>
-                    <button type="button" className="btn sm" onClick={v.bulkShift} style={{ background: "rgba(255,255,255,.12)", color: "#fff" }}>Assign shift</button>
-                    <button type="button" className="btn sm" onClick={v.bulkCsv} style={{ background: "#fff", color: "#0b1733" }}>Export</button>
-                  </div>
-                </>) : null}
-                {v.isTable ? (<>
-                  <div className="gc-table-wrap">
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                      <thead>
-                        <tr>
-                          <th className="th" />
-                          <th className="th">Staff</th>
-                          <th className="th">Designation</th>
-                          <th className="th">Location · shift</th>
-                          <th className="th">Today</th>
-                          <th className="th">Login role</th>
-                          <th className="th" style={{ textAlign: "right" }}>Salary</th>
-                          <th className="th">Status</th>
-                          <th className="th" />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {__list(v.rows).map((rw, $index) => (<React.Fragment key={$index}>
-                            <tr className="row">
-                              <td className="td" style={{ width: "40px" }}>
-                                <input type="checkbox" checked={rw?.on} onChange={rw?.tick} aria-label="Select" style={{ width: "17px", height: "17px", accentColor: "#003087" }} />
-                              </td>
-                              <td className="td">
-                                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                  <span style={__sx(`width: 36px; height: 36px; flex-shrink: 0; border-radius: var(--radius-full); background: ${rw?.ab ?? ""}; color: ${rw?.af ?? ""}; display: inline-flex; align-items: center; justify-content: center; font-size: var(--text-xs); font-weight: var(--weight-medium);`)}>{rw?.ini}</span>
-                                  <div style={{ minWidth: "0" }}>
-                                    <__A href={rw?.link} style={{ display: "block", fontWeight: "var(--weight-medium)", color: "#0f172a", textDecoration: "none" }}>{rw?.n}</__A>
-                                    <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{rw?.code}</div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="td">
-                                <div style={{ fontWeight: "var(--weight-medium)" }}>{rw?.des}</div>
-                                <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{rw?.dep} · {rw?.type}</div>
-                              </td>
-                              <td className="td">
-                                <div>{rw?.br}</div>
-                                <span style={__sx(`display: inline-flex; height: 22px; padding: 0 8px; border-radius: var(--radius-md); font-size: var(--text-xs); font-weight: var(--weight-medium); align-items: center; margin-top: 3px; background: ${rw?.sb ?? ""}; color: ${rw?.sf ?? ""};`)}>{rw?.sh}</span>
-                              </td>
-                              <td className="td">
-                                <span style={__sx(`font-size: var(--text-xs-plus); font-weight: var(--weight-medium); color: ${rw?.tc ?? ""};`)}>{rw?.today}</span>
-                              </td>
-                              <td className="td">
-                                <span className="badge b-draft">{rw?.role}</span>
-                              </td>
-                              <td className="td num" style={{ textAlign: "right", fontWeight: "var(--weight-medium)" }}>{rw?.sal}</td>
-                              <td className="td">
-                                <span style={__sx(`display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: var(--weight-medium); white-space: nowrap; background: ${rw?.pb ?? ""}; color: ${rw?.pf ?? ""};`)}>{rw?.pt}</span>
-                              </td>
-                              <td className="td">
-                                <__A className="abtn" href={rw?.link} style={{ textDecoration: "none" }}>Open</__A>
-                              </td>
-                            </tr>
-                          </React.Fragment>))}
-                      </tbody>
-                    </table>
-                  </div>
-                </>) : null}
-                {v.isCards ? (<>
-                  <div className="gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "14px", padding: "16px" }}>
-                    {__list(v.rows).map((cd, $index) => (<React.Fragment key={$index}>
-                        <__A href={cd?.link} className="actc" style={{ display: "flex", flexDirection: "column", gap: "10px", padding: "16px", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e6eaf0", textDecoration: "none", color: "inherit" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                            <span style={__sx(`width: 44px; height: 44px; flex-shrink: 0; border-radius: var(--radius-full); background: ${cd?.ab ?? ""}; color: ${cd?.af ?? ""}; display: inline-flex; align-items: center; justify-content: center; font-size: var(--text-sm); font-weight: var(--weight-semibold);`)}>{cd?.ini}</span>
-                            <div style={{ flexGrow: "1", minWidth: "0" }}>
-                              <div style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{cd?.n}</div>
-                              <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{cd?.des}</div>
-                            </div>
-                          </div>
-                          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                            <span style={__sx(`display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: var(--weight-medium); white-space: nowrap; background: ${cd?.pb ?? ""}; color: ${cd?.pf ?? ""};`)}>{cd?.pt}</span>
-                            <span style={__sx(`display: inline-flex; height: 24px; padding: 0 8px; border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: var(--weight-medium); align-items: center; background: ${cd?.sb ?? ""}; color: ${cd?.sf ?? ""};`)}>{cd?.sh}</span>
-                          </div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}>{cd?.br} · {cd?.phone}</div>
-                          <div style={__sx(`font-size: var(--text-xs-plus); font-weight: var(--weight-medium); color: ${cd?.tc ?? ""};`)}>{cd?.today}</div>
-                        </__A>
-                      </React.Fragment>))}
-                  </div>
-                </>) : null}
-                {v.none ? (<>
-                  <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>No staff match these filters.</div>
-                </>) : null}
-              </section>
-            </div>
-          </main>
-        </div>
+  const all = S.staff.filter((s) => s.status !== 'left');
+  const statusCount = (k) => all.filter((s) => k === 'all' || statusOf(S, s) === k).length;
+  const needle = q.trim().toLowerCase();
+  const list = all.filter((s) => (f === 'all' || statusOf(S, s) === f) && (!place || s.branch === place) && (!needle || `${s.name} ${s.code} ${s.phone} ${s.designation}`.toLowerCase().includes(needle)));
+  const todayOf = (s) => { const c = cellOf(S, s.code, today); const [l, cls] = TODAY[c.code] || TODAY['·']; return { l: c.code === 'L' ? `Late · ${t12(c.rec.in)}` : c.code === 'P' && c.rec ? `In · ${t12(c.rec.in)}` : c.code === 'wait' && c.plan.shifts[0] ? `Starts ${t12((shiftBy(S, c.plan.shifts[0]) || {}).start)}` : l, cls, code: c.code }; };
+  const todays = all.map(todayOf);
+  const present = todays.filter((t) => ['P', 'L', 'HD'].includes(t.code)).length;
+  const payroll = all.filter((s) => s.status !== 'suspended').reduce((a, s) => a + s.gross, 0);
+  const places = [...new Set(all.map((s) => s.branch))];
+
+  const exportRows = (rows) => {
+    download('staff.csv', csvOf([['Code', 'Name', 'Designation', 'Department', 'Place', 'Shift', 'Gross', 'Type', 'Status', 'Phone', 'Joined', 'Login role', 'Pay by', 'Paid to'], ...rows.map((s) => [s.code, s.name, s.designation, s.department, s.branch, (shiftBy(S, s.shift) || {}).name, s.gross, s.type, STAFF_STATUS[statusOf(S, s)][0], s.phone, s.joined, s.role, PAY_METHODS[s.payMethod], s.payTo])]));
+    toast(`${rows.length} staff exported as CSV.`);
+  };
+  const newForm = () => setForm({ code: '', name: '', designation: '', department: S.settings.departments[0].name, branch: 'Dhanmondi branch', shift: S.shifts[0].id, gross: '', type: 'Full-time', status: 'active', phone: '', joined: today, role: 'Sales staff', payMethod: 'bkash', payAccount: S.settings.payAccounts.bkash, payTo: '', isNew: true });
+  const save = (e) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.designation.trim()) { toast('Name and designation are needed', { tone: 'error' }); return; }
+    if (!(Number(form.gross) > 0)) { toast('Enter the monthly gross salary', { tone: 'error' }); return; }
+    if (!/^01\d{3}-?[\dX]{6}$/.test(form.phone.replace(/\s/g, ''))) { toast('Phone looks wrong — use 01XXX-XXXXXX', { tone: 'error' }); return; }
+    const { isNew, ...row } = form;
+    if (row.status === 'suspended' && !row.suspendedFrom) row.suspendedFrom = today;
+    if (row.status !== 'suspended') delete row.suspendedFrom;
+    const saved = saveStaff({ ...row, name: row.name.trim(), designation: row.designation.trim(), type: row.status === 'probation' ? 'Probation' : row.type });
+    toast(isNew ? `${saved.name} added as ${saved.code}. They show in attendance, the roster and next payroll.` : `${saved.name} saved.`);
+    setForm(null);
+  };
+  const saveAssign = (e) => {
+    e.preventDefault();
+    sel.forEach((code) => { const s = S.staff.find((x) => x.code === code); saveStaff({ ...s, shift: assign }); });
+    toast(`${sel.length} staff now on the ${shiftBy(S, assign).name} shift by default. Change single days in Shifts & roster.`);
+    setAssign(null); setSel([]);
+  };
+  const edit = (s) => setForm({ ...s, gross: String(s.gross), payTo: s.payTo || '' });
+  const tick = (code) => setSel(sel.includes(code) ? sel.filter((c) => c !== code) : [...sel, code]);
+
+  return (
+    <HrPage screen="AllStaff" active="hr-staff" page="All staff" title="All staff" css={CSS}
+      description="Everyone who works for the shop: where, which shift, what they earn and how they are paid."
+      actions={<>
+        <button type="button" className="gc-btn gc-btn--neutral" onClick={() => toast('Staff import from a spreadsheet is not in the demo yet. Add people one by one with Add staff.', { tone: 'info' })}><Icon name="upload" width="18" height="18" aria-hidden="true" /> Import</button>
+        <button type="button" className="gc-btn gc-btn--neutral" onClick={() => exportRows(list)}><Icon name="download" width="18" height="18" aria-hidden="true" /> Export</button>
+        <button type="button" className="gc-btn gc-btn--solid" onClick={newForm}><Icon name="user-plus" width="18" height="18" aria-hidden="true" /> Add staff</button>
+      </>}>
+
+      <div className="gc-kpis">
+        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="users" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Total staff</p><p className="gc-kpi__value">{all.length}<small>across {places.length} places</small></p></div></div>
+        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="user-check" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Present today</p><p className="gc-kpi__value">{present}<small>{todays.filter((t) => t.code === 'L').length} late · {todays.filter((t) => t.code === 'V' || t.code === 'U').length} on leave</small></p></div></div>
+        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-warning-soft)', color: 'var(--text-warning)' }}><Icon name="banknote" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Monthly salary</p><p className="gc-kpi__value">{money(payroll)}<small>gross, suspended left out</small></p></div></div>
+        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-info-soft)', color: 'var(--text-info)' }}><Icon name="key-round" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">With admin login</p><p className="gc-kpi__value">{all.filter((s) => s.role !== 'No login').length}<small>{all.filter((s) => s.role === 'No login').length} without</small></p></div></div>
       </div>
-    );
-  }
+
+      <section className="gc-card hr-card">
+        <div className="hr-bar">
+          <div className="gc-seg" role="group" aria-label="Status">
+            {FILTERS.map(([k, l]) => <button key={k} type="button" className={'gc-seg__btn' + (f === k ? ' gc-seg__btn--active' : '')} aria-pressed={f === k} onClick={() => setF(k)}>{l} · {statusCount(k)}</button>)}
+          </div>
+          <div className="hr-bar__group">
+            <select className="gc-input gc-select as-place" aria-label="Location" value={place} onChange={(e) => setPlace(e.target.value)}><option value="">All locations</option>{places.map((p) => <option key={p}>{p}</option>)}</select>
+            <label className="as-search"><Icon name="search" width="16" height="16" aria-hidden="true" /><input className="gc-input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, phone or EMP code" aria-label="Search staff" /></label>
+            <div className="hr-seg" role="group" aria-label="View"><button type="button" aria-pressed={view === 'table'} onClick={() => setView('table')}>Table</button><button type="button" aria-pressed={view === 'cards'} onClick={() => setView('cards')}>Cards</button></div>
+          </div>
+        </div>
+        {sel.length ? (
+          <div className="as-sel">
+            <b>{sel.length} selected</b>
+            <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => toast(`SMS drafted for ${sel.length} staff. Sending SMS from here is not in the demo yet.`, { tone: 'info' })}>Send SMS</button>
+            <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setAssign(S.shifts[0].id)}>Assign shift</button>
+            <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => exportRows(S.staff.filter((s) => sel.includes(s.code)))}>Export</button>
+            <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => setSel([])}>Clear</button>
+          </div>
+        ) : null}
+        {!list.length ? <EmptyState icon="users" title="No staff match these filters" body="Try another status or place, or clear the search." /> : view === 'table' ? (
+          <div className="gc-table-wrap">
+            <table className="gc-table gc-table--compact gc-table--hoverable">
+              <thead><tr><th scope="col"><input type="checkbox" className="gc-check" aria-label="Select all shown" checked={list.every((s) => sel.includes(s.code))} onChange={(e) => setSel(e.target.checked ? list.map((s) => s.code) : [])} /></th><th scope="col">Staff</th><th scope="col">Designation</th><th scope="col">Place · shift</th><th scope="col">Today</th><th scope="col">Login role</th><th scope="col" className="hr-num">Salary</th><th scope="col">Status</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
+              <tbody>
+                {list.map((s) => {
+                  const t = todayOf(s);
+                  return (
+                    <tr key={s.code}>
+                      <td><input type="checkbox" className="gc-check" checked={sel.includes(s.code)} onChange={() => tick(s.code)} aria-label={`Select ${s.name}`} /></td>
+                      <td><Person st={s} sub={`${s.code} · ${s.phone}`} /></td>
+                      <td><span className="hr-strong">{s.designation}</span><span className="hr-sub">{s.department} · {s.type}</span></td>
+                      <td>{s.branch}<div style={{ marginTop: 3 }}><ShiftChip S={S} id={s.shift} time /></div></td>
+                      <td className={t.cls}>{t.l}</td>
+                      <td><span className="gc-badge gc-badge--slate">{s.role}</span></td>
+                      <td className="hr-num hr-strong">{money(s.gross)}<span className="hr-sub">{PAY_METHODS[s.payMethod]}</span></td>
+                      <td><StaffStatus S={S} st={s} /></td>
+                      <td><div className="hr-actions"><button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => edit(s)} aria-label={`Edit ${s.name}`}>Edit</button></div></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="as-cards">
+            {list.map((s) => {
+              const t = todayOf(s);
+              return (
+                <button key={s.code} type="button" className="as-card" onClick={() => edit(s)} aria-label={`Edit ${s.name}`}>
+                  <div className="hr-who"><Avatar st={s} large /><span><b>{s.name}</b><span className="hr-sub">{s.designation}</span></span></div>
+                  <div className="as-chips"><StaffStatus S={S} st={s} /><ShiftChip S={S} id={s.shift} /></div>
+                  <span className="hr-sub">{s.branch} · {s.phone}</span>
+                  <span className={'hr-sub ' + t.cls} style={{ fontWeight: 'var(--weight-medium)' }}>{t.l}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <Dialog open={!!form} title={form ? (form.isNew ? 'Add staff' : `Edit · ${form.name}`) : 'Staff'} onClose={() => setForm(null)} width={720}
+        footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setForm(null)}>Cancel</button><button type="submit" form="as-form" className="gc-btn gc-btn--solid">{form && form.isNew ? 'Add staff' : 'Save'}</button></>}>
+        {form ? (() => {
+          const dept = S.settings.departments.find((d) => d.name === form.department);
+          return (
+            <form id="as-form" className="hr-form" onSubmit={save}>
+              <p className="as-sec">Person · {form.code || nextStaffCode(S)}</p>
+              <div className="hr-three">
+                <div><label className="gc-label" htmlFor="as-name">Full name *</label><input id="as-name" className="gc-input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} data-autofocus /></div>
+                <div><label className="gc-label" htmlFor="as-phone">Phone *</label><input id="as-phone" className="gc-input hr-fig" inputMode="tel" placeholder="01XXX-XXXXXX" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+                <div><label className="gc-label" htmlFor="as-joined">Joined</label><input id="as-joined" type="date" className="gc-input" value={form.joined} onChange={(e) => setForm({ ...form, joined: e.target.value })} /><span className="gc-help">{form.joined ? formatDate(fromKey(form.joined)) : ''}</span></div>
+              </div>
+              <p className="as-sec">Job</p>
+              <div className="hr-three">
+                <div><label className="gc-label" htmlFor="as-dept">Department</label><select id="as-dept" className="gc-input gc-select" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })}>{S.settings.departments.map((d) => <option key={d.name}>{d.name}</option>)}</select></div>
+                <div><label className="gc-label" htmlFor="as-des">Designation *</label><input id="as-des" className="gc-input" list="as-titles" value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} /><datalist id="as-titles">{(dept ? dept.titles : []).map((t) => <option key={t} value={t} />)}</datalist></div>
+                <div><label className="gc-label" htmlFor="as-role">Login role</label><select id="as-role" className="gc-input gc-select" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>{LOGIN_ROLES.map((r) => <option key={r}>{r}</option>)}</select></div>
+              </div>
+              <div className="hr-three">
+                <div><label className="gc-label" htmlFor="as-place">Works at</label><select id="as-place" className="gc-input gc-select" value={form.branch} onChange={(e) => setForm({ ...form, branch: e.target.value })}>{HR_PLACES.map((p) => <option key={p}>{p}</option>)}</select></div>
+                <div><label className="gc-label" htmlFor="as-shift">Usual shift</label><select id="as-shift" className="gc-input gc-select" value={form.shift} onChange={(e) => setForm({ ...form, shift: e.target.value })}>{S.shifts.map((sh) => <option key={sh.id} value={sh.id}>{sh.name} · {t12(sh.start)}–{t12(sh.end)}{sh.places.includes(form.branch) ? '' : ' (not at this place)'}</option>)}</select></div>
+                <div><label className="gc-label" htmlFor="as-type">Type</label><select id="as-type" className="gc-input gc-select" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>{STAFF_TYPES.map((t) => <option key={t}>{t}</option>)}</select></div>
+              </div>
+              <div className="hr-two">
+                <div><label className="gc-label" htmlFor="as-status">Status</label><select id="as-status" className="gc-input gc-select" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>{['active', 'probation', 'suspended', 'left'].map((k) => <option key={k} value={k}>{STAFF_STATUS[k][0]}</option>)}</select>{form.status === 'suspended' ? <span className="gc-help">No shifts and no salary from {form.suspendedFrom ? formatDate(fromKey(form.suspendedFrom)) : 'today'}.</span> : form.status === 'left' ? <span className="gc-help">Hidden from lists and payroll. Pay what is owed first.</span> : null}</div>
+                {form.status === 'probation' ? <div><label className="gc-label" htmlFor="as-prob">Probation ends</label><input id="as-prob" type="date" className="gc-input" value={form.probationEnd || ''} onChange={(e) => setForm({ ...form, probationEnd: e.target.value })} /></div>
+                  : form.type === 'Contract' ? <div><label className="gc-label" htmlFor="as-contract">Contract ends</label><input id="as-contract" type="date" className="gc-input" value={form.contractEnd || ''} onChange={(e) => setForm({ ...form, contractEnd: e.target.value })} /></div> : <div />}
+              </div>
+              <p className="as-sec">Pay</p>
+              <div className="hr-three">
+                <div><label className="gc-label" htmlFor="as-gross">Gross salary / month (৳) *</label><input id="as-gross" className="gc-input hr-fig" inputMode="numeric" value={form.gross} onChange={(e) => setForm({ ...form, gross: e.target.value.replace(/[^\d]/g, '') })} /><span className="gc-help">Basic {money(basicOf(S, Number(form.gross) || 0))}</span></div>
+                <div><label className="gc-label" htmlFor="as-method">Paid by</label><select id="as-method" className="gc-input gc-select" value={form.payMethod} onChange={(e) => setForm({ ...form, payMethod: e.target.value, payAccount: S.settings.payAccounts[e.target.value] || form.payAccount })}>{Object.entries(PAY_METHODS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
+                <div><label className="gc-label" htmlFor="as-to">{form.payMethod === 'bank' ? 'Their bank account' : form.payMethod === 'bkash' ? 'Their bKash number' : 'Paid to'}</label><input id="as-to" className="gc-input" disabled={form.payMethod === 'cash'} placeholder={form.payMethod === 'bank' ? 'Bank · A/C number' : form.payMethod === 'bkash' ? '01XXX-XXXXXX' : 'In hand, signs the sheet'} value={form.payMethod === 'cash' ? '' : form.payTo} onChange={(e) => setForm({ ...form, payTo: e.target.value })} /></div>
+              </div>
+              <AccountSelect id="as-acc" label="Pay salary from (shop account)" value={form.payAccount} onChange={(v) => setForm({ ...form, payAccount: v })} />
+              {form.payMethod === 'bank' && !form.payTo.trim() ? <div className="hr-note hr-note--warn"><Icon name="triangle-alert" width="16" height="16" aria-hidden="true" /><span>No bank account number yet — payroll will flag it before pay day.</span></div> : null}
+            </form>
+          );
+        })() : null}
+      </Dialog>
+
+      <Dialog open={!!assign} title={`Usual shift for ${sel.length} staff`} onClose={() => setAssign(null)} width={480}
+        footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setAssign(null)}>Cancel</button><button type="submit" form="as-assign" className="gc-btn gc-btn--solid">Assign shift</button></>}>
+        {assign ? (
+          <form id="as-assign" className="hr-form" onSubmit={saveAssign}>
+            <div className="hr-opts" role="radiogroup" aria-label="Shift">
+              {S.shifts.map((sh) => <label key={sh.id} className={'hr-opt' + (assign === sh.id ? ' is-on' : '')}><input type="radio" name="as-shift" checked={assign === sh.id} onChange={() => setAssign(sh.id)} /><span><b>{sh.name} · {t12(sh.start)}–{t12(sh.end)}</b><small>{sh.places.join(', ')}</small></span></label>)}
+            </div>
+            <p className="gc-help" style={{ margin: 0 }}>{S.staff.filter((s) => sel.includes(s.code)).map((s) => s.name).join(', ')}</p>
+          </form>
+        ) : null}
+      </Dialog>
+    </HrPage>
+  );
 }

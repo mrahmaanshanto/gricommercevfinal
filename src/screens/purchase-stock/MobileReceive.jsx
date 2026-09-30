@@ -103,7 +103,7 @@ export default class MobileReceiveScreen extends Component {
     return (
       <div className="dc-screen" data-screen="MobileReceive">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "390px", height: "844px", background: "#f8fafc", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ width: "min(390px, 100%)", height: "844px", background: "#f8fafc", display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <header style={{ flexShrink: "0", display: "flex", alignItems: "center", gap: "8px", padding: "12px 12px 12px 8px", background: "#ffffff", borderBottom: "1px solid #e2e8f0" }}>
             <__Link href="/receive-goods" className="ib" aria-label="Back">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

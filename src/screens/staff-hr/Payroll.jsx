@@ -1,396 +1,425 @@
 'use client';
-// Generated from design/templates/staff-hr/Payroll.dc.html by scripts/convert-design.mjs.
-// Payroll — Staff & HR — Payroll.
-// Edit freely: this file is now the source for the screen.
+// Payroll — a month's salary in five steps: check attendance → review the sheet → owner approval →
+// pay → payslips. Every number comes from src/lib/hr.js: days payable, lates and overtime from
+// Attendance, instalments from Loans & advances, the salary split from HR setup.
+// Approving turns the month into a salary liability (Accounts › Liabilities; September is LB-0001);
+// paying it posts one ledger entry per person and counts each loan instalment.
 
-import React from 'react';
-import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
-import { PageHeader as __PageHeader } from '@/components/ui';
+import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
+import Link from 'next/link';
+import { Icon } from '@/runtime/dc';
+import { toast, confirmDialog } from '@/runtime/ui';
+import { Dialog } from '@/components/ui';
+import { formatDate } from '@/lib/format';
+import { MERCHANT } from '@/lib/merchant';
+import { balanceOf } from '@/lib/ledger';
+import { leftOf, paidOf } from '@/lib/liabilities';
+import { AccountSelect, accName } from '@/screens/accounts/accShared';
+import {
+  RUN_STEPS, computeLines, runTotal, runStatusLabel, runLiability, startRun, startBonusRun, removeRun, setRunStep, setRunInputs,
+  approveRun, reopenRun, payRun, markSlipsSent, monthLabel, addMonths, payDateOf, staffBy, hm, takaWords, PAY_METHODS,
+  bonusEligible, basicOf, monthOf, keysOf, todayKey, leaveDaysOf,
+} from '@/lib/hr';
+import { HrPage, useHr, money, minus, dash, Avatar } from './hrShared';
 
-// ---- logic (from the design's <script type="text/x-dc">) ----
+const CSS = `
+.pr-runs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--space-3)}
+.pr-run{display:flex;flex-direction:column;gap:6px;min-width:0;padding:var(--space-3) var(--space-4);border:1.5px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card);text-align:left;cursor:pointer;font:inherit}
+.pr-run:hover{border-color:var(--border-strong)}
+.pr-run[aria-pressed="true"]{border-color:var(--primary);background:var(--fill-primary-soft)}
+.pr-run__top{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-width:0}
+.pr-run__top b{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pr-run__amt{font-family:var(--font-data);font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.pr-steps{display:flex;gap:var(--space-2);padding:var(--space-3);overflow-x:auto}
+.pr-step{flex:1 1 0;min-width:150px;display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg)}
+.pr-step[aria-current="step"]{background:var(--fill-primary-soft)}
+.pr-dot{flex:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:var(--radius-full);background:var(--slate-200);color:var(--text-body);font-size:var(--text-xs);font-weight:var(--weight-medium)}
+.pr-dot--done{background:var(--fill-success);color:#fff}
+.pr-dot--cur{background:var(--primary);color:#fff}
+.pr-step b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.pr-main{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,360px);gap:var(--space-5);align-items:start}
+.pr-side{display:flex;flex-direction:column;gap:var(--space-5)}
+.pr-box{padding:var(--space-4) var(--space-5);display:flex;flex-direction:column;gap:var(--space-3)}
+.pr-box h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.pr-meth{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--surface-subtle);font-size:var(--text-sm)}
+.pr-meth span:first-child{flex:1;min-width:0}
+.pr-checks{display:flex;flex-direction:column;gap:6px;font-size:var(--text-xs)}
+.pr-checks div{display:flex;gap:var(--space-2);align-items:flex-start}
+.pr-checks svg{flex:none;margin-top:1px}
+.pr-row{cursor:pointer}
+.pr-row.is-on td{background:var(--fill-primary-soft)}
+.pr-inc{width:96px;height:36px;text-align:right;font-family:var(--font-data)}
+.pr-total td{font-weight:var(--weight-semibold);color:var(--text-heading);background:var(--surface-subtle)}
+.hr-slip{display:flex;flex-direction:column}
+.hr-slip__head{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle)}
+.hr-slip__head b{display:block;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.hr-slip__body{padding:var(--space-4) var(--space-5);display:flex;flex-direction:column;gap:4px}
+.hr-slip__sec{margin-top:var(--space-2);font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
+.hr-slip__line{display:flex;justify-content:space-between;gap:var(--space-3);font-size:var(--text-sm);padding:2px 0}
+.hr-slip__line span:first-child{color:var(--text-body);min-width:0}
+.hr-slip__line small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
+.hr-slip__net{display:flex;align-items:baseline;justify-content:space-between;margin-top:var(--space-2);padding-top:var(--space-3);border-top:1px dashed var(--border-strong)}
+.hr-slip__net b{font-family:var(--font-data);font-size:var(--text-2xl);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.hr-slip__shop{display:none}
+.hr-print{display:none}
+@media (max-width:1100px){.pr-runs{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:1023px){.pr-main{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){.pr-runs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media print{
+  body > *:not(.hr-print){display:none!important}
+  .hr-print{display:block!important;width:100%}
+  .hr-print .hr-slip{break-after:page;border:0!important;box-shadow:none!important}
+  .hr-print .hr-slip__shop{display:block;padding:0 var(--space-5) var(--space-3);font-size:var(--text-xs);color:var(--text-muted)}
+  .hr-print .hr-noprint{display:none!important}
+}
+`;
+const STEP_TOAST = ['Attendance checked for the month.', 'Sent to the owner for approval.'];
 
-function bdt(n) { var neg = n < 0; var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return (neg ? '−' : '') + '৳' + s; }
-var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
-function mkTabs(self, list, cur, key, counts) { return list.map(function (x) { var on = x.k === cur; var c = counts ? counts[x.k] : null; return { label: x.label, on: on, cls: on ? 'tab on' : 'tab', hasCount: c != null, count: c, countBg: on ? 'rgba(255,255,255,0.2)' : '#e9eef5', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-function mkChips(self, list, cur, key) { return list.map(function (x) { var on = x.k === cur; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-function pTabs(self, list, cur, key, counts) { return mkTabs(self, list, cur, key, counts).map(function (x) { x.pcls = x.on ? 'ptab on' : 'ptab'; return x; }); }
-function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
-function stepN(self, key, def, step, min, max) { var s = self.state || {}; var v = s[key] == null ? def : s[key]; return { v: v, dec: function () { var p = {}; p[key] = Math.max(min, +(v - step).toFixed(2)); self.setState(p); }, inc: function () { var p = {}; p[key] = Math.min(max, +(v + step).toFixed(2)); self.setState(p); } }; }
-var CHN = { sms: ['SMS', '#e7f8f1', '#047857'], wa: ['WhatsApp', '#dcfce7', '#166534'], email: ['Email', '#e0f2fe', '#075985'] };
-function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-function toast(self, m, bad) { clearTimeout(self.t); self.setState({ msg: m, bad: !!bad }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 2800); }
-function msgV(s) { return { hasMsg: !!s.msg, msg: s.msg || '', msgBg: s.bad ? '#fff4e0' : '#e7f8f1', msgFg: s.bad ? '#7a3b04' : '#065f46' }; }
-function segv(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#0b1733' : 'transparent', fg: on ? '#fff' : '#475569', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
-// [code, name, designation, department, branch, shift, basic(gross), type, status, phone, joined, role]
-var STAFF = [
-  ['EMP-0118', 'Rakib Hasan', 'Branch manager', 'Store operations', 'Dhanmondi branch', 'morning', 38000, 'Full-time', 'active', '01712-XX4410', '3 Feb 2022', 'Manager'],
-  ['EMP-0142', 'Sadia Akter', 'Cashier', 'Store operations', 'Dhanmondi branch', 'morning', 22000, 'Full-time', 'active', '01712-XX8821', '12 Mar 2024', 'Cashier'],
-  ['EMP-0151', 'Rafi Ahmed', 'Sales associate', 'Store operations', 'Dhanmondi branch', 'evening', 16000, 'Full-time', 'active', '01819-XX2207', '8 Jan 2025', 'Sales staff'],
-  ['EMP-0121', 'Nabila Rahman', 'Branch manager', 'Store operations', 'Mirpur branch', 'morning', 35000, 'Full-time', 'active', '01715-XX6630', '19 Jun 2022', 'Manager'],
-  ['EMP-0149', 'Moumita Das', 'Cashier', 'Store operations', 'Mirpur branch', 'evening', 20000, 'Full-time', 'leave', '01911-XX0194', '2 Sep 2024', 'Cashier'],
-  ['EMP-0160', 'Arif Rahman', 'Sales associate', 'Store operations', 'Mirpur branch', 'morning', 16000, 'Probation', 'probation', '01633-XX5582', '1 Jul 2026', 'Sales staff'],
-  ['EMP-0133', 'Tareq Aziz', 'Stock keeper', 'Warehouse', 'Central Warehouse', 'warehouse', 18000, 'Full-time', 'active', '01556-XX7713', '14 Oct 2023', 'Stock staff'],
-  ['EMP-0155', 'Sabbir Hossain', 'Packer', 'Warehouse', 'Central Warehouse', 'warehouse', 14000, 'Full-time', 'active', '01798-XX3301', '5 May 2025', 'Stock staff'],
-  ['EMP-0145', 'Jahid Hasan', 'Delivery rider', 'Delivery', 'Central Warehouse', 'warehouse', 15000, 'Full-time', 'active', '01877-XX9046', '21 Nov 2024', 'Rider'],
-  ['EMP-0163', 'Sohel Rana', 'Security guard', 'Warehouse', 'Central Warehouse', 'night', 12500, 'Contract', 'active', '01309-XX1128', '10 Feb 2026', 'No login'],
-  ['EMP-0137', 'Lamia Sultana', 'Customer care', 'Customer care', 'Head office', 'office', 20000, 'Full-time', 'active', '01521-XX4467', '7 Aug 2023', 'Support'],
-  ['EMP-0158', 'Rumana Islam', 'Accountant', 'Accounts', 'Head office', 'office', 40000, 'Full-time', 'active', '01711-XX0625', '15 Jan 2023', 'Accounts'],
-  ['EMP-0161', 'Jannatul Ferdous', 'Social media executive', 'Marketing', 'Head office', 'office', 12000, 'Part-time', 'active', '01404-XX8872', '3 Aug 2026', 'Marketing'],
-  ['EMP-0112', 'Kamrul Islam', 'Senior sales associate', 'Store operations', 'Dhanmondi branch', 'evening', 19000, 'Full-time', 'suspended', '01670-XX2254', '11 Apr 2021', 'Sales staff']
-];
-var SHIFTS = { morning: ['Morning', '9:00 AM – 5:00 PM', '#e0f3fb', '#075985'], evening: ['Evening', '1:00 PM – 9:00 PM', '#f3e8ff', '#6d28d9'], warehouse: ['Warehouse', '8:00 AM – 4:00 PM', '#fff4e0', '#a14f06'], office: ['Office', '9:30 AM – 6:00 PM', '#e7f8f1', '#047857'], night: ['Night guard', '9:00 PM – 7:00 AM', '#e2e8f0', '#334155'] };
-var AV = [['#e0f3fb', '#075985'], ['#f3e8ff', '#6d28d9'], ['#fff4e0', '#a14f06'], ['#e7f8f1', '#047857'], ['#ffece6', '#b83210'], ['#e0e7ff', '#3730a3']];
-function ini(n) { var p = n.split(' '); return (p[0].charAt(0) + (p[1] || '').charAt(0)).toUpperCase(); }
-function av(n, i) { var c = AV[i % AV.length]; return { ini: ini(n), ab: c[0], af: c[1] }; }
-var PROFILE = '../staff-profile/StaffProfile.dc.html';
-// per code: [days payable (of 30), ot, incentive, cuts (late/absence), advance+loan, method]
-var PAY = { 'EMP-0118': [30, 0, 4500, 0, 0, 'bank'], 'EMP-0142': [30, 350, 1200, 0, 3400, 'bkash'], 'EMP-0151': [29, 0, 900, 533, 0, 'bkash'], 'EMP-0121': [30, 0, 3800, 0, 5000, 'bank'], 'EMP-0149': [30, 0, 600, 0, 0, 'bank'], 'EMP-0160': [30, 0, 400, 533, 0, 'cash'], 'EMP-0133': [30, 1350, 0, 0, 2500, 'bkash'], 'EMP-0155': [28, 1170, 0, 933, 0, 'cash'], 'EMP-0145': [30, 0, 3150, 0, 0, 'bkash'], 'EMP-0163': [30, 1250, 0, 0, 0, 'cash'], 'EMP-0137': [30, 0, 500, 0, 0, 'bank'], 'EMP-0158': [30, 0, 0, 0, 0, 'bank'], 'EMP-0161': [30, 0, 0, 0, 0, 'bank'] };
-var MM = { bank: ['Bank', '#e0f3fb', '#075985'], bkash: ['bKash', '#fce7f3', '#9d174d'], cash: ['Cash', '#e7f8f1', '#047857'] };
-var STEPS = [['Check attendance', 'Lates, absences, overtime'], ['Review sheet', 'Edit one-time lines'], ['Owner approval', 'Locks the numbers'], ['Pay', 'Bank, bKash or cash'], ['Payslips', 'SMS, WhatsApp, print']];
-function words(n) { return 'Taka ' + bdt(n).replace('৳', '') + ' only'; }
-class Component extends DCLogic {
-  componentWillUnmount() { clearTimeout(this.t); }
-  renderVals() {
-    var self = this, s = this.state || {};
-    var step = +(s.step || this.props.step || 2), run = s.run || 'sep', pk = s.pk || 'EMP-0142', extra = s.extra || {};
-    var rows = STAFF.map(function (r, i) { return [r, i]; }).filter(function (x) { return PAY[x[0][0]]; });
-    var T = { g: 0, ot: 0, inc: 0, cut: 0, adv: 0, net: 0 }, BM = { bank: [0, 0], bkash: [0, 0], cash: [0, 0] };
-    var calc = function (r) { var p = PAY[r[0]]; var ex = extra[r[0]] || 0; return { g: r[6], ot: p[1], inc: p[2] + ex, cut: p[3], adv: p[4], net: r[6] + p[1] + p[2] + ex - p[3] - p[4] }; };
-    rows.forEach(function (x) { var c = calc(x[0]); ['g', 'ot', 'inc', 'cut', 'adv', 'net'].forEach(function (k) { T[k] += c[k]; }); var m = PAY[x[0][0]][5]; BM[m][0]++; BM[m][1] += c.net; });
-    var dash = function (n, neg) { return n ? (neg ? '−' : '') + bdt(n) : '—'; };
-    var P = STAFF.filter(function (r) { return r[0] === pk; })[0], PI = STAFF.indexOf(P), pc = calc(P), pp = PAY[pk];
-    var gross = P[6];
-    var sep = run === 'sep';
-    var v = {
-      bonusRun: function () { toast(self, 'Festival bonus run: pick the festival, % of basic and who is eligible (6+ months).'); },
-      runs: [['sep', 'Sep 2026', sep ? (step >= 5 ? 'Paid' : step >= 3 ? 'Approved' : 'Draft') : 'Draft', T.net, 'Pay day 1 Oct · 13 staff'], ['aug', 'Aug 2026', 'Paid', 294180, 'Paid 1 Sep · 13 staff'], ['jul', 'Jul 2026', 'Paid', 287460, 'Paid 1 Aug · 12 staff'], ['eid', 'Eid-ul-Adha bonus', 'Paid', 128000, 'Paid 22 May · 12 staff'], ['jun', 'Jun 2026', 'Paid', 283950, 'Paid 1 Jul · 12 staff']].map(function (x) { var on = x[0] === run; var paid = x[2] === 'Paid'; return { l: x[1], pt: x[2], pb: paid ? '#e7f8f1' : x[2] === 'Approved' ? '#e0f2fe' : '#fff4e0', pf: paid ? '#047857' : x[2] === 'Approved' ? '#075985' : '#a14f06', amt: bdt(x[3]), sub: x[4], on: on, bd: on ? '#003087' : '#e6eaf0', bg: on ? '#f5f8ff' : '#fff', pick: function () { self.setState({ run: x[0] }); if (x[0] !== 'sep') toast(self, x[1] + ' is paid and locked — open to reprint payslips.'); } }; }),
-      steps: STEPS.map(function (x, i) { var n = i + 1; var done = n < step, cur = n === step; return { l: x[0], s: x[1], n: done ? '' : n, done: done, cur: cur, dot: done ? '#10b981' : cur ? '#003087' : '#cbd5e1', bg: cur ? '#f5f8ff' : 'transparent', fg: done || cur ? '#0f172a' : 'var(--text-muted)' }; }),
-      runL: 'September 2026', xls: function () { toast(self, 'Salary sheet downloaded as Excel.'); }, prt: function () { toast(self, 'Salary sheet sent to the printer.'); },
-      rows: rows.map(function (x) { var r = x[0], c = calc(r), p = PAY[r[0]], m = MM[p[5]]; return assign(av(r[1], x[1]), { n: r[1], des: r[2], link: PROFILE, days: p[0] + ' / 30', dc: p[0] < 30 ? '#b83210' : '#334155', g: bdt(c.g), ot: dash(c.ot), inc: dash(c.inc), cut: dash(c.cut, 1), adv: dash(c.adv, 1), net: bdt(c.net), m: m[0], mb: m[1], mf: m[2], on: r[0] === pk, xl: (r[0] === pk ? 'Payslip shown for ' : 'Show payslip for ') + r[1], bg: r[0] === pk ? '#f5f8ff' : 'transparent', pick: function () { self.setState({ pk: r[0] }); } }); }),
-      nPaid: rows.length, tG: bdt(T.g), tOt: bdt(T.ot), tInc: bdt(T.inc), tCut: '−' + bdt(T.cut), tAdv: '−' + bdt(T.adv), tNet: bdt(T.net),
-      ps: assign(av(P[1], PI), { n: P[1], code: P[0], des: P[2] + ' · ' + P[4], link: PROFILE, net: bdt(pc.net), words: words(pc.net) }),
-      earn: [['Basic (55%)', Math.round(gross * .55)], ['House rent (25%)', Math.round(gross * .25)], ['Medical', Math.round(gross * .075)], ['Transport', Math.round(gross * .075)], ['Mobile', gross - Math.round(gross * .55) - Math.round(gross * .25) - 2 * Math.round(gross * .075)], ['Overtime', pc.ot], ['Sales incentive', pc.inc]].filter(function (x) { return x[1]; }).map(function (x) { return { l: x[0], v: bdt(x[1]) }; }),
-      ded: [['Late / absence', pc.cut], ['Advance recovery', pk === 'EMP-0142' ? 1000 : pk === 'EMP-0133' ? 2500 : 0], ['Loan instalment', pk === 'EMP-0142' ? 2400 : pk === 'EMP-0121' ? 5000 : 0]].filter(function (x) { return x[1]; }).map(function (x) { return { l: x[0], v: '−' + bdt(x[1]) }; }),
-      addLine: function () { var n = assign({}, extra); n[pk] = (n[pk] || 0) + 500; self.setState({ extra: n }); toast(self, '৳500 one-time bonus added for ' + P[1] + '.'); },
-      actT: ['Before you continue', 'Ready for approval?', 'Owner approval', 'Pay ' + bdt(T.net), 'Send payslips'][step - 1],
-      byM: [['bank', 'Bank transfer', '#0a5bd0'], ['bkash', 'bKash', '#db2777'], ['cash', 'Cash', '#10b981']].map(function (x) { return { l: x[1], c: x[2], n: BM[x[0]][0], v: bdt(BM[x[0]][1]) }; }),
-      checks: (step <= 2 ? [['✓', 'All attendance fixes closed', '#047857'], ['✓', 'Leave for September approved', '#047857'], ['!', 'Jannatul Ferdous has no bank account — add it or pay by bKash', '#b45309']] : step === 3 ? [['✓', 'Sheet reviewed by Rumana Islam (Accounts)', '#047857'], ['!', 'Numbers lock once you approve', '#b45309']] : step === 4 ? [['✓', 'Approved by you · 19 Sep 2026', '#047857']] : [['✓', 'Paid · 1 Oct 2026', '#047857'], ['✓', 'Salary expense posted to Accounting', '#047857']]).map(function (c) { return { ok: c[0] === '✓', t: c[1], c: c[2] === '#b45309' ? 'var(--text-warning)' : c[2] }; }),
-      isPay: step === 4, canBack: step > 1 && step < 5,
-      actBtn: ['Attendance checked — next', 'Send for owner approval', 'Approve and lock', 'Mark as paid', 'Send payslips by SMS'][step - 1],
-      advance: function () { if (step < 5) { self.setState({ step: step + 1 }); toast(self, ['Attendance locked for September.', 'Sent to the owner for approval.', 'Approved. Numbers are locked.', 'Marked as paid. Advances and loan balances updated.'][step - 1]); } else toast(self, 'Payslips sent to 13 staff by SMS. Print copies are ready.'); },
-      back: function () { self.setState({ step: step - 1 }); }
-    };
-    return assign(v, msgV(s));
-  }
+/** One person's payslip: earnings, deductions (with each loan's balance after) and net. */
+function Payslip({ S, run, ln, onAddLine, printed }) {
+  const st = staffBy(S, ln.code) || { code: ln.code, name: ln.name };
+  const liab = runLiability(S, run);
+  const lline = liab ? liab.lines.find((x) => x.name === ln.name) : null;
+  const earn = [
+    ...ln.parts.map(([l, v]) => [l, v]),
+    ...(ln.ot ? [[`Overtime · ${hm(ln.otMin)}`, ln.ot]] : []),
+    ...(ln.incentive ? [['Sales incentive', ln.incentive]] : []),
+    ...ln.extras.filter((x) => x.amount > 0).map((x) => [x.label, x.amount]),
+  ];
+  const cutWhy = [ln.absent ? `${ln.absent} absent` : '', ln.unpaidLeave ? `${ln.unpaidLeave} unpaid leave` : '', ln.half ? `${ln.half} half day${ln.half > 1 ? 's' : ''}` : '', ln.lateDays ? `${ln.late} lates = ${ln.lateDays} day` : '', ln.notJoined ? `joined on day ${ln.notJoined + 1}` : ''].filter(Boolean).join(' · ');
+  const ded = [
+    ...(ln.cut ? [['Late / absence', ln.cut, cutWhy]] : []),
+    ...ln.loanCuts.map((c) => [`${c.type === 'loan' ? 'Loan instalment' : 'Advance recovery'} · ${c.id}`, c.amount, `Balance after: ${c.after ? money(c.after) : 'paid off'}`]),
+    ...ln.extras.filter((x) => x.amount < 0).map((x) => [x.label, -x.amount, '']),
+  ];
+  return (
+    <section className={'gc-card hr-slip' + (printed ? '' : ' hr-card')} aria-label={`Payslip · ${ln.name}`}>
+      <div className="hr-slip__head">
+        <Avatar st={st} large />
+        <span style={{ flex: 1, minWidth: 0 }}><b>{ln.name}</b><span className="hr-sub">{ln.code} · {ln.designation} · {ln.branch}</span></span>
+        <span className="hr-sub" style={{ textAlign: 'right' }}>Payslip<br />{run.kind === 'bonus' ? run.title : monthLabel(run.month)}</span>
+      </div>
+      <p className="hr-slip__shop">{MERCHANT.name} · {MERCHANT.address}</p>
+      <div className="hr-slip__body">
+        {run.kind !== 'bonus' ? <div className="hr-slip__line"><span>Days payable</span><span className="hr-fig">{ln.payable} of {ln.days}</span></div> : null}
+        <div className="hr-slip__sec" style={{ color: 'var(--text-success)' }}>Earnings</div>
+        {earn.map(([l, v]) => <div key={l} className="hr-slip__line"><span>{l}</span><span className="hr-fig">{money(v)}</span></div>)}
+        {ded.length ? <div className="hr-slip__sec" style={{ color: 'var(--text-danger)' }}>Deductions</div> : null}
+        {ded.map(([l, v, why]) => <div key={l} className="hr-slip__line"><span>{l}{why ? <small>{why}</small> : null}</span><span className="hr-fig hr-out">−{money(v)}</span></div>)}
+        <div className="hr-slip__net"><span className="hr-strong">Net pay</span><b>{money(ln.net)}</b></div>
+        <span className="hr-sub">{takaWords(ln.net)}</span>
+        <span className="hr-sub" style={{ marginTop: 'var(--space-2)' }}>
+          {PAY_METHODS[ln.payMethod]}{ln.payTo ? ` to ${ln.payTo}` : ''} · from {accName(ln.payAccount)}
+          {lline && lline.paid >= lline.amount ? ` · paid ${run.paidAt ? formatDate(run.paidAt) : ''}` : run.status === 'approved' ? ` · due ${formatDate(payDateOf(run.month, S.settings))}` : ''}
+        </span>
+        {onAddLine ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral hr-noprint" style={{ marginTop: 'var(--space-3)', alignSelf: 'flex-start' }} onClick={onAddLine}><Icon name="plus" width="14" height="14" aria-hidden="true" /> Add a one-time line</button> : null}
+      </div>
+    </section>
+  );
 }
 
-// ---- styles (from the design's <helmet>) ----
+export default function Payroll() {
+  const { S } = useHr();
+  const runs = useMemo(() => [...S.runs].sort((a, b) => (b.month + (b.kind === 'bonus' ? '1' : '0')).localeCompare(a.month + (a.kind === 'bonus' ? '1' : '0'))), [S.runs]);
+  const [pick, setPick] = useState(null);
+  const run = runs.find((r) => r.id === pick) || [...runs].reverse().find((r) => r.status !== 'paid') || runs[0];
+  const lines = useMemo(() => (run && (run.lines || run.status !== 'paid') ? computeLines(S, run) : []), [S, run]);
+  const [pk, setPk] = useState(null);
+  const sel = lines.find((l) => l.code === pk) || lines[0] || null;
+  const [pay, setPay] = useState(null);           // { mode, account }
+  const [bonus, setBonus] = useState(null);       // { title, pct }
+  const [extra, setExtra] = useState(null);       // { code, label, amount, sign }
+  const [printSet, setPrintSet] = useState([]);
 
-const CSS = `.pcard{overflow-x:auto}
-.plink{display:block;min-height:24px;line-height:24px}
-.pexp{width:28px;height:28px;flex-shrink:0;padding:0;border:0;border-radius:var(--radius-lg);background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background-color 200ms}
-.pexp:hover{background:#e2e8f0;color:#0f172a}
-.pexp:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.pexp[aria-expanded="true"]{background:rgba(0,48,135,.1);color:#003087}
+  if (!run) return null;
+  const draft = run.status === 'draft';
+  const step = run.status === 'paid' ? Math.max(5, run.step || 5) : run.step || 1;
+  const archived = run.status === 'paid' && !run.lines;
+  const total = runTotal(S, run);
+  const liab = runLiability(S, run);
+  const left = liab ? leftOf(liab) : 0;
+  const T = lines.reduce((a, l) => ({ g: a.g + (l.bonus || l.gross), ot: a.ot + l.ot, inc: a.inc + l.incentive + l.extras.reduce((b, x) => b + Math.max(0, x.amount), 0), cut: a.cut + l.cut + l.extras.reduce((b, x) => b + Math.max(0, -x.amount), 0), loan: a.loan + l.loan, net: a.net + l.net }), { g: 0, ot: 0, inc: 0, cut: 0, loan: 0, net: 0 });
+  const byMethod = ['bank', 'bkash', 'cash'].map((m) => { const ls = lines.filter((l) => l.payMethod === m); return { m, n: ls.length, v: ls.reduce((a, l) => a + l.net, 0) }; });
+  const latestSalary = runs.find((r) => r.kind === 'salary');
+  const nextMonth = latestSalary ? addMonths(latestSalary.month, 1) : monthOf(todayKey(S));
+  const canStart = latestSalary && latestSalary.status !== 'draft' && nextMonth <= monthOf(todayKey(S));
+  const suspended = S.staff.filter((s) => s.status === 'suspended');
 
-body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
-*{box-sizing:border-box}
-a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
-.nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
-.nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
-.btn:hover{text-decoration:none}
-.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
-.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
-.line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
-.warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
-.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
-.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
-.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:var(--text-muted)}
-.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
-.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
-.tab:hover{background:#f1f5f9;color:#0f172a}
-.tab.on{background:#003087;color:#fff}
-.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
-.chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:12px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
-.row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
-.b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
-.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
-.b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:var(--font-data);letter-spacing:.02em}
-.fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
-@keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.flash{animation:gcFlash 900ms ease-out}
-@keyframes gcFlash{from{background:#e7f8f1}to{background:transparent}}
-.scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
-@keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
-
-.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
-.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
-.sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
-.t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
-.actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:var(--font-bn)}
-.pulse{animation:gcPulse 1.6s ease-in-out infinite}
-@keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
-@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
-.psec{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
-.num{font-variant-numeric:tabular-nums}
-.ai{height:28px;padding:0 10px;border-radius:var(--radius-lg);border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
-.ai:hover{border-color:#a78bfa;box-shadow:0 4px 12px -6px rgba(91,33,182,.5)}
-.ai:focus-visible{outline:3px solid rgba(124,58,237,.4);outline-offset:2px}
-.abtn{height:32px;padding:0 12px;border-radius:var(--radius-lg);border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-.abtn:hover{background:#f1f5f9}
-.ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0}
-.ptab{position:relative;height:52px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:var(--weight-medium)}
-.ptab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2.5px;border-radius:3px 3px 0 0;background:#003087}
-.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
-.ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
-.thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
-`;
-
-// ---- markup ----
-
-export default class PayrollScreen extends Component {
-  render() {
-    const v = this.renderVals() || {};
-    return (
-      <div className="dc-screen ds" data-screen="Payroll">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
-          <__Sidebar sticky="" active="hr-payroll" />
-          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
-            <__Topbar crumb={"Staff & HR"} page="Payroll" placeholder="Search staff by name, phone or code" />
-            <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <__PageHeader title="Payroll" />
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ flexGrow: "1", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#475569" }}>Attendance, leave, overtime, sales incentive, advances and loans flow in by themselves. Check the sheet, approve, pay, send payslips.</div>
-                <button type="button" className="btn line" onClick={v.bonusRun}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <rect x="3" y="8" width="18" height="4" rx="1" />
-                    <path d="M12 8v13" />
-                    <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" />
-                    <path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5" />
-                  </svg>
-                  <span>Festival bonus run</span>
-                </button>
-                <__Link href="/hr-setup" className="btn line">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M21 4h-7" />
-                    <path d="M10 4H3" />
-                    <path d="M21 12h-9" />
-                    <path d="M8 12H3" />
-                    <path d="M21 20h-5" />
-                    <path d="M12 20H3" />
-                    <path d="M14 2v4" />
-                    <path d="M8 10v4" />
-                    <path d="M16 18v4" />
-                  </svg>
-                  <span>Salary components</span>
-                </__Link>
-              </div>
-              {v.hasMsg ? (<>
-                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-lg); background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: var(--text-sm); font-weight: var(--weight-medium);`)}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="m9 12 2 2 4-4" />
-                  </svg>
-                  <span>{v.msg}</span>
-                </div>
-              </>) : null}
-              <div className="gc-cols-5" style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: "12px" }}>
-                {__list(v.runs).map((rn, $index) => (<React.Fragment key={$index}>
-                    <button type="button" onClick={rn?.pick} aria-pressed={rn?.on} style={__sx(`text-align: left; padding: 14px 16px; border-radius: var(--radius-xl); border: 1.5px solid ${rn?.bd ?? ""}; background: ${rn?.bg ?? ""}; font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 6px;`)}>
-                      <div style={{ display: "flex", alignItems: "center" }}>
-                        <span style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#0f172a", flexGrow: "1" }}>{rn?.l}</span>
-                        <span style={__sx(`display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: var(--weight-medium); white-space: nowrap; background: ${rn?.pb ?? ""}; color: ${rn?.pf ?? ""};`)}>{rn?.pt}</span>
-                      </div>
-                      <div className="num" style={{ fontSize: "var(--text-xl)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{rn?.amt}</div>
-                      <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{rn?.sub}</div>
-                    </button>
-                  </React.Fragment>))}
-              </div>
-              <div className="pcard" style={{ padding: "14px", display: "flex", gap: "8px" }}>
-                {__list(v.steps).map((sp, $index) => (<React.Fragment key={$index}>
-                    <div style={__sx(`flex: 1; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-xl); background: ${sp?.bg ?? ""};`)} aria-current={sp?.cur ? "step" : undefined}>
-                      <span style={__sx(`width: 28px; height: 28px; border-radius: var(--radius-full); background: ${sp?.dot ?? ""}; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: var(--text-xs); font-weight: var(--weight-medium); flex-shrink: 0;`)}>{sp?.done ? (<><__Icon name="check" width="14" height="14" aria-hidden="true" /><span className="sr-only">Done</span></>) : sp?.n}</span>
-                      <div>
-                        <div style={__sx(`font-size: var(--text-sm); font-weight: var(--weight-medium); color: ${sp?.fg ?? ""};`)}>{sp?.l}</div>
-                        <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{sp?.s}</div>
-                      </div>
-                    </div>
-                  </React.Fragment>))}
-              </div>
-              <div style={{ display: "flex", gap: "18px", alignItems: "flex-start" }}>
-                <div style={{ flexGrow: "1", minWidth: "0" }}>
-                  <section className="pcard" style={{ overflow: "hidden" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", borderBottom: "1px solid #eef2f6" }}>
-                      <h2 style={{ margin: "0", fontSize: "var(--text-base)", flexGrow: "1" }}>Salary sheet · {v.runL}</h2>
-                      <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Click a row to see the breakdown</span>
-                      <button type="button" className="abtn" onClick={v.xls}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-  <path d="m7 10 5 5 5-5" />
-  <path d="M12 15V3" />
-</svg>Excel</button>
-                      <button type="button" className="abtn" onClick={v.prt}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-  <path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6" />
-  <rect x="6" y="14" width="12" height="8" rx="1" />
-</svg>Print</button>
-                    </div>
-                    <div className="gc-table-wrap">
-                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                        <thead>
-                          <tr>
-                            <th className="th">Staff</th>
-                            <th className="th">Days</th>
-                            <th className="th" style={{ textAlign: "right" }}>Gross</th>
-                            <th className="th" style={{ textAlign: "right" }}>Overtime</th>
-                            <th className="th" style={{ textAlign: "right" }}>Incentive</th>
-                            <th className="th" style={{ textAlign: "right" }}>Cuts</th>
-                            <th className="th" style={{ textAlign: "right" }}>Advance · loan</th>
-                            <th className="th" style={{ textAlign: "right" }}>Net pay</th>
-                            <th className="th">Pay by</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {__list(v.rows).map((py, $index) => (<React.Fragment key={$index}>
-                              <tr className="row" style={__sx(`background: ${py?.bg ?? ""};`)}>
-                                <td className="td">
-                                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                    <button type="button" className="pexp" onClick={py?.pick} aria-expanded={py?.on} aria-controls="payslip-panel" aria-label={py?.xl} title={py?.xl}><__Icon name="chevron-right" width="16" height="16" aria-hidden="true" /></button>
-                                    <span style={__sx(`width: 36px; height: 36px; flex-shrink: 0; border-radius: var(--radius-full); background: ${py?.ab ?? ""}; color: ${py?.af ?? ""}; display: inline-flex; align-items: center; justify-content: center; font-size: var(--text-xs); font-weight: var(--weight-medium);`)}>{py?.ini}</span>
-                                    <div style={{ minWidth: "0" }}>
-                                      <__A href={py?.link} className="plink" style={{ fontWeight: "var(--weight-medium)", color: "#0f172a", textDecoration: "none" }}>{py?.n}</__A>
-                                      <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{py?.des}</div>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="td num" style={__sx(`color: ${py?.dc ?? ""};`)}>{py?.days}</td>
-                                <td className="td num" style={{ textAlign: "right" }}>{py?.g}</td>
-                                <td className="td num" style={{ textAlign: "right", color: "#6d28d9" }}>{py?.ot}</td>
-                                <td className="td num" style={{ textAlign: "right", color: "#047857" }}>{py?.inc}</td>
-                                <td className="td num" style={{ textAlign: "right", color: "#b83210" }}>{py?.cut}</td>
-                                <td className="td num" style={{ textAlign: "right", color: "#b83210" }}>{py?.adv}</td>
-                                <td className="td num" style={{ textAlign: "right", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{py?.net}</td>
-                                <td className="td">
-                                  <span style={__sx(`display: inline-flex; height: 24px; padding: 0 9px; border-radius: var(--radius-md); font-size: var(--text-xs); font-weight: var(--weight-medium); align-items: center; background: ${py?.mb ?? ""}; color: ${py?.mf ?? ""};`)}>{py?.m}</span>
-                                </td>
-                              </tr>
-                            </React.Fragment>))}
-                          <tr style={{ background: "#f8fafc" }}>
-                            <td className="td" style={{ fontWeight: "var(--weight-semibold)" }}>Total · {v.nPaid} staff</td>
-                            <td className="td" />
-                            <td className="td num" style={{ textAlign: "right", fontWeight: "var(--weight-semibold)" }}>{v.tG}</td>
-                            <td className="td num" style={{ textAlign: "right", fontWeight: "var(--weight-semibold)", color: "#6d28d9" }}>{v.tOt}</td>
-                            <td className="td num" style={{ textAlign: "right", fontWeight: "var(--weight-semibold)", color: "#047857" }}>{v.tInc}</td>
-                            <td className="td num" style={{ textAlign: "right", fontWeight: "var(--weight-semibold)", color: "#b83210" }}>{v.tCut}</td>
-                            <td className="td num" style={{ textAlign: "right", fontWeight: "var(--weight-semibold)", color: "#b83210" }}>{v.tAdv}</td>
-                            <td className="td num" style={{ textAlign: "right", fontWeight: "var(--weight-semibold)", fontSize: "var(--text-sm-plus)", color: "#0f172a" }}>{v.tNet}</td>
-                            <td className="td" />
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                    <div style={{ padding: "12px 16px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", borderTop: "1px solid #eef2f6" }}>Kamrul Islam is suspended — his salary is on hold and not in this run.</div>
-                  </section>
-                </div>
-                <div style={{ width: "360px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "18px" }}>
-                  <section className="pcard" style={{ padding: "18px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                    <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>{v.actT}</div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      {__list(v.byM).map((bm, $index) => (<React.Fragment key={$index}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-sm)", padding: "10px 12px", borderRadius: "var(--radius-lg)", background: "#f7f9fc" }}>
-                            <span style={__sx(`width: 10px; height: 10px; border-radius: var(--radius-full); background: ${bm?.c ?? ""};`)} />
-                            <span style={{ flexGrow: "1" }}>{bm?.l} <span style={{ color: "var(--text-muted)" }}>· {bm?.n} staff</span></span>
-                            <span className="num" style={{ fontWeight: "var(--weight-semibold)" }}>{bm?.v}</span>
-                          </div>
-                        </React.Fragment>))}
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      {__list(v.checks).map((ck, $index) => (<React.Fragment key={$index}>
-                          <div style={__sx(`display: flex; gap: 8px; font-size: var(--text-xs-plus); color: ${ck?.c ?? ""};`)}>
-                            <__Icon name={ck?.ok ? "check" : "triangle-alert"} width="14" height="14" aria-hidden="true" style={{ flexShrink: "0", marginTop: "2px" }} />
-                            <span>{ck?.t}</span>
-                          </div>
-                        </React.Fragment>))}
-                    </div>
-                    {v.isPay ? (<>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "var(--text-xs-plus)" }}>
-                        <label style={{ display: "flex", gap: "8px", alignItems: "center" }}><input type="checkbox" defaultChecked="" style={{ accentColor: "#003087" }} />Bank file for 6 staff (BEFTN)</label>
-                        <label style={{ display: "flex", gap: "8px", alignItems: "center" }}><input type="checkbox" defaultChecked="" style={{ accentColor: "#003087" }} />bKash bulk payment for 4 staff</label>
-                        <label style={{ display: "flex", gap: "8px", alignItems: "center" }}><input type="checkbox" defaultChecked="" style={{ accentColor: "#003087" }} />Cash sign sheet for 3 staff</label>
-                      </div>
-                    </>) : null}
-                    <button type="button" className="btn solid" onClick={v.advance} style={{ width: "100%" }}>{v.actBtn}</button>
-                    {v.canBack ? (<>
-                      <button type="button" className="btn line sm" onClick={v.back} style={{ width: "100%" }}>Go back a step</button>
-                    </>) : null}
-                  </section>
-                  <section id="payslip-panel" aria-label="Payslip" aria-live="polite" className="pcard" style={{ overflow: "hidden" }}>
-                    <div className="gc-on-dark" style={{ padding: "16px 18px", background: "#0b1733", color: "#fff", display: "flex", alignItems: "center", gap: "12px" }}>
-                      <span style={__sx(`width: 42px; height: 42px; flex-shrink: 0; border-radius: var(--radius-full); background: ${v.ps?.ab ?? ""}; color: ${v.ps?.af ?? ""}; display: inline-flex; align-items: center; justify-content: center; font-size: var(--text-sm); font-weight: var(--weight-semibold);`)}>{v.ps?.ini}</span>
-                      <div style={{ flexGrow: "1" }}>
-                        <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>{v.ps?.n}</div>
-                        <div style={{ fontSize: "var(--text-xs-plus)", opacity: ".75" }}>{v.ps?.code} · {v.ps?.des}</div>
-                      </div>
-                      <__A href={v.ps?.link} style={{ color: "#fff", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>Profile</__A>
-                    </div>
-                    <div style={{ padding: "14px 18px", display: "flex", flexDirection: "column", gap: "4px" }}>
-                      <div className="psec" style={{ color: "#047857" }}>Earnings</div>
-                      {__list(v.earn).map((er, $index) => (<React.Fragment key={$index}>
-                          <div style={{ display: "flex", fontSize: "var(--text-sm)", padding: "3px 0" }}>
-                            <span style={{ flexGrow: "1", color: "#334155" }}>{er?.l}</span>
-                            <span className="num" style={{ fontWeight: "var(--weight-medium)" }}>{er?.v}</span>
-                          </div>
-                        </React.Fragment>))}
-                      <div className="psec" style={{ color: "#b83210", marginTop: "10px" }}>Deductions</div>
-                      {__list(v.ded).map((dd, $index) => (<React.Fragment key={$index}>
-                          <div style={{ display: "flex", fontSize: "var(--text-sm)", padding: "3px 0" }}>
-                            <span style={{ flexGrow: "1", color: "#334155" }}>{dd?.l}</span>
-                            <span className="num" style={{ fontWeight: "var(--weight-medium)", color: "#b83210" }}>{dd?.v}</span>
-                          </div>
-                        </React.Fragment>))}
-                      <div style={{ display: "flex", alignItems: "baseline", paddingTop: "10px", marginTop: "6px", borderTop: "1px dashed #cbd5e1" }}>
-                        <span style={{ flexGrow: "1", fontWeight: "var(--weight-semibold)" }}>Net pay</span>
-                        <span className="num" style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{v.ps?.net}</span>
-                      </div>
-                      <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{v.ps?.words}</div>
-                      <button type="button" className="btn line sm" onClick={v.addLine} style={{ marginTop: "8px" }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M5 12h14" />
-                          <path d="M12 5v14" />
-                        </svg>
-                        <span>Add a one-time line</span>
-                      </button>
-                    </div>
-                  </section>
-                </div>
-              </div>
-            </div>
-          </main>
-        </div>
-      </div>
-    );
+  // what to look at before the numbers are locked
+  const checks = [];
+  if (run.kind === 'salary' && run.status !== 'paid') {
+    const unmarked = lines.reduce((a, l) => a + (l.unmarked || 0), 0);
+    const fixes = S.fixes.filter((f) => f.status === 'wait' && monthOf(f.key) === run.month);
+    const leaves = S.leave.requests.filter((r) => r.status === 'wait' && r.from <= keysOf(run.month).slice(-1)[0] && r.to >= run.month + '-01');
+    checks.push(unmarked ? ['warn', `${unmarked} working day${unmarked === 1 ? ' has' : 's have'} no attendance yet — they count as worked.`, '/attendance'] : ['ok', 'Every working day so far has attendance.']);
+    checks.push(fixes.length ? ['warn', `${fixes.length} attendance fix request${fixes.length === 1 ? '' : 's'} still open.`, '/attendance'] : ['ok', 'No attendance fixes waiting.']);
+    checks.push(leaves.length ? ['warn', `${leaves.length} leave request${leaves.length === 1 ? '' : 's'} in ${monthLabel(run.month, true)} not decided (${leaves.reduce((a, r) => a + leaveDaysOf(S, r.code, r.from, r.to), 0)} days).`, '/leave'] : ['ok', `Leave for ${monthLabel(run.month, true)} is decided.`]);
   }
+  lines.filter((l) => l.payMethod === 'bank' && !l.payTo).forEach((l) => checks.push(['warn', `${l.name} has no bank account number — add it on All staff or pay by bKash.`, '/all-staff']));
+  if (run.checkedAt && step >= 2) checks.push(['ok', `Attendance checked by ${run.checkedBy || 'Owner'} · ${formatDate(run.checkedAt)}`]);
+  if (run.sentAt && step >= 3) checks.push(['ok', `Sheet reviewed and sent by ${run.sentBy || 'Owner'} · ${formatDate(run.sentAt)}`]);
+  if (step === 3) checks.push(['warn', 'The numbers lock once you approve, and the month is added to Accounts › Liabilities.']);
+  if (run.approvedAt && step >= 4) checks.push(['ok', `Approved by ${run.approvedBy || 'Owner'} · ${formatDate(run.approvedAt)}${liab ? ' · ' + liab.id : ''}`]);
+  if (step === 4 && liab && paidOf(liab) > 0) checks.push(['warn', `${money(paidOf(liab))} already paid from Accounts · ${money(left)} left.`]);
+  if (run.status === 'paid' && run.paidAt) checks.push(['ok', `Paid · ${formatDate(run.paidAt)} · posted to Accounts › Money book`]);
+  if (run.slipsAt) checks.push(['ok', `Payslips sent by ${run.slipsHow || 'SMS'} · ${formatDate(run.slipsAt)}`]);
+
+  const doPrint = (codes) => { setPrintSet(codes); window.setTimeout(() => window.print(), 60); };
+  const next = () => {
+    if (step === 1 || step === 2) { setRunStep(run.id, step + 1); toast(STEP_TOAST[step - 1]); return; }
+    if (step === 3) {
+      confirmDialog({ title: `Approve ${run.kind === 'bonus' ? run.title : monthLabel(run.month)}?`, body: `${lines.length} staff · ${money(T.net)}. The numbers lock and the amount is owed to staff until it is paid.`, confirmLabel: 'Approve and lock' }).then((ok) => {
+        if (!ok) return;
+        const r = approveRun(run.id);
+        toast(`Approved. ${r.note}`);
+      });
+      return;
+    }
+    if (step === 4) { setPay({ mode: 'usual', account: S.settings.payAccounts.bank }); return; }
+    markSlipsSent(run.id, 'SMS');
+    toast(`Payslip links sent by SMS to ${lines.length} staff.`);
+  };
+  const back = () => {
+    if (step === 4) {
+      confirmDialog({ title: 'Change the approved numbers?', body: 'The run goes back to review. When you approve again, the salary liability is updated to the new numbers.', confirmLabel: 'Back to review' }).then((ok) => {
+        if (!ok) return;
+        if (!reopenRun(run.id)) toast('Part of this month is already paid, so it can not be changed. Add a one-time line next month instead.', { tone: 'error' });
+        else toast('Back to review. Approve again to lock the new numbers.', { tone: 'info' });
+      });
+      return;
+    }
+    setRunStep(run.id, step - 1);
+  };
+  const setIncentive = (code, v) => setRunInputs(run.id, { incentive: { ...(run.incentive || {}), [code]: v.replace(/[^\d]/g, '') } });
+  const saveExtra = (e) => {
+    e.preventDefault();
+    const amt = Math.round(Number(extra.amount) || 0);
+    if (!extra.label.trim() || !amt) { toast('Write what the line is for and an amount', { tone: 'error' }); return; }
+    const list = [...(((run.extras || {})[extra.code]) || []), { label: extra.label.trim(), amount: extra.sign === '-' ? -amt : amt }];
+    setRunInputs(run.id, { extras: { ...(run.extras || {}), [extra.code]: list } });
+    toast(`${extra.sign === '-' ? 'Deduction' : 'Payment'} of ${money(amt)} added for ${staffBy(S, extra.code).name}.`);
+    setExtra(null);
+  };
+  const exportCsv = () => {
+    const rows = [['Code', 'Name', 'Designation', 'Days payable', 'Gross', 'Overtime', 'Incentive', 'Cuts', 'Loan / advance', 'Net', 'Pay by', 'Paid to'], ...lines.map((l) => [l.code, l.name, l.designation, `${l.payable}/${l.days}`, l.bonus || l.gross, l.ot, l.incentive, l.cut, l.loan, l.net, PAY_METHODS[l.payMethod], l.payTo])];
+    const csv = rows.map((r) => r.map((x) => `"${String(x).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = `salary-sheet-${run.id}.csv`;
+    a.click();
+    toast('Salary sheet downloaded as a spreadsheet (CSV).');
+  };
+
+  return (
+    <HrPage screen="Payroll" active="hr-payroll" page="Payroll" title="Payroll" css={CSS}
+      description="Attendance, leave, overtime, incentive, advances and loans flow in by themselves. Check the sheet, approve, pay, send payslips."
+      actions={<>
+        <Link href="/hr-setup?sec=pay" className="gc-btn gc-btn--neutral"><Icon name="sliders-horizontal" width="18" height="18" aria-hidden="true" /> Salary components</Link>
+        <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setBonus({ title: 'Durga Puja bonus', pct: String(S.settings.bonusPct) })}><Icon name="gift" width="18" height="18" aria-hidden="true" /> Festival bonus run</button>
+        {canStart ? <button type="button" className="gc-btn gc-btn--solid" onClick={() => { const r = startRun(nextMonth); setPick(r.id); toast(`${monthLabel(nextMonth)} payroll started. Check attendance first.`); }}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Start {monthLabel(nextMonth, true)} payroll</button> : null}
+      </>}>
+
+      <div className="pr-runs" role="group" aria-label="Payroll runs">
+        {runs.slice(0, 5).map((r) => {
+          const st = runStatusLabel(r);
+          return (
+            <button key={r.id} type="button" className="pr-run" aria-pressed={r.id === run.id} onClick={() => { setPick(r.id); setPk(null); }}>
+              <span className="pr-run__top"><b>{r.kind === 'bonus' ? r.title : monthLabel(r.month)}</b><span className={'gc-badge gc-badge--' + (st === 'Paid' ? 'success' : st === 'Approved' ? 'info' : 'warning')}>{st}</span></span>
+              <span className="pr-run__amt">{money(runTotal(S, r))}</span>
+              <span className="hr-sub">{r.status === 'paid' ? `Paid ${formatDate(r.paidAt)}` : r.kind === 'bonus' ? 'Festival bonus' : `Pay day ${formatDate(payDateOf(r.month, S.settings))}`} · {r.lines ? r.lines.length : r.count || lines.length} staff</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {archived ? (
+        <section className="gc-card hr-card">
+          <div className="hr-head"><div><h2>{run.kind === 'bonus' ? run.title : monthLabel(run.month)} · paid</h2><p>Paid on {formatDate(run.paidAt)} to {run.count} staff · {money(run.total)}. This run was paid before payroll moved to this system, so only the total is kept here; the money is in Accounts › Money book.</p></div>
+            <Link href="/money-book" className="gc-btn gc-btn--sm gc-btn--neutral">Open Money book</Link></div>
+        </section>
+      ) : (
+        <>
+          <nav className="gc-card pr-steps" aria-label="Payroll steps">
+            {RUN_STEPS.map(([l, s], i) => {
+              const n = i + 1, done = n < step || run.status === 'paid' && n <= 4 || (n === 5 && run.slipsAt), cur = n === step && !done;
+              if (run.kind === 'bonus' && n === 1) return null;
+              return (
+                <div key={l} className="pr-step" aria-current={cur ? 'step' : undefined}>
+                  <span className={'pr-dot' + (done ? ' pr-dot--done' : cur ? ' pr-dot--cur' : '')}>{done ? <><Icon name="check" width="14" height="14" aria-hidden="true" /><span className="sr-only">Done</span></> : n}</span>
+                  <span><b>{l}</b><span className="hr-sub">{s}</span></span>
+                </div>
+              );
+            })}
+          </nav>
+
+          <div className="pr-main">
+            <section className="gc-card hr-card">
+              <div className="hr-head">
+                <div><h2>Salary sheet · {run.kind === 'bonus' ? run.title : monthLabel(run.month)}</h2><p>{draft && step <= 2 ? 'Worked out from today’s attendance, leave and loans. Click a row for the payslip.' : 'Locked when approved. Click a row for the payslip.'}</p></div>
+                <div className="hr-actions">
+                  <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={exportCsv}><Icon name="download" width="14" height="14" aria-hidden="true" /> Excel</button>
+                  <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => doPrint(lines.map((l) => l.code))}><Icon name="printer" width="14" height="14" aria-hidden="true" /> Print payslips</button>
+                  {draft && run.kind === 'bonus' ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => confirmDialog({ title: `Delete ${run.title}?`, body: 'Nothing has been approved or paid from it.', confirmLabel: 'Delete run', tone: 'danger' }).then((ok) => { if (ok) { removeRun(run.id); setPick(null); toast('Bonus run deleted.', { tone: 'info' }); } })}>Delete</button> : null}
+                </div>
+              </div>
+              <div className="gc-table-wrap">
+                <table className="gc-table gc-table--compact gc-table--hoverable">
+                  <thead><tr>
+                    <th scope="col">Staff</th>{run.kind !== 'bonus' ? <><th scope="col">Days</th><th scope="col" className="hr-num">Gross</th><th scope="col" className="hr-num">Overtime</th><th scope="col" className="hr-num">Incentive</th><th scope="col" className="hr-num">Cuts</th><th scope="col" className="hr-num">Loan · advance</th></> : <th scope="col" className="hr-num">Basic</th>}<th scope="col" className="hr-num">Net pay</th><th scope="col">Pay by</th>
+                  </tr></thead>
+                  <tbody>
+                    {lines.map((l) => {
+                      const st = staffBy(S, l.code) || { code: l.code, name: l.name };
+                      const on = sel && sel.code === l.code;
+                      const extraSum = l.extras.reduce((a, x) => a + x.amount, 0);
+                      return (
+                        <tr key={l.code} className={'pr-row' + (on ? ' is-on' : '')} onClick={() => setPk(l.code)}>
+                          <td><div className="hr-who"><Avatar st={st} /><span><button type="button" className="gc-btn gc-btn--flat" style={{ height: 'auto', padding: 0, fontWeight: 'var(--weight-medium)', color: 'var(--text-heading)' }} aria-pressed={on} onClick={(e) => { e.stopPropagation(); setPk(l.code); }}>{l.name}</button><span className="hr-sub">{l.designation}</span></span></div></td>
+                          {run.kind !== 'bonus' ? <>
+                            <td className={'hr-fig' + (l.payable < l.days ? ' hr-out' : '')}>{l.payable} / {l.days}{l.late ? <span className="hr-sub">{l.late} late</span> : null}</td>
+                            <td className="hr-num">{money(l.gross)}</td>
+                            <td className="hr-num">{dash(l.ot)}{l.otMin ? <span className="hr-sub">{hm(l.otMin)}</span> : null}</td>
+                            <td className="hr-num" onClick={(e) => e.stopPropagation()}>
+                              {draft && step === 2 ? <input className="gc-input pr-inc" inputMode="numeric" aria-label={`Incentive for ${l.name}`} value={String((run.incentive || {})[l.code] ?? '')} placeholder="0" onChange={(e) => setIncentive(l.code, e.target.value)} /> : dash(l.incentive)}
+                              {extraSum ? <span className="hr-sub">{extraSum > 0 ? '+' : '−'}{money(extraSum)} one-time</span> : null}
+                            </td>
+                            <td className="hr-num hr-out">{minus(l.cut)}</td>
+                            <td className="hr-num hr-out">{minus(l.loan)}{l.loanCuts.length ? <span className="hr-sub">{l.loanCuts.map((c) => c.id).join(', ')}</span> : null}</td>
+                          </> : <td className="hr-num">{money(basicOf(S, l.gross))}</td>}
+                          <td className="hr-num hr-strong">{money(l.net)}</td>
+                          <td><span className="gc-badge gc-badge--slate">{PAY_METHODS[l.payMethod]}</span></td>
+                        </tr>
+                      );
+                    })}
+                    <tr className="pr-total">
+                      <td>Total · {lines.length} staff</td>
+                      {run.kind !== 'bonus' ? <><td /><td className="hr-num">{money(T.g)}</td><td className="hr-num">{dash(T.ot)}</td><td className="hr-num">{dash(T.inc)}</td><td className="hr-num hr-out">{minus(T.cut)}</td><td className="hr-num hr-out">{minus(T.loan)}</td></> : <td />}
+                      <td className="hr-num">{money(T.net)}</td><td />
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              {run.kind === 'salary' && suspended.length ? <p className="hr-sub" style={{ margin: 0, padding: 'var(--space-3) var(--space-5)', borderTop: '1px solid var(--border-subtle)' }}>{suspended.map((s) => s.name).join(', ')} {suspended.length === 1 ? 'is' : 'are'} suspended — salary on hold and not in this run.</p> : null}
+              {run.kind === 'bonus' ? <p className="hr-sub" style={{ margin: 0, padding: 'var(--space-3) var(--space-5)', borderTop: '1px solid var(--border-subtle)' }}>{run.pct}% of basic for staff with {S.settings.bonusMonths}+ months of service. {S.staff.filter((s) => (s.status === 'active' || s.status === 'probation') && !bonusEligible(S, s, run.at)).map((s) => s.name).join(', ') || 'Everyone qualifies'}{S.staff.some((s) => (s.status === 'active' || s.status === 'probation') && !bonusEligible(S, s, run.at)) ? ' — not yet eligible.' : '.'}</p> : null}
+            </section>
+
+            <div className="pr-side">
+              <section className="gc-card pr-box" aria-label="Next step">
+                <h2>{['Before you continue', 'Ready for approval?', 'Owner approval', `Pay ${money(left || total)}`, run.slipsAt ? 'Payslips sent' : 'Send payslips'][step - 1]}</h2>
+                <div className="hr-opts" style={{ gap: 'var(--space-2)' }}>
+                  {byMethod.filter((b) => b.n).map((b) => <div key={b.m} className="pr-meth"><span>{PAY_METHODS[b.m]} <span className="hr-sub" style={{ display: 'inline' }}>· {b.n} staff</span></span><span className="hr-fig hr-strong">{money(b.v)}</span></div>)}
+                </div>
+                <div className="pr-checks">
+                  {checks.map(([tone, text, href]) => (
+                    <div key={text} style={{ color: tone === 'ok' ? 'var(--text-success)' : 'var(--text-warning)' }}>
+                      <Icon name={tone === 'ok' ? 'check' : 'triangle-alert'} width="14" height="14" aria-hidden="true" />
+                      <span>{text}{href ? <> <Link href={href} className="hr-link">Open</Link></> : null}</span>
+                    </div>
+                  ))}
+                </div>
+                {liab && step >= 4 ? <Link href={`/liabilities?id=${liab.id}`} className="hr-link">{liab.id} · {liab.title} in Accounts › Liabilities</Link> : null}
+                {run.status === 'paid'
+                  ? <div className="hr-actions" style={{ justifyContent: 'stretch' }}>
+                      <button type="button" className="gc-btn gc-btn--solid gc-btn--block" onClick={next}><Icon name="message-square-text" width="18" height="18" aria-hidden="true" /> {run.slipsAt ? 'Send payslips again' : 'Send payslips by SMS'}</button>
+                      <button type="button" className="gc-btn gc-btn--neutral gc-btn--block" onClick={() => doPrint(lines.map((l) => l.code))}><Icon name="printer" width="18" height="18" aria-hidden="true" /> Print all payslips</button>
+                    </div>
+                  : <button type="button" className="gc-btn gc-btn--solid gc-btn--block" onClick={next}>{['Attendance checked — next', 'Send for owner approval', 'Approve and lock', left ? 'Pay salaries' : 'Mark as paid', ''][step - 1]}</button>}
+                {step > (run.kind === 'bonus' ? 2 : 1) && step <= 4 && run.status !== 'paid' ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={back}>{step === 4 ? 'Change the numbers' : 'Go back a step'}</button> : null}
+              </section>
+
+              {sel ? <Payslip S={S} run={run} ln={sel} onAddLine={draft && step <= 2 ? () => setExtra({ code: sel.code, label: '', amount: '', sign: '+' }) : null} /> : null}
+              {sel && !draft ? <button type="button" className="gc-btn gc-btn--neutral" onClick={() => doPrint([sel.code])}><Icon name="printer" width="18" height="18" aria-hidden="true" /> Print {sel.name.split(' ')[0]}’s payslip</button> : null}
+            </div>
+          </div>
+        </>
+      )}
+
+      {printSet.length ? createPortal(
+        <div className="hr-print" aria-hidden="true">
+          {lines.filter((l) => printSet.includes(l.code)).map((l) => <Payslip key={l.code} S={S} run={run} ln={l} printed />)}
+        </div>, document.body) : null}
+
+      {pay ? <PayDialog S={S} run={run} lines={lines} liab={liab} pay={pay} setPay={setPay} /> : null}
+
+      <Dialog open={!!bonus} title="Festival bonus run" onClose={() => setBonus(null)} width={520}>
+        {bonus ? (() => {
+          const elig = S.staff.filter((s) => bonusEligible(S, s));
+          const sum = elig.reduce((a, s) => a + Math.round(basicOf(S, s.gross) * (Number(bonus.pct) || 0) / 100), 0);
+          return (
+            <form className="hr-form" onSubmit={(e) => { e.preventDefault(); if (!bonus.title.trim() || !(Number(bonus.pct) > 0)) { toast('Name the festival and the share of basic', { tone: 'error' }); return; } const r = startBonusRun({ title: bonus.title.trim(), pct: bonus.pct }); setPick(r.id); setBonus(null); toast(`${r.title} started for ${elig.length} staff. Review it, then approve.`); }}>
+              <div className="hr-two">
+                <div><label className="gc-label" htmlFor="bn-title">Festival</label><input id="bn-title" className="gc-input" list="bn-list" value={bonus.title} onChange={(e) => setBonus({ ...bonus, title: e.target.value })} data-autofocus /><datalist id="bn-list"><option value="Durga Puja bonus" /><option value="Eid-ul-Fitr bonus" /><option value="Eid-ul-Adha bonus" /><option value="Pohela Boishakh bonus" /></datalist></div>
+                <div><label className="gc-label" htmlFor="bn-pct">Share of basic (%)</label><input id="bn-pct" className="gc-input" inputMode="numeric" value={bonus.pct} onChange={(e) => setBonus({ ...bonus, pct: e.target.value.replace(/[^\d]/g, '') })} /></div>
+              </div>
+              <div className="hr-note hr-note--info"><Icon name="info" width="16" height="16" aria-hidden="true" /><span><b>{elig.length} staff</b> with {S.settings.bonusMonths}+ months of service · about <b>{money(sum)}</b>. Suspended staff are left out.</span></div>
+              <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setBonus(null)}>Cancel</button><button type="submit" className="gc-btn gc-btn--solid">Start bonus run</button></div>
+            </form>
+          );
+        })() : null}
+      </Dialog>
+
+      <Dialog open={!!extra} title={extra ? `One-time line · ${staffBy(S, extra.code).name}` : 'One-time line'} onClose={() => setExtra(null)} width={480}>
+        {extra ? (
+          <form className="hr-form" onSubmit={saveExtra}>
+            <div className="hr-seg" role="group" aria-label="Type of line">
+              <button type="button" aria-pressed={extra.sign === '+'} onClick={() => setExtra({ ...extra, sign: '+' })}>Pay extra</button>
+              <button type="button" aria-pressed={extra.sign === '-'} onClick={() => setExtra({ ...extra, sign: '-' })}>Deduct</button>
+            </div>
+            <div className="hr-two">
+              <div><label className="gc-label" htmlFor="ex-label">What for</label><input id="ex-label" className="gc-input" placeholder={extra.sign === '-' ? 'Uniform, phone bill…' : 'One-time bonus, travel…'} value={extra.label} onChange={(e) => setExtra({ ...extra, label: e.target.value })} data-autofocus /></div>
+              <div><label className="gc-label" htmlFor="ex-amt">Amount (৳)</label><input id="ex-amt" className="gc-input hr-fig" inputMode="numeric" value={extra.amount} onChange={(e) => setExtra({ ...extra, amount: e.target.value.replace(/[^\d]/g, '') })} /></div>
+            </div>
+            <p className="gc-help" style={{ margin: 0 }}>Only for {monthLabel(run.month)}. It shows on the payslip.</p>
+            <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setExtra(null)}>Cancel</button><button type="submit" className="gc-btn gc-btn--solid">Add line</button></div>
+          </form>
+        ) : null}
+      </Dialog>
+    </HrPage>
+  );
+}
+
+/** Pay the approved run: each person from their usual account, or everything from one account. */
+function PayDialog({ S, run, lines, liab, pay, setPay }) {
+  const rows = liab ? liab.lines.map((x) => ({ ...x, left: Math.max(0, x.amount - (x.paid || 0)) })).filter((x) => x.left > 0) : [];
+  const total = rows.reduce((a, x) => a + x.left, 0);
+  const need = {};
+  rows.forEach((x) => { const acc = pay.mode === 'one' ? pay.account : x.account; need[acc] = (need[acc] || 0) + x.left; });
+  const short = Object.entries(need).filter(([acc, v]) => balanceOf(acc) < v);
+  const loans = lines.reduce((a, l) => a + l.loan, 0);
+  const submit = (e) => {
+    e.preventDefault();
+    const done = () => {
+      payRun(run.id, { mode: pay.mode, account: pay.account });
+      toast(total ? `${money(total)} paid to ${rows.length} staff and posted to Accounts.${loans ? ` ${money(loans)} of loans and advances recovered.` : ''}` : 'Marked as paid.');
+      setPay(null);
+    };
+    if (short.length) confirmDialog({ title: 'Not enough money in the account', body: short.map(([acc, v]) => `${accName(acc)} has ${money(balanceOf(acc))}, needs ${money(v)}.`).join(' ') + ' Pay anyway? The balance goes below zero.', confirmLabel: 'Pay anyway', tone: 'danger' }).then((ok) => { if (ok) done(); });
+    else done();
+  };
+  return (
+    <Dialog open title={`Pay ${run.kind === 'bonus' ? run.title : monthLabel(run.month) + ' salaries'}`} onClose={() => setPay(null)} width={620}
+      footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setPay(null)}>Cancel</button><button type="submit" form="pr-pay" className="gc-btn gc-btn--solid">{total ? `Pay ${money(total)}` : 'Mark as paid'}</button></>}>
+      <form id="pr-pay" className="hr-form" onSubmit={submit}>
+        <dl className="hr-sum">
+          <div><dt>Staff</dt><dd>{rows.length}</dd></div>
+          <div><dt>Already paid</dt><dd>{liab ? money(paidOf(liab)) : '—'}</dd></div>
+          <div><dt>Loans recovered</dt><dd>{money(loans)}</dd></div>
+          <div className="is-key"><dt>To pay now</dt><dd>{money(total)}</dd></div>
+        </dl>
+        <div className="hr-opts" role="radiogroup" aria-label="Pay from">
+          <label className={'hr-opt' + (pay.mode === 'usual' ? ' is-on' : '')}><input type="radio" name="pr-mode" checked={pay.mode === 'usual'} onChange={() => setPay({ ...pay, mode: 'usual' })} /><span><b>Each person’s usual account</b><small>Bank staff from the bank, bKash staff from bKash, cash from the shop cash — as set on each staff member.</small></span></label>
+          <label className={'hr-opt' + (pay.mode === 'one' ? ' is-on' : '')}><input type="radio" name="pr-mode" checked={pay.mode === 'one'} onChange={() => setPay({ ...pay, mode: 'one' })} /><span><b>One account for everyone</b><small>For example all from BRAC Bank as one bank file.</small></span></label>
+        </div>
+        {pay.mode === 'one' ? <AccountSelect id="pr-acc" label="Pay everything from" value={pay.account} onChange={(v) => setPay({ ...pay, account: v })} /> : null}
+        <table className="hr-mini">
+          <thead><tr><th scope="col">From</th><th scope="col" className="hr-num">Needed</th><th scope="col" className="hr-num">Balance now</th></tr></thead>
+          <tbody>{Object.entries(need).map(([acc, v]) => <tr key={acc}><td>{accName(acc)}</td><td className="hr-num">{money(v)}</td><td className={'hr-num' + (balanceOf(acc) < v ? ' hr-out' : '')}>{money(balanceOf(acc))}</td></tr>)}</tbody>
+        </table>
+        {short.length ? <div className="hr-note hr-note--warn" role="status"><Icon name="triangle-alert" width="16" height="16" aria-hidden="true" /><span><b>Short:</b> {short.map(([acc, v]) => `${accName(acc)} needs ${money(v - balanceOf(acc))} more`).join(' · ')}. Move money in first (Accounts › Fund transfers) or pick another account.</span></div>
+          : <div className="hr-note hr-note--ok"><Icon name="circle-check" width="16" height="16" aria-hidden="true" /><span>Enough money in {Object.keys(need).length === 1 ? 'the account' : 'every account'}. One entry per person goes to the Money book{liab ? ` and ${liab.id} is closed` : ''}.</span></div>}
+        {liab ? <p className="gc-help" style={{ margin: 0 }}>Paying some people now and the rest later? Pay line by line in <Link href={`/liabilities?id=${liab.id}`} className="hr-link">Accounts › Liabilities</Link> — this run turns Paid when the last one is paid.</p> : null}
+      </form>
+    </Dialog>
+  );
 }

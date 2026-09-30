@@ -70,6 +70,7 @@ export function EveningCheck() {
     }
     if (force) { setPrompts(p); setDone({}); setOpen(true); return; }
     if (HIDDEN.test(path) || !document.querySelector('gc-topbar')) return;
+    if (/[?&]quiet=1/.test(window.location.search)) return;   // screenshots and tests: don't pop up by itself
     if (Number(ss.get(LATER_KEY) || 0) > now) return;
     if (ss.get(SEEN_KEY) === dayKey(now) + ids) return;
     ss.set(SEEN_KEY, dayKey(now) + ids);

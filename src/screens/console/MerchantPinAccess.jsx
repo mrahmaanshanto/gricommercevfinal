@@ -245,7 +245,7 @@ export default class MerchantPinAccessScreen extends Component {
     return (
       <div className="dc-screen" data-screen="MerchantPinAccess">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className={`cs ${v.miniCls ?? ""}`} style={{ width: "1440px", height: "1000px", position: "relative", overflow: "hidden", background: "#f4f7fb" }}>
+        <div data-board="" className={`cs ${v.miniCls ?? ""}`} style={{ width: "1440px", height: "1000px", position: "relative", overflow: "hidden", background: "#f4f7fb" }}>
           <aside style={{ position: "absolute", left: "0", top: "0", bottom: "0", width: "240px", background: "#fff", borderRight: "1px solid #e6ebf3", padding: "18px 14px", display: "flex", flexDirection: "column", gap: "4px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 6px 16px" }}>
               <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-semibold)" }}>DG</span>

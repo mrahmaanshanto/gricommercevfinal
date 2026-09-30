@@ -122,7 +122,9 @@ return {
 
 // ---- styles (from the design's <helmet>) ----
 
-const CSS = `
+const CSS = `/* phones: rows of label + buttons wrap instead of running out of the card */
+@media (max-width:640px){.gc-shell__content [style*="display:flex"]:not([role="tablist"]),.gc-shell__content [style*="display: flex"]:not([role="tablist"]){flex-wrap:wrap}.gc-shell__content select,.gc-shell__content input{min-width:0;max-width:100%}.gc-shell__content .mono,.gc-shell__content [class*="badge"]{overflow-wrap:anywhere}}
+
 *{box-sizing:border-box}
 body{margin:0;background:#e9eef5;color:#0f172a;-webkit-font-smoothing:antialiased;font-family:var(--font-bn)}
 a{color:#003087;text-decoration:none}

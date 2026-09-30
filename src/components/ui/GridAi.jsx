@@ -32,7 +32,7 @@ const answer = (q) => (ANSWERS.find(([re]) => re.test(q)) || [null, 'I can help 
 
 // the assistant belongs to the merchant's workspace, not to the shopper's pages or sign-in;
 // on the POS register it would sit on top of the pay button
-const HIDDEN = /^\/($|pos$|offers|offer-detail|checkout|order-link|merchant-sign-in|merchant-onboarding|mobile-|dev\/)/;
+const HIDDEN = /^\/($|pos$|offers|offer-detail|checkout|order-link|merchant-sign-in|merchant-onboarding|merchant-inbox|mobile-|dev\/)/;
 
 export function GridAi() {
   const path = usePathname() || '/';

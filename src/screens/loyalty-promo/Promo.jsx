@@ -326,7 +326,7 @@ export default class PromoScreen extends Component {
                           </span>
                           <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b?.name}</span>
                         </div>
-                        <div style={__sx(`grid-column: ${b?.col ?? ""}; height: 26px; border-radius: var(--radius-md); background: ${b?.bg ?? ""}; color: #ffffff; font-size: var(--text-xs); font-weight: var(--weight-medium); display: flex; align-items: center; padding: 0 8px; white-space: nowrap; overflow: hidden;`)}>{b?.label}</div>
+                        <div style={__sx(`grid-column: ${b?.col ?? ""}; height: 26px; border-radius: var(--radius-md); background: ${b?.bg ?? ""}; color: #ffffff; font-size: var(--text-xs); font-weight: var(--weight-medium); display: flex; align-items: center; padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; line-height: 26px;`)} title={b?.label}>{b?.label}</div>
                       </div>
                     </React.Fragment>))}
                   <div style={{ position: "absolute", top: "0", bottom: "0", left: "calc(220px + (100% - 220px) * 17 / 30)", width: "2px", background: "#b83210" }}>
@@ -427,7 +427,7 @@ export default class PromoScreen extends Component {
                   <div style={{ width: "280px", height: "300px", borderRadius: "28px 28px 0 0", border: "8px solid #0f172a", borderBottom: "0", overflow: "hidden", background: "#f8fafc", display: "flex", flexDirection: "column" }}>
                     <div style={{ height: "22px", background: "#0f172a" }} />
                     {v.stripOn ? (<>
-                      <div className="fade bn" style={__sx(`padding: 8px 12px; background: ${v.stripBg ?? ""}; color: #ffffff; font-size: var(--text-xs); line-height: 16px; font-weight: var(--weight-medium); text-align: center;`)}>{v.stripText}</div>
+                      <div className="fade bn" style={__sx(`padding: 8px 12px; background: ${v.stripBg ?? ""}; color: #ffffff; font-size: var(--text-xs); line-height: 16px; font-weight: var(--weight-medium); text-align: center; white-space: normal; overflow-wrap: anywhere;`)}>{v.stripText}</div>
                     </>) : null}
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: "#fff", borderBottom: "1px solid #e2e8f0" }}>
                       <img src="/assets/ff462bc6abaa5d30500a126b259de9d6.png" alt="GridCommerce" style={{ height: "18px", objectFit: "contain" }} />

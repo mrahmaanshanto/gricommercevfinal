@@ -40,3 +40,32 @@
 @media (max-width: 719px)  { [data-board] { zoom: .41; } }
 @media (max-width: 599px)  { [data-board] { zoom: .33; } }
 @media (max-width: 479px)  { [data-board] { zoom: .25; } }
+
+/* console forms, KPI rows and tag pickers on small screens */
+@media (max-width: 900px) {
+  .fgrid { grid-template-columns: minmax(0, 1fr) !important; }
+  .fcard [style*="display:flex"], .fcard [style*="display: flex"] { flex-wrap: wrap; }
+  .cs .kpi { min-width: 0; }
+}
+@media (max-width: 640px) {
+  .fcard { padding: 4px 16px !important; }
+  .cs .mainarea [style*="min-width"] { min-width: 0 !important; }
+  .cs .topbar > * { min-width: 0; }
+  .cs .topbar [class*="seg"], .cs .topbar [class*="search"] { display: none !important; }
+}
+@media (max-width: 900px) {
+  .fsec { grid-template-columns: minmax(0, 1fr) !important; }
+  .cs .mainarea > div > * { min-width: 0; max-width: 100%; }
+  .cs .kpi, .cs .kpi * { min-width: 0; }
+  .cs .kpi svg { max-width: 100%; }
+  .cs .tagsel { flex: none; }
+  .cs [class*="tagsels"], .cs .fld > div:has(> .tagsel) { flex-wrap: wrap !important; }
+}
+/* a console page drawn with its own inner layout (no .mainarea): keep the drawing and zoom it */
+.cs[data-board] { width: 1440px !important; min-height: 1000px; }
+@media (max-width: 640px) {
+  .cs [style*="display:flex"], .cs [style*="display: flex"] { flex-wrap: wrap; }
+  .cs .inp, .cs .sel, .cs input, .cs select { min-width: 0 !important; max-width: 100%; }
+  .cs .btn { white-space: normal; }
+}
+@media (max-width: 900px) { .fcard .affix { min-width: 0; max-width: 100%; } .fcard .affix > * { min-width: 0; } }

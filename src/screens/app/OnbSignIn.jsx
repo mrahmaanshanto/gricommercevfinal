@@ -140,7 +140,6 @@ export default class OnbSignInScreen extends Component {
                 <path d="m15 18-6-6 6-6" />
               </svg>
             </__Link>
-            <h1 />
             <span style={{ width: "44px" }} />
           </header>
           <div className="content" style={{ top: "103px", bottom: "0", padding: "8px 24px 0" }}>

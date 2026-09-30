@@ -67,6 +67,13 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `src/lib/liabilities.js` (payments post with `liab` so profit doesn't count them twice). Pages: `/sales-profit`,
   `/dues`, `/liabilities`; Income & expenses is `/expenses-bills`. `gc.clock.offset` (ms, localStorage) moves the check's clock for testing.
   suppliers: `src/lib/supplierBills.js` (bills from receiving, payments, credit notes). `docs/GridCommerce-flows.pdf` maps the flows.
+- More shared data: places are live (`getPlaces()` in `locations.js`, `usePlaceList(kind)` in `lib/usePlaces.js` for
+  pickers: first render = built-in list, then the live one); racks and bins `lib/racks.js`; HR (staff, shifts, roster,
+  attendance, leave, loans, payroll runs) `lib/hr.js` — payroll approval makes the month's salary liability; loyalty
+  (members, points, wallets, referrals; POS checkout reads it) `lib/loyalty.js`; blog posts, categories, authors
+  `lib/blog.js`; inbox chats, comments and calls `lib/inbox.js`.
+- Responsive rules for the platform console frame (`.cs`) and fixed design boards (`data-board`, zoomed to fit) are in
+  `src/styles/console-responsive.css`. `?quiet=1` stops the evening payout check from opening by itself (tests, screenshots).
 - Reference pages (UI kit, flows, site map, storyboards) are under `/dev/…`. They and the POS /
   settings screen switchers only show in a production build when `NEXT_PUBLIC_SHOW_STORYBOARD=true`.
 - `npm run check:screens` fails when a screen brings back a literal the tokens replace.

@@ -78,6 +78,21 @@ export function addLiability(x) {
 }
 
 /**
+ * Change a liability that has nothing paid yet (e.g. a payroll run re-approved with new numbers):
+ * patch: { title?, party?, due?, note?, lines?: [{ name, note, amount, account, channel? }] }. Returns it, or null when
+ * something is already paid.
+ */
+export function updateLiability(id, patch) {
+  const list = getLiabilities();
+  const l = list.find((x) => x.id === id);
+  if (!l || paidOf(l) > 0) return null;
+  const lines = patch.lines ? patch.lines.map((x) => line(x.name, x.note || '', r2(Number(x.amount) || 0), x.account || 'brac', x.channel ? { channel: x.channel } : {})) : l.lines;
+  const next = { ...l, ...patch, lines, amount: r2(lines.reduce((a, x) => a + x.amount, 0)) };
+  write(list.map((x) => (x.id === id ? next : x)));
+  return next;
+}
+
+/**
  * Pay some or all of a liability. pay: { lines: { [lineName]: amount }, account, by, ref }.
  * Posts one ledger entry per line paid (so a payroll shows each person), marked with `liab`.
  */

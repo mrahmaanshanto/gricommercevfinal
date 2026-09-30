@@ -457,7 +457,7 @@ export default class CustomerCatalogueScreen extends Component {
                           {__list(v.cards).map((pc, $index) => (<React.Fragment key={$index}>
                               <div className="fade" style={{ background: "#fff", borderRadius: "var(--radius-xl)", border: "1px solid #e6eaf0", padding: "8px", display: "flex", flexDirection: "column", gap: "5px" }}>
                                 <span style={__sx(`height: 54px; border-radius: var(--radius-lg); background: ${pc?.bg ?? ""}; color: ${pc?.fg ?? ""}; font-size: var(--text-2xl); font-weight: var(--weight-semibold); display: flex; align-items: center; justify-content: center;`)}>{pc?.ini}</span>
-                                <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", lineHeight: "20px", height: "40px", overflow: "hidden" }}>{pc?.name}</span>
+                                <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", lineHeight: "20px", maxHeight: "40px", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflowWrap: "anywhere" }}>{pc?.name}</span>
                                 {v.priceShow ? (<>
                                   <span className="num" style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#003087", lineHeight: "22px" }}>{pc?.price}</span>
                                 </>) : null}

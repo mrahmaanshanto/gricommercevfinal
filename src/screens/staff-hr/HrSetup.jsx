@@ -1,613 +1,270 @@
 'use client';
-// Generated from design/templates/staff-hr/HrSetup.dc.html by scripts/convert-design.mjs.
-// HR setup — Staff & HR — HR setup.
-// Edit freely: this file is now the source for the screen.
+// HR setup — the rules every HR page uses (saved in src/lib/hr.js › settings):
+// departments, salary split (the payslip lines), leave types and yearly quota, attendance rules
+// (weekly off, late rule, half day, overtime), public holidays (shared with Accounts through
+// src/lib/settlements.js), roles, and payroll settings (pay day, rounding, bonus, advance limit,
+// default pay accounts).
 
-import React from 'react';
-import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
-import { PageHeader as __PageHeader } from '@/components/ui';
-
-// ---- logic (from the design's <script type="text/x-dc">) ----
-
-function bdt(n) { var neg = n < 0; var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return (neg ? '−' : '') + '৳' + s; }
-var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
-function mkTabs(self, list, cur, key, counts) { return list.map(function (x) { var on = x.k === cur; var c = counts ? counts[x.k] : null; return { label: x.label, on: on, cls: on ? 'tab on' : 'tab', hasCount: c != null, count: c, countBg: on ? 'rgba(255,255,255,0.2)' : '#e9eef5', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-function mkChips(self, list, cur, key) { return list.map(function (x) { var on = x.k === cur; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-function pTabs(self, list, cur, key, counts) { return mkTabs(self, list, cur, key, counts).map(function (x) { x.pcls = x.on ? 'ptab on' : 'ptab'; return x; }); }
-function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
-function stepN(self, key, def, step, min, max) { var s = self.state || {}; var v = s[key] == null ? def : s[key]; return { v: v, dec: function () { var p = {}; p[key] = Math.max(min, +(v - step).toFixed(2)); self.setState(p); }, inc: function () { var p = {}; p[key] = Math.min(max, +(v + step).toFixed(2)); self.setState(p); } }; }
-var CHN = { sms: ['SMS', '#e7f8f1', '#047857'], wa: ['WhatsApp', '#dcfce7', '#166534'], email: ['Email', '#e0f2fe', '#075985'] };
-function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-function toast(self, m, bad) { clearTimeout(self.t); self.setState({ msg: m, bad: !!bad }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 2800); }
-function msgV(s) { return { hasMsg: !!s.msg, msg: s.msg || '', msgBg: s.bad ? '#fff4e0' : '#e7f8f1', msgFg: s.bad ? '#7a3b04' : '#065f46' }; }
-function segv(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#0b1733' : 'transparent', fg: on ? '#fff' : '#475569', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
-// [code, name, designation, department, branch, shift, basic(gross), type, status, phone, joined, role]
-var STAFF = [
-  ['EMP-0118', 'Rakib Hasan', 'Branch manager', 'Store operations', 'Dhanmondi branch', 'morning', 38000, 'Full-time', 'active', '01712-XX4410', '3 Feb 2022', 'Manager'],
-  ['EMP-0142', 'Sadia Akter', 'Cashier', 'Store operations', 'Dhanmondi branch', 'morning', 22000, 'Full-time', 'active', '01712-XX8821', '12 Mar 2024', 'Cashier'],
-  ['EMP-0151', 'Rafi Ahmed', 'Sales associate', 'Store operations', 'Dhanmondi branch', 'evening', 16000, 'Full-time', 'active', '01819-XX2207', '8 Jan 2025', 'Sales staff'],
-  ['EMP-0121', 'Nabila Rahman', 'Branch manager', 'Store operations', 'Mirpur branch', 'morning', 35000, 'Full-time', 'active', '01715-XX6630', '19 Jun 2022', 'Manager'],
-  ['EMP-0149', 'Moumita Das', 'Cashier', 'Store operations', 'Mirpur branch', 'evening', 20000, 'Full-time', 'leave', '01911-XX0194', '2 Sep 2024', 'Cashier'],
-  ['EMP-0160', 'Arif Rahman', 'Sales associate', 'Store operations', 'Mirpur branch', 'morning', 16000, 'Probation', 'probation', '01633-XX5582', '1 Jul 2026', 'Sales staff'],
-  ['EMP-0133', 'Tareq Aziz', 'Stock keeper', 'Warehouse', 'Central Warehouse', 'warehouse', 18000, 'Full-time', 'active', '01556-XX7713', '14 Oct 2023', 'Stock staff'],
-  ['EMP-0155', 'Sabbir Hossain', 'Packer', 'Warehouse', 'Central Warehouse', 'warehouse', 14000, 'Full-time', 'active', '01798-XX3301', '5 May 2025', 'Stock staff'],
-  ['EMP-0145', 'Jahid Hasan', 'Delivery rider', 'Delivery', 'Central Warehouse', 'warehouse', 15000, 'Full-time', 'active', '01877-XX9046', '21 Nov 2024', 'Rider'],
-  ['EMP-0163', 'Sohel Rana', 'Security guard', 'Warehouse', 'Central Warehouse', 'night', 12500, 'Contract', 'active', '01309-XX1128', '10 Feb 2026', 'No login'],
-  ['EMP-0137', 'Lamia Sultana', 'Customer care', 'Customer care', 'Head office', 'office', 20000, 'Full-time', 'active', '01521-XX4467', '7 Aug 2023', 'Support'],
-  ['EMP-0158', 'Rumana Islam', 'Accountant', 'Accounts', 'Head office', 'office', 40000, 'Full-time', 'active', '01711-XX0625', '15 Jan 2023', 'Accounts'],
-  ['EMP-0161', 'Jannatul Ferdous', 'Social media executive', 'Marketing', 'Head office', 'office', 12000, 'Part-time', 'active', '01404-XX8872', '3 Aug 2026', 'Marketing'],
-  ['EMP-0112', 'Kamrul Islam', 'Senior sales associate', 'Store operations', 'Dhanmondi branch', 'evening', 19000, 'Full-time', 'suspended', '01670-XX2254', '11 Apr 2021', 'Sales staff']
-];
-var SHIFTS = { morning: ['Morning', '9:00 AM – 5:00 PM', '#e0f3fb', '#075985'], evening: ['Evening', '1:00 PM – 9:00 PM', '#f3e8ff', '#6d28d9'], warehouse: ['Warehouse', '8:00 AM – 4:00 PM', '#fff4e0', '#a14f06'], office: ['Office', '9:30 AM – 6:00 PM', '#e7f8f1', '#047857'], night: ['Night guard', '9:00 PM – 7:00 AM', '#e2e8f0', '#334155'] };
-var AV = [['#e0f3fb', '#075985'], ['#f3e8ff', '#6d28d9'], ['#fff4e0', '#a14f06'], ['#e7f8f1', '#047857'], ['#ffece6', '#b83210'], ['#e0e7ff', '#3730a3']];
-function ini(n) { var p = n.split(' '); return (p[0].charAt(0) + (p[1] || '').charAt(0)).toUpperCase(); }
-function av(n, i) { var c = AV[i % AV.length]; return { ini: ini(n), ab: c[0], af: c[1] }; }
-var PROFILE = '../staff-profile/StaffProfile.dc.html';
-var SECS = [['dept', 'Departments', 7], ['pay', 'Salary components', 10], ['leave', 'Leave types', 7], ['att', 'Attendance rules', ''], ['hol', 'Holidays', 8], ['roles', 'Roles and permissions', 8], ['run', 'Payroll settings', '']];
-class Component extends DCLogic {
-  componentWillUnmount() { clearTimeout(this.t); }
-  renderVals() {
-    var self = this, s = this.state || {};
-    var sec = s.sec || this.props.sec || 'pay';
-    var cnt = function (d) { return STAFF.filter(function (r) { return r[3] === d; }).length; };
-    var v = {
-      secs: SECS.map(function (x) { var on = x[0] === sec; return { l: x[1], c: x[2], on: on, bg: on ? '#0b1733' : 'transparent', fg: on ? '#fff' : '#334155', fw: on ? 600 : 500, pick: function () { self.setState({ sec: x[0] }); } }; }),
-      addItem: function () { toast(self, 'A new row is ready to fill in.'); },
-      depts: [['Store operations', ['Branch manager', 'Cashier', 'Sales associate'], 'Rakib Hasan'], ['Warehouse', ['Stock keeper', 'Packer', 'Security guard'], 'Tareq Aziz'], ['Delivery', ['Delivery rider'], 'Tareq Aziz'], ['Customer care', ['Customer care'], 'Lamia Sultana'], ['Accounts', ['Accountant'], 'Rumana Islam'], ['Marketing', ['Social media executive'], 'Owner']].map(function (d) { return { l: d[0], n: cnt(d[0]), d: d[1].map(function (t) { return { t: t }; }), h: d[2] }; }),
-      comps: [['Basic', 'Earning', '55% of gross', 'Yes', 'Always'], ['House rent', 'Earning', '25% of gross', 'Part', 'Always'], ['Medical', 'Earning', '7.5% of gross', 'No', 'Always'], ['Transport', 'Earning', '7.5% of gross', 'No', 'Always'], ['Mobile', 'Earning', '5% of gross', 'No', 'Always'], ['Overtime', 'Earning', 'Hours × 2 × basic ÷ 208', 'Yes', 'When there is some'], ['Sales incentive', 'Earning', '1% of own POS sales above ৳1,00,000', 'Yes', 'When there is some'], ['Late / absence cut', 'Deduction', 'Gross ÷ 30 × days', '—', 'When there is some'], ['Advance recovery', 'Deduction', 'From Loans & advances', '—', 'When there is some'], ['Loan instalment', 'Deduction', 'From Loans & advances', '—', 'When there is some']].map(function (c) { var e = c[1] === 'Earning'; return { l: c[0], t: c[1], tb: e ? '#e7f8f1' : '#ffece6', tf: e ? '#047857' : '#b83210', f: c[2], tx: c[3], sh: c[4] }; }),
-      lts: [['Casual', '10', 'Yes', 'No', 'Apply 1 day before', 'Everyone'], ['Sick', '14', 'Yes', 'No', 'Doctor’s note after 2 days', 'Everyone'], ['Earned (annual)', '1 day per 18 worked', 'Yes', 'Up to 40 days', 'Apply 7 days before', 'After 1 year'], ['Festival', '11', 'Yes', 'No', '—', 'Everyone'], ['Maternity', '112 (16 weeks)', 'Yes', '—', 'Doctor’s note', 'After 6 months'], ['Paternity', '5', 'Yes', 'No', '—', 'After 6 months · your policy'], ['Unpaid', 'As approved', 'No', '—', 'Owner approval', 'Everyone']].map(function (l) { return { l: l[0], d: l[1], p: l[2], c: l[3], n: l[4], w: l[5] }; }),
-      dev: mkSw(this, 'dev', true), posIn: mkSw(this, 'posIn', true), geo: mkSw(this, 'geo', false), slipSms: mkSw(this, 'slipSms', true), post: mkSw(this, 'post', true),
-      hols: [['21 Feb 2026', 'Shaheed Day and International Mother Language Day', 'National', 'All'], ['26 Mar 2026', 'Independence Day', 'National', 'All'], ['14 Apr 2026', 'Pohela Boishakh', 'National', 'All'], ['1 May 2026', 'May Day', 'National', 'All'], ['Set when announced', 'Eid-ul-Fitr', 'Festival · 3 days', 'All'], ['Set when announced', 'Eid-ul-Adha', 'Festival · 3 days', 'All'], ['Set when announced', 'Durga Puja (Bijoya Dashami)', 'Festival', 'All'], ['16 Dec 2026', 'Victory Day', 'National', 'All']].map(function (h) { return { d: h[0], l: h[1], t: h[2], w: h[3] }; }),
-      roles: [['Owner', 1, 'Everything', '—'], ['Manager', 2, 'Orders, stock, staff attendance, approve leave', 'Salary of others, delete data'], ['Cashier', 2, 'POS, returns up to ৳2,000, own attendance', 'Discounts over 10%, reports'], ['Sales staff', 3, 'POS, customers', 'Refunds, cash drawer'], ['Stock staff', 2, 'Receive goods, stock count, transfers', 'Prices, orders'], ['Rider', 1, 'Rider app, own deliveries', 'Admin panel'], ['Accounts', 1, 'Payroll, accounting, reports', 'Change products'], ['Support', 1, 'Inbox, tickets, orders (view)', 'Refunds, stock']].map(function (r) { return { l: r[0], n: r[1], y: r[2], x: r[3] }; })
-    };
-    SECS.forEach(function (x) { v['is_' + x[0]] = x[0] === sec; });
-    return assign(v, msgV(s));
-  }
-}
-
-// ---- styles (from the design's <helmet>) ----
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Icon } from '@/runtime/dc';
+import { toast, confirmDialog } from '@/runtime/ui';
+import { Dialog } from '@/components/ui';
+import { formatDate } from '@/lib/format';
+import { getConfig, saveConfig, HOLIDAYS_2026, fromKey } from '@/lib/settlements';
+import { AccountSelect } from '@/screens/accounts/accShared';
+import { saveSettings, WEEKDAYS, WEEK_ORDER, dowOf, todayKey } from '@/lib/hr';
+import { HrPage, useHr } from './hrShared';
 
 const CSS = `
-body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
-*{box-sizing:border-box}
-a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
-.nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
-.nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
-.btn:hover{text-decoration:none}
-.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
-.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
-.line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
-.warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
-.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
-.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
-.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:var(--text-muted)}
-.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
-.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
-.tab:hover{background:#f1f5f9;color:#0f172a}
-.tab.on{background:#003087;color:#fff}
-.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
-.chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
-.row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
-.b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
-.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
-.b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:var(--font-data);letter-spacing:.02em}
-.fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
-@keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.flash{animation:gcFlash 900ms ease-out}
-@keyframes gcFlash{from{background:#e7f8f1}to{background:transparent}}
-.scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
-@keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
-
-.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
-.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
-.sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
-.t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
-.actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:var(--font-bn)}
-.pulse{animation:gcPulse 1.6s ease-in-out infinite}
-@keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
-@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
-.psec{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
-.num{font-variant-numeric:tabular-nums}
-.ai{height:28px;padding:0 10px;border-radius:var(--radius-lg);border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
-.ai:hover{border-color:#a78bfa;box-shadow:0 4px 12px -6px rgba(91,33,182,.5)}
-.ai:focus-visible{outline:3px solid rgba(124,58,237,.4);outline-offset:2px}
-.abtn{height:32px;padding:0 12px;border-radius:var(--radius-lg);border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-.abtn:hover{background:#f1f5f9}
-.ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0}
-.ptab{position:relative;height:52px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:var(--weight-medium)}
-.ptab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2.5px;border-radius:3px 3px 0 0;background:#003087}
-.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
-.ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
-.thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
+.su-wrap{display:grid;grid-template-columns:minmax(200px,240px) minmax(0,1fr);gap:var(--space-5);align-items:start}
+.su-nav{display:flex;flex-direction:column;gap:2px;padding:var(--space-2)}
+.su-nav button{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);height:40px;padding:0 var(--space-3);border:0;border-radius:var(--radius-lg);background:none;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer;text-align:left}
+.su-nav button:hover{background:var(--surface-subtle)}
+.su-nav button[aria-current="true"]{background:var(--fill-primary-soft);color:var(--primary)}
+.su-nav small{font-size:var(--text-xs);color:var(--text-muted);font-variant-numeric:tabular-nums}
+.su-body{display:flex;flex-direction:column;gap:var(--space-4);padding:var(--space-4) var(--space-5) var(--space-5)}
+.su-rows{display:flex;flex-direction:column}
+.su-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(200px,280px);align-items:center;gap:var(--space-4);padding:var(--space-3) 0;border-bottom:1px solid var(--border-subtle)}
+.su-row:last-child{border-bottom:0}
+.su-row b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.su-days{display:flex;flex-wrap:wrap;gap:6px}
+.su-day{height:36px;min-width:48px;padding:0 var(--space-3);border:1px solid var(--border-field);border-radius:var(--radius-full);background:var(--surface-card);font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer}
+.su-day[aria-pressed="true"]{border-color:var(--primary);background:var(--fill-primary-soft);color:var(--primary)}
+.su-split{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--space-3)}
+.su-dept{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:var(--space-3)}
+.su-deptcard{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);text-align:left;font:inherit;background:var(--surface-card);cursor:pointer}
+.su-deptcard:hover{border-color:var(--primary)}
+.su-deptcard b{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.su-tags{display:flex;flex-wrap:wrap;gap:6px}
+@media (max-width:1023px){.su-wrap{grid-template-columns:minmax(0,1fr)}.su-nav{flex-direction:row;overflow-x:auto}.su-nav button{flex:none}}
+@media (max-width:640px){.su-row{grid-template-columns:minmax(0,1fr)}.su-split{grid-template-columns:repeat(2,minmax(0,1fr))}}
 `;
+const SECS = [['dept', 'Departments'], ['pay', 'Salary components'], ['leave', 'Leave types'], ['att', 'Attendance rules'], ['hol', 'Holidays'], ['roles', 'Roles and permissions'], ['run', 'Payroll settings']];
+const ROLES = [['Owner', 'Everything', '—'], ['Manager', 'Orders, stock, staff attendance, approve leave', 'Salary of others, delete data'], ['Cashier', 'POS, returns up to ৳2,000, own attendance', 'Discounts over 10%, reports'], ['Sales staff', 'POS, customers', 'Refunds, cash drawer'], ['Stock staff', 'Receive goods, stock count, transfers', 'Prices, orders'], ['Rider', 'Rider app, own deliveries', 'Admin panel'], ['Accounts', 'Payroll, accounting, reports', 'Change products'], ['Support', 'Inbox, tickets, orders (view)', 'Refunds, stock'], ['Marketing', 'Campaigns, social posts, reviews', 'Orders, money']];
 
-// ---- markup ----
+function Switch({ on, onChange, label }) {
+  return <button type="button" role="switch" aria-checked={on} aria-label={label} className="gc-switch" onClick={() => onChange(!on)}><span className="gc-switch__knob" /></button>;
+}
 
-export default class HrSetupScreen extends Component {
-  render() {
-    const v = this.renderVals() || {};
-    return (
-      <div className="dc-screen ds" data-screen="HrSetup">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
-          <__Sidebar sticky="" active="hr-setup" />
-          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
-            <__Topbar crumb={"Staff & HR"} page="HR setup" placeholder="Search staff by name, phone or code" />
-            <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <__PageHeader title="HR setup" />
-              <div style={{ display: "flex", gap: "18px" }}>
-                <nav className="pcard" aria-label="HR setup" style={{ width: "260px", flexShrink: "0", padding: "10px", display: "flex", flexDirection: "column", gap: "2px", alignSelf: "flex-start" }}>
-                  {__list(v.secs).map((nv, $index) => (<React.Fragment key={$index}>
-                      <button type="button" onClick={nv?.pick} aria-current={nv?.on} style={__sx(`height: 44px; padding: 0 12px; border: 0; border-radius: var(--radius-lg); background: ${nv?.bg ?? ""}; color: ${nv?.fg ?? ""}; font: inherit; font-size: var(--text-sm); font-weight: ${nv?.fw ?? ""}; cursor: pointer; display: flex; align-items: center; gap: 10px; text-align: left;`)}>
-                        <span style={{ flexGrow: "1" }}>{nv?.l}</span>
-                        <span style={{ fontSize: "var(--text-xs)", opacity: ".7" }}>{nv?.c}</span>
-                      </button>
-                    </React.Fragment>))}
-                </nav>
-                <div style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "18px" }}>
-                  {v.hasMsg ? (<>
-                    <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-lg); background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: var(--text-sm); font-weight: var(--weight-medium);`)}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <circle cx="12" cy="12" r="10" />
-                        <path d="m9 12 2 2 4-4" />
-                      </svg>
-                      <span>{v.msg}</span>
-                    </div>
-                  </>) : null}
-                  {v.is_dept ? (<>
-                    <section className="pcard fade" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Departments and designations</h2>
-                          <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Used on the staff profile, reports and payroll groups.</p>
-                        </div>
-                        <button type="button" className="btn solid sm" onClick={v.addItem}>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M5 12h14" />
-                            <path d="M12 5v14" />
-                          </svg>
-                          <span>Department</span>
-                        </button>
-                      </div>
-                      <div className="gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px" }}>
-                        {__list(v.depts).map((dp, $index) => (<React.Fragment key={$index}>
-                            <div style={{ padding: "16px", borderRadius: "var(--radius-xl)", border: "1px solid #e6eaf0", display: "flex", flexDirection: "column", gap: "8px" }}>
-                              <div style={{ display: "flex", alignItems: "center" }}>
-                                <span style={{ fontWeight: "var(--weight-semibold)", color: "#0f172a", flexGrow: "1" }}>{dp?.l}</span>
-                                <span className="pcnt">{dp?.n}</span>
-                              </div>
-                              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                                {__list(dp?.d).map((dg, $index) => (<React.Fragment key={$index}>
-                                    <span style={{ height: "26px", padding: "0 10px", borderRadius: "var(--radius-full)", background: "#f1f5f9", fontSize: "var(--text-xs-plus)", display: "inline-flex", alignItems: "center" }}>{dg?.t}</span>
-                                  </React.Fragment>))}
-                              </div>
-                              <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Head: {dp?.h}</div>
-                            </div>
-                          </React.Fragment>))}
-                      </div>
-                    </section>
-                  </>) : null}
-                  {v.is_pay ? (<>
-                    <section className="pcard fade" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Salary components</h2>
-                          <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>How gross salary is split, and what can be added or cut each month. Staff see these lines on the payslip.</p>
-                        </div>
-                        <button type="button" className="btn solid sm" onClick={v.addItem}>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M5 12h14" />
-                            <path d="M12 5v14" />
-                          </svg>
-                          <span>Component</span>
-                        </button>
-                      </div>
-                      <div className="gc-table-wrap">
-                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                          <thead>
-                            <tr>
-                              <th className="th">Component</th>
-                              <th className="th">Type</th>
-                              <th className="th">How it is worked out</th>
-                              <th className="th">Taxable</th>
-                              <th className="th">On payslip</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {__list(v.comps).map((cm, $index) => (<React.Fragment key={$index}>
-                                <tr className="row">
-                                  <td className="td" style={{ fontWeight: "var(--weight-medium)" }}>{cm?.l}</td>
-                                  <td className="td">
-                                    <span style={__sx(`display: inline-flex; height: 24px; padding: 0 10px; border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: var(--weight-medium); align-items: center; background: ${cm?.tb ?? ""}; color: ${cm?.tf ?? ""};`)}>{cm?.t}</span>
-                                  </td>
-                                  <td className="td" style={{ color: "#334155" }}>{cm?.f}</td>
-                                  <td className="td">{cm?.tx}</td>
-                                  <td className="td">{cm?.sh}</td>
-                                </tr>
-                              </React.Fragment>))}
-                          </tbody>
-                        </table>
-                      </div>
-                      <div style={{ padding: "12px 14px", borderRadius: "var(--radius-xl)", background: "#f5f8ff", fontSize: "var(--text-xs-plus)", color: "#334155" }}>Basic 55% + house rent 25% + medical 7.5% + transport 7.5% + mobile 5% = 100% of gross. Change a percentage and every salary updates from next payroll.</div>
-                    </section>
-                  </>) : null}
-                  {v.is_leave ? (<>
-                    <section className="pcard fade" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Leave types and policy</h2>
-                          <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Defaults follow the Bangladesh Labour Act, 2006. Change them if your policy gives more.</p>
-                        </div>
-                        <button type="button" className="btn solid sm" onClick={v.addItem}>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M5 12h14" />
-                            <path d="M12 5v14" />
-                          </svg>
-                          <span>Leave type</span>
-                        </button>
-                      </div>
-                      <div className="gc-table-wrap">
-                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                          <thead>
-                            <tr>
-                              <th className="th">Leave type</th>
-                              <th className="th">Days a year</th>
-                              <th className="th">Paid</th>
-                              <th className="th">Carry forward</th>
-                              <th className="th">Needs</th>
-                              <th className="th">Who gets it</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {__list(v.lts).map((lt, $index) => (<React.Fragment key={$index}>
-                                <tr className="row">
-                                  <td className="td" style={{ fontWeight: "var(--weight-medium)" }}>{lt?.l}</td>
-                                  <td className="td num">{lt?.d}</td>
-                                  <td className="td">{lt?.p}</td>
-                                  <td className="td">{lt?.c}</td>
-                                  <td className="td" style={{ color: "#475569" }}>{lt?.n}</td>
-                                  <td className="td" style={{ color: "#475569" }}>{lt?.w}</td>
-                                </tr>
-                              </React.Fragment>))}
-                          </tbody>
-                        </table>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Approval</div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Who approves leave</div>
-                        </div>
-                        <select className="inp" aria-label="Leave approver" style={{ width: "240px" }}>
-                          <option>Branch manager, then owner</option>
-                          <option>Owner only</option>
-                          <option>Branch manager only</option>
-                        </select>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Two people off at once</div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Warn when a branch has this many off on one day</div>
-                        </div>
-                        <select className="inp" aria-label="Warn" style={{ width: "240px" }}>
-                          <option>2 or more</option>
-                          <option>3 or more</option>
-                          <option>Never warn</option>
-                        </select>
-                      </div>
-                    </section>
-                  </>) : null}
-                  {v.is_att ? (<>
-                    <section className="pcard fade" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Attendance rules</h2>
-                          <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Used to mark late, half day and overtime — and to cut or add pay.</p>
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Grace time</div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Minutes after shift start before someone is late</div>
-                        </div>
-                        <select className="inp" aria-label="Grace" style={{ width: "200px" }}>
-                          <option>10 minutes</option>
-                          <option>5 minutes</option>
-                          <option>15 minutes</option>
-                        </select>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Late rule</div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>When lates turn into a pay cut</div>
-                        </div>
-                        <select className="inp" aria-label="Late rule" style={{ width: "200px" }}>
-                          <option>3 lates = 1 day cut</option>
-                          <option>Cut per minute late</option>
-                          <option>Warn only</option>
-                        </select>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Half day</div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Worked less than</div>
-                        </div>
-                        <select className="inp" aria-label="Half day" style={{ width: "200px" }}>
-                          <option>4 hours</option>
-                          <option>5 hours</option>
-                        </select>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Overtime</div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Paid rate after the shift ends</div>
-                        </div>
-                        <select className="inp" aria-label="Overtime" style={{ width: "200px" }}>
-                          <option>2× hourly basic</option>
-                          <option>1.5× hourly basic</option>
-                          <option>No overtime</option>
-                        </select>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Weekly off</div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Day the shops are closed for staff</div>
-                        </div>
-                        <select className="inp" aria-label="Weekly off" style={{ width: "200px" }}>
-                          <option>Friday</option>
-                          <option>Saturday</option>
-                          <option>By roster</option>
-                        </select>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                        <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4" />
-                            <path d="M14 13.12c0 2.38 0 6.38-1 8.88" />
-                            <path d="M17.29 21.02c.12-.6.43-2.3.5-3.02" />
-                            <path d="M2 12a10 10 0 0 1 18-6" />
-                            <path d="M2 16h.01" />
-                            <path d="M21.8 16c.2-2 .131-5.354 0-6" />
-                            <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2" />
-                            <path d="M8.65 22c.21-.66.45-1.32.57-2" />
-                            <path d="M9 6.8a6 6 0 0 1 9 5.2v2" />
-                          </svg>
-                        </span>
-                        <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Fingerprint device</div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>ZKTeco at Dhanmondi, Mirpur and Warehouse · synced 2 min ago</div>
-                        </div>
-                        <button type="button" role="switch" aria-checked={v.dev?.on} aria-label="Fingerprint device" className={v.dev?.cls} onClick={v.dev?.toggle} />
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                        <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                            <path d="m10 17 5-5-5-5" />
-                            <path d="M15 12H3" />
-                          </svg>
-                        </span>
-                        <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>POS log-in counts as clock-in</div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Cashiers are marked present when they open the register</div>
-                        </div>
-                        <button type="button" role="switch" aria-checked={v.posIn?.on} aria-label="POS log-in counts as clock-in" className={v.posIn?.cls} onClick={v.posIn?.toggle} />
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                        <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" />
-                            <circle cx="12" cy="10" r="3" />
-                          </svg>
-                        </span>
-                        <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Staff app check-in only inside the shop</div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Uses the phone’s location — 100 m around the branch</div>
-                        </div>
-                        <button type="button" role="switch" aria-checked={v.geo?.on} aria-label="Staff app check-in only inside the shop" className={v.geo?.cls} onClick={v.geo?.toggle} />
-                      </div>
-                    </section>
-                  </>) : null}
-                  {v.is_hol ? (<>
-                    <section className="pcard fade" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Holidays</h2>
-                          <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Paid days off for everyone. Shown on the roster and attendance register.</p>
-                        </div>
-                        <button type="button" className="btn solid sm" onClick={v.addItem}>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M5 12h14" />
-                            <path d="M12 5v14" />
-                          </svg>
-                          <span>Holiday</span>
-                        </button>
-                      </div>
-                      <div className="gc-table-wrap">
-                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                          <thead>
-                            <tr>
-                              <th className="th">Date</th>
-                              <th className="th">Holiday</th>
-                              <th className="th">Type</th>
-                              <th className="th">Where</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {__list(v.hols).map((hl, $index) => (<React.Fragment key={$index}>
-                                <tr className="row">
-                                  <td className="td" style={{ fontWeight: "var(--weight-medium)" }}>{hl?.d}</td>
-                                  <td className="td">{hl?.l}</td>
-                                  <td className="td" style={{ color: "#475569" }}>{hl?.t}</td>
-                                  <td className="td" style={{ color: "#475569" }}>{hl?.w}</td>
-                                </tr>
-                              </React.Fragment>))}
-                          </tbody>
-                        </table>
-                      </div>
-                      <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Festival dates that follow the moon are set when the government announces them.</div>
-                    </section>
-                  </>) : null}
-                  {v.is_roles ? (<>
-                    <section className="pcard fade" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Roles and permissions</h2>
-                          <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>What each role can see and do in the admin and POS. Change one person’s access on their profile.</p>
-                        </div>
-                        <button type="button" className="btn solid sm" onClick={v.addItem}>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M5 12h14" />
-                            <path d="M12 5v14" />
-                          </svg>
-                          <span>Role</span>
-                        </button>
-                      </div>
-                      <div className="gc-table-wrap">
-                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                          <thead>
-                            <tr>
-                              <th className="th">Role</th>
-                              <th className="th">People</th>
-                              <th className="th">Can do</th>
-                              <th className="th">Can not</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {__list(v.roles).map((rl, $index) => (<React.Fragment key={$index}>
-                                <tr className="row">
-                                  <td className="td" style={{ fontWeight: "var(--weight-medium)" }}>{rl?.l}</td>
-                                  <td className="td num">{rl?.n}</td>
-                                  <td className="td" style={{ color: "#047857" }}>{rl?.y}</td>
-                                  <td className="td" style={{ color: "#b83210" }}>{rl?.x}</td>
-                                </tr>
-                              </React.Fragment>))}
-                          </tbody>
-                        </table>
-                      </div>
-                      <__Link href="/staff-profile" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>Open a staff profile to change their access</__Link>
-                    </section>
-                  </>) : null}
-                  {v.is_run ? (<>
-                    <section className="pcard fade" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Payroll settings</h2>
-                          <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>When and how salary is paid.</p>
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Pay day</div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Salary for a month is paid on</div>
-                        </div>
-                        <select className="inp" aria-label="Pay day" style={{ width: "220px" }}>
-                          <option>1st of next month</option>
-                          <option>Last day of the month</option>
-                          <option>7th of next month</option>
-                        </select>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Days in a month</div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Used for per-day pay and cuts</div>
-                        </div>
-                        <select className="inp" aria-label="Days" style={{ width: "220px" }}>
-                          <option>30 days (fixed)</option>
-                          <option>Calendar days</option>
-                          <option>Working days only</option>
-                        </select>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Rounding</div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Net pay rounded to</div>
-                        </div>
-                        <select className="inp" aria-label="Rounding" style={{ width: "220px" }}>
-                          <option>Nearest ৳1</option>
-                          <option>Nearest ৳10</option>
-                        </select>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Festival bonus</div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Default for Eid and Puja bonus runs</div>
-                        </div>
-                        <select className="inp" aria-label="Bonus" style={{ width: "220px" }}>
-                          <option>100% of basic · 6+ months</option>
-                          <option>50% of basic</option>
-                          <option>Fixed amount</option>
-                        </select>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Advance limit</div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Largest single advance</div>
-                        </div>
-                        <select className="inp" aria-label="Advance limit" style={{ width: "220px" }}>
-                          <option>50% of basic</option>
-                          <option>100% of basic</option>
-                          <option>No limit</option>
-                        </select>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                        <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
-                          </svg>
-                        </span>
-                        <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Send payslip by SMS</div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>A short link to the payslip goes to each staff member</div>
-                        </div>
-                        <button type="button" role="switch" aria-checked={v.slipSms?.on} aria-label="Send payslip by SMS" className={v.slipSms?.cls} onClick={v.slipSms?.toggle} />
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                        <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-                            <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-                            <path d="M10 9H8" />
-                            <path d="M16 13H8" />
-                            <path d="M16 17H8" />
-                          </svg>
-                        </span>
-                        <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Post salary to Accounting</div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Salary expense and cash/bank are booked when payroll is paid</div>
-                        </div>
-                        <button type="button" role="switch" aria-checked={v.post?.on} aria-label="Post salary to Accounting" className={v.post?.cls} onClick={v.post?.toggle} />
-                      </div>
-                    </section>
-                  </>) : null}
-                </div>
+export default function HrSetup() {
+  const { S } = useHr();
+  const set = S.settings;
+  const [sec, setSec] = useState('pay');
+  const [split, setSplit] = useState(null);
+  const [dept, setDept] = useState(null);
+  const [lt, setLt] = useState(null);
+  const [hol, setHol] = useState(null);
+  const [cfg, setCfg] = useState(null);
+  useEffect(() => { const s = new URLSearchParams(window.location.search).get('sec'); if (SECS.some((x) => x[0] === s)) setSec(s); setCfg(getConfig()); }, []);
+  const holidays = [...HOLIDAYS_2026.filter(([k]) => !((cfg || {}).holidaysRemoved || []).includes(k)), ...((cfg || {}).holidaysAdded || [])].sort((a, b) => a[0].localeCompare(b[0]));
+  const sp = split || set.split.map(([id, l, p]) => [id, l, String(p)]);
+  const spTotal = sp.reduce((a, x) => a + (Number(x[2]) || 0), 0);
+
+  const put = (patch, msg) => { saveSettings(patch); toast(msg || 'Saved. Used from the next payroll and roster.'); };
+  const count = (k) => ({ dept: set.departments.length, pay: set.split.length + 5, leave: set.leaveTypes.length, hol: holidays.length, roles: ROLES.length }[k]);
+  const saveSplit = (e) => {
+    e.preventDefault();
+    if (Math.abs(spTotal - 100) > 0.001) { toast(`The parts add up to ${spTotal}% — they must make 100%`, { tone: 'error' }); return; }
+    put({ split: sp.map(([id, l, p]) => [id, l, Number(p)]) }, 'Salary split saved. Payslips from the next payroll use it.');
+    setSplit(null);
+  };
+  const saveDept = (e) => {
+    e.preventDefault();
+    if (!dept.name.trim()) { toast('Name the department', { tone: 'error' }); return; }
+    const row = { name: dept.name.trim(), titles: dept.titles.split(',').map((x) => x.trim()).filter(Boolean), head: dept.head };
+    const list = dept.old ? set.departments.map((d) => (d.name === dept.old ? row : d)) : [...set.departments, row];
+    put({ departments: list }, `${row.name} saved.`);
+    setDept(null);
+  };
+  const saveLt = (e) => {
+    e.preventDefault();
+    if (!lt.name.trim()) { toast('Name the leave type', { tone: 'error' }); return; }
+    const row = { ...lt, name: lt.name.trim(), days: lt.days === '' ? null : Number(lt.days), carry: Number(lt.carry) || 0, id: lt.id || lt.name.trim().toLowerCase().replace(/[^a-z]+/g, '-') };
+    delete row.isNew;
+    const list = lt.isNew ? [...set.leaveTypes, row] : set.leaveTypes.map((t) => (t.id === row.id ? row : t));
+    put({ leaveTypes: list }, `${row.name} leave saved. Balances update now.`);
+    setLt(null);
+  };
+  const saveHol = (e) => {
+    e.preventDefault();
+    if (!hol.date || !hol.name.trim()) { toast('Pick the date and name the holiday', { tone: 'error' }); return; }
+    const c = getConfig();
+    saveConfig({ ...c, holidaysAdded: [...(c.holidaysAdded || []).filter(([k]) => k !== hol.date), [hol.date, hol.name.trim()]], holidaysRemoved: (c.holidaysRemoved || []).filter((k) => k !== hol.date) });
+    setCfg(getConfig());
+    toast(`${hol.name.trim()} on ${formatDate(fromKey(hol.date))} added. The roster, attendance and payout days use it.`);
+    setHol(null);
+  };
+  const removeHol = ([k, name]) => confirmDialog({ title: `Remove ${name}?`, body: `${formatDate(fromKey(k))} becomes a normal working day on the roster, in attendance and for payouts.`, confirmLabel: 'Remove holiday', tone: 'danger' }).then((ok) => {
+    if (!ok) return;
+    const c = getConfig();
+    const added = (c.holidaysAdded || []).some(([x]) => x === k);
+    saveConfig({ ...c, holidaysAdded: (c.holidaysAdded || []).filter(([x]) => x !== k), holidaysRemoved: added ? c.holidaysRemoved || [] : [...(c.holidaysRemoved || []), k] });
+    setCfg(getConfig());
+    toast(`${name} removed.`, { tone: 'info' });
+  });
+  const toggleOff = (d) => { const next = set.weeklyOff.includes(d) ? set.weeklyOff.filter((x) => x !== d) : [...set.weeklyOff, d]; put({ weeklyOff: next }, next.length ? `Weekly off: ${next.map((x) => WEEKDAYS[x]).join(', ')}. The roster follows it.` : 'No fixed weekly off — plan days off on the roster.'); };
+
+  const head = (title, text, action) => <div className="hr-head" style={{ borderBottom: '1px solid var(--border-subtle)' }}><div><h2>{title}</h2><p>{text}</p></div>{action}</div>;
+  const row = (title, text, control) => <div className="su-row"><span><b>{title}</b><span className="hr-sub">{text}</span></span><div>{control}</div></div>;
+  const select = (id, value, opts, onChange) => <select id={id} className="gc-input gc-select" value={String(value)} onChange={(e) => onChange(e.target.value)}>{opts.map(([v, l]) => <option key={v} value={String(v)}>{l}</option>)}</select>;
+
+  return (
+    <HrPage screen="HrSetup" active="hr-setup" page="HR setup" title="HR setup" css={CSS}
+      description="The rules attendance, the roster, leave and payroll use. Changes apply from the next payroll — approved months stay as they were.">
+      <div className="su-wrap">
+        <nav className="gc-card su-nav" aria-label="HR setup sections">
+          {SECS.map(([k, l]) => <button key={k} type="button" aria-current={sec === k} onClick={() => setSec(k)}>{l}{count(k) != null ? <small>{count(k)}</small> : null}</button>)}
+        </nav>
+        <section className="gc-card hr-card">
+          {sec === 'dept' ? <>
+            {head('Departments and designations', 'Used on the staff profile, reports and payroll groups.', <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => setDept({ name: '', titles: '', head: 'Owner' })}><Icon name="plus" width="14" height="14" aria-hidden="true" /> Department</button>)}
+            <div className="su-body">
+              <div className="su-dept">
+                {set.departments.map((d) => (
+                  <button key={d.name} type="button" className="su-deptcard" onClick={() => setDept({ old: d.name, name: d.name, titles: d.titles.join(', '), head: d.head })}>
+                    <span style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><b>{d.name}</b><span className="gc-badge gc-badge--slate">{S.staff.filter((s) => s.department === d.name && s.status !== 'left').length} staff</span></span>
+                    <span className="su-tags">{d.titles.map((t) => <span key={t} className="hr-chip" style={{ background: 'var(--surface-subtle)', color: 'var(--text-body)' }}>{t}</span>)}</span>
+                    <span className="hr-sub">Head: {d.head}</span>
+                  </button>
+                ))}
               </div>
             </div>
-          </main>
-        </div>
+          </> : null}
+
+          {sec === 'pay' ? <>
+            {head('Salary components', 'How gross salary is split on the payslip, and what is added or cut each month.')}
+            <form className="su-body" onSubmit={saveSplit}>
+              <div className="su-split">
+                {sp.map(([id, l, p], i) => <div key={id}><label className="gc-label" htmlFor={'sp-' + id}>{l} (%)</label><input id={'sp-' + id} className="gc-input hr-fig" inputMode="decimal" value={p} onChange={(e) => setSplit(sp.map((x, j) => (j === i ? [x[0], x[1], e.target.value.replace(/[^\d.]/g, '')] : x)))} /></div>)}
+              </div>
+              <div className={'hr-note ' + (Math.abs(spTotal - 100) < 0.001 ? 'hr-note--ok' : 'hr-note--warn')}><Icon name={Math.abs(spTotal - 100) < 0.001 ? 'circle-check' : 'triangle-alert'} width="16" height="16" aria-hidden="true" /><span>{sp.map(([, l, p]) => `${l} ${p || 0}%`).join(' + ')} = <b>{spTotal}%</b> of gross. Basic is also what advances and festival bonuses are worked out from.</span></div>
+              {split ? <div className="hr-actions"><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setSplit(null)}>Undo</button><button type="submit" className="gc-btn gc-btn--solid">Save split</button></div> : null}
+              <table className="hr-mini">
+                <thead><tr><th scope="col">Added or cut each month</th><th scope="col">Type</th><th scope="col">How it is worked out</th><th scope="col">Comes from</th></tr></thead>
+                <tbody>
+                  <tr><td>Overtime</td><td className="hr-in">Earning</td><td>Hours × {set.otRate || 0} × gross ÷ ({set.monthDays === 'calendar' ? 'days in month' : '30'} × {set.hoursPerDay} h), to the nearest ৳10</td><td>Attendance</td></tr>
+                  <tr><td>Sales incentive</td><td className="hr-in">Earning</td><td>1% of own POS sales above ৳1,00,000 — typed in the salary sheet</td><td>Payroll review</td></tr>
+                  <tr><td>One-time line</td><td>Either</td><td>Bonus, uniform, phone bill… for one month</td><td>Payroll review</td></tr>
+                  <tr><td>Late / absence cut</td><td className="hr-out">Deduction</td><td>Gross ÷ {set.monthDays === 'calendar' ? 'days in month' : '30'} × (absent + unpaid leave + ½ half days{set.lateRule === 'days' ? ` + 1 per ${set.latesPerCut} lates` : ''})</td><td>Attendance · Leave</td></tr>
+                  <tr><td>Loan instalment · advance recovery</td><td className="hr-out">Deduction</td><td>The monthly amount set when it was given</td><td><Link href="/loans-advances" className="hr-link">Loans & advances</Link></td></tr>
+                </tbody>
+              </table>
+            </form>
+          </> : null}
+
+          {sec === 'leave' ? <>
+            {head('Leave types and policy', 'Defaults follow the Bangladesh Labour Act, 2006. Change them if your policy gives more.', <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => setLt({ isNew: true, name: '', days: '5', paid: true, carry: '0', needs: '—', who: 'Everyone' })}><Icon name="plus" width="14" height="14" aria-hidden="true" /> Leave type</button>)}
+            <div className="gc-table-wrap">
+              <table className="gc-table gc-table--compact gc-table--hoverable">
+                <thead><tr><th scope="col">Leave type</th><th scope="col">Days a year</th><th scope="col">Paid</th><th scope="col">Carry forward</th><th scope="col">Needs</th><th scope="col">Who gets it</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
+                <tbody>{set.leaveTypes.map((t) => <tr key={t.id}><td className="hr-strong">{t.name}</td><td>{t.accrue ? `1 per ${t.accrue} days worked` : t.days ?? 'As approved'}</td><td>{t.paid ? 'Yes' : <span className="hr-out">No — cut</span>}</td><td>{t.carry ? `Up to ${t.carry} days` : 'No'}</td><td>{t.needs}</td><td>{t.who}</td><td><div className="hr-actions"><button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setLt({ ...t, days: t.days == null ? '' : String(t.days), carry: String(t.carry || 0) })}>Edit</button></div></td></tr>)}</tbody>
+              </table>
+            </div>
+            <div className="su-body" style={{ paddingTop: 0 }}>
+              <div className="su-rows">
+                {row('Who approves leave', 'Requests from the staff app go to', select('su-appr', set.leaveApprover, [['manager-owner', 'Branch manager, then owner'], ['owner', 'Owner only'], ['manager', 'Branch manager only']], (v) => put({ leaveApprover: v })))}
+                {row('People off at once', 'Warn when a branch has this many off on one day', select('su-offwarn', set.offWarn, [[2, '2 or more'], [3, '3 or more'], [99, 'Never warn']], (v) => put({ offWarn: Number(v) })))}
+              </div>
+            </div>
+          </> : null}
+
+          {sec === 'att' ? <>
+            {head('Attendance rules', 'Used to mark late, half day and overtime — and to cut or add pay.')}
+            <div className="su-body"><div className="su-rows">
+              {row('Weekly off', 'Days the shops are closed for staff. Anyone can have their own off days on the roster.', <div className="su-days" role="group" aria-label="Weekly off">{WEEK_ORDER.map((d) => <button key={d} type="button" className="su-day" aria-pressed={set.weeklyOff.includes(d)} onClick={() => toggleOff(d)}>{WEEKDAYS[d]}</button>)}</div>)}
+              {row('Working hours a day', 'For the hourly rate (overtime) and per-minute cuts', select('su-hours', set.hoursPerDay, [[8, '8 hours'], [9, '9 hours'], [10, '10 hours']], (v) => put({ hoursPerDay: Number(v) })))}
+              {row('Grace time for new shifts', 'Each shift keeps its own grace (Shifts & roster)', select('su-grace', set.graceMin, [[5, '5 minutes'], [10, '10 minutes'], [15, '15 minutes']], (v) => put({ graceMin: Number(v) })))}
+              {row('Late rule', 'When lates turn into a pay cut', select('su-late', set.lateRule === 'days' ? `days-${set.latesPerCut}` : set.lateRule, [['days-3', '3 lates = 1 day cut'], ['days-4', '4 lates = 1 day cut'], ['minutes', 'Cut per minute late'], ['warn', 'Warn only']], (v) => put(v.startsWith('days') ? { lateRule: 'days', latesPerCut: Number(v.slice(5)) } : { lateRule: v })))}
+              {row('Half day', 'Worked less than', select('su-half', set.halfDayHours, [[4, '4 hours'], [5, '5 hours']], (v) => put({ halfDayHours: Number(v) })))}
+              {row('Overtime', 'Paid rate for time after the shift ends', select('su-ot', set.otRate, [[2, '2× hourly rate'], [1.5, '1.5× hourly rate'], [0, 'No overtime']], (v) => put({ otRate: Number(v) })))}
+              {row('Fingerprint device', 'ZKTeco at Dhanmondi, Mirpur and the warehouse', <Switch on={set.device} label="Fingerprint device" onChange={(v) => put({ device: v }, v ? 'Device punches are used.' : 'Device punches are ignored.')} />)}
+              {row('POS log-in counts as clock-in', 'Cashiers are marked present when they open the register', <Switch on={set.posIn} label="POS log-in counts as clock-in" onChange={(v) => put({ posIn: v })} />)}
+              {row('Staff app check-in only inside the shop', 'Uses the phone’s location — 100 m around the branch', <Switch on={set.geo} label="Location check" onChange={(v) => put({ geo: v })} />)}
+            </div></div>
+          </> : null}
+
+          {sec === 'hol' ? <>
+            {head('Holidays', 'Paid days off for everyone. Shown on the roster and attendance register, and used for payout days in Accounts.', <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => setHol({ date: todayKey(S), name: '' })}><Icon name="plus" width="14" height="14" aria-hidden="true" /> Holiday</button>)}
+            <div className="gc-table-wrap">
+              <table className="gc-table gc-table--compact gc-table--hoverable">
+                <thead><tr><th scope="col">Date</th><th scope="col">Holiday</th><th scope="col">Day</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
+                <tbody>{holidays.map(([k, name]) => <tr key={k} style={k < todayKey(S) ? { opacity: 0.6 } : undefined}><td className="hr-fig">{formatDate(fromKey(k))}</td><td className="hr-strong">{name}</td><td>{WEEKDAYS[dowOf(k)]}{set.weeklyOff.includes(dowOf(k)) ? ' · weekly off anyway' : ''}</td><td><div className="hr-actions"><button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => removeHol([k, name])} aria-label={`Remove ${name}`}>Remove</button></div></td></tr>)}</tbody>
+              </table>
+            </div>
+            <p className="hr-sub" style={{ margin: 0, padding: 'var(--space-3) var(--space-5)' }}>Dates that follow the moon (Eid, Ashura) can move a day or two — correct them here when the government announces them.</p>
+          </> : null}
+
+          {sec === 'roles' ? <>
+            {head('Roles and permissions', 'What each role can see and do in the admin and POS. Change one person’s role on All staff.', <Link href="/staff-access" className="gc-btn gc-btn--sm gc-btn--neutral">Staff access</Link>)}
+            <div className="gc-table-wrap">
+              <table className="gc-table gc-table--compact">
+                <thead><tr><th scope="col">Role</th><th scope="col" className="hr-num">People</th><th scope="col">Can do</th><th scope="col">Can not</th></tr></thead>
+                <tbody>{ROLES.map(([r, y, x]) => <tr key={r}><td className="hr-strong">{r}</td><td className="hr-num">{r === 'Owner' ? 1 : S.staff.filter((s) => s.role === r && s.status !== 'left').length}</td><td>{y}</td><td className="hr-sub" style={{ display: 'table-cell' }}>{x}</td></tr>)}</tbody>
+              </table>
+            </div>
+          </> : null}
+
+          {sec === 'run' ? <>
+            {head('Payroll settings', 'When and how salary is paid.')}
+            <div className="su-body"><div className="su-rows">
+              {row('Pay day', 'Salary for a month is due on — sets the due date of the salary liability', select('su-payday', set.payDay, [['first', '1st of next month'], ['last', 'Last day of the month'], ['seventh', '7th of next month']], (v) => put({ payDay: v })))}
+              {row('Days in a month', 'Used for per-day pay and cuts', select('su-mdays', set.monthDays, [['fixed', '30 days (fixed)'], ['calendar', 'Calendar days']], (v) => put({ monthDays: v })))}
+              {row('Rounding', 'Net pay rounded to', select('su-round', set.rounding, [[1, 'Nearest ৳1'], [10, 'Nearest ৳10']], (v) => put({ rounding: Number(v) })))}
+              {row('Festival bonus', 'Default for Eid and Puja bonus runs', select('su-bonus', `${set.bonusPct}-${set.bonusMonths}`, [['100-6', '100% of basic · 6+ months'], ['50-6', '50% of basic · 6+ months'], ['100-0', '100% of basic · everyone']], (v) => { const [p, m] = v.split('-').map(Number); put({ bonusPct: p, bonusMonths: m }); }))}
+              {row('Advance limit', 'Largest single salary advance — more needs the owner', select('su-adv', set.advanceLimit, [[50, '50% of basic'], [100, '100% of basic'], [0, 'No limit']], (v) => put({ advanceLimit: Number(v) })))}
+              {row('Send payslip by SMS', 'A short link to the payslip goes to each staff member', <Switch on={set.slipSms} label="Send payslip by SMS" onChange={(v) => put({ slipSms: v })} />)}
+            </div>
+            <div className="hr-three">
+              {[['bank', 'Bank staff are paid from'], ['bkash', 'bKash staff are paid from'], ['cash', 'Cash staff are paid from']].map(([m, l]) => <AccountSelect key={m} id={'su-acc-' + m} label={l} value={set.payAccounts[m]} onChange={(v) => put({ payAccounts: { ...set.payAccounts, [m]: v } }, 'Default pay account saved. It is used for new staff; each person can have their own on All staff.')} />)}
+            </div>
+            <p className="gc-help" style={{ margin: 0 }}>Salary payments always post to Accounts › Money book, one line per person, when payroll is paid.</p>
+            </div>
+          </> : null}
+        </section>
       </div>
-    );
-  }
+
+      <Dialog open={!!dept} title={dept && dept.old ? `Edit · ${dept.old}` : 'New department'} onClose={() => setDept(null)} width={520}
+        footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setDept(null)}>Cancel</button><button type="submit" form="su-dept" className="gc-btn gc-btn--solid">Save</button></>}>
+        {dept ? (
+          <form id="su-dept" className="hr-form" onSubmit={saveDept}>
+            <div><label className="gc-label" htmlFor="dp-name">Name</label><input id="dp-name" className="gc-input" value={dept.name} onChange={(e) => setDept({ ...dept, name: e.target.value })} data-autofocus /></div>
+            <div><label className="gc-label" htmlFor="dp-titles">Designations</label><input id="dp-titles" className="gc-input" value={dept.titles} onChange={(e) => setDept({ ...dept, titles: e.target.value })} placeholder="Cashier, Sales associate" /><span className="gc-help">Separate with commas.</span></div>
+            <div><label className="gc-label" htmlFor="dp-head">Head</label><select id="dp-head" className="gc-input gc-select" value={dept.head} onChange={(e) => setDept({ ...dept, head: e.target.value })}><option>Owner</option>{S.staff.filter((s) => s.status !== 'left').map((s) => <option key={s.code}>{s.name}</option>)}</select></div>
+          </form>
+        ) : null}
+      </Dialog>
+
+      <Dialog open={!!lt} title={lt && !lt.isNew ? `Edit · ${lt.name} leave` : 'New leave type'} onClose={() => setLt(null)} width={560}
+        footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setLt(null)}>Cancel</button><button type="submit" form="su-lt" className="gc-btn gc-btn--solid">Save</button></>}>
+        {lt ? (
+          <form id="su-lt" className="hr-form" onSubmit={saveLt}>
+            <div className="hr-two">
+              <div><label className="gc-label" htmlFor="lt-name">Name</label><input id="lt-name" className="gc-input" value={lt.name} onChange={(e) => setLt({ ...lt, name: e.target.value })} data-autofocus /></div>
+              {lt.accrue ? <div><label className="gc-label" htmlFor="lt-acc">1 day for every … days worked</label><input id="lt-acc" className="gc-input hr-fig" inputMode="numeric" value={lt.accrue} onChange={(e) => setLt({ ...lt, accrue: Number(e.target.value.replace(/[^\d]/g, '')) || 18 })} /></div>
+                : <div><label className="gc-label" htmlFor="lt-days">Days a year</label><input id="lt-days" className="gc-input hr-fig" inputMode="numeric" placeholder="Blank = as approved" value={lt.days} onChange={(e) => setLt({ ...lt, days: e.target.value.replace(/[^\d]/g, '') })} /></div>}
+            </div>
+            <div className="hr-two">
+              <div><label className="gc-label" htmlFor="lt-carry">Carry forward (days)</label><input id="lt-carry" className="gc-input hr-fig" inputMode="numeric" value={lt.carry} onChange={(e) => setLt({ ...lt, carry: e.target.value.replace(/[^\d]/g, '') })} /></div>
+              <div><label className="gc-label" htmlFor="lt-needs">Needs</label><input id="lt-needs" className="gc-input" value={lt.needs} onChange={(e) => setLt({ ...lt, needs: e.target.value })} /></div>
+            </div>
+            <div><label className="gc-label" htmlFor="lt-who">Who gets it</label><input id="lt-who" className="gc-input" value={lt.who} onChange={(e) => setLt({ ...lt, who: e.target.value })} /></div>
+            <label className="hr-check"><input type="checkbox" checked={lt.paid} onChange={(e) => setLt({ ...lt, paid: e.target.checked })} />Paid leave (unticked = cut from salary)</label>
+          </form>
+        ) : null}
+      </Dialog>
+
+      <Dialog open={!!hol} title="Add a holiday" onClose={() => setHol(null)} width={480}
+        footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setHol(null)}>Cancel</button><button type="submit" form="su-hol" className="gc-btn gc-btn--solid">Add holiday</button></>}>
+        {hol ? (
+          <form id="su-hol" className="hr-form" onSubmit={saveHol}>
+            <div className="hr-two">
+              <div><label className="gc-label" htmlFor="hl-date">Date</label><input id="hl-date" type="date" className="gc-input" value={hol.date} onChange={(e) => setHol({ ...hol, date: e.target.value })} /></div>
+              <div><label className="gc-label" htmlFor="hl-name">Holiday</label><input id="hl-name" className="gc-input" value={hol.name} onChange={(e) => setHol({ ...hol, name: e.target.value })} placeholder="e.g. Shab-e-Barat" data-autofocus /></div>
+            </div>
+          </form>
+        ) : null}
+      </Dialog>
+    </HrPage>
+  );
 }

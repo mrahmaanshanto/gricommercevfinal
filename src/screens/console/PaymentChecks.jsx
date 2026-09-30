@@ -45,11 +45,11 @@ export default class PaymentChecksScreen extends Component {
       <div className="dc-screen" data-screen="PaymentChecks">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div style={{ width: "100%", minHeight: "600px", padding: "24px 16px", display: "flex", alignItems: "center", justifyContent: "center", background: "#e9eef5" }}>
-          <div className="card" style={{ maxWidth: "640px", padding: "36px 40px", display: "flex", flexDirection: "column", gap: "14px" }}>
+          <div className="card" style={{ maxWidth: "640px", width: "100%", padding: "clamp(20px, 5vw, 40px)", display: "flex", flexDirection: "column", gap: "14px" }}>
             <span className="pill p-grey" style={{ alignSelf: "flex-start" }}>Removed</span>
             <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Payment checks is no longer a screen</h1>
             <p style={{ margin: "0", fontSize: "var(--text-sm-plus)", lineHeight: "1.65", color: "#475569" }}>There is no auto-renewal and no screenshot queue. Merchants pay from their own panel, or staff call and record the payment. Both happen in Collections and on each merchant's page.</p>
-            <div style={{ display: "flex", gap: "10px" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
               <__Link href="/collections" className="btn solid">Open Collections</__Link>
               <__Link href="/merchant-detail" className="btn ghost">Open a merchant page</__Link>
             </div>

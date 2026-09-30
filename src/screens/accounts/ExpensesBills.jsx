@@ -106,7 +106,7 @@ const CSS = `
 .eb-due b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--primary)}
 .eb-due small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .eb-due-ico{display:grid;place-items:center;width:36px;height:36px;flex:none;border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary)}
-.eb-kpi-link{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--primary);text-decoration:none;white-space:nowrap}
+.eb-kpi-link{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--primary);text-decoration:none;white-space:normal}
 .eb-kpi-link:hover{text-decoration:underline}
 .eb-help{margin:var(--space-2) 0 0}
 .eb-wait{padding:var(--space-8) var(--space-5);text-align:center;font-size:var(--text-xs);color:var(--text-muted)}
@@ -215,7 +215,7 @@ export default function ExpensesBills() {
         <Kpi icon="receipt" tone="primary" label="Spent this month" value={k ? money(k.spent) : '—'} sub={k ? `Last month ${money(k.spentLast)}` : ''} />
         <Kpi icon="arrow-down-left" tone="success" label="Other income this month" value={k ? money(k.income) : '—'} sub={k ? `Last month ${money(k.incomeLast)}` : ''} />
         <Kpi icon="file-clock" tone={k && k.overdue ? 'error' : 'warning'} label="Owed now" value={k ? money(k.owed) : '—'}
-          sub={k ? <Link className="eb-kpi-link" href="/liabilities">{k.overdue ? `${plural(k.overdue, 'item')} overdue · ` : ''}Salaries, commission and more</Link> : ''} />
+          sub={k ? <Link className="eb-kpi-link" href="/liabilities">{k.overdue ? `${plural(k.overdue, 'item')} overdue` : 'See liabilities'}</Link> : ''} />
         <Kpi icon="percent" tone="slate" label="Partner fees, this month" value={k ? money(k.fees) : '—'} sub={k ? (k.feePayouts ? `From ${plural(k.feePayouts, 'payout')} received` : `Last month ${money(k.feesLast)}`) : ''} />
       </div>
 
