@@ -12,6 +12,7 @@ import { toast } from '@/runtime/ui';
 import { formatBDT } from '@/lib/format';
 import __SetRail from '@/screens/settings-console/SetRail';
 import __SetTopbar from '@/screens/settings-console/SetTopbar';
+import { GatewayList } from '@/components/GatewaySetup';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -213,6 +214,7 @@ export default class SetPaymentsScreen extends Component {
                         <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Last saved 7 Sep 2026, 11:04 AM</span>
                       </span>
                     </header>
+                    <GatewayList />
                     <section id="s0" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>

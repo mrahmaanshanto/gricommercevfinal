@@ -58,7 +58,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   partner rules (fee, payout days, weekend + BD holidays), expected payouts, confirm / delay / withdraw and the
   evening check (`components/EveningCheck.jsx`, 8 PM). Accounts is six pages (`/accounts-home`, `/money`,
   `/settlements`, `/expenses-bills`, `/account-reports`, `/account-setup`) sharing `screens/accounts/accShared.jsx`;
-  old Accounts addresses redirect in `next.config.mjs`. `gc.clock.offset` (ms, localStorage) moves the check's clock for testing.
+  old Accounts addresses redirect in `next.config.mjs`. Gateways and couriers are set up with
+  `components/GatewaySetup.jsx` (Settings › Payment Gateway and Accounts › Setup): straight to an account or settled
+  later (automatic T+n, set weekdays / dates of the month, or manual withdraw), API keys, and the accounts it needs. `gc.clock.offset` (ms, localStorage) moves the check's clock for testing.
   suppliers: `src/lib/supplierBills.js` (bills from receiving, payments, credit notes). `docs/GridCommerce-flows.pdf` maps the flows.
 - Reference pages (UI kit, flows, site map, storyboards) are under `/dev/…`. They and the POS /
   settings screen switchers only show in a production build when `NEXT_PUBLIC_SHOW_STORYBOARD=true`.

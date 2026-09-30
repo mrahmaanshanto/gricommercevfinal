@@ -16,8 +16,9 @@ import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { Dialog, EmptyState } from '@/components/ui';
 import { BrandLogo } from '@/components/BrandLogo';
+import { GatewaySetup } from '@/components/GatewaySetup';
 import { OWN_ACCOUNTS, HOLDING_ACCOUNTS, balanceOf, getEntries, addAccount } from '@/lib/ledger';
-import { PARTNERS, DEFAULT_CONFIG, getConfig, saveConfig, getPartners, ruleText, feeText, weekendText, holidaysOf, HOLIDAYS_2026, WEEKDAYS, DEFAULT_WEEKEND, COURIER_RATES, heldBy, clockNow, dayKey, fromKey } from '@/lib/settlements';
+import { PARTNERS, DEFAULT_CONFIG, getConfig, saveConfig, getPartners, getAllPartners, ruleText, feeText, weekendText, holidaysOf, HOLIDAYS_2026, WEEKDAYS, DEFAULT_WEEKEND, COURIER_RATES, heldBy, clockNow, dayKey, fromKey } from '@/lib/settlements';
 import { AccPage, AccountSelect, useBooks, money, shortDate, accName, accBrand } from './accShared';
 
 const TABS = [['partners', 'Payment partners'], ['accounts', 'Banks & wallets'], ['holidays', 'Holidays'], ['check', 'Evening check'], ['advanced', 'Advanced']];
@@ -100,6 +101,7 @@ export default function AccountSetup() {
   const tick = useBooks();
   const [tab, setTab] = useState('partners');
   const [edit, setEdit] = useState(null);      // partner form
+  const [wizard, setWizard] = useState(null);  // gateway setup: { partner } or { add: true }
   const [acc, setAcc] = useState(null);        // new account form
   const [hol, setHol] = useState({ date: '', name: '' });
   const [perm, setPerm] = useState('');
@@ -124,7 +126,7 @@ export default function AccountSetup() {
     const today = tick ? dayKey(now) : '';
     return {
       cfg, now, today, holidays,
-      partners: getPartners(cfg),
+      partners: getAllPartners(cfg),
       own: own.map((a) => ({ ...a, balance: balanceOf(a.id, entries) })),
       holding: tick ? HOLDING_ACCOUNTS().map((a) => ({ ...a, held: heldBy(a.partner) })) : [],
       nextHoliday: tick ? holidays.find(([k]) => k >= today) : null,
@@ -274,7 +276,7 @@ export default function AccountSetup() {
         <div id="as-panel" role="tabpanel" aria-labelledby={'as-tab-' + tab}>
           {tab === 'partners' ? (
             <div className="as-body">
-              <div className="ac-head"><div><h2>Payment partners</h2><p>Gateways and couriers that collect money for you and pay it out later.</p></div></div>
+              <div className="ac-head"><div><h2>Payment partners</h2><p>Gateways, the card machine and couriers: how their money reaches you, how it is settled, and their keys.</p></div><button type="button" className="gc-btn gc-btn--solid" onClick={() => setWizard({ add: true })}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Add gateway or courier</button></div>
               <div className="ac-note ac-note--info"><Icon name="info" width="16" height="16" aria-hidden="true" /><span>These are common rates in Bangladesh. Check them against your own agreement.</span></div>
               <div className="as-grid gc-cols-2">
                 {data.partners.map((p) => {
@@ -288,12 +290,13 @@ export default function AccountSetup() {
                       <dl>
                         <dt>Fee</dt><dd>{feeText(p)}</dd>
                         <dt>Pays out</dt><dd>{ruleText(p)}</dd>
-                        <dt>Pays into</dt><dd><BrandLogo brand={accBrand(p.to) || accName(p.to)} size={20} decorative /><span>{accName(p.to)}</span></dd>
-                        <dt>Doesn’t pay on</dt><dd>{p.weekend && p.weekend.length ? weekendText(p.weekend) : 'Pays every day'}</dd>
+                        <dt>Money</dt><dd>{p.mode === 'direct' ? 'Straight into your account' : 'Settled later'}</dd>
+                        {p.mode === 'direct' ? null : <><dt>Pays into</dt><dd><BrandLogo brand={accBrand(p.to) || accName(p.to)} size={20} decorative /><span>{accName(p.to)}</span></dd>
+                        <dt>Doesn’t pay on</dt><dd>{p.weekend && p.weekend.length ? weekendText(p.weekend) : 'Pays every day'}</dd></>}
                         {p.kind === 'Courier' ? <><dt>Delivery charge</dt><dd className="ac-fig">{ZONES.map((z) => money({ ...COURIER_RATES, ...(p.rates || {}) }[z])).join(' · ')}</dd></> : null}
                       </dl>
                       {p.note ? <p className="as-pnote">{p.note}</p> : null}
-                      <div className="as-pfoot"><button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => openPartner(p)} aria-label={`Edit ${p.name}`}><Icon name="pencil" width="16" height="16" aria-hidden="true" /> Edit</button></div>
+                      <div className="as-pfoot"><button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setWizard({ partner: p })} aria-label={`Set up ${p.name}`}><Icon name="settings-2" width="16" height="16" aria-hidden="true" /> Set up</button></div>
                     </article>
                   );
                 })}
@@ -453,6 +456,7 @@ export default function AccountSetup() {
       </section>
 
       {/* edit a payment partner */}
+      {wizard ? <GatewaySetup partner={wizard.partner} onClose={() => setWizard(null)} /> : null}
       <Dialog open={!!edit} title={ep ? `Edit ${ep.short}` : 'Edit partner'} onClose={() => setEdit(null)} width={640}
         footer={ep ? <>
           {changed.includes(ep.id) ? <button type="button" className="gc-btn gc-btn--flat" style={{ marginRight: 'auto' }} onClick={() => resetPartner(ep)}><Icon name="undo-2" width="18" height="18" aria-hidden="true" /> Reset to default</button> : null}

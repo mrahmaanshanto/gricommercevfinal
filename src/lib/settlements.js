@@ -13,7 +13,7 @@
 //
 // Front end only: items, payouts and settings are kept in this browser; demo data in settlementSeed.js.
 
-import { postEntry, balanceOf, accountBy } from './ledger';
+import { postEntry, balanceOf, accountBy, addAccount, ACCOUNTS } from './ledger';
 import { ITEM_SEED, PAYOUT_SEED, HOLDING_OF, ITEMS_KEY } from './settlementSeed';
 
 const K_ITEMS = ITEMS_KEY;
@@ -55,16 +55,60 @@ const ssr = () => typeof window === 'undefined';
 /** The time the checks use. A test offset in gc.clock.offset (ms) moves it forward to try the evening check. */
 export const clockNow = () => { try { return Date.now() + (Number(window.localStorage.getItem('gc.clock.offset')) || 0); } catch { return Date.now(); } };
 
-export const DEFAULT_CONFIG = { promptHour: 20, grace: 1, partners: {}, holidaysAdded: [], holidaysRemoved: [], snoozed: {} };
+export const DEFAULT_CONFIG = { promptHour: 20, grace: 1, partners: {}, custom: [], removed: [], setup: {}, holidaysAdded: [], holidaysRemoved: [], snoozed: {} };
 export const getConfig = () => ({ ...DEFAULT_CONFIG, ...(ssr() ? {} : read(K_CONFIG, {})) });
 export const saveConfig = (cfg) => { write(K_CONFIG, cfg); try { window.dispatchEvent(new CustomEvent('gc:ledger')); } catch { /* ignore */ } };
 /** A partner with the merchant's own changes (fee, COD %, payout rule, account, weekend). */
 export function partnerBy(id, cfg = getConfig()) {
-  const p = PARTNERS.find((x) => x.id === id);
-  return p ? { weekend: DEFAULT_WEEKEND, ...p, ...(cfg.partners[id] || {}) } : null;
+  const p = PARTNERS.find((x) => x.id === id) || (cfg.custom || []).find((x) => x.id === id);
+  return p ? { weekend: DEFAULT_WEEKEND, mode: 'settle', ...p, ...(cfg.partners[id] || {}) } : null;
 }
-export const getPartners = (cfg = getConfig()) => PARTNERS.map((p) => partnerBy(p.id, cfg));
-export const holdingOf = (partnerId) => HOLDING_OF[partnerId];
+/** Every gateway, card machine and courier set up, including ones that pay straight into an account. */
+export const getAllPartners = (cfg = getConfig()) => [...PARTNERS, ...(cfg.custom || [])].filter((p) => !(cfg.removed || []).includes(p.id)).map((p) => partnerBy(p.id, cfg));
+/** Partners that hold money and settle it later (the ones Settlements tracks). */
+export const getPartners = (cfg = getConfig()) => getAllPartners(cfg).filter((p) => p.mode !== 'direct');
+/** The holding account of a partner that settles later. */
+export const holdingOf = (partnerId) => HOLDING_OF[partnerId] || (ACCOUNTS.find((a) => a.type === 'Holding' && a.partner === partnerId) || {}).id;
+/** Where a payment through this partner lands: its holding account, or the shop's own account when it pays straight in. */
+export function accountForPartner(partnerId, cfg = getConfig()) {
+  const p = partnerBy(partnerId, cfg);
+  if (!p) return null;
+  return p.mode === 'direct' ? p.account : holdingOf(partnerId);
+}
+
+// ---- setting a gateway up ---------------------------------------------------------------------------
+const K_KEYS = 'gc.gateway.keys';
+/** The API keys the merchant entered for a partner: { mode: 'Sandbox'|'Live', <field>: value }. */
+export const getKeys = (id) => (ssr() ? {} : (read(K_KEYS, {})[id] || {}));
+/**
+ * Save a gateway or courier from the setup wizard and build its accounts.
+ * p: { id?, name, short, brand, kind: 'Gateway'|'Courier', mode: 'direct'|'settle', account (direct),
+ *      rule, fee | cod, codDhaka, to, weekend, newAccount? { name, type, brand } }
+ * Direct: the money is credited straight to `account` (made first when newAccount is given).
+ * Settle: a holding account '<name> (to be paid out)' is made if it has none.
+ */
+export function saveGateway(input, keys) {
+  const cfg = getConfig();
+  const builtIn = PARTNERS.some((x) => x.id === input.id);
+  const id = input.id || String(input.short || input.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now().toString(36).slice(-4);
+  const p = { ...input, id };
+  if (p.mode === 'direct' && p.newAccount) { const acc = addAccount({ opening: 0, ...p.newAccount }); p.account = acc.id; }
+  delete p.newAccount;
+  const made = [];
+  if (p.mode === 'settle' && !holdingOf(id)) { made.push(addAccount({ name: `${p.short || p.name} (to be paid out)`, type: 'Holding', brand: p.brand, partner: id, opening: 0 })); }
+  const { id: _i, name, short, brand, kind, note, ...rules } = p;
+  const next = { ...cfg, setup: { ...(cfg.setup || {}), [id]: { at: Date.now(), keys: !!(keys && Object.keys(keys).some((k) => k !== 'mode' && keys[k])) } }, removed: (cfg.removed || []).filter((x) => x !== id) };
+  if (builtIn) next.partners = { ...cfg.partners, [id]: rules };
+  else next.custom = [...(cfg.custom || []).filter((x) => x.id !== id), { weekend: DEFAULT_WEEKEND, ...p }];
+  if (keys) write(K_KEYS, { ...read(K_KEYS, {}), [id]: keys });
+  saveConfig(next);
+  return { partner: partnerBy(id, next), made };
+}
+/** Stop using a partner (its history stays). */
+export function removeGateway(id) {
+  const cfg = getConfig();
+  saveConfig({ ...cfg, removed: [...new Set([...(cfg.removed || []), id])] });
+}
 
 export function getItems() { return ssr() ? ITEM_SEED : read(K_ITEMS, ITEM_SEED); }
 const ping = () => { try { window.dispatchEvent(new CustomEvent('gc:ledger')); } catch { /* ignore */ } };
@@ -115,6 +159,12 @@ export function costsOf(item, p = partnerBy(item.partner)) {
 export function expectedDayOf(item, p = partnerBy(item.partner), cfg = getConfig()) {
   const rule = p.rule || {};
   if (rule.type === 'withdraw') return null;
+  if (rule.type === 'monthly') {
+    // on set dates of the month (e.g. 1st and 15th); a closed day moves to the next working day
+    let d = startOfDay(item.at);
+    for (let i = 0; i < 70; i++) { d = startOfDay(d + DAY + 3600e3); if ((rule.dates || []).includes(new Date(d).getDate())) break; }
+    return addWorkingDays(d, 0, p.weekend, cfg);
+  }
   if (rule.type === 'weekday') {
     let d = addWorkingDays(item.at, 1, p.weekend, cfg);
     for (let i = 0; i < 14 && !(rule.days || []).includes(new Date(d).getDay()); i++) d = addWorkingDays(d, 1, p.weekend, cfg);
@@ -309,8 +359,11 @@ export function settlementSummary(now = clockNow(), cfg = getConfig()) {
 // ---- words ----------------------------------------------------------------------------------------
 const listWords = (a) => (a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]);
 /** "Next working day" · "In 2 working days" · "Every Sunday and Wednesday" · "Stays until you withdraw it" */
+const ordinal = (n) => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
 export function ruleText(p) {
+  if (p.mode === 'direct') return 'Straight to ' + ((accountBy(p.account) || {}).name || 'your account');
   const r = p.rule || {};
+  if (r.type === 'monthly') return 'On the ' + listWords((r.dates || []).slice().sort((a, b) => a - b).map(ordinal)) + ' of each month';
   if (r.type === 'withdraw') return 'Stays until you withdraw it';
   if (r.type === 'weekday') return 'Every ' + listWords((r.days || []).map((d) => WEEKDAYS[d]));
   return r.days === 1 ? 'Next working day' : `In ${r.days} working days`;

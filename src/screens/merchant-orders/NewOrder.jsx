@@ -16,6 +16,7 @@ import { createOrderLink, addOrder, DELIVERY_RATES as DELIVERY, PAYMENT_LABEL, B
 import { CourierHistory } from '@/components/CourierHistory';
 import { addHolds } from '@/lib/stockHolds';
 import { postEntry, accountForMethod } from '@/lib/ledger';
+import { PARTNERS, getAllPartners, accountForPartner } from '@/lib/settlements';
 import { STOCK_PLACES } from '@/lib/locations';
 import { productBy, stockAt } from '@/lib/stock';
 import { getCustomers, findCustomer, saveCustomerOnce, ADDED_FROM } from '@/lib/customers';
@@ -136,7 +137,7 @@ export default function NewOrder() {
   const [terms, setTerms] = useState('cod');            // cod | partial | full
   const [advance, setAdvance] = useState('');
   const [link, setLink] = useState(null);               // the order link made from the current products
-  const [method, setMethod] = useState('bKash online');
+  const [method, setMethod] = useState('gw:bkash-pgw');
   const [status, setStatus] = useState('approved');     // a hand-made order is already confirmed with the customer
   const [holdPlace, setHoldPlace] = useState('Central Warehouse');   // where an approved order's stock is held
   const [note, setNote] = useState('');
@@ -147,6 +148,11 @@ export default function NewOrder() {
   const productRef = useRef(null);
   const customerRef = useRef(null);
   useEffect(() => { setBook(getCustomers()); }, []);
+  // online payment routes: the gateways set up in Settings › Payment Gateway (built-in ones first render)
+  const onlineOf = (list) => list.filter((p) => p.kind === 'Gateway' && p.id !== 'card').map((p) => ['gw:' + p.id, p.short + ' online', p.mode === 'direct']);
+  const [online, setOnline] = useState(() => onlineOf(PARTNERS));
+  useEffect(() => { setOnline(onlineOf(getAllPartners())); }, []);
+  const methodLabel = (m) => (online.find((x) => x[0] === m) || [m, m])[1];
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -278,14 +284,14 @@ export default function NewOrder() {
     const row = addOrder({ lines, customer: customer.name, phone: customer.phone, zone: delivery ? delivery.label : 'Not set', total, status: label, payment: PAYMENT_LABEL[terms], address: customer.address || '', shipping: deliveryFee, paid: terms === 'full' ? total : terms === 'partial' ? adv : 0 });
     // money taken now (advance or full payment) goes into the account for its method
     const takenNow = terms === 'full' ? total : terms === 'partial' ? Number(advance) : 0;
-    if (takenNow > 0) postEntry({ account: accountForMethod(method, false), amount: takenNow, kind: 'order payment', ref: row.id, party: customer.name, note: terms === 'full' ? 'Paid in full with the order' : 'Advance with the order' });
+    if (takenNow > 0) postEntry({ account: method.startsWith('gw:') ? accountForPartner(method.slice(3)) : accountForMethod(method, false), amount: takenNow, kind: 'order payment', ref: row.id, party: customer.name, note: terms === 'full' ? 'Paid in full with the order' : 'Advance with the order' });
     // a customer whose number is not in the customer book yet is kept there
     saveCustomerOnce({ name: customer.name, phone: customer.phone, address: customer.address, types: ['Online'], addedFrom: ADDED_FROM.order });
     // an approved online order holds its stock at the chosen place until it is delivered or comes back
     if (status === 'approved') addHolds({ type: 'online', ref: row.id, who: customer.name, place: holdPlace, note: 'Order approved', by: 'System' }, lines.map((l) => ({ name: l.name, qty: l.qty })));
     const paidText = terms === 'cod' ? `${formatBDT(total)} due on delivery`
-      : terms === 'partial' ? `${formatBDT(adv)} advance by ${method}, ${formatBDT(total - adv)} due on delivery`
-      : `${formatBDT(total)} paid by ${method}`;
+      : terms === 'partial' ? `${formatBDT(adv)} advance by ${methodLabel(method)}, ${formatBDT(total - adv)} due on delivery`
+      : `${formatBDT(total)} paid by ${methodLabel(method)}`;
     toast(`Order ${row.id} created as ${label} · ${paidText}${status === 'approved' ? ` · stock held at ${holdPlace}` : ''}`);
     navigate('/merchant-orders');
   };
@@ -407,7 +413,7 @@ export default function NewOrder() {
                       {terms === 'partial' ? (
                         <div style={{ flex: '1 1 140px' }}><label className="gc-label" htmlFor="no-advance">Advance received (৳) *</label><input id="no-advance" className={'gc-input' + (errors.advance ? ' gc-input--error' : '')} style={{ borderRadius: 'var(--radius-lg)' }} type="number" min="1" aria-required="true" aria-invalid={errors.advance ? 'true' : undefined} value={advance} onChange={(e) => { setAdvance(e.target.value); setErrors((er) => ({ ...er, advance: undefined })); }} /></div>
                       ) : null}
-                      <div style={{ flex: '1 1 140px' }}><label className="gc-label" htmlFor="no-method">Paid by</label><select id="no-method" className="gc-input gc-select" style={{ borderRadius: 'var(--radius-lg)' }} value={method} onChange={(e) => setMethod(e.target.value)}><optgroup label="Online payment (paid out later)"><option>bKash online</option><option>Nagad online</option><option>SSLCOMMERZ</option><option>EPS</option></optgroup><optgroup label="Straight to your account"><option>bKash</option><option>Nagad</option><option>Cash</option><option>Card</option><option>Bank transfer</option></optgroup></select></div>
+                      <div style={{ flex: '1 1 140px' }}><label className="gc-label" htmlFor="no-method">Paid by</label><select id="no-method" className="gc-input gc-select" style={{ borderRadius: 'var(--radius-lg)' }} value={method} onChange={(e) => setMethod(e.target.value)}><optgroup label="Online payment">{online.map(([v, l, direct]) => <option key={v} value={v}>{l}{direct ? '' : ' · settled later'}</option>)}</optgroup><optgroup label="Straight to your account"><option>bKash</option><option>Nagad</option><option>Cash</option><option>Card</option><option>Bank transfer</option></optgroup></select></div>
                     </div>
                   ) : null}
                   {errors.advance ? <p className="no-err" role="alert">{errors.advance}</p> : null}
