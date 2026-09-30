@@ -5,6 +5,7 @@
 
 import React from 'react';
 import __Link from 'next/link';
+import { PaymentLogo } from '@/components/PaymentLogo';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 
@@ -388,9 +389,12 @@ export default class SubscriptionScreen extends Component {
                     </div>
                   </section>
                   <section className="tc sec">
-                    <div>
-                      <h2 className="h2">Payment method</h2>
-                      <p className="sub">Renewals are charged 3 days before the date.</p>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px" }}>
+                      <div>
+                        <h2 className="h2">Payment method</h2>
+                        <p className="sub">Renewals are charged 3 days before the date.</p>
+                      </div>
+                      <PaymentLogo provider="sslcommerz" variant="full" size={22} />
                     </div>
                     <div style={{ border: "1px solid #eef1f6", borderRadius: "12px" }}>
                       <div className="chk">

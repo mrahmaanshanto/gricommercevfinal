@@ -40,13 +40,13 @@ export default class SetGeneralScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="SetGeneral">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <__SettingsSwitcher />
+        {!this.props.embedded && <__SettingsSwitcher />}
         <div style={{ position: "relative", width: "100%", minWidth: "1180px", height: "100vh", overflow: "hidden", display: "flex", gap: "12px", padding: "12px", background: "#eef2f7", fontFamily: "Poppins,ui-sans-serif,system-ui,sans-serif", color: "#475569" }}>
-          <div data-dc-import="SetChrome" style={{ flex: "none", height: "100%" }}><__SetChrome /></div>
+          <div data-dc-import="SetChrome" style={{ flex: "none", height: "100%" }}><__SetChrome embedded /></div>
           <div style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", overflow: "hidden", border: "1px solid #e2e8f0", borderRadius: "16px", background: "#f8fafc" }}>
-            <div data-dc-import="SetTopbar" style={{ flex: "none", width: "100%" }}><__SetTopbar crumb="General" /></div>
+            <div data-dc-import="SetTopbar" style={{ flex: "none", width: "100%" }}><__SetTopbar embedded crumb="General" /></div>
             <div style={{ flex: "1", minHeight: "0", display: "flex" }}>
-              <div data-dc-import="SetRail" style={{ flex: "none", height: "100%" }}><__SetRail active="general" /></div>
+              <div data-dc-import="SetRail" style={{ flex: "none", height: "100%" }}><__SetRail embedded active="general" /></div>
               <div style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column" }}>
                 <div style={{ flex: "1", minHeight: "0", overflow: "auto", display: "flex", alignItems: "flex-start", gap: "26px", padding: "22px 26px 26px" }}>
                   <main style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "16px" }}>

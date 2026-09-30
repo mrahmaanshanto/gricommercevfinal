@@ -42,7 +42,7 @@ export default class PosRegisterScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="PosRegister">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <__PosSwitcher />
+        {!this.props.embedded && <__PosSwitcher />}
         <div style={{ padding: "40px", display: "flex", flexDirection: "column", gap: "52px", width: "max-content" }}>
           <header style={{ display: "flex", flexDirection: "column", gap: "6px", maxWidth: "900px" }}>
             <span style={{ fontSize: "11px", fontWeight: "600", letterSpacing: ".22em", textTransform: "uppercase", color: "#0089c3" }}>Point of sale · rebuild</span>
@@ -62,7 +62,7 @@ export default class PosRegisterScreen extends Component {
               <span style={{ fontSize: "12px", color: "#64748b" }}>Desktop 1440 × 900 · Light · scanner ready</span>
             </div>
             <div style={{ width: "1440px", height: "900px", flex: "none", display: "flex", borderRadius: "12px", overflow: "hidden", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)" }}>
-              <div data-dc-import="PosIdle" style={{ flex: "1", minWidth: "0", height: "100%" }}><__PosIdle /></div>
+              <div data-dc-import="PosIdle" style={{ flex: "1", minWidth: "0", height: "100%" }}><__PosIdle embedded /></div>
             </div>
           </section>
           <section data-screen-label="02 POS active sale" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -72,7 +72,7 @@ export default class PosRegisterScreen extends Component {
               <span style={{ fontSize: "12px", color: "#64748b" }}>Desktop 1440 × 900 · Light · 6 lines, promotion applied, list scrolled</span>
             </div>
             <div style={{ width: "1440px", height: "900px", flex: "none", display: "flex", borderRadius: "12px", overflow: "hidden", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)" }}>
-              <div data-dc-import="PosActive" style={{ flex: "1", minWidth: "0", height: "100%" }}><__PosActive /></div>
+              <div data-dc-import="PosActive" style={{ flex: "1", minWidth: "0", height: "100%" }}><__PosActive embedded /></div>
             </div>
           </section>
           <section data-screen-label="03 Take payment" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -82,7 +82,7 @@ export default class PosRegisterScreen extends Component {
               <span style={{ fontSize: "12px", color: "#64748b" }}>Modal over the sale · cash + bKash, change due, remaining balance</span>
             </div>
             <div style={{ width: "1440px", height: "900px", flex: "none", display: "flex", borderRadius: "12px", overflow: "hidden", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)" }}>
-              <div data-dc-import="PosPay" style={{ flex: "1", minWidth: "0", height: "100%" }}><__PosPay /></div>
+              <div data-dc-import="PosPay" style={{ flex: "1", minWidth: "0", height: "100%" }}><__PosPay embedded /></div>
             </div>
           </section>
           <section data-screen-label="04 Numeric keypad" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -92,7 +92,7 @@ export default class PosRegisterScreen extends Component {
               <span style={{ fontSize: "12px", color: "#64748b" }}>Line-item quantity / price edit · docked panel and modal over a line</span>
             </div>
             <div style={{ width: "1440px", height: "900px", flex: "none", display: "flex", borderRadius: "12px", overflow: "hidden", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)" }}>
-              <div data-dc-import="PosKeypad" style={{ flex: "1", minWidth: "0", height: "100%" }}><__PosKeypad /></div>
+              <div data-dc-import="PosKeypad" style={{ flex: "1", minWidth: "0", height: "100%" }}><__PosKeypad embedded /></div>
             </div>
           </section>
           <section data-screen-label="05 Held and recent sales" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -102,7 +102,7 @@ export default class PosRegisterScreen extends Component {
               <span style={{ fontSize: "12px", color: "#64748b" }}>Right drawer, two tabs · resume, discard, reprint, open details</span>
             </div>
             <div style={{ width: "1440px", height: "900px", flex: "none", display: "flex", borderRadius: "12px", overflow: "hidden", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)" }}>
-              <div data-dc-import="PosSales" style={{ flex: "1", minWidth: "0", height: "100%" }}><__PosSales /></div>
+              <div data-dc-import="PosSales" style={{ flex: "1", minWidth: "0", height: "100%" }}><__PosSales embedded /></div>
             </div>
           </section>
           <section data-screen-label="06 Exchange or return" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -112,7 +112,7 @@ export default class PosRegisterScreen extends Component {
               <span style={{ fontSize: "12px", color: "#64748b" }}>Prior-sale lookup, line selection, settlement of the difference</span>
             </div>
             <div style={{ width: "1440px", height: "900px", flex: "none", display: "flex", borderRadius: "12px", overflow: "hidden", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)" }}>
-              <div data-dc-import="PosReturn" style={{ flex: "1", minWidth: "0", height: "100%" }}><__PosReturn /></div>
+              <div data-dc-import="PosReturn" style={{ flex: "1", minWidth: "0", height: "100%" }}><__PosReturn embedded /></div>
             </div>
           </section>
           <section data-screen-label="07 Register opening" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -122,7 +122,7 @@ export default class PosRegisterScreen extends Component {
               <span style={{ fontSize: "12px", color: "#64748b" }}>Guided steps · cashier, counter, opening float, denomination breakdown</span>
             </div>
             <div style={{ width: "1440px", height: "900px", flex: "none", display: "flex", borderRadius: "12px", overflow: "hidden", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)" }}>
-              <div data-dc-import="PosOpen" style={{ flex: "1", minWidth: "0", height: "100%" }}><__PosOpen /></div>
+              <div data-dc-import="PosOpen" style={{ flex: "1", minWidth: "0", height: "100%" }}><__PosOpen embedded /></div>
             </div>
           </section>
           <section data-screen-label="08 Register closing" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -132,7 +132,7 @@ export default class PosRegisterScreen extends Component {
               <span style={{ fontSize: "12px", color: "#64748b" }}>Count the drawer by note, match cash, bKash, Nagad and card, then close and print</span>
             </div>
             <div style={{ width: "1440px", height: "900px", flex: "none", display: "flex", borderRadius: "12px", overflow: "hidden", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)" }}>
-              <div data-dc-import="PosClose" style={{ flex: "1", minWidth: "0", height: "100%" }}><__PosClose /></div>
+              <div data-dc-import="PosClose" style={{ flex: "1", minWidth: "0", height: "100%" }}><__PosClose embedded /></div>
             </div>
           </section>
           <section data-screen-label="09 Offline and hardware" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -142,7 +142,7 @@ export default class PosRegisterScreen extends Component {
               <span style={{ fontSize: "12px", color: "#64748b" }}>Offline banner with queued sales, printer disconnected, cash drawer open</span>
             </div>
             <div style={{ width: "1440px", height: "900px", flex: "none", display: "flex", borderRadius: "12px", overflow: "hidden", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)" }}>
-              <div data-dc-import="PosOffline" style={{ flex: "1", minWidth: "0", height: "100%" }}><__PosOffline /></div>
+              <div data-dc-import="PosOffline" style={{ flex: "1", minWidth: "0", height: "100%" }}><__PosOffline embedded /></div>
             </div>
           </section>
         </div>

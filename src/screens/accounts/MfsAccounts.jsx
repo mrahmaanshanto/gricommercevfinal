@@ -5,6 +5,7 @@
 
 import React from 'react';
 import __Link from 'next/link';
+import { PaymentLogo, paymentProviderOf } from '@/components/PaymentLogo';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 
@@ -99,7 +100,7 @@ class Component extends DCLogic {
       q: s.q || '', onQ: function (e) { self.setState({ q: val(e) }); },
       heads: HEADS.map(function (h) { return { l: h[0], al: h[1] || 'left' }; }),
       rows: shown.map(function (r) { return { bg: r.id === selId ? 'rgba(0,48,135,.04)' : 'transparent', btn: POSTS ? 'Journal' : 'Details', open: function () { self.setState({ sel: r.id }); },
-        cells: CELLS(r).map(function (c, i) { return { v: c[0], sub: c[1] || '', hasSub: !!c[1], al: (HEADS[i] && HEADS[i][1]) || 'left', fw: i === 0 ? 600 : 400, col: c[2] || (i === 0 ? '#0f172a' : '#334155') }; }) }; }),
+        cells: CELLS(r).map(function (c, i) { var lg = i === 0 ? paymentProviderOf(c[0]) : null; return { logo: lg, hasLogo: !!lg, v: c[0], sub: c[1] || '', hasSub: !!c[1], al: (HEADS[i] && HEADS[i][1]) || 'left', fw: i === 0 ? 600 : 400, col: c[2] || (i === 0 ? '#0f172a' : '#334155') }; }) }; }),
       empty: shown.length === 0,
       hasJ: !!selRow, jTitle: selRow ? (POSTS ? 'Journal · ' + selRow.id : selRow.id) : '', jSub: selRow ? JSUB(selRow) : '',
       j: selRow && POSTS ? linesView(RULE(selRow.f)) : { rows: [], td: '', tc: '', okL: '', okBg: '', okFg: '' },
@@ -318,7 +319,9 @@ export default class MfsAccountsScreen extends Component {
                             <tr className="row" style={__sx(`background: ${r?.bg ?? ""};`)}>
                               {__list(r?.cells).map((c, $index) => (<React.Fragment key={$index}>
                                   <td style={__sx(`text-align: ${c?.al ?? ""}; font-weight: ${c?.fw ?? ""}; color: ${c?.col ?? ""};`)}>
-                                    <div>{c?.v}</div>
+                                    {c?.hasLogo ? (
+                                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}><PaymentLogo provider={c.logo} size={28} radius={7} decorative /><span>{c?.v}</span></div>
+                                    ) : <div>{c?.v}</div>}
                                     {c?.hasSub ? (<>
                                       <div style={{ fontSize: "12px", fontWeight: "400", color: "#64748b" }}>{c?.sub}</div>
                                     </>) : null}

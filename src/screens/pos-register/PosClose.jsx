@@ -211,7 +211,7 @@ export default class PosCloseScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="PosClose">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <__PosSwitcher />
+        {!this.props.embedded && <__PosSwitcher />}
         <div className={v.rootCls} style={{ width: "1440px", height: "900px", position: "relative", background: "#e9eef5", overflow: "hidden", display: "flex", flexDirection: "column" }}>
           <header style={{ height: "64px", flexShrink: "0", display: "flex", alignItems: "center", gap: "12px", padding: "0 16px", background: "#fff", borderBottom: "1px solid #e2e8f0" }}>
             <__Link href="/pos-register" className="ib" aria-label={v.t?.toPos} title={v.t?.toPos}>

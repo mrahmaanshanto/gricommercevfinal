@@ -93,8 +93,8 @@ export default class PosActiveScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="PosActive">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <__PosFit />
-        <__PosSwitcher />
+        {!this.props.embedded && <__PosFit />}
+        {!this.props.embedded && <__PosSwitcher />}
         <div data-pos-fit="1380x880" style={{ width: "100%", minWidth: "1380px", height: "100vh", minHeight: "880px", maxHeight: "100%", display: "flex", gap: "12px", padding: "12px", overflow: "hidden", background: "#eef2f7", fontFamily: "Poppins,ui-sans-serif,system-ui,sans-serif", color: "#475569" }}>
           <__Sidebar collapsed="" fill="" active="pos" />
           <div style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", overflow: "hidden", border: "1px solid #e2e8f0", borderRadius: "16px", background: "#f8fafc" }}>

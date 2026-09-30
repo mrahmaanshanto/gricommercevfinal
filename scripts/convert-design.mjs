@@ -320,7 +320,7 @@ function emitNode(n, ctx, indent) {
       props.push(hasHole(v) ? `${pn}={${valueExpr(v, ctx)}}` : `${pn}=${attrString(v)}`);
     }
     const style = a.style ? (hasHole(a.style) ? ` style={__sx(${valueExpr(a.style, ctx)})}` : ` style={${styleObjectSource(a.style)}}`) : '';
-    return `<div data-dc-import=${J(name)}${style}><__${name}${props.length ? ' ' + props.join(' ') : ''} /></div>`;
+    return `<div data-dc-import=${J(name)}${style}><__${name} embedded${props.length ? ' ' + props.join(' ') : ''} /></div>`;
   }
 
   if (tag === 'gc-sidebar' || tag === 'gc-topbar') {
@@ -498,9 +498,10 @@ function convert(file) {
   }
 
   const extras = [
-    usesPosFit ? '<__PosFit />' : '',
-    usesPosNav ? '<__PosSwitcher />' : '',
-    usesSetNav ? '<__SettingsSwitcher />' : '',
+    // Only the top-level screen mounts these; an embedded screen (dc-import) gets \`embedded\`.
+    usesPosFit ? '{!this.props.embedded && <__PosFit />}' : '',
+    usesPosNav ? '{!this.props.embedded && <__PosSwitcher />}' : '',
+    usesSetNav ? '{!this.props.embedded && <__SettingsSwitcher />}' : '',
   ].filter(Boolean).map((s) => '\n        ' + s).join('');
 
   const header = [

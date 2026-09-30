@@ -53,10 +53,10 @@ export default class PosOpenScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="PosOpen">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <__PosFit />
-        <__PosSwitcher />
+        {!this.props.embedded && <__PosFit />}
+        {!this.props.embedded && <__PosSwitcher />}
         <div data-pos-fit="1380x880" style={{ position: "relative", width: "100%", minWidth: "1380px", height: "100vh", minHeight: "880px", maxHeight: "100%", overflow: "hidden", fontFamily: "Poppins,ui-sans-serif,system-ui,sans-serif" }}>
-          <div data-dc-import="PosIdle" style={{ width: "100%", height: "100%" }}><__PosIdle /></div>
+          <div data-dc-import="PosIdle" style={{ width: "100%", height: "100%" }}><__PosIdle embedded /></div>
           <div style={{ position: "absolute", inset: "0", background: "rgba(15,23,42,.6)" }} />
           <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: "940px", borderRadius: "8px", background: "#fff", boxShadow: "0 24px 60px -20px rgba(15,23,42,.5)", overflow: "hidden", color: "#475569", display: "flex" }}>
             <div style={{ width: "284px", flex: "none", background: "#f8fafc", borderRight: "1px solid #e2e8f0", padding: "20px", display: "flex", flexDirection: "column", gap: "18px" }}>

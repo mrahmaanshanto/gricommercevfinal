@@ -53,10 +53,10 @@ export default class PosKeypadScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="PosKeypad">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <__PosFit />
-        <__PosSwitcher />
+        {!this.props.embedded && <__PosFit />}
+        {!this.props.embedded && <__PosSwitcher />}
         <div data-pos-fit="1380x880" style={{ position: "relative", width: "100%", minWidth: "1380px", height: "100vh", minHeight: "880px", maxHeight: "100%", overflow: "hidden", fontFamily: "Poppins,ui-sans-serif,system-ui,sans-serif" }}>
-          <div data-dc-import="PosActive" style={{ width: "100%", height: "100%" }}><__PosActive /></div>
+          <div data-dc-import="PosActive" style={{ width: "100%", height: "100%" }}><__PosActive embedded /></div>
           <div style={{ position: "absolute", left: "0", top: "0", right: "0", bottom: "0", background: "rgba(15,23,42,.42)" }} />
           <div style={{ position: "absolute", left: "120px", top: "170px", width: "326px", borderRadius: "8px", background: "#fff", boxShadow: "0 24px 60px -20px rgba(15,23,42,.5)", overflow: "hidden", color: "#475569" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 14px", borderBottom: "1px solid #e2e8f0" }}>

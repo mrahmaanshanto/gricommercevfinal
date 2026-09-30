@@ -324,25 +324,25 @@ export default class StaffProfileScreen extends Component {
                   </div>
                 </section>
                 {v.showOverview ? (<>
-                  <div data-dc-import="StaffOverview" style={{ width: "100%" }}><__StaffOverview lang={v.lang} locked={v.salaryLocked} empty={v.emptyData} hr={v.hrAddon} goTab={v.goTab} /></div>
+                  <div data-dc-import="StaffOverview" style={{ width: "100%" }}><__StaffOverview embedded lang={v.lang} locked={v.salaryLocked} empty={v.emptyData} hr={v.hrAddon} goTab={v.goTab} /></div>
                 </>) : null}
                 {v.showAccess ? (<>
-                  <div data-dc-import="StaffAccess" style={{ width: "100%" }}><__StaffAccess lang={v.lang} role={v.role} overrides={v.overrides} onToggle={v.toggleCell} onReset={v.resetCell} onRole={v.setRole} onChange={v.noteChange} dataVis={v.dataVis} /></div>
+                  <div data-dc-import="StaffAccess" style={{ width: "100%" }}><__StaffAccess embedded lang={v.lang} role={v.role} overrides={v.overrides} onToggle={v.toggleCell} onReset={v.resetCell} onRole={v.setRole} onChange={v.noteChange} dataVis={v.dataVis} /></div>
                 </>) : null}
                 {v.showAttendance ? (<>
-                  <div data-dc-import="StaffAttendance" style={{ width: "100%" }}><__StaffAttendance lang={v.lang} empty={v.emptyData} /></div>
+                  <div data-dc-import="StaffAttendance" style={{ width: "100%" }}><__StaffAttendance embedded lang={v.lang} empty={v.emptyData} /></div>
                 </>) : null}
                 {v.showLeave ? (<>
-                  <div data-dc-import="StaffLeave" style={{ width: "100%" }}><__StaffLeave lang={v.lang} empty={v.emptyData} /></div>
+                  <div data-dc-import="StaffLeave" style={{ width: "100%" }}><__StaffLeave embedded lang={v.lang} empty={v.emptyData} /></div>
                 </>) : null}
                 {v.showSalary ? (<>
-                  <div data-dc-import="StaffSalary" style={{ width: "100%" }}><__StaffSalary lang={v.lang} locked={v.salaryLocked} /></div>
+                  <div data-dc-import="StaffSalary" style={{ width: "100%" }}><__StaffSalary embedded lang={v.lang} locked={v.salaryLocked} /></div>
                 </>) : null}
                 {v.showActivity ? (<>
-                  <div data-dc-import="StaffActivity" style={{ width: "100%" }}><__StaffActivity lang={v.lang} /></div>
+                  <div data-dc-import="StaffActivity" style={{ width: "100%" }}><__StaffActivity embedded lang={v.lang} /></div>
                 </>) : null}
                 {v.showDocs ? (<>
-                  <div data-dc-import="StaffDocs" style={{ width: "100%" }}><__StaffDocs lang={v.lang} /></div>
+                  <div data-dc-import="StaffDocs" style={{ width: "100%" }}><__StaffDocs embedded lang={v.lang} /></div>
                 </>) : null}
                 {v.showUpsell ? (<>
                   <div style={{ display: "grid", placeItems: "center", padding: "34px 0" }}>
@@ -466,7 +466,7 @@ export default class StaffProfileScreen extends Component {
           </>) : null}
           {v.createOpen ? (<>
             <div style={{ position: "fixed", inset: "0", zIndex: "210", background: "#f8fafc", animation: "gcfade .16s ease-out", overflow: "auto" }}>
-              <div data-dc-import="StaffCreate" style={{ width: "100%", minHeight: "100vh" }}><__StaffCreate lang={v.lang} onClose={v.closeCreate} /></div>
+              <div data-dc-import="StaffCreate" style={{ width: "100%", minHeight: "100vh" }}><__StaffCreate embedded lang={v.lang} onClose={v.closeCreate} /></div>
             </div>
           </>) : null}
           <div style={{ position: "fixed", top: "76px", right: "14px", zIndex: "9998", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>

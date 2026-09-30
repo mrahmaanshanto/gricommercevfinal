@@ -40,10 +40,10 @@ export default class PosOfflineScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="PosOffline">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <__PosFit />
-        <__PosSwitcher />
+        {!this.props.embedded && <__PosFit />}
+        {!this.props.embedded && <__PosSwitcher />}
         <div data-pos-fit="1380x880" style={{ position: "relative", width: "100%", minWidth: "1380px", height: "100vh", minHeight: "880px", maxHeight: "100%", overflow: "hidden", fontFamily: "Poppins,ui-sans-serif,system-ui,sans-serif" }}>
-          <div data-dc-import="PosActive" style={{ width: "100%", height: "100%" }}><__PosActive /></div>
+          <div data-dc-import="PosActive" style={{ width: "100%", height: "100%" }}><__PosActive embedded /></div>
           <div style={{ position: "absolute", left: "294px", top: "27px", height: "32px", display: "flex", alignItems: "center", background: "#fff" }}>
             <div style={{ display: "flex", alignItems: "center", height: "30px", borderRadius: "9999px", background: "rgba(255,87,36,.12)", padding: "0 4px", whiteSpace: "nowrap" }}>
               <span style={{ display: "inline-flex", height: "30px", alignItems: "center", gap: "6px", padding: "0 8px", fontSize: "12px", fontWeight: "500", color: "#c2380f" }}><span style={{ width: "7px", height: "7px", flex: "none", borderRadius: "9999px", background: "#ff5724" }} /><__Icon name="cloud-off" strokeWidth="1.75" width="14" height="14" />Offline</span>

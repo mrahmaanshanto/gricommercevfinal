@@ -44,7 +44,7 @@ export default class SettingsConsoleScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="SettingsConsole">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <__SettingsSwitcher />
+        {!this.props.embedded && <__SettingsSwitcher />}
         <div style={{ padding: "40px", display: "flex", flexDirection: "column", gap: "52px", width: "max-content" }}>
           <header style={{ display: "flex", flexDirection: "column", gap: "6px", maxWidth: "900px" }}>
             <span style={{ fontSize: "11px", fontWeight: "600", letterSpacing: ".22em", textTransform: "uppercase", color: "#0089c3" }}>Settings · rebuild</span>
@@ -64,7 +64,7 @@ export default class SettingsConsoleScreen extends Component {
               <span style={{ fontSize: "12px", color: "#64748b" }}>Grouped searchable nav · section index · explained fields · save bar idle</span>
             </div>
             <div style={{ width: "1380px", height: "880px", flex: "none", display: "flex", borderRadius: "12px", overflow: "hidden", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)" }}>
-              <div data-dc-import="SetGeneral" style={{ flex: "1", minWidth: "0", height: "100%" }}><__SetGeneral /></div>
+              <div data-dc-import="SetGeneral" style={{ flex: "1", minWidth: "0", height: "100%" }}><__SetGeneral embedded /></div>
             </div>
           </section>
           <section data-screen-label="02 Media manager" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -74,7 +74,7 @@ export default class SettingsConsoleScreen extends Component {
               <span style={{ fontSize: "12px", color: "#64748b" }}>Eight uniform tiles · dark preview engaged · one uploading, one empty, one rejected</span>
             </div>
             <div style={{ width: "1380px", height: "880px", flex: "none", display: "flex", borderRadius: "12px", overflow: "hidden", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)" }}>
-              <div data-dc-import="SetMedia" style={{ flex: "1", minWidth: "0", height: "100%" }}><__SetMedia /></div>
+              <div data-dc-import="SetMedia" style={{ flex: "1", minWidth: "0", height: "100%" }}><__SetMedia embedded /></div>
             </div>
           </section>
           <section data-screen-label="03 Preference" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -84,7 +84,7 @@ export default class SettingsConsoleScreen extends Component {
               <span style={{ fontSize: "12px", color: "#64748b" }}>Twenty switches grouped under section headers · OTP numerics · saved confirmation</span>
             </div>
             <div style={{ width: "1380px", height: "880px", flex: "none", display: "flex", borderRadius: "12px", overflow: "hidden", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)" }}>
-              <div data-dc-import="SetPreference" style={{ flex: "1", minWidth: "0", height: "100%" }}><__SetPreference /></div>
+              <div data-dc-import="SetPreference" style={{ flex: "1", minWidth: "0", height: "100%" }}><__SetPreference embedded /></div>
             </div>
           </section>
           <section data-screen-label="04 Payment gateway" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -94,7 +94,7 @@ export default class SettingsConsoleScreen extends Component {
               <span style={{ fontSize: "12px", color: "#64748b" }}>Ten routes as a list · bKash expanded with live warning and test connection</span>
             </div>
             <div style={{ width: "1380px", height: "880px", flex: "none", display: "flex", borderRadius: "12px", overflow: "hidden", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)" }}>
-              <div data-dc-import="SetPayments" style={{ flex: "1", minWidth: "0", height: "100%" }}><__SetPayments /></div>
+              <div data-dc-import="SetPayments" style={{ flex: "1", minWidth: "0", height: "100%" }}><__SetPayments embedded /></div>
             </div>
           </section>
           <section data-screen-label="05 Delivery matrix" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -104,7 +104,7 @@ export default class SettingsConsoleScreen extends Component {
               <span style={{ fontSize: "12px", color: "#64748b" }}>Three zones × five charge columns as one table, with a customer-facing preview</span>
             </div>
             <div style={{ width: "1380px", height: "880px", flex: "none", display: "flex", borderRadius: "12px", overflow: "hidden", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)" }}>
-              <div data-dc-import="SetDelivery" style={{ flex: "1", minWidth: "0", height: "100%" }}><__SetDelivery /></div>
+              <div data-dc-import="SetDelivery" style={{ flex: "1", minWidth: "0", height: "100%" }}><__SetDelivery embedded /></div>
             </div>
           </section>
           <section data-screen-label="06 AI auto-reply" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -114,7 +114,7 @@ export default class SettingsConsoleScreen extends Component {
               <span style={{ fontSize: "12px", color: "#64748b" }}>Model choice with per-million pricing · channel toggles · budget cap with spend bar</span>
             </div>
             <div style={{ width: "1380px", height: "880px", flex: "none", display: "flex", borderRadius: "12px", overflow: "hidden", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)" }}>
-              <div data-dc-import="SetAi" style={{ flex: "1", minWidth: "0", height: "100%" }}><__SetAi /></div>
+              <div data-dc-import="SetAi" style={{ flex: "1", minWidth: "0", height: "100%" }}><__SetAi embedded /></div>
             </div>
           </section>
           <section data-screen-label="07 AI usage" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -124,7 +124,7 @@ export default class SettingsConsoleScreen extends Component {
               <span style={{ fontSize: "12px", color: "#64748b" }}>Month selector · spend against budget · daily trend · usage by model</span>
             </div>
             <div style={{ width: "1380px", height: "880px", flex: "none", display: "flex", borderRadius: "12px", overflow: "hidden", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)" }}>
-              <div data-dc-import="SetUsage" style={{ flex: "1", minWidth: "0", height: "100%" }}><__SetUsage /></div>
+              <div data-dc-import="SetUsage" style={{ flex: "1", minWidth: "0", height: "100%" }}><__SetUsage embedded /></div>
             </div>
           </section>
           <section data-screen-label="08 Auto-reply rules" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -134,7 +134,7 @@ export default class SettingsConsoleScreen extends Component {
               <span style={{ fontSize: "12px", color: "#64748b" }}>Priority-ordered rules with the edit panel open · empty state on the system sheet</span>
             </div>
             <div style={{ width: "1380px", height: "880px", flex: "none", display: "flex", borderRadius: "12px", overflow: "hidden", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)" }}>
-              <div data-dc-import="SetRules" style={{ flex: "1", minWidth: "0", height: "100%" }}><__SetRules /></div>
+              <div data-dc-import="SetRules" style={{ flex: "1", minWidth: "0", height: "100%" }}><__SetRules embedded /></div>
             </div>
           </section>
           <section data-screen-label="09 SEO" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -144,7 +144,7 @@ export default class SettingsConsoleScreen extends Component {
               <span style={{ fontSize: "12px", color: "#64748b" }}>Search-result and shared-link previews · character counts against real limits</span>
             </div>
             <div style={{ width: "1380px", height: "880px", flex: "none", display: "flex", borderRadius: "12px", overflow: "hidden", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)" }}>
-              <div data-dc-import="SetSeo" style={{ flex: "1", minWidth: "0", height: "100%" }}><__SetSeo /></div>
+              <div data-dc-import="SetSeo" style={{ flex: "1", minWidth: "0", height: "100%" }}><__SetSeo embedded /></div>
             </div>
           </section>
           <section data-screen-label="10 Storage" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -154,7 +154,7 @@ export default class SettingsConsoleScreen extends Component {
               <span style={{ fontSize: "12px", color: "#64748b" }}>Driver choice drives the form · masked secrets · field error · save-failed bar</span>
             </div>
             <div style={{ width: "1380px", height: "880px", flex: "none", display: "flex", borderRadius: "12px", overflow: "hidden", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)" }}>
-              <div data-dc-import="SetStorage" style={{ flex: "1", minWidth: "0", height: "100%" }}><__SetStorage /></div>
+              <div data-dc-import="SetStorage" style={{ flex: "1", minWidth: "0", height: "100%" }}><__SetStorage embedded /></div>
             </div>
           </section>
           <section data-screen-label="11 API security and backups" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -164,7 +164,7 @@ export default class SettingsConsoleScreen extends Component {
               <span style={{ fontSize: "12px", color: "#64748b" }}>Type-to-confirm key regeneration · backup history · run backup now</span>
             </div>
             <div style={{ width: "1380px", height: "880px", flex: "none", display: "flex", borderRadius: "12px", overflow: "hidden", background: "#f8fafc", boxShadow: "0 10px 34px -10px rgba(15,23,42,.22)" }}>
-              <div data-dc-import="SetSecurity" style={{ flex: "1", minWidth: "0", height: "100%" }}><__SetSecurity /></div>
+              <div data-dc-import="SetSecurity" style={{ flex: "1", minWidth: "0", height: "100%" }}><__SetSecurity embedded /></div>
             </div>
           </section>
         </div>

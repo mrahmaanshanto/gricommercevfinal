@@ -5,6 +5,7 @@
 
 import React from 'react';
 import __Link from 'next/link';
+import { PaymentLogo } from '@/components/PaymentLogo';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 
@@ -262,9 +263,12 @@ export default class CreditWalletScreen extends Component {
               </>) : null}
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 7fr) minmax(0, 5fr)", gap: "16px", alignItems: "start" }}>
                 <section className="tc sec">
-                  <div>
-                    <h2 className="h2">Add money</h2>
-                    <p className="sub">Paid through SSLCOMMERZ. The balance updates as soon as the payment is confirmed.</p>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px" }}>
+                    <div>
+                      <h2 className="h2">Add money</h2>
+                      <p className="sub">Paid through SSLCOMMERZ. The balance updates as soon as the payment is confirmed.</p>
+                    </div>
+                    <PaymentLogo provider="sslcommerz" variant="full" size={24} />
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                     {__list(v.amts).map((a, $index) => (<React.Fragment key={$index}>
@@ -291,7 +295,12 @@ export default class CreditWalletScreen extends Component {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <button type="button" className="btn solid" onClick={v.payNow}>Pay {v.amtLabel} with SSLCOMMERZ</button>
-                    <span style={{ fontSize: "12.5px", color: "#64748b" }}>bKash · Nagad · Rocket · Visa · Mastercard · Amex · net banking</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12.5px", color: "#64748b" }}>
+                      <PaymentLogo provider="bkash" size={22} radius={6} />
+                      <PaymentLogo provider="nagad" size={22} radius={6} />
+                      <PaymentLogo provider="rocket" size={22} radius={6} />
+                      <span style={{ marginLeft: "2px" }}>Visa · Mastercard · Amex · net banking</span>
+                    </span>
                   </div>
                 </section>
                 <section className="tc sec">

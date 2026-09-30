@@ -5,6 +5,7 @@
 
 import React from 'react';
 import __Link from 'next/link';
+import { PaymentLogo } from '@/components/PaymentLogo';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 import __PosActive from '@/screens/pos-register/PosActive';
@@ -48,10 +49,10 @@ export default class PosPayScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="PosPay">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <__PosFit />
-        <__PosSwitcher />
+        {!this.props.embedded && <__PosFit />}
+        {!this.props.embedded && <__PosSwitcher />}
         <div data-pos-fit="1380x880" style={{ position: "relative", width: "100%", minWidth: "1380px", height: "100vh", minHeight: "880px", maxHeight: "100%", overflow: "hidden", fontFamily: "Poppins,ui-sans-serif,system-ui,sans-serif" }}>
-          <div data-dc-import="PosActive" style={{ width: "100%", height: "100%" }}><__PosActive /></div>
+          <div data-dc-import="PosActive" style={{ width: "100%", height: "100%" }}><__PosActive embedded /></div>
           <div style={{ position: "absolute", inset: "0", background: "rgba(15,23,42,.6)" }} />
           <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: "860px", borderRadius: "8px", background: "#fff", boxShadow: "0 24px 60px -20px rgba(15,23,42,.5)", overflow: "hidden", color: "#475569" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px 20px", borderBottom: "1px solid #e2e8f0" }}>
@@ -76,9 +77,9 @@ export default class PosPayScreen extends Component {
                 <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: "8px" }}>
                   <button style={{ display: "flex", alignItems: "center", gap: "9px", height: "52px", padding: "0 12px", border: "1px solid #003087", borderRadius: "8px", background: "rgba(0,48,135,.08)", fontFamily: "inherit", fontSize: "13px", fontWeight: "500", color: "#003087", cursor: "pointer", textAlign: "left" }}><__Icon name="banknote" strokeWidth="1.75" width="18" height="18" />Cash<span style={{ marginLeft: "auto", display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "4px", background: "#fff", padding: "0 6px", fontSize: "11px", fontWeight: "600" }}>F1</span></button>
                   <button className="dc-h383" style={{ display: "flex", alignItems: "center", gap: "9px", height: "52px", padding: "0 12px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", fontFamily: "inherit", fontSize: "13px", fontWeight: "500", color: "#1e293b", cursor: "pointer", textAlign: "left" }}><__Icon name="credit-card" strokeWidth="1.75" width="18" height="18" style={{ color: "#64748b" }} />Card<span style={{ marginLeft: "auto", display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "4px", background: "#f1f5f9", padding: "0 6px", fontSize: "11px", fontWeight: "600", color: "#475569" }}>F2</span></button>
-                  <button className="dc-h384" style={{ display: "flex", alignItems: "center", gap: "9px", height: "52px", padding: "0 12px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", fontFamily: "inherit", fontSize: "13px", fontWeight: "500", color: "#1e293b", cursor: "pointer", textAlign: "left" }}><span style={{ display: "grid", placeItems: "center", width: "26px", height: "26px", flex: "none", borderRadius: "6px", background: "#f1f5f9", fontSize: "11px", fontWeight: "600", color: "#475569" }}>bK</span>bKash</button>
-                  <button className="dc-h385" style={{ display: "flex", alignItems: "center", gap: "9px", height: "52px", padding: "0 12px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", fontFamily: "inherit", fontSize: "13px", fontWeight: "500", color: "#1e293b", cursor: "pointer", textAlign: "left" }}><span style={{ display: "grid", placeItems: "center", width: "26px", height: "26px", flex: "none", borderRadius: "6px", background: "#f1f5f9", fontSize: "11px", fontWeight: "600", color: "#475569" }}>Ng</span>Nagad</button>
-                  <button className="dc-h386" style={{ display: "flex", alignItems: "center", gap: "9px", height: "52px", padding: "0 12px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", fontFamily: "inherit", fontSize: "13px", fontWeight: "500", color: "#1e293b", cursor: "pointer", textAlign: "left" }}><span style={{ display: "grid", placeItems: "center", width: "26px", height: "26px", flex: "none", borderRadius: "6px", background: "#f1f5f9", fontSize: "11px", fontWeight: "600", color: "#475569" }}>Rk</span>Rocket</button>
+                  <button className="dc-h384" style={{ display: "flex", alignItems: "center", gap: "9px", height: "52px", padding: "0 12px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", fontFamily: "inherit", fontSize: "13px", fontWeight: "500", color: "#1e293b", cursor: "pointer", textAlign: "left" }}><PaymentLogo provider="bkash" size={26} radius={6} decorative />bKash</button>
+                  <button className="dc-h385" style={{ display: "flex", alignItems: "center", gap: "9px", height: "52px", padding: "0 12px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", fontFamily: "inherit", fontSize: "13px", fontWeight: "500", color: "#1e293b", cursor: "pointer", textAlign: "left" }}><PaymentLogo provider="nagad" size={26} radius={6} decorative />Nagad</button>
+                  <button className="dc-h386" style={{ display: "flex", alignItems: "center", gap: "9px", height: "52px", padding: "0 12px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", fontFamily: "inherit", fontSize: "13px", fontWeight: "500", color: "#1e293b", cursor: "pointer", textAlign: "left" }}><PaymentLogo provider="rocket" size={26} radius={6} decorative />Rocket</button>
                   <button aria-disabled="true" style={{ display: "flex", alignItems: "center", gap: "9px", height: "52px", padding: "0 12px", border: "1px dashed #cbd5e1", borderRadius: "8px", background: "#fff", fontFamily: "inherit", fontSize: "13px", fontWeight: "500", color: "#64748b", cursor: "not-allowed", textAlign: "left" }}><__Icon name="clock" strokeWidth="1.75" width="18" height="18" />Due / credit</button>
                 </div>
                 <span style={{ display: "block", fontSize: "12px", lineHeight: "17px", color: "#64748b", textWrap: "pretty" }}>Due / credit is off because <span style={{ fontWeight: "500", color: "#1e293b" }}>Require full payment</span> is on for this counter.</span>

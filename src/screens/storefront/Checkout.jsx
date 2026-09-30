@@ -5,6 +5,7 @@
 
 import React from 'react';
 import __Link from 'next/link';
+import { PaymentLogo } from '@/components/PaymentLogo';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
@@ -13,7 +14,9 @@ function bdt(n) { n = Math.round(n); var s = String(Math.abs(n)), last = s.slice
 function val(e) { return e && e.target ? e.target.value : e; }
 var ITEMS = [ { k: 'd', n: 'Denim Jeans · Blue', v: 'Size 32', p: 1290, was: 1890, i: 'D', bg: '#e0f2fe' }, { k: 'm', n: 'Men’s Polo Shirt · Navy', v: 'Size M', p: 990, was: 1450, i: 'M', bg: '#eef2f7' }, { k: 's', n: 'Sunscreen SPF 50 · 50 ml', v: 'Skin care', p: 890, was: 1250, i: 'S', bg: '#fff4e0' } ];
 var ZONES = [ ['in', 'Inside Dhaka', '1–2 days · Pathao', 70], ['sub', 'Sub-Dhaka', 'Savar, Gazipur, Narayanganj · 2–3 days', 110], ['out', 'Outside Dhaka', '3–5 days · Steadfast', 150] ];
-var PAYS = [ ['cod', 'Cash on delivery', 'Pay the rider when it arrives', ''], ['bkash', 'bKash', 'Pay now from your bKash account', '10% off · up to ৳150'], ['nagad', 'Nagad', 'Pay now from your Nagad account', ''], ['card', 'Card', 'Visa, Mastercard or Amex · secured by SSLCOMMERZ', ''] ];
+var PAYS = [ ['cod', 'Cash on delivery', 'Pay the rider when it arrives', ''], ['bkash', 'bKash', 'Pay now from your bKash account', '10% off · up to ৳150'], ['nagad', 'Nagad', 'Pay now from your Nagad account', ''], ['rocket', 'Rocket', 'Pay now from your Rocket account', ''], ['card', 'Card', 'Visa, Mastercard or Amex · secured by SSLCOMMERZ', ''] ];
+// Provider marks shown on the payment options.
+var PAY_LOGO = { bkash: 'bkash', nagad: 'nagad', rocket: 'rocket', card: 'sslcommerz' };
 class Component extends DCLogic {
   renderVals() {
     var self = this, s = this.state || {};
@@ -34,7 +37,7 @@ class Component extends DCLogic {
       onName: function (e) { self.setState({ name: val(e) }); }, onPhone: function (e) { self.setState({ phone: val(e) }); }, onAddr: function (e) { self.setState({ addr: val(e) }); }, onNote: function (e) { self.setState({ note: val(e) }); }, onCode: function (e) { self.setState({ code: val(e) }); },
       nameCls: s.tried && !(s.name || '').trim() ? 'ck-in bad' : 'ck-in', phoneCls: phoneBad ? 'ck-in bad' : 'ck-in', addrCls: s.tried && !(s.addr || '').trim() ? 'ck-in bad' : 'ck-in', phoneBad: phoneBad,
       zones: ZONES.map(function (x) { var on = x[0] === zone; return { l: x[1], s: x[2], fee: bdt(x[3]), on: on, cls: on ? 'ck-opt on' : 'ck-opt', pick: function () { self.setState({ zone: x[0] }); } }; }),
-      pays: PAYS.map(function (x) { var on = x[0] === pay; return { l: x[1], s: x[2], tag: x[3], hasTag: !!x[3], on: on, cls: on ? 'ck-opt on' : 'ck-opt', pick: function () { self.setState({ pay: x[0] }); } }; }),
+      pays: PAYS.map(function (x) { var on = x[0] === pay; return { l: x[1], s: x[2], tag: x[3], hasTag: !!x[3], logo: PAY_LOGO[x[0]] || null, logoFull: x[0] === 'card', on: on, cls: on ? 'ck-opt on' : 'ck-opt', pick: function () { self.setState({ pay: x[0] }); } }; }),
       lines: lines.map(function (it) { return { n: it.n, v: it.v, was: bdt(it.was), i: it.i, bg: it.bg, q: String(qty[it.k]), amt: bdt(it.p * qty[it.k]), inc: function () { setQ(it.k, 1); }, dec: function () { setQ(it.k, -1); } }; }),
       empty: lines.length === 0,
       applyCode: function () { var c = (s.code || '').trim().toUpperCase(); if (c !== 'EID300') { self.setState({ codeMsg: c ? 'That code isn’t valid. Try EID300.' : 'Enter a coupon code.', codeOk: false, coupon: false }); return; } if (sub < 2000) { self.setState({ codeMsg: 'EID300 needs ' + bdt(2000 - sub) + ' more in your cart.', codeOk: false, coupon: false }); return; } self.setState({ coupon: true, codeMsg: 'EID300 applied — ' + bdt(300) + ' off.', codeOk: true }); },
@@ -193,7 +196,7 @@ export default class CheckoutScreen extends Component {
               <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "16px" }}>
                 <div>
                   <h1 style={{ margin: "0", fontSize: "30px", fontWeight: "700", letterSpacing: "-0.02em", color: "#0f172a" }}>Checkout</h1>
-                  <p style={{ margin: "6px 0 0", fontSize: "14px", color: "#64748b" }}>{v.itemCount} items · pay when it arrives, or pay now with bKash, Nagad or card.</p>
+                  <p style={{ margin: "6px 0 0", fontSize: "14px", color: "#64748b" }}>{v.itemCount} items · pay when it arrives, or pay now with bKash, Nagad, Rocket or card.</p>
                 </div>
                 <__Link href="/offers" className="btn" style={{ background: "#fff", color: "#003087", border: "1px solid #cbd5e1" }}>Keep shopping</__Link>
               </div>
@@ -248,6 +251,7 @@ export default class CheckoutScreen extends Component {
                             <span style={{ display: "block", fontSize: "14px", fontWeight: "600", color: "#0f172a" }}>{p?.l}</span>
                             <span style={{ display: "block", fontSize: "12.5px", color: "#64748b" }}>{p?.s}</span>
                           </span>
+                          {p?.logo ? (p?.logoFull ? <PaymentLogo provider={p.logo} variant="full" size={22} decorative /> : <PaymentLogo provider={p.logo} size={32} radius={8} decorative />) : null}
                           {p?.hasTag ? (<>
                             <span style={{ height: "24px", padding: "0 10px", borderRadius: "999px", background: "#e7f8f1", color: "#047857", fontSize: "12px", fontWeight: "600", display: "inline-flex", alignItems: "center" }}>{p?.tag}</span>
                           </>) : null}

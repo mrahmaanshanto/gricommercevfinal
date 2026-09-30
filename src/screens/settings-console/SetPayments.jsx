@@ -5,6 +5,7 @@
 
 import React from 'react';
 import __Link from 'next/link';
+import { PaymentLogo } from '@/components/PaymentLogo';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 import __SetChrome from '@/screens/settings-console/SetChrome';
@@ -53,13 +54,13 @@ export default class SetPaymentsScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="SetPayments">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <__SettingsSwitcher />
+        {!this.props.embedded && <__SettingsSwitcher />}
         <div style={{ position: "relative", width: "100%", minWidth: "1180px", height: "100vh", overflow: "hidden", display: "flex", gap: "12px", padding: "12px", background: "#eef2f7", fontFamily: "Poppins,ui-sans-serif,system-ui,sans-serif", color: "#475569" }}>
-          <div data-dc-import="SetChrome" style={{ flex: "none", height: "100%" }}><__SetChrome /></div>
+          <div data-dc-import="SetChrome" style={{ flex: "none", height: "100%" }}><__SetChrome embedded /></div>
           <div style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", overflow: "hidden", border: "1px solid #e2e8f0", borderRadius: "16px", background: "#f8fafc" }}>
-            <div data-dc-import="SetTopbar" style={{ flex: "none", width: "100%" }}><__SetTopbar crumb="Payment Gateway" /></div>
+            <div data-dc-import="SetTopbar" style={{ flex: "none", width: "100%" }}><__SetTopbar embedded crumb="Payment Gateway" /></div>
             <div style={{ flex: "1", minHeight: "0", display: "flex" }}>
-              <div data-dc-import="SetRail" style={{ flex: "none", height: "100%" }}><__SetRail active="payment" /></div>
+              <div data-dc-import="SetRail" style={{ flex: "none", height: "100%" }}><__SetRail embedded active="payment" /></div>
               <div style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column" }}>
                 <div style={{ flex: "1", minHeight: "0", overflow: "auto", display: "flex", alignItems: "flex-start", gap: "26px", padding: "22px 26px 26px" }}>
                   <main style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -101,7 +102,7 @@ export default class SetPaymentsScreen extends Component {
                         </button>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "13px", padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
-                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "9px", background: "#003087", fontSize: "10.5px", fontWeight: "700", letterSpacing: ".02em", color: "#fff" }}>SSL</span>
+                        <PaymentLogo provider="sslcommerz" size={34} radius={9} decorative />
                         <span style={{ display: "block", flex: "1", minWidth: "0" }}>
                           <span style={{ display: "block", fontSize: "13.5px", fontWeight: "500", color: "#1e293b" }}>SSLCommerz</span>
                           <span style={{ display: "block", fontSize: "11.5px", color: "#64748b" }}>Cards, internet banking and mobile wallets · merchant sellino_live</span>
@@ -116,7 +117,7 @@ export default class SetPaymentsScreen extends Component {
                         </button>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "13px", padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
-                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "9px", background: "#00a651", fontSize: "10.5px", fontWeight: "700", letterSpacing: ".02em", color: "#fff" }}>EPS</span>
+                        <PaymentLogo provider="eps" size={34} radius={9} decorative />
                         <span style={{ display: "block", flex: "1", minWidth: "0" }}>
                           <span style={{ display: "block", fontSize: "13.5px", fontWeight: "500", color: "#1e293b" }}>EPS</span>
                           <span style={{ display: "block", fontSize: "11.5px", color: "#64748b" }}>Test account · no live credentials entered yet</span>
@@ -826,7 +827,7 @@ export default class SetPaymentsScreen extends Component {
                         </span>
                       </div>
                       <div style={{ display: "flex", alignItems: "flex-start", gap: "13px", padding: "13px 16px", borderBottom: "1px solid #f1f5f9" }}>
-                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "9px", background: "#8a2be2", fontSize: "10.5px", fontWeight: "700", letterSpacing: ".02em", color: "#fff" }}>RKT</span>
+                        <PaymentLogo provider="rocket" size={34} radius={9} decorative />
                         <span style={{ display: "block", flex: "1", minWidth: "0" }}>
                           <span style={{ display: "block", fontSize: "13.5px", fontWeight: "500", color: "#1e293b" }}>Rocket send money</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "11.5px", lineHeight: "16px", color: "#64748b" }}>Dutch-Bangla mobile banking. Account must include the trailing digit.</span>

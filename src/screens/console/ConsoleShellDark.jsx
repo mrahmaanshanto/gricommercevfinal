@@ -77,7 +77,7 @@ export default class ConsoleShellDarkScreen extends Component {
       <div className="dc-screen" data-screen="ConsoleShellDark">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div style={{ width: "1440px", height: "900px" }}>
-          <div data-dc-import="ConsoleShell"><__ConsoleShell dark={true} /></div>
+          <div data-dc-import="ConsoleShell"><__ConsoleShell embedded dark={true} /></div>
         </div>
       </div>
     );
