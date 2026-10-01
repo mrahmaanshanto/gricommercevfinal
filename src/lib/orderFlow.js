@@ -25,6 +25,15 @@ const AUTO_CALL_MS = 6000;   // an automatic call answers in a few seconds in th
 const digits = (p) => String(p || '').replace(/\D/g, '').replace(/^88/, '');
 const hash = (s) => { let h = 7; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) % 1000003; return h; };
 
+// ---- photos on order items ------------------------------------------------------------------------------
+/** A photo for an order line (a data URL, already made small), or null to remove it. Kept with the order. */
+export function setLinePhoto(o, index, dataUrl) {
+  const photos = { ...(o.photos || {}) };
+  if (dataUrl) photos[index] = dataUrl; else delete photos[index];
+  patchOrder(o, { photos });
+  logOrder(o.id, dataUrl ? 'image-plus' : 'image-minus', dataUrl ? 'Photo added' : 'Photo removed', (o.lines[index] || {}).name || '');
+}
+
 // ---- new order ---------------------------------------------------------------------------------------------
 const START_EVENT = { onhold: 'on-hold', processing: 'processing', pending: 'payment-pending' };
 /** Messages for a new online order: received, then On hold / Processing / Payment pending. */

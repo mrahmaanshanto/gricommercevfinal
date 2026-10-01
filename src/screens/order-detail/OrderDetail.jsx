@@ -16,6 +16,7 @@ import { Dialog, EmptyState, StatusBadge } from '@/components/ui';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
 import { ORDER_STEPS, STEP_LABEL, NEW_KEYS, orderStatus, isNewOrder } from '@/lib/orderStatus';
 import { usePlaceList } from '@/lib/usePlaces';
+import { holdsStock } from '@/lib/edition';
 import { productBy } from '@/lib/stock';
 import { holdsFor } from '@/lib/stockHolds';
 import { courierHistory } from '@/lib/orderLinks';
@@ -26,7 +27,7 @@ import {
 } from '@/lib/orders';
 import {
   verifyOf, startAutoCall, settleAutoCall, recordCall, CALL_RESULTS, callResultLabel, requestAdvance, receiveAdvance, ADVANCE_METHODS,
-  COURIERS, courierCharge, prepOf, prepDone, updatePrep, markReady, sendToCourier, trackingOf, courierWebhook, syncCourier, HOOK_LABEL,
+  COURIERS, courierCharge, prepOf, prepDone, updatePrep, markReady, sendToCourier, trackingOf, courierWebhook, syncCourier, HOOK_LABEL, setLinePhoto,
 } from '@/lib/orderFlow';
 import { notificationLog, retryNotification, NOTIFY_EVENT } from '@/lib/notifications';
 import { clockNow } from '@/lib/settlements';
@@ -159,6 +160,20 @@ const CSS = `
 .od-demo{padding:var(--space-3);border:1px dashed var(--border-strong);border-radius:var(--radius-lg)}
 .od-demo>p{margin:0 0 var(--space-2);font-size:var(--text-xs);color:var(--text-muted)}
 .od-slip{display:none}
+.od-item{display:flex;align-items:center;gap:var(--space-3);min-width:0}
+.od-item>span{display:flex;flex-direction:column;min-width:0}
+.od-thumb{position:relative;display:grid;place-items:center;width:52px;height:52px;flex:none;padding:0;border:1px dashed var(--border-strong);border-radius:var(--radius-lg);background:var(--surface-subtle);color:var(--text-muted);cursor:pointer;overflow:hidden;transition:border-color 150ms ease,color 150ms ease}
+.od-thumb.has-photo{border:1px solid var(--border-subtle);background:var(--surface-card)}
+.od-thumb img{width:100%;height:100%;object-fit:cover}
+@media (hover:hover) and (pointer:fine){.od-thumb:hover{border-color:var(--primary);color:var(--primary)}}
+.od-thumb:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
+.od-photo{display:block;width:100%;max-height:60vh;object-fit:contain;border-radius:var(--radius-lg);background:var(--surface-subtle)}
+.od-couriers{display:flex;flex-direction:column;gap:var(--space-3);margin:0;padding:0;list-style:none}
+.od-couriers li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px var(--space-3);font-size:var(--text-sm)}
+.od-couriers b{font-weight:var(--weight-medium);color:var(--text-heading)}
+.od-couriers span{color:var(--text-muted);font-size:var(--text-xs);text-align:right;white-space:nowrap}
+.od-couriers i{grid-column:1 / -1;display:flex;height:6px;border-radius:var(--radius-full);overflow:hidden;background:var(--fill-error-soft)}
+.od-couriers i em{display:block;height:100%;background:var(--fill-success)}
 @media (max-width:1100px){.od-grid{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:767px){
 .od-bar{padding:var(--space-3) 16px;top:56px}
@@ -223,6 +238,9 @@ export default function OrderDetail() {
   const [tags, setTags] = useState(['call-first']);
   const [tagText, setTagText] = useState('');
   const slipRef = React.useRef(null);
+  const fileRef = React.useRef(null);
+  const [photoAt, setPhotoAt] = useState(null);       // the line whose photo is being picked
+  const [viewPhoto, setViewPhoto] = useState(null);   // the line whose photo is open
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
@@ -424,6 +442,35 @@ export default function OrderDetail() {
   };
   const addTag = () => { const x = tagText.trim(); if (x && !tags.includes(x)) setTags([...tags, x]); setTagText(''); };
 
+  // ---- photos on order items ---------------------------------------------------------------------------
+  const holds2 = holdsStock();
+  const pickPhoto = (i) => { setPhotoAt(i); if (fileRef.current) { fileRef.current.value = ''; fileRef.current.click(); } };
+  const onPhoto = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file || photoAt == null) return;
+    if (!/^image\//.test(file.type)) { toast('Choose an image', { tone: 'error' }); return; }
+    if (file.size > 15 * 1024 * 1024) { toast('Image is too large (15 MB max)', { tone: 'error' }); return; }
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      // kept small: 480 px on the long side, JPEG
+      const k = Math.min(1, 480 / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      setLinePhoto(findOrder(o.id) || o, photoAt, c.toDataURL('image/jpeg', 0.82));
+      setPhotoAt(null); setViewPhoto(null); refresh();
+      toast('Photo added');
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); toast('Could not read this image', { tone: 'error' }); };
+    img.src = url;
+  };
+  const removePhoto = (i) => { setLinePhoto(findOrder(o.id) || o, i, null); setViewPhoto(null); refresh(); toast('Photo removed'); };
+  const photos = o.photos || {};
+  const riskOf = (r) => (!r || r.rate == null || !r.total ? ['New customer', 'slate'] : r.rate >= 80 ? ['Low risk', 'success'] : r.rate >= 50 ? ['Medium risk', 'warning'] : ['High risk', 'error']);
+  const risk = riskOf(record);
+
   // ---- the next step card ------------------------------------------------------------------------------
   const verifyLine = v ? (
     <p className="od-line"><Icon name={v.state === 'confirmed' ? 'circle-check' : v.state === 'calling' ? 'phone-outgoing' : 'phone-missed'} width="16" height="16" aria-hidden="true" style={{ color: v.state === 'confirmed' ? 'var(--text-success)' : v.state === 'calling' ? 'var(--primary)' : 'var(--text-warning)' }} />
@@ -467,7 +514,10 @@ export default function OrderDetail() {
           <li><label><input type="checkbox" checked={!!prep.packed} onChange={(e) => setPrep({ packed: e.target.checked })} /><span><b>Packed</b></span></label></li>
           <li><label><input type="checkbox" checked={!!prep.slipAttached} onChange={(e) => setPrep({ slipAttached: e.target.checked })} disabled={!prep.slipPrinted} /><span><b>Slip attached</b></span></label></li>
         </ul>
-        <button type="button" className="gc-btn gc-btn--solid" disabled={!prepDone(prep)} onClick={ready2}><Icon name="package-check" width="18" height="18" aria-hidden="true" /> Mark as ready for courier</button>
+        <div className="od-acts">
+          <button type="button" className="gc-btn gc-btn--solid" disabled={!prepDone(prep)} onClick={ready2}><Icon name="package-check" width="18" height="18" aria-hidden="true" /> Mark as ready for courier</button>
+          <button type="button" className="gc-btn gc-btn--neutral" style={{ color: 'var(--text-danger)' }} onClick={() => setDlg('cancel')}>Cancel order</button>
+        </div>
       </div>
     </section>
   );
@@ -477,7 +527,10 @@ export default function OrderDetail() {
       <div className="od-card__body">
         <div className="od-two"><div><label className="gc-label" htmlFor="od-courier">Courier</label><select id="od-courier" className="gc-input gc-select" value={prep.courier} onChange={(e) => setPrep({ courier: e.target.value })}>{COURIERS.map((x) => <option key={x} value={x}>{x} · {formatBDT(courierCharge(x, o.zone))}</option>)}</select></div></div>
         <div className="od-money"><div><span>Total</span><b>{formatBDT(o.amount)}</b></div><div><span>Paid</span><b>{formatBDT(paid)}</b></div><div className="is-cod"><span>COD to collect</span><b>{formatBDT(cod)}</b></div></div>
-        <button type="button" className="gc-btn gc-btn--solid" onClick={send}><Icon name="truck" width="18" height="18" aria-hidden="true" /> Send to courier</button>
+        <div className="od-acts">
+          <button type="button" className="gc-btn gc-btn--solid" onClick={send}><Icon name="truck" width="18" height="18" aria-hidden="true" /> Send to courier</button>
+          <button type="button" className="gc-btn gc-btn--neutral" style={{ color: 'var(--text-danger)' }} onClick={() => setDlg('cancel')}>Cancel order</button>
+        </div>
       </div>
     </section>
   );
@@ -600,7 +653,7 @@ export default function OrderDetail() {
               <div className="gc-table-wrap">
                 <table className="gc-table gc-table--compact">
                   <thead><tr><th scope="col">Item</th><th scope="col" className="od-num">Qty</th><th scope="col" className="od-num">Unit price</th><th scope="col" className="od-num">Amount</th></tr></thead>
-                  <tbody>{o.lines.map((l, i) => { const p = productBy(l.name); return <tr key={l.name + i}><td className="od-strong">{l.name}<span className="od-sub">{[l.variant || (p && p.variant), p && p.sku].filter(Boolean).join(' · ') || 'Custom item'}</span></td><td className="od-num">{l.qty}</td><td className="od-num">{formatBDT(l.price)}</td><td className="od-num od-strong">{formatBDT(l.price * l.qty)}</td></tr>; })}</tbody>
+                  <tbody>{o.lines.map((l, i) => { const p = productBy(l.name); const ph = photos[i]; return <tr key={l.name + i}><td className="od-strong"><div className="od-item"><button type="button" className={'od-thumb' + (ph ? ' has-photo' : '')} onClick={() => (ph ? setViewPhoto(i) : pickPhoto(i))} aria-label={(ph ? 'View photo: ' : 'Add photo: ') + l.name} title={ph ? 'View photo' : 'Add photo'}>{ph ? <img src={ph} alt="" /> : <Icon name="image-plus" width="20" height="20" aria-hidden="true" />}</button><span>{l.name}<span className="od-sub">{[l.variant || (p && p.variant), p && p.sku].filter(Boolean).join(' · ') || 'Custom item'}</span></span></div></td><td className="od-num">{l.qty}</td><td className="od-num">{formatBDT(l.price)}</td><td className="od-num od-strong">{formatBDT(l.price * l.qty)}</td></tr>; })}</tbody>
                 </table>
               </div>
               <dl className="od-sum">
@@ -614,14 +667,14 @@ export default function OrderDetail() {
 
             <section className="gc-card od-card" aria-labelledby="od-holds">
               <div className="od-card__head">
-                <div><h2 id="od-holds"><Icon name="lock" width="17" height="17" aria-hidden="true" />Stock held for this order</h2><p>{open.length ? `${units(open)} pcs on hold at ${[...new Set(open.map((h) => h.place))].join(', ')}` : 'Nothing is on hold right now'}</p></div>
+                <div><h2 id="od-holds"><Icon name={holds2 ? 'lock' : 'package-minus'} width="17" height="17" aria-hidden="true" />{holds2 ? 'Stock held for this order' : 'Stock'}</h2><p>{!holds2 ? (o.stockOut ? `${o.units} pcs taken from ${o.stockOut.place}` : isNew ? 'Taken out when approved' : 'Not taken out') : open.length ? `${units(open)} pcs on hold at ${[...new Set(open.map((h) => h.place))].join(', ')}` : 'Nothing is on hold right now'}</p></div>
                 <span style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                  {!open.length && ['approved', 'ready'].includes(o.statusKey) && !counter ? <button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={() => setHoldOpen(true)}><Icon name="lock" width="15" height="15" aria-hidden="true" /> Hold stock</button> : null}
-                  <Link href="/stock-holds" className="gc-btn gc-btn--sm gc-btn--neutral">Stock holds</Link>
+                  {holds2 && !open.length && ['approved', 'ready'].includes(o.statusKey) && !counter ? <button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={() => setHoldOpen(true)}><Icon name="lock" width="15" height="15" aria-hidden="true" /> Hold stock</button> : null}
+                  {holds2 ? <Link href="/stock-holds" className="gc-btn gc-btn--sm gc-btn--neutral">Stock holds</Link> : <Link href="/stock" className="gc-btn gc-btn--sm gc-btn--neutral">Stock</Link>}
                 </span>
               </div>
               <div className="od-card__body">
-                {places.length === 0 ? <p className="od-sub" style={{ margin: 0 }}>{isNew ? 'Held when the order is approved.' : 'No stock held.'}</p> : places.map((g) => (
+                {places.length === 0 ? (holds2 ? <p className="od-sub" style={{ margin: 0 }}>{isNew ? 'Held when the order is approved.' : 'No stock held.'}</p> : null) : places.map((g) => (
                   <div key={g.place} className="od-place">
                     <div className="od-place__head"><span className="od-strong">{g.place}</span><span className="od-sub">{g.held ? `${g.held} pcs on hold` : 'Nothing on hold now'}</span></div>
                     <div className="gc-table-wrap">
@@ -734,8 +787,21 @@ export default function OrderDetail() {
 
             {!counter ? (
               <section className="gc-card od-card">
-                <div className="od-card__head"><h2><Icon name="shield-check" width="16" height="16" aria-hidden="true" />Order verification</h2><span className="gc-badge gc-badge--success">Low risk</span></div>
+                <div className="od-card__head"><h2><Icon name="shield-check" width="16" height="16" aria-hidden="true" />Order verification</h2><span className={'gc-badge gc-badge--' + risk[1]}>{risk[0]}</span></div>
                 <div className="od-card__body">
+                  {record && record.total ? (<>
+                    <div className="od-stats" aria-label="Courier record for this number">
+                      <div className="od-stat"><span>Parcels</span><b>{record.total}</b></div>
+                      <div className="od-stat"><span>Delivered</span><b>{record.delivered}</b></div>
+                      <div className="od-stat"><span>Returned</span><b>{record.returned}</b></div>
+                      <div className="od-stat"><span>Success</span><b>{record.rate}%</b></div>
+                    </div>
+                    <ul className="od-couriers">
+                      {record.couriers.map((c) => (
+                        <li key={c.name}><b>{c.name}</b><span>{c.delivered} of {c.total} delivered{c.returned ? ` · ${c.returned} returned` : ''}</span><i aria-hidden="true"><em style={{ width: `${c.total ? (c.delivered / c.total) * 100 : 0}%` }} /></i></li>
+                      ))}
+                    </ul>
+                  </>) : <p className="od-sub" style={{ margin: 0 }}>{record ? 'No courier record for this number.' : 'No mobile number to check.'}</p>}
                   <p className="od-addr">Dhaka, Dhaka Division, BD<span className="od-sub od-id">104.28.117.2 · Cloudflare AS13335</span></p>
                   <div className="od-tags"><span className="gc-badge gc-badge--slate">Desktop</span><span className="gc-badge gc-badge--slate">Direct</span><span className="gc-badge gc-badge--warning">1 min session</span><span className="gc-badge gc-badge--slate">Returning</span></div>
                 </div>
@@ -770,6 +836,12 @@ export default function OrderDetail() {
         </form>
       </Dialog>
 
+      <input ref={fileRef} type="file" accept="image/*" hidden onChange={onPhoto} />
+      <Dialog open={viewPhoto != null} title={viewPhoto != null && o.lines[viewPhoto] ? o.lines[viewPhoto].name : 'Photo'} onClose={() => setViewPhoto(null)} width={560}
+        footer={<><button type="button" className="gc-btn gc-btn--neutral" style={{ color: 'var(--text-danger)' }} onClick={() => removePhoto(viewPhoto)}>Remove</button><button type="button" className="gc-btn gc-btn--solid" onClick={() => pickPhoto(viewPhoto)}>Replace</button></>}>
+        {viewPhoto != null && photos[viewPhoto] ? <img className="od-photo" src={photos[viewPhoto]} alt={o.lines[viewPhoto] ? o.lines[viewPhoto].name : ''} /> : null}
+      </Dialog>
+
       <Dialog open={dlg === 'call'} title="Log call" onClose={() => setDlg(null)} width={440}>
         <form onSubmit={saveCall} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
           <p className="gc-help" style={{ margin: 0 }}>{o.customer} · <a href={'tel:' + digitsOf(o.phone)}>{o.phone}</a></p>
@@ -782,7 +854,7 @@ export default function OrderDetail() {
       <Dialog open={dlg === 'approve'} title={`Approve ${o.id}`} onClose={() => setDlg(null)} width={480}>
         <form onSubmit={approve} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
           {!v || v.state !== 'confirmed' ? <p className="gc-help" style={{ margin: 0 }}>Not verified yet.</p> : null}
-          <div><label className="gc-label" htmlFor="od-place">Hold stock at</label><select id="od-place" className="gc-input gc-select" data-autofocus value={place} onChange={(e) => setPlace(e.target.value)}>{holdPlaces.map((x) => <option key={x}>{x}</option>)}</select></div>
+          <div><label className="gc-label" htmlFor="od-place">{holds2 ? 'Hold stock at' : 'Take stock from'}</label><select id="od-place" className="gc-input gc-select" data-autofocus value={place} onChange={(e) => setPlace(e.target.value)}>{holdPlaces.map((x) => <option key={x}>{x}</option>)}</select></div>
           <div className="gc-table-wrap">
             <table className="gc-table gc-table--compact">
               <caption className="sr-only">Free stock at {place}</caption>
@@ -790,7 +862,7 @@ export default function OrderDetail() {
               <tbody>{stock.map((x) => <tr key={x.name}><td className="od-strong">{x.name}</td><td className="od-num">{x.qty}</td><td className={'od-num' + (x.short ? ' od-short' : '')}>{x.known ? x.available : '—'}</td></tr>)}</tbody>
             </table>
           </div>
-          {short.length ? <p className="gc-help gc-help--error" style={{ margin: 0 }}>Not enough stock at {place}.</p> : null}
+          {short.length ? <p className={'gc-help' + (holds2 ? ' gc-help--error' : '')} style={{ margin: 0 }}>{holds2 ? `Not enough stock at ${place}.` : 'Stock will go below zero.'}</p> : null}
           <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setDlg(null)}>Cancel</button><button type="submit" className="gc-btn gc-btn--solid">Approve</button></div>
         </form>
       </Dialog>
@@ -803,7 +875,7 @@ export default function OrderDetail() {
           </div>
           <div className="od-money"><div><span>Total</span><b>{formatBDT(o.amount)}</b></div><div><span>Advance</span><b>{formatBDT(advOk ? advNum : 0)}</b></div><div className="is-cod"><span>COD after</span><b>{formatBDT(Math.max(0, o.amount - paid - (advOk ? advNum : 0)))}</b></div></div>
           {!advOk ? <p className="gc-help gc-help--error" style={{ margin: 0 }}>Enter an amount below {formatBDT(o.amount - paid)}.</p> : null}
-          <div><label className="gc-label" htmlFor="od-adv-place">Hold stock at</label><select id="od-adv-place" className="gc-input gc-select" value={place} onChange={(e) => setPlace(e.target.value)}>{holdPlaces.map((x) => <option key={x}>{x}</option>)}</select></div>
+          <div><label className="gc-label" htmlFor="od-adv-place">{holds2 ? 'Hold stock at' : 'Take stock from'}</label><select id="od-adv-place" className="gc-input gc-select" value={place} onChange={(e) => setPlace(e.target.value)}>{holdPlaces.map((x) => <option key={x}>{x}</option>)}</select></div>
           <div className="gc-modal__foot" style={{ marginTop: 0, flexWrap: 'wrap' }}>
             <button type="button" className="gc-btn gc-btn--neutral" disabled={!advOk} onClick={askAdvance}><Icon name="send" width="16" height="16" aria-hidden="true" /> Send payment link</button>
             <button type="submit" className="gc-btn gc-btn--solid" disabled={!advOk}>Received · approve</button>
@@ -814,7 +886,7 @@ export default function OrderDetail() {
       <Dialog open={dlg === 'cancel'} title={`Cancel ${o.id}?`} onClose={() => setDlg(null)} width={440}>
         <form onSubmit={doCancel} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
           <div><label className="gc-label" htmlFor="od-cancel">Reason</label><select id="od-cancel" className="gc-input gc-select" data-autofocus value={cancel.reason} onChange={(e) => setCancel({ ...cancel, reason: e.target.value })}>{CANCEL_REASONS.map((x) => <option key={x}>{x}</option>)}</select></div>
-          {open.length ? <p className="gc-help" style={{ margin: 0 }}>Held stock goes back.</p> : null}
+          {open.length || o.stockOut ? <p className="gc-help" style={{ margin: 0 }}>Stock goes back.</p> : null}
           <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setDlg(null)}>Keep order</button><button type="submit" className="gc-btn gc-btn--solid gc-btn--error">Cancel order</button></div>
         </form>
       </Dialog>

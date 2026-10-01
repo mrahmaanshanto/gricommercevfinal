@@ -17,6 +17,7 @@ import { getStockPlaces } from '@/lib/locations';
 import { holdsFor } from '@/lib/stockHolds';
 import { demoOrders, getOrders, duplicatesOf, orderHref, invoiceHref, availability, approveOrder, cancelOrder, heldText, CAN_APPROVE, CAN_CANCEL, DEFAULT_HOLD_PLACE } from '@/lib/orders';
 import { sendToCourier, syncCourier } from '@/lib/orderFlow';
+import { holdsStock } from '@/lib/edition';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -601,14 +602,14 @@ export default class MerchantOrdersScreen extends Component {
         </div>
         <__Dialog open={!!v.approve} title={v.approve ? "Approve " + (v.approve.count === 1 ? "1 order" : v.approve.count + " orders") : "Approve orders"} onClose={v.approve ? v.approve.close : () => {}} width={520} footer={v.approve ? <>
           <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.approve.close}>Cancel</button>
-          <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.approve.confirm}>Approve and hold stock</button>
+          <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.approve.confirm}>Approve</button>
         </> : null}>
           {v.approve ? (
             <div style={{ display: "grid", gap: "16px" }}>
               {v.approve.skipped ? <div className="gc-alert gc-alert--soft gc-alert--warning" role="alert"><__Icon name="triangle-alert" strokeWidth="1.75" width="18" height="18" aria-hidden="true" /><span>{v.approve.skipped} Only Pending orders can be approved.</span></div> : null}
-              <p style={{ margin: "0", fontSize: "var(--text-sm)", color: "var(--text-body)" }}>Approving <span style={{ fontFamily: "var(--font-data)" }}>{v.approve.ids}</span>. Their items are held at one place until they are delivered or come back.</p>
+              <p style={{ margin: "0", fontSize: "var(--text-sm)", color: "var(--text-body)" }}>Approving <span style={{ fontFamily: "var(--font-data)" }}>{v.approve.ids}</span>.</p>
               <div>
-                <label className="gc-label" htmlFor="mo-hold-place">Hold stock from</label>
+                <label className="gc-label" htmlFor="mo-hold-place">{holdsStock() ? 'Hold stock at' : 'Take stock from'}</label>
                 <select id="mo-hold-place" className="gc-input gc-select" data-autofocus value={v.approve.place} onChange={v.approve.setPlace}>
                   {getStockPlaces().map((x) => <option key={x}>{x}</option>)}
                 </select>
@@ -626,7 +627,7 @@ export default class MerchantOrdersScreen extends Component {
                   ))}
                 </tbody>
               </table>
-              {v.approve.short ? <p className="gc-help gc-help--error" style={{ margin: "0" }}>{v.approve.short === 1 ? "1 product is" : v.approve.short + " products are"} short at {v.approve.place}. Pick another place, or approve anyway and restock before packing.</p> : <p className="gc-help" style={{ margin: "0" }}>Every item is free to hold at {v.approve.place}.</p>}
+              {v.approve.short ? <p className={"gc-help" + (holdsStock() ? " gc-help--error" : "")} style={{ margin: "0" }}>{holdsStock() ? (v.approve.short === 1 ? "1 product is" : v.approve.short + " products are") + " short at " + v.approve.place + "." : "Stock will go below zero."}</p> : <p className="gc-help" style={{ margin: "0" }}>In stock at {v.approve.place}.</p>}
             </div>
           ) : null}
         </__Dialog>

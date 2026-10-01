@@ -24,7 +24,7 @@ import { productBy, addMove, stockAt } from './stock';
 import { DAMAGED_PLACE } from './locations';
 import { addReturn } from './returns';
 import { collectCod, removeItem, clockNow } from './settlements';
-import { editionChannels } from './edition';
+import { editionChannels, holdsStock } from './edition';
 import { liveOrders } from './liveOrders';
 import { notify } from './notifications';
 
@@ -256,8 +256,21 @@ export function holdOrderStock(o, place, note = 'Order approved', by = 'Staff') 
   addHolds({ type: 'online', ref: o.id, who: o.customer, place, note, by }, o.lines.map((l) => ({ name: l.name, qty: l.qty })));
   return true;
 }
+/** Online edition: the order's items leave the stock at once (no hold); stock may go below zero. */
+export function takeOrderStock(o, place, by = 'Staff') {
+  if (o.stockOut) return false;
+  o.lines.forEach((l) => { const p = productBy(l.name); if (p) addMove({ sku: p.sku, place, qty: -l.qty, kind: 'sale', reason: 'Online order approved', by, ref: o.id }); });
+  patchOrder(o, { stockOut: { place, at: Date.now() } });
+  return true;
+}
+/** Put back what takeOrderStock took out (the order was cancelled before it left). */
+function putBackOrderStock(o, by = 'Staff') {
+  if (!o.stockOut) return;
+  o.lines.forEach((l) => { const p = productBy(l.name); if (p) addMove({ sku: p.sku, place: o.stockOut.place, qty: l.qty, kind: 'return', reason: 'Online order cancelled', by, ref: o.id }); });
+  patchOrder(o, { stockOut: null });
+}
 export function approveOrder(o, place, by = 'Staff') {
-  holdOrderStock(o, place, 'Order approved', by);
+  if (holdsStock()) holdOrderStock(o, place, 'Order approved', by); else takeOrderStock(o, place, by);
   setOrderStatus(o, 'Approved');
   logOrder(o.id, 'circle-check', 'Approved', `${place} · ${by}`);
   notify(o, 'approved');
@@ -265,6 +278,7 @@ export function approveOrder(o, place, by = 'Staff') {
 /** Cancel and release every open hold. Returns the released holds. */
 export function cancelOrder(o, why = 'Order cancelled', by = 'Staff', reason = '') {
   const ended = endHoldsFor(o.id, 'released', why);
+  if (!['shipped', 'delivered', 'returned'].includes(o.statusKey)) putBackOrderStock(o, by);
   setOrderStatus(o, 'Cancelled');
   if (reason) patchOrder(o, { cancelReason: reason });
   logOrder(o.id, 'circle-x', why, (reason ? reason + ' · ' : '') + by);

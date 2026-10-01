@@ -77,7 +77,8 @@ const BACK_OFFICE = ['core', 'catalog', 'money', 'reports', 'hr', 'commerce', 'm
 export const EDITIONS = {
   full: { name: 'GridCommerce', short: 'All modules', modules: Object.keys(MODULES), channels: ['Online', 'Retail', 'Wholesale'] },
   'retail-wholesale': { name: 'GridCommerce Retail + Wholesale', short: 'Retail + Wholesale', modules: [...BACK_OFFICE, 'pos', 'wholesale'], channels: ['Retail', 'Wholesale'] },
-  online: { name: 'GridCommerce Online', short: 'Online', modules: [...BACK_OFFICE, 'online', 'comms', 'automation'], channels: ['Online'] },
+  // an online-only shop does not hold stock for orders: an approved order takes it out at once (it may go below zero)
+  online: { name: 'GridCommerce Online', short: 'Online', modules: [...BACK_OFFICE, 'online', 'comms', 'automation'], channels: ['Online'], noHolds: true },
   'retail-online': { name: 'GridCommerce Retail + Online', short: 'Retail + Online', modules: [...BACK_OFFICE, 'pos', 'online', 'comms', 'automation'], channels: ['Retail', 'Online'] },
   comms: { name: 'GridCommerce Connect', short: 'Communication & CRM', modules: ['core', 'comms', 'automation', 'pos'], channels: ['Retail'] },
 };
@@ -148,6 +149,8 @@ export function navForEdition(nav, ed = currentEditionId()) {
     }).filter(Boolean),
   })).filter((g) => g.items.length);
 }
+/** Does an approved order hold its stock (true) or take it out at once (the Online edition)? */
+export const holdsStock = (ed = currentEditionId()) => !EDITIONS[ed].noHolds;
 /** The sales channels this edition sells through (Online / Retail / Wholesale). */
 export const editionChannels = (ed = currentEditionId()) => EDITIONS[ed].channels;
 /** Which module a page belongs to (for the "not in your edition" note). */

@@ -12,7 +12,8 @@ import { Sidebar, Topbar } from '@/shell/Shell';
 import { Dialog, PhoneActionBar } from '@/components/ui';
 import { formatBDT } from '@/lib/format';
 import { orderStatus, initialStatusKey } from '@/lib/orderStatus';
-import { findOrder, patchOrder } from '@/lib/orders';
+import { findOrder, patchOrder, takeOrderStock } from '@/lib/orders';
+import { holdsStock } from '@/lib/edition';
 import { announceNewOrder } from '@/lib/orderFlow';
 import { notify } from '@/lib/notifications';
 import { createOrderLink, addOrder, DELIVERY_RATES as DELIVERY, PAYMENT_LABEL, BD_MOBILE as PHONE, cleanPhone, prettyPhone } from '@/lib/orderLinks';
@@ -192,7 +193,8 @@ export default function NewOrder() {
   // free stock at the hold place for the products that are in the stock list
   const known = lines.filter((l) => productBy(l.name));
   const shortHere = known.filter((l) => stockAt(l.name, holdPlace).available < l.qty);
-  const holdNote = !lines.length ? 'The items are held here until the order is delivered, cancelled or comes back.'
+  const holdNote = !holdsStock() ? (shortHere.length ? 'Stock will go below zero.' : 'Stock is taken out now.')
+    : !lines.length ? 'The items are held here until the order is delivered, cancelled or comes back.'
     : shortHere.length ? `Not enough free stock here for ${shortHere.map((l) => l.name).join(', ')}.`
     : known.length ? `${known.length === lines.length ? 'Every item is' : `${known.length} of ${lines.length} items are`} free to hold here.`
     : 'The items are held here until the order is delivered, cancelled or comes back.';
@@ -304,7 +306,9 @@ export default function NewOrder() {
     // a customer whose number is not in the customer book yet is kept there
     saveCustomerOnce({ name: customer.name, phone: customer.phone, address: customer.address, types: ['Online'], addedFrom: ADDED_FROM.order });
     // an approved online order holds its stock at the chosen place until it is delivered or comes back
-    if (status === 'approved') addHolds({ type: 'online', ref: row.id, who: customer.name, place: holdPlace, note: 'Order approved', by: 'System' }, lines.map((l) => ({ name: l.name, qty: l.qty })));
+    // (the Online edition takes the stock out at once instead: edition.js › holdsStock)
+    if (status === 'approved' && holdsStock()) addHolds({ type: 'online', ref: row.id, who: customer.name, place: holdPlace, note: 'Order approved', by: 'System' }, lines.map((l) => ({ name: l.name, qty: l.qty })));
+    if (status === 'approved' && !holdsStock()) { const made = findOrder(row.id); if (made) takeOrderStock(made, holdPlace, 'Staff'); }
     // messages: order received (and On hold / Processing / Payment pending); approved orders were confirmed on this call
     announceNewOrder(row.id);
     if (status === 'approved') { const made = findOrder(row.id); if (made) { patchOrder(made, { verify: { state: 'confirmed', method: 'manual', at: Date.now(), by: 'Staff' } }); notify(made, 'approved'); } }
@@ -452,7 +456,7 @@ export default function NewOrder() {
                   </select>
                   {status === 'approved' ? (
                     <div style={{ marginTop: 'var(--space-3)' }}>
-                      <label className="gc-label" htmlFor="no-hold">Hold stock from</label>
+                      <label className="gc-label" htmlFor="no-hold">{holdsStock() ? 'Hold stock from' : 'Take stock from'}</label>
                       <select id="no-hold" className="gc-input gc-select" style={{ borderRadius: 'var(--radius-lg)' }} value={holdPlace} onChange={(e) => setHoldPlace(e.target.value)}>
                         {holdPlaces.map((x) => <option key={x}>{x}</option>)}
                       </select>

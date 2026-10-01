@@ -91,6 +91,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   SMS / email through `src/lib/notifications.js › notify` (once per order and event; per-order log with retry), set up
   at Settings › Notifications › Order notifications (`/set-notifications`, `SetNotifications.jsx`: per-event SMS / email /
   customer / shop toggles and templates with `{{variables}}`). Order text is short and plain (Shopify style).
+  Stock: an approved order holds its stock, except in the Online edition (`edition.js › holdsStock`), where approval
+  takes it out at once (`orders.js › takeOrderStock`, may go below zero) and cancelling puts it back. Order items can
+  carry a photo (`orderFlow.js › setLinePhoto`, resized to 480 px). The order page's Order verification card shows the
+  customer's courier record (`orderLinks.js › courierHistory`: totals and each courier).
 - POS: `/pos` (`src/screens/pos-register/Pos.jsx`) is the one register; `/pos-manage` (`PosManage.jsx`) is its
   back office (counters, employees and shifts, cash pickups, settings). Both read and write
   `src/lib/posStore.js` (browser storage). Register shortcuts are listed in `SHORTCUTS` in `Pos.jsx` (F1 on screen).
