@@ -10,6 +10,7 @@ import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher,
 import { PageHeader as __PageHeader } from '@/components/ui';
 import { toast as __toast, confirmDialog as __confirm } from '@/runtime/ui';
 import { findProduct, saveProduct, codeOwner, newProductId, getSavedProducts, SELL_TO } from '@/lib/products';
+import { getStockSetup } from '@/lib/stockSetup';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -98,6 +99,8 @@ class Component extends DCLogic {
   componentWillUnmount() { clearTimeout(this.t); }
   // /add-product adds a new product; /add-product?sku=… (or ?id=…) opens that product for editing.
   componentDidMount() {
+    // wholesale price, MOQ and "sell to" only where the shop sells wholesale (stockSetup.js)
+    this.setState({ wsOn: getStockSetup().wholesale });
     var self = this, qs = new URLSearchParams(window.location.search), saved = getSavedProducts();
     var key = { id: qs.get('id') || '', sku: qs.get('sku') || '' };
     var p = key.id || key.sku ? findProduct(key, saved) : null;
@@ -147,7 +150,8 @@ class Component extends DCLogic {
     var undo = function (k) { return function () { var a = assign({}, ai); delete a[k]; var p = assign({ ai: a }, prev[k] || {}); self.setState(p); }; };
     var aiSel = s.aiSel || { short: true, long: true, seo: true, tags: true, faq: false, alt: false };
     var price = f('price', ''), cost = f('cost', ''), mrp = f('mrp', '');
-    var sell = f('sell', 'retail'), sellsWs = sell !== 'retail', wholesale = f('wholesale', ''), moq = f('moq', '');
+    var wsOn = s.wsOn !== false;   // an online-only shop: purchase price and sale price only
+    var sell = wsOn ? f('sell', 'retail') : 'retail', sellsWs = sell !== 'retail', wholesale = f('wholesale', ''), moq = f('moq', '');
     var sku = f('sku', ''), barcode = f('barcode', ''), brand = f('brand', ''), variants = f('variants', []), opts = f('opts', []);
     var ownId = s.editId || '', savedList = s.savedList || [];
     var num = function (x) { return +(String(x).replace(/[^\d.]/g, '')) || 0; };
@@ -177,7 +181,7 @@ class Component extends DCLogic {
       aiBangla: function () { setAi('long', { long: long + AI_TXT.bangla }); },
       keep_short: keep('short'), keep_long: keep('long'), keep_seo: keep('seo'), keep_faq: keep('faq'), undo_short: undo('short'), undo_long: undo('long'), undo_seo: undo('seo'), undo_faq: undo('faq'),
       price: price, typePrice: function (e) { self.setState({ price: e.target.value }); }, cost: cost, typeCost: function (e) { self.setState({ cost: e.target.value }); },
-      mrp: mrp, typeMrp: function (e) { self.setState({ mrp: e.target.value }); }, priceReq: sell !== 'wholesale',
+      mrp: mrp, typeMrp: function (e) { self.setState({ mrp: e.target.value }); }, priceReq: sell !== 'wholesale', wsOn: wsOn, costReq: !wsOn,
       sellOpts: seg(SELL_TO, sell, 'sell'), sellsWs: sellsWs, sellHelp: sell === 'retail' ? 'Sold one at a time at the selling price.' : sell === 'wholesale' ? 'Sold only in bulk, at the wholesale price, from the minimum order up.' : 'Sold at the selling price, and at the wholesale price from the minimum order up.',
       wholesale: wholesale, typeWholesale: function (e) { self.setState({ wholesale: e.target.value }); }, moq: moq, typeMoq: function (e) { self.setState({ moq: e.target.value }); },
       profit: pr && co ? bdt(prof) : '—', margin: pr && co ? Math.round(prof / pr * 100) + '%' : '—', profitColor: prof < 0 ? '#b83210' : '#047857', saves: mr > pr && pr > 0 ? bdt(mr - pr) + ' (' + Math.round((mr - pr) / mr * 100) + '%)' : '—',
@@ -236,7 +240,7 @@ class Component extends DCLogic {
       var e = {}, t = String(v.title).trim();
       if (!t) e.title = 'Enter a product title.'; else if (t.length > 120) e.title = 'Keep the title under 120 letters.';
       var pe = moneyError(price, !draft && sell !== 'wholesale', 'selling price'); if (pe) e.price = pe;
-      var ce = moneyError(cost, false, 'buying price'); if (ce) e.cost = ce;
+      var ce = moneyError(cost, !draft && !wsOn, 'buying price'); if (ce) e.cost = ce;
       if (sellsWs) {
         var we = wholesaleError(wholesale, !draft); if (we) e.wholesale = we;
         var me = moqError(moq, !draft); if (me) e.moq = me;
@@ -595,12 +599,12 @@ export default class AddProductScreen extends Component {
                         {v.err?.price ? (<span id="pf-price-err" className="ferr" role="alert"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" />{v.err.price}</span>) : null}
                       </label>
                       <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <span className="lbl">MRP (compare-at price)</span>
+                        <span className="lbl">{v.wsOn ? 'MRP (compare-at price)' : 'Compare-at price (optional)'}</span>
                         <input className="inp num" inputMode="decimal" placeholder="৳0" value={v.mrp} onInput={v.typeMrp} onChange={v.typeMrp} aria-label="MRP" />
                         <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Shown crossed out</span>
                       </label>
                       <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <span className="lbl">Buying price (cost)</span>
+                        <span className="lbl">Buying price (cost) {v.costReq ? (<span className="req" aria-hidden="true">*</span>) : null}</span>
                         <input className="inp num" inputMode="decimal" placeholder="৳0" value={v.cost} onInput={v.typeCost} onChange={v.typeCost} aria-label="Buying price" id="pf-cost" aria-invalid={v.err?.cost ? "true" : undefined} aria-describedby={v.err?.cost ? "pf-cost-err" : undefined} />
                         {v.err?.cost ? (<span id="pf-cost-err" className="ferr" role="alert"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" />{v.err.cost}</span>) : null}
                         <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Customers never see this</span>
@@ -620,6 +624,7 @@ export default class AddProductScreen extends Component {
                         <div className="num" style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>{v.saves}</div>
                       </div>
                     </div>
+                    {v.wsOn ? (
                     <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", padding: "12px 14px", borderRadius: "var(--radius-xl)", background: "#f8fafc" }}>
                       <span className="lbl" id="pf-sell-label">Sell to</span>
                       <div role="group" aria-labelledby="pf-sell-label" style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
@@ -629,6 +634,7 @@ export default class AddProductScreen extends Component {
                       </div>
                       <span style={{ flex: "1 1 220px", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>{v.sellHelp}</span>
                     </div>
+                    ) : null}
                     <div className="gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "14px" }}>
                       <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                         <span className="lbl">VAT / tax</span>
@@ -830,8 +836,8 @@ export default class AddProductScreen extends Component {
                             <th className="th" style={{ textAlign: "right" }}>Stock</th>
                             <th className="th">SKU</th>
                             <th className="th">Barcode</th>
-                            <th className="th">Wholesale price</th>
-                            <th className="th">MOQ</th>
+                            {v.wsOn ? <th className="th">Wholesale price</th> : null}
+                            {v.wsOn ? <th className="th">MOQ</th> : null}
                           </tr>
                         </thead>
                         <tbody>
@@ -853,14 +859,14 @@ export default class AddProductScreen extends Component {
                               <input className="inp num" type="number" inputMode="numeric" min="1" step="1" value={r?.moq} placeholder={v.moqPh} onInput={r?.typeMoq} onChange={r?.typeMoq} id={r?.moqId} aria-label={`Minimum order in pieces for ${r?.name ?? ""}`} aria-invalid={r?.moqErr ? "true" : undefined} aria-describedby={r?.moqErr ? `${r?.moqId}-err` : undefined} style={{ width: "80px", height: "36px", textAlign: "right" }} />
                               {r?.moqErr ? (<span id={`${r?.moqId}-err`} className="ferr" role="alert" style={{ marginTop: "4px", maxWidth: "140px" }}>{r.moqErr}</span>) : null}
                             </td>
-                            </>) : (<>
+                            </>) : v.wsOn ? (<>
                             <td className="td" style={{ color: "var(--text-muted)" }}>—</td>
                             <td className="td" style={{ color: "var(--text-muted)" }}>—</td>
-                            </>)}
+                            </>) : null}
                           </tr>
                           </React.Fragment>)) : (
                           <tr>
-                            <td className="td" colSpan={7} style={{ color: "var(--text-muted)" }}>No variants. This product is sold as one item with the SKU, barcode and prices above.</td>
+                            <td className="td" colSpan={v.wsOn ? 7 : 5} style={{ color: "var(--text-muted)" }}>No variants. This product is sold as one item with the SKU, barcode and prices above.</td>
                           </tr>
                           )}
                         </tbody>

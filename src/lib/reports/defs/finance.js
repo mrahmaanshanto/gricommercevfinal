@@ -4,7 +4,10 @@
 // accountFlows() is its cash-flow rule and cashPnl() its cash-basis profit & loss, copied here.
 
 import { getEntries, balanceOf, ACCOUNTS, accountBy, KIND_LABEL } from '../../ledger';
-import { homeOf, CHANNELS } from '../../categories';
+import { homeOf, CHANNELS as ALL_CHANNELS } from '../../categories';
+import { editionChannels } from '../../edition';
+// the edition's channels only (an online-only shop has no Retail or Wholesale columns)
+const chans = () => ALL_CHANNELS.filter((c) => editionChannels().includes(c));
 import { profitByChannel } from '../../profit';
 import * as salesBook from '../../salesBook';
 import { getItems, costsOf, partnerBy, clockNow } from '../../settlements';
@@ -69,6 +72,48 @@ const expensesByCategory = {
         sort: { key: 'amount', dir: 'desc' },
       },
       notes: ['Salaries, commission, affiliates and promotions show here when they were paid. Sales & profit counts them when they were owed.'],
+    };
+  },
+};
+
+// ---- what GridCommerce itself costs (platformCosts.js) ------------------------------------------------
+const platformCosts = {
+  id: 'platform-costs',
+  group: 'finance',
+  title: 'Platform & messaging costs',
+  description: 'What running the shop on GridCommerce costs: SMS, WhatsApp, email, AI calls, subscription and server.',
+  icon: 'server',
+  keywords: 'sms whatsapp email ai calls voice subscription server hosting credits gridcommerce',
+  filters: [],
+  defaultPeriod: 'year',
+  compute({ from, to }) {
+    const out = getEntries().filter((e) => e.auto && e.kind === 'expense' && e.amount < 0 && e.at >= from && e.at < to);
+    const service = (e) => String(e.note || '').split(' · ')[0] || 'Other';
+    const total = sum(out, (e) => -e.amount);
+    const groups = [...groupBy(out, service)].map(([name, list]) => ({ name, amount: r2(sum(list, (e) => -e.amount)), bills: list.length, how: list[0].account === 'gc-credits' ? 'Credits' : 'Card' }))
+      .sort((a, b) => b.amount - a.amount);
+    const { buckets, keyOf } = bucketsOf(from, to);
+    const usage = { name: 'Messaging & AI', tone: 'primary', values: buckets.map(() => 0) };
+    const plan = { name: 'Subscription & server', tone: 'info', values: buckets.map(() => 0) };
+    out.forEach((e) => { const i = buckets.findIndex((b) => b.key === keyOf(e.at)); if (i >= 0) (e.account === 'gc-credits' ? usage : plan).values[i] += -e.amount; });
+    return {
+      kpis: [
+        { key: 'total', label: 'Total', value: total, format: 'money', good: 'down' },
+        { key: 'usage', label: 'Messaging & AI', value: sum(out.filter((e) => e.account === 'gc-credits'), (e) => -e.amount), format: 'money', good: 'down' },
+        { key: 'plan', label: 'Subscription & server', value: sum(out.filter((e) => e.account !== 'gc-credits'), (e) => -e.amount), format: 'money', good: 'down' },
+      ],
+      chart: { type: 'stacked', labels: buckets.map((b) => b.label), series: [usage, plan].filter((x) => x.values.some(Boolean)), format: 'money0' },
+      table: {
+        columns: [
+          { key: 'name', label: 'Service' },
+          { key: 'how', label: 'Paid from' },
+          { key: 'bills', label: 'Bills', format: 'int', align: 'right', total: 'sum' },
+          { key: 'amount', label: 'Amount', format: 'money', align: 'right', total: 'sum' },
+        ],
+        rows: groups.map((g) => ({ ...g, _href: '/credit-wallet' })),
+        sort: { key: 'amount', dir: 'desc' },
+      },
+      notes: ['Usage is billed once a month when the month closes. This month so far is on Wallet & credits.'],
     };
   },
 };
@@ -355,13 +400,13 @@ const profitByChannelSummary = {
   defaultPeriod: 'lastmonth',
   compute({ from, to }) {
     const p = profitByChannel(from, to);
-    const rows = CHANNELS.map((ch) => {
+    const rows = chans().map((ch) => {
       const c = p.channels[ch];
       return { _key: ch, line: ch, net: c.net, cost: c.cost, gross: c.gross, costs: c.costsTotal, profit: c.profit, margin: c.profitMargin, _href: '/sales-profit' };
     });
     rows.push({ _key: 'shared', line: 'Shared costs (whole shop)', net: null, cost: null, gross: null, costs: p.shared.total, profit: -p.shared.total, margin: null, _href: '/sales-profit' });
     if (p.income.total) rows.push({ _key: 'income', line: 'Other income', net: null, cost: null, gross: null, costs: null, profit: p.income.total, margin: null, _href: '/account-reports' });
-    const best = CHANNELS.slice().sort((a, b) => p.channels[b].profit - p.channels[a].profit)[0];
+    const best = chans().slice().sort((a, b) => p.channels[b].profit - p.channels[a].profit)[0];
     return {
       kpis: [
         { key: 'net', label: 'Net sales', value: p.all.net, format: 'money', good: 'up' },
@@ -371,10 +416,10 @@ const profitByChannelSummary = {
         { key: 'best', label: 'Best channel', value: p.all.net ? best : '—', format: 'text', sub: p.all.net ? `৳${Math.round(p.channels[best].profit).toLocaleString('en-IN')} profit` : '' },
       ],
       chart: {
-        type: 'bar', labels: CHANNELS, format: 'money0',
+        type: 'bar', labels: chans(), format: 'money0',
         series: [
-          { name: 'Gross profit', tone: 'primary', values: CHANNELS.map((ch) => p.channels[ch].gross) },
-          { name: 'Channel profit', tone: 'success', values: CHANNELS.map((ch) => p.channels[ch].profit) },
+          { name: 'Gross profit', tone: 'primary', values: chans().map((ch) => p.channels[ch].gross) },
+          { name: 'Channel profit', tone: 'success', values: chans().map((ch) => p.channels[ch].profit) },
         ],
       },
       table: {
@@ -388,7 +433,7 @@ const profitByChannelSummary = {
           { key: 'margin', label: 'Margin', format: 'pct', align: 'right' },
         ],
         rows,
-        totals: { line: 'Net profit', net: p.all.net, cost: p.all.cost, gross: p.all.gross, costs: r2(CHANNELS.reduce((a, ch) => a + p.channels[ch].costsTotal, 0) + p.shared.total), profit: p.net, margin: p.netMargin },
+        totals: { line: 'Net profit', net: p.all.net, cost: p.all.cost, gross: p.all.gross, costs: r2(ALL_CHANNELS.reduce((a, ch) => a + p.channels[ch].costsTotal, 0) + p.shared.total), profit: p.net, margin: p.netMargin },
         sort: null,
       },
       notes: [
@@ -417,7 +462,7 @@ const pnlMonthly = {
       if (b <= a) continue;
       const p = profitByChannel(a, b, { entries });
       const cash = cashPnl(entries, a, b);
-      const costs = r2(CHANNELS.reduce((s, ch) => s + p.channels[ch].costsTotal, 0) + p.shared.total);
+      const costs = r2(ALL_CHANNELS.reduce((s, ch) => s + p.channels[ch].costsTotal, 0) + p.shared.total);   // every channel's costs, so the total matches net profit
       all.push({ _key: dayKey(m), at: m, month: `${MON(m)} ${new Date(m).getFullYear()}`, net: p.all.net, cost: p.all.cost, gross: p.all.gross, costs, income: p.income.total, profit: p.net, margin: p.netMargin, cash: cash.profit, _href: '/sales-profit' });
     }
     // leave out the empty months before the first month with anything in it
@@ -464,7 +509,7 @@ const pnlMonthly = {
 };
 
 // ---- expenses by channel -------------------------------------------------------------------------------
-const HOMES = ['Online', 'Retail', 'Wholesale', 'Shared'];
+const homes = () => [...chans(), 'Shared'];
 const expensesByChannel = {
   id: 'expenses-by-channel',
   group: 'finance',
@@ -486,34 +531,34 @@ const expensesByChannel = {
         const l = liabs.find((x) => x.id === e.liab);
         const line = l && (l.lines || []).find((x) => x.name === e.party);
         const ch = (line && line.channel) || (l && l.channel);
-        if (CHANNELS.includes(ch)) return ch;
+        if (chans().includes(ch)) return ch;
       }
       const h = homeOf(labelOf(e));
-      return HOMES.includes(h) ? h : 'Shared';
+      return homes().includes(h) ? h : 'Shared';
     };
     const rows = [...groupBy(out, labelOf)].map(([cat, list]) => {
       const row = { _key: cat, cat, count: list.length, _href: '/expenses-bills' };
-      HOMES.forEach((h) => { row[h] = sum(list.filter((e) => homeOfEntry(e) === h), (e) => -e.amount); });
+      homes().forEach((h) => { row[h] = sum(list.filter((e) => homeOfEntry(e) === h), (e) => -e.amount); });
       row.total = sum(list, (e) => -e.amount);
       return row;
     });
     const total = sum(rows, (r) => r.total);
     const { buckets, keyOf } = bucketsOf(from, to);
     const tones = { Online: 'primary', Retail: 'success', Wholesale: 'warning', Shared: 'slate' };
-    const series = HOMES.map((h) => ({ name: h, tone: tones[h], values: buckets.map(() => 0) }));
-    out.forEach((e) => { const i = buckets.findIndex((b) => b.key === keyOf(e.at)); if (i >= 0) series[HOMES.indexOf(homeOfEntry(e))].values[i] += -e.amount; });
+    const series = homes().map((h) => ({ name: h, tone: tones[h], values: buckets.map(() => 0) }));
+    out.forEach((e) => { const i = buckets.findIndex((b) => b.key === keyOf(e.at)); if (i >= 0) series[homes().indexOf(homeOfEntry(e))].values[i] += -e.amount; });
     const of = (h) => sum(rows, (r) => r[h]);
     return {
       kpis: [
         { key: 'total', label: 'Spent', value: total, format: 'money', good: 'down' },
-        ...HOMES.map((h) => ({ key: h.toLowerCase(), label: h === 'Shared' ? 'Shared' : h, value: of(h), format: 'money', good: 'down', sub: total ? `${Math.round((of(h) / total) * 100)}% of spend` : '' })),
+        ...homes().map((h) => ({ key: h.toLowerCase(), label: h === 'Shared' ? 'Shared' : h, value: of(h), format: 'money', good: 'down', sub: total ? `${Math.round((of(h) / total) * 100)}% of spend` : '' })),
       ],
       chart: { type: 'stacked', labels: buckets.map((b) => b.label), series: series.filter((s) => s.values.some(Boolean)), format: 'money0' },
       table: {
         columns: [
           { key: 'cat', label: 'Category' },
           { key: 'count', label: 'Payments', format: 'int', align: 'right', total: 'sum' },
-          ...HOMES.map((h) => ({ key: h, label: h, format: 'money', align: 'right', total: 'sum' })),
+          ...homes().map((h) => ({ key: h, label: h, format: 'money', align: 'right', total: 'sum' })),
           { key: 'total', label: 'Total', format: 'money', align: 'right', total: 'sum' },
         ],
         rows,
@@ -855,6 +900,6 @@ const ownerEquity = {
 
 export default [
   expensesByCategory, dailyClosing, cashFlowSummary, accountBalances, profitByChannelSummary, pnlMonthly,
-  expensesByChannel, receivablesPayables, partnerFees, vatSummary, balanceSheet, ownerEquity,
+  expensesByChannel, receivablesPayables, partnerFees, vatSummary, balanceSheet, ownerEquity, platformCosts,
 ];
 export { EXPENSE_KINDS };

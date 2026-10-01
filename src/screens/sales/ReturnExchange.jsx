@@ -27,7 +27,7 @@ import { getInvoices, saveInvoice, stockOutAtSale, sentOf } from '@/lib/invoices
 import { extraOrders, updateOrder } from '@/lib/orderLinks';
 import { CATALOG, productBy, addMove, stockAt } from '@/lib/stock';
 import { addHolds, holdsFor, closeHold } from '@/lib/stockHolds';
-import { DAMAGED_PLACE } from '@/lib/locations';
+import { DAMAGED_PLACE, onlinePlace } from '@/lib/locations';
 import { postEntry, accountForMethod, accountBy } from '@/lib/ledger';
 
 const DAY = 86400000;
@@ -101,7 +101,7 @@ function buildSources() {
       key: 'ord:' + o.id, kind: 'online', id: o.id, ref: o.id, label: 'Order ' + o.id, at: parsePlaced(o.placed), channel: 'Online',
       customer: { name: o.customer, phone: digitsOf(o.phone) }, lines: [{ id: o.id + '-1', name: o.itemTitle || 'Items from the order', price: r2(value / count), qty: count, disc: 0 }],
       totals: { gross: value, lineDisc: 0, total: value }, due: o.payment === 'Unpaid' ? amountOf(o.total) - cutFromHistory(o.id) : 0,
-      place: 'Central Warehouse', cashier: '', returned: returnedFromHistory(o.id), orderId: o.id,
+      place: (o.stockOut && o.stockOut.place) || onlinePlace(), cashier: '', returned: returnedFromHistory(o.id), orderId: o.id,
     }));
   });
   MEMOS.forEach((m) => {
@@ -415,6 +415,8 @@ export default function ReturnExchange() {
       back.forEach((l) => { const p = productBy(l.name); if (p) addMove({ sku: p.sku, place: sel.place, qty: picks[l.id], kind: 'return', reason: reasonLabel, by: staff, ref: sel.ref }); else noRecord.push(l.name); });
     } else {
       addHolds({ type: 'damaged', ref: sel.ref, who: custName, place: DAMAGED_PLACE, note: `${reasonLabel} · returned on ${sel.label}`, by: staff }, back.map((l) => ({ name: l.name, qty: picks[l.id] })));
+      // it comes into the damaged bay (a stock move), so a later write-off or repair comes out even
+      back.forEach((l) => { const p = productBy(l.name); if (p && picks[l.id]) addMove({ sku: p.sku, place: DAMAGED_PLACE, qty: picks[l.id], kind: 'return', reason: reasonLabel + ' · damaged', by: staff, ref: sel.ref }); });
     }
     if (exch) addMove({ sku: newP.sku, place: sel.place, qty: -qtyNew, kind: 'exchange', reason: 'Given in exchange', by: staff, ref: sel.ref });
 

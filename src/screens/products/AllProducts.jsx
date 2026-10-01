@@ -13,6 +13,7 @@ import { toast as __toast } from '@/runtime/ui';
 import { useRouter } from 'next/navigation';
 import { formatBDT } from '@/lib/format';
 import { allProducts, getSavedProducts, DEMO_PRODUCTS, sellLabel } from '@/lib/products';
+import { getStockSetup } from '@/lib/stockSetup';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -31,6 +32,7 @@ var ST = { active: ['Active', 'badge b-received'], draft: ['Draft', 'badge b-dra
 var TABS = [{ k: 'all', label: 'All' }, { k: 'active', label: 'Active' }, { k: 'draft', label: 'Draft' }, { k: 'archived', label: 'Archived' }, { k: 'missing', label: 'Missing info' }, { k: 'deleted', label: 'Deleted' }];
 var AIC = ['Short description', 'Long description', 'SEO title', 'SEO description', 'Tags', 'Product FAQ', 'Image alt text'];
 var UNTAGGED = [['', 'All tags'], ['nosku', 'No SKU'], ['nobarcode', 'No barcode'], ['nocat', 'No category'], ['nows', 'No wholesale price']];
+var UNTAGGED_RETAIL = UNTAGGED.filter(function (x) { return x[0] !== 'nows'; });
 var UNTAGGED_TEST = { nosku: function (p) { return !p.sku; }, nobarcode: function (p) { return !p.barcode; }, nocat: function (p) { return !p.cat; }, nows: function (p) { return p.wholesale == null || p.wholesale === ''; } };
 var SELLS = [['', 'Sell to: any'], ['retail', 'Retail only'], ['wholesale', 'Wholesale only'], ['both', 'Retail and wholesale']];
 var SELL_CLS = { retail: 'badge b-draft', wholesale: 'badge b-approved', both: 'badge b-ordered' };
@@ -60,7 +62,8 @@ class Component extends DCLogic {
   // Products added or edited in this browser are read after mount (localStorage).
   componentDidMount() {
     var st = new URLSearchParams(window.location.search).get('status');
-    var p = { saved: getSavedProducts() };
+    // an online-only shop has no wholesale prices: no "sell to", no wholesale column or filter (stockSetup.js)
+    var p = { saved: getSavedProducts(), wsOn: getStockSetup().wholesale };
     if (st && TABS.some(function (t) { return t.k === st; })) p.tab = st;
     this.setState(p);
   }
@@ -73,11 +76,12 @@ class Component extends DCLogic {
   renderVals() {
     var self = this, s = this.state || {}, tab = s.tab || 'all', sel = s.sel || {}, aic = s.aic || { 'Short description': true, 'Long description': true };
     var q = (s.q || '').trim().toLowerCase();
-    var fCat = s.fCat || '', fBrand = s.fBrand || '', fTag = s.fTag || '', fSell = s.fSell || '';
+    var wsOn = s.wsOn !== false;
+    var fCat = s.fCat || '', fBrand = s.fBrand || '', fTag = s.fTag || '', fSell = wsOn ? s.fSell || '' : '';
     var filtered = !!(fCat || fBrand || fTag || fSell);
     var tabLabel = TABS.filter(function (t) { return t.k === tab; })[0].label;
     var all = s.saved ? allProducts(s.saved) : DEMO_PRODUCTS;
-    var list = all.filter(function (p) { return tab === 'all' ? p.st !== 'deleted' : tab === 'missing' ? p.missing : p.st === tab; })
+    var list = all.filter(function (p) { return wsOn || p.sell !== 'wholesale'; }).filter(function (p) { return tab === 'all' ? p.st !== 'deleted' : tab === 'missing' ? p.missing : p.st === tab; })
       .filter(function (p) { return !q || (p.name + ' ' + p.sku + ' ' + p.barcode + ' ' + p.brand + ' ' + p.cat).toLowerCase().indexOf(q) >= 0; })
       .filter(function (p) { return (!fCat || p.cat === fCat || p.cat.indexOf(fCat + ' ›') === 0) && (!fBrand || p.brand === fBrand) && (!fTag || UNTAGGED_TEST[fTag](p)) && (!fSell || p.sell === fSell); });
     var n = list.filter(function (p) { return sel[p.id]; }).length;
@@ -97,8 +101,8 @@ class Component extends DCLogic {
       q: s.q || '', typeQ: function (e) { self.setState({ q: e.target.value }); },
       catOpts: cats.map(function (c) { return { v: c, l: c.indexOf(' › ') > 0 ? '  ' + c : c }; }), fCat: fCat, setCat: function (e) { self.setState({ fCat: e.target.value, sel: {} }); },
       brandOpts: uniq(all.map(function (p) { return p.brand; })), fBrand: fBrand, setBrand: function (e) { self.setState({ fBrand: e.target.value, sel: {} }); },
-      tagOpts: UNTAGGED.map(function (x) { return { v: x[0], l: x[1] }; }), fTag: fTag, setTag: function (e) { self.setState({ fTag: e.target.value, sel: {} }); },
-      sellOpts: SELLS.map(function (x) { return { v: x[0], l: x[1] }; }), fSell: fSell, setSell: function (e) { self.setState({ fSell: e.target.value, sel: {} }); },
+      tagOpts: (wsOn ? UNTAGGED : UNTAGGED_RETAIL).map(function (x) { return { v: x[0], l: x[1] }; }), fTag: fTag, setTag: function (e) { self.setState({ fTag: e.target.value, sel: {} }); },
+      wsOn: wsOn, sellOpts: SELLS.map(function (x) { return { v: x[0], l: x[1] }; }), fSell: fSell, setSell: function (e) { self.setState({ fSell: e.target.value, sel: {} }); },
       filtered: filtered, filterCount: [fCat, fBrand, fTag, fSell].filter(Boolean).length, clearFilters: function () { self.setState({ fCat: '', fBrand: '', fTag: '', fSell: '' }); },
       emptyTitle: q ? 'No products match “' + (s.q || '').trim() + '”' : filtered ? 'No products match these filters' : 'No ' + (tab === 'all' ? '' : tabLabel.toLowerCase() + ' ') + 'products',
       emptyBody: q ? 'Check the spelling, or clear the search to see every product in this tab.' : filtered ? 'Clear the filters to see every product in this tab.' : 'Nothing has this status yet. Show all products instead.',
@@ -333,9 +337,9 @@ class AllProductsView extends Component {
                   <select className="inp" aria-label="Missing details" value={v.fTag} onChange={v.setTag} style={{ width: "180px" }}>
                     {__list(v.tagOpts).map((o) => (<option key={o.v} value={o.v}>{o.l}</option>))}
                   </select>
-                  <select className="inp" aria-label="Sell to" value={v.fSell} onChange={v.setSell} style={{ width: "180px" }}>
+                  {v.wsOn ? <select className="inp" aria-label="Sell to" value={v.fSell} onChange={v.setSell} style={{ width: "180px" }}>
                     {__list(v.sellOpts).map((o) => (<option key={o.v} value={o.v}>{o.l}</option>))}
-                  </select>
+                  </select> : null}
                   </__MobileFilters>
                   {v.filtered ? (<button type="button" className="abtn" onClick={v.clearFilters}><__Icon name="x" width="14" height="14" aria-hidden="true" />Clear filters</button>) : null}
                   <span style={{ flexGrow: "1" }} />
@@ -453,7 +457,7 @@ class AllProductsView extends Component {
                         <th className="th">Stock</th>
                         <th className="th">Category</th>
                         <th className="th">Brand</th>
-                        <th className="th">Sell to</th>
+                        {v.wsOn ? <th className="th">Sell to</th> : null}
                         <th className="th" style={{ textAlign: "right" }}>Price</th>
                         <th className="th">Info</th>
                         <th className="th" style={{ width: "52px" }}><span className="sr-only">Actions</span></th>
@@ -483,12 +487,12 @@ class AllProductsView extends Component {
                             </td>
                             <td className="td" style={__sx(`color: ${r?.catColor ?? ""};`)}>{r?.cat}</td>
                             <td className="td" style={{ color: "#475569" }}>{r?.brand}</td>
-                            <td className="td">
+                            {v.wsOn ? <td className="td">
                               <span className={r?.sellCls}>{r?.sell}</span>
-                            </td>
+                            </td> : null}
                             <td className="td num" style={{ textAlign: "right" }}>
                               <span style={{ display: "block", fontWeight: "var(--weight-medium)", whiteSpace: "nowrap" }}>{r?.price}</span>
-                              <span style={__sx(`display: block; font-size: var(--text-xs); color: ${r?.wsColor ?? ""};`)}>{r?.ws}</span>
+                              {v.wsOn ? <span style={__sx(`display: block; font-size: var(--text-xs); color: ${r?.wsColor ?? ""};`)}>{r?.ws}</span> : null}
                             </td>
                             <td className="td">
                               <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>

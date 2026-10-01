@@ -10,6 +10,7 @@ import { getLocale, readFlag, writeFlag } from '../runtime/ui';
 import { t } from './i18n';
 import { navFor, currentUser, SESSION_EVENT } from '../lib/team';
 import { currentEdition, EDITION_EVENT } from '../lib/edition';
+import { STOCK_SETUP_EVENT, rememberEdition } from '../lib/stockSetup';
 
 export function defineGcSidebar() {
   if (typeof window === 'undefined' || customElements.get('gc-sidebar')) return;
@@ -141,6 +142,8 @@ nav{display:block}
       window.addEventListener('gc:route', this._route);
       window.addEventListener(SESSION_EVENT, this._route);
       window.addEventListener(EDITION_EVENT, this._route);
+      window.addEventListener(STOCK_SETUP_EVENT, this._route);
+      rememberEdition();   // the first time the shop is opened, note its edition (Stock setup notices a later change)
       window.addEventListener('popstate', this._route);
       document.addEventListener('keydown', this._key);
       this.drill = this.drillFor(this.activeId());
@@ -156,6 +159,7 @@ nav{display:block}
       window.removeEventListener('gc:route', this._route);
       window.removeEventListener(SESSION_EVENT, this._route);
       window.removeEventListener(EDITION_EVENT, this._route);
+      window.removeEventListener(STOCK_SETUP_EVENT, this._route);
       window.removeEventListener('popstate', this._route);
       document.removeEventListener('keydown', this._key);
     }

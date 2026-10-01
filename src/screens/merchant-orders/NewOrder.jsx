@@ -22,6 +22,7 @@ import { addHolds } from '@/lib/stockHolds';
 import { postEntry, accountForMethod } from '@/lib/ledger';
 import { PARTNERS, getAllPartners, accountForPartner } from '@/lib/settlements';
 import { usePlaceList } from '@/lib/usePlaces';
+import { onlinePlace } from '@/lib/locations';
 import { productBy, stockAt } from '@/lib/stock';
 import { getCustomers, findCustomer, saveCustomerOnce, ADDED_FROM } from '@/lib/customers';
 
@@ -156,7 +157,8 @@ export default function NewOrder() {
   const [link, setLink] = useState(null);               // the order link made from the current products
   const [method, setMethod] = useState('gw:bkash-pgw');
   const [status, setStatus] = useState('approved');     // 'new' or 'approved': a hand-made order is usually confirmed on the phone already
-  const [holdPlace, setHoldPlace] = useState('Central Warehouse');   // where an approved order's stock is held
+  const [holdPlace, setHoldPlace] = useState('Central Warehouse');   // where an approved order's stock is held (the online place, after mount)
+  useEffect(() => { setHoldPlace(onlinePlace()); }, []);
   const holdPlaces = usePlaceList('stock');
   const [note, setNote] = useState('');
   const [tags, setTags] = useState([]);
@@ -456,10 +458,12 @@ export default function NewOrder() {
                   </select>
                   {status === 'approved' ? (
                     <div style={{ marginTop: 'var(--space-3)' }}>
-                      <label className="gc-label" htmlFor="no-hold">{holdsStock() ? 'Hold stock from' : 'Take stock from'}</label>
-                      <select id="no-hold" className="gc-input gc-select" style={{ borderRadius: 'var(--radius-lg)' }} value={holdPlace} onChange={(e) => setHoldPlace(e.target.value)}>
-                        {holdPlaces.map((x) => <option key={x}>{x}</option>)}
-                      </select>
+                      {holdPlaces.length > 1 ? (<>
+                        <label className="gc-label" htmlFor="no-hold">{holdsStock() ? 'Hold stock from' : 'Take stock from'}</label>
+                        <select id="no-hold" className="gc-input gc-select" style={{ borderRadius: 'var(--radius-lg)' }} value={holdPlace} onChange={(e) => setHoldPlace(e.target.value)}>
+                          {holdPlaces.map((x) => <option key={x}>{x}</option>)}
+                        </select>
+                      </>) : null}
                       <p className="no-meta" style={{ marginTop: 'var(--space-1-5)' }}>{holdNote}</p>
                     </div>
                   ) : null}

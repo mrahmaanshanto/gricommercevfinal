@@ -6,6 +6,7 @@
 const KEY = 'gc.ledger';
 import { ITEM_SEED, ITEMS_KEY } from './settlementSeed';
 import { LEDGER_SEED } from './ledgerSeed';
+import { platformRows } from './platformCosts';
 
 // type: Cash · Bank · Mobile (the shop's own money) · Holding (money a payment gateway or courier
 // has collected for the shop and has not paid out yet — see settlements.js)
@@ -19,6 +20,8 @@ export const ACCOUNTS = [
   { id: 'bkash', name: 'bKash merchant · 01700-000000', type: 'Mobile', brand: 'bkash', opening: 84250 },
   { id: 'nagad', name: 'Nagad merchant · 01700-000000', type: 'Mobile', brand: 'nagad', opening: 31900 },
   { id: 'rocket', name: 'Rocket merchant · 01700-000000', type: 'Mobile', brand: 'rocket', opening: 18300 },
+  // prepaid balance for SMS, WhatsApp, email and AI calls (platformCosts.js): usage is billed from it each month
+  { id: 'gc-credits', name: 'GridCommerce credits', type: 'Mobile', brand: 'gridcommerce', opening: 4645.5, credits: true },
   { id: 'h-bkash', name: 'bKash gateway (to be paid out)', type: 'Holding', brand: 'bkash', partner: 'bkash-pgw', opening: 0 },
   { id: 'h-nagad', name: 'Nagad gateway (to be paid out)', type: 'Holding', brand: 'nagad', partner: 'nagad-pgw', opening: 0 },
   { id: 'h-ssl', name: 'SSLCOMMERZ (to be paid out)', type: 'Holding', brand: 'sslcommerz', partner: 'sslcommerz', opening: 0 },
@@ -61,10 +64,10 @@ export function accountForMethod(method, atCounter) {
 export function accountsForMethod(method) {
   const m = String(method || '').toLowerCase();
   const type = m === 'cash' ? 'Cash' : m === 'bank' || m === 'card' || m === 'bank transfer' ? 'Bank' : 'Mobile';
-  return ACCOUNTS.filter((a) => a.type === type && (m !== 'bkash' || a.id === 'bkash') && (m !== 'nagad' || a.id === 'nagad') && (m !== 'rocket' || a.id === 'rocket'));
+  return ACCOUNTS.filter((a) => a.type === type && !a.credits && (m !== 'bkash' || a.id === 'bkash') && (m !== 'nagad' || a.id === 'nagad') && (m !== 'rocket' || a.id === 'rocket'));
 }
-/** The shop's own money accounts (not the partners' holding accounts). */
-export const OWN_ACCOUNTS = () => ACCOUNTS.filter((a) => a.type !== 'Holding');
+/** The shop's own money accounts (not the partners' holding accounts, not the GridCommerce credits balance). */
+export const OWN_ACCOUNTS = () => ACCOUNTS.filter((a) => a.type !== 'Holding' && !a.credits);
 export const HOLDING_ACCOUNTS = () => ACCOUNTS.filter((a) => a.type === 'Holding');
 
 
@@ -84,8 +87,9 @@ export function addAccount(a) {
 const changed = () => { try { window.dispatchEvent(new CustomEvent('gc:ledger')); } catch { /* ignore */ } };
 
 const read = () => { try { return JSON.parse(window.localStorage.getItem(KEY)) || []; } catch { return []; } };
-/** Every entry, newest first: the ones made in this browser, then the demo month (ledgerSeed.js). */
-export const getEntries = () => (typeof window === 'undefined' ? LEDGER_SEED : [...read(), ...LEDGER_SEED]);
+/** Every entry, newest first: the ones made in this browser, the platform's own monthly bills (platformCosts.js),
+ *  then the demo month (ledgerSeed.js). */
+export const getEntries = () => (typeof window === 'undefined' ? [...platformRows(), ...LEDGER_SEED] : [...read(), ...platformRows(), ...LEDGER_SEED]);
 
 /**
  * Record money moving. amount > 0 comes in, amount < 0 goes out.

@@ -1006,7 +1006,7 @@ body:has(.gc-phonebar) .gc-shell__content{padding-bottom:96px!important}
   .gc-ai{right:14px;bottom:16px}
   .gc-ai__fab{width:48px;height:48px;padding:0;justify-content:center}
   .gc-ai__label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-  body:has(.gc-phonebar, .gc-sticky-actions, .savebar, .no-bar, .cs .formbar) .gc-ai{bottom:calc(84px + env(safe-area-inset-bottom))}
+  body:has(.gc-phonebar, .gc-sticky-actions, .savebar, .no-bar, .set-bar, .ss-bar, .sn-bar, .cs .formbar) .gc-ai{bottom:calc(84px + env(safe-area-inset-bottom))}
 }
 
 /* ---- sticky save bar on phones (forms) ---- */

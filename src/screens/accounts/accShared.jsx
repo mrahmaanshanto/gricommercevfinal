@@ -11,6 +11,7 @@ import { Dialog, PageHeader } from '@/components/ui';
 import { BrandLogo } from '@/components/BrandLogo';
 import { formatBDT, formatDate } from '@/lib/format';
 import { OWN_ACCOUNTS, accountBy, balanceOf, getEntries } from '@/lib/ledger';
+import { closeMonths } from '@/lib/platformUsage';
 import { clockNow, startOfDay, addWorkingDays, dayKey, fromKey, costsOf, confirmPayout, delayPayout, resolveReview, withdraw, closedReason } from '@/lib/settlements';
 
 // ---- words --------------------------------------------------------------------------------------
@@ -48,6 +49,7 @@ export const accBrand = (id) => (accountBy(id) || {}).brand;
 export function useBooks() {
   const [tick, setTick] = useState(0);
   useEffect(() => {
+    closeMonths();   // a month that has closed gets its GridCommerce usage bill (platformCosts.js)
     setTick((n) => n + 1);
     const on = () => setTick((n) => n + 1);
     window.addEventListener('gc:ledger', on);

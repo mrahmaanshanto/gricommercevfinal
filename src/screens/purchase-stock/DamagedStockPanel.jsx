@@ -6,8 +6,9 @@
 //   Repaired · back on sale   the hold ends as 'released'; the pieces go on sale at the place chosen
 // Stock numbers (stockAt) stay right: a damaged hold that came off a shelf still counts in that shelf's
 // base, so ending it needs a stock move at that shelf (−qty to write it off, or −qty there and +qty at
-// another place when it goes back on sale elsewhere). A hold that came straight into the bay (a customer
-// or courier return) was never on a shelf: writing it off needs no move, putting it on sale adds +qty.
+// another place when it goes back on sale elsewhere). A hold that came straight into the bay (damaged on
+// arrival, or a damaged customer or courier return) came in with a +qty move at the bay: writing it off
+// moves −qty there, putting it on sale moves it from the bay to the chosen place.
 // Front end only: holds come from src/lib/stockHolds.js, moves go to src/lib/stock.js.
 
 import React, { useEffect, useState } from 'react';
@@ -20,6 +21,7 @@ import { getHolds, closeHold, DAMAGED_PLACE } from '@/lib/stockHolds';
 import { productBy, addMove } from '@/lib/stock';
 import { STOCK_PLACES, getStockPlaces, placeByName, placeName } from '@/lib/locations';
 import { unitCost } from '@/lib/purchaseOrders';
+import { getStockSetup } from '@/lib/stockSetup';
 
 const WRITE_OFF_REASONS = ['Broken beyond repair', 'Expired', 'Leaked or spoiled', 'Eaten by rats or pests', 'Water damage', 'Missing parts'];
 // any shelf place, also one renamed or deactivated since (the pieces were counted there)
@@ -58,6 +60,8 @@ export default function DamagedStockPanel() {
   const [holds, setHolds] = useState([]);
   const [dispose, setDispose] = useState(null);   // { hold, reason, note }
   const [repair, setRepair] = useState(null);     // { hold, place }
+  const [returns, setReturns] = useState(true);   // suppliers take back faulty items (Settings › Stock setup)
+  useEffect(() => { setReturns(getStockSetup().supplierChanges !== false); }, []);
 
   useEffect(() => { setHolds(getHolds()); }, []);
 
@@ -140,7 +144,7 @@ export default function DamagedStockPanel() {
                   <td>
                     <div className="dsp-actions">
                       <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => { const live = getStockPlaces(); setRepair({ hold: h, place: cameFromShelf(h) && live.includes(placeName(h.from)) ? placeName(h.from) : live[0] }); }} aria-label={`Repaired, put ${h.product} back on sale`}><Icon name="wrench" width="16" height="16" aria-hidden="true" /> Repaired</button>
-                      <Link href={supplierHref(h)} className="gc-btn gc-btn--sm gc-btn--neutral" aria-label={`Send ${h.product} back to the supplier`}><Icon name="undo-2" width="16" height="16" aria-hidden="true" /> To supplier</Link>
+                      {returns ? <Link href={supplierHref(h)} className="gc-btn gc-btn--sm gc-btn--neutral" aria-label={`Send ${h.product} back to the supplier`}><Icon name="undo-2" width="16" height="16" aria-hidden="true" /> To supplier</Link> : null}
                       <button type="button" className="gc-btn gc-btn--sm gc-btn--soft gc-btn--error" onClick={() => setDispose({ hold: h, reason: WRITE_OFF_REASONS[0], note: '' })} aria-label={`Write off ${h.product}`}><Icon name="trash-2" width="16" height="16" aria-hidden="true" /> Write off</button>
                     </div>
                   </td>

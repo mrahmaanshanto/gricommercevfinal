@@ -29,6 +29,7 @@ import { getPlaces } from '@/lib/locations';
 import { currentUser } from '@/lib/team';
 import { hasModule, editionChannels, currentEditionId, LOCKED, EDITION_EVENT } from '@/lib/edition';
 import CommsHome from './CommsHome';
+import { StockSetupBanner } from '@/components/StockSetupBanner';
 import OnlineHome from './OnlineHome';
 
 const LAYOUT_KEY = 'gc.home.layout';
@@ -327,6 +328,7 @@ export default function Home() {
               actions={actions}
             />
 
+            <StockSetupBanner />
             <div className="hm-tools" role="group" aria-label="What to show">
               <div className="gc-seg" role="group" aria-label="Day">
                 {[[0, 'Today'], [1, 'Yesterday']].map(([k, l]) => <button key={k} type="button" className={'gc-seg__btn' + (dayOffset === k ? ' gc-seg__btn--active' : '')} aria-pressed={dayOffset === k} onClick={() => setDayOffset(k)}>{l}</button>)}

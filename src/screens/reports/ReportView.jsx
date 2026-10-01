@@ -13,7 +13,7 @@ import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { navigate } from '@/runtime/routes';
 import { EmptyState } from '@/components/ui';
-import { reportBy, GROUP_BY_ID, FILTERS, reportInEdition } from '@/lib/reports/catalogue';
+import { reportBy, GROUP_BY_ID, FILTERS, filterShown, reportInEdition } from '@/lib/reports/catalogue';
 import { PRESETS, periodOf, compareOf, rangeText, fmt, change, csvValue, downloadCsv, clockNow, dayKey, addDays } from '@/lib/reports/period';
 import { markViewed } from '@/lib/reports/prefs';
 import { MERCHANT } from '@/lib/merchant';
@@ -157,7 +157,7 @@ export default function ReportView() {
 
   const options = useMemo(() => {
     if (!def || !tick) return {};
-    return Object.fromEntries((def.filters || []).filter((k) => FILTERS[k]).map((k) => [k, FILTERS[k].options()]));
+    return Object.fromEntries((def.filters || []).filter((k) => filterShown(k)).map((k) => [k, FILTERS[k].options()]));
   }, [def, tick]);
 
   if (!q) return <ReportsShell screen="ReportView" active="rep-all" page="Report" title="Report" css={CSS} />;
@@ -258,7 +258,7 @@ export default function ReportView() {
               </select>
             </div>
           ) : null}
-          {(def.filters || []).filter((k) => FILTERS[k]).map((k) => (
+          {(def.filters || []).filter((k) => filterShown(k)).map((k) => (
             <div key={k}>
               <label className="gc-label" htmlFor={'rv-f-' + k}>{FILTERS[k].label}</label>
               <select id={'rv-f-' + k} className="gc-input gc-select" value={q.filters[k] || ''} onChange={(e) => setQuery({ filters: { [k]: e.target.value } })}>

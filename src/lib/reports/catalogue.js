@@ -22,6 +22,7 @@ import { getSuppliers } from '../supplierBills';
 import { OWN_ACCOUNTS } from '../ledger';
 import { loadSnapshot } from '../hr';
 import { hasModule, routeInEdition, editionChannels, currentEditionId } from '../edition';
+import { isOnePlace } from '../stockSetup';
 
 import sales from './defs/sales';
 import online from './defs/online';
@@ -74,18 +75,26 @@ export const reportBy = (id) => REPORTS.find((r) => r.id === id) || null;
 // ---- editions (src/lib/edition.js): a report group needs one of these modules ------------------------
 const GROUP_MODULES = { online: ['online'], wholesale: ['wholesale'], inventory: ['catalog'], purchase: ['catalog'], finance: ['money'], pos: ['pos'], hr: ['hr'], marketing: ['marketing', 'online', 'comms'] };
 const groupInEdition = (g, ed) => !GROUP_MODULES[g] || GROUP_MODULES[g].some((m) => hasModule(m, ed));
+// single reports that need more than their group: places (transfers, holds, bins), purchase orders, counters and staff
+const REPORT_MODULES = {
+  'transfers-report': 'places', 'holds-report': 'places', 'bin-utilisation': 'places',
+  'po-status': 'purchasing', 'receiving-discrepancies': 'purchasing',
+  'sales-by-branch-counter': 'pos', 'sales-by-staff': 'pos',
+};
+const ownInEdition = (r, ed) => !REPORT_MODULES[r.id] || hasModule(REPORT_MODULES[r.id], ed);
 /** The report groups of an edition. */
 export const editionGroups = (ed = currentEditionId()) => GROUPS.filter((g) => groupInEdition(g.id, ed));
 /** The reports of an edition (report pages only when their page is in the edition). */
-export const editionReports = (ed = currentEditionId()) => REPORTS.filter((r) => groupInEdition(r.group, ed) && (r.kind !== 'page' || routeInEdition(r.href.split('?')[0], ed)));
+export const editionReports = (ed = currentEditionId()) => REPORTS.filter((r) => groupInEdition(r.group, ed) && ownInEdition(r, ed) && (r.kind !== 'page' || routeInEdition(r.href.split('?')[0], ed)));
 /** Is a report part of the edition? */
-export const reportInEdition = (r, ed = currentEditionId()) => !!r && groupInEdition(r.group, ed);
+export const reportInEdition = (r, ed = currentEditionId()) => !!r && groupInEdition(r.group, ed) && ownInEdition(r, ed);
 export const reportsIn = (group) => REPORTS.filter((r) => r.group === group);
 
 // ---- filters ------------------------------------------------------------------------------------
 const uniq = (list) => [...new Set(list.filter(Boolean))];
 const safe = (fn, fb) => { try { return fn(); } catch { return fb; } };
-/** Filter definitions: key → { label, all, options() → [[value, label]] }. options() runs in the browser. */
+/** Filter definitions: key → { label, all, options() → [[value, label]] }. options() runs in the browser.
+ *  shown(key): a one-place shop has no place, branch or counter filters (stockSetup.js). */
 export const FILTERS = {
   channel: { label: 'Channel', all: 'All channels', options: () => CHANNELS.filter((c) => editionChannels().includes(c)).map((c) => [c, c]) },
   place: { label: 'Branch or warehouse', all: 'All places', options: () => safe(() => getPlaces({}).map((p) => [p.name, p.name + (p.active === false ? ' (closed)' : '')]), []) },
@@ -95,7 +104,9 @@ export const FILTERS = {
   category: { label: 'Category', all: 'All categories', options: () => uniq(safe(() => getCatalog(), CATALOG).map((p) => p.cat)).sort().map((c) => [c, c]) },
   courier: { label: 'Courier', all: 'All couriers', options: () => PARTNERS.filter((p) => p.kind === 'Courier').map((p) => [p.short, p.short]) },
   zone: { label: 'Area', all: 'All areas', options: () => [['Inside Dhaka', 'Inside Dhaka'], ['Sub-Dhaka', 'Sub-Dhaka'], ['Outside Dhaka', 'Outside Dhaka']] },
-  customerType: { label: 'Customer type', all: 'All customers', options: () => [['Online', 'Online'], ['Retail', 'Retail'], ['Wholesale', 'Wholesale']] },
+  customerType: { label: 'Customer type', all: 'All customers', options: () => CHANNELS.filter((c) => editionChannels().includes(c)).map((c) => [c, c]) },
   supplier: { label: 'Supplier', all: 'All suppliers', options: () => safe(() => getSuppliers().map((s) => [s.id, s.name]), []) },
   account: { label: 'Account', all: 'All accounts', options: () => safe(() => OWN_ACCOUNTS().map((a) => [a.id, a.name]), []) },
 };
+const PLACE_FILTERS = ['place', 'branch', 'counter'];
+export const filterShown = (key) => !!FILTERS[key] && !(PLACE_FILTERS.includes(key) && isOnePlace());

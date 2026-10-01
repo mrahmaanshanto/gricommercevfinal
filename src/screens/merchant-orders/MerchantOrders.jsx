@@ -13,7 +13,7 @@ import { formatBDT } from '@/lib/format';
 import { Dialog as __Dialog, EmptyState as __EmptyState, StatusBadge as __StatusBadge, PhoneMore as __PhoneMore } from '@/components/ui';
 import { MobileFilters as __MobileFilters } from '@/components/ui/FilterBar';
 import { ORDER_STATUSES, ORDER_TOTAL, orderStatus } from '@/lib/orderStatus';
-import { getStockPlaces } from '@/lib/locations';
+import { getStockPlaces, onlinePlace } from '@/lib/locations';
 import { holdsFor } from '@/lib/stockHolds';
 import { demoOrders, getOrders, duplicatesOf, orderHref, invoiceHref, availability, approveOrder, cancelOrder, heldText, CAN_APPROVE, CAN_CANCEL, DEFAULT_HOLD_PLACE } from '@/lib/orders';
 import { sendToCourier, syncCourier } from '@/lib/orderFlow';
@@ -62,7 +62,7 @@ class Component extends DCLogic {
   startApprove() {
     const { valid, skipped } = this.pick(CAN_APPROVE);
     if (!valid.length) { toast('Only new orders can be approved. ' + this.skippedText(skipped, 'approved'), { tone: 'error' }); return; }
-    this.setState({ approve: { ids: valid.map(o => o.id), skipped: skipped.map(o => o.id), place: DEFAULT_HOLD_PLACE } });
+    this.setState({ approve: { ids: valid.map(o => o.id), skipped: skipped.map(o => o.id), place: onlinePlace() } });
   }
   doApprove() {
     const { ids, place } = this.state.approve;
@@ -608,12 +608,12 @@ export default class MerchantOrdersScreen extends Component {
             <div style={{ display: "grid", gap: "16px" }}>
               {v.approve.skipped ? <div className="gc-alert gc-alert--soft gc-alert--warning" role="alert"><__Icon name="triangle-alert" strokeWidth="1.75" width="18" height="18" aria-hidden="true" /><span>{v.approve.skipped} Only Pending orders can be approved.</span></div> : null}
               <p style={{ margin: "0", fontSize: "var(--text-sm)", color: "var(--text-body)" }}>Approving <span style={{ fontFamily: "var(--font-data)" }}>{v.approve.ids}</span>.</p>
-              <div>
+              {getStockPlaces().length > 1 ? <div>
                 <label className="gc-label" htmlFor="mo-hold-place">{holdsStock() ? 'Hold stock at' : 'Take stock from'}</label>
                 <select id="mo-hold-place" className="gc-input gc-select" data-autofocus value={v.approve.place} onChange={v.approve.setPlace}>
                   {getStockPlaces().map((x) => <option key={x}>{x}</option>)}
                 </select>
-              </div>
+              </div> : null}
               <table className="mo-stock">
                 <caption className="sr-only">Free stock at {v.approve.place}</caption>
                 <thead><tr><th scope="col">Product</th><th scope="col" className="r">Needed</th><th scope="col" className="r">Free here</th></tr></thead>

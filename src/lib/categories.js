@@ -19,6 +19,9 @@ export const DEFAULT_EXPENSE = [
   { id: 'office', name: 'Office', home: 'Shared', icon: 'coffee' },
   { id: 'bank-charges', name: 'Bank charges', home: 'Shared', icon: 'landmark' },
   { id: 'software', name: 'Software & subscriptions', home: 'Shared', icon: 'app-window' },
+  // billed by GridCommerce on its own (platformCosts.js)
+  { id: 'platform-usage', name: 'Messaging & AI usage', home: 'Online', icon: 'message-square' },
+  { id: 'platform-plan', name: 'GridCommerce subscription & server', home: 'Shared', icon: 'server' },
   { id: 'other', name: 'Other', home: 'Shared', icon: 'circle-ellipsis' },
 ];
 export const DEFAULT_INCOME = [

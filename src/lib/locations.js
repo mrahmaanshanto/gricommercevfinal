@@ -11,6 +11,10 @@
 //   savePlace(), setPlaceActive(), deletePlace()              changes
 // A place keeps its id when it is renamed; the old name is kept in `aka`, so stock, holds, moves and
 // transfers saved under the old name still count for it (stockAt reads namesOf()).
+// One-place shops (the Online edition, stockSetup.js) see only their one place and the damaged bay:
+// getPlaces() leaves the rest out (`{ all: true }` still gives every place, e.g. to merge their stock).
+// onlinePlace() is where online orders ship from and come back to.
+import { isOnePlace, getStockSetup, DEFAULT_HOME_ID } from './stockSetup';
 export const LOCATIONS = [
   { id: 'cw', name: 'Central Warehouse', type: 'Warehouse', address: 'Plot 12, Tejgaon I/A, Dhaka', code: 'CW', area: 'Tejgaon, Dhaka', phone: '01556-XX7713', manager: 'Tareq Aziz', role: 'Main' },
   { id: 'ctg', name: 'Chattogram hub', type: 'Warehouse', address: 'Agrabad C/A, Chattogram', code: 'CH', area: 'Agrabad, Chattogram', phone: '01798-XX3301', manager: 'Sabbir Hossain', role: 'Hub' },
@@ -70,7 +74,7 @@ const build = (saved) => LOCATIONS.map((l) => withDefaults({ ...l, ...(saved.fin
  * `{ active: true }` leaves out deactivated places. `{ saved: [] }` gives the built-in list only
  * (the same on the server and in the browser, for a first render).
  */
-export function getPlaces({ active, saved } = {}) {
+export function getPlaces({ active, saved, all } = {}) {
   let list;
   if (saved) list = build(saved);
   else {
@@ -78,18 +82,30 @@ export function getPlaces({ active, saved } = {}) {
     if (typeof window !== 'undefined' && cache.list && cache.saved === s) list = cache.list;
     else { list = build(s); if (typeof window !== 'undefined') cache.list = list; }
   }
+  if (!all && isOnePlace()) {
+    const home = homeOf(list);
+    list = list.filter((p) => p === home || p.fixed);
+  }
   return active ? list.filter((p) => p.active !== false) : list;
 }
-export const placeById = (id, list = getPlaces()) => list.find((p) => p.id === id) || null;
+/** The online place (by id, so a rename keeps it); the first active warehouse when it is gone. */
+function homeOf(list) {
+  const id = getStockSetup().homeId || DEFAULT_HOME_ID;
+  return list.find((p) => p.id === id && p.active !== false) || list.find((p) => p.type === 'Warehouse' && !p.noSale && p.active !== false) || list[0];
+}
+/** Where online orders ship from and come back to (Settings › Stock setup). */
+export const onlinePlace = () => homeOf(getPlaces({ all: true })).name;
+// lookups see every place (a one-place shop's other places still own their history)
+export const placeById = (id, list = getPlaces({ all: true })) => list.find((p) => p.id === id) || null;
 /** The place with this name, or with this as an old name. */
-export function placeByName(name, list = getPlaces()) {
+export function placeByName(name, list = getPlaces({ all: true })) {
   const n = String(name || '').trim().toLowerCase();
   if (!n) return null;
   return list.find((p) => p.name.toLowerCase() === n) || list.find((p) => p.aka.some((a) => a.toLowerCase() === n)) || null;
 }
 /** Every name a place has been saved under (today's first). Unknown names come back as they are. */
 export function namesOf(name, list) {
-  const p = placeByName(name, list || getPlaces());
+  const p = placeByName(name, list || getPlaces({ all: true }));
   return p ? [p.name, ...p.aka.filter((a) => a !== p.name)] : [name];
 }
 /** Live lists (active places only). */
@@ -104,7 +120,7 @@ export const getFilterPlaces = () => getStockPlaces().concat(getPlaces().filter(
 
 const PHONE = /^(\+?880|0)1[3-9][0-9X\- ]{8,10}$/i;
 /** Problems with a place before it is saved: { field: message }. Empty when it can be saved. */
-export function checkPlace(place, list = getPlaces()) {
+export function checkPlace(place, list = getPlaces({ all: true })) {
   const errs = {};
   const name = String(place.name || '').trim();
   if (!name) errs.name = 'Enter a name.';
@@ -125,7 +141,7 @@ export function checkPlace(place, list = getPlaces()) {
  * Returns { ok, errors, place, list }.
  */
 export function savePlace(input) {
-  const list = getPlaces();
+  const list = getPlaces({ all: true });
   const errors = checkPlace(input, list);
   if (Object.keys(errors).length) return { ok: false, errors, list };
   const saved = readSaved().slice();

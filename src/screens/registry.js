@@ -2928,6 +2928,50 @@ export const SCREENS = [
     "interactive": true
   },
   {
+    "name": "Purchases",
+    "route": "/purchases",
+    "folder": "purchase-stock",
+    "title": "Purchases",
+    "description": "What you bought and what you still owe",
+    "canvasPage": "04 · Purchase",
+    "width": 1380,
+    "height": 880,
+    "interactive": true
+  },
+  {
+    "name": "BuyGoods",
+    "route": "/buy-goods",
+    "folder": "purchase-stock",
+    "title": "New purchase",
+    "description": "Buy, pay and stock in one step",
+    "canvasPage": "04 · Purchase",
+    "width": 1380,
+    "height": 880,
+    "interactive": true
+  },
+  {
+    "name": "SetStockSetup",
+    "route": "/stock-setup",
+    "folder": "settings-console",
+    "title": "Stock setup",
+    "description": "One stock place or many, how you buy, wholesale prices",
+    "canvasPage": "11 · Settings",
+    "width": 1380,
+    "height": 880,
+    "interactive": true
+  },
+  {
+    "name": "SetProfile",
+    "route": "/set-profile",
+    "folder": "settings-console",
+    "title": "Profile type",
+    "description": "Switch between team profiles",
+    "canvasPage": "11 · Settings",
+    "width": 1380,
+    "height": 880,
+    "interactive": true
+  },
+  {
     "name": "SetStorage",
     "route": "/set-storage",
     "folder": "settings-console",

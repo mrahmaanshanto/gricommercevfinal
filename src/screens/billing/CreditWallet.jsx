@@ -6,6 +6,9 @@
 import React from 'react';
 import __Link from 'next/link';
 import { PaymentLogo } from '@/components/PaymentLogo';
+import { SERVICES, costOf, CREDITS_ACCOUNT } from '@/lib/platformCosts';
+import { usageThisMonth, creditsLeft } from '@/lib/platformUsage';
+import { transferBetween } from '@/lib/ledger';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 
@@ -45,21 +48,25 @@ var HIST = [
 var CH = [{ k: 'all', label: 'All' }, { k: 'top', label: 'Top-ups' }, { k: 'call', label: 'AI calls' }, { k: 'sms', label: 'SMS' }, { k: 'wa', label: 'WhatsApp' }];
 function tk(n) { var neg = n < 0; n = Math.abs(n); var s = n % 1 ? n.toFixed(2) : String(n); var p = s.split('.'); return (neg ? '−' : '') + bdt(+p[0]).replace('৳', '৳') + (p[1] ? '.' + p[1] : ''); }
 class Component extends DCLogic {
+  // the balance and this month's usage come from the books (platformCosts.js / platformUsage.js); a top-up moves
+  // money from bKash into the GridCommerce credits account
+  componentDidMount() { this.setState({ bal: creditsLeft(), use: usageThisMonth() }); }
   componentWillUnmount() { clearTimeout(this.t); }
   renderVals() {
     var self = this, s = this.state || {};
     var bal = s.bal == null ? 2340.5 : s.bal, amt = s.amt == null ? '1000' : s.amt, lowAt = s.lowAt == null ? '500' : s.lowAt, f = s.f || 'all';
     var n = parseInt(amt, 10), ok = n >= 100 && n <= 100000;
-    var spent = PRICES.reduce(function (a, p) { return a + p[2] * p[3]; }, 0);
-    var perDay = spent / 29, days = Math.floor(bal / perDay);
+    var use = s.use || {};
+    var spent = s.use ? costOf(use) : PRICES.reduce(function (a, p) { return a + p[2] * p[3]; }, 0);
+    var dayOfMonth = Math.max(1, new Date().getDate()), perDay = Math.max(1, spent / (s.use ? dayOfMonth : 29)), days = Math.floor(bal / perDay);
     var low = bal < (+lowAt || 0);
     var v = {
       headline: tk(bal) + ' available',
       tiles: [
         { l: 'Balance', v: tk(bal), s: 'about ' + days + ' days at this month’s rate', c: low ? '#fb7185' : '#34d399' },
-        { l: 'Spent in September', v: tk(Math.round(spent)), s: 'across 5 services', c: '#60a5fa' },
-        { l: 'AI calls', v: '212', s: '৳848 · 81% confirmed orders', c: '#a78bfa' },
-        { l: 'Messages', v: '1,870', s: '1,480 SMS · 390 WhatsApp', c: '#fbbf24' }
+        { l: s.use ? 'Spent this month' : 'Spent in September', v: tk(Math.round(spent)), s: 'billed to expenses when the month closes', c: '#60a5fa' },
+        { l: 'AI calls', v: String(s.use ? use['ai-call'] : 212), s: tk(Math.round((s.use ? use['ai-call'] : 212) * 4)) + ' this month', c: '#a78bfa' },
+        { l: 'Messages', v: ((s.use ? use.sms + use.whatsapp : 1870)).toLocaleString('en-IN'), s: (s.use ? use.sms : 1480).toLocaleString('en-IN') + ' SMS · ' + (s.use ? use.whatsapp : 390) + ' WhatsApp', c: '#fbbf24' }
       ],
       low: low, lowMsg: 'Balance is below ' + tk(+lowAt) + '. AI calls pause at ৳0.',
       amts: ['500', '1000', '2000', '5000'].map(function (a) { var on = a === amt; return { l: bdt(+a), on: on, cls: on ? 'amt on' : 'amt', pick: function () { self.setState({ amt: a }); } }; }),
@@ -67,10 +74,10 @@ class Component extends DCLogic {
       amtBd: ok ? '#cbd5e1' : '#e11d48', amtNc: ok ? '#64748b' : '#b83210', amtNote: ok ? 'Minimum ৳100, maximum ৳1,00,000 per payment.' : 'Enter an amount between ৳100 and ৳1,00,000.',
       amtLabel: ok ? bdt(n) : '',
       covers: ok ? [Math.floor(n / 4) + ' AI calls', 'or ' + Math.floor(n / 0.6).toLocaleString('en-IN') + ' SMS', 'or ' + Math.floor(n / 1.1).toLocaleString('en-IN') + ' WhatsApp messages'] : ['—'],
-      payNow: function () { if (!ok) { toast(self, 'Enter an amount between ৳100 and ৳1,00,000.', true); return; } self.setState({ bal: bal + n, adds: [['29 Sep, just now', 'Top-up via SSLCOMMERZ', 'top', 'Payment confirmed · receipt sent', n]].concat(s.adds || []) }); toast(self, 'SSLCOMMERZ payment of ' + bdt(n) + ' received. New balance ' + tk(bal + n) + '. Receipt sent by SMS.'); },
+      payNow: function () { if (!ok) { toast(self, 'Enter an amount between ৳100 and ৳1,00,000.', true); return; } transferBetween('bkash', CREDITS_ACCOUNT, n, { ref: 'Credits top-up', party: 'GridCommerce', note: 'Top-up via SSLCOMMERZ' }); self.setState({ bal: bal + n, adds: [['Just now', 'Top-up via SSLCOMMERZ', 'top', 'Payment confirmed · receipt sent', n]].concat(s.adds || []) }); toast(self, 'SSLCOMMERZ payment of ' + bdt(n) + ' received. New balance ' + tk(bal + n) + '. Receipt sent by SMS.'); },
       lowAt: lowAt, onLowAt: function (e) { self.setState({ lowAt: String(val(e) || '').replace(/\D/g, '') }); },
       autoTop: mkSw(self, 'autoTop', false), pauseCall: mkSw(self, 'pauseCall', true),
-      prices: PRICES.map(function (p) { return { s: p[0], u: p[1], p: tk(p[2]), m: p[3].toLocaleString('en-IN') + ' · ' + tk(Math.round(p[2] * p[3])) }; }),
+      prices: s.use ? SERVICES.map(function (p) { var q = use[p.key] || 0; return { s: p.label, u: p.note, p: tk(p.price), m: q.toLocaleString('en-IN') + ' · ' + tk(Math.round(p.price * q)) }; }) : PRICES.map(function (p) { return { s: p[0], u: p[1], p: tk(p[2]), m: p[3].toLocaleString('en-IN') + ' · ' + tk(Math.round(p[2] * p[3])) }; }),
       chips: CH.map(function (c) { var on = c.k === f; return { label: c.label, cls: on ? 'chip on' : 'chip', pick: function () { self.setState({ f: c.k }); } }; }),
       hist: (function () { var b = bal, out = []; (s.adds || []).concat(HIST).forEach(function (h) { out.push({ h: h, b: b }); b -= h[4]; }); return out; })().filter(function (x) { return f === 'all' || x.h[2] === f; }).map(function (x) { var h = x.h; return { t: h[0], d: h[1], m: h[3], a: (h[4] > 0 ? '+' : '') + tk(h[4]), c: h[4] > 0 ? '#047857' : '#0f172a', b: tk(x.b) }; })
     };

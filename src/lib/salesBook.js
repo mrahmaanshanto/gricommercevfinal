@@ -21,7 +21,7 @@
 
 import { LEDGER_SEED } from './ledgerSeed';
 import { getInvoices } from './invoices';
-import { getOrders, isCounterSale, demoOrders, holdPlaceOf, RTO_REASONS, DEFAULT_HOLD_PLACE } from './orders';
+import { getOrders, isCounterSale, demoOrders, holdPlaceOf, RTO_REASONS } from './orders';
 import { getReturns } from './returns';
 import { POS_KEYS, load, getCounters } from './posStore';
 import { CATALOG, productBy } from './stock';
@@ -29,6 +29,7 @@ import { productCostOf } from './productCost';
 import { loadVat, vatRateFor } from './vat';
 import { CHANNELS } from './categories';
 import { editionChannels } from './edition';
+import { onlinePlace } from './locations';
 import { ONLINE_PEOPLE, FIRST, LAST, AREAS } from './demoPeople';
 
 export { CHANNELS, productCostOf };
@@ -550,7 +551,7 @@ function allSales() {
   getOrders().filter((o) => (o.made || o.live) && !isCounterSale(o) && o.status !== 'Cancelled').forEach((o) => {
     const rec = {
       id: o.id, at: o.at, channel: 'Online', ref: o.id, party: o.customer, revenue: o.subtotal, orders: 1, paid: o.paid || 0, due: r2(Math.max(0, o.amount - (o.paid || 0))), delivery: o.shipping || 0,
-      place: o.made ? holdPlaceOf(o.id) : DEFAULT_HOLD_PLACE, counter: '', cashier: '', salesperson: '', source: o.source || 'Phone', zone: o.zone || '', method: o.method || ORDER_METHOD[o.payment] || 'COD',
+      place: o.made ? holdPlaceOf(o.id) : (o.stockOut && o.stockOut.place) || onlinePlace(), counter: '', cashier: '', salesperson: '', source: o.source || 'Phone', zone: o.zone || '', method: o.method || ORDER_METHOD[o.payment] || 'COD',
       customer: { name: o.customer, phone: digits(o.phone), type: 'Online' },
     };
     rec.lines = orderLines(o, rec);

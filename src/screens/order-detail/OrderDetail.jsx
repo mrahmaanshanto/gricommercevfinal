@@ -854,7 +854,7 @@ export default function OrderDetail() {
       <Dialog open={dlg === 'approve'} title={`Approve ${o.id}`} onClose={() => setDlg(null)} width={480}>
         <form onSubmit={approve} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
           {!v || v.state !== 'confirmed' ? <p className="gc-help" style={{ margin: 0 }}>Not verified yet.</p> : null}
-          <div><label className="gc-label" htmlFor="od-place">{holds2 ? 'Hold stock at' : 'Take stock from'}</label><select id="od-place" className="gc-input gc-select" data-autofocus value={place} onChange={(e) => setPlace(e.target.value)}>{holdPlaces.map((x) => <option key={x}>{x}</option>)}</select></div>
+          {holdPlaces.length > 1 ? <div><label className="gc-label" htmlFor="od-place">{holds2 ? 'Hold stock at' : 'Take stock from'}</label><select id="od-place" className="gc-input gc-select" data-autofocus value={place} onChange={(e) => setPlace(e.target.value)}>{holdPlaces.map((x) => <option key={x}>{x}</option>)}</select></div> : null}
           <div className="gc-table-wrap">
             <table className="gc-table gc-table--compact">
               <caption className="sr-only">Free stock at {place}</caption>
@@ -875,7 +875,7 @@ export default function OrderDetail() {
           </div>
           <div className="od-money"><div><span>Total</span><b>{formatBDT(o.amount)}</b></div><div><span>Advance</span><b>{formatBDT(advOk ? advNum : 0)}</b></div><div className="is-cod"><span>COD after</span><b>{formatBDT(Math.max(0, o.amount - paid - (advOk ? advNum : 0)))}</b></div></div>
           {!advOk ? <p className="gc-help gc-help--error" style={{ margin: 0 }}>Enter an amount below {formatBDT(o.amount - paid)}.</p> : null}
-          <div><label className="gc-label" htmlFor="od-adv-place">{holds2 ? 'Hold stock at' : 'Take stock from'}</label><select id="od-adv-place" className="gc-input gc-select" value={place} onChange={(e) => setPlace(e.target.value)}>{holdPlaces.map((x) => <option key={x}>{x}</option>)}</select></div>
+          {holdPlaces.length > 1 ? <div><label className="gc-label" htmlFor="od-adv-place">{holds2 ? 'Hold stock at' : 'Take stock from'}</label><select id="od-adv-place" className="gc-input gc-select" value={place} onChange={(e) => setPlace(e.target.value)}>{holdPlaces.map((x) => <option key={x}>{x}</option>)}</select></div> : null}
           <div className="gc-modal__foot" style={{ marginTop: 0, flexWrap: 'wrap' }}>
             <button type="button" className="gc-btn gc-btn--neutral" disabled={!advOk} onClick={askAdvance}><Icon name="send" width="16" height="16" aria-hidden="true" /> Send payment link</button>
             <button type="submit" className="gc-btn gc-btn--solid" disabled={!advOk}>Received · approve</button>

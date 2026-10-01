@@ -14,12 +14,22 @@ export const MODULES = {
   core: {
     label: 'Core', desc: 'Dashboard, team tasks and chat, customers and leads, settings',
     nav: ['home', 'my-dash', 'tasks', 'team-chat', 'customers', 'leads', 'settings', 'set-store', 'set-billing', 'set-help'],
-    routes: ['/grid-ai', '/customer-crm', '/customer-statement', '/sales-leads', '/set-general', '/set-preference', '/set-security', '/set-storage', '/set-media', '/set-chrome', '/set-rail', '/set-topbar', '/merchant-sign-in', '/mobile-sign-in', '/mobile-sign-up', '/merchant-onboarding'],
+    routes: ['/grid-ai', '/set-profile', '/customer-crm', '/customer-statement', '/sales-leads', '/set-general', '/set-preference', '/set-security', '/set-storage', '/set-media', '/set-chrome', '/set-rail', '/set-topbar', '/merchant-sign-in', '/mobile-sign-in', '/mobile-sign-up', '/merchant-onboarding'],
   },
   catalog: {
-    label: 'Products, stock & purchase', desc: 'Catalogue, stock in every place, receiving, transfers, purchase orders and suppliers',
-    nav: ['products', 'products-all', 'products-add', 'products-cats', 'products-setup', 'products-catalogue', 'products-media', 'stock-list', 'po-receive', 'stock-transfers', 'po-orders', 'po-suppliers', 'stock-more', 'stock-adjust', 'stock-count', 'stock-holds', 'stock-expiry', 'po-requests', 'stock-labels', 'stock-wpol', 'stock-wclaims', 'stock-places', 'stock-wh', 'stock-branches', 'stock-racks'],
-    routes: ['/add-product-tabs', '/mobile-receive', '/new-po', '/new-transfer', '/po-detail', '/supplier-detail', '/supplier-return', '/buy-goods'],
+    label: 'Products, stock & purchases', desc: 'Products, stock, direct purchases, suppliers and their dues, damaged and expired stock, warranty',
+    nav: ['products', 'products-all', 'products-add', 'products-cats', 'products-setup', 'products-media', 'stock-list', 'po-buy', 'po-suppliers', 'stock-more', 'stock-expiry', 'stock-labels', 'stock-wpol', 'stock-wclaims'],
+    routes: ['/add-product-tabs', '/supplier-detail', '/supplier-return', '/buy-goods', '/stock-setup'],
+  },
+  places: {
+    label: 'Warehouses & branches', desc: 'Many stock places, racks and bins, transfers, adjustments, counts and stock holds',
+    nav: ['stock-places', 'stock-wh', 'stock-branches', 'stock-racks', 'stock-transfers', 'stock-adjust', 'stock-count', 'stock-holds'],
+    routes: ['/new-transfer'],
+  },
+  purchasing: {
+    label: 'Purchase orders', desc: 'Order from suppliers, receive in parts, report damage or wrong items on arrival',
+    nav: ['po-orders', 'po-receive', 'po-requests'],
+    routes: ['/new-po', '/po-detail', '/mobile-receive'],
   },
   money: {
     label: 'Money', desc: 'Cash, bank and wallets, dues, payouts, income and expenses, bills to pay, VAT',
@@ -53,7 +63,7 @@ export const MODULES = {
   },
   wholesale: {
     label: 'Wholesale', desc: 'Wholesale orders, invoices on credit, deliveries in parts, price lists',
-    nav: ['orders-wholesale', 'sales-invoices'],
+    nav: ['orders-wholesale', 'sales-invoices', 'products-catalogue'],
     routes: ['/sales-invoice', '/wholesale-customer', '/wholesale-invoices', '/wholesale-invoice-edit'],
   },
   online: {
@@ -74,12 +84,15 @@ export const MODULES = {
 };
 
 const BACK_OFFICE = ['core', 'catalog', 'money', 'reports', 'hr', 'commerce', 'marketing'];
+// a shop with a store or a warehouse network: many stock places and purchase orders (stockSetup.js)
+const STORE = ['places', 'purchasing'];
 export const EDITIONS = {
   full: { name: 'GridCommerce', short: 'All modules', modules: Object.keys(MODULES), channels: ['Online', 'Retail', 'Wholesale'] },
-  'retail-wholesale': { name: 'GridCommerce Retail + Wholesale', short: 'Retail + Wholesale', modules: [...BACK_OFFICE, 'pos', 'wholesale'], channels: ['Retail', 'Wholesale'] },
-  // an online-only shop does not hold stock for orders: an approved order takes it out at once (it may go below zero)
+  'retail-wholesale': { name: 'GridCommerce Retail + Wholesale', short: 'Retail + Wholesale', modules: [...BACK_OFFICE, ...STORE, 'pos', 'wholesale'], channels: ['Retail', 'Wholesale'] },
+  // an online-only shop: one stock place, direct purchases, no holds (an approved order takes its stock out at once,
+  // it may go below zero), purchase and sale prices only
   online: { name: 'GridCommerce Online', short: 'Online', modules: [...BACK_OFFICE, 'online', 'comms', 'automation'], channels: ['Online'], noHolds: true },
-  'retail-online': { name: 'GridCommerce Retail + Online', short: 'Retail + Online', modules: [...BACK_OFFICE, 'pos', 'online', 'comms', 'automation'], channels: ['Retail', 'Online'] },
+  'retail-online': { name: 'GridCommerce Retail + Wholesale + Online', short: 'Retail + Wholesale + Online', modules: [...BACK_OFFICE, ...STORE, 'pos', 'wholesale', 'online', 'comms', 'automation'], channels: ['Retail', 'Wholesale', 'Online'] },
   comms: { name: 'GridCommerce Connect', short: 'Communication & CRM', modules: ['core', 'comms', 'automation', 'pos'], channels: ['Retail'] },
 };
 export const EDITION_IDS = Object.keys(EDITIONS);

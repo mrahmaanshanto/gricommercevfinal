@@ -49,13 +49,32 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   Never show statistic cards that repeat the tabs under them: make the tabs summary tabs (`gc-stattabs` /
   `gc-stattab`: label, count and amount, tap to filter — see Invoices). On phones the title and main button share a row.
 - Editions (`src/lib/edition.js`): the product is sold as editions, each its own site built with `NEXT_PUBLIC_EDITION`
-  = `retail-wholesale` | `online` | `retail-online` | `comms` (GridCommerce Connect: communication, CRM, POS, automation).
+  = `retail-wholesale` | `online` | `retail-online` (Retail + Wholesale + Online) | `comms` (GridCommerce Connect:
+  communication, CRM, POS, automation).
   Unset = the full product, where `?edition=<id>` previews an edition (Settings › Subscription & billing has a switcher).
   `MODULES` maps each module to its menu ids and the pages outside the menu it owns; every menu id belongs to exactly one
   module. The menu (`team.js › navFor`), the page guard (`components/RoleGuard.jsx`), Home (Comms edition: `CommsHome.jsx`),
   Reports (`catalogue.js › editionReports`), Settings' section list, Help links, the top bar, My dashboard and the demo
   accounts follow it; orders and sales are filtered to the edition's channels (`editionChannels()` in `orders.getOrders`,
-  `salesBook.getSales`). New page or menu item → add it to a module in `MODULES`.
+  `salesBook.getSales`). New page or menu item → add it to a module in `MODULES`. Stock and purchase are three modules:
+  `catalog` (products, stock, Purchases, suppliers, damaged & expired, warranty), `places` (warehouses, branches, racks,
+  transfers, adjustments, counts, holds) and `purchasing` (purchase orders, receiving, requests); the Online edition has
+  only `catalog`.
+- Sign-in: `/` opens `/merchant-sign-in`, which asks "Choose your system" (`components/SystemPicker.jsx`, `lib/systems.js`:
+  Retail + Wholesale, Online, Retail + Wholesale + Online — each its own site; on the full site it previews the edition).
+  Team profiles (owner/CEO, HR, warehouse, shop …) are switched in Settings › Profile type (`/set-profile`) and the account menu.
+- One inventory, two shapes (`src/lib/stockSetup.js`, Settings › Stock setup `/stock-setup`): `mode` one place (Online
+  edition: `locations.getPlaces()` shows only that place and the damaged bay; `stockAt` without a place = that place) or
+  many; `homeId` = where online orders ship from and come back to (`locations.onlinePlace()`); `buying` direct / orders /
+  both (`navForSetup` hides the other); `supplierChanges`; `wholesale` (product form and list hide wholesale price, MOQ,
+  sell-to when off). Moving to another edition shows a banner (`components/StockSetupBanner.jsx`); moving to one place merges
+  every other place's stock into it (`lib/stockMerge.js`). Direct purchases: `/purchases` + `/buy-goods`
+  (`supplierBills.addBill({ direct: true })`, receive moves, `paySupplier`, `productCost.setBuyingPrice`, expiry batches
+  `lib/batches.js` → Damaged & expired › Expiry). Damaged customer/courier returns add a +qty move at the bay.
+- Platform costs (`src/lib/platformCosts.js`, `platformUsage.js`): SMS, WhatsApp, email, AI calls and voice are billed from
+  the prepaid "GridCommerce credits" account once a month (one expense row per service when the month closes); the
+  subscription (by edition) and server & storage are charged to the card's bank on the 12th. They are generated ledger rows
+  (`ledger.getEntries`), so Income & expenses, profit and reports show them; report "Platform & messaging costs".
 - Phone (checked page by page at 390 px, Oct 2026): `.gc-shell__content` clips sideways overflow on phones, so anything
   wider than the screen must scroll inside its own box (`gc-table-wrap`, a bordered `overflow-x:auto` strip) or be made to
   fit — never rely on the page scrolling sideways. Tap targets are ≥36px (the shared rules cover switches, `.ib`, small

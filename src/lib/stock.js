@@ -10,7 +10,9 @@
 
 import { getHolds } from './stockHolds';
 import { getTransfers, inTransit } from './transfers';
-import { STOCK_PLACES, DAMAGED_PLACE, namesOf, getPlaces } from './locations';
+import { STOCK_PLACES, DAMAGED_PLACE, namesOf, getPlaces, onlinePlace } from './locations';
+import { isOnePlace } from './stockSetup';
+import { productCostOf } from './productCost';   // called at run time only (productCost reads this module too)
 
 const MOVES = 'gc.stock.moves';
 // sku, name, variant, barcode, category, retail price, wholesale price, MOQ for wholesale, sold to, on hand by place, in transit by place
@@ -141,6 +143,8 @@ const sum = (list) => list.reduce((a, x) => a + (Number(x.qty) || 0), 0);
  * in-transit numbers (for the first render, before the browser data is read).
  */
 export function stockAt(key, place, holds = getHolds(), moves = getMoves(), transfers = typeof window === 'undefined' ? null : getTransfers()) {
+  // a one-place shop's stock is its one place (stock left at other places is merged in Settings › Stock setup)
+  if (!place && isOnePlace()) place = onlinePlace();
   const p = productBy(key);
   if (!p) return { onHand: 0, held: 0, damaged: 0, available: 0, transit: 0 };
   // a renamed place still counts what was saved under its old names
@@ -175,8 +179,8 @@ function allStockPlaces() {
 }
 
 // ---- one place at a glance (Warehouses, Branches, Racks) ------------------------------------------
-/** What one piece is worth on the shelf: its cost when known, else the wholesale price, else retail. */
-export const unitValue = (p) => Number(p.cost ?? p.wholesale ?? p.price) || 0;
+/** What one piece is worth on the shelf: its cost (buying price) — the purchase cost the shop knows, never a selling price. */
+export const unitValue = (p) => Number(p.cost) || productCostOf(p.sku) || productCostOf(p.name) || 0;
 /** A product counts as low at a place when this many or fewer are free to sell there. */
 export const LOW_AT = 5;
 /**

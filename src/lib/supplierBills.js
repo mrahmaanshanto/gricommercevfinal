@@ -216,6 +216,8 @@ export function addBill(bill) {
     no: nextNo(db.bills, 'PB-'), supplier: sup.id, po: bill.po || '', grn: bill.grn || '', ref: bill.ref || '', at,
     amount: Math.round(bill.amount || 0), due: bill.due || dayStart(at) + terms * DAY, paid: 0, credited: 0,
     lines: bill.lines || [], extra: bill.extra || 0, notes: bill.notes || '',
+    // a direct purchase (Purchases › New purchase): bought, paid in full or part and stocked in one step
+    ...(bill.direct ? { direct: true, place: bill.place || '', discount: Math.round(bill.discount || 0), returnable: bill.returnable !== false } : {}),
   });
   db.bills = [made, ...db.bills];
   applyCredits(db, sup.id);

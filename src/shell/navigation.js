@@ -35,6 +35,7 @@ export const NAV = [
       { id: 'products-media', icon: 'image', label: 'Media library', to: 'settings-console/SetMedia.dc.html' },
     ] },
     { id: 'stock-list', icon: 'boxes', label: 'Stock', to: 'purchase-stock/Stock.dc.html' },
+    { id: 'po-buy', icon: 'shopping-bag', label: 'Purchases', to: 'purchase-stock/Purchases.dc.html' },
     { id: 'po-receive', icon: 'package-open', label: 'Receive goods', to: 'purchase-stock/ReceiveGoods.dc.html' },
     { id: 'stock-transfers', icon: 'arrow-left-right', label: 'Transfers', to: 'purchase-stock/Transfers.dc.html' },
     { id: 'po-orders', icon: 'clipboard-list', label: 'Purchase orders', count: 2, to: 'purchase-stock/PurchaseOrders.dc.html' },

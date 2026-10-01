@@ -1,12 +1,31 @@
 // productCost — what one piece of a product cost to buy, for freezing on a sale line and for the
 // cost of goods in reports. Order of preference:
-//   1. the cost set on the product in Products (products.js, a variant uses its product's cost)
-//   2. the usual buying price (purchaseOrders.unitCost: a set price, else about 70% of the price)
+//   1. the latest buying price from a purchase (Purchases › New purchase: setBuyingPrice)
+//   2. the cost set on the product in Products (products.js, a variant uses its product's cost)
+//   3. the usual buying price (purchaseOrders.unitCost: a set price, else about 70% of the price)
 // Kept in its own file so orders, invoices and the register can freeze cost without importing salesBook.
 
 import { allProducts } from './products';
 import { unitCost } from './purchaseOrders';
 import { productBy } from './stock';
+
+// the latest buying price per product (sku and name), from purchases entered in this browser
+const LAST_KEY = 'gc.cost.last';
+let last = { raw: undefined, map: {} };
+function lastPrices() {
+  if (typeof window === 'undefined') return {};
+  let raw = null;
+  try { raw = window.localStorage.getItem(LAST_KEY); } catch { /* ignore */ }
+  if (raw !== last.raw) { let map = {}; try { map = JSON.parse(raw) || {}; } catch { map = {}; } last = { raw, map }; }
+  return last.map;
+}
+/** Remember what one piece cost on the latest purchase (so stock value, profit and new sales use it). */
+export function setBuyingPrice(sku, name, cost) {
+  if (!(Number(cost) > 0)) return;
+  const map = { ...lastPrices() };
+  [sku, name].filter(Boolean).forEach((k) => { map[k] = Math.round(Number(cost) * 100) / 100; });
+  try { window.localStorage.setItem(LAST_KEY, JSON.stringify(map)); } catch { /* ignore */ }
+}
 
 let index = { raw: undefined, byKey: {} };
 const savedRaw = () => { if (typeof window === 'undefined') return null; try { return window.localStorage.getItem('gc.products.saved'); } catch { return null; } };
@@ -29,6 +48,8 @@ function costIndex() {
 export function productCostOf(nameOrSku) {
   const key = String(nameOrSku || '').trim();
   if (!key) return 0;
+  const lp = lastPrices();
+  if (lp[key]) return lp[key];
   const byKey = costIndex();
   if (byKey[key]) return byKey[key];
   const c = productBy(key);

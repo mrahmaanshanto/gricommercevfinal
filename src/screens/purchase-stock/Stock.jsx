@@ -8,11 +8,13 @@ import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 import { PageHeader as __PageHeader, EmptyState as __EmptyState, Dialog as __Dialog } from '@/components/ui';
-import { CATALOG, getCatalog, stockAt, getMoves } from '@/lib/stock';
+import { CATALOG, getCatalog, stockAt, getMoves, unitValue } from '@/lib/stock';
 import { getHolds } from '@/lib/stockHolds';
 import { getTransfers } from '@/lib/transfers';
 import { STOCK_PLACES, getStockPlaces, getPlaces, placeByName, namesOf } from '@/lib/locations';
 import { getRackData, binsFor, SEED as RACK_SEED } from '@/lib/racks';
+import { isOnePlace } from '@/lib/stockSetup';
+import { StockSetupBanner } from '@/components/StockSetupBanner';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -30,7 +32,7 @@ var INFO = {
   'SK-SHA-340': [30, 'A-5', 290], 'SK-SUN-50': [24, 'A-2', 561.6, true], 'SK-TON-150': [20, 'A-3', 455],
   'EL-PHN-128': [6, 'E-1', 11800], 'EL-EAR-PRO': [10, 'E-2', 2210], 'HM-BTL-750': [30, 'H-2', 310], 'HM-RCK-18': [5, 'H-4', 2050]
 };
-function info(p) { var i = INFO[p.sku] || [10, '—', p.wholesale * 0.8]; return { re: i[0], rack: i[1], cost: i[2], exp: !!i[3] }; }
+function info(p) { var i = INFO[p.sku] || [10, '—', unitValue(p)]; return { re: i[0], rack: i[1], cost: i[2], exp: !!i[3] }; }
 function setQuery(key, value) { if (typeof window === 'undefined') return; var u = new URL(window.location.href); if (value) u.searchParams.set(key, value); else u.searchParams.delete(key); window.history.replaceState(window.history.state, '', u.pathname + u.search + u.hash); }
 function getQuery(key) { if (typeof window === 'undefined') return ''; return new URLSearchParams(window.location.search).get(key) || ''; }
 var WHS = STOCK_PLACES;
@@ -40,7 +42,7 @@ var KIND = { adjust: 'Adjusted', count: 'Stock count', transfer: 'Transfer', rec
 var FL = [{ k: 'all', label: 'All' }, { k: 'low', label: 'Low stock' }, { k: 'out', label: 'Out of stock' }, { k: 'exp', label: 'Expiring soon' }];
 class Component extends DCLogic {
   componentDidMount() {
-    var p = { holds: getHolds(), moves: getMoves(), transfers: getTransfers(), catalog: getCatalog(), whs: getStockPlaces(), plist: getPlaces(), racks: getRackData() }, f = getQuery('filter'), w = getQuery('warehouse'), q = getQuery('q');
+    var p = { holds: getHolds(), moves: getMoves(), transfers: getTransfers(), catalog: getCatalog(), whs: getStockPlaces(), plist: getPlaces(), racks: getRackData(), one: isOnePlace() }, f = getQuery('filter'), w = getQuery('warehouse'), q = getQuery('q');
     if (FL.some(function (x) { return x.k === f; })) p.f = f;
     if (p.whs.some(function (x) { return whKey(x) === w; })) p.wh = w;
     if (q) p.q = q;
@@ -185,10 +187,14 @@ export default class StockScreen extends Component {
           <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
             <__Topbar crumb="Stock" page="Stock list" placeholder="Search or scan any barcode" />
             <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <__PageHeader title="Stock list" actions={<>
+              <__PageHeader title="Stock list" actions={(this.state || {}).one ? <>
+                <__Link href="/expiry-disposal" className="gc-btn gc-btn--neutral"><__Icon name="calendar-x" width="18" height="18" aria-hidden="true" /> Damaged & expired</__Link>
+                <__Link href="/buy-goods" className="gc-btn gc-btn--solid"><__Icon name="plus" width="18" height="18" aria-hidden="true" /> New purchase</__Link>
+              </> : <>
                 <__Link href="/stock-holds" className="gc-btn gc-btn--neutral"><__Icon name="lock" width="18" height="18" aria-hidden="true" /> Stock holds</__Link>
                 <__Link href="/stock-adjustments" className="gc-btn gc-btn--solid"><__Icon name="sliders-horizontal" width="18" height="18" aria-hidden="true" /> Stock adjustments</__Link>
               </>} />
+              <StockSetupBanner />
               <div className="gc-cardrow" style={{ display: "flex", gap: "16px" }}>
                 <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
                   <span style={{ width: "48px", height: "48px", borderRadius: "var(--radius-xl)", background: "#e0f3fb", color: "var(--accent-text)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -341,7 +347,7 @@ export default class StockScreen extends Component {
                             </td>
                             <td className="td">
                               <div>{r?.wh}</div>
-                              <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>{r?.rack}</div>
+                              {(this.state || {}).one ? null : <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>{r?.rack}</div>}
                             </td>
                             <td className="td st-num" style={{ fontWeight: "var(--weight-medium)" }}>{r?.onHand}</td>
                             <td className="td st-num">{r?.held ? <__Link href={r.heldHref} className="st-held" aria-label={`${r.held} held for orders · open stock holds`}>{r.held}</__Link> : <span style={{ color: "var(--text-muted)" }}>—</span>}</td>
@@ -356,7 +362,7 @@ export default class StockScreen extends Component {
                             <td className="td st-num" style={{ fontWeight: "var(--weight-medium)" }}>{r?.value}<div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>{r?.cost}</div></td>
                             <td className="td" style={{ textAlign: "right" }}>
                               <div className="st-acts" style={{ display: "inline-flex", gap: "2px" }}>
-                                <__Link href={r?.adjustHref} className="ib" aria-label={`Adjust stock of ${r?.name ?? ""}`}>
+                                {(this.state || {}).one ? null : (<><__Link href={r?.adjustHref} className="ib" aria-label={`Adjust stock of ${r?.name ?? ""}`}>
                                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                     <path d="M21 4h-7" />
                                     <path d="M10 4H3" />
@@ -378,7 +384,7 @@ export default class StockScreen extends Component {
                                     <path d="M20 17H4" />
                                   </svg>
                                   <span className="st-act__lbl" aria-hidden="true">Move</span>
-                                </__Link>
+                                </__Link></>)}
                                 <__Link href="/barcode-labels" className="ib" aria-label={`Print barcode label for ${r?.name ?? ""}`}>
                                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                     <path d="M3 7V5a2 2 0 0 1 2-2h2" />

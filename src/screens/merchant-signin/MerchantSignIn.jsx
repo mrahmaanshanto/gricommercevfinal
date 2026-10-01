@@ -3,7 +3,9 @@
 // Sign in / sign up · desktop
 // Edit freely: this file is now the source for the screen.
 
-import { DemoAccounts } from '@/components/DemoAccounts';
+import { SystemPicker } from '@/components/SystemPicker';
+import { defaultSystem, enterSystem } from '@/lib/systems';
+import { navigate } from '@/runtime/routes';
 import { EditionTag } from '@/components/EditionCard';
 import { currentEditionId, LOCKED } from '@/lib/edition';
 import React from 'react';
@@ -20,8 +22,8 @@ var EDITION_COPY = {
     bn: { heroSubSignin: 'দোকান আর Wholesale এক জায়গায় — Counter, Stock, বাকি আর Cash।', fStore: 'প্রতি Counter-এ POS', fStoreSub: 'দ্রুত বিক্রি, Internet ছাড়াও।', fOrders: 'বাকিতে Wholesale', fOrdersSub: 'দামের তালিকা, Invoice আর Due।', fPay: 'প্রতি Branch-এর Stock', fPaySub: 'Transfer, গণনা আর কেনা।', fStats: 'টাকা আর লাভ', fStatsSub: 'Cash, Bank আর Due, প্রতিদিন।' },
   },
   'retail-online': {
-    en: { heroSubSignin: 'Your shops and your online store on one stock — counters, orders, couriers and payments.' },
-    bn: { heroSubSignin: 'দোকান আর Online store এক Stock-এ — Counter, Order, Courier আর Payment।' },
+    en: { heroSubSignin: 'Your shops, wholesale and online store on one stock — counters, invoices, orders and couriers.' },
+    bn: { heroSubSignin: 'দোকান, Wholesale আর Online store এক Stock-এ — Counter, Invoice, Order আর Courier।' },
   },
   comms: {
     en: { eyebrowSignin: 'COMMUNICATION & CRM', heroSubSignin: 'Every chat, call and customer in one place — and a counter to sell from.', fStore: 'One inbox', fStoreSub: 'Facebook, Instagram, WhatsApp, more.', fOrders: 'Calls and AI calls', fOrdersSub: 'Never miss a customer.', fPay: 'Customers and leads', fPaySub: 'Follow-ups that don’t slip.', fStats: 'POS and automation', fStatsSub: 'Sell at the counter, automate the rest.' },
@@ -106,7 +108,7 @@ class Component extends DCLogic {
     var saved = getLocale();
     var cur = (this.state && this.state.lang) || this.props.startLang || 'en';
     if (saved === 'bn' && cur !== 'bn') this.setState({ lang: 'bn' });
-    this.setState({ ed: currentEditionId() });
+    this.setState({ ed: currentEditionId(), system: defaultSystem() });
   }
   componentWillUnmount() { clearTimeout(this.timer); clearInterval(this.tick); }
   go(mode) {
@@ -227,6 +229,7 @@ class Component extends DCLogic {
       eyeLabel: showPw ? t.hidePw : t.showPw,
       segs: segs,
       strengthLabel: pw.length === 0 ? t.strength0 : t.strength[score - 1],
+      system: s.system || '', pickSystem: function (ed) { self.setState({ system: ed }); },
       toSignup: function () { self.go('signup'); },
       toSignin: function () { self.go('signin'); },
       reset: function () { self.go(mode); },
@@ -261,7 +264,11 @@ class Component extends DCLogic {
         }
         if (phoneMode && code.length < 6) { self.setState({ codeError: true }); var codeEl = el('si-code'); if (codeEl) codeEl.focus(); return; }
         self.setState({ status: 'loading' });
-        self.timer = setTimeout(function () { clearInterval(self.tick); self.setState({ status: 'done' }); }, 1400);
+        self.timer = setTimeout(function () {
+          clearInterval(self.tick); self.setState({ status: 'done' });
+          // signed in: into the system chosen above (src/lib/systems.js)
+          if (!signup) self.timer = setTimeout(function () { enterSystem((self.state && self.state.system) || defaultSystem(), navigate); }, 900);
+        }, 1400);
       }
     };
   }
@@ -373,6 +380,7 @@ export default class MerchantSignInScreen extends Component {
                     <h1 style={__sx(`margin: 0; font-size: var(--text-3xl); line-height: 40px; font-weight: var(--weight-semibold); letter-spacing: ${v.track ?? ""}; color: #0f172a;`)}>{v.t?.welcome}</h1>
                     <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", lineHeight: "22px", color: "var(--text-muted)" }}>{v.t?.welcomeSub}</p>
                   </div>
+                  {v.system ? <SystemPicker value={v.system} onChange={v.pickSystem} /> : null}
                   <button type="button" className="gc-btn gc-outline" style={{ marginTop: "28px", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}><span style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>G</span>{v.t?.google}</button>
                   <div style={{ marginTop: "20px", display: "flex", alignItems: "center", gap: "14px" }}>
                     <div style={{ flexGrow: "1", height: "1px", background: "#e2e8f0" }} />
@@ -497,7 +505,6 @@ export default class MerchantSignInScreen extends Component {
                   </button>
                   <p style={{ margin: "28px 0 0", textAlign: "center", fontSize: "var(--text-sm)", lineHeight: "22px", color: "var(--text-muted)" }}>{v.t?.newHere} <__Link href="/merchant-onboarding" className="gc-link">{v.t?.createAccount}</__Link></p>
                 </form>
-                <DemoAccounts />
               </>) : null}
               {v.showSignup ? (<>
                 <form noValidate onSubmit={v.submit} style={{ display: "flex", flexDirection: "column" }}>

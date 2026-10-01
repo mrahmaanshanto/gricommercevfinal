@@ -6,6 +6,8 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '@/runtime/dc';
 import { EDITIONS, EDITION_IDS, MODULES, currentEditionId, editionsWith, LOCKED, EDITION_EVENT } from '@/lib/edition';
+import { planPrice, SERVER_PRICE, RENEWS_ON } from '@/lib/platformCosts';
+import { formatBDT } from '@/lib/format';
 
 const CSS = `
 .ed-card{display:flex;flex-direction:column;gap:var(--space-4);padding:var(--space-5);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card)}
@@ -41,6 +43,7 @@ export function EditionCard() {
         <div>
           <h2 id="ed-title">Your edition: {E.short}</h2>
           <p>{E.name} · sells through {E.channels.join(', ')} · {inc.length} of {Object.keys(MODULES).length} modules</p>
+          <p>{formatBDT(planPrice(ed))} a month + server & storage {formatBDT(SERVER_PRICE)} · renews on the {RENEWS_ON}th · billed to Income & expenses</p>
         </div>
       </div>
       <h3 className="ed-h3">Included</h3>

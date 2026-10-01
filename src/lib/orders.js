@@ -21,7 +21,7 @@ import { formatBDT, formatDate } from './format';
 import { NEW_KEYS, statusKeyOf, orderStatus } from './orderStatus';
 import { getHolds, addHolds, closeHold, holdsFor, endHoldsFor } from './stockHolds';
 import { productBy, addMove, stockAt } from './stock';
-import { DAMAGED_PLACE } from './locations';
+import { DAMAGED_PLACE, onlinePlace } from './locations';
 import { addReturn } from './returns';
 import { collectCod, removeItem, clockNow } from './settlements';
 import { editionChannels, holdsStock } from './edition';
@@ -239,7 +239,7 @@ export function duplicatesOf(order, all) {
 /** Every hold with this order's number, open or ended. */
 export const holdsOfOrder = (id) => getHolds().filter((h) => h.ref === id);
 /** Where the order's stock is (or was) held; Central Warehouse when nothing was held. */
-export const holdPlaceOf = (id) => (holdsOfOrder(id).find((h) => h.type !== 'damaged') || {}).place || DEFAULT_HOLD_PLACE;
+export const holdPlaceOf = (id) => (holdsOfOrder(id).find((h) => h.type !== 'damaged') || {}).place || onlinePlace();
 export const heldText = (holds) => holds.map((h) => `${h.qty} × ${h.product} at ${h.place}`).join(', ');
 /** Free stock at a place for each line: [{ ...line, known, available, short }]. */
 export function availability(lines, place) {
@@ -342,7 +342,8 @@ export function rtoState(o) {
 export function receiveReturn(o, rows, by = 'Staff') {
   const took = rows.filter((r) => r.good + r.damaged > 0);
   if (!took.length) return null;
-  const place = holdPlaceOf(o.id);
+  // back where it left from: the place stock was taken from (Online edition) or held at, else the online place
+  const place = o.stockOut && o.stockOut.place ? o.stockOut.place : holdPlaceOf(o.id);
   took.forEach((r) => {
     const p = productBy(r.name);
     let good = r.good, damaged = r.damaged;
@@ -357,7 +358,8 @@ export function receiveReturn(o, rows, by = 'Staff') {
     });
     // nothing held (the stock had already left): good pieces are added back, damaged ones go straight to the bay
     if (good && p) addMove({ sku: p.sku, place, qty: good, kind: 'rto', reason: 'Courier return · good, back on sale', by, ref: o.id });
-    if (damaged) addHolds({ type: 'damaged', ref: o.id, who: o.customer, place: DAMAGED_PLACE, note: 'Courier return: damaged', by }, [{ name: r.name, qty: damaged }]);
+    // the bay counts it through a stock move, so writing it off or repairing it later comes out even
+    if (damaged) { addHolds({ type: 'damaged', ref: o.id, who: o.customer, place: DAMAGED_PLACE, note: 'Courier return: damaged', by }, [{ name: r.name, qty: damaged }]); if (p) addMove({ sku: p.sku, place: DAMAGED_PLACE, qty: damaged, kind: 'return', reason: 'Courier return · damaged', by, ref: o.id }); }
   });
   const receipt = { at: Date.now(), by, lines: took.map((r) => ({ name: r.name, good: r.good, damaged: r.damaged })) };
   const map = readMap(RTO_KEY, RTO_SEED);

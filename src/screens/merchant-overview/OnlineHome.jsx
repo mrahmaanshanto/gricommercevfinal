@@ -15,6 +15,8 @@ import { getLocale, toast } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { PageHeader, Sheet, StatusBadge } from '@/components/ui';
 import { CHART_CSS, ColumnChart, Sparkline, Donut, StackBar, HBars, Legend } from '@/components/charts/DashCharts';
+import { StockSetupBanner } from '@/components/StockSetupBanner';
+import { closeMonths } from '@/lib/platformUsage';
 import { formatBDT, formatTime } from '@/lib/format';
 import { addDays } from '@/lib/reports/period';
 import { clockNow, startOfDay, getPayouts } from '@/lib/settlements';
@@ -190,6 +192,7 @@ function build() {
   const bal = (a) => safe(() => balanceOf(a.id, entries), 0);
   const group = { Banks: 0, Nagad: 0, Cash: 0, Rocket: 0, bKash: 0 };
   own.forEach((a) => {
+    if (a.credits) return;
     const k = a.type === 'Bank' ? 'Banks' : a.type === 'Cash' ? 'Cash' : a.brand === 'nagad' ? 'Nagad' : a.brand === 'rocket' ? 'Rocket' : 'bKash';
     group[k] += bal(a);
   });
@@ -275,7 +278,7 @@ export default function OnlineHome() {
     return () => { ['gc:ledger', 'gc:orders', 'storage', 'focus'].forEach((e) => window.removeEventListener(e, again)); window.removeEventListener('gc:locale', loc); window.clearInterval(timer); };
   }, []);
   // worked out after the first paint, so the page shows its outline at once
-  useEffect(() => { const id = window.setTimeout(() => setData(build()), 0); return () => window.clearTimeout(id); }, [tickN]);
+  useEffect(() => { const id = window.setTimeout(() => { closeMonths(); setData(build()); }, 0); return () => window.clearTimeout(id); }, [tickN]);
 
   const shown = (k) => layout[k] !== false;
   const toggle = (k) => { const next = { ...layout, [k]: !shown(k) }; setLayout(next); writeLayout(next); };
@@ -303,6 +306,7 @@ export default function OnlineHome() {
               </>}
             />
 
+            <StockSetupBanner />
             {!d ? (
               <div className="od-grid" aria-busy="true">{[5, 7, 8, 4].map((s, k) => <div key={k} className={'od-skel od-span-' + s} />)}</div>
             ) : (

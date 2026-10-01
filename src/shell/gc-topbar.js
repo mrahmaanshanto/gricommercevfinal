@@ -209,7 +209,6 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
         ${settleNote}${NOTES.map((n, i) => { const un = n.u && i < this._unread; return `<a class="it note${un ? ' unread' : ''}" href="${routeOf(has('commerce') ? 'merchant-orders/MerchantOrders.dc.html' : 'merchant-inbox/MerchantInbox.dc.html')}"><span class="ico">${ic(n.i, 16)}</span><span><b>${n.t}</b><small>${n.d}</small></span><span class="t">${n.w}</span><i class="dot"${un ? ' role="img" aria-label="Unread"' : ' aria-hidden="true"'}></i></a>`; }).join('')}
         <a class="foot" href="${routeOf('merchant-inbox/MerchantInbox.dc.html')}">${L('View all notifications')}</a>`;
       const me = currentUser(), myRole = roleOf(me);
-      const others = USERS.filter((u) => u.id !== me.id);
       const mePop = `<div style="display:flex;align-items:center;gap:10px;padding:8px"><span class="av">${esc(me.initials)}<i></i></span><span><span class="mn" style="display:block">${esc(me.name)}</span><span class="mr">${esc(myRole.title)} · ${esc(me.email)}</span></span></div>
         <div class="hr"></div>
         <a class="it" href="/my-dashboard"><span class="ico">${ic('user', 16)}</span><span><b>${L('My dashboard')}</b><small>${L('Your tasks, numbers and team for today')}</small></span></a>
@@ -222,8 +221,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
         <div class="it" style="cursor:default"><span class="ico">${ic('store', 16)}</span><span><b>GridShop</b><small>${L('Business plan · 3 branches')}</small></span><span class="t" style="color:#047857">${ic('check', 14, 2.5)}</span></div>
         <div class="it" style="cursor:default;align-items:center"><span class="ico">${ic('kb', 16)}</span><b>${L('Language')}</b><span class="seg" role="group" aria-label="${L('Language')}"><button data-lang="en" class="${locale === 'en' ? 'on' : ''}" aria-pressed="${locale === 'en'}">EN</button><button data-lang="bn" lang="bn" class="${locale === 'bn' ? 'on' : ''}" aria-pressed="${locale === 'bn'}">বাংলা</button></span></div>
         <div class="hr"></div>
-        <div class="ph">${L('Switch account (demo)')}</div>
-        <div style="max-height:220px;overflow:auto">${others.map((u) => `<button class="it" data-switch="${u.id}" style="width:100%;text-align:left"><span class="ico">${ic('user', 16)}</span><span><b>${esc(u.name)}</b><small>${esc(roleOf(u).title)}</small></span></button>`).join('')}</div>
+        <a class="it" href="/set-profile"><span class="ico">${ic('user', 16)}</span><span><b>${L('Profile type')}</b><small>${L('Switch to a team member’s profile')}</small></span></a>
         <div class="hr"></div>
         <button class="it" data-act="signout" style="width:100%;text-align:left"><span class="ico" style="color:#c2410c">${ic('out', 16)}</span><span><b>${L('Sign out')}</b></span></button>`;
       this.root.innerHTML = `<style>${CSS}</style>
