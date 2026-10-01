@@ -3,6 +3,7 @@ import { NavigationBridge } from '@/shell/Shell';
 import { Overlays } from '@/components/ui';
 import { GridAi } from '@/components/ui/GridAi';
 import { EveningCheck } from '@/components/EveningCheck';
+import { HelpPanel } from '@/components/ui/HelpPanel';
 
 export const metadata = {
   title: { default: 'GridCommerce', template: '%s · GridCommerce' },
@@ -25,6 +26,7 @@ export default function RootLayout({ children }) {
         <Overlays />
         <GridAi />
         <EveningCheck />
+        <HelpPanel />
       </body>
     </html>
   );

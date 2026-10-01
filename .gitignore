@@ -15,3 +15,7 @@ backup/
 # local UI audit helpers
 public/__audit.js
 public/__routes.json
+public/__ux.js
+public/__uxroutes.json
+public/__frame.html
+public/__wide.js

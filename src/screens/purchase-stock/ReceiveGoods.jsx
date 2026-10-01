@@ -17,7 +17,7 @@ import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { Dialog, PageHeader } from '@/components/ui';
+import { Dialog, PageHeader, PhoneActionBar } from '@/components/ui';
 import { formatBDT, formatDate } from '@/lib/format';
 import { DAMAGED_PLACE, getReceivingPlaces, placeName } from '@/lib/locations';
 import { usePlaceList } from '@/lib/usePlaces';
@@ -551,6 +551,7 @@ export default function ReceiveGoods() {
                     <div className="rg-rule" />
                     <p className="rg-note">{plural(toStock, 'piece')} will be added to {place} stock.{shortBy > 0 ? ` ${plural(shortBy, 'piece')} are still missing. You can save now; the order stays “Partly received” until the rest arrive.` : ''}</p>
                     <button type="button" className="gc-btn gc-btn--solid gc-btn--lg gc-btn--block" onClick={save}><Icon name="check" width="20" height="20" aria-hidden="true" /> Save delivery</button>
+                    <PhoneActionBar note={plural(toStock, 'piece') + ' to stock'}><button type="button" className="gc-btn gc-btn--solid" onClick={save}><Icon name="check" width="18" height="18" aria-hidden="true" /> Save delivery</button></PhoneActionBar>
                   </section>
                 ) : (
                   <section className="gc-card rg-pad rg-done" role="status">

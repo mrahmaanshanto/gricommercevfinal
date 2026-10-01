@@ -9,7 +9,8 @@ import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { navigate } from '@/runtime/routes';
-import { Dialog as __Dialog, EmptyState as __EmptyState, StatusBadge as __StatusBadge } from '@/components/ui';
+import { Dialog as __Dialog, EmptyState as __EmptyState, StatusBadge as __StatusBadge, PhoneMore as __PhoneMore } from '@/components/ui';
+import { MobileFilters as __MobileFilters } from '@/components/ui/FilterBar';
 import { ORDER_STATUSES, ORDER_TOTAL, orderStatus } from '@/lib/orderStatus';
 import { getStockPlaces } from '@/lib/locations';
 import { holdsFor } from '@/lib/stockHolds';
@@ -255,7 +256,7 @@ class Component extends DCLogic {
       empty: found.length === 0,
       emptyTitle: st.q.trim() ? 'No orders match “' + st.q.trim() + '”' : 'No demo orders match these filters',
       emptyBody: 'The demo carries ' + st.all.length + ' orders. ' + (hasFilters ? 'Clear the search and filters to see the ones in this tab.' : 'Pick another status tab.'),
-      hasFilters,
+      hasFilters, filterCount: (st.courier ? 1 : 0) + (st.payment ? 1 : 0) + (st.zone ? 1 : 0) + extraCount,
       clearFilters: () => { this.setState({ extra: NO_EXTRA, draft: NO_EXTRA }); this.view({ q: '', courier: '', payment: '', zone: '' }); },
       caption: tabLabel + ', page ' + page + ' of ' + pages + ', ' + found.length + ' demo orders',
       countLabel: found.length === 0 ? 'No orders to show'
@@ -307,6 +308,17 @@ const CSS = `/* order KPI strip: icon tile + label over value, two lines, compac
 .mo-kpi__text{min-width:0}
 .mo-kpi__label{margin:0;font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mo-kpi__value{margin:2px 0 0;font-size:var(--text-xl);line-height:26px;font-weight:var(--weight-semibold);color:var(--text-heading);font-variant-numeric:tabular-nums}
+@media (max-width:640px){
+  .mo-kpis{display:flex;gap:8px;overflow-x:auto;margin-inline:-14px;padding:0 14px 2px;scrollbar-width:none;scroll-snap-type:x proximity}
+  .mo-kpis::-webkit-scrollbar{display:none}
+  .mo-kpi{flex:0 0 auto;min-width:150px;padding:10px 12px;gap:10px;scroll-snap-align:start}
+  .mo-kpi__icon{width:32px;height:32px}
+  .mo-kpi__icon svg{width:18px;height:18px}
+  .mo-kpi__value{font-size:var(--text-lg);line-height:24px}
+  .mo-search{flex:1 1 0!important;max-width:none!important}
+  .mo-bulk:not(:has(button)){display:none!important}
+  [role=tablist][aria-label="Order status"]{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none}
+}
 body{margin:0;background:#eef2f7;font-family:var(--font-sans);color:#475569}a{color:#003087;text-decoration:none}a:hover{color:#002a77}table{border-collapse:collapse}
 .dc-h213:hover{background:#002a77 !important}
 .dc-h214:hover{border-color:#94a3b8 !important}
@@ -349,7 +361,7 @@ export default class MerchantOrdersScreen extends Component {
           <__Sidebar sticky="" active="orders-all" />
           <div className="gc-shell__main" style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#f8fafc" }}>
             <__Topbar crumb="Orders" page="All orders" />
-            <main style={{ padding: "28px 32px 40px", display: "grid", gridTemplateColumns: "minmax(0,1fr)", gap: "16px" }}>
+            <main className="gc-shell__content" style={{ padding: "28px 32px 40px", display: "grid", gridTemplateColumns: "minmax(0,1fr)", gap: "16px" }}>
               <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: "16px", justifyContent: "space-between" }}>
                 <div>
                   <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px" }}>
@@ -369,8 +381,10 @@ export default class MerchantOrdersScreen extends Component {
                       </div>
                     </>) : null}
                   </span>
-                  <button type="button" className="dc-h215" onClick={v.exportCsv} style={OUTLINE_BTN}><__Icon name="download" strokeWidth="1.75" width="18" height="18" aria-hidden="true" />Export CSV</button>
+                  <__PhoneMore>
+                    <button type="button" className="dc-h215" onClick={v.exportCsv} style={OUTLINE_BTN}><__Icon name="download" strokeWidth="1.75" width="18" height="18" aria-hidden="true" />Export CSV</button>
                   <__Link href="/courier-returns" className="dc-h215" style={{ ...OUTLINE_BTN, textDecoration: "none" }}><__Icon name="package-x" strokeWidth="1.75" width="18" height="18" aria-hidden="true" />Courier returns</__Link>
+                  </__PhoneMore>
                   <__Link href={v.newOrderHref} className="dc-h213" style={{ display: "inline-flex", height: "36px", alignItems: "center", gap: "8px", border: "none", textDecoration: "none", borderRadius: "var(--radius-lg)", background: "#003087", padding: "0 14px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#fff", cursor: "pointer", whiteSpace: "nowrap" }}><__Icon name="plus" strokeWidth="1.75" width="18" height="18" aria-hidden="true" />New order</__Link>
                 </div>
               </div>
@@ -420,12 +434,13 @@ export default class MerchantOrdersScreen extends Component {
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px", padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>
                   <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px", flex: "1 1 320px", minWidth: "0" }}>
-                    <span style={{ position: "relative", display: "inline-block", flex: "1 1 220px", minWidth: "0", maxWidth: "320px" }}>
+                    <span className="mo-search" style={{ position: "relative", display: "inline-block", flex: "1 1 220px", minWidth: "0", maxWidth: "320px" }}>
                       <input aria-label="Search orders by ID, phone or customer" type="search" value={v.q} onChange={v.onSearch} placeholder="Search order ID, phone, customer…" style={{ width: "100%", boxSizing: "border-box", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 12px 0 36px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", color: "#1e293b" }} />
                       <span aria-hidden="true" style={{ position: "absolute", left: "0", top: "0", display: "flex", width: "36px", height: "100%", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", pointerEvents: "none" }}>
                         <__Icon name="search" strokeWidth="1.75" width="16" height="16" />
                       </span>
                     </span>
+                    <__MobileFilters label="Filter orders" count={v.filterCount} onClear={v.clearFilters}>
                     <select aria-label="Filter by courier" value={v.courier} onChange={v.onCourier} style={FILTER_SELECT}>
                       <option value="">All couriers</option>
                       <option>Steadfast</option>
@@ -446,7 +461,8 @@ export default class MerchantOrdersScreen extends Component {
                       <option>Sub-Dhaka</option>
                       <option>Outside Dhaka</option>
                     </select>
-                    <button type="button" className="dc-h217" onClick={v.openFilters} aria-haspopup="dialog" style={{ ...OUTLINE_BTN, padding: "0 12px", fontSize: "var(--text-xs-plus)" }}><__Icon name="sliders-horizontal" strokeWidth="1.75" width="15" height="15" aria-hidden="true" />More filters{v.extraCount ? <span style={{ display: "inline-grid", minWidth: "18px", height: "18px", placeItems: "center", borderRadius: "var(--radius-full)", background: "#003087", padding: "0 5px", fontSize: "var(--text-xs)", color: "#fff" }}><span className="sr-only">active: </span>{v.extraCount}</span> : null}</button>
+                    <button type="button" className="dc-h217" onClick={v.openFilters} data-sheet-close="" aria-haspopup="dialog" style={{ ...OUTLINE_BTN, padding: "0 12px", fontSize: "var(--text-xs-plus)" }}><__Icon name="sliders-horizontal" strokeWidth="1.75" width="15" height="15" aria-hidden="true" />More filters{v.extraCount ? <span style={{ display: "inline-grid", minWidth: "18px", height: "18px", placeItems: "center", borderRadius: "var(--radius-full)", background: "#003087", padding: "0 5px", fontSize: "var(--text-xs)", color: "#fff" }}><span className="sr-only">active: </span>{v.extraCount}</span> : null}</button>
+                    </__MobileFilters>
                   </div>
                   <div className="mo-bulk" aria-live="polite" style={{ marginLeft: "auto", display: "flex", minHeight: "36px", alignItems: "center", justifyContent: "flex-end", gap: "8px" }}>
                     {v.hasSelection ? (<>
@@ -457,7 +473,7 @@ export default class MerchantOrdersScreen extends Component {
                       <button type="button" onClick={v.printLabels} style={{ height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#475569", cursor: "pointer", whiteSpace: "nowrap" }}>Print labels</button>
                       <button type="button" onClick={v.clearSelection} aria-label="Clear selection" style={{ height: "36px", border: "none", borderRadius: "var(--radius-lg)", background: "none", padding: "0 8px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", cursor: "pointer" }}>Clear</button>
                     </>) : (
-                      <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Select rows for bulk actions</span>
+                      <span className="mo-bulk__hint" style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Select rows for bulk actions</span>
                     )}
                   </div>
                 </div>

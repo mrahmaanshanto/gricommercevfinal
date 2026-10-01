@@ -422,7 +422,7 @@ export default class PromoScreen extends Component {
                       </React.Fragment>))}
                   </div>
                 </div>
-                <div style={{ width: "300px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "8px", alignItems: "center" }}>
+                <div style={{ width: "300px", maxWidth: "100%", flexShrink: "1", display: "flex", flexDirection: "column", gap: "8px", alignItems: "center" }}>
                   <div className="lbl" style={{ alignSelf: "flex-start" }}>Preview on phone</div>
                   <div style={{ width: "280px", height: "300px", borderRadius: "28px 28px 0 0", border: "8px solid #0f172a", borderBottom: "0", overflow: "hidden", background: "#f8fafc", display: "flex", flexDirection: "column" }}>
                     <div style={{ height: "22px", background: "#0f172a" }} />

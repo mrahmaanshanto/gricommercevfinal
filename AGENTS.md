@@ -38,6 +38,16 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   Success feedback is a `toast`, destructive actions ask with `confirmDialog`, a control without a
   handler says so with a toast. `src/lib/format.js` writes money/dates/times; `src/lib/orderStatus.js`
   is the one list of order statuses (sidebar, tabs, badges and stepper read it).
+- UX patterns (docs/ux-audit.md): every page has Help — the top-bar Help button (or Shift+?) opens
+  `components/ui/HelpPanel.jsx` with the page's entry in `src/lib/help.js` (English + Bangla; pages without an
+  entry get one built from the menu and the header). `PageHeader` keeps one primary action (`gc-btn--solid`); the
+  others fold into "More" on phones (`PhoneMore` does the same for hand-made headers and toolbars). Filters:
+  `components/ui/FilterBar.jsx` (`FilterBar` for new lists; `MobileFilters` wraps a page's own selects so phones get
+  a "Filter (n)" bottom sheet). `Sheet` is the side panel / bottom sheet; `PhoneActionBar` pins a form's main action
+  to the bottom on phones. On phones list tables become cards on their own (`src/runtime/mobileTables.js`; a grid that
+  must scroll sideways gets `gc-table--keep`), and statistic rows (`gc-kpis`, `gc-cardrow`) become a swipe strip.
+- Menu: `src/shell/navigation.js` (9 groups, at most two levels). Old menu ids still used by a screen's `active`
+  map to the new item through `NAV_ALIAS` (sidebar highlight and role access both read it).
 - Language: the switch in the account menu and on sign-in calls `setLocale`. Only the shell (menu,
   top bar, overlays: `src/shell/i18n.js`) and the sign-in page are translated so far.
 - POS: `/pos` (`src/screens/pos-register/Pos.jsx`) is the one register; `/pos-manage` (`PosManage.jsx`) is its

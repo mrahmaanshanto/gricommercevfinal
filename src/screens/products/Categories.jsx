@@ -185,6 +185,8 @@ a{color:#003087}a:hover{color:#002a77}
 .pulse{animation:gcPulse 1.6s ease-in-out infinite}
 @keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+.cat-tree{min-width:0}
+@media (max-width:1023px){.cat-tree{width:100%!important}}
 .pcard{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
 .psec{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
 .num{font-variant-numeric:tabular-nums}
@@ -235,7 +237,7 @@ export default class CategoriesScreen extends Component {
                 </button>
               </div>
               <div style={{ display: "flex", gap: "20px", alignItems: "flex-start" }}>
-                <section className="pcard" style={{ width: "470px", flexShrink: "0", overflow: "hidden", alignSelf: "flex-start" }}>
+                <section className="pcard cat-tree" style={{ width: "470px", maxWidth: "100%", flexShrink: "0", overflow: "hidden", alignSelf: "flex-start" }}>
                   <div style={{ padding: "14px 16px", borderBottom: "1px solid #e6eaf0", display: "flex", gap: "10px" }}>
                     <label style={{ position: "relative", flexGrow: "1" }}>
                       <span style={{ position: "absolute", left: "12px", top: "12px", color: "var(--text-muted)" }}>

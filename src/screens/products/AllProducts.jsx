@@ -8,6 +8,7 @@ import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 import { PageHeader as __PageHeader, EmptyState as __EmptyState } from '@/components/ui';
+import { MobileFilters as __MobileFilters } from '@/components/ui/FilterBar';
 import { toast as __toast } from '@/runtime/ui';
 import { useRouter } from 'next/navigation';
 import { formatBDT } from '@/lib/format';
@@ -98,7 +99,7 @@ class Component extends DCLogic {
       brandOpts: uniq(all.map(function (p) { return p.brand; })), fBrand: fBrand, setBrand: function (e) { self.setState({ fBrand: e.target.value, sel: {} }); },
       tagOpts: UNTAGGED.map(function (x) { return { v: x[0], l: x[1] }; }), fTag: fTag, setTag: function (e) { self.setState({ fTag: e.target.value, sel: {} }); },
       sellOpts: SELLS.map(function (x) { return { v: x[0], l: x[1] }; }), fSell: fSell, setSell: function (e) { self.setState({ fSell: e.target.value, sel: {} }); },
-      filtered: filtered, clearFilters: function () { self.setState({ fCat: '', fBrand: '', fTag: '', fSell: '' }); },
+      filtered: filtered, filterCount: [fCat, fBrand, fTag, fSell].filter(Boolean).length, clearFilters: function () { self.setState({ fCat: '', fBrand: '', fTag: '', fSell: '' }); },
       emptyTitle: q ? 'No products match “' + (s.q || '').trim() + '”' : filtered ? 'No products match these filters' : 'No ' + (tab === 'all' ? '' : tabLabel.toLowerCase() + ' ') + 'products',
       emptyBody: q ? 'Check the spelling, or clear the search to see every product in this tab.' : filtered ? 'Clear the filters to see every product in this tab.' : 'Nothing has this status yet. Show all products instead.',
       emptyAction: q ? 'Clear search' : filtered ? 'Clear filters' : 'Show all products',
@@ -202,7 +203,8 @@ a{color:#003087}a:hover{color:#002a77}
 .ai:focus-visible{outline:3px solid rgba(124,58,237,.4);outline-offset:2px}
 .abtn{height:32px;padding:0 12px;border-radius:var(--radius-lg);border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .abtn:hover{background:#f1f5f9}
-.ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0}
+.ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0;overflow-x:auto;scrollbar-width:none}
+.ptabs::-webkit-scrollbar{display:none}
 .ptab:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:-3px}
 .ptab{position:relative;height:52px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
 .ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:var(--weight-medium)}
@@ -225,7 +227,11 @@ class AllProductsView extends Component {
           <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
             <__Topbar crumb="Products" page="All products" placeholder="Search products, SKU or barcode" />
             <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <__PageHeader title="All products" />
+              <__PageHeader title="All products" description="Every product you sell, with price, stock and photos." actions={<>
+                <__Link href="/catalog-setup" className="gc-btn gc-btn--neutral"><__Icon name="sliders-horizontal" width="18" height="18" aria-hidden="true" /> Catalog setup</__Link>
+                <button type="button" className="gc-btn gc-btn--neutral" onClick={v.importCsv}><__Icon name="upload" width="18" height="18" aria-hidden="true" /> Import CSV</button>
+                <__Link href="/add-product" className="gc-btn gc-btn--solid"><__Icon name="plus" width="18" height="18" aria-hidden="true" /> Add product</__Link>
+              </>} />
               <div className="gc-cardrow" style={{ display: "flex", gap: "16px" }}>
                 <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
                   <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#e0f3fb", color: "var(--accent-text)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -289,38 +295,6 @@ class AllProductsView extends Component {
                   </div>
                 </div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ flexGrow: "1", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#475569" }}>Every product in your shop. Stock numbers come straight from your warehouses and shops.</div>
-                <__Link href="/catalog-setup" className="btn line">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M21 4h-7" />
-                    <path d="M10 4H3" />
-                    <path d="M21 12h-9" />
-                    <path d="M8 12H3" />
-                    <path d="M21 20h-5" />
-                    <path d="M12 20H3" />
-                    <path d="M14 2v4" />
-                    <path d="M8 10v4" />
-                    <path d="M16 18v4" />
-                  </svg>
-                  <span>Catalog setup</span>
-                </__Link>
-                <button type="button" className="btn line" onClick={v.importCsv}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <path d="M17 8 12 3 7 8" />
-                    <path d="M12 3v12" />
-                  </svg>
-                  <span>Import CSV</span>
-                </button>
-                <__Link href="/add-product" className="btn solid">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M5 12h14" />
-                    <path d="M12 5v14" />
-                  </svg>
-                  <span>Add product</span>
-                </__Link>
-              </div>
               <section className="pcard" style={{ overflow: "hidden" }}>
                 <div className="ptabs" role="tablist" aria-label="Product status" onKeyDown={v.tabKey}>
                   {__list(v.tabs).map((tb, $index) => (<React.Fragment key={$index}>
@@ -330,7 +304,7 @@ class AllProductsView extends Component {
                     </React.Fragment>))}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "10px", padding: "12px 16px", borderBottom: "1px solid #e6eaf0" }}>
-                  <label style={{ position: "relative", flex: "1 1 240px", maxWidth: "340px" }}>
+                  <label className="ap-search" style={{ position: "relative", flex: "1 1 240px", maxWidth: "340px" }}>
                     <span style={{ position: "absolute", left: "14px", top: "12px", color: "var(--text-muted)" }}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <circle cx="11" cy="11" r="8" />
@@ -339,6 +313,7 @@ class AllProductsView extends Component {
                     </span>
                     <input className="inp" type="search" placeholder="Name, SKU, barcode or IMEI" aria-label="Search products" value={v.q} onChange={v.typeQ} style={{ paddingLeft: "44px" }} />
                   </label>
+                  <__MobileFilters label="Filter products" count={v.filterCount} onClear={v.clearFilters}>
                   <select className="inp" aria-label="Category" value={v.fCat} onChange={v.setCat} style={{ width: "190px" }}>
                     <option value="">All categories</option>
                     {__list(v.catOpts).map((c) => (<option key={c.v} value={c.v}>{c.l}</option>))}
@@ -353,6 +328,7 @@ class AllProductsView extends Component {
                   <select className="inp" aria-label="Sell to" value={v.fSell} onChange={v.setSell} style={{ width: "180px" }}>
                     {__list(v.sellOpts).map((o) => (<option key={o.v} value={o.v}>{o.l}</option>))}
                   </select>
+                  </__MobileFilters>
                   {v.filtered ? (<button type="button" className="abtn" onClick={v.clearFilters}><__Icon name="x" width="14" height="14" aria-hidden="true" />Clear filters</button>) : null}
                   <span style={{ flexGrow: "1" }} />
                   <button type="button" className="abtn" onClick={v.exportCsv}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

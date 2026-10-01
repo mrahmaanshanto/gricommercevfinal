@@ -13,6 +13,7 @@ import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { navigate } from '@/runtime/routes';
 import { Dialog, EmptyState } from '@/components/ui';
+import { MobileFilters } from '@/components/ui/FilterBar';
 import { formatDate, formatTime } from '@/lib/format';
 import { USERS, roleOf, userBy } from '@/lib/team';
 import {
@@ -280,12 +281,14 @@ export default function Tasks() {
             {view === 'board' ? <select className="gc-input gc-select" style={{ width: 'auto' }} aria-label="Group the board by" value={groupBy} onChange={(e) => setGroupBy(e.target.value)}><option value="status">By status</option><option value="team">By team</option><option value="person">By person</option><option value="priority">By priority</option></select> : null}
           </div>
           <div className="tm-bar__g">
-            <select className="gc-input gc-select" style={{ width: 'auto' }} aria-label="Team" value={f.team} onChange={(e) => setF({ ...f, team: e.target.value })}><option value="">All teams</option>{teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
-            <select className="gc-input gc-select" style={{ width: 'auto' }} aria-label="Person" value={f.who} onChange={(e) => setF({ ...f, who: e.target.value })}><option value="">Anyone</option>{USERS.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select>
-            <select className="gc-input gc-select" style={{ width: 'auto' }} aria-label="Tag" value={f.tag} onChange={(e) => setF({ ...f, tag: e.target.value })}><option value="">All tags</option>{tags.map((t) => <option key={t.id} value={t.id}>#{t.name}</option>)}</select>
-            <select className="gc-input gc-select" style={{ width: 'auto' }} aria-label="Type" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}><option value="">All types</option>{Object.entries(TYPES).map(([k, [l]]) => <option key={k} value={k}>{l}</option>)}</select>
-            <select className="gc-input gc-select" style={{ width: 'auto' }} aria-label="Priority" value={f.pri} onChange={(e) => setF({ ...f, pri: e.target.value })}><option value="">Any priority</option>{PRIORITIES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
             <input type="search" className="gc-input" style={{ width: 200 }} placeholder="Search tasks" aria-label="Search tasks" value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} />
+            <MobileFilters label="Filter tasks" count={[f.team, f.who, f.tag, f.type, f.pri].filter(Boolean).length} onClear={() => setF({ ...f, team: '', who: '', tag: '', type: '', pri: '' })}>
+              <select className="gc-input gc-select" style={{ width: 'auto' }} aria-label="Team" value={f.team} onChange={(e) => setF({ ...f, team: e.target.value })}><option value="">All teams</option>{teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
+              <select className="gc-input gc-select" style={{ width: 'auto' }} aria-label="Person" value={f.who} onChange={(e) => setF({ ...f, who: e.target.value })}><option value="">Anyone</option>{USERS.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select>
+              <select className="gc-input gc-select" style={{ width: 'auto' }} aria-label="Tag" value={f.tag} onChange={(e) => setF({ ...f, tag: e.target.value })}><option value="">All tags</option>{tags.map((t) => <option key={t.id} value={t.id}>#{t.name}</option>)}</select>
+              <select className="gc-input gc-select" style={{ width: 'auto' }} aria-label="Type" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}><option value="">All types</option>{Object.entries(TYPES).map(([k, [l]]) => <option key={k} value={k}>{l}</option>)}</select>
+              <select className="gc-input gc-select" style={{ width: 'auto' }} aria-label="Priority" value={f.pri} onChange={(e) => setF({ ...f, pri: e.target.value })}><option value="">Any priority</option>{PRIORITIES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+            </MobileFilters>
             {filtered ? <button type="button" className="gc-btn gc-btn--flat gc-btn--sm" onClick={() => setF({ q: '', team: '', who: '', tag: '', type: '', pri: '' })}>Clear</button> : null}
           </div>
         </div>

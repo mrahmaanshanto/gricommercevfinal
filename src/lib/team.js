@@ -6,7 +6,7 @@
 // The side menu shows only the role's items; a page in the menu that the role cannot open shows a notice
 // (components/RoleGuard.jsx). Front end only: there are no passwords in the demo.
 
-import { NAV } from '../shell/navigation';
+import { NAV, NAV_ALIAS } from '../shell/navigation';
 import { routeOf } from '../runtime/routes';
 
 export const SESSION_KEY = 'gc.session';
@@ -72,8 +72,8 @@ export function canSee(u, id) {
   const r = roleOf(u);
   if (r.access === '*') return true;
   if (BASE.includes(id)) return true;
-  if (id === 'leads') return r.access.includes('leads');
-  return r.access.includes(id);
+  // an old menu id in a role's list still opens the item it was merged into
+  return r.access.includes(id) || r.access.some((a) => NAV_ALIAS[a] === id);
 }
 /** The menu for a user: NAV with items (and children) they cannot see removed, empty groups dropped. */
 export function navFor(u) {

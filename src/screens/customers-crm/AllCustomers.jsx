@@ -11,7 +11,7 @@ import CustomerEditDialog from './CustomerEditDialog';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
-import { PageHeader as __PageHeader, Dialog as __Dialog, EmptyState as __EmptyState } from '@/components/ui';
+import { PageHeader as __PageHeader, Dialog as __Dialog, EmptyState as __EmptyState, PhoneMore as __PhoneMore } from '@/components/ui';
 import { toast as uiToast } from '@/runtime/ui';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
@@ -439,6 +439,8 @@ a{color:#003087}a:hover{color:#002a77}
 .ac-cust__name,.ac-cust__phone{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ac-cust:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px;border-radius:var(--radius-lg)}
 .ac-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid #e2e8f0}
+/* phones: the list is cards, so the column view switch is not needed */
+@media (max-width:640px){.ac-toolbar{padding:12px}.ac-toolbar>div:has(>button[aria-pressed]){display:none!important}.ac-toolbar>span[style*="flex-grow"]{display:none}}
 .ac-search{position:relative;flex:1 1 240px;max-width:360px;min-width:200px}
 .btn[disabled]{opacity:.5;cursor:not-allowed}
 .ac-field{display:flex;flex-direction:column}
@@ -552,6 +554,7 @@ export default class AllCustomersScreen extends Component {
                     </button>
                   </>) : null}
                   <span style={{ flexGrow: "1" }} />
+                  <__PhoneMore>
                   <button type="button" className="btn line sm" onClick={v.print}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
@@ -568,6 +571,7 @@ export default class AllCustomersScreen extends Component {
                     </svg>
                     <span>Download CSV</span>
                   </button>
+                  </__PhoneMore>
                 </div>
                 {v.fOpen ? (<>
                   <div className="fade gc-cols-4" style={{ padding: "16px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "14px" }}>

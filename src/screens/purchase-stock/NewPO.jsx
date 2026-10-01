@@ -10,7 +10,7 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
-import { PageHeader as __PageHeader } from '@/components/ui';
+import { PageHeader as __PageHeader, PhoneActionBar as __PhoneActionBar } from '@/components/ui';
 import { toast as __toast, confirmDialog as __confirm } from '@/runtime/ui';
 import { SUPPLIERS, getSuppliers, termsLabel } from '@/lib/supplierBills';
 import { addPOs, getPOs } from '@/lib/purchaseOrders';
@@ -260,7 +260,7 @@ export default class NewPOScreen extends Component {
                   <span>Low-stock list (8 items)</span>
                 </__Link>
               </div>
-              <form noValidate onSubmit={v.submit} aria-label="New purchase order" style={{ display: "flex", gap: "24px", alignItems: "flex-start" }}>
+              <form id="npo-form" noValidate onSubmit={v.submit} aria-label="New purchase order" style={{ display: "flex", gap: "24px", alignItems: "flex-start" }}>
                 <div style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "20px" }}>
                   <section className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
@@ -610,6 +610,7 @@ export default class NewPOScreen extends Component {
                       </div>
                     ) : (<>
                       <button type="submit" className="btn solid big" style={{ width: "100%" }}>{v.primaryLabel}</button>
+                      <__PhoneActionBar note={"Total " + v.total}><button type="submit" form="npo-form" className="gc-btn gc-btn--solid">{v.primaryLabel}</button></__PhoneActionBar>
                       <button type="button" className="btn line" style={{ width: "100%" }} onClick={v.saveDraft}>Save as draft</button>
                     </>)}
                   </div>

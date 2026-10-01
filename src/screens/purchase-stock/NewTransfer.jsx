@@ -7,7 +7,7 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
-import { PageHeader as __PageHeader } from '@/components/ui';
+import { PageHeader as __PageHeader, PhoneActionBar as __PhoneActionBar } from '@/components/ui';
 import { toast as __toast, confirmDialog as __confirm } from '@/runtime/ui';
 import { STOCK_PLACES, getStockPlaces, placeName } from '@/lib/locations';
 import { CATALOG, productBy, stockAt, getMoves } from '@/lib/stock';
@@ -186,7 +186,7 @@ export default class NewTransferScreen extends Component {
             <__Topbar crumb="Stock › Transfers" page="New transfer" placeholder="Search or scan any barcode" />
             <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
               <__PageHeader title="New transfer" />
-              <form noValidate onSubmit={v.submit} aria-label="New transfer" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              <form id="ntr-form" noValidate onSubmit={v.submit} aria-label="New transfer" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
               <section className="card tr-route" style={{ padding: "24px", display: "flex", alignItems: "center", gap: "20px" }}>
                 <div style={{ flexGrow: "1", flexBasis: "0", padding: "18px", borderRadius: "var(--radius-xl)", border: "2px solid #e2e8f0", display: "flex", alignItems: "center", gap: "14px" }}>
                   <span style={{ width: "48px", height: "48px", borderRadius: "var(--radius-xl)", background: "#fff1e6", color: "#b4410c", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -398,6 +398,7 @@ export default class NewTransferScreen extends Component {
                         <span>Send and print slip</span>
                       </button>
                       <button type="button" className="btn line" style={{ width: "100%" }} onClick={v.saveLater}>Save, send later</button>
+                      <__PhoneActionBar note={v.pcs + " pcs · " + v.val}><button type="submit" form="ntr-form" className="gc-btn gc-btn--solid">Send and print slip</button></__PhoneActionBar>
                       <p style={{ margin: "0", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>The slip has a barcode. The other side scans it, then scans the items in. Missing items are flagged at once.</p>
                     </section>
                   </>) : null}

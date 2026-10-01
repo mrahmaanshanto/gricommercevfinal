@@ -4,7 +4,7 @@
    template renders its nav without waiting on React or the compiled bundle.
    Renders into a shadow root so React templates never try to reconcile its children.
    Keep in step with components/navigation/Sidebar.jsx — that file is the source of truth. */
-import { NAV } from './navigation';
+import { NAV, NAV_ALIAS } from './navigation';
 import { routeOf, assetUrl, navigate } from '../runtime/routes';
 import { getLocale, readFlag, writeFlag } from '../runtime/ui';
 import { t } from './i18n';
@@ -163,7 +163,8 @@ nav{display:block}
 
     /** The menu item for this page: taken from the URL (path + query), then the screen's hint. */
     activeId() {
-      const hint = this.getAttribute('active') || '';
+      const raw = this.getAttribute('active') || '';
+      const hint = NAV_ALIAS[raw] || raw;
       const path = window.location.pathname.replace(/\/$/, '') || '/';
       const query = new URLSearchParams(window.location.search);
       const here = ALL.filter((it) => it.to && routeOf(it.to) === path);

@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { Dialog, EmptyState } from '@/components/ui';
+import { MobileFilters } from '@/components/ui/FilterBar';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
 import { USERS, roleOf } from '@/lib/team';
 import { STAGES, OPEN_STAGES, SOURCES, KINDS, LOG_KINDS, LOST_REASONS, STAGE_WEIGHT, stageOf, saveLead, logActivity, moveStage, removeLead, followState } from '@/lib/leads';
@@ -113,9 +114,11 @@ export default function SalesLeads() {
             </div>
           </div>
           <div className="tm-bar__g">
+            <input type="search" className="gc-input" style={{ width: 220 }} placeholder="Name, shop, phone" aria-label="Search leads" value={q} onChange={(e) => setQ(e.target.value)} />
+            <MobileFilters label="Filter leads" count={[src, kind].filter(Boolean).length} onClear={() => { setSrc(''); setKind(''); }}>
             <select className="gc-input gc-select" style={{ width: 'auto' }} aria-label="Source" value={src} onChange={(e) => setSrc(e.target.value)}><option value="">All sources</option>{SOURCES.map((s) => <option key={s}>{s}</option>)}</select>
             <select className="gc-input gc-select" style={{ width: 'auto' }} aria-label="Kind" value={kind} onChange={(e) => setKind(e.target.value)}><option value="">All kinds</option>{KINDS.map((s) => <option key={s}>{s}</option>)}</select>
-            <input type="search" className="gc-input" style={{ width: 220 }} placeholder="Name, shop, phone" aria-label="Search leads" value={q} onChange={(e) => setQ(e.target.value)} />
+            </MobileFilters>
           </div>
         </div>
 

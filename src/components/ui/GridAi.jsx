@@ -126,7 +126,7 @@ export function GridAi() {
         </section>
       ) : null}
       <button ref={buttonRef} type="button" className="gc-ai__fab" aria-expanded={open} aria-haspopup="dialog" onClick={() => (open ? close() : setOpen(true))}>
-        <Icon name="sparkles" width="18" height="18" aria-hidden="true" />GridAI
+        <Icon name="sparkles" width="18" height="18" aria-hidden="true" /><span className="gc-ai__label">GridAI</span>
       </button>
     </div>
   );

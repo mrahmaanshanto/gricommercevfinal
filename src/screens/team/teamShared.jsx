@@ -51,6 +51,7 @@ export const TEAM_CSS = `
 .tm-in{color:var(--text-success)}
 .tm-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-5);border-bottom:1px solid var(--border-subtle)}
 .tm-bar__g{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
+@media (max-width:640px){.tm-bar{padding:var(--space-3)}.tm-bar__g:has(.gc-mf__btn){width:100%;flex-wrap:nowrap}.tm-bar__g:has(.gc-mf__btn)>button.gc-btn--flat{display:none}}
 .tm-form{display:flex;flex-direction:column;gap:var(--space-4)}
 .tm-two{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
 .tm-three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-3)}

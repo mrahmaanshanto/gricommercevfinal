@@ -36,7 +36,8 @@ export function defineGcTopbar() {
     image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>',
     camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
     x: '<path d="M18 6 6 18M6 6l12 12"/>',
-    menu: '<path d="M4 6h16M4 12h16M4 18h16"/>'
+    menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+    help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/>'
   };
   const ic = (n, s = 18, w = 1.75) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]}</svg>`;
   const esc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -51,6 +52,9 @@ export function defineGcTopbar() {
 .id .crumb{color:var(--muted);overflow:hidden;text-overflow:ellipsis}
 .id .sl{color:var(--muted);flex:none}
 .id .here{color:var(--ink);font-weight:var(--weight-medium);overflow:hidden;text-overflow:ellipsis}
+.helpbtn{flex:none;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border:1px solid var(--line);border-radius:var(--radius-full,999px);background:var(--bg);font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--ink);cursor:pointer}
+.helpbtn:hover{border-color:var(--navy);color:var(--navy)}
+.helpbtn:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
 button,input,select{font:inherit}
 .search{position:relative;flex:1 1 320px;max-width:540px;min-width:200px}
 .field{display:flex;align-items:center;height:42px;border:1px solid var(--line);border-radius:var(--radius-xl);background:var(--field);transition:border-color .2s,box-shadow .2s,background-color .2s}
@@ -110,7 +114,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
 @container (max-width:1180px){.mnm,.kbd{display:none}.me{padding-right:4px}}
 @container (max-width:1060px){.store span,.scanbtn .lbl{display:none}.store{width:38px;padding:0;justify-content:center}.store svg+svg{display:none}}
 @container (max-width:900px){.grp,.sep,.store{display:none}.only-narrow{display:flex}}
-@container (max-width:640px){.bar{padding:0 8px 0 12px;gap:6px}.id{display:none}.scope{display:none}.search{min-width:0;flex:1 1 80px}.pop{position:fixed;left:12px!important;right:12px!important;top:72px;width:auto!important}}
+@container (max-width:640px){.helpbtn{width:40px;padding:0;justify-content:center}.helpbtn span{display:none}.bar{padding:0 8px 0 12px;gap:6px}.id{display:none}.scope{display:none}.search{min-width:0;flex:1 1 80px}.pop{position:fixed;left:12px!important;right:12px!important;top:72px;width:auto!important}}
 @media (max-width:1023px){.ib.menu{display:inline-flex}.bar{border-radius:0}}
 @media (prefers-reduced-motion:reduce){.pop{animation:none}.scanbox::before{animation:none;top:58px}.spin{animation:none}}`;
 
@@ -198,6 +202,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
 <div class="bar${dark ? ' dark' : ''}" role="banner" style="--h:${esc(a('height', '64'))}px">
   <button class="ib menu" data-act="nav" aria-label="${L('Open menu')}" aria-controls="gc-nav">${ic('menu', 20)}</button>
   <nav class="id" aria-label="Breadcrumb">${crumb ? `<span class="crumb">${esc(L(crumb))}</span><span class="sl" aria-hidden="true">/</span>` : ''}${title ? `<span class="here" aria-current="page">${esc(L(title))}</span>` : ''}</nav>
+  <button class="helpbtn" data-act="help" aria-label="${L('Help for this page')}" title="${L('Help for this page')} (?)">${ic('help', 17)}<span>${L('Help')}</span></button>
   <div class="search wrap">
     <div class="field"><select class="scope" aria-label="${L('Search in')}"><option>${L('All')}</option><option>${L('Orders')}</option><option>${L('Products')}</option><option>${L('Customers')}</option><option>${L('Invoices')}</option></select>
       <span class="sic">${ic('search', 17)}</span><input type="search" placeholder="${esc(ph)}" aria-label="${L('Search')}" data-act="sfocus"><span class="kbd">⌘K</span>
@@ -221,6 +226,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       on('[data-act="files"]', 'click', () => this.toggle('files'));
       on('[data-act="notes"]', 'click', () => this.toggle('notes'));
       on('[data-act="me"]', 'click', () => this.toggle('me'));
+      on('[data-act="help"]', 'click', () => { this._open = ''; window.dispatchEvent(new CustomEvent('gc:help')); });
       on('[data-act="sfocus"]', 'focus', () => { if (this._open !== 'search') { this._open = 'search'; this.render(); const i = this.root.querySelector('input'); if (i) i.focus(); } });
       on('[data-act="readall"]', 'click', () => { this._unread = 0; this.render(); });
       on('[data-act="upload"]', 'click', () => { this.close(true); toast('Choose a file to upload', { tone: 'info' }); });

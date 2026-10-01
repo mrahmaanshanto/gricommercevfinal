@@ -4,20 +4,23 @@
 //
 //   <Overlays />        mounted once in the root layout: toasts, confirm dialog, skip link,
 //                       keyboard support for role="button", feedback for unwired controls
-//   <PageHeader />      the one page header: h1 + description + actions
+//   <PageHeader />      the one page header: h1 + description + actions (phones: primary + More)
+//   <Sheet />           side panel on desktop, bottom sheet on phones (Help, phone filters)
 //   <EmptyState />      what a list shows when it has nothing to show
 //   <Dialog />          modal with focus trap, Esc to close, focus returned to the trigger
 //   <ChannelIcon />     social / messaging channel mark (never text initials)
 //   <StatusBadge />     soft pill with an icon, so status is never colour alone
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Icon } from '@/runtime/dc';
 import { getLocale } from '@/runtime/ui';
+import { startMobileTables } from '@/runtime/mobileTables';
 
 // ---- focus helpers ---------------------------------------------------------------------------
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
-function useModalFocus(open, onClose) {
+export function useModalFocus(open, onClose) {
   const ref = useRef(null);
   // the latest onClose without re-running the effect: class screens pass a new function each render,
   // and re-running would pull focus back to the first field on every keystroke
@@ -65,15 +68,102 @@ export function Dialog({ open, title, onClose, children, footer, width = 480 }) 
   );
 }
 
+// ---- Sheet: side panel on desktop, bottom sheet on phones ---------------------------------------
+export function Sheet({ open, title, onClose, children, footer, label }) {
+  const ref = useModalFocus(open, onClose);
+  if (!open) return null;
+  return (
+    <>
+      <div className="gc-sheet__backdrop" onMouseDown={onClose} aria-hidden="true" />
+      <aside ref={ref} className="gc-sheet" role="dialog" aria-modal="true" aria-label={label || title}>
+        <div className="gc-sheet__head">
+          <h2 className="gc-sheet__title">{title}</h2>
+          <button type="button" className="gc-iconbtn" aria-label="Close" onClick={onClose}><Icon name="x" width="18" height="18" /></button>
+        </div>
+        <div className="gc-sheet__body">{children}</div>
+        {footer ? <div className="gc-sheet__foot">{footer}</div> : null}
+      </aside>
+    </>
+  );
+}
+
 // ---- PageHeader ------------------------------------------------------------------------------
+// One page header: h1, one short line of context (hidden on phones — it is in Help), actions.
+// On phones the solid (primary) action stays and the other actions move into a "More" menu.
+const flat = (node) => React.Children.toArray(node).flatMap((c) => (c && c.type === React.Fragment ? flat(c.props.children) : [c]));
+const isPrimary = (el) => !!(el && el.props && /gc-btn--solid/.test(el.props.className || ''));
+/** True below 641 px (after mount; the first render is the desktop one). */
+export function useIsPhone() {
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const on = () => setPhone(mq.matches);
+    on();
+    if (mq.addEventListener) mq.addEventListener('change', on); else mq.addListener(on);
+    return () => { if (mq.removeEventListener) mq.removeEventListener('change', on); else mq.removeListener(on); };
+  }, []);
+  return phone;
+}
+
+/** PhoneMore — secondary page actions: inline on desktop, one "More" menu on phones. */
+export function PhoneMore({ children }) {
+  const phone = useIsPhone();
+  if (!phone) return <>{children}</>;
+  return <MoreMenu items={children} on />;
+}
+
+/**
+ * PhoneActionBar — on phones, a form's main action stays in reach: a bar fixed to the bottom of the screen
+ * (rendered into <body>) with an optional note (e.g. the total) and the action button(s). Nothing on desktop.
+ * For a form submit, give the form an id and use <button type="submit" form="that-id">.
+ */
+export function PhoneActionBar({ children, note, label = 'Actions' }) {
+  const phone = useIsPhone();
+  if (!phone || typeof document === 'undefined') return null;
+  return createPortal(
+    <div className="gc-phonebar" role="group" aria-label={label}>
+      {note ? <span className="gc-phonebar__note">{note}</span> : null}
+      {children}
+    </div>, document.body);
+}
+
+function MoreMenu({ items, on }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const off = (e) => { if (box.current && !box.current.contains(e.target)) setOpen(false); };
+    const esc = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', off); document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', off); document.removeEventListener('keydown', esc); };
+  }, [open]);
+  return (
+    <div className={'gc-pagehead__more' + (on ? ' gc-pagehead__more--on' : '')} ref={box}>
+      <button type="button" className="gc-btn gc-btn--neutral" aria-haspopup="menu" aria-expanded={open} aria-label="More actions" onClick={() => setOpen(!open)}><Icon name="ellipsis" width="18" height="18" aria-hidden="true" /><span className="gc-more__text">More</span></button>
+      {open ? <div className="gc-pagehead__menu" role="menu" onClick={() => setOpen(false)}>{items}</div> : null}
+    </div>
+  );
+}
 export function PageHeader({ title, description, actions, compact }) {
+  const list = actions ? flat(actions) : [];
+  const primary = list.filter(isPrimary);
+  const others = list.filter((x) => !isPrimary(x));
+  const split = others.length > 1 || (others.length === 1 && primary.length > 0);
   return (
     <header className={'gc-pagehead' + (compact ? ' gc-pagehead--compact' : '')}>
       <div className="gc-pagehead__text">
         <h1 className="gc-pagehead__title">{title}</h1>
         {description ? <p className="gc-pagehead__desc">{description}</p> : null}
       </div>
-      {actions ? <div className="gc-pagehead__actions">{actions}</div> : null}
+      {list.length ? (
+        split ? (
+          <div className="gc-pagehead__actions gc-pagehead__actions--split">
+            <span className="gc-pagehead__side">{others}</span>
+            <MoreMenu items={others.map((el, i) => React.isValidElement(el) ? React.cloneElement(el, { key: 'm' + i, role: 'menuitem' }) : el)} />
+            {primary}
+          </div>
+        ) : <div className="gc-pagehead__actions">{actions}</div>
+      ) : null}
     </header>
   );
 }
@@ -161,6 +251,7 @@ export function Overlays() {
   const t = COPY[locale] || COPY.en;
   const copyRef = useRef(t);
   copyRef.current = t;
+  useEffect(() => { startMobileTables(); }, []);
 
   const push = useCallback((detail) => {
     const id = Date.now() + Math.random();
