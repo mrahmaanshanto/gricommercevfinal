@@ -61,7 +61,7 @@ export function dailySummary(day, now = clockNow()) {
     delivered: all.filter((o) => inDay(when(o, 'delivered', 'delivered'), from, to)).length,
     returned: all.filter((o) => inDay(when(o, 'returned', 'returned'), from, to)).length,
     cancelled: all.filter((o) => inDay(when(o, 'cancelled', 'cancelled'), from, to)).length,
-    waiting: all.filter((o) => o.statusKey === 'pending').length,
+    waiting: all.filter((o) => ['onhold', 'processing', 'pending'].includes(o.statusKey)).length,
   };
 
   // ---- money at closing ----

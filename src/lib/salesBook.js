@@ -234,7 +234,7 @@ function orderLife(rand, placed, zone) {
   const rto = rand() < RTO_RATE[zone];
   const end = times.shipped + (days + (rto ? 1 : 0)) * 24 * HOUR - (rand() * 8) * HOUR;
   let status;
-  if (times.ready > CUTOFF) { times.ready = null; times.shipped = null; status = 'Approved'; } else if (times.shipped > CUTOFF) { times.shipped = null; status = 'Ready to ship'; } else if (end > CUTOFF) status = 'Shipped';
+  if (times.ready > CUTOFF) { times.ready = null; times.shipped = null; status = 'Approved'; } else if (times.shipped > CUTOFF) { times.shipped = null; status = 'Ready for courier'; } else if (end > CUTOFF) status = 'In transit';
   else if (rto) { times.returned = end; status = 'Returned'; } else { times.delivered = end; status = 'Delivered'; }
   Object.keys(times).forEach((k) => { if (times[k]) times[k] = Math.round(times[k]); });
   return { status, courier, times, rtoReason: status === 'Returned' ? RTO_REASONS[Math.floor(rand() * RTO_REASONS.length)] : '', deliveryDays: status === 'Delivered' ? r2((times.delivered - times.shipped) / (24 * HOUR)) : null };

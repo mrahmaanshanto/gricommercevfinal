@@ -81,6 +81,16 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   page, e.g. Facebook is always `--viz-1`). Orders keep coming after the demo September: `lib/liveOrders.js` makes
   each day's online orders from 1 October up to now (fixed seed per date; statuses move with the clock); orders.js
   lists them and the sales book counts them. Website visitors by hour and source: `lib/traffic.js`.
+- Orders (online): statuses are `src/lib/orderStatus.js` — a new order is On hold (COD), Processing (paid in full) or
+  Pending (payment due) by its payment (`statusKeyOf` maps saved labels, 'New' and old labels), then Approved → Ready for
+  courier → In transit → Delivered (or Cancelled / Returned). Verification is a step, not a status. The steps are
+  `src/lib/orderFlow.js`: auto / manual verification call, approve / cancel (orders.js) / take advance + approve (the rest
+  becomes the COD amount), packing checklist (courier, checks, slip printed, packed, slip attached → Ready for courier),
+  `sendToCourier` (In transit: tracking ID, COD locked, charge), `courierWebhook` (out for delivery, delivered, failed,
+  return; the same event twice does nothing), `trackingOf` (courier scans: shown in Tracking only). Every event sends
+  SMS / email through `src/lib/notifications.js › notify` (once per order and event; per-order log with retry), set up
+  at Settings › Notifications › Order notifications (`/set-notifications`, `SetNotifications.jsx`: per-event SMS / email /
+  customer / shop toggles and templates with `{{variables}}`). Order text is short and plain (Shopify style).
 - POS: `/pos` (`src/screens/pos-register/Pos.jsx`) is the one register; `/pos-manage` (`PosManage.jsx`) is its
   back office (counters, employees and shifts, cash pickups, settings). Both read and write
   `src/lib/posStore.js` (browser storage). Register shortcuts are listed in `SHORTCUTS` in `Pos.jsx` (F1 on screen).

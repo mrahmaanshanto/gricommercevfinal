@@ -16,6 +16,7 @@ import { ORDER_STATUSES, ORDER_TOTAL, orderStatus } from '@/lib/orderStatus';
 import { getStockPlaces } from '@/lib/locations';
 import { holdsFor } from '@/lib/stockHolds';
 import { demoOrders, getOrders, duplicatesOf, orderHref, invoiceHref, availability, approveOrder, cancelOrder, heldText, CAN_APPROVE, CAN_CANCEL, DEFAULT_HOLD_PLACE } from '@/lib/orders';
+import { sendToCourier, syncCourier } from '@/lib/orderFlow';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -48,7 +49,7 @@ class Component extends DCLogic {
     window.addEventListener('popstate', this._onPop);
     this._watch = setInterval(() => { if (window.location.search !== this._search) this.readUrl(); }, 400);
   }
-  reload() { this.setState({ all: getOrders() }); }
+  reload() { syncCourier(); this.setState({ all: getOrders() }); }
   /** Selected orders split into the ones the action applies to and the ones it skips. */
   pick(allowed) {
     const chosen = this.filtered().filter(o => this.state.sel[o.id]);
@@ -59,7 +60,7 @@ class Component extends DCLogic {
   }
   startApprove() {
     const { valid, skipped } = this.pick(CAN_APPROVE);
-    if (!valid.length) { toast('None of the selected orders is Pending, so none can be approved. ' + this.skippedText(skipped, 'approved'), { tone: 'error' }); return; }
+    if (!valid.length) { toast('Only new orders can be approved. ' + this.skippedText(skipped, 'approved'), { tone: 'error' }); return; }
     this.setState({ approve: { ids: valid.map(o => o.id), skipped: skipped.map(o => o.id), place: DEFAULT_HOLD_PLACE } });
   }
   doApprove() {
@@ -68,7 +69,7 @@ class Component extends DCLogic {
     list.forEach(o => approveOrder(o, place));
     this.setState({ approve: null, sel: {} });
     this.reload();
-    toast(plural(list.length, 'order') + ' approved · stock held at ' + place);
+    toast(plural(list.length, 'order') + ' approved');
   }
   async bulkCancel() {
     const { valid, skipped } = this.pick(CAN_CANCEL);
@@ -85,7 +86,19 @@ class Component extends DCLogic {
     valid.forEach(o => cancelOrder(o));
     this.setState({ sel: {} });
     this.reload();
-    toast(plural(valid.length, 'order') + ' cancelled' + (held.length ? ' · ' + held.reduce((a, h) => a + h.qty, 0) + ' pcs back in stock' : ''));
+    toast(plural(valid.length, 'order') + ' cancelled');
+  }
+  /** Send every selected Ready for courier order; the courier's API may refuse some. */
+  bulkSend() {
+    const { valid, skipped } = this.pick(['ready']);
+    if (!valid.length) { toast('Only Ready for courier orders can be sent. ' + this.skippedText(skipped, 'sent'), { tone: 'error' }); return; }
+    const res = valid.map(o => ({ o, r: sendToCourier(o) }));
+    const ok = res.filter(x => x.r.ok), bad = res.filter(x => !x.r.ok);
+    this.setState({ sel: {} });
+    this.reload();
+    if (ok.length) toast(plural(ok.length, 'order') + ' sent to courier');
+    if (bad.length) toast(bad.map(x => x.o.id + ': ' + x.r.error).join(' '), { tone: 'error' });
+    if (skipped.length) toast(this.skippedText(skipped, 'sent'), { tone: 'info' });
   }
   componentWillUnmount() {
     window.removeEventListener('popstate', this._onPop);
@@ -278,7 +291,7 @@ class Component extends DCLogic {
         this.setState({ sel: next });
       },
       clearSelection: () => this.setState({ sel: {} }),
-      sendToCourier: () => { toast(selCount + (selCount === 1 ? ' order' : ' orders') + ' sent to courier'); this.setState({ sel: {} }); },
+      sendToCourier: () => this.bulkSend(),
       printLabels: () => toast('Printing ' + selCount + (selCount === 1 ? ' label' : ' labels'), { tone: 'info' }),
       bulkApprove: () => this.startApprove(),
       bulkCancel: () => this.bulkCancel(),
@@ -295,7 +308,7 @@ class Component extends DCLogic {
         invoiceHref: o.invoiceId ? invoiceHref(o.invoiceId) : '',
         dups: duplicatesOf(o, st.all).map(d => d.id),
         onRowClick: (e) => { if (e.target.closest('a,button,input,label,select,.mo-sel')) return; navigate(orderHref(o.id, from)); },
-        onMore: () => toast('Approve, cancel, hold and return ' + o.id + ' from its order page', { tone: 'info' }),
+        onMore: () => toast('Open ' + o.id + ' to verify, approve or ship it', { tone: 'info' }),
         statusInfo: orderStatus(o.statusKey),
         pay: PAYMENTS[o.payment] || PAYMENTS.COD,
         tracked: o.consignment !== '—',

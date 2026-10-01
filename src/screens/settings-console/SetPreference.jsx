@@ -198,51 +198,16 @@ export default class SetPreferenceScreen extends Component {
                     <section id="s2" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
                       <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
-                          <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Order notification emails</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Master switch first; per-status mail can then be tuned. Customers always receive the order-placed receipt.</span>
+                          <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Order notifications</span>
+                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Moved to its own page.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
                           <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.14)", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-success)" }}>{v.mailOn} of 4 on</span>
                         </span>
                       </div>
-                      <div style={{ display: "flex", flexDirection: "column", padding: "6px 18px 18px" }}>
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", padding: "12px 0" }}>
-                          <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                            <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Send order notification emails</span>
-                            <span style={{ display: "block", paddingTop: "3px", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>When off, no status mail is sent at all and the four switches below are ignored.</span>
-                          </span>
-                          <__Sw f={v.f} n="send_order_notification_emails" />
-                        </div>
-                        <div style={{ marginTop: "8px", borderLeft: "2px solid #e2e8f0", paddingLeft: "14px" }}>
-                          <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", padding: "12px 0" }}>
-                            <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                              <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Processing</span>
-                              <span style={{ display: "block", paddingTop: "3px", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Sent when the warehouse accepts the order. “আপনার অর্ডার প্রস্তুত হচ্ছে”</span>
-                            </span>
-                            <__Sw f={v.f} n="processing" />
-                          </div>
-                          <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", padding: "12px 0", borderTop: "1px solid #f1f5f9" }}>
-                            <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                              <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>To be shipped</span>
-                              <span style={{ display: "block", paddingTop: "3px", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Sent when the order is packed and waiting for pickup.</span>
-                            </span>
-                            <__Sw f={v.f} n="to_be_shipped" />
-                          </div>
-                          <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", padding: "12px 0", borderTop: "1px solid #f1f5f9" }}>
-                            <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                              <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Shipped</span>
-                              <span style={{ display: "block", paddingTop: "3px", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Includes the courier name and the tracking code from Pathao or Steadfast.</span>
-                            </span>
-                            <__Sw f={v.f} n="shipped" />
-                          </div>
-                          <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", padding: "12px 0", borderTop: "1px solid #f1f5f9" }}>
-                            <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                              <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Cancelled</span>
-                              <span style={{ display: "block", paddingTop: "3px", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Sent on cancellation with the refund route and expected timing.</span>
-                            </span>
-                            <__Sw f={v.f} n="cancelled" />
-                          </div>
-                        </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", padding: "16px 18px" }}>
+                        <span style={{ flex: "1", minWidth: "200px", fontSize: "var(--text-sm)", color: "var(--text-body)" }}>SMS and email for each order event now live in Order notifications.</span>
+                        <a href="/set-notifications" className="gc-btn gc-btn--sm gc-btn--neutral">Open Order notifications</a>
                       </div>
                     </section>
                     <section id="s3" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>

@@ -11,7 +11,10 @@ import { toast, confirmDialog } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { Dialog, PhoneActionBar } from '@/components/ui';
 import { formatBDT } from '@/lib/format';
-import { ORDER_STATUSES, orderStatus } from '@/lib/orderStatus';
+import { orderStatus, initialStatusKey } from '@/lib/orderStatus';
+import { findOrder, patchOrder } from '@/lib/orders';
+import { announceNewOrder } from '@/lib/orderFlow';
+import { notify } from '@/lib/notifications';
 import { createOrderLink, addOrder, DELIVERY_RATES as DELIVERY, PAYMENT_LABEL, BD_MOBILE as PHONE, cleanPhone, prettyPhone } from '@/lib/orderLinks';
 import { CourierHistory } from '@/components/CourierHistory';
 import { addHolds } from '@/lib/stockHolds';
@@ -151,7 +154,7 @@ export default function NewOrder() {
   const [advance, setAdvance] = useState('');
   const [link, setLink] = useState(null);               // the order link made from the current products
   const [method, setMethod] = useState('gw:bkash-pgw');
-  const [status, setStatus] = useState('approved');     // a hand-made order is already confirmed with the customer
+  const [status, setStatus] = useState('approved');     // 'new' or 'approved': a hand-made order is usually confirmed on the phone already
   const [holdPlace, setHoldPlace] = useState('Central Warehouse');   // where an approved order's stock is held
   const holdPlaces = usePlaceList('stock');
   const [note, setNote] = useState('');
@@ -166,7 +169,6 @@ export default function NewOrder() {
   const onlineOf = (list) => list.filter((p) => p.kind === 'Gateway' && p.id !== 'card').map((p) => ['gw:' + p.id, p.short + ' online', p.mode === 'direct']);
   const [online, setOnline] = useState(() => onlineOf(PARTNERS));
   useEffect(() => { setOnline(onlineOf(getAllPartners())); }, []);
-  const methodLabel = (m) => (online.find((x) => x[0] === m) || [m, m])[1];
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -294,7 +296,7 @@ export default function NewOrder() {
     if (!validate(true)) return;
     const adv = Number(advance);
     if (terms === 'partial' && !(adv > 0 && adv < total)) { setErrors({ advance: `Enter an advance between ৳1 and ${formatBDT(total - 1)}.` }); return; }
-    const label = orderStatus(status).label;
+    const label = status === 'approved' ? 'Approved' : 'New';
     const row = addOrder({ lines, customer: customer.name, phone: customer.phone, zone: delivery ? delivery.label : 'Not set', total, status: label, payment: PAYMENT_LABEL[terms], address: customer.address || '', shipping: deliveryFee, paid: terms === 'full' ? total : terms === 'partial' ? adv : 0 });
     // money taken now (advance or full payment) goes into the account for its method
     const takenNow = terms === 'full' ? total : terms === 'partial' ? Number(advance) : 0;
@@ -303,10 +305,10 @@ export default function NewOrder() {
     saveCustomerOnce({ name: customer.name, phone: customer.phone, address: customer.address, types: ['Online'], addedFrom: ADDED_FROM.order });
     // an approved online order holds its stock at the chosen place until it is delivered or comes back
     if (status === 'approved') addHolds({ type: 'online', ref: row.id, who: customer.name, place: holdPlace, note: 'Order approved', by: 'System' }, lines.map((l) => ({ name: l.name, qty: l.qty })));
-    const paidText = terms === 'cod' ? `${formatBDT(total)} due on delivery`
-      : terms === 'partial' ? `${formatBDT(adv)} advance by ${methodLabel(method)}, ${formatBDT(total - adv)} due on delivery`
-      : `${formatBDT(total)} paid by ${methodLabel(method)}`;
-    toast(`Order ${row.id} created as ${label} · ${paidText}${status === 'approved' ? ` · stock held at ${holdPlace}` : ''}`);
+    // messages: order received (and On hold / Processing / Payment pending); approved orders were confirmed on this call
+    announceNewOrder(row.id);
+    if (status === 'approved') { const made = findOrder(row.id); if (made) { patchOrder(made, { verify: { state: 'confirmed', method: 'manual', at: Date.now(), by: 'Staff' } }); notify(made, 'approved'); } }
+    toast(`Order ${row.id} created`);
     navigate('/merchant-orders');
   };
   // An unpaid order link: only the products are fixed. The customer adds name, phone, address and payment terms.
@@ -445,7 +447,8 @@ export default function NewOrder() {
                 <section className="no-card no-card--status">
                   <label className="no-card__title" htmlFor="no-status" style={{ display: 'block' }}>Order status</label>
                   <select id="no-status" className="gc-input gc-select" style={{ borderRadius: 'var(--radius-lg)' }} value={status} onChange={(e) => setStatus(e.target.value)}>
-                    {ORDER_STATUSES.map((st) => <option key={st.key} value={st.key}>{st.label}</option>)}
+                    <option value="approved">Approved · confirmed on the call</option>
+                    <option value="new">{orderStatus(initialStatusKey(PAYMENT_LABEL[terms])).label} · verify later</option>
                   </select>
                   {status === 'approved' ? (
                     <div style={{ marginTop: 'var(--space-3)' }}>

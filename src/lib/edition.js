@@ -39,7 +39,7 @@ export const MODULES = {
   commerce: {
     label: 'Orders & returns', desc: 'All orders, returns and exchanges, payment settings',
     nav: ['orders', 'orders-all', 'sales-return'],
-    routes: ['/order-detail', '/return-history', '/set-payments'],
+    routes: ['/order-detail', '/return-history', '/set-payments', '/set-notifications'],
   },
   marketing: {
     label: 'Offers & loyalty', desc: 'Offers, coupons, loyalty points, wallets and referrals',

@@ -9,7 +9,7 @@ const BN = {
   'Communication': 'যোগাযোগ', 'Automation': 'অটোমেশন', 'Management': 'ব্যবস্থাপনা',
   // general
   'Home': 'হোম', 'GridAI': 'গ্রিডএআই', 'Orders': 'অর্ডার', 'All orders': 'সব অর্ডার', 'Pending': 'অপেক্ষমাণ', 'Approved': 'অনুমোদিত',
-  'Ready to ship': 'পাঠানোর জন্য প্রস্তুত', 'Shipped': 'পাঠানো হয়েছে', 'Delivered': 'ডেলিভারি হয়েছে', 'Returned': 'ফেরত', 'Cancelled': 'বাতিল',
+  'Ready to ship': 'পাঠানোর জন্য প্রস্তুত', 'Shipped': 'পাঠানো হয়েছে', 'On hold': 'হোল্ডে', 'Processing': 'প্রসেসিং', 'Ready for courier': 'কুরিয়ারের জন্য প্রস্তুত', 'In transit': 'পথে আছে', 'Delivered': 'ডেলিভারি হয়েছে', 'Returned': 'ফেরত', 'Cancelled': 'বাতিল',
   'AI calls': 'এআই কল', 'POS / Retail orders': 'পিওএস / রিটেইল অর্ডার', 'Abandoned carts': 'ফেলে যাওয়া কার্ট', 'Sales': 'বিক্রয়', 'New sale': 'নতুন বিক্রয়', 'Sales book': 'বিক্রয় খাতা',
   'Invoices': 'ইনভয়েস', 'Return & exchange': 'ফেরত ও বদল', 'Products': 'পণ্য', 'All products': 'সব পণ্য',
   'Add product': 'পণ্য যোগ করুন', 'Categories': 'ক্যাটাগরি', 'Catalog setup': 'ক্যাটালগ সেটআপ', 'Collections': 'কালেকশন',

@@ -8,6 +8,7 @@ import { Icon } from '@/runtime/dc';
 import { formatBDT } from '@/lib/format';
 import { getOrderLink, submitLinkOrder, DELIVERY_RATES, BD_MOBILE, cleanPhone } from '@/lib/orderLinks';
 import { saveCustomerOnce, ADDED_FROM } from '@/lib/customers';
+import { announceNewOrder } from '@/lib/orderFlow';
 
 const VAT_RATE = 0.05;
 const TERMS = [
@@ -107,6 +108,7 @@ export default function OrderLink() {
     const first = Object.keys(errs)[0];
     if (first) { if (refs[first] && refs[first].current) refs[first].current.focus(); return; }
     const row = submitLinkOrder(link.id, { name: form.name.trim(), phone, address: form.address.trim(), area: form.area, terms: form.terms, lines: link.lines, total });
+    announceNewOrder(row.id);
     // the shop's customer book keeps the customer (matched by mobile number, never twice)
     saveCustomerOnce({ name: form.name.trim(), phone, address: form.address.trim(), types: ['Online'], addedFrom: ADDED_FROM.link });
     setDone(row);

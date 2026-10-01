@@ -1,9 +1,10 @@
 'use client';
-// OrderDetail — one order in full, opened from Orders (/order-detail?id=<order no>): fulfilment stepper,
-// duplicate warning, line items and payment, the stock held for it, the actions (approve with a hold
-// place, hold, cancel, deliver, courier return), the linked invoice or memo, and activity.
-// Front end only: the order comes from src/lib/orders.js (demo orders, orders made in this browser and
-// demo wholesale invoices); status changes and activity are kept in this browser.
+// OrderDetail — one order in full, opened from Orders (/order-detail?id=<order no>): the steps (New order →
+// Verification → Approved → Ready for courier → In transit → Delivered), the next step's card (verify by call,
+// approve / take advance + approve / cancel, prepare the parcel, send to courier, courier updates), courier
+// tracking, the order's messages (notifications.js), items, stock held, activity.
+// Front end only: the order comes from src/lib/orders.js; the steps are src/lib/orderFlow.js.
+// Text stays short and plain (Shopify style).
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -13,23 +14,31 @@ import { navigate } from '@/runtime/routes';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { Dialog, EmptyState, StatusBadge } from '@/components/ui';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
-import { ORDER_STEPS, orderStatus } from '@/lib/orderStatus';
+import { ORDER_STEPS, STEP_LABEL, NEW_KEYS, orderStatus, isNewOrder } from '@/lib/orderStatus';
 import { usePlaceList } from '@/lib/usePlaces';
 import { productBy } from '@/lib/stock';
 import { holdsFor } from '@/lib/stockHolds';
 import { courierHistory } from '@/lib/orderLinks';
 import {
-  getOrders, duplicatesOf, holdsOfOrder, heldText, availability, approveOrder, holdOrderStock, cancelOrder, deliverOrder, markReturned, mergeInto,
+  getOrders, findOrder, duplicatesOf, holdsOfOrder, heldText, availability, approveOrder, holdOrderStock, cancelOrder, mergeInto,
   logOrder, logOf, rtoState, invoiceHref, orderHref, isCounterSale, holdPlaceOf,
-  CAN_APPROVE, CAN_CANCEL, CAN_DELIVER, CAN_RETURN, DEFAULT_HOLD_PLACE, RTO_REASONS,
+  CAN_CANCEL, DEFAULT_HOLD_PLACE,
 } from '@/lib/orders';
+import {
+  verifyOf, startAutoCall, settleAutoCall, recordCall, CALL_RESULTS, callResultLabel, requestAdvance, receiveAdvance, ADVANCE_METHODS,
+  COURIERS, courierCharge, prepOf, prepDone, updatePrep, markReady, sendToCourier, trackingOf, courierWebhook, syncCourier, HOOK_LABEL,
+} from '@/lib/orderFlow';
+import { notificationLog, retryNotification, NOTIFY_EVENT } from '@/lib/notifications';
+import { clockNow } from '@/lib/settlements';
+import { printNode } from '@/lib/printNode';
+import { QrCode } from '@/components/QrCode';
+import { MERCHANT } from '@/lib/merchant';
 
 const DEFAULT_ID = '#136779';   // what opens when a link carries no order number
-const STEP_NOTES = { pending: 'Awaiting confirmation', approved: 'Not approved yet', ready: 'No courier yet', shipped: 'Not shipped yet', delivered: 'Not delivered yet' };
+const CANCEL_REASONS = ['Customer cancelled', 'No answer', 'Fake order', 'Out of stock', 'Duplicate order', 'Other'];
 const PAYMENTS = { Paid: ['success', 'check'], Unpaid: ['error', 'circle-alert'], Partial: ['warning', 'circle-dashed'], COD: ['neutral', 'banknote'] };
 const HOLD_STATUS = { held: ['On hold', 'warning'], released: ['Released', 'success'], delivered: ['Delivered', 'slate'], damaged: ['Damaged', 'error'] };
-const ACTIONS = ['Approve', 'Hold', 'Cancel', 'Mark delivered', 'Courier return'];
-const COURIERS = ['Steadfast', 'Pathao', 'Carrybee', 'RedX'];
+const SEND_STATUS = { Delivered: 'success', Failed: 'error', Skipped: 'slate', Off: 'slate', Sent: 'info' };
 const digitsOf = (t) => String(t || '').replace(/\D/g, '');
 const units = (list) => list.reduce((a, h) => a + h.qty, 0);
 const minutesApart = (a, b) => {
@@ -110,6 +119,46 @@ const CSS = `
 .od-step--done .od-step__label{color:var(--text-heading)}
 .od-step--current .od-step__label{color:var(--text-heading);font-weight:var(--weight-semibold)}
 .od-step__note{margin:1px 0 0;font-size:var(--text-xs);color:var(--text-muted)}
+.od-next{border-color:var(--primary);box-shadow:0 0 0 3px var(--fill-primary-soft)}
+.od-line{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin:0;font-size:var(--text-sm);color:var(--text-body)}
+.od-line b{font-weight:var(--weight-medium);color:var(--text-heading)}
+.od-acts{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.od-acts .gc-btn{flex:0 1 auto}
+.od-hr{height:1px;margin:0;border:0;background:var(--border-subtle)}
+.od-checks{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
+.od-checks li{display:flex;align-items:center;gap:var(--space-3);min-height:52px;padding:var(--space-2) 0;border-top:1px solid var(--border-subtle)}
+.od-checks li:first-child{border-top:0}
+.od-checks label{display:flex;align-items:center;gap:var(--space-3);flex:1;min-width:0;cursor:pointer}
+.od-checks input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--primary)}
+.od-checks label>span{display:flex;flex-direction:column;min-width:0}
+.od-checks b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.od-checks small{font-size:var(--text-xs);color:var(--text-muted);overflow-wrap:anywhere}
+.od-money{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2)}
+.od-money div{padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--surface-subtle)}
+.od-money span{display:block;font-size:var(--text-xs);color:var(--text-muted)}
+.od-money b{display:block;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading);font-variant-numeric:tabular-nums}
+.od-money .is-cod{background:var(--fill-primary-soft)}
+.od-time{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
+.od-time li{position:relative;display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:var(--space-3);align-items:baseline;padding:0 0 var(--space-4)}
+.od-time li::before{content:"";position:absolute;left:5px;top:16px;bottom:0;width:2px;background:var(--border-subtle)}
+.od-time li:last-child{padding-bottom:0}
+.od-time li:last-child::before{display:none}
+.od-time i{width:12px;height:12px;border-radius:var(--radius-full);background:var(--border-strong);transform:translateY(1px)}
+.od-time li:first-child i{background:var(--primary);box-shadow:0 0 0 3px var(--fill-primary-soft)}
+.od-time b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.od-time span{font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap}
+.od-msgs{display:flex;flex-direction:column}
+.od-msg{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:var(--space-3);align-items:center;padding:var(--space-3) 0;border-top:1px solid var(--border-subtle)}
+.od-msg:first-child{border-top:0}
+.od-msg__ic{display:grid;place-items:center;width:32px;height:32px;border-radius:var(--radius-full);background:var(--surface-subtle);color:var(--text-body)}
+.od-msg__main{display:flex;flex-direction:column;min-width:0}
+.od-msg__main b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.od-msg__main span{font-size:var(--text-xs);color:var(--text-muted);overflow-wrap:anywhere}
+.od-msg__end{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;justify-content:flex-end}
+.od-hooks{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.od-demo{padding:var(--space-3);border:1px dashed var(--border-strong);border-radius:var(--radius-lg)}
+.od-demo>p{margin:0 0 var(--space-2);font-size:var(--text-xs);color:var(--text-muted)}
+.od-slip{display:none}
 @media (max-width:1100px){.od-grid{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:767px){
 .od-bar{padding:var(--space-3) 16px;top:56px}
@@ -121,6 +170,10 @@ const CSS = `
 .od-step::after{top:36px;bottom:4px;left:15px;width:3px;height:auto}
 }
 @media (max-width:640px){
+.od-money{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.od-money .is-cod{grid-column:1 / -1}
+.od-msg{grid-template-columns:32px minmax(0,1fr)}
+.od-msg__end{grid-column:2;justify-content:flex-start}
 /* totals: the line above Total runs across both columns */
 .od-sum{column-gap:0}
 .od-sum dt{padding-right:var(--space-5)}
@@ -156,17 +209,20 @@ export default function OrderDetail() {
   const [id, setId] = useState('');
   const [back, setBack] = useState('/merchant-orders');
   const [tick, setTick] = useState(0);
-  const [action, setAction] = useState('Approve');
   const [place, setPlace] = useState(DEFAULT_HOLD_PLACE);
   const holdPlaces = usePlaceList('stock');   // live places after mount (built-in list first)
-  const [courier, setCourier] = useState(COURIERS[0]);
-  const [reason, setReason] = useState(RTO_REASONS[0]);
   const [holdOpen, setHoldOpen] = useState(false);     // hold stock for an order approved without a hold
+  const [dlg, setDlg] = useState(null);                // 'approve' | 'advance' | 'cancel' | 'call'
+  const [adv, setAdv] = useState({ amount: '', method: 'bkash online' });
+  const [cancel, setCancel] = useState({ reason: CANCEL_REASONS[0], tell: true });
+  const [call, setCall] = useState({ result: 'confirmed', note: '' });
+  const [lastHook, setLastHook] = useState(null);      // the last courier update, to send it again (it is ignored)
   const [blocked, setBlocked] = useState(false);
-  const [tracking, setTracking] = useState(true);
+  const [tracking, setTracking] = useState(false);
   const [comment, setComment] = useState(null);        // text of the comment being written, null when closed
   const [tags, setTags] = useState(['call-first']);
   const [tagText, setTagText] = useState('');
+  const slipRef = React.useRef(null);
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
@@ -174,28 +230,45 @@ export default function OrderDetail() {
     // Return to the list view the user came from (tab, filters, page). Only same-site list URLs are accepted.
     const from = p.get('from');
     if (from && /^\/merchant-orders(\?|$)/.test(from)) setBack(from);
+    syncCourier();   // courier updates that came in while away
     setReady(true);
+    const again = () => setTick((t) => t + 1);
+    window.addEventListener(NOTIFY_EVENT, again);
+    return () => window.removeEventListener(NOTIFY_EVENT, again);
   }, []);
 
   const all = useMemo(() => (ready ? getOrders() : []), [ready, tick]);
   const o = all.find((x) => x.id === id) || null;
   const holds = useMemo(() => (o ? holdsOfOrder(o.id) : []), [o, tick]);
   const refresh = () => setTick((t) => t + 1);
+  const v = o ? verifyOf(o) : null;
 
   useEffect(() => {
     if (!o) return;
-    // open on the action that fits the order's status
-    setAction(CAN_APPROVE.includes(o.statusKey) ? 'Approve' : CAN_DELIVER.includes(o.statusKey) ? 'Mark delivered' : o.statusKey === 'returned' ? 'Courier return' : 'Approve');
     setPlace(holdPlaceOf(o.id));
-    if (COURIERS.includes(o.courier)) setCourier(o.courier);
+    setAdv((a) => ({ ...a, amount: String(o.shipping || 200) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [o && o.id]);
+
+  // an automatic call answers by itself after a few seconds
+  useEffect(() => {
+    if (!o || !v || (v.state !== 'calling' && !v.pending)) return undefined;
+    const wait = v.pending ? 0 : Math.max(0, 6000 - (clockNow() - v.at)) + 50;
+    const t = window.setTimeout(() => {
+      const fresh = findOrder(o.id);
+      const res = fresh ? settleAutoCall(fresh) : null;
+      if (res) toast(res === 'confirmed' ? 'Customer confirmed' : 'Auto call: ' + callResultLabel(res).toLowerCase(), { tone: res === 'confirmed' ? 'success' : 'info' });
+      refresh();
+    }, wait);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [o && o.id, v && v.state, v && v.at]);
 
   if (!ready || !o) {
     return (
       <Shell page="Order">
         <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px' }}>
-          {ready ? <><h1 className="sr-only">Order not found</h1><EmptyState icon="file-x" title="This order was not found" body={`There is no order ${id} in this browser.`} /><p style={{ textAlign: 'center' }}><Link href={back} className="gc-btn gc-btn--soft">Back to orders</Link></p></> : null}
+          {ready ? <><h1 className="sr-only">Order not found</h1><EmptyState icon="file-x" title="Order not found" body={`There is no order ${id}.`} /><p style={{ textAlign: 'center' }}><Link href={back} className="gc-btn gc-btn--soft">Back to orders</Link></p></> : null}
         </div>
       </Shell>
     );
@@ -203,8 +276,8 @@ export default function OrderDetail() {
 
   const status = orderStatus(o.statusKey) || { label: o.status, tone: 'neutral', icon: 'circle' };
   const pay = PAYMENTS[o.payment] || PAYMENTS.COD;
-  const stepAt = ORDER_STEPS.indexOf(o.statusKey);
-  const offPath = stepAt < 0;
+  const isNew = isNewOrder(o.statusKey);
+  const offPath = ['cancelled', 'returned'].includes(o.statusKey);
   const dups = duplicatesOf(o, all);
   const open = holds.filter((h) => h.status === 'held');
   const places = [...new Set(holds.map((h) => h.place))].map((pl) => ({ place: pl, list: holds.filter((h) => h.place === pl), held: units(holds.filter((h) => h.place === pl && h.status === 'held')) }));
@@ -212,74 +285,132 @@ export default function OrderDetail() {
   const short = stock.filter((x) => x.short);
   const record = courierHistory(o.phone);
   const samePhone = digitsOf(o.phone).length >= 10 ? all.filter((x) => digitsOf(x.phone) === digitsOf(o.phone)) : [o];
-  const openOrders = samePhone.filter((x) => ['pending', 'approved', 'ready'].includes(x.statusKey)).length;
+  const openOrders = samePhone.filter((x) => [...NEW_KEYS, 'approved', 'ready'].includes(x.statusKey)).length;
   const adj = o.amount - o.subtotal - (o.shipping || 0);
   const due = o.paid == null ? null : Math.max(0, o.amount - o.paid);
+  const paid = o.paid || 0;
+  const cod = o.codAmount != null ? o.codAmount : Math.max(0, o.amount - paid);
   const returnRef = o.invoiceId || o.id;
   const rto = o.statusKey === 'returned' && !isCounterSale(o) ? rtoState(o) : null;
-  const counter = isCounterSale(o);
+  const counter = isCounterSale(o) || o.isInvoice;
+  const prep = prepOf(o);
+  const track = trackingOf(o);
+  const msgs = counter ? [] : notificationLog(o);
   const activity = [
     ...logOf(o.id),
     { at: o.at, icon: counter ? 'store' : 'shopping-bag', title: counter ? 'Sold at the counter' : 'Order placed', meta: o.channel },
   ];
+  const advNum = Math.round(Number(adv.amount) || 0);
+  const advOk = advNum > 0 && advNum < o.amount - paid;
+
+  // ---- the steps ------------------------------------------------------------------------------------------
+  const reached = {
+    new: true,
+    verified: (v && v.state === 'confirmed') || (!isNew && !offPath) || (offPath && v && v.state === 'confirmed'),
+    approved: ['approved', 'ready', 'shipped', 'delivered'].includes(o.statusKey) || (o.statusKey === 'returned'),
+    ready: ['ready', 'shipped', 'delivered'].includes(o.statusKey) || (o.statusKey === 'returned'),
+    shipped: ['shipped', 'delivered'].includes(o.statusKey) || (o.statusKey === 'returned'),
+    delivered: o.statusKey === 'delivered',
+  };
+  const nextStep = offPath ? null : ORDER_STEPS.find((k) => !reached[k]) || null;
+  const t = o.times || {};
+  const when = (x) => (x ? formatTime(x) + ', ' + formatDate(x) : '');
+  const stepNote = {
+    new: isNew ? status.label : formatDate(o.at),
+    verified: v ? (v.state === 'calling' ? 'Calling…' : `${callResultLabel(v.state)} · ${v.method === 'auto' ? 'Auto call' : 'Call'}`) : 'Not yet',
+    approved: t.approved ? when(t.approved) : '',
+    ready: t.ready ? when(t.ready) : '',
+    shipped: t.shipped ? o.courier : '',
+    delivered: t.delivered ? when(t.delivered) : '',
+  };
 
   // ---- actions -------------------------------------------------------------------------------
-  const approve = () => {
+  const autoCall = () => { startAutoCall(o); refresh(); toast('Calling ' + o.customer + '…', { tone: 'info' }); };
+  const saveCall = (e) => {
+    e.preventDefault();
+    recordCall(o, call.result, call.note.trim());
+    setDlg(null); setCall({ result: 'confirmed', note: '' }); refresh();
+    toast('Call saved');
+  };
+  const approve = (e) => {
+    if (e) e.preventDefault();
     approveOrder(o, place);
-    refresh();
-    toast(`Order ${o.id} approved · ${units(o.lines)} pcs held at ${place}${short.length ? ` · ${short.length} short, restock before packing` : ''}`);
+    setDlg(null); refresh();
+    toast(`Order ${o.id} approved`);
+  };
+  const askAdvance = () => {
+    if (!advOk) return;
+    requestAdvance(o, advNum); refresh();
+    toast('Payment link sent');
+  };
+  const takeAdvance = (e) => {
+    e.preventDefault();
+    if (!advOk) return;
+    receiveAdvance(o, { amount: advNum, method: adv.method, place });
+    setDlg(null); refresh();
+    toast(`Advance received · order ${o.id} approved`);
+  };
+  const doCancel = (e) => {
+    e.preventDefault();
+    cancelOrder(o, 'Cancelled', 'Staff', cancel.reason === 'Other' ? '' : cancel.reason);
+    setDlg(null); refresh();
+    toast(`Order ${o.id} cancelled`);
   };
   const holdStock = (e) => {
     e.preventDefault();
     holdOrderStock(o, place, 'Held from the order page');
-    logOrder(o.id, 'lock', 'Stock held', `${place} · Staff`);
+    logOrder(o.id, 'lock', 'Stock held', place);
     setHoldOpen(false); refresh();
-    toast(`Stock for ${o.id} is held at ${place}`);
+    toast('Stock held');
   };
-  const askCancel = async (why) => {
-    const held = holdsFor(o.id);
-    const ok = await confirmDialog({
-      title: why ? `Cancel ${o.id} as a duplicate?` : `Cancel order ${o.id}?`,
-      body: `${o.customer} is told by SMS. ` + (held.length ? `These held items go back to stock: ${heldText(held)}.` : 'No stock is held for this order.'),
-      confirmLabel: 'Cancel order', cancelLabel: 'Keep order', tone: 'danger',
-    });
+  const askCancelDuplicate = async (why) => {
+    const ok = await confirmDialog({ title: `Cancel ${o.id}?`, body: why + '.', confirmLabel: 'Cancel order', cancelLabel: 'Keep order', tone: 'danger' });
     if (!ok) return;
-    const ended = cancelOrder(o, why || 'Order cancelled');
+    cancelOrder(o, why, 'Staff', 'Duplicate order');
     refresh();
-    toast(`Order ${o.id} cancelled${ended.length ? ` · ${units(ended)} pcs back in stock` : ''}`);
+    toast(`Order ${o.id} cancelled`);
   };
   const askMerge = async (target) => {
     const held = holdsFor(o.id);
     const ok = await confirmDialog({
       title: `Merge ${o.id} into ${target.id}?`,
-      body: `${o.lines.map((l) => `${l.name} × ${l.qty}`).join(', ')} move to ${target.id} (delivery is charged once), then ${o.id} is cancelled. `
-        + (held.length ? `Its held items go back to stock: ${heldText(held)}.` : 'No stock is held for it.'),
+      body: `Its items move to ${target.id}, then ${o.id} is cancelled.` + (held.length ? ` Held items go back to stock.` : ''),
       confirmLabel: 'Merge and cancel', tone: 'danger',
     });
     if (!ok) return;
     mergeInto(o, target);
-    toast(`${o.id} merged into ${target.id} and cancelled`);
+    toast(`Merged into ${target.id}`);
     navigate(orderHref(target.id, encodeURIComponent(back)));
     setId(target.id); refresh();
   };
-  const putOnHold = () => {
-    logOrder(o.id, 'pause-circle', 'Order put on hold', 'Held back from courier pushes · Staff');
+  const setPrep = (patch) => {
+    const next = updatePrep(o, patch);
+    // all packing steps done: the order is ready for the courier by itself
+    if (prepDone(next) && o.statusKey === 'approved') { markReady(findOrder(o.id) || o); toast('Ready for courier'); }
     refresh();
-    toast(`Order ${o.id} is on hold · it stays out of courier pushes until released`);
   };
-  const deliver = async () => {
-    const ok = await confirmDialog({ title: `Mark ${o.id} as delivered?`, body: `The held items leave the stock: ${open.length ? heldText(open) : 'nothing is held'}.`, confirmLabel: 'Mark delivered' });
-    if (!ok) return;
-    deliverOrder(o); refresh();
-    toast(`Order ${o.id} delivered`);
+  const printSlip = () => {
+    if (!prep.courier) { toast('Choose a courier first', { tone: 'error' }); return; }
+    printNode(slipRef.current, { title: `Slip ${o.id}`, css: '@page{size:100mm 150mm;margin:4mm} .od-slip{display:block!important}' });
+    setPrep({ slipPrinted: true });
   };
-  const returning = () => {
-    markReturned(o, reason); refresh();
-    toast(`${o.id} marked as returned by ${o.courier}. Book it in at Courier returns when it arrives.`);
+  const ready2 = () => { markReady(o); refresh(); toast('Ready for courier'); };
+  const send = () => {
+    const r = sendToCourier(o);
+    refresh();
+    if (r.ok) toast(`Sent to ${r.courier} · ${r.id}`); else toast(r.error, { tone: 'error' });
   };
+  const hook = (code, again) => {
+    const eventId = again && lastHook ? lastHook.eventId : `${code}-${o.id}-${Date.now().toString(36)}`;
+    const r = courierWebhook(findOrder(o.id) || o, again && lastHook ? lastHook.code : code, eventId);
+    if (!again) setLastHook({ code, eventId });
+    refresh();
+    toast(r.duplicate ? 'Already received · nothing sent' : HOOK_LABEL[code], { tone: r.duplicate ? 'info' : 'success' });
+  };
+  const retry = (rid) => { const r = retryNotification(rid); refresh(); toast(r && r.status === 'Delivered' ? 'Sent' : 'Still failing', { tone: r && r.status === 'Delivered' ? 'success' : 'error' }); };
   const toggleBlock = async () => {
     if (blocked) { setBlocked(false); toast(o.customer + ' unblocked', { tone: 'info' }); return; }
-    const ok = await confirmDialog({ title: 'Block this customer?', body: `${o.customer} (${o.phone}) will not be able to place new orders, and order ${o.id} is held back from courier pushes.`, confirmLabel: 'Block customer', tone: 'danger' });
+    const ok = await confirmDialog({ title: 'Block this customer?', body: `${o.customer} can't place new orders.`, confirmLabel: 'Block customer', tone: 'danger' });
     if (!ok) return;
     setBlocked(true);
     toast(o.customer + ' blocked', { undo: () => setBlocked(false) });
@@ -287,68 +418,107 @@ export default function OrderDetail() {
   const saveComment = (e) => {
     e.preventDefault();
     if (!comment.trim()) return;
-    logOrder(o.id, 'message-square', 'Comment', comment.trim() + ' · Staff');
+    logOrder(o.id, 'message-square', 'Comment', comment.trim());
     setComment(null); refresh();
     toast('Comment added');
   };
-  const addTag = () => { const t = tagText.trim(); if (t && !tags.includes(t)) setTags([...tags, t]); setTagText(''); };
+  const addTag = () => { const x = tagText.trim(); if (x && !tags.includes(x)) setTags([...tags, x]); setTagText(''); };
 
-  const panel = {
-    Approve: CAN_APPROVE.includes(o.statusKey) ? (
-      <>
-        <h3>Approve order for delivery</h3>
-        <p>Pick where the stock is held. The items stay held there until the order is delivered, cancelled or comes back.</p>
+  // ---- the next step card ------------------------------------------------------------------------------
+  const verifyLine = v ? (
+    <p className="od-line"><Icon name={v.state === 'confirmed' ? 'circle-check' : v.state === 'calling' ? 'phone-outgoing' : 'phone-missed'} width="16" height="16" aria-hidden="true" style={{ color: v.state === 'confirmed' ? 'var(--text-success)' : v.state === 'calling' ? 'var(--primary)' : 'var(--text-warning)' }} />
+      <b>{v.state === 'calling' ? 'Calling…' : callResultLabel(v.state)}</b><span className="od-sub">{v.method === 'auto' ? 'Auto call' : 'Call'}{v.at ? ' · ' + formatTime(v.at) : ''}{v.note ? ' · ' + v.note : ''}</span></p>
+  ) : <p className="od-line"><Icon name="phone" width="16" height="16" aria-hidden="true" /><span>Not verified yet</span></p>;
+  const recordLine = record && record.total ? <p className="od-line"><Icon name="truck" width="16" height="16" aria-hidden="true" /><span>{record.total} past parcels · {record.rate}% delivered</span></p> : null;
+
+  let next = null;
+  if (counter) next = null;
+  else if (isNew) next = (
+    <section className="gc-card od-card od-next" aria-labelledby="od-next">
+      <div className="od-card__head"><div><h2 id="od-next">{v && v.state === 'confirmed' ? 'Approve order' : 'Verify order'}</h2><p>{o.advance && o.advance.state === 'requested' ? `Advance ${formatBDT(o.advance.amount)} requested` : status.hint}</p></div></div>
+      <div className="od-card__body">
+        {verifyLine}
+        {recordLine}
+        <div className="od-acts">
+          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={autoCall} disabled={v && v.state === 'calling'}><Icon name="phone-outgoing" width="16" height="16" aria-hidden="true" /> Auto call</button>
+          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setDlg('call')}><Icon name="phone" width="16" height="16" aria-hidden="true" /> Log call</button>
+        </div>
+        <hr className="od-hr" />
+        <div className="od-acts">
+          <button type="button" className="gc-btn gc-btn--solid" onClick={() => setDlg('approve')}><Icon name="check" width="18" height="18" aria-hidden="true" /> Approve</button>
+          {o.payment !== 'Paid' ? <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setDlg('advance')}><Icon name="hand-coins" width="18" height="18" aria-hidden="true" /> Take advance + approve</button> : null}
+          <button type="button" className="gc-btn gc-btn--neutral" style={{ color: 'var(--text-danger)' }} onClick={() => setDlg('cancel')}>Cancel order</button>
+        </div>
+      </div>
+    </section>
+  );
+  else if (o.statusKey === 'approved') next = (
+    <section className="gc-card od-card od-next" aria-labelledby="od-next">
+      <div className="od-card__head"><div><h2 id="od-next">Prepare parcel</h2><p>Pack it, print the slip, attach it.</p></div></div>
+      <div className="od-card__body">
         <div className="od-two">
-          <div><label className="gc-label" htmlFor="od-place">Hold stock from</label><select id="od-place" className="gc-input gc-select" value={place} onChange={(e) => setPlace(e.target.value)}>{holdPlaces.map((x) => <option key={x}>{x}</option>)}</select></div>
-          <div><label className="gc-label" htmlFor="od-courier">Courier</label><select id="od-courier" className="gc-input gc-select" value={courier} onChange={(e) => setCourier(e.target.value)}>{COURIERS.map((x) => <option key={x}>{x}</option>)}</select></div>
+          <div><label className="gc-label" htmlFor="od-courier">Courier</label><select id="od-courier" className="gc-input gc-select" value={prep.courier} onChange={(e) => setPrep({ courier: e.target.value, slipPrinted: false, slipAttached: false })}><option value="">Choose courier</option>{COURIERS.map((x) => <option key={x} value={x}>{x} · {formatBDT(courierCharge(x, o.zone))}</option>)}</select></div>
         </div>
-        <div className="gc-table-wrap">
-          <table className="gc-table gc-table--compact">
-            <caption className="sr-only">Free stock at {place}</caption>
-            <thead><tr><th scope="col">Item</th><th scope="col" className="od-num">Ordered</th><th scope="col" className="od-num">Free at {place}</th></tr></thead>
-            <tbody>{stock.map((x) => <tr key={x.name}><td className="od-strong">{x.name}{!x.known ? <span className="od-sub">Not in the stock list</span> : null}</td><td className="od-num">{x.qty}</td><td className={'od-num' + (x.short ? ' od-short' : '')}>{x.known ? x.available : '—'}</td></tr>)}</tbody>
-          </table>
+        <div className="od-money"><div><span>Total</span><b>{formatBDT(o.amount)}</b></div><div><span>Paid</span><b>{formatBDT(paid)}</b></div><div className="is-cod"><span>COD to collect</span><b>{formatBDT(cod)}</b></div></div>
+        <ul className="od-checks">
+          <li><label><input type="checkbox" checked={!!prep.addressOk} onChange={(e) => setPrep({ addressOk: e.target.checked })} /><span><b>Shipping info checked</b><small>{o.customer} · {o.phone} · {o.address || 'No address'}</small></span></label></li>
+          <li><label><input type="checkbox" checked={!!prep.amountsOk} onChange={(e) => setPrep({ amountsOk: e.target.checked })} /><span><b>Amounts confirmed</b><small>COD {formatBDT(cod)}</small></span></label></li>
+          <li><label><input type="checkbox" checked={!!prep.slipPrinted} onChange={(e) => setPrep({ slipPrinted: e.target.checked })} disabled={!prep.courier} /><span><b>Slip printed</b><small>{prep.courier ? prep.courier + ' label' : 'Choose a courier first'}</small></span></label><button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={printSlip}><Icon name="printer" width="16" height="16" aria-hidden="true" /> Print slip</button></li>
+          <li><label><input type="checkbox" checked={!!prep.packed} onChange={(e) => setPrep({ packed: e.target.checked })} /><span><b>Packed</b></span></label></li>
+          <li><label><input type="checkbox" checked={!!prep.slipAttached} onChange={(e) => setPrep({ slipAttached: e.target.checked })} disabled={!prep.slipPrinted} /><span><b>Slip attached</b></span></label></li>
+        </ul>
+        <button type="button" className="gc-btn gc-btn--solid" disabled={!prepDone(prep)} onClick={ready2}><Icon name="package-check" width="18" height="18" aria-hidden="true" /> Mark as ready for courier</button>
+      </div>
+    </section>
+  );
+  else if (o.statusKey === 'ready') next = (
+    <section className="gc-card od-card od-next" aria-labelledby="od-next">
+      <div className="od-card__head"><div><h2 id="od-next">Send to courier</h2><p>Packed and labelled.</p></div></div>
+      <div className="od-card__body">
+        <div className="od-two"><div><label className="gc-label" htmlFor="od-courier">Courier</label><select id="od-courier" className="gc-input gc-select" value={prep.courier} onChange={(e) => setPrep({ courier: e.target.value })}>{COURIERS.map((x) => <option key={x} value={x}>{x} · {formatBDT(courierCharge(x, o.zone))}</option>)}</select></div></div>
+        <div className="od-money"><div><span>Total</span><b>{formatBDT(o.amount)}</b></div><div><span>Paid</span><b>{formatBDT(paid)}</b></div><div className="is-cod"><span>COD to collect</span><b>{formatBDT(cod)}</b></div></div>
+        <button type="button" className="gc-btn gc-btn--solid" onClick={send}><Icon name="truck" width="18" height="18" aria-hidden="true" /> Send to courier</button>
+      </div>
+    </section>
+  );
+  else if (o.statusKey === 'shipped') next = (
+    <section className="gc-card od-card" aria-labelledby="od-next">
+      <div className="od-card__head"><div><h2 id="od-next">In transit</h2><p>{o.courier} · {o.consignment}</p></div>{o.trackingUrl ? <a className="od-linkbtn" href={o.trackingUrl} target="_blank" rel="noreferrer">Track</a> : null}</div>
+      <div className="od-card__body">
+        <div className="od-money"><div><span>Total</span><b>{formatBDT(o.amount)}</b></div><div><span>Paid</span><b>{formatBDT(paid)}</b></div><div className="is-cod"><span>COD to collect</span><b>{formatBDT(cod)}</b></div></div>
+        <div className="od-demo">
+          <p>Courier updates (demo)</p>
+          <div className="od-hooks">
+            {['out', 'delivered', 'failed', 'return'].map((k) => <button key={k} type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => hook(k)}>{HOOK_LABEL[k]}</button>)}
+            {lastHook ? <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => hook(lastHook.code, true)}>Send again</button> : null}
+          </div>
         </div>
-        {short.length ? <p className="gc-help gc-help--error" style={{ margin: 0 }}>{short.map((x) => x.name).join(', ')} {short.length === 1 ? 'is' : 'are'} short at {place}. Pick another place or restock before packing.</p> : null}
-        <button type="button" className="gc-btn gc-btn--solid gc-btn--block" onClick={approve}>Approve and hold stock</button>
-      </>
-    ) : <><h3>Approve order</h3><p>Only Pending orders can be approved. This order is {status.label}.</p></>,
-    Hold: (
-      <>
-        <h3>Put order on hold</h3>
-        <p>The order stays in the pipeline but is kept out of courier pushes until you release it. Held stock stays held.</p>
-        <button type="button" className="gc-btn gc-btn--solid gc-btn--block" disabled={!CAN_CANCEL.includes(o.statusKey)} onClick={putOnHold}>Hold order</button>
-      </>
-    ),
-    Cancel: CAN_CANCEL.includes(o.statusKey) ? (
-      <>
-        <h3>Cancel this order</h3>
-        <p>{open.length ? `These held items go back to stock: ${heldText(open)}.` : 'No stock is held for this order.'} The customer is told by SMS.</p>
-        <button type="button" className="gc-btn gc-btn--solid gc-btn--error gc-btn--block" onClick={() => askCancel('')}>Cancel order</button>
-      </>
-    ) : <><h3>Cancel order</h3><p>{o.statusKey === 'cancelled' ? 'This order is already cancelled.' : `A ${status.label.toLowerCase()} order cannot be cancelled. Use Return for items that came back.`}</p></>,
-    'Mark delivered': CAN_DELIVER.includes(o.statusKey) ? (
-      <>
-        <h3>Mark as delivered</h3>
-        <p>Closes the order. The held items leave the stock{open.length ? `: ${heldText(open)}` : ''}.</p>
-        <button type="button" className="gc-btn gc-btn--solid gc-btn--success gc-btn--block" onClick={deliver}>Mark as delivered</button>
-      </>
-    ) : <><h3>Mark as delivered</h3><p>Only approved, packed or shipped orders can be marked delivered. This order is {status.label}.</p></>,
-    'Courier return': rto ? (
-      <>
-        <h3>Courier return</h3>
-        <p>{rto.left ? `${rto.left} of ${rto.sent} pcs are still with ${o.courier}.` : `All ${rto.sent} pcs are back.`} {o.rtoReason ? `Reason: ${o.rtoReason}.` : ''}</p>
-        <Link href={'/courier-returns?id=' + encodeURIComponent(o.id)} className="gc-btn gc-btn--solid gc-btn--block"><Icon name="package-open" width="18" height="18" aria-hidden="true" /> {rto.left ? 'Receive the parcel' : 'See what came back'}</Link>
-      </>
-    ) : CAN_RETURN.includes(o.statusKey) && !counter ? (
-      <>
-        <h3>Courier is returning the parcel</h3>
-        <p>The order moves to Returned and shows in Courier returns. The held stock stays held until the parcel is received.</p>
-        <div><label className="gc-label" htmlFor="od-rto">Reason</label><select id="od-rto" className="gc-input gc-select" value={reason} onChange={(e) => setReason(e.target.value)}>{RTO_REASONS.map((x) => <option key={x}>{x}</option>)}</select></div>
-        <button type="button" className="gc-btn gc-btn--solid gc-btn--error gc-btn--block" onClick={returning}>Mark as returned</button>
-      </>
-    ) : <><h3>Courier return</h3><p>Only packed or shipped online orders can be returned by the courier. {counter ? 'For a counter sale use Return.' : `This order is ${status.label}.`}</p></>,
-  };
+      </div>
+    </section>
+  );
+  else if (o.statusKey === 'delivered') next = (
+    <section className="gc-card od-card" aria-labelledby="od-next">
+      <div className="od-card__head"><div><h2 id="od-next">Delivered</h2><p>{when(t.delivered)}</p></div></div>
+      <div className="od-card__body">
+        {o.codCollected ? <p className="od-line"><Icon name="hand-coins" width="16" height="16" aria-hidden="true" /><b>{formatBDT(o.codCollected)}</b><span>COD with {o.courier} · settlement pending</span><Link href="/settlements" className="od-linkbtn">Settlements</Link></p>
+          : <p className="od-line"><Icon name="circle-check" width="16" height="16" aria-hidden="true" style={{ color: 'var(--text-success)' }} /><span>Complete</span></p>}
+      </div>
+    </section>
+  );
+  else if (rto) next = (
+    <section className="gc-card od-card" aria-labelledby="od-next">
+      <div className="od-card__head"><div><h2 id="od-next">Returned</h2><p>{o.rtoReason || 'Brought back by the courier'}</p></div></div>
+      <div className="od-card__body">
+        <p className="od-line">{rto.left ? `${rto.left} of ${rto.sent} pcs still with ${o.courier}` : 'All items back'}</p>
+        <Link href={'/courier-returns?id=' + encodeURIComponent(o.id)} className="gc-btn gc-btn--solid"><Icon name="package-open" width="18" height="18" aria-hidden="true" /> {rto.left ? 'Receive parcel' : 'View return'}</Link>
+      </div>
+    </section>
+  );
+  else if (o.statusKey === 'cancelled') next = (
+    <section className="gc-card od-card" aria-labelledby="od-next">
+      <div className="od-card__head"><div><h2 id="od-next">Cancelled</h2><p>{o.cancelReason || when(t.cancelled) || 'This order was cancelled'}</p></div></div>
+    </section>
+  );
 
   return (
     <Shell page={'Order ' + o.id}>
@@ -359,9 +529,8 @@ export default function OrderDetail() {
         <StatusBadge tone={pay[0]} icon={pay[1]}>{o.payment}</StatusBadge>
         {dups.length ? <span className="gc-badge gc-badge--warning">Possible duplicate</span> : null}
         {blocked ? <StatusBadge tone="error" icon="ban">Customer blocked</StatusBadge> : null}
-        <span className="od-meta">Placed {o.placed} · {o.channel}</span>
+        <span className="od-meta">{o.placed} · {o.channel}</span>
         <div className="od-bar__actions">
-          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => toast('Auto call queued to ' + o.phone + ' (attempt 1 of 3)', { tone: 'info' })}><Icon name="phone-call" width="16" height="16" aria-hidden="true" /> Auto call</button>
           <Link href={'/return-exchange?ref=' + encodeURIComponent(returnRef)} className="gc-btn gc-btn--sm gc-btn--neutral"><Icon name="undo-2" width="16" height="16" aria-hidden="true" /> Return</Link>
           <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => toast('Invoice for order ' + o.id + ' sent to the printer', { tone: 'info' })}><Icon name="printer" width="16" height="16" aria-hidden="true" /> Print invoice</button>
           <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => toast('POS receipt for order ' + o.id + ' sent to the printer', { tone: 'info' })}><Icon name="receipt" width="16" height="16" aria-hidden="true" /> Print POS</button>
@@ -377,8 +546,8 @@ export default function OrderDetail() {
               return (
                 <div key={d.id} className="od-dup__row">
                   <Icon name="copy" width="18" height="18" aria-hidden="true" />
-                  <p><b>Possible duplicate of <Link href={orderHref(d.id, encodeURIComponent(back))} className="od-id">{d.id}</Link></b> · same phone {o.phone} and {same.join(', ')} · {d.status}, placed {minutesApart(o.at, d.at)}.</p>
-                  {CAN_CANCEL.includes(o.statusKey) ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => askCancel('Cancelled as a duplicate of ' + d.id)}>Cancel as duplicate</button> : null}
+                  <p><b>Possible duplicate of <Link href={orderHref(d.id, encodeURIComponent(back))} className="od-id">{d.id}</Link></b> · same phone and {same.join(', ')} · {minutesApart(o.at, d.at)}</p>
+                  {CAN_CANCEL.includes(o.statusKey) ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => askCancelDuplicate('Duplicate of ' + d.id)}>Cancel as duplicate</button> : null}
                   {canMerge ? <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => askMerge(d)}>Merge into {d.id}</button> : null}
                 </div>
               );
@@ -390,25 +559,38 @@ export default function OrderDetail() {
           <div className="od-col">
             <section className="gc-card od-card">
               <div className="od-card__head">
-                <div><h2>Order status</h2><p>{offPath ? (o.statusKey === 'cancelled' ? 'This order was cancelled.' : o.statusKey === 'returned' ? `Returned by the courier${o.rtoReason ? ': ' + o.rtoReason.toLowerCase() : ''}.` : status.label) : 'Track the current fulfilment stage'}</p></div>
-                <button type="button" className={'gc-btn gc-btn--sm ' + (blocked ? 'gc-btn--solid gc-btn--error' : 'gc-btn--neutral')} onClick={toggleBlock} aria-pressed={blocked}><Icon name="ban" width="15" height="15" aria-hidden="true" /> {blocked ? 'Blocked · Unblock' : 'Quick block'}</button>
+                <div><h2>Order status</h2><p>{o.statusKey === 'cancelled' ? 'Cancelled' : o.statusKey === 'returned' ? 'Returned' : nextStep ? 'Next: ' + STEP_LABEL[nextStep] : 'Complete'}</p></div>
+                <button type="button" className={'gc-btn gc-btn--sm ' + (blocked ? 'gc-btn--solid gc-btn--error' : 'gc-btn--neutral')} onClick={toggleBlock} aria-pressed={blocked}><Icon name="ban" width="15" height="15" aria-hidden="true" /> {blocked ? 'Unblock' : 'Block'}</button>
               </div>
               <div className="od-card__body">
                 <ol className="od-steps" aria-label="Order progress" style={{ '--steps': ORDER_STEPS.length }}>
-                  {ORDER_STEPS.map((key, i) => {
-                    const info = orderStatus(key);
-                    const state = offPath ? 'todo' : i < stepAt ? 'done' : i === stepAt ? 'current' : 'todo';
+                  {ORDER_STEPS.map((key) => {
+                    const state = reached[key] ? 'done' : key === nextStep ? 'current' : 'todo';
+                    const icon = { new: 'shopping-bag', verified: 'phone', approved: 'circle-check', ready: 'package', shipped: 'truck', delivered: 'package-check' }[key];
                     return (
                       <li key={key} className={'od-step od-step--' + state} aria-current={state === 'current' ? 'step' : undefined}>
-                        <span className="od-step__dot"><Icon name={state === 'done' ? 'check' : state === 'current' ? 'clock' : info.icon} width="16" height="16" aria-hidden="true" /></span>
-                        <p className="od-step__label">{info.label}<span className="sr-only"> ({state === 'done' ? 'Completed' : state === 'current' ? 'Current step' : 'Not started'})</span></p>
-                        <p className="od-step__note">{state === 'current' ? (key === 'pending' ? 'Since ' + o.placed : 'In progress') : state === 'done' ? 'Done' : STEP_NOTES[key]}</p>
+                        <span className="od-step__dot"><Icon name={state === 'done' ? 'check' : icon} width="16" height="16" aria-hidden="true" /></span>
+                        <p className="od-step__label">{key === 'new' ? (isNew ? status.label : STEP_LABEL.new) : STEP_LABEL[key]}<span className="sr-only"> ({state === 'done' ? 'done' : state === 'current' ? 'next' : 'not yet'})</span></p>
+                        <p className="od-step__note">{stepNote[key] || (state === 'current' ? 'Next' : '')}</p>
                       </li>
                     );
                   })}
                 </ol>
               </div>
             </section>
+
+            {next}
+
+            {track.length ? (
+              <section className="gc-card od-card" aria-labelledby="od-track">
+                <div className="od-card__head"><div><h2 id="od-track"><Icon name="map-pin" width="17" height="17" aria-hidden="true" />Tracking</h2><p>{o.courier} · {o.consignment}</p></div>{o.trackingUrl ? <a className="od-linkbtn" href={o.trackingUrl} target="_blank" rel="noreferrer">Open tracking</a> : null}</div>
+                <div className="od-card__body">
+                  <ol className="od-time">
+                    {track.map((e, i) => <li key={e.code + e.at + i}><i aria-hidden="true" /><b>{e.text}</b><span>{formatTime(e.at)}, {formatDate(e.at)}</span></li>)}
+                  </ol>
+                </div>
+              </section>
+            ) : null}
 
             <section className="gc-card od-card">
               <div className="od-card__head">
@@ -439,7 +621,7 @@ export default function OrderDetail() {
                 </span>
               </div>
               <div className="od-card__body">
-                {places.length === 0 ? <p className="od-sub" style={{ margin: 0 }}>{o.statusKey === 'pending' ? 'Stock is held when the order is approved. You choose the place then.' : 'No stock was held for this order.'}</p> : places.map((g) => (
+                {places.length === 0 ? <p className="od-sub" style={{ margin: 0 }}>{isNew ? 'Held when the order is approved.' : 'No stock held.'}</p> : places.map((g) => (
                   <div key={g.place} className="od-place">
                     <div className="od-place__head"><span className="od-strong">{g.place}</span><span className="od-sub">{g.held ? `${g.held} pcs on hold` : 'Nothing on hold now'}</span></div>
                     <div className="gc-table-wrap">
@@ -460,30 +642,30 @@ export default function OrderDetail() {
               </div>
             </section>
 
-            <section className="gc-card od-card" aria-labelledby="od-admin">
-              <div className="od-card__head"><div><h2 id="od-admin"><Icon name="shield-check" width="17" height="17" aria-hidden="true" />Admin management</h2><p>{samePhone.length} {samePhone.length === 1 ? 'order' : 'orders'} from this phone number · {openOrders} open</p></div></div>
-              <div className="od-card__body">
-                <div className="od-box">
-                  <h3>Courier delivery history</h3>
-                  {record && record.total ? (
-                    <div className="od-stats">
-                      <div className="od-stat"><span>Parcels</span><b>{record.total}</b></div>
-                      <div className="od-stat"><span>Delivered</span><b>{record.delivered}</b></div>
-                      <div className="od-stat"><span>Returned</span><b>{record.returned}</b></div>
-                      <div className="od-stat"><span>Success</span><b>{record.rate}%</b></div>
+            {!counter ? (
+              <section className="gc-card od-card" aria-labelledby="od-msgs">
+                <div className="od-card__head"><div><h2 id="od-msgs"><Icon name="send" width="17" height="17" aria-hidden="true" />Notifications</h2><p>{msgs.length ? `${msgs.length} sent` : 'None yet'}</p></div><Link href="/set-notifications" className="od-linkbtn">Settings</Link></div>
+                {msgs.length ? (
+                  <div className="od-card__body">
+                    <div className="od-msgs">
+                      {msgs.map((m) => (
+                        <div key={m.id} className="od-msg">
+                          <span className="od-msg__ic" aria-hidden="true"><Icon name={m.channel === 'Email' ? 'mail' : 'message-square'} width="15" height="15" /></span>
+                          <span className="od-msg__main"><b>{m.label}</b><span>{m.channel} · {m.recipient}{m.to ? ' · ' + m.to : ''} · {formatTime(m.at)}, {formatDate(m.at)}</span>{m.error ? <span>{m.error}</span> : null}</span>
+                          <span className="od-msg__end">
+                            <span className={'gc-badge gc-badge--' + (SEND_STATUS[m.status] || 'slate')}>{m.status}{m.retries ? ` · retried ${m.retries}` : ''}</span>
+                            {m.status === 'Failed' && !m.demo ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => retry(m.id)}>Retry</button> : null}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ) : <p className="od-sub" style={{ margin: 0 }}>{record ? `No parcels to ${o.phone} with the connected couriers yet.` : 'No mobile number to check.'}</p>}
-                  {record && record.couriers.length ? <p className="od-sub" style={{ margin: 'var(--space-2) 0 0' }}>{record.couriers.map((c) => `${c.name}: ${c.delivered} of ${c.total} delivered`).join(' · ')}</p> : null}
-                </div>
-                <div className="od-seg" role="group" aria-label="Order action">
-                  {ACTIONS.map((k) => <button key={k} type="button" aria-pressed={action === k} onClick={() => setAction(k)}>{k}</button>)}
-                </div>
-                <div className="od-panel">{panel[action]}</div>
-              </div>
-            </section>
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
 
             <section className="gc-card od-card">
-              <div className="od-card__head"><h2><Icon name="activity" width="17" height="17" aria-hidden="true" />Tracking details</h2><button type="button" className="od-linkbtn" aria-expanded={tracking} onClick={() => setTracking(!tracking)}>{tracking ? 'Hide summary' : 'Show summary'}</button></div>
+              <div className="od-card__head"><h2><Icon name="activity" width="17" height="17" aria-hidden="true" />Visit details</h2><button type="button" className="od-linkbtn" aria-expanded={tracking} onClick={() => setTracking(!tracking)}>{tracking ? 'Hide' : 'Show'}</button></div>
               {tracking ? (
                 <div className="od-card__body">
                   {counter ? <p className="od-sub" style={{ margin: 0 }}>Counter sale · no storefront session.</p> : (
@@ -587,6 +769,69 @@ export default function OrderDetail() {
           <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setHoldOpen(false)}>Cancel</button><button type="submit" className="gc-btn gc-btn--solid">Hold stock</button></div>
         </form>
       </Dialog>
+
+      <Dialog open={dlg === 'call'} title="Log call" onClose={() => setDlg(null)} width={440}>
+        <form onSubmit={saveCall} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <p className="gc-help" style={{ margin: 0 }}>{o.customer} · <a href={'tel:' + digitsOf(o.phone)}>{o.phone}</a></p>
+          <div><label className="gc-label" htmlFor="od-call">Result</label><select id="od-call" className="gc-input gc-select" data-autofocus value={call.result} onChange={(e) => setCall({ ...call, result: e.target.value })}>{CALL_RESULTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
+          <div><label className="gc-label" htmlFor="od-call-note">Note</label><input id="od-call-note" className="gc-input" value={call.note} onChange={(e) => setCall({ ...call, note: e.target.value })} placeholder="Optional" /></div>
+          <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setDlg(null)}>Cancel</button><button type="submit" className="gc-btn gc-btn--solid">Save</button></div>
+        </form>
+      </Dialog>
+
+      <Dialog open={dlg === 'approve'} title={`Approve ${o.id}`} onClose={() => setDlg(null)} width={480}>
+        <form onSubmit={approve} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          {!v || v.state !== 'confirmed' ? <p className="gc-help" style={{ margin: 0 }}>Not verified yet.</p> : null}
+          <div><label className="gc-label" htmlFor="od-place">Hold stock at</label><select id="od-place" className="gc-input gc-select" data-autofocus value={place} onChange={(e) => setPlace(e.target.value)}>{holdPlaces.map((x) => <option key={x}>{x}</option>)}</select></div>
+          <div className="gc-table-wrap">
+            <table className="gc-table gc-table--compact">
+              <caption className="sr-only">Free stock at {place}</caption>
+              <thead><tr><th scope="col">Item</th><th scope="col" className="od-num">Qty</th><th scope="col" className="od-num">Free</th></tr></thead>
+              <tbody>{stock.map((x) => <tr key={x.name}><td className="od-strong">{x.name}</td><td className="od-num">{x.qty}</td><td className={'od-num' + (x.short ? ' od-short' : '')}>{x.known ? x.available : '—'}</td></tr>)}</tbody>
+            </table>
+          </div>
+          {short.length ? <p className="gc-help gc-help--error" style={{ margin: 0 }}>Not enough stock at {place}.</p> : null}
+          <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setDlg(null)}>Cancel</button><button type="submit" className="gc-btn gc-btn--solid">Approve</button></div>
+        </form>
+      </Dialog>
+
+      <Dialog open={dlg === 'advance'} title="Take advance + approve" onClose={() => setDlg(null)} width={480}>
+        <form onSubmit={takeAdvance} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <div className="od-two">
+            <div><label className="gc-label" htmlFor="od-adv">Advance (৳)</label><input id="od-adv" className="gc-input" type="number" min="1" inputMode="numeric" data-autofocus value={adv.amount} onChange={(e) => setAdv({ ...adv, amount: e.target.value })} aria-invalid={!advOk} /></div>
+            <div><label className="gc-label" htmlFor="od-adv-m">Paid by</label><select id="od-adv-m" className="gc-input gc-select" value={adv.method} onChange={(e) => setAdv({ ...adv, method: e.target.value })}>{ADVANCE_METHODS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
+          </div>
+          <div className="od-money"><div><span>Total</span><b>{formatBDT(o.amount)}</b></div><div><span>Advance</span><b>{formatBDT(advOk ? advNum : 0)}</b></div><div className="is-cod"><span>COD after</span><b>{formatBDT(Math.max(0, o.amount - paid - (advOk ? advNum : 0)))}</b></div></div>
+          {!advOk ? <p className="gc-help gc-help--error" style={{ margin: 0 }}>Enter an amount below {formatBDT(o.amount - paid)}.</p> : null}
+          <div><label className="gc-label" htmlFor="od-adv-place">Hold stock at</label><select id="od-adv-place" className="gc-input gc-select" value={place} onChange={(e) => setPlace(e.target.value)}>{holdPlaces.map((x) => <option key={x}>{x}</option>)}</select></div>
+          <div className="gc-modal__foot" style={{ marginTop: 0, flexWrap: 'wrap' }}>
+            <button type="button" className="gc-btn gc-btn--neutral" disabled={!advOk} onClick={askAdvance}><Icon name="send" width="16" height="16" aria-hidden="true" /> Send payment link</button>
+            <button type="submit" className="gc-btn gc-btn--solid" disabled={!advOk}>Received · approve</button>
+          </div>
+        </form>
+      </Dialog>
+
+      <Dialog open={dlg === 'cancel'} title={`Cancel ${o.id}?`} onClose={() => setDlg(null)} width={440}>
+        <form onSubmit={doCancel} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <div><label className="gc-label" htmlFor="od-cancel">Reason</label><select id="od-cancel" className="gc-input gc-select" data-autofocus value={cancel.reason} onChange={(e) => setCancel({ ...cancel, reason: e.target.value })}>{CANCEL_REASONS.map((x) => <option key={x}>{x}</option>)}</select></div>
+          {open.length ? <p className="gc-help" style={{ margin: 0 }}>Held stock goes back.</p> : null}
+          <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setDlg(null)}>Keep order</button><button type="submit" className="gc-btn gc-btn--solid gc-btn--error">Cancel order</button></div>
+        </form>
+      </Dialog>
+
+      {/* the shipping slip: printed on its own (lib/printNode) */}
+      <div className="od-slip" aria-hidden="true">
+        <div ref={slipRef} style={{ fontFamily: 'var(--font-sans)', color: '#0f172a', padding: '4mm', display: 'flex', flexDirection: 'column', gap: '3mm' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #0f172a', paddingBottom: '2mm' }}><b style={{ fontSize: 'var(--text-lg)' }}>{prep.courier || 'Courier'}</b><span>{MERCHANT.name}</span></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '3mm' }}>
+            <div><div style={{ fontSize: 'var(--text-xs)' }}>Order</div><b style={{ fontSize: 'var(--text-xl)', fontFamily: 'var(--font-data)' }}>{o.id}</b></div>
+            <QrCode text={o.id} size={72} label={'Order ' + o.id} />
+          </div>
+          <div><div style={{ fontSize: 'var(--text-xs)' }}>To</div><b>{o.customer}</b><div>{o.phone}</div><div>{o.address}</div><div>{o.zone}</div></div>
+          <div style={{ border: '2px solid #0f172a', borderRadius: 'var(--radius-lg)', padding: '2mm 3mm', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span>COD</span><b style={{ fontSize: 'var(--text-2xl)' }}>{formatBDT(cod)}</b></div>
+          <div style={{ fontSize: 'var(--text-xs)' }}>{o.units} {o.units === 1 ? 'item' : 'items'} · From {MERCHANT.name}, {MERCHANT.phone}</div>
+        </div>
+      </div>
 
       <Dialog open={comment != null} title="Add a comment" onClose={() => setComment(null)} width={440}>
         <form onSubmit={saveComment} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>

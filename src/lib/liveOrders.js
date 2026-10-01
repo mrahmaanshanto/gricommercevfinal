@@ -1,8 +1,9 @@
 // liveOrders — the online shop keeps taking orders after the demo September: every day from 1 October up
 // to now gets its website, Facebook, phone and order-link orders, made the same way every time (a fixed
 // random seed per date), so the dashboard, Orders and Reports always have a today and a yesterday.
-// Each order moves on with the clock: waiting to be confirmed for a few hours, approved, packed, with
-// the courier, then delivered or brought back (RTO); a few are cancelled before they go out.
+// Each order moves on with the clock: new (On hold / Processing by its payment) for a few hours, approved
+// (some COD orders with the delivery charge taken in advance), ready for courier, in transit, then delivered
+// or brought back (RTO); a few are cancelled before they go out.
 // orders.js lists them with the demo orders (same shape, `live: true`); the sales book counts them.
 // Only the last LIVE_DAYS days are kept. Front end only.
 
@@ -80,6 +81,8 @@ function makeDay(day, firstNo) {
       if (same) same.qty += 1; else lines.push({ name: p.name, sku: p.sku, qty: 1 + (rand() < 0.2 ? 1 : 0), price: p.price });
     }
     const paidOnline = rand() < 0.38;
+    // outside Dhaka the shop often takes the delivery charge in advance before it approves a COD order
+    const advance = !paidOnline && zone === 'Outside Dhaka' && rand() < 0.5 ? SHIPPING[zone] : 0;
     const courier = pickMix(rand, COURIERS[zone]);
     const cancelled = rand() < 0.07;
     // what happens next: confirmed within a few hours (orders after 10 PM wait for the morning)
@@ -100,7 +103,7 @@ function makeDay(day, firstNo) {
       address: `House ${1 + Math.floor(rand() * 60)}, Road ${1 + Math.floor(rand() * 15)}, ${area}`,
       lines, shipping: SHIPPING[zone], total: lines.reduce((a, l) => a + l.qty * l.price, 0) + SHIPPING[zone], courier, consignment: PREFIX[courier] + '-' + String(4400000 + Math.floor(rand() * 5599999)),
       payment: paidOnline ? 'Paid' : 'COD', method: paidOnline ? (rand() < 0.6 ? 'Gateway' : 'bKash') : 'COD',
-      rtoReason: RTO_REASONS[Math.floor(rand() * RTO_REASONS.length)], plan, live: true,
+      rtoReason: RTO_REASONS[Math.floor(rand() * RTO_REASONS.length)], plan, advance, live: true,
     });
   }
   return out.sort((a, b) => a.at - b.at).map((o, i) => ({ ...o, id: '#' + (firstNo + i) }));
@@ -120,14 +123,21 @@ function daysUpTo(now) {
   return DAYS.filter((d) => d.day <= last && d.day > last - LIVE_DAYS * DAY);
 }
 
-/** Status and times of a live order at `now` (only what has happened by then). */
+/** Status and times of a live order at `now` (only what has happened by then). New orders start as
+ *  'New': On hold, Processing or Pending by their payment (orderStatus.js). */
 function asAt(o, now) {
   const t = {};
   Object.keys(o.plan).forEach((k) => { t[k] = o.plan[k] != null && o.plan[k] <= now ? o.plan[k] : null; });
-  const status = t.cancelled ? 'Cancelled' : t.returned ? 'Returned' : t.delivered ? 'Delivered' : t.shipped ? 'Shipped' : t.ready ? 'Ready to ship' : t.approved ? 'Approved' : 'Pending';
-  const { plan, rtoReason, courier, consignment, ...rest } = o;
+  const status = t.cancelled ? 'Cancelled' : t.returned ? 'Returned' : t.delivered ? 'Delivered' : t.shipped ? 'In transit' : t.ready ? 'Ready for courier' : t.approved ? 'Approved' : 'New';
+  const { plan, rtoReason, courier, consignment, advance, ...rest } = o;
   const out = { ...rest, status, times: t, courier: t.shipped ? courier : 'Not assigned', consignment: t.shipped ? consignment : '—' };
   if (status === 'Returned') out.rtoReason = rtoReason;
+  // the advance was taken when the order was approved: the rest is cash on delivery
+  if (advance && t.approved) Object.assign(out, { payment: 'Partial', paid: advance, codAmount: o.total - advance, advance: { amount: advance, state: 'paid', method: 'bkash', at: t.approved - 10 * 60 * 1000 } });
+  else if (o.payment === 'COD') out.codAmount = o.total;
+  // packing: the slip is printed an hour after approval; packed and attached when it is ready for the courier
+  if (t.approved && !t.cancelled) out.prep = { courier, addressOk: true, amountsOk: true, slipPrinted: !!t.ready || now - t.approved > HOUR, packed: !!t.ready, slipAttached: !!t.ready };
+  if (t.shipped) Object.assign(out, { trackingUrl: 'https://gridshop.com.bd/track/' + consignment, sentAt: t.shipped });
   return out;
 }
 

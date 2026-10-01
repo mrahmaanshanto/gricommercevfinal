@@ -227,7 +227,7 @@ function build({ dayOffset, place, ed = 'full' }) {
   // what needs attention, most urgent first
   const att = [];
   const add = (show, item) => { if (show) att.push(item); };
-  add(has('online') && byStatus.pending > 0, { icon: 'clock', tone: 'warning', title: `${byStatus.pending} order${byStatus.pending === 1 ? '' : 's'} to confirm`, sub: 'Call or approve so they can be packed', href: '/merchant-orders?status=pending' });
+  add(has('online') && (byStatus.onhold + byStatus.processing + byStatus.pending) > 0, { icon: 'clock', tone: 'warning', title: `${(byStatus.onhold + byStatus.processing + byStatus.pending)} order${(byStatus.onhold + byStatus.processing + byStatus.pending) === 1 ? '' : 's'} to verify`, sub: 'Call, then approve', href: '/merchant-orders?status=onhold' });
   add(has('money') && m.late.length > 0, { icon: 'clock-alert', tone: 'error', title: `${m.late.length} payout${m.late.length === 1 ? '' : 's'} overdue · ${money(m.lateTotal)}`, sub: 'Payment partners should have paid already', href: '/settlements' });
   add(has('money') && m.supplierOverdue.length > 0, { icon: 'receipt', tone: 'error', title: `${m.supplierOverdue.length} supplier bill${m.supplierOverdue.length === 1 ? '' : 's'} overdue`, sub: `${money(m.supplierOverdue.reduce((a, b) => a + billLeft(b), 0))} past the due date`, href: '/dues?tab=owe' });
   add(has('money') && m.toPayOverdue.length > 0, { icon: 'file-clock', tone: 'error', title: `${m.toPayOverdue.length} bill${m.toPayOverdue.length === 1 ? '' : 's'} to pay overdue`, sub: 'Salaries, commission or promotions', href: '/liabilities' });

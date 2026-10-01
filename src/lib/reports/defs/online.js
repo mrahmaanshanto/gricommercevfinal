@@ -9,7 +9,7 @@ import { courierHistory, DELIVERY_RATES } from '../../orderLinks';
 import { getItems, getPayouts, costsOf, partnerBy, courierPartner, courierChargeOf, PARTNERS } from '../../settlements';
 import { productBy, unitValue } from '../../stock';
 import * as salesBook from '../../salesBook';
-import { ORDER_STATUSES } from '../../orderStatus';
+import { NEW_KEYS, statusKeyOf } from '../../orderStatus';
 import { sum, groupBy, fmt } from '../period';
 
 // ---- shared helpers -------------------------------------------------------------------------------
@@ -22,12 +22,11 @@ const ZONES = ['Inside Dhaka', 'Sub-Dhaka', 'Outside Dhaka'];
 const SOURCES = ['Website', 'Facebook', 'Phone', 'Order link', 'Chat'];
 const TONES = ['primary', 'success', 'warning', 'info', 'danger', 'slate'];
 
-const STATUS_KEY = Object.fromEntries(ORDER_STATUSES.map((s) => [s.label, s.key]));
 const norm = (o) => {
   const lines = o.lines || [];
   return {
     ...o, amount: Number(o.amount) || 0, subtotal: Number(o.subtotal) || 0, shipping: Number(o.shipping) || 0,
-    statusKey: o.statusKey || STATUS_KEY[o.status] || String(o.status || '').toLowerCase(),
+    statusKey: o.statusKey || statusKeyOf(o.status, o.payment),
     units: o.units != null ? o.units : sum(lines, (l) => l.qty),
     itemTitle: o.itemTitle || (lines[0] ? lines[0].name + (lines.length > 1 ? ` + ${lines.length - 1} more` : '') : ''),
   };
@@ -109,7 +108,7 @@ const orderFunnel = {
     const count = (step) => list.filter((o) => reached(o, step)).length;
     const value = (step) => sum(list.filter((o) => reached(o, step)), (o) => o.amount);
     const placed = list.length;
-    const LABEL = { placed: 'Placed', approved: 'Approved', shipped: 'Shipped', delivered: 'Delivered', returned: 'Returned by the courier', cancelled: 'Cancelled' };
+    const LABEL = { placed: 'Placed', approved: 'Approved', shipped: 'In transit', delivered: 'Delivered', returned: 'Returned by the courier', cancelled: 'Cancelled' };
     const rows = steps.map((s, i) => ({
       step: LABEL[s], orders: count(s), value: value(s), ofPlaced: rate(count(s), placed),
       ofBefore: i ? rate(count(s), count(steps[i - 1])) : null, hours: i ? hoursBetween(steps[i - 1], s) : null, _order: i,
@@ -412,7 +411,7 @@ const orderSource = {
 };
 
 // ---- risky orders -----------------------------------------------------------------------------------
-const OPEN = ['pending', 'approved', 'ready'];
+const OPEN = [...NEW_KEYS, 'approved', 'ready'];
 const riskyOrders = {
   id: 'risky-orders',
   group: 'online',

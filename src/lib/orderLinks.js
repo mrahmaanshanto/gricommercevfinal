@@ -1,6 +1,7 @@
 // Order links and hand-made orders, kept in this browser (the app has no backend).
 //   merchant: createOrderLink(draft) -> id -> /order-link?id=<id>
-//   customer: getOrderLink(id), then submitLinkOrder(id, form) -> the order shows in Orders as Pending
+//   customer: getOrderLink(id), then submitLinkOrder(id, form) -> the order shows in Orders as a new order
+//   (On hold, Processing or Pending by its payment: orderStatus.js)
 // addOrder() is also used by the Create order page, so a new order appears in the list.
 // Each order keeps `times` (placed, approved, ready, shipped, delivered, returned, cancelled: ms or
 // null), stamped when its status changes, its `source` (Website, Facebook, Phone, Order link, Chat)
@@ -52,14 +53,14 @@ const stamp = (d) => {
 };
 
 /** Which time an order status stamps in `times`. */
-export const STATUS_TIME = { Approved: 'approved', 'Ready to ship': 'ready', Shipped: 'shipped', Delivered: 'delivered', Returned: 'returned', Cancelled: 'cancelled' };
+export const STATUS_TIME = { Approved: 'approved', 'Ready for courier': 'ready', 'In transit': 'shipped', 'Ready to ship': 'ready', Shipped: 'shipped', Delivered: 'delivered', Returned: 'returned', Cancelled: 'cancelled' };
 /** The payment method an order was taken with, from its payment label. */
 export const METHOD_OF_PAYMENT = { COD: 'COD', Paid: 'Gateway', Partial: 'Mixed', Unpaid: 'Due' };
 const isCounter = (channel) => /^(POS|Wholesale)/.test(String(channel || ''));
 
 /** Adds an order row (the shape the orders list uses) and returns it. The lines are kept so the
  *  order page can show them: [{ name, qty, price, variant, sku, cat, cost }] (cost = buying price of one). */
-export function addOrder({ lines, customer, phone, zone, total, status = 'Pending', payment = 'COD', channel = 'Manual order', address = '', shipping = 0, paid, source, method }) {
+export function addOrder({ lines, customer, phone, zone, total, status = 'New', payment = 'COD', channel = 'Manual order', address = '', shipping = 0, paid, source, method }) {
   const list = read(ORDERS, []);
   const count = lines.reduce((n, l) => n + l.qty, 0);
   const now = new Date();
@@ -102,14 +103,14 @@ export function extraOrders() {
   return typeof window === 'undefined' ? [] : read(ORDERS, []);
 }
 
-/** The customer's answer to an order link: becomes a Pending order and closes the link. */
+/** The customer's answer to an order link: becomes a new order and closes the link. */
 export function submitLinkOrder(id, form) {
   const links = read(LINKS, {});
   const link = links[id];
   const rate = DELIVERY_RATES.find((r) => r.id === form.area) || DELIVERY_RATES[0];
   const row = addOrder({
     lines: form.lines, customer: form.name, phone: prettyPhone(form.phone), zone: rate.label,
-    total: form.total, status: 'Pending', payment: form.terms === 'cod' ? 'COD' : 'Unpaid', channel: 'Order link', address: form.address || '', shipping: rate.fee,
+    total: form.total, status: 'New', payment: form.terms === 'cod' ? 'COD' : 'Unpaid', channel: 'Order link', address: form.address || '', shipping: rate.fee,
   });
   if (link) { links[id] = { ...link, used: true, order: row.id }; write(LINKS, links); }
   return row;

@@ -221,14 +221,14 @@ function build() {
   low.sort((a, b) => a.available - b.available);
 
   // what needs attention, most urgent first (the same rules as the full Home)
-  const pending = orders.filter((o) => o.statusKey === 'pending');
+  const pending = orders.filter((o) => ['onhold', 'processing', 'pending'].includes(o.statusKey));
   const bills = safe(() => getBills(), []).filter((b) => billLeft(b) > 0 && billStatus(b) === 'Overdue');
   const liabs = safe(() => getLiabilities(), []).filter((l) => leftOf(l) > 0 && liabStatus(l, now) === 'Overdue');
   const adjustments = safe(() => getAdjustments(), []).filter((a) => a.status === 'waiting');
   const toReceive = safe(() => courierReturns(orders).filter((o) => rtoState(o).left > 0), []);
   const att = [];
-  if (pending.length) att.push({ icon: 'clock', tone: 'warning', title: `${plural(pending.length, 'order')} to confirm`, sub: 'Call or approve so they can be packed', href: '/merchant-orders?status=pending' });
-  if (courier.ready) att.push({ icon: 'package', tone: 'info', title: `${plural(courier.ready, 'parcel')} ready for the courier`, sub: 'Book the pickup', href: '/merchant-orders?status=ready' });
+  if (pending.length) att.push({ icon: 'clock', tone: 'warning', title: `${plural(pending.length, 'order')} to verify`, sub: 'Call, then approve', href: '/merchant-orders?status=onhold' });
+  if (courier.ready) att.push({ icon: 'package', tone: 'info', title: `${plural(courier.ready, 'parcel')} ready for courier`, sub: 'Send to courier', href: '/merchant-orders?status=ready' });
   if (late.length) att.push({ icon: 'clock-alert', tone: 'error', title: `${plural(late.length, 'payout')} overdue · ${money(wallet.lateTotal)}`, sub: 'Payment partners should have paid already', href: '/settlements' });
   if (toReceive.length) att.push({ icon: 'package-x', tone: 'info', title: `${plural(toReceive.length, 'courier return')} to receive`, sub: 'Check the parcels back into stock', href: '/courier-returns' });
   if (bills.length) att.push({ icon: 'receipt', tone: 'error', title: `${plural(bills.length, 'supplier bill')} overdue`, sub: `${money(bills.reduce((a, b) => a + billLeft(b), 0))} past the due date`, href: '/dues?tab=owe' });
@@ -414,8 +414,8 @@ export default function OnlineHome() {
                 {shown('courier') ? (
                   <Card icon="truck" title="In courier" sub={`${plural(d.courier.parcels, 'parcel')} on the way · ${short(d.courier.cod)} cash to collect`} link={['/merchant-orders?status=shipped', 'Shipped']} span={4} i={next()}>
                     <div className="od-steps">
-                      <Link href="/merchant-orders?status=ready"><b>{d.courier.ready}</b><span>Ready to ship</span></Link>
-                      <Link href="/merchant-orders?status=shipped"><b>{d.courier.parcels}</b><span>With couriers</span></Link>
+                      <Link href="/merchant-orders?status=ready"><b>{d.courier.ready}</b><span>Ready</span></Link>
+                      <Link href="/merchant-orders?status=shipped"><b>{d.courier.parcels}</b><span>In transit</span></Link>
                       <Link href="/merchant-orders?status=delivered"><b>{d.courier.delivered}</b><span>Delivered today</span></Link>
                       <Link href="/courier-returns"><b>{d.courier.returned}</b><span>Returned today</span></Link>
                     </div>

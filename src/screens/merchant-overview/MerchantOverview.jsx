@@ -43,7 +43,7 @@ function readLive() {
     .map(function (x) { return { br: branchOf(x.place || x.counter), amount: (x.totals && x.totals.total) || 0 }; });
   var invoices = getInvoices().filter(function (r) { return r.due > 0; })
     .map(function (r) { return { id: r.id, name: (r.customer && r.customer.name) || 'Walk-in customer', due: r.due, br: branchOf(r.place || r.counter) }; });
-  var orders = getOrders().filter(function (o) { return o.statusKey === 'pending' || o.statusKey === 'approved'; })
+  var orders = getOrders().filter(function (o) { return ['onhold', 'processing', 'pending', 'approved'].includes(o.statusKey); })
     .map(function (o) {
       return { id: o.id, cust: o.customer, phone: String(o.phone || '').replace(/[^0-9]/g, ''), status: o.statusKey, amt: o.amount, at: o.at, href: orderHref(o.id),
         br: isCounterSale(o) ? branchOf(o.channel) : 'on', meta: o.id + ' · ' + o.channel + ' · ' + o.placed + ' · ' + o.payment };
@@ -121,7 +121,7 @@ class Component extends DCLogic {
     const liveAmt = liveSales.reduce((a, x) => a + x.amount, 0);
     const cur = { ...base, orders: base.orders + liveSales.length, week: base.week.map((v, i) => (i === 6 ? v + liveAmt : v)) };
     const waiting = live.orders.filter(inBr);
-    const toConfirm = waiting.filter((o) => o.status === 'pending');
+    const toConfirm = waiting.filter((o) => o.status !== 'approved');
     const toPack = waiting.filter((o) => o.status === 'approved');
     const dues = live.invoices.filter(inBr);
     const dueSum = dues.reduce((a, r) => a + r.due, 0);

@@ -11,7 +11,7 @@ The Bangla interface reads these words from `src/lib/i18n/bn.js`; add a word the
 
 | Use | Not | Bangla | Meaning |
 |---|---|---|---|
-| Pending | Waiting, Awaiting, On hold (for approval) | Pending | Not done yet / needs someone's action |
+| Pending | Waiting, Awaiting | Pending | Not done yet / needs someone's action (an order: payment due) |
 | Approved | Accepted, OK | Approved | A manager said yes |
 | Rejected | Declined, Denied | Rejected | A manager said no |
 | Paid | Settled, Cleared | Paid | Nothing left to pay |
@@ -27,6 +27,21 @@ The Bangla interface reads these words from `src/lib/i18n/bn.js`; add a word the
 | Returned | RTO (in labels) | Returned | Came back; "RTO" only in courier reports |
 | On hold (stock) | Reserved, Blocked | Hold-এ | Stock kept aside for an order |
 | Late (attendance only) | — | দেরি | Staff came after the grace time |
+
+### Order statuses (orderStatus.js)
+
+New order → Verification (a call, not a status) → Approved → Ready for courier → In transit → Delivered.
+
+| Use | Not | Bangla | Meaning |
+|---|---|---|---|
+| On hold | Pending (for COD) | হোল্ডে | New cash-on-delivery order, waiting for verification |
+| Processing | Paid (as a status) | প্রসেসিং | New order paid in full, waiting for verification |
+| Pending | Unpaid (as a status) | Pending | New order with payment due or part paid |
+| Ready for courier | Ready to ship, Packed | কুরিয়ারের জন্য প্রস্তুত | Packed, slip printed and attached |
+| In transit | Shipped, Sent to courier, With courier | পথে আছে | The courier accepted the parcel |
+
+Courier scans (picked up, at hub, out for delivery) appear only in the order's Tracking.
+Write order text short and plain, like Shopify: "Order approved", "Sent to Pathao", "Not verified yet".
 
 ## Actions (buttons)
 

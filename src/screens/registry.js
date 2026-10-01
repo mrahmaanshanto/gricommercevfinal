@@ -2917,6 +2917,17 @@ export const SCREENS = [
     "interactive": true
   },
   {
+    "name": "SetNotifications",
+    "route": "/set-notifications",
+    "folder": "settings-console",
+    "title": "Order notifications",
+    "description": "SMS and email for each order event",
+    "canvasPage": "11 · Settings",
+    "width": 1380,
+    "height": 880,
+    "interactive": true
+  },
+  {
     "name": "SetStorage",
     "route": "/set-storage",
     "folder": "settings-console",

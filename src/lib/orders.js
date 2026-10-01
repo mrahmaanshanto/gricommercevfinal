@@ -18,7 +18,7 @@ import { extraOrders, updateOrder, STATUS_TIME } from './orderLinks';
 import { getInvoices, deliveryOf, statusOf } from './invoices';
 import { POS_KEYS, load, save } from './posStore';
 import { formatBDT, formatDate } from './format';
-import { ORDER_STATUSES } from './orderStatus';
+import { NEW_KEYS, statusKeyOf, orderStatus } from './orderStatus';
 import { getHolds, addHolds, closeHold, holdsFor, endHoldsFor } from './stockHolds';
 import { productBy, addMove, stockAt } from './stock';
 import { DAMAGED_PLACE } from './locations';
@@ -26,6 +26,7 @@ import { addReturn } from './returns';
 import { collectCod, removeItem, clockNow } from './settlements';
 import { editionChannels } from './edition';
 import { liveOrders } from './liveOrders';
+import { notify } from './notifications';
 
 const STATUS_KEY = 'gc.orders.status';
 const EDITS_KEY = 'gc.orders.edits';
@@ -34,11 +35,11 @@ const RTO_KEY = 'gc.orders.rto';
 const TIMES_KEY = 'gc.orders.times';
 
 export const DEFAULT_HOLD_PLACE = 'Central Warehouse';
-/** Which statuses allow which action. */
-export const CAN_APPROVE = ['pending'];
-export const CAN_CANCEL = ['pending', 'approved', 'ready'];
-export const CAN_RETURN = ['ready', 'shipped'];
-export const CAN_DELIVER = ['approved', 'ready', 'shipped'];
+/** Which statuses allow which action (statuses: orderStatus.js). */
+export const CAN_APPROVE = [...NEW_KEYS];
+export const CAN_CANCEL = [...NEW_KEYS, 'approved', 'ready'];
+export const CAN_RETURN = ['shipped'];
+export const CAN_DELIVER = ['shipped'];
 export const RTO_REASONS = ['Customer refused the parcel', 'Customer not reachable', 'Wrong address', 'Customer cancelled at the door', 'Parcel damaged in transit'];
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -159,7 +160,9 @@ function finish(o, sales, statuses, edits, stamped = {}) {
     itemTitle: lines[0].name + (lines.length > 1 ? ` + ${lines.length - 1} more` : ''),
     itemMeta: `${units} item${units === 1 ? '' : 's'} · ${formatBDT(subtotal)}`,
     total: formatBDT(amount),
-    statusKey: (ORDER_STATUSES.find((s) => s.label === row.status) || {}).key || '',
+    // a new order's status follows its payment (On hold / Processing / Pending); old labels map on
+    statusKey: statusKeyOf(row.status, row.payment),
+    status: (orderStatus(statusKeyOf(row.status, row.payment)) || {}).label || row.status,
     invoiceId: row.invoiceId || (sale ? sale.id : ''),
     invoiceKind: row.invoiceKind || (sale ? (sale.invoice || sale.wholesale || sale.due > 0 ? 'Invoice' : 'Memo') : ''),
     made: !!o.made,
@@ -187,7 +190,8 @@ function allOrders() {
   const stamped = readMap(TIMES_KEY, {});
   const made = extraOrders().map((o) => ({ ...o, made: true }));
   const invoices = getInvoices().filter((r) => r.src === 'demo').map(fromInvoice);
-  const live = liveOrders(clockNow());
+  // a live order the merchant has acted on stops following its plan: only what was done here counts
+  const live = liveOrders(clockNow()).map((o) => (statuses[o.id] ? { ...o, times: { ...blankTimes(o.at), approved: o.status === 'New' ? null : o.times.approved }, courier: 'Not assigned', consignment: '—', sentAt: null, trackingUrl: '' } : o));
   // a live order the courier brought back is booked in the next day (the last day's are still to receive)
   LIVE_RTO = {};
   live.forEach((o) => { if (o.status === 'Returned' && o.times.returned + 20 * HOUR <= clockNow()) LIVE_RTO[o.id] = [{ at: o.times.returned + 20 * HOUR, by: 'Sadia Akter', lines: o.lines.map((l) => ({ name: l.name, good: l.qty, damaged: 0 })) }]; });
@@ -255,13 +259,16 @@ export function holdOrderStock(o, place, note = 'Order approved', by = 'Staff') 
 export function approveOrder(o, place, by = 'Staff') {
   holdOrderStock(o, place, 'Order approved', by);
   setOrderStatus(o, 'Approved');
-  logOrder(o.id, 'circle-check', 'Order approved', `Stock held at ${place} · ${by}`);
+  logOrder(o.id, 'circle-check', 'Approved', `${place} · ${by}`);
+  notify(o, 'approved');
 }
 /** Cancel and release every open hold. Returns the released holds. */
-export function cancelOrder(o, why = 'Order cancelled', by = 'Staff') {
+export function cancelOrder(o, why = 'Order cancelled', by = 'Staff', reason = '') {
   const ended = endHoldsFor(o.id, 'released', why);
   setOrderStatus(o, 'Cancelled');
-  logOrder(o.id, 'circle-x', why, (ended.length ? 'Back to stock: ' + heldText(ended) : 'No stock was held') + ' · ' + by);
+  if (reason) patchOrder(o, { cancelReason: reason });
+  logOrder(o.id, 'circle-x', why, (reason ? reason + ' · ' : '') + by);
+  notify(o, 'cancelled', { reason });
   return ended;
 }
 /** Delivered: the held goods left, so they come off the stock. */
@@ -271,15 +278,17 @@ export function deliverOrder(o, by = 'Staff') {
   setOrderStatus(o, 'Delivered');
   // cash on delivery: the courier has the money now and pays it out later (Accounts › Settlements)
   const cod = collectCod(o, by);
-  if (cod) patchOrder(o, { payment: 'Paid', paid: o.amount });
-  logOrder(o.id, 'package-check', 'Marked as delivered', (cod ? `${formatBDT(cod.amount)} COD with ${o.courier} · ` : '') + by);
+  if (cod) patchOrder(o, { payment: 'Paid', paid: o.amount, codCollected: cod.amount });
+  logOrder(o.id, 'package-check', 'Delivered', (cod ? `${formatBDT(cod.amount)} COD with ${o.courier}` : 'Paid order') + ' · ' + by);
+  notify(o, 'delivered');
 }
 /** The courier is bringing the parcel back. The held stock stays held until it is received. */
 export function markReturned(o, reason, by = 'Staff') {
   patchOrder(o, { rtoReason: reason });
   setOrderStatus(o, 'Returned');
   removeItem(o.id, 'Parcel returned by the courier');   // not in the courier's next payout any more
-  logOrder(o.id, 'undo-2', 'Courier is returning the parcel', `${reason} · ${by}`);
+  logOrder(o.id, 'undo-2', 'Return started', `${reason} · ${by}`);
+  notify(o, 'return-initiated');
 }
 /** Move the duplicate's lines into the other order, then cancel the duplicate. */
 export function mergeInto(dup, target, by = 'Staff') {

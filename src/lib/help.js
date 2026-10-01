@@ -30,8 +30,8 @@ export const HELP = {
     related: ['/tasks'],
   },
   '/merchant-orders': {
-    en: E('Every order from the website, Facebook, phone and the shop counter, from pending to delivered.', ['Use the status tabs: Pending → Approved → Ready to ship → Shipped → Delivered.', 'Open an order to confirm it, book the courier or print the invoice.', 'Search by order number, phone or customer name.'], ['Pending orders hold stock so it is not sold twice.', 'Courier returns are on their own page.'], ['Process an order start to finish', '3:40']),
-    bn: E('Website, Facebook, Phone আর দোকানের Counter — সব Order এক জায়গায়, Pending থেকে Delivered পর্যন্ত।', ['উপরের Status দিয়ে দেখুন: Pending → Approved → Ready to ship → Shipped → Delivered।', 'Order খুলে Confirm করুন, Courier বুক করুন বা Invoice Print করুন।', 'Order নম্বর, Phone বা নাম দিয়ে Search করুন।'], ['Pending Order-এর Stock আলাদা রাখা থাকে, যাতে দুইবার বিক্রি না হয়।', 'Courier থেকে ফেরত আসা পণ্য আলাদা page-এ।'], ['একটি Order শুরু থেকে শেষ', '3:40']),
+    en: E('Every order, from new to delivered.', ['New orders start On hold (COD), Processing (paid) or Pending (payment due).', 'Open an order to verify it by call, then approve, take an advance or cancel.', 'Pack it, print the slip, then send it to the courier. It is In transit until delivered.'], ['Approved orders hold their stock.', 'Order SMS and email: Settings › Order notifications.'], ['Process an order start to finish', '3:40']),
+    bn: E('সব Order — নতুন থেকে Delivered পর্যন্ত।', ['নতুন Order শুরু হয় হোল্ডে (COD), প্রসেসিং (Paid) বা Pending (Payment বাকি) হয়ে।', 'Order খুলে Call করে যাচাই করুন, তারপর Approve, Advance নিন বা Cancel করুন।', 'Pack করুন, Slip Print করুন, তারপর Courier-এ পাঠান। Delivered না হওয়া পর্যন্ত এটি পথে আছে।'], ['Approved Order-এর Stock আলাদা রাখা থাকে।', 'Order SMS ও Email: Settings › Order notifications।'], ['একটি Order শুরু থেকে শেষ', '3:40']),
     related: ['/new-order', '/courier-returns', '/wholesale-orders', '/return-exchange'],
   },
   '/order-detail': {

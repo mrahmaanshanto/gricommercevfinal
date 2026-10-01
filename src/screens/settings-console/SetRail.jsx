@@ -16,13 +16,14 @@ import { hasModule, currentEditionId, LOCKED } from '@/lib/edition';
 // Sections that have a screen in this build. The rest say so when chosen.
 const ROUTES = {
   general: '/set-general', preference: '/set-preference', payment: '/set-payments', delivery: '/set-delivery',
-  ai: '/set-ai', rules: '/set-rules', usage: '/set-usage', seo: '/set-seo', storage: '/set-storage',
+  ai: '/set-ai', rules: '/set-rules', notifications: '/set-notifications', usage: '/set-usage', seo: '/set-seo', storage: '/set-storage',
   apisec: '/set-security', dbbackup: '/set-security#s1', filebackup: '/set-security#s2',
 };
 
 const GROUPS = [
   ['Store', [['general', 'General', 'ok'], ['preference', 'Preference', 'ok'], ['pos', 'POS', 'ok'], ['report', 'Report Settings', 'none']]],
   ['Commerce', [['payment', 'Payment Gateway', 'ok'], ['delivery', 'Delivery Settings', 'ok'], ['courier', 'Courier Settings', 'warn', '1']]],
+  ['Notifications', [['notifications', 'Order notifications', 'ok']]],
   ['Communication', [['mail', 'Mail', 'ok'], ['sms', 'SMS', 'warn', '1'], ['push', 'Push Notifications', 'off'], ['social', 'Social Integrations', 'ok'], ['ai', 'AI Auto-Reply', 'ok'], ['rules', 'Auto-Reply Rules', 'ok'], ['usage', 'AI Usage', 'none']]],
   ['Discovery', [['seo', 'SEO', 'ok'], ['smart', 'Smart Search', 'ok'], ['imgsearch', 'Image Search', 'off']]],
   ['Platform', [['storage', 'Storage', 'warn', '1'], ['realtime', 'Realtime (Websocket)', 'ok'], ['apisec', 'API Security', 'ok'], ['recaptcha', 'Recaptcha', 'off'], ['dbbackup', 'Database Backup', 'ok'], ['filebackup', 'File Backup', 'warn', '1']]],
@@ -30,7 +31,7 @@ const GROUPS = [
 
 const STATE = { ok: 'configured', warn: 'needs setup', off: 'turned off' };
 // sections that belong to a module (src/lib/edition.js); the rest are in every edition
-const SECTION_MODULE = { pos: 'pos', report: 'reports', payment: 'commerce', delivery: 'online', courier: 'online', social: 'comms', ai: 'comms', rules: 'comms', seo: 'online', smart: 'online', imgsearch: 'online' };
+const SECTION_MODULE = { notifications: 'commerce', pos: 'pos', report: 'reports', payment: 'commerce', delivery: 'online', courier: 'online', social: 'comms', ai: 'comms', rules: 'comms', seo: 'online', smart: 'online', imgsearch: 'online' };
 
 class Component extends DCLogic {
   constructor(p) {

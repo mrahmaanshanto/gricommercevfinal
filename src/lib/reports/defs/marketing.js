@@ -30,7 +30,7 @@ const saleLines = () => safe(() => (typeof salesBook.getSaleLines === 'function'
 const channelTotals = (from, to) => safe(() => salesBook.salesByChannel(from, to), null);
 
 // ---- ad spend & ROAS ------------------------------------------------------------------------------
-const OPEN = ['pending', 'approved', 'ready', 'shipped'];
+const OPEN = ['onhold', 'processing', 'pending', 'approved', 'ready', 'shipped'];
 const adSpendRoas = {
   id: 'ad-spend-roas',
   group: 'marketing',
