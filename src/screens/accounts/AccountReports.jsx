@@ -265,6 +265,11 @@ const CSS = `
 .ar-link{color:var(--primary);font-weight:var(--weight-medium);text-decoration:none}
 .ar-link:hover{text-decoration:underline}
 .ar-grouprow th{font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-muted);background:var(--surface-subtle);text-align:left}
+@media (max-width:640px){
+  /* phone table-cards: a group heading row is a plain section heading, not an empty card */
+  table.gc-cards-on>tbody>tr.is-head,table.gc-cards-on>tbody>tr.ar-grouprow{border:0!important;background:none!important;padding:var(--space-3) var(--space-1) 0!important}
+  table.gc-cards-on>tbody>tr.is-head>th,table.gc-cards-on>tbody>tr.ar-grouprow>th{text-align:left!important;padding:0!important;font-size:var(--text-xs)!important;text-transform:uppercase;letter-spacing:var(--tracking-wide);font-weight:var(--weight-semibold);color:var(--text-muted)}
+}
 @media print{
   gc-sidebar,gc-topbar,.ar-noprint,.gc-pagehead__actions{display:none!important}
   [data-screen="AccountReports"] .gc-shell__main{border:0!important}

@@ -77,7 +77,21 @@ const CSS = `.dc-h482:hover{background:#e9eef5 !important;color:#1e293b !importa
 .dc-h501:hover{background:#e9eef5 !important;color:#1e293b !important}
 .dc-h502:hover{background:#e9eef5 !important;color:#1e293b !important}
 .dc-h503:hover{background:#e9eef5 !important;color:#1e293b !important}
-.dc-h504:hover{background:#e9eef5 !important;color:#1e293b !important}`;
+.dc-h504:hover{background:#e9eef5 !important;color:#1e293b !important}
+/* phone: a backup run is two lines (when + actions, then size · duration · result); the column header goes */
+@media (max-width:640px){
+  .set-runs__head{display:none!important}
+  .set-runs>div:not(.set-flow){flex-wrap:wrap;row-gap:6px!important}
+  .set-runs>div:not(.set-flow)>span:nth-child(1){order:0;flex:1 1 calc(100% - 100px)!important;width:auto!important;font-weight:var(--weight-medium)}
+  .set-runs>div:not(.set-flow)>span:nth-child(5){order:1}
+  .set-runs>div:not(.set-flow)>span:nth-child(2){order:2;width:auto!important}
+  .set-runs>div:not(.set-flow)>span:nth-child(3){order:3;width:auto!important}
+  .set-runs>div:not(.set-flow)>span:nth-child(4){order:4;flex:1 1 auto!important}
+  .set-runs>div:not(.set-flow) button{width:36px!important;height:36px!important}
+  /* "Advanced endpoints": title and Default on one line, the note under them */
+  .set-disc{flex-wrap:wrap;row-gap:2px}
+  .set-disc>span:first-of-type{order:3;flex:1 1 100%;padding-left:24px}
+}`;
 
 // ---- markup ----
 
@@ -108,7 +122,7 @@ export default class SetSecurityScreen extends Component {
                       </span>
                     </header>
                     <section id="s0" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>App API key</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Used by the GridCommerce mobile apps and by your own integrations. One key per store.</span>
@@ -133,14 +147,14 @@ export default class SetSecurityScreen extends Component {
                             </button>
                           </span>
                           <__Err f={v.f} n="app_api_key" />
-                          <span style={{ display: "flex", alignItems: "center", gap: "14px", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
+                          <span className="set-flow" style={{ display: "flex", alignItems: "center", gap: "14px", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
                             <span>Last generated <b style={{ fontWeight: "var(--weight-medium)", color: "#475569", fontVariantNumeric: "tabular-nums" }}>2026-08-17 10:34:39</b></span>
                             <span>by Ashiq Khan</span>
                             <span>4 clients using it</span>
                           </span>
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "12px", border: "1px solid rgba(255,87,36,.4)", borderRadius: "var(--radius-lg)", background: "rgba(255,87,36,.04)", padding: "14px 15px" }}>
-                          <span style={{ display: "flex", alignItems: "center", gap: "9px" }}>
+                          <span className="set-flow" style={{ display: "flex", alignItems: "center", gap: "9px" }}>
                             <__Icon name="triangle-alert" strokeWidth="1.75" width="17" height="17" style={{ flex: "none", color: "var(--text-danger)" }} />
                             <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#8f2a0b" }}>Regenerate the API key</span>
                             <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(255,87,36,.12)", color: "var(--text-danger)" }}>Cannot be undone</span>
@@ -157,11 +171,11 @@ export default class SetSecurityScreen extends Component {
                             <span id="sf-security-regen-left" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{v.regenLeft}</span>
                           </span>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px", borderTop: "1px solid #f1f5f9", paddingTop: "14px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><__Icon name="history" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />Previous keys: 17 Aug 2026 (current) · 02 Mar 2026 · 14 Nov 2025<span style={{ marginLeft: "auto" }} /><button type="button" onClick={v.f.say("“Open audit log” is not available in the demo yet.")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#f1f5f9", color: "#1e293b" }}><__Icon name="scroll-text" strokeWidth="1.75" width="15" height="15" />Open audit log</button></div>
+                        <div className="set-flow" style={{ display: "flex", alignItems: "center", gap: "10px", borderTop: "1px solid #f1f5f9", paddingTop: "14px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><__Icon name="history" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} /><span className="set-grow">Previous keys: 17 Aug 2026 (current) · 02 Mar 2026 · 14 Nov 2025</span><span style={{ marginLeft: "auto" }} /><button type="button" onClick={v.f.say("“Open audit log” is not available in the demo yet.")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#f1f5f9", color: "#1e293b" }}><__Icon name="scroll-text" strokeWidth="1.75" width="15" height="15" />Open audit log</button></div>
                       </div>
                     </section>
                     <section id="s1" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Database backup</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Nightly mysqldump pushed to Google Drive. Retention 30 days.</span>
@@ -283,8 +297,8 @@ export default class SetSecurityScreen extends Component {
                           <span>These are Google’s published addresses. They are shown for reference and cannot be edited here.</span>
                         </div>
                       </div>
-                      <div style={{ borderTop: "1px solid #f1f5f9" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "9px 16px", background: "#fcfdfe", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>
+                      <div className="set-runs" style={{ borderTop: "1px solid #f1f5f9" }}>
+                        <div className="set-runs__head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "9px 16px", background: "#fcfdfe", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>
                           <span style={{ width: "150px", flex: "none" }}>When</span>
                           <span style={{ width: "76px", flex: "none" }}>Size</span>
                           <span style={{ width: "76px", flex: "none" }}>Duration</span>
@@ -371,11 +385,11 @@ export default class SetSecurityScreen extends Component {
                             </button>
                           </span>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px", borderTop: "1px solid #f1f5f9", background: "#f8fafc", padding: "10px 16px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>29 of 30 nightly runs succeeded this month<span style={{ marginLeft: "auto" }} /><button type="button" onClick={v.f.say("“Full backup history” is not available in the demo yet.")} style={{ border: "none", background: "none", padding: "0", fontFamily: "inherit", cursor: "pointer", fontWeight: "var(--weight-medium)", color: "#003087", textDecoration: "none" }}>Full backup history</button></div>
+                        <div className="set-flow" style={{ display: "flex", alignItems: "center", gap: "10px", borderTop: "1px solid #f1f5f9", background: "#f8fafc", padding: "10px 16px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><span className="set-grow">29 of 30 nightly runs succeeded this month</span><span style={{ marginLeft: "auto" }} /><button type="button" onClick={v.f.say("“Full backup history” is not available in the demo yet.")} style={{ border: "none", background: "none", padding: "0", fontFamily: "inherit", cursor: "pointer", fontWeight: "var(--weight-medium)", color: "#003087", textDecoration: "none" }}>Full backup history</button></div>
                       </div>
                     </section>
                     <section id="s2" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>File backup</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Product images and invoices, uploaded to Drive in resumable chunks.</span>
@@ -448,7 +462,7 @@ export default class SetSecurityScreen extends Component {
                           <span>These are Google’s published addresses. They are shown for reference and cannot be edited here.</span>
                         </div>
                       </div>
-                      <div style={{ borderTop: "1px solid #f1f5f9" }}>
+                      <div className="set-runs" style={{ borderTop: "1px solid #f1f5f9" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "9px 16px", borderBottom: "1px solid #f1f5f9" }}>
                           <span style={{ width: "150px", flex: "none", fontSize: "var(--text-xs)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>4 Sep 2026, 04:00</span>
                           <span style={{ width: "76px", flex: "none", fontSize: "var(--text-xs)", color: "#475569", fontVariantNumeric: "tabular-nums" }}>58.9 GB</span>

@@ -34,6 +34,7 @@ var L = [
   { id: 5, name: 'PUJA10', sub: '10% off, up to ৳250', type: 'Coupon', left: 'Starts 25 Sep', used: '—', sales: 0, st: 'soon' }
 ];
 var COL = { live: '#10b981', soon: '#0ea5e9', ended: '#94a3b8' };
+var ST_LABEL = { live: 'Running', soon: 'Coming soon', ended: 'Ended' };
 var FG = { coupon: '#003087', flash: '#a14f06', msg: '#047857' };
 var COLORS = [{ k: '#003087', label: 'Navy' }, { k: '#b83210', label: 'Red' }, { k: '#047857', label: 'Green' }, { k: '#0f172a', label: 'Black' }];
 class Component extends DCLogic {
@@ -41,7 +42,7 @@ class Component extends DCLogic {
     var self = this, s = this.state || {}, paused = s.paused || {};
     var stripSw = mkSw(this, 'strip', true), clr = s.clr || '#b83210';
     return {
-      bars: B.map(function (b) { return { name: b.name, fg: FG[b.k], isCoupon: b.k === 'coupon', isFlash: b.k === 'flash', isMsg: b.k === 'msg', col: (b.from + 1) + ' / ' + (b.to + 2), bg: COL[b.st], label: b.from === b.to ? '' : (b.from + '–' + b.to + ' Sep') }; }),
+      bars: B.map(function (b) { return { name: b.name, dates: b.from === b.to ? b.from + ' Sep' : b.from + '–' + b.to + ' Sep', stLabel: ST_LABEL[b.st], fg: FG[b.k], isCoupon: b.k === 'coupon', isFlash: b.k === 'flash', isMsg: b.k === 'msg', col: (b.from + 1) + ' / ' + (b.to + 2), bg: COL[b.st], label: b.from === b.to ? '' : (b.from + '–' + b.to + ' Sep') }; }),
       live: L.map(function (r) {
         var p = !!paused[r.id], soon = r.st === 'soon';
         return { name: r.name, sub: r.sub, type: r.type, left: p ? 'Paused' : r.left, tColor: p ? '#a14f06' : (soon ? '#075985' : '#b83210'), used: r.used, sales: r.sales ? bdt(r.sales) : '—',
@@ -57,6 +58,12 @@ class Component extends DCLogic {
   }
 }
 function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
+// offer-type icon for the phone list (same drawings as the timeline rows)
+function barIcon(b) {
+  if (b.isFlash) return (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" /></svg>);
+  if (b.isMsg) return (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" /><path d="m21.854 2.147-10.94 10.939" /></svg>);
+  return (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /><path d="M9 9h.01" /><path d="m15 9-6 6" /><path d="M15 15h.01" /></svg>);
+}
 
 // ---- styles (from the design's <helmet>) ----
 
@@ -117,6 +124,31 @@ a{color:#003087}a:hover{color:#002a77}
 .pulse{animation:gcPulse 1.6s ease-in-out infinite}
 @keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+/* "This month at a glance": the day timeline on wide screens, a plain list of offers on phones */
+.pr-glist{display:none;margin:0;padding:0;list-style:none}
+.pr-glist__item{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2-5) 0;border-bottom:1px solid #f1f5f9}
+.pr-glist__item:last-child{border-bottom:0}
+.pr-glist__ic{display:inline-flex;flex:none}
+.pr-glist__main{display:flex;flex-direction:column;min-width:0}
+.pr-glist__name{font-size:var(--text-sm);line-height:20px;font-weight:var(--weight-medium);color:#0f172a}
+.pr-glist__meta{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-xs);line-height:16px;color:#475569}
+.pr-glist__dot{flex:none;width:8px;height:8px;border-radius:var(--radius-full)}
+@media (max-width:1023px){
+  .pr-acts{flex-wrap:wrap}
+  .pr-acts>*{flex:1 1 calc(50% - 8px)!important;min-width:0}
+}
+@media (max-width:640px){
+  /* action cards: full width, icon beside the text */
+  .pr-acts{flex-direction:column;gap:var(--space-2)!important}
+  .pr-acts>*{flex:none!important;display:grid!important;grid-template-columns:auto minmax(0,1fr);gap:2px var(--space-3)!important;align-items:center;padding:var(--space-3) var(--space-4)!important}
+  .pr-acts>*>span:first-child{grid-row:1/4;width:44px!important;height:44px!important;align-self:start}
+  .pr-acts>*>div{grid-column:2;margin-top:0!important}
+  .pr-glance{padding:var(--space-4)!important;gap:var(--space-3)!important}
+  .pr-ghead{flex-wrap:wrap;gap:var(--space-2) var(--space-3)!important}
+  .pr-ghead>div:first-child{flex:1 1 100%!important}
+  .pr-gantt{display:none}
+  .pr-glist{display:block}
+}
 `;
 
 // ---- markup ----
@@ -195,7 +227,7 @@ export default class PromoScreen extends Component {
                     <h2 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>What do you want to do?</h2>
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: "16px" }}>
+                <div className="pr-acts" style={{ display: "flex", gap: "16px" }}>
                   <__Link href="/new-coupon" className="card actc" style={{ flex: "1 1 0", padding: "20px", display: "flex", flexDirection: "column", gap: "12px", textDecoration: "none", color: "#0f172a" }}>
                     <span style={{ width: "52px", height: "52px", borderRadius: "var(--radius-xl)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -255,8 +287,8 @@ export default class PromoScreen extends Component {
                   </a>
                 </div>
               </div>
-              <section className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <section className="card pr-glance" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div className="pr-ghead" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                   <div style={{ flexGrow: "1" }}>
                     <div>
                       <h2 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>This month at a glance</h2>
@@ -266,7 +298,18 @@ export default class PromoScreen extends Component {
                   <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "#475569" }}><span style={{ width: "10px", height: "10px", borderRadius: "3px", background: "#0ea5e9" }} />Coming soon</span>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "#475569" }}><span style={{ width: "10px", height: "10px", borderRadius: "3px", background: "#94a3b8" }} />Ended</span>
                 </div>
-                <div style={{ position: "relative" }}>
+                <ul className="pr-glist" aria-label="Offers this month">
+                  {__list(v.bars).map((b, $index) => (
+                    <li key={$index} className="pr-glist__item">
+                      <span className="pr-glist__ic" style={{ color: b?.fg }}>{barIcon(b)}</span>
+                      <span className="pr-glist__main">
+                        <span className="pr-glist__name">{b?.name}</span>
+                        <span className="pr-glist__meta"><i className="pr-glist__dot" style={{ background: b?.bg }} aria-hidden="true" />{b?.stLabel} · {b?.dates}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="pr-gantt" style={{ position: "relative" }}>
                   <div style={{ display: "grid", gridTemplateColumns: "220px repeat(30, 1fr)", fontSize: "var(--text-xs)", color: "var(--text-muted)", borderBottom: "1px solid #e2e8f0", paddingBottom: "6px" }}>
                     <span>September 2026</span>
                     <span style={{ textAlign: "center" }}>1</span>

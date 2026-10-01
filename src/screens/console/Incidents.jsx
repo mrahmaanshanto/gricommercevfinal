@@ -511,37 +511,37 @@ export default class IncidentsScreen extends Component {
                     <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Timeline, Dhaka time</h2>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }} />
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "52px 16px minmax(0,1fr)", gap: "10px", alignItems: "flex-start", minHeight: "40px" }}>
+                  <div className="cs-keep" style={{ display: "grid", gridTemplateColumns: "52px 16px minmax(0,1fr)", gap: "10px", alignItems: "flex-start", minHeight: "40px" }}>
                     <span className="num" style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>09:40</span>
                     <span style={{ width: "10px", height: "10px", marginTop: "5px", borderRadius: "var(--radius-full)", background: "#94a3b8" }} />
                     <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "1.5", color: "var(--ink)" }}>Steadfast webhooks start timing out</span>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "52px 16px minmax(0,1fr)", gap: "10px", alignItems: "flex-start", minHeight: "40px" }}>
+                  <div className="cs-keep" style={{ display: "grid", gridTemplateColumns: "52px 16px minmax(0,1fr)", gap: "10px", alignItems: "flex-start", minHeight: "40px" }}>
                     <span className="num" style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>09:46</span>
                     <span style={{ width: "10px", height: "10px", marginTop: "5px", borderRadius: "var(--radius-full)", background: "#ff5724" }} />
                     <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "1.5", color: "var(--ink)" }}>Alert: new error class CourierWebhookTimeout, sev 2 → Rakib Hasan</span>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "52px 16px minmax(0,1fr)", gap: "10px", alignItems: "flex-start", minHeight: "40px" }}>
+                  <div className="cs-keep" style={{ display: "grid", gridTemplateColumns: "52px 16px minmax(0,1fr)", gap: "10px", alignItems: "flex-start", minHeight: "40px" }}>
                     <span className="num" style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>09:58</span>
                     <span style={{ width: "10px", height: "10px", marginTop: "5px", borderRadius: "var(--radius-full)", background: "#94a3b8" }} />
                     <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "1.5", color: "var(--ink)" }}>Tickets auto-linked: T-2291 and 11 more</span>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "52px 16px minmax(0,1fr)", gap: "10px", alignItems: "flex-start", minHeight: "40px" }}>
+                  <div className="cs-keep" style={{ display: "grid", gridTemplateColumns: "52px 16px minmax(0,1fr)", gap: "10px", alignItems: "flex-start", minHeight: "40px" }}>
                     <span className="num" style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>10:05</span>
                     <span style={{ width: "10px", height: "10px", marginTop: "5px", borderRadius: "var(--radius-full)", background: "#003087" }} />
                     <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "1.5", color: "var(--ink)" }}>Status page updated: courier tracking delayed</span>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "52px 16px minmax(0,1fr)", gap: "10px", alignItems: "flex-start", minHeight: "40px" }}>
+                  <div className="cs-keep" style={{ display: "grid", gridTemplateColumns: "52px 16px minmax(0,1fr)", gap: "10px", alignItems: "flex-start", minHeight: "40px" }}>
                     <span className="num" style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>10:30</span>
                     <span style={{ width: "10px", height: "10px", marginTop: "5px", borderRadius: "var(--radius-full)", background: "#003087" }} />
                     <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "1.5", color: "var(--ink)" }}>Steadfast confirms an outage on their side</span>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "52px 16px minmax(0,1fr)", gap: "10px", alignItems: "flex-start", minHeight: "40px" }}>
+                  <div className="cs-keep" style={{ display: "grid", gridTemplateColumns: "52px 16px minmax(0,1fr)", gap: "10px", alignItems: "flex-start", minHeight: "40px" }}>
                     <span className="num" style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>12:10</span>
                     <span style={{ width: "10px", height: "10px", marginTop: "5px", borderRadius: "var(--radius-full)", background: "#003087" }} />
                     <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "1.5", color: "var(--ink)" }}>Their API recovers; replay of held webhooks started</span>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "52px 16px minmax(0,1fr)", gap: "10px", alignItems: "flex-start", minHeight: "40px" }}>
+                  <div className="cs-keep" style={{ display: "grid", gridTemplateColumns: "52px 16px minmax(0,1fr)", gap: "10px", alignItems: "flex-start", minHeight: "40px" }}>
                     <span className="num" style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>13:52</span>
                     <span style={{ width: "10px", height: "10px", marginTop: "5px", borderRadius: "var(--radius-full)", background: "#94a3b8" }} />
                     <span style={{ fontSize: "var(--text-xs-plus)", lineHeight: "1.5", color: "var(--ink)" }}>Replay 64% · 23,100 of 36,000 events</span>

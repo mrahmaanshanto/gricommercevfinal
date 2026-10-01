@@ -546,7 +546,7 @@ export default class StaffRolesScreen extends Component {
                   </div>
                 </div>
               </div>
-              <div className="panel" style={{ overflow: "hidden" }}>
+              <div className="panel" style={{ overflow: "hidden", "--cs-row-min": "960px" }}>
                 <div className="th" style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) 140px 120px 120px 170px 80px", gap: "12px", padding: "10px 18px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
                   <span>Member</span>
                   <span>Role</span>
@@ -567,7 +567,7 @@ export default class StaffRolesScreen extends Component {
                   <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Now</span>
                   <span className="pill p-ok" style={{ justifySelf: "start" }}><span className="shp shp-ok" aria-hidden="true" />2FA on</span>
                   <span style={{ display: "flex", justifyContent: "flex-end" }}>
-                    <__Link href="/form-staff" className="btn btng" style={{ minHeight: "32px", padding: "0 10px", fontSize: "var(--text-xs)" }}>Edit</__Link>
+                    <__Link href="/form-staff" className="btn btng cs-tap" style={{ minHeight: "32px", padding: "0 10px", fontSize: "var(--text-xs)" }}>Edit</__Link>
                   </span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) 140px 120px 120px 170px 80px", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 18px", borderTop: "1px solid var(--line)" }}>
@@ -582,7 +582,7 @@ export default class StaffRolesScreen extends Component {
                   <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Now</span>
                   <span className="pill p-ok" style={{ justifySelf: "start" }}><span className="shp shp-ok" aria-hidden="true" />2FA on</span>
                   <span style={{ display: "flex", justifyContent: "flex-end" }}>
-                    <__Link href="/form-staff" className="btn btng" style={{ minHeight: "32px", padding: "0 10px", fontSize: "var(--text-xs)" }}>Edit</__Link>
+                    <__Link href="/form-staff" className="btn btng cs-tap" style={{ minHeight: "32px", padding: "0 10px", fontSize: "var(--text-xs)" }}>Edit</__Link>
                   </span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) 140px 120px 120px 170px 80px", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 18px", borderTop: "1px solid var(--line)" }}>
@@ -597,7 +597,7 @@ export default class StaffRolesScreen extends Component {
                   <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Now</span>
                   <span className="pill p-ok" style={{ justifySelf: "start" }}><span className="shp shp-ok" aria-hidden="true" />2FA on</span>
                   <span style={{ display: "flex", justifyContent: "flex-end" }}>
-                    <__Link href="/form-staff" className="btn btng" style={{ minHeight: "32px", padding: "0 10px", fontSize: "var(--text-xs)" }}>Edit</__Link>
+                    <__Link href="/form-staff" className="btn btng cs-tap" style={{ minHeight: "32px", padding: "0 10px", fontSize: "var(--text-xs)" }}>Edit</__Link>
                   </span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) 140px 120px 120px 170px 80px", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 18px", borderTop: "1px solid var(--line)" }}>
@@ -612,7 +612,7 @@ export default class StaffRolesScreen extends Component {
                   <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>12 min ago</span>
                   <span className="pill p-ok" style={{ justifySelf: "start" }}><span className="shp shp-ok" aria-hidden="true" />2FA on</span>
                   <span style={{ display: "flex", justifyContent: "flex-end" }}>
-                    <__Link href="/form-staff" className="btn btng" style={{ minHeight: "32px", padding: "0 10px", fontSize: "var(--text-xs)" }}>Edit</__Link>
+                    <__Link href="/form-staff" className="btn btng cs-tap" style={{ minHeight: "32px", padding: "0 10px", fontSize: "var(--text-xs)" }}>Edit</__Link>
                   </span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) 140px 120px 120px 170px 80px", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 18px", borderTop: "1px solid var(--line)" }}>
@@ -627,7 +627,7 @@ export default class StaffRolesScreen extends Component {
                   <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Yesterday</span>
                   <span className="pill p-ok" style={{ justifySelf: "start" }}><span className="shp shp-ok" aria-hidden="true" />2FA on</span>
                   <span style={{ display: "flex", justifyContent: "flex-end" }}>
-                    <__Link href="/form-staff" className="btn btng" style={{ minHeight: "32px", padding: "0 10px", fontSize: "var(--text-xs)" }}>Edit</__Link>
+                    <__Link href="/form-staff" className="btn btng cs-tap" style={{ minHeight: "32px", padding: "0 10px", fontSize: "var(--text-xs)" }}>Edit</__Link>
                   </span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) 140px 120px 120px 170px 80px", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 18px", borderTop: "1px solid var(--line)" }}>
@@ -642,7 +642,7 @@ export default class StaffRolesScreen extends Component {
                   <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Invite sent</span>
                   <span className="pill p-warn" style={{ justifySelf: "start" }}><span className="shp shp-warn" aria-hidden="true" />Invite pending</span>
                   <span style={{ display: "flex", justifyContent: "flex-end" }}>
-                    <__Link href="/form-staff" className="btn btng" style={{ minHeight: "32px", padding: "0 10px", fontSize: "var(--text-xs)" }}>Edit</__Link>
+                    <__Link href="/form-staff" className="btn btng cs-tap" style={{ minHeight: "32px", padding: "0 10px", fontSize: "var(--text-xs)" }}>Edit</__Link>
                   </span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) 140px 120px 120px 170px 80px", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 18px", borderTop: "1px solid var(--line)" }}>
@@ -657,7 +657,7 @@ export default class StaffRolesScreen extends Component {
                   <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>64 days ago</span>
                   <span className="pill p-warn" style={{ justifySelf: "start" }}><span className="shp shp-warn" aria-hidden="true" />Inactive · review</span>
                   <span style={{ display: "flex", justifyContent: "flex-end" }}>
-                    <__Link href="/form-staff" className="btn btng" style={{ minHeight: "32px", padding: "0 10px", fontSize: "var(--text-xs)" }}>Edit</__Link>
+                    <__Link href="/form-staff" className="btn btng cs-tap" style={{ minHeight: "32px", padding: "0 10px", fontSize: "var(--text-xs)" }}>Edit</__Link>
                   </span>
                 </div>
               </div>
@@ -666,61 +666,63 @@ export default class StaffRolesScreen extends Component {
                   <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>What each role can do</h2>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }}>Approve = can be the second person on money and entitlements</div>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "120px repeat(8,minmax(0,1fr))", gap: "4px" }}>
-                  <span />
-                  <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--muted)", textAlign: "center", lineHeight: "1.4" }}>Merchants</span>
-                  <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--muted)", textAlign: "center", lineHeight: "1.4" }}>Store access by PIN</span>
-                  <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--muted)", textAlign: "center", lineHeight: "1.4" }}>Tickets</span>
-                  <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--muted)", textAlign: "center", lineHeight: "1.4" }}>Sales CRM</span>
-                  <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--muted)", textAlign: "center", lineHeight: "1.4" }}>Billing</span>
-                  <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--muted)", textAlign: "center", lineHeight: "1.4" }}>Packaging</span>
-                  <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--muted)", textAlign: "center", lineHeight: "1.4" }}>Operations</span>
-                  <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--muted)", textAlign: "center", lineHeight: "1.4" }}>Staff and audit</span>
-                  <span style={{ display: "flex", alignItems: "center", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Admin</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
-                  <span style={{ display: "flex", alignItems: "center", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Operations</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
-                  <span style={{ display: "flex", alignItems: "center", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Support</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>—</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>—</span>
-                  <span style={{ display: "flex", alignItems: "center", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Sales</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>—</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>—</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>—</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>—</span>
-                  <span style={{ display: "flex", alignItems: "center", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Finance</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>—</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>—</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "var(--fill-success)", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Approve</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>—</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>—</span>
+                <div className="cs-scrollx" style={{ "--cs-matrix-min": "760px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "120px repeat(8,minmax(0,1fr))", gap: "4px" }}>
+                    <span />
+                    <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--muted)", textAlign: "center", lineHeight: "1.4" }}>Merchants</span>
+                    <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--muted)", textAlign: "center", lineHeight: "1.4" }}>Store access by PIN</span>
+                    <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--muted)", textAlign: "center", lineHeight: "1.4" }}>Tickets</span>
+                    <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--muted)", textAlign: "center", lineHeight: "1.4" }}>Sales CRM</span>
+                    <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--muted)", textAlign: "center", lineHeight: "1.4" }}>Billing</span>
+                    <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--muted)", textAlign: "center", lineHeight: "1.4" }}>Packaging</span>
+                    <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--muted)", textAlign: "center", lineHeight: "1.4" }}>Operations</span>
+                    <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--muted)", textAlign: "center", lineHeight: "1.4" }}>Staff and audit</span>
+                    <span style={{ display: "flex", alignItems: "center", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Admin</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
+                    <span style={{ display: "flex", alignItems: "center", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Operations</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
+                    <span style={{ display: "flex", alignItems: "center", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Support</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>—</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>—</span>
+                    <span style={{ display: "flex", alignItems: "center", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Sales</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>—</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Edit</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>—</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>—</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>—</span>
+                    <span style={{ display: "flex", alignItems: "center", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Finance</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>—</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>—</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "var(--fill-success)", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Approve</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "#e6ecf5", color: "#1e3a8a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>View</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>—</span>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "34px", borderRadius: "var(--radius-lg)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>—</span>
+                  </div>
                 </div>
               </section>
             </div>

@@ -58,6 +58,15 @@ var OUT = { n1: '{ "order": "#ORD-0929-007", "total": 12400,\n  "payment": "COD"
 var NW = 76;
 class Component extends DCLogic {
   componentWillUnmount() { clearTimeout(this.t); }
+  // phones: open the canvas zoomed to fit its width (the + button zooms back in; the canvas scrolls inside its box)
+  componentDidMount() {
+    if (typeof window === 'undefined' || !window.matchMedia || !window.matchMedia('(max-width:640px)').matches) return;
+    var nodes = (this.state && this.state.nodes) || START;
+    var w = Math.max(960, Math.max.apply(null, nodes.map(function (n) { return n.x; })) + 116);
+    var cw = this.canvasEl ? this.canvasEl.clientWidth : window.innerWidth - 32;
+    var fit = Math.min(1, Math.max(.3, Math.floor((cw - 8) / w * 100) / 100));
+    this.setState({ z: fit, fitZ: fit });
+  }
   renderVals() {
     var self = this, s = this.state || {};
     var nodes = s.nodes || START, edges = s.edges || EDGES, sel = s.sel || null, tab = s.tab || 'editor', ran = s.ran || null, z = s.z || 1;
@@ -81,13 +90,14 @@ class Component extends DCLogic {
     var v = {
       name: s.name == null ? 'Advance charge for big outside-Dhaka COD orders' : s.name, onName: function (e) { self.setState({ name: val(e) }); },
       nodeCount: nodes.length + ' nodes', layerW: Math.max(960, Math.max.apply(null, nodes.map(function (n) { return n.x; })) + 116),
+      canvasH: Math.round(Math.max(570, Math.max.apply(null, nodes.map(function (n) { return n.y; })) + 140) * z + 64) + 'px',
       active: mkSw(self, 'act', true), actL: (s.act === false) ? 'Inactive' : 'Active', actC: (s.act === false) ? 'var(--text-muted)' : 'var(--text-success)',
       saveL: s.saved ? 'Saved' : 'Save', save: function () { self.setState({ saved: true }); toast(self, 'Workflow saved.'); },
       tabs: [['editor', 'Editor'], ['exec', 'Executions']].map(function (t) { var on = t[0] === tab; return { l: t[1], on: on, cls: on ? 'wtab on' : 'wtab', pick: function () { self.setState({ tab: t[0] }); } }; }),
       isEditor: tab === 'editor', isExec: tab === 'exec',
       runNote: ran ? 'Last test: #ORD-0929-007 · ' + ran.length + ' of ' + nodes.length + ' nodes ran · 1.4 s' : 'Tests run on a real order. Nothing is sent to the customer.',
       test: function () { self.setState({ ran: TEST_PATH.filter(function (id) { return byId[id]; }), tab: 'editor' }); toast(self, 'Test run on #ORD-0929-007 (৳12,400, COD, Chattogram): took the true branch, no advance paid, ended at AI call. Nothing was sent.'); },
-      zoom: z, zoomL: Math.round(z * 100) + '%', zIn: function () { self.setState({ z: Math.min(1.2, +(z + .1).toFixed(1)) }); }, zOut: function () { self.setState({ z: Math.max(.6, +(z - .1).toFixed(1)) }); }, zFit: function () { self.setState({ z: 1 }); },
+      zoom: z, zoomL: Math.round(z * 100) + '%', zIn: function () { self.setState({ z: Math.min(1.2, +(z + .1).toFixed(1)) }); }, zOut: function () { self.setState({ z: Math.max(Math.min(.6, s.fitZ || .6), +(z - .1).toFixed(1)) }); }, zFit: function () { self.setState({ z: s.fitZ || 1 }); },
       nodes: nodes.map(function (n) { var t = TY[n.ty], ok = !!ranSet[n.id];
         return { name: n.name, sub: t[3], x: n.x, y: n.y, is_trig: n.ty === 'trig', is_if: n.ty === 'if', is_hold: n.ty === 'hold', is_wa: n.ty === 'wa', is_wait: n.ty === 'wait', is_call: n.ty === 'call', is_ok: n.ty === 'ok', is_truck: n.ty === 'truck', is_sms: n.ty === 'sms', is_tag: n.ty === 'tag', is_bell: n.ty === 'bell', is_split: n.ty === 'split', bg: t[1], fg: t[2], ok: ok, cls: 'node' + (n.ty === 'trig' ? ' trig' : '') + (ok ? ' ok' : '') + (sel === n.id ? ' sel' : ''),
           px: n.x - 6, py: n.y + NW / 2 - 5, inDisp: n.ty === 'trig' ? 'none' : 'block', lx: n.x + NW / 2 - 65, ly: n.y + NW + 6,
@@ -284,6 +294,19 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .cond .inp{height:36px;font-size:var(--text-xs-plus);padding:0 10px}
 .badge.sb::before{display:none}
 .wtab{color:var(--slate-600)}
+/* phones: toolbars wrap (name on its own line; tabs, note, buttons each a row); the canvas opens zoomed to fit
+   and is only as tall as the drawing; the node panel sits under the canvas instead of over it */
+@media (max-width:640px){
+  .wf-top{flex-wrap:wrap;gap:8px 10px!important}
+  .wf-top>.wf-name{order:-1;flex:1 1 100%;max-width:none!important}
+  .wfbar{flex-wrap:wrap;gap:8px;padding:10px 12px}
+  .wfbar>.wf-gap{display:none}
+  .wfbar>.wf-tabs,.wfbar>.wf-note{flex:1 1 100%}
+  .wfbar>button{flex:1 1 0;min-width:0}
+  .canvas{height:var(--wf-ch,640px)}
+  .zoom{bottom:auto;top:calc(var(--wf-ch,640px) - 50px)}
+  .drawer{position:relative;top:auto;right:auto;bottom:auto;width:auto;max-height:75vh;margin:0 12px 12px}
+}
 `;
 
 // ---- markup ----
@@ -300,9 +323,9 @@ export default class WorkflowBuilderScreen extends Component {
             <__Topbar crumb="Automation" page="Workflow builder" placeholder="Search" />
             <div className="pgc gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "22px" }}>
               <__PageHeader title="Workflow builder" />
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div className="wf-top" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <__Link href="/automations" className="abtn" style={{ textDecoration: "none" }}>Rules</__Link>
-                <input className="inp" aria-label="Workflow name" value={v.name} onChange={v.onName} style={{ maxWidth: "440px", fontWeight: "var(--weight-semibold)", fontSize: "var(--text-base)" }} />
+                <input className="inp wf-name" aria-label="Workflow name" value={v.name} onChange={v.onName} style={{ maxWidth: "440px", fontWeight: "var(--weight-semibold)", fontSize: "var(--text-base)" }} />
                 <span className="pill">{v.nodeCount}</span>
                 <span style={{ flexGrow: "1" }} />
                 <span style={__sx(`font-size: var(--text-xs-plus); font-weight: var(--weight-medium); color: ${v.actC ?? ""};`)}>{v.actL}</span>
@@ -320,19 +343,19 @@ export default class WorkflowBuilderScreen extends Component {
               </>) : null}
               <section className="tc" style={{ overflow: "hidden" }}>
                 <div className="wfbar">
-                  <div style={{ display: "flex", gap: "4px" }}>
+                  <div className="wf-tabs" style={{ display: "flex", gap: "4px" }}>
                     {__list(v.tabs).map((t, $index) => (<React.Fragment key={$index}>
                         <button type="button" className={t?.cls} aria-pressed={t?.on} onClick={t?.pick}>{t?.l}</button>
                       </React.Fragment>))}
                   </div>
-                  <span style={{ flexGrow: "1" }} />
-                  <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.runNote}</span>
+                  <span className="wf-gap" style={{ flexGrow: "1" }} />
+                  <span className="wf-note" style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.runNote}</span>
                   <button type="button" className="gc-btn gc-btn--solid gc-btn--sm" onClick={v.test}><__Icon name="play" width="16" height="16" aria-hidden="true" />Test workflow</button>
                   <button type="button" className="btn line sm" onClick={v.openCreator}><__Icon name="plus" width="16" height="16" aria-hidden="true" />Add node</button>
                 </div>
                 {v.isEditor ? (<>
-                  <div style={{ position: "relative" }}>
-                    <div className="canvas">
+                  <div style={{ position: "relative", "--wf-ch": v.canvasH }}>
+                    <div className="canvas" ref={(el) => { this.canvasEl = el; }}>
                       <div className="layer" style={__sx(`width: ${v.layerW ?? ""}px; transform: scale(${v.zoom ?? ""});`)}>
                         <div className="sticky" style={{ left: "24px", top: "450px", width: "300px" }}><b>How this works</b><br />Big COD orders going outside Dhaka are held until the customer pays the delivery charge by bKash. If they have not paid after 30 minutes, the AI calls them.</div>
                         {__list(v.edges).map((e, $index) => (<React.Fragment key={$index}>

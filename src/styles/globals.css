@@ -1,5 +1,9 @@
 @import './design-system.css';
 @import './console-responsive.css';
+@import './phone-app.css';
+
+/* No browser margin around any page (the newer React screens relied on the converted ones' reset). */
+html, body { margin: 0; }
 
 /* A converted screen's wrapper adds no box of its own. */
 .dc-screen { display: contents; }

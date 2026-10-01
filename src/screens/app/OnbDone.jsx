@@ -151,7 +151,7 @@ export default class OnbDoneScreen extends Component {
               </span>
               <span style={{ flex: "1", minWidth: "0" }}>
                 <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--muted)" }}>Your shop link</span>
-                <span className="ell" style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>nusratscloset.gridcommerce.com.bd</span>
+                <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", overflowWrap: "anywhere" }}>nusratscloset<wbr />.gridcommerce.com.bd</span>
               </span>
               <span className="pill p-nav">Copy</span>
             </a>

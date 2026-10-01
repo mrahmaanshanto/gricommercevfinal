@@ -571,7 +571,7 @@ export default class SubscriptionsScreen extends Component {
                     <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Movement this month</h2>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }}>September</div>
                   </div>
-                  <svg viewBox="0 0 360 150" width="100%" role="img" style={{ display: "block", overflow: "visible" }}>
+                  <svg className="cs-chart-s" viewBox="0 0 360 150" width="100%" role="img" style={{ "--cs-fs": "13px", display: "block", overflow: "visible" }}>
                     <rect x="12" y="51.0" width="42" height="75.0" rx="4" fill="#003087" />
                     <text x="33" y="46.0" fontSize="10" fill="#0f172a" textAnchor="middle" fontWeight="600" fontFamily="Poppins, system-ui, sans-serif">৳60k</text>
                     <text x="33" y="144" fontSize="10" fill="#475569" textAnchor="middle" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">Start</text>
@@ -603,7 +603,7 @@ export default class SubscriptionsScreen extends Component {
                     <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Recurring revenue, 12 months</h2>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }}>৳ thousand a month</div>
                   </div>
-                  <svg viewBox="0 0 640 210" width="100%" role="img" aria-hidden="true" style={{ display: "block" }}>
+                  <svg className="cs-chart-l" viewBox="0 0 640 210" width="100%" role="img" aria-hidden="true" style={{ display: "block" }}>
                     <line x1="36" x2="640" y1="188.0" y2="188.0" stroke="#eef2f7" />
                     <line x1="36" x2="640" y1="145.5" y2="145.5" stroke="#eef2f7" />
                     <line x1="36" x2="640" y1="103.0" y2="103.0" stroke="#eef2f7" />
@@ -618,6 +618,13 @@ export default class SubscriptionsScreen extends Component {
                     <text x="522.7" y="206" fontSize="11" fill="#64748b" textAnchor="middle" fontFamily="Poppins">Jul</text>
                     <text x="630.0" y="206" fontSize="11" fill="#64748b" textAnchor="middle" fontFamily="Poppins">Sep</text>
                   </svg>
+                  <div className="cs-axis" aria-hidden="true">
+                    <span style={{ left: "6.3%" }}>Oct 25</span>
+                    <span style={{ left: "31.4%" }}>Jan</span>
+                    <span style={{ left: "56.5%" }}>Apr</span>
+                    <span style={{ left: "81.7%" }}>Jul</span>
+                    <span style={{ left: "98.4%" }}>Sep</span>
+                  </div>
                 </section>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1.4fr)", gap: "14px", alignItems: "stretch" }}>

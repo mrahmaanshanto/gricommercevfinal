@@ -82,7 +82,7 @@ export default class SetPreferenceScreen extends Component {
                       </span>
                     </header>
                     <section id="s0" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Identifiers</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Prefixes are prepended to generated codes. Existing records keep the ID they were created with.</span>
@@ -131,7 +131,7 @@ export default class SetPreferenceScreen extends Component {
                       </div>
                     </section>
                     <section id="s1" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Security</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Applies to every admin and seller account on this store.</span>
@@ -188,7 +188,7 @@ export default class SetPreferenceScreen extends Component {
                           </span>
                           <__Sw f={v.f} n="secure_delivery_otp" />
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 0 12px 0" }}>
+                        <div className="set-flow" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 0 12px 0" }}>
                           <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Applies to</span>
                           <__Seg f={v.f} n="applies_to" opts={["Platform orders only","All sellers"]} />
                           <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Turning this on for all sellers notifies 246 sellers by email.</span>
@@ -196,7 +196,7 @@ export default class SetPreferenceScreen extends Component {
                       </div>
                     </section>
                     <section id="s2" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Order notification emails</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Master switch first; per-status mail can then be tuned. Customers always receive the order-placed receipt.</span>
@@ -246,7 +246,7 @@ export default class SetPreferenceScreen extends Component {
                       </div>
                     </section>
                     <section id="s3" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Seller approvals</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{"What a seller may publish without a review from your team. Approvals queue under Customers & Sellers."}</span>
@@ -301,7 +301,7 @@ export default class SetPreferenceScreen extends Component {
                       </div>
                     </section>
                     <section id="s4" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Discovery</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Small storefront behaviours.</span>

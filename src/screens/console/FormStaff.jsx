@@ -579,7 +579,7 @@ export default class FormStaffScreen extends Component {
                       <h2 className="fsh">Permissions</h2>
                       <p className="fsd">Approve means they can be the second person on money and entitlement changes.</p>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
+                    <div className="cs-fit" style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0", "--cs-cols": "minmax(0,1fr) repeat(3,60px)" }}>
                       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.6fr) repeat(3,80px)", gap: "8px", paddingBottom: "6px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
                         <span>Area</span>
                         <span style={{ textAlign: "center" }}>View</span>

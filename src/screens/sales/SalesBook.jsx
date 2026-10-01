@@ -223,7 +223,7 @@ return {
     ret: money(r.ret, bn), retNote: dg(r.retN, bn) + L('টা ফেরত', ' returns')
   },
   barTitle: barTitle, barPeak: peakLbl, barGap: few ? '10px' : '5px',
-  bars: bars.map(function (b) { return { d: b.d, v: b.v, showV: few, tip: b.lab + ' · ' + money(b.val, bn), h: Math.max(4, Math.round(b.val / bmx * (few ? 58 : 76))) + 'px', bg: b.on ? '#003087' : '#c9d7ee', vfg: b.on ? '#003087' : '#64748b', dfg: b.on ? '#003087' : '#64748b', dfw: b.on ? 700 : 500 }; }),
+  bars: bars.map(function (b) { return { d: b.d, v: b.v, showV: few, tip: b.lab + ' · ' + money(b.val, bn), h: Math.max(4, Math.round(b.val / bmx * (few ? 58 : 76))) + 'px', bg: b.on ? '#003087' : '#c9d7ee', vfg: b.on ? '#003087' : '#64748b', dfg: b.on ? '#003087' : '#64748b', dfw: b.on ? 700 : 500, on: b.on }; }),
   caption: L('দেখাচ্ছে ', 'Showing ') + dg(liveShown.length + shown.length, bn) + L('টা · ', ' · ') + L('মোট ' + grp(r.memos) + 'টা মেমো · নতুনগুলো আগে', grp(r.memos) + ' memos in all · newest first'),
   noRows: liveShown.length + shown.length === 0,
   rows: liveShown.map(function (x) {
@@ -291,6 +291,25 @@ button{font:inherit;color:inherit}
 .sb-pick select{height:100%;padding:0 32px 0 2px;border:0;background:transparent;font:inherit;font-weight:var(--weight-medium);color:var(--text-heading);appearance:none;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,var(--text-muted) 50%),linear-gradient(135deg,var(--text-muted) 50%,transparent 50%);background-position:calc(100% - 17px) 19px,calc(100% - 12px) 19px;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
 .sb-pick select:focus{outline:none}
 @media (max-width:767px){.sb-seg{width:100%;margin-right:0}.sb-pick{flex:1}}
+.sb-charthead > svg,.sb-memohead > svg{flex:none}
+@media (max-width:640px){
+  /* chart title, then "Busiest …" under it */
+  .sb-charthead{flex-wrap:wrap;row-gap:2px!important}
+  .sb-charthead > h2{flex:1 1 0!important;min-width:0}
+  .sb-charthead > span{flex:1 0 100%;padding-left:38px}
+  /* bars: only the busiest bar keeps its value; a dense axis shows every third label */
+  .sb-chart .sb-col:not(.is-peak) .sb-v{visibility:hidden}
+  .sb-chart--dense .sb-col:not(:nth-child(3n+1)) .sb-d{visibility:hidden}
+  .sb-chart{gap:4px!important}
+  /* memos: title, then the two helper lines under it */
+  .sb-memohead{flex-wrap:wrap;row-gap:2px!important}
+  .sb-memohead > h2{flex:1 1 0;min-width:0}
+  .sb-memohead > span{flex:1 0 100%;padding-left:38px}
+  /* Payment / Sold by pickers: one per row so the label never breaks */
+  .sb-pick{flex:1 1 100%}
+  .sb-pick > span{white-space:nowrap}
+  .sb-pick select{flex:1 1 auto;min-width:0}
+}
 .pill{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-full);font-size:var(--text-xs-plus);font-weight:var(--weight-medium);white-space:nowrap}
 .p-ok{background:#e7f8f1;color:#047857}.p-due{background:#ffece6;color:#b83210}.p-warn{background:#fff4e0;color:#a14f06}.p-info{background:#eef3fb;color:#003087}.p-grey{background:#eef2f6;color:#475569}.p-bk{background:#fdecf5;color:#a3195b}
 .inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#0f172a}
@@ -482,7 +501,7 @@ export default class SalesBookScreen extends Component {
                 </div>
               </div>
               <section className="card" style={{ padding: "14px 18px 12px", display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div className="sb-charthead" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                   <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true">
                     <path d="M11 4H33A3 3 0 0 1 36 7V39A3 3 0 0 1 33 42H11A3 3 0 0 1 8 39V7A3 3 0 0 1 11 4Z" fill="#e0f2fe" />
                     <path d="M11.5 5.5H32.5A2 2 0 0 1 34.5 7.5V38.5A2 2 0 0 1 32.5 40.5H11.5A2 2 0 0 1 9.5 38.5V7.5A2 2 0 0 1 11.5 5.5Z" fill="#ffffff" />
@@ -496,20 +515,20 @@ export default class SalesBookScreen extends Component {
                   <h2 className="h2" style={{ flexGrow: "1", fontSize: "var(--text-base)" }}>{v.barTitle}</h2>
                   <span className="num hint" style={{ fontSize: "var(--text-sm)" }}>{v.barPeak}</span>
                 </div>
-                <div style={__sx(`height: 104px; display: flex; align-items: flex-end; gap: ${v.barGap ?? ""};`)}>
+                <div className={'sb-chart' + (__list(v.bars).length > 8 ? ' sb-chart--dense' : '')} style={__sx(`height: 104px; display: flex; align-items: flex-end; gap: ${v.barGap ?? ""};`)}>
                   {__list(v.bars).map((b, $index) => (<React.Fragment key={$index}>
-                      <div style={{ flex: "1 1 0", minWidth: "0", display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
+                      <div className={'sb-col' + (b?.on ? ' is-peak' : '')} style={{ flex: "1 1 0", minWidth: "0", display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
                         {b?.showV ? (<>
-                          <span className="num" style={__sx(`font-size: var(--text-xs); color: ${b?.vfg ?? ""}; font-weight: var(--weight-medium); white-space: nowrap;`)}>{b?.v}</span>
+                          <span className="num sb-v" style={__sx(`font-size: var(--text-xs); color: ${b?.vfg ?? ""}; font-weight: var(--weight-medium); white-space: nowrap;`)}>{b?.v}</span>
                         </>) : null}
                         <span title={b?.tip} style={__sx(`width: 100%; height: ${b?.h ?? ""}; border-radius: var(--radius-md) var(--radius-md) 2px 2px; background: ${b?.bg ?? ""};`)} />
-                        <span className="num" style={__sx(`font-size: var(--text-xs); color: ${b?.dfg ?? ""}; font-weight: ${b?.dfw ?? ""}; white-space: nowrap;`)}>{b?.d}</span>
+                        <span className="num sb-d" style={__sx(`font-size: var(--text-xs); color: ${b?.dfg ?? ""}; font-weight: ${b?.dfw ?? ""}; white-space: nowrap;`)}>{b?.d}</span>
                       </div>
                     </React.Fragment>))}
                 </div>
               </section>
               <section className="card" style={{ overflow: "hidden" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 18px 10px" }}>
+                <div className="sb-memohead" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 18px 10px" }}>
                   <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true">
                     <path d="M11 4H33A3 3 0 0 1 36 7V39A3 3 0 0 1 33 42H11A3 3 0 0 1 8 39V7A3 3 0 0 1 11 4Z" fill="#e0f2fe" />
                     <path d="M11.5 5.5H32.5A2 2 0 0 1 34.5 7.5V38.5A2 2 0 0 1 32.5 40.5H11.5A2 2 0 0 1 9.5 38.5V7.5A2 2 0 0 1 11.5 5.5Z" fill="#ffffff" />

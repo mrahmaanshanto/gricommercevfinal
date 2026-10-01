@@ -44,7 +44,14 @@ const CSS = `
 .sf-swatches{display:flex;flex-wrap:wrap;gap:var(--space-2)}
 .sf-swatch{width:32px;height:32px;border-radius:var(--radius-full);border:2px solid transparent;cursor:pointer;padding:0}
 .sf-swatch[aria-pressed="true"]{border-color:var(--text-heading)}
-@media (max-width:640px){.sf-place{margin-left:0;width:100%}}
+@media (max-width:640px){
+  .sf-place{margin-left:0;width:100%}
+  /* roster on phones: a narrow staff column (name only) that stays put while the days scroll */
+  .sf-grid th:first-child,.sf-grid td:first-child{position:sticky;left:0;z-index:1;width:104px;min-width:104px;max-width:104px;padding-left:var(--space-3)!important;padding-right:var(--space-2)!important;box-shadow:inset -1px 0 0 var(--border-subtle)}
+  .sf-grid td:first-child{background:var(--surface-card)}
+  .sf-grid td:first-child .hr-av,.sf-grid td:first-child .hr-sub{display:none}
+  .sf-grid .sf-cell small{white-space:nowrap}
+}
 `;
 const EMPTY_SHIFT = { name: '', start: '10:00', end: '18:00', breakMin: '60', graceMin: '10', color: 'pink', places: ['Dhanmondi branch'], minStaff: '1' };
 

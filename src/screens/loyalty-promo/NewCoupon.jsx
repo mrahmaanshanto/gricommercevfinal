@@ -226,6 +226,12 @@ a{color:#003087}a:hover{color:#002a77}
 .pulse{animation:gcPulse 1.6s ease-in-out infinite}
 @keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+/* phones: a number row puts its label on its own line, then the stepper (never squeezed) and its unit */
+@media (max-width:640px){
+  .nc-steprow{flex-wrap:wrap;gap:var(--space-2) var(--space-3)!important}
+  .nc-steprow>span:first-child{flex:1 1 100%}
+  .nc-steprow>div{flex:none}
+}
 `;
 
 // ---- markup ----
@@ -335,7 +341,7 @@ export default class NewCouponScreen extends Component {
                           <button type="button" className={c?.cls} aria-pressed={c?.on} onClick={c?.pick}>{c?.label}</button>
                         </React.Fragment>))}
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                    <div className="nc-steprow" style={{ display: "flex", alignItems: "center", gap: "14px" }}>
                       <span style={{ fontSize: "var(--text-sm)", color: "#334155" }}>Only when the bill is at least</span>
                       <div style={{ display: "inline-flex", alignItems: "center", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", overflow: "hidden", background: "#fff" }}>
                         <button type="button" className="ib" aria-label="Less minimum bill" onClick={v.minb?.dec} style={{ borderRadius: "0" }}>
@@ -517,7 +523,7 @@ export default class NewCouponScreen extends Component {
                         <span id="cp-end-help" style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Leave empty to keep it on always.</span>
                       </label>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                    <div className="nc-steprow" style={{ display: "flex", alignItems: "center", gap: "14px" }}>
                       <span style={{ fontSize: "var(--text-sm)", color: "#334155" }}>Stop after it is used</span>
                       <div style={{ display: "inline-flex", alignItems: "center", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", overflow: "hidden", background: "#fff" }}>
                         <button type="button" className="ib" aria-label="Less use limit" onClick={v.lim?.dec} style={{ borderRadius: "0" }}>

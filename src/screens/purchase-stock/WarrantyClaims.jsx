@@ -149,6 +149,30 @@ a{color:#003087}a:hover{color:#002a77}
 .pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
 .ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
 .thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
+/* phones: the description gets the full width with its actions below; the look-up stacks (choice, then box + button);
+   the result reads as a short list; tabs and status chips scroll on one row */
+@media (max-width:640px){
+  .wc-intro{flex-wrap:wrap;gap:10px!important}
+  .wc-intro>div{flex:1 1 100%!important}
+  .wc-intro>.btn{flex:1 1 auto;padding:0 12px}
+  .wc-look{flex-wrap:wrap;gap:8px!important}
+  .wc-seg{display:flex!important;width:100%}
+  .wc-seg>button{flex:1 1 auto;padding:0 10px!important;white-space:nowrap}
+  .wc-look>label{flex:1 1 0!important;min-width:0}
+  .wc-look>.btn{padding:0 14px}
+  .wc-look>.btn svg{display:none}
+  .wc-hit{flex-wrap:wrap;gap:12px 14px!important;padding:14px!important}
+  .wc-hit>.thumb{display:none}
+  .wc-hit>div:first-of-type{flex:1 1 100%!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px 14px!important}
+  .wc-hit>div:first-of-type>div:first-child{grid-column:1/-1}
+  .wc-hit>div:nth-of-type(2){flex:1 1 auto;text-align:left!important}
+  .ptabs{overflow-x:auto;scrollbar-width:none;padding:0 8px}
+  .ptabs::-webkit-scrollbar{display:none}
+  .ptab{flex:none}
+  .wc-chips{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;padding:12px 14px!important}
+  .wc-chips::-webkit-scrollbar{display:none}
+  .wc-chips>button{flex:none}
+}
 `;
 
 // ---- markup ----
@@ -165,7 +189,7 @@ export default class WarrantyClaimsScreen extends Component {
             <__Topbar crumb="Stock" page={"Warranty claims & serial numbers"} placeholder="Search invoice, phone, serial or IMEI" />
             <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
               <__PageHeader title={"Warranty claims & serial numbers"} />
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div className="wc-intro" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <div style={{ flexGrow: "1", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#475569" }}>Find any sold item by invoice, phone, serial or IMEI. The system checks the warranty by itself and keeps the customer updated.</div>
                 <__Link href="/warranty-policies" className="btn line">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -250,8 +274,8 @@ export default class WarrantyClaimsScreen extends Component {
                 </div>
               </div>
               <section className="pcard" style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                  <div style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
+                <div className="wc-look" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                  <div className="wc-seg" style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
                     {__list(v.byOpts).map((by, $index) => (<React.Fragment key={$index}>
                         <button type="button" onClick={by?.pick} aria-pressed={by?.on} style={__sx(`height: 34px; padding: 0 14px; border: 0; border-radius: var(--radius-full); font: inherit; font-size: var(--text-xs-plus); font-weight: var(--weight-medium); cursor: pointer; background: ${by?.bg ?? ""}; color: ${by?.fg ?? ""};`)}>{by?.l}</button>
                       </React.Fragment>))}
@@ -279,7 +303,7 @@ export default class WarrantyClaimsScreen extends Component {
                   </button>
                 </div>
                 {v.hasHit ? (<>
-                  <div className="fade" style={__sx(`display: flex; align-items: center; gap: 18px; padding: 16px 18px; border-radius: var(--radius-xl); border: 1.5px solid ${v.hitBd ?? ""}; background: ${v.hitBg ?? ""};`)}>
+                  <div className="fade wc-hit" style={__sx(`display: flex; align-items: center; gap: 18px; padding: 16px 18px; border-radius: var(--radius-xl); border: 1.5px solid ${v.hitBd ?? ""}; background: ${v.hitBg ?? ""};`)}>
                     <span className="thumb" style={{ width: "52px", height: "52px", background: "#fff" }}>
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
@@ -325,7 +349,7 @@ export default class WarrantyClaimsScreen extends Component {
                   <div className="fade">
                     <div style={{ display: "flex" }}>
                       <div style={{ flexGrow: "1", minWidth: "0" }}>
-                        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", padding: "14px 16px", borderBottom: "1px solid #eef2f6" }}>
+                        <div className="wc-chips" style={{ display: "flex", gap: "6px", flexWrap: "wrap", padding: "14px 16px", borderBottom: "1px solid #eef2f6" }}>
                           {__list(v.fchips).map((fc, $index) => (<React.Fragment key={$index}>
                               <button type="button" className={fc?.cls} onClick={fc?.pick} aria-pressed={fc?.on} style={{ height: "36px" }}>{fc?.l}<span style={{ fontSize: "var(--text-xs)", opacity: ".7" }}>{fc?.c}</span></button>
                             </React.Fragment>))}

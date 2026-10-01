@@ -60,6 +60,14 @@ const CSS = PICKER_CSS + PLACE_CSS + `
 .rk-line__acts{display:flex;gap:var(--space-2)}
 .rk-three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-3)}
 @media (max-width:599px){.rk-three{grid-template-columns:1fr 1fr}.rk-bar .rk-place{flex:1 1 100%}}
+/* phones: the shelf name sits above its bins so a whole shelf fits the width; bin codes never break */
+@media (max-width:640px){
+  .rk-rack{padding:var(--space-4) var(--space-3-5)}
+  .rk-shelf{grid-template-columns:repeat(var(--bins),minmax(50px,1fr));row-gap:2px;margin-bottom:var(--space-2)}
+  .rk-shelf__label{grid-column:1/-1}
+  .rk-bin{padding:var(--space-1) 5px var(--space-2)}
+  .rk-bin__code{white-space:nowrap}
+}
 `;
 
 const key = (r, s, b) => `${r}|${s}|${b}`;

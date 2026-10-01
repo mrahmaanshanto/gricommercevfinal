@@ -135,8 +135,23 @@ const CSS = `body{margin:0;background:#eef2f7;font-family:var(--font-sans);color
 @media (max-width:1023px){.mg-head{padding-left:16px!important;padding-right:16px!important}}
 .mg-row[aria-pressed="true"]{cursor:default}
 .lpb-phone{max-width:100%}
+/* the editor toolbar wraps whenever its buttons don't fit (at 1440 with the side menu, Publish was cut off) */
+.lpb-head{height:auto!important;min-height:72px;flex-wrap:wrap;row-gap:8px;padding-top:12px!important;padding-bottom:12px!important}
 @media (max-width:1379px){.lpb-work{min-width:0!important;flex-wrap:wrap}.lpb-settings{flex:1 1 100%!important;width:auto!important;border-left:0!important;border-top:1px solid #e2e8f0}.lpb-head{height:auto!important;min-height:72px;flex-wrap:wrap;row-gap:8px;padding:12px 16px!important}.lpb-head>*{max-width:100%}.lpb-head h1{white-space:normal!important}}
-@media (max-width:1023px){.lpb-work{flex-direction:column;flex-wrap:nowrap}.lpb-work>*{flex:none!important;width:100%!important;min-width:0!important;border-right:0!important;border-bottom:1px solid #e2e8f0}.lpb-pick{padding:20px 16px 32px!important}}`;
+@media (max-width:1023px){.lpb-work{flex-direction:column;flex-wrap:nowrap}.lpb-work>*{flex:none!important;width:100%!important;min-width:0!important;border-right:0!important;border-bottom:1px solid #e2e8f0}.lpb-pick{padding:20px 16px 32px!important}}
+/* phones: the editor toolbar wraps inside the screen (view switch full width, then Open on my phone + Publish);
+   icon buttons and the page-part rows get touch-sized targets */
+@media (max-width:640px){
+  .lpb-ib{width:40px!important;height:40px!important}
+  .lpb-tools{flex:1 1 100%!important;flex-wrap:wrap;margin-left:0!important}
+  .lpb-tools>span:first-child{flex:1 1 100%!important}
+  .lpb-tools>span:first-child>button{flex:1 1 0!important;justify-content:center;height:36px!important}
+  .lpb-tools>button{flex:1 1 0!important;justify-content:center;height:44px!important}
+  .lpb-cbar{flex-wrap:wrap;row-gap:6px!important}
+  .lpb-cbar>span:last-child{flex:1 1 100%!important;margin-left:0!important;white-space:normal!important}
+  .lpb-parts button{min-height:44px}
+  .lpb-parts button>span:last-child:not([style*="flex: 1"]){display:grid;place-items:center;width:36px;height:36px;margin:-8px -6px -8px 0;flex:none}
+}`;
 
 // ---- markup ----
 
@@ -317,7 +332,7 @@ export default class LandingPageBuilderScreen extends Component {
             </>) : null}
             {v.isBuild ? (<>
               <header className="lpb-head" style={{ display: "flex", height: "72px", flex: "none", alignItems: "center", gap: "10px", padding: "0 16px", background: "#fff", borderBottom: "1px solid #e2e8f0", minWidth: "0" }}>
-                <button className="dc-h26" onClick={v.backToPick} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "var(--text-muted)", cursor: "pointer" }} aria-label="Back to landing pages">
+                <button className="dc-h26 lpb-ib" onClick={v.backToPick} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "var(--text-muted)", cursor: "pointer" }} aria-label="Back to landing pages">
                   <__Icon name="arrow-left" width="20" height="20" strokeWidth="1.75" />
                 </button>
                 <div style={{ flex: "none" }}>
@@ -327,15 +342,15 @@ export default class LandingPageBuilderScreen extends Component {
                 <span style={{ flex: "none", whiteSpace: "nowrap", display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-sm)", background: "#e9eef5", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#475569", letterSpacing: "var(--tracking-wide)" }}>Draft</span>
                 <span style={{ flex: "none", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: "6px", height: "24px", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.1)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#0f7a5a" }}><__Icon name="check" strokeWidth="1.75" width="13" height="13" />Saved · <span className="bn" style={{ fontSize: "var(--text-xs-plus)" }}>সেভ হয়েছে</span></span>
                 <div style={{ display: "flex", gap: "2px", marginLeft: "6px" }}>
-                  <button className="dc-h27" style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "#475569", cursor: "pointer" }} aria-label="Undo">
+                  <button className="dc-h27 lpb-ib" style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "#475569", cursor: "pointer" }} aria-label="Undo">
                     <__Icon name="undo-2" strokeWidth="1.75" width="18" height="18" />
                   </button>
-                  <button style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "#cbd5e1", cursor: "not-allowed" }} aria-label="Redo" disabled>
+                  <button className="lpb-ib" style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "#cbd5e1", cursor: "not-allowed" }} aria-label="Redo" disabled>
                     <__Icon name="redo-2" strokeWidth="1.75" width="18" height="18" />
                   </button>
                 </div>
                 <button className="dc-h28" onClick={v.openAiPage} style={{ flex: "none", whiteSpace: "nowrap", height: "32px", display: "inline-flex", alignItems: "center", gap: "7px", border: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,156,222,.12)", color: "var(--accent-text)", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}><__Icon name="sparkles" strokeWidth="1.75" width="15" height="15" />Write page with AI</button>
-                <div style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "8px" }}>
+                <div className="lpb-tools" style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "8px" }}>
                   <span style={{ flex: "none", display: "inline-flex", borderRadius: "var(--radius-full)", background: "#e9eef5", padding: "3px" }}>
                     {v.isMobile ? (<>
                       <button onClick={v.setMobile} style={{ flex: "none", whiteSpace: "nowrap", height: "28px", display: "inline-flex", alignItems: "center", gap: "6px", border: "none", borderRadius: "var(--radius-full)", padding: "0 12px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer", background: "#fff", color: "#003087", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)" }}><__Icon name="smartphone" strokeWidth="1.75" width="14" height="14" />Mobile</button>
@@ -539,7 +554,7 @@ export default class LandingPageBuilderScreen extends Component {
                   </div>
                 </section>
                 <section className="lpb-canvas" aria-label="Page preview" style={{ flex: "1", minWidth: "430px", display: "flex", flexDirection: "column", background: "#f1f5f9" }}>
-                  <div style={{ flex: "none", display: "flex", alignItems: "center", gap: "8px", padding: "10px 16px", borderBottom: "1px solid #e2e8f0", background: "#fff" }}>
+                  <div className="lpb-cbar" style={{ flex: "none", display: "flex", alignItems: "center", gap: "8px", padding: "10px 16px", borderBottom: "1px solid #e2e8f0", background: "#fff" }}>
                     <span style={{ flex: "none", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: "6px", height: "24px", borderRadius: "var(--radius-full)", background: "rgba(0,48,135,.1)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#003087" }}><__Icon name="pencil" strokeWidth="1.75" width="13" height="13" />Edit mode</span>
                     <span style={{ flex: "1 1 auto", minWidth: "0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Tap any part on the page to change it</span>
                     <span style={{ marginLeft: "auto", flex: "none", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "#475569" }}><__Icon name="smartphone" strokeWidth="1.75" width="14" height="14" />390 px · what 94% of your buyers see</span>

@@ -119,6 +119,22 @@ const CSS = `
 .sp-pick b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 @media (max-width:1100px){.sp-grid{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:640px){.sp-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.sp-hero__main{padding:var(--space-4)}.sp-av{width:56px;height:56px;font-size:var(--text-lg)}.sp-acts{margin-left:0;width:100%}.sp-cal__d{min-height:48px;padding:4px}.sp-cal__d small{display:none}}
+.sp-cal__short,.sp-cal__key{display:none}
+@media (max-width:640px){
+  /* last 30 days: a week per row, cells fill the card, letters at the helper size */
+  .sp-strip{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+  .sp-dot{width:auto;height:auto;min-height:48px;padding:4px 0;font-size:var(--text-xs)}
+  .sp-dot b{font-size:var(--text-sm)}
+  .sp-dot small{font-size:var(--text-xs)}
+  /* month calendar: a cell is too narrow for "Present", so it shows the letter and a key explains them */
+  .sp-cal__d > span:first-child{flex-wrap:wrap;column-gap:2px}
+  .sp-cal__d em{text-align:center}
+  .sp-cal__long{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .sp-cal__short{display:inline}
+  .sp-cal__key{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-3);font-size:var(--text-xs);color:var(--text-body)}
+  .sp-cal__key > span{display:inline-flex;align-items:center;gap:6px}
+  .sp-cal__key i{display:inline-grid;place-items:center;width:22px;height:22px;border:1px solid var(--border-subtle);border-radius:var(--radius-md);font-style:normal;font-weight:var(--weight-medium)}
+}
 `;
 
 const readQuery = () => { const q = new URLSearchParams(window.location.search); return { code: q.get('code') || '', tab: q.get('tab') || '' }; };
@@ -579,16 +595,17 @@ function AttendanceTab({ S, st, onEdit }) {
               {Array.from({ length: lead }, (_, i) => <span key={'x' + i} />)}
               {keys.map((k) => {
                 const c = cellOf(S, st.code, k);
-                const [l, bg, fg] = ATT_CODES[c.code] || ATT_CODES['·'];
+                const [l, bg, fg, mark] = ATT_CODES[c.code] || ATT_CODES['·'];
                 return (
                   <div key={k} className="sp-cal__d" style={{ background: bg === 'transparent' ? undefined : bg }} title={l}>
                     <span><span>{Number(k.slice(8))}</span>{c.rec && c.rec.ot ? <span>+{Math.round(c.rec.ot / 6) / 10}h</span> : null}</span>
-                    <em style={{ color: fg }}>{c.code === '·' ? '' : c.code === 'P' ? 'Present' : l}</em>
+                    <em style={{ color: fg }}>{c.code === '·' ? '' : <><span className="sp-cal__long">{c.code === 'P' ? 'Present' : l}</span><span className="sp-cal__short" aria-hidden="true">{mark || '✓'}</span></>}</em>
                     {c.rec && c.rec.in ? <small>{t12(c.rec.in)}{c.rec.out ? ` – ${t12(c.rec.out)}` : ''}</small> : c.plan.kind === 'leave' ? <small>{leaveType(S, c.plan.leave.type).name}</small> : c.plan.holiday ? <small>{c.plan.holiday}</small> : null}
                   </div>
                 );
               })}
             </div>
+            <div className="sp-cal__key" aria-hidden="true">{[...new Set(keys.map((k) => cellOf(S, st.code, k).code))].filter((x) => x !== '·').map((x) => { const [l, bg, fg, mark] = ATT_CODES[x] || ATT_CODES['·']; return <span key={x}><i style={{ background: bg === 'transparent' ? undefined : bg, color: fg }}>{mark || '✓'}</i>{l}</span>; })}</div>
             <p className="hr-sub" style={{ margin: 0 }}>Late is counted after the shift’s grace time. Every {S.settings.latesPerCut} lates cut a day’s pay (HR setup › Attendance rules).</p>
           </div>
         </section>

@@ -558,7 +558,7 @@ export default class ProvisioningScreen extends Component {
                     <div style={{ marginTop: "4px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "#7c2d12" }}>The subdomain <span className="mono">ruposhi.gridcommerce.com.bd</span> is reserved by an archived store. Pick a new name with the owner, then retry; the first four stages are kept.</div>
                   </div>
                 </div>
-                <div className="panel" style={{ marginTop: "12px", overflow: "hidden", boxShadow: "none", border: "1px solid var(--line)" }}>
+                <div className="panel" style={{ marginTop: "12px", overflow: "hidden", boxShadow: "none", border: "1px solid var(--line)", "--cs-row-min": "900px" }}>
                   <div className="th" style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) minmax(0,2fr) 160px 110px 190px", gap: "12px", padding: "10px 18px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
                     <span>New store</span>
                     <span>Store · Owner · Theme · Search · Domain · Billing · Wizard</span>
@@ -793,7 +793,7 @@ export default class ProvisioningScreen extends Component {
                     <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Median time to live, seconds</h2>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }}>Target 180 s</div>
                   </div>
-                  <svg viewBox="0 0 640 170" width="100%" role="img" aria-hidden="true" style={{ display: "block" }}>
+                  <svg className="cs-chart-l" viewBox="0 0 640 170" width="100%" role="img" aria-hidden="true" style={{ display: "block" }}>
                     <line x1="36" x2="640" y1="148.0" y2="148.0" stroke="#eef2f7" />
                     <line x1="36" x2="640" y1="115.5" y2="115.5" stroke="#eef2f7" />
                     <line x1="36" x2="640" y1="83.0" y2="83.0" stroke="#eef2f7" />
@@ -806,13 +806,17 @@ export default class ProvisioningScreen extends Component {
                     <text x="40.0" y="166" fontSize="11" fill="#64748b" textAnchor="middle" fontFamily="Poppins">07 Sep</text>
                     <text x="630.0" y="166" fontSize="11" fill="#64748b" textAnchor="middle" fontFamily="Poppins">20 Sep</text>
                   </svg>
+                  <div className="cs-axis" aria-hidden="true">
+                    <span style={{ left: "6.3%" }}>07 Sep</span>
+                    <span style={{ left: "98.4%" }}>20 Sep</span>
+                  </div>
                 </section>
                 <section className="panel" style={{ padding: "16px 20px", minWidth: "0" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "12px" }}>
                     <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Selected run · Chaldal Mini Mart</h2>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }} />
                   </div>
-                  <svg viewBox="0 0 360 150" width="100%" height="150" role="img" style={{ display: "block", overflow: "visible" }}>
+                  <svg className="cs-chart-s cs-chart-fit" viewBox="0 0 360 150" width="100%" height="150" role="img" style={{ "--cs-fs": "13px", display: "block", overflow: "visible" }}>
                     <text x="0" y="16" fontSize="11" fill="#475569" textAnchor="start" fontWeight="500" fontFamily="Poppins, system-ui, sans-serif">Rongdhonu Fashion · signed up 10:42</text>
                     <line x1="29" x2="68" y1="60" y2="60" stroke="#003087" strokeWidth="3" />
                     <line x1="94" x2="133" y1="60" y2="60" stroke="#003087" strokeWidth="3" />

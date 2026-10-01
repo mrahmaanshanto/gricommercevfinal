@@ -133,6 +133,14 @@ a{color:#003087}a:hover{color:#002a77}
 .ck-opt.on .ck-dot{border-color:#003087}.ck-opt.on .ck-dot::after{content:"";width:8px;height:8px;border-radius:var(--radius-full);background:#003087}
 .ck-q{width:30px;height:28px;border-radius:var(--radius-lg);border:1px solid #cbd5e1;background:#fff;font-size:var(--text-base);cursor:pointer;color:#0f172a}
 .ck-row{display:flex;justify-content:space-between;font-size:var(--text-sm);color:#475569}
+.ck-txt{min-width:0}
+.ck-fee,.ck-tag{flex:none;white-space:nowrap}
+/* phone: an offer chip (bKash 10% off) goes under the option text instead of squeezing it */
+@media (max-width:640px){
+  .ck-opt:has(>.ck-tag){flex-wrap:wrap;row-gap:8px}
+  .ck-opt:has(>.ck-tag)>.ck-txt{flex:1 1 calc(100% - 92px)}
+  .ck-opt>.ck-tag{margin-left:30px}
+}
 `;
 
 // ---- markup ----
@@ -234,11 +242,11 @@ export default class CheckoutScreen extends Component {
                     {__list(v.zones).map((z, $index) => (<React.Fragment key={$index}>
                         <button type="button" className={z?.cls} aria-pressed={z?.on} onClick={z?.pick}>
                           <span className="ck-dot" />
-                          <span style={{ flexGrow: "1" }}>
+                          <span className="ck-txt" style={{ flexGrow: "1" }}>
                             <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{z?.l}</span>
                             <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{z?.s}</span>
                           </span>
-                          <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{z?.fee}</span>
+                          <span className="ck-fee" style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{z?.fee}</span>
                         </button>
                       </React.Fragment>))}
                   </section>
@@ -247,13 +255,13 @@ export default class CheckoutScreen extends Component {
                     {__list(v.pays).map((p, $index) => (<React.Fragment key={$index}>
                         <button type="button" className={p?.cls} aria-pressed={p?.on} onClick={p?.pick}>
                           <span className="ck-dot" />
-                          <span style={{ flexGrow: "1" }}>
+                          <span className="ck-txt" style={{ flexGrow: "1" }}>
                             <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{p?.l}</span>
                             <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{p?.s}</span>
                           </span>
                           {p?.logo ? (p?.logoFull ? <PaymentLogo provider={p.logo} variant="full" size={22} decorative /> : <PaymentLogo provider={p.logo} size={32} radius={8} decorative />) : null}
                           {p?.hasTag ? (<>
-                            <span style={{ height: "24px", padding: "0 10px", borderRadius: "var(--radius-full)", background: "#e7f8f1", color: "#047857", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center" }}>{p?.tag}</span>
+                            <span className="ck-tag" style={{ height: "24px", padding: "0 10px", borderRadius: "var(--radius-full)", background: "#e7f8f1", color: "#047857", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center" }}>{p?.tag}</span>
                           </>) : null}
                         </button>
                       </React.Fragment>))}

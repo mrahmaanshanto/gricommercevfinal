@@ -563,7 +563,7 @@ export default class WebhooksScreen extends Component {
                   <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Deliveries, last 6 hours</h2>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }}>% delivered · dashed = 99% target</div>
                 </div>
-                <svg viewBox="0 0 1100 160" width="100%" role="img" aria-hidden="true" style={{ display: "block" }}>
+                <svg className="cs-chart-l cs-chart-stretch" viewBox="0 0 1100 160" preserveAspectRatio="none" width="100%" role="img" aria-hidden="true" style={{ display: "block" }}>
                   <line x1="36" x2="1100" y1="138.0" y2="138.0" stroke="#eef2f7" />
                   <line x1="36" x2="1100" y1="108.0" y2="108.0" stroke="#eef2f7" />
                   <line x1="36" x2="1100" y1="78.0" y2="78.0" stroke="#eef2f7" />
@@ -577,6 +577,11 @@ export default class WebhooksScreen extends Component {
                   <text x="612.7" y="156" fontSize="11" fill="#64748b" textAnchor="middle" fontFamily="Poppins">11:30</text>
                   <text x="1090.0" y="156" fontSize="11" fill="#64748b" textAnchor="middle" fontFamily="Poppins">14:30</text>
                 </svg>
+                <div className="cs-axis" aria-hidden="true">
+                  <span style={{ left: "3.6%" }}>08:30</span>
+                  <span style={{ left: "55.7%" }}>11:30</span>
+                  <span style={{ left: "99.1%" }}>14:30</span>
+                </div>
               </section>
               <div className="panel" style={{ overflow: "hidden" }}>
                 <div className="th" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 100px minmax(0,1.4fr) 90px 90px 80px 120px", gap: "12px", padding: "10px 18px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>

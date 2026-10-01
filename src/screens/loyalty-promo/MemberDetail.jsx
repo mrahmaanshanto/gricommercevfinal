@@ -27,6 +27,16 @@ const CSS = `
 .md-prog{display:flex;flex-direction:column;gap:6px;padding:0 var(--space-5) var(--space-5)}
 .md-prog p{display:flex;flex-wrap:wrap;justify-content:space-between;gap:var(--space-2);margin:0;font-size:var(--text-xs);color:var(--text-muted)}
 .md-amt{font-family:var(--font-data);font-variant-numeric:tabular-nums;font-weight:var(--weight-semibold);white-space:nowrap}
+/* phones: the name is already the page title, so the card shows the level badge and number only */
+@media (max-width:640px){
+.md-head{padding:var(--space-4);gap:var(--space-3)}
+.md-head .ly-ava{width:44px;height:44px}
+.md-head > div{flex:1 1 0}
+.md-head > .ac-row-actions{flex:1 1 100%}
+.md-name{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.md-prog{padding:0 var(--space-4) var(--space-4)}
+.md-prog p{flex-direction:column;gap:2px}
+}
 `;
 
 export default function MemberDetail() {
@@ -67,7 +77,7 @@ export default function MemberDetail() {
   const pct = m && data.next ? Math.min(100, Math.round((m.bought / data.next.min) * 100)) : 100;
 
   return (
-    <LoyPage screen="MemberDetail" active="loy-members" crumb="Loyalty & rewards / Members" page={m ? m.name : 'Member'} title={m ? m.name : 'Member'}
+    <LoyPage screen="MemberDetail" active="loy-members" crumb="Loyalty & rewards / Members" page={m ? m.name : 'Member'} title={m ? m.name : 'Member'} css={CSS}
       description={m ? `Member since ${formatDate(m.joined)}${m.birthday ? ' · birthday ' + m.birthday : ''}` : ''}
       actions={m ? <>
         <Link href="/members" className="gc-btn gc-btn--neutral"><Icon name="arrow-left" width="18" height="18" aria-hidden="true" /> Members</Link>
@@ -79,7 +89,7 @@ export default function MemberDetail() {
           <section className="gc-card" aria-label="Member">
             <div className="md-head">
               <span className="ly-ava" aria-hidden="true">{m.name.charAt(0)}</span>
-              <div><h2>{m.name} <TierBadge m={m} /></h2><p className="ac-fig">{m.phone}{m.code ? ' · invite code ' + m.code : ''}</p></div>
+              <div><h2><span className="md-name">{m.name}</span> <TierBadge m={m} /></h2><p className="ac-fig">{m.phone}{m.code ? ' · invite code ' + m.code : ''}</p></div>
               <div className="ac-row-actions">
                 <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => open('wallet', 'refund')} disabled={!m.wallet}>Pay back wallet</button>
                 <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => open('wallet', 'reward')}>Give credit</button>

@@ -584,7 +584,7 @@ export default class FormProvisionScreen extends Component {
                     <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                       <label className="fld">
                         <span className="flab">Free address<span className="req" aria-hidden="true">*</span></span>
-                        <div className="affix ok">
+                        <div className="affix ok cs-affix-stack">
                           <input type="text" defaultValue="ruposhijewels" />
                           <span className="post">.gridcommerce.com.bd</span>
                         </div>

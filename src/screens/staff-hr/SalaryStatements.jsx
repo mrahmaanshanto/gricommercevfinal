@@ -30,6 +30,7 @@ const CSS = `
   .gc-table th,.gc-table td{padding:5px 6px!important}
   .ss-who{padding:6px 0 10px}
 }
+@media (max-width:640px){.ss-bar > div{flex:1 1 100%;min-width:0}.ss-bar .gc-input{width:100%}}
 `;
 
 const yearsFrom = (S) => {

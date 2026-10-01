@@ -62,6 +62,8 @@ const CSS = PICKER_CSS + `
 .sa-note svg{flex:none;margin-top:1px}
 .sa-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-4);border-bottom:1px solid var(--border-subtle)}
 .sa-stats{flex:1 1 420px}
+/* phones: the three status cards share one row, so their sub-line wraps inside the card instead of running past it */
+@media (max-width:640px){.sa-stats .gc-stattab{overflow:hidden}.sa-stats .gc-stattab__nums{width:100%}.sa-stats .gc-stattab__nums small{max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:16px}}
 @media (max-width:640px){.sa-bar{padding:var(--space-3)}.sa-place{flex:1 1 100%;min-width:0!important}}
 .sa-place{width:auto;min-width:200px}
 .sa-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}

@@ -209,6 +209,23 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .lrow:hover{background:#f7f9fd}.lrow.on{background:rgba(0,48,135,.05)}
 .lrow:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:-3px}
 .pgc>*{flex-shrink:0}.tb th{white-space:normal}.stp2{flex-shrink:0}.pgc>.fill{flex-shrink:1;min-height:0}
+/* phones: every card takes the full width (gc-split stacks the card pairs below 1024px); fields stack,
+   the logo, the pay button and the chip rows stay inside their card */
+@media (max-width:640px){
+  .sec{padding:16px}
+  .row2{grid-template-columns:minmax(0,1fr)}
+  .chk{gap:12px;padding:12px}
+  .chk>div:first-child{flex:1 1 0!important;min-width:0}
+  .chk>.sw{flex:none}
+  .cw-addhead{flex-wrap:wrap;gap:var(--space-2) var(--space-4)!important}
+  .cw-addhead>div:first-child{flex:1 1 180px;min-width:0}
+  .cw-pay{flex-wrap:wrap;gap:var(--space-2) var(--space-3)!important}
+  .cw-pay>.btn{flex:1 1 100%}
+  .cw-pay>span{flex-wrap:wrap;min-width:0}
+  .cw-chips{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;padding:0 16px 12px!important}
+  .cw-chips::-webkit-scrollbar{display:none}
+  .cw-chips>*{flex:none}
+}
 `;
 
 // ---- markup ----
@@ -261,9 +278,9 @@ export default class CreditWalletScreen extends Component {
                   <button type="button" className="btn warnbtn sm" onClick={v.payNow}>Top up now</button>
                 </div>
               </>) : null}
-              <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 7fr) minmax(0, 5fr)", gap: "16px", alignItems: "start" }}>
+              <div className="gc-split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 7fr) minmax(0, 5fr)", gap: "16px", alignItems: "start" }}>
                 <section className="tc sec">
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px" }}>
+                  <div className="cw-addhead" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px" }}>
                     <div>
                       <h2 className="h2">Add money</h2>
                       <p className="sub">Paid through SSLCOMMERZ. The balance updates as soon as the payment is confirmed.</p>
@@ -293,7 +310,7 @@ export default class CreditWalletScreen extends Component {
                       </div>
                     </div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div className="cw-pay" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <button type="button" className="btn solid" onClick={v.payNow}>Pay {v.amtLabel} with SSLCOMMERZ</button>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>
                       <PaymentLogo provider="bkash" size={22} radius={6} />
@@ -343,7 +360,7 @@ export default class CreditWalletScreen extends Component {
                   </div>
                 </section>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 5fr) minmax(0, 7fr)", gap: "16px", alignItems: "start" }}>
+              <div className="gc-split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 5fr) minmax(0, 7fr)", gap: "16px", alignItems: "start" }}>
                 <section className="tc sec" style={{ paddingBottom: "8px" }}>
                   <div>
                     <h2 className="h2">Price list</h2>
@@ -379,7 +396,7 @@ export default class CreditWalletScreen extends Component {
                       <p className="sub">Every top-up and charge, newest first. Times in Dhaka time.</p>
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: "8px", padding: "0 20px 12px" }}>
+                  <div className="cw-chips" style={{ display: "flex", gap: "8px", padding: "0 20px 12px" }}>
                     {__list(v.chips).map((ch, $index) => (<React.Fragment key={$index}>
                         <button type="button" className={ch?.cls} onClick={ch?.pick}>{ch?.label}</button>
                       </React.Fragment>))}

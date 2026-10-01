@@ -152,14 +152,14 @@ export default class OnbWelcomeScreen extends Component {
               </span>
             </span>
           </div>
-          <div style={{ position: "absolute", left: "20px", right: "20px", bottom: "44px", color: "#fff", zIndex: "3" }}>
+          <div data-pin-bottom="" style={{ position: "absolute", left: "20px", right: "20px", bottom: "44px", color: "#fff", zIndex: "3" }}>
             <span className="pill" style={{ background: "rgba(255,255,255,.16)", color: "#fff", backdropFilter: "blur(8px)" }}>Fashion boutique · Dhaka</span>
             <p style={{ margin: "12px 0 0", fontSize: "var(--text-2xl)", lineHeight: "30px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>“Facebook orders, courier booking and stock used to live in three notebooks. Now it’s one screen.”</p>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "14px" }}>
-              <span className="av" style={{ width: "36px", height: "36px", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.18)", color: "#fff", fontSize: "var(--text-xs-plus)" }}>M</span>
+              <span className="av" style={{ width: "36px", height: "36px", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.18)", color: "#fff", fontSize: "var(--text-xs-plus)" }}>N</span>
               <span>
-                <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>[Merchant name]</span>
-                <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "#cbd8ee" }}>[Shop name] · Online fashion</span>
+                <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>Nusrat Jahan</span>
+                <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "#cbd8ee" }}>Nusrat’s Closet · Online fashion</span>
               </span>
               <span className="pill" style={{ marginLeft: "auto", background: "rgba(255,255,255,.1)", color: "#cbd8ee", fontWeight: "var(--weight-medium)" }}>Sample story</span>
             </div>

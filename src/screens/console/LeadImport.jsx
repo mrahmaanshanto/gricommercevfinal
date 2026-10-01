@@ -511,7 +511,7 @@ export default class LeadImportScreen extends Component {
                   <__Link href="/leads" className="btn btng" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}>Cancel</__Link>
                 </div>
               </div>
-              <ol aria-label="Import steps" style={{ display: "flex", gap: "10px", margin: "0", padding: "0", listStyle: "none" }}>
+              <ol aria-label="Import steps" className="cs-strip" style={{ display: "flex", gap: "10px", margin: "0", padding: "0", listStyle: "none" }}>
                 {__list(v.steps).map((s, $index) => (<React.Fragment key={$index}>
                     <li style={{ flex: "1" }}>
                       <button className={s?.cls} type="button" onClick={s?.pick} aria-current={s?.current} style={{ width: "100%" }}><span className="stepn">{s?.n}</span>{s?.label}</button>
@@ -531,18 +531,18 @@ export default class LeadImportScreen extends Component {
                         <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>Drop a CSV here, or <label style={{ color: "#003087", textDecoration: "underline", cursor: "pointer" }}>choose a file<input type="file" accept=".csv" style={{ position: "absolute", width: "1px", height: "1px", opacity: "0" }} /></label></div>
                         <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>CSV in UTF-8, up to 5,000 rows. Bangla names are kept as written.</div>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", borderRadius: "var(--radius-xl)", border: "1px solid var(--line)", background: "var(--surface)" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "var(--radius-lg)", background: "#e7f8f1", color: "#047857" }}>
+                      <div className="cs-nowrap" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", borderRadius: "var(--radius-xl)", border: "1px solid var(--line)", background: "var(--surface)" }}>
+                        <span style={{ display: "inline-flex", flex: "none", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "var(--radius-lg)", background: "#e7f8f1", color: "#047857" }}>
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
                             <path d="M14 2v6h6" />
                           </svg>
                         </span>
-                        <div>
-                          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>leads-sme-expo-sep-2026.csv</div>
+                        <div style={{ minWidth: "0" }}>
+                          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)", overflowWrap: "anywhere" }}>leads-sme-expo-sep-2026.csv</div>
                           <div style={{ fontSize: "var(--text-xs)", color: "var(--body)" }}>214 rows · 9 columns · 18 KB · read correctly as UTF-8</div>
                         </div>
-                        <button className="tb" type="button" aria-label="Remove file" style={{ marginLeft: "auto", width: "36px", height: "36px" }}>
+                        <button className="tb cs-top" type="button" aria-label="Remove file" style={{ marginLeft: "auto", flex: "none", width: "36px", height: "36px" }}>
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <path d="M18 6 6 18M6 6l12 12" />
                           </svg>

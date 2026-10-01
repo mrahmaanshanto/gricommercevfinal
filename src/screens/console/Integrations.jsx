@@ -551,7 +551,7 @@ export default class IntegrationsScreen extends Component {
                     <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Status, last 12 hours</h2>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }}>circle ok · triangle degraded · diamond down</div>
                   </div>
-                  <svg viewBox="0 0 360 150" width="100%" role="img" style={{ display: "block", overflow: "visible" }}>
+                  <svg className="cs-chart-s" viewBox="0 0 360 150" width="100%" role="img" style={{ "--cs-fs": "13px", display: "block", overflow: "visible" }}>
                     <text x="0" y="18" fontSize="11" fill="#475569" textAnchor="start" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">Pathao</text>
                     <circle cx="100" cy="14" r="5.5" fill="#10b981" />
                     <circle cx="123" cy="14" r="5.5" fill="#10b981" />

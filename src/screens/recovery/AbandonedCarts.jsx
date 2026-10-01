@@ -119,6 +119,19 @@ a{color:#003087}a:hover{color:#002a77}
 .pulse{animation:gcPulse 1.6s ease-in-out infinite}
 @keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+/* phones: the reminder card puts title + switch on one row, the note full width, "Edit message" below */
+@media (max-width:640px){
+  .ac-auto{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto;align-items:center!important;gap:var(--space-2) var(--space-3)!important;padding:var(--space-4)!important}
+  .ac-auto__ic{width:36px!important;height:36px!important;grid-row:1;grid-column:1}
+  .ac-auto__txt{display:contents}
+  .ac-auto__title{grid-row:1;grid-column:2;min-width:0}
+  .ac-auto__sw{grid-row:1;grid-column:3}
+  .ac-auto__desc{grid-row:2;grid-column:1/-1}
+  .ac-auto__edit{grid-row:3;grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;min-height:36px}
+  .ac-chips{overflow-x:auto;scrollbar-width:none}
+  .ac-chips::-webkit-scrollbar{display:none}
+  .ac-chips>.chip{flex:none}
+}
 `;
 
 // ---- markup ----
@@ -177,22 +190,22 @@ export default class AbandonedCartsScreen extends Component {
                   </div>
                 </div>
               </div>
-              <section className="card" style={{ padding: "18px 20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                <span style={{ width: "44px", height: "44px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "rgba(0,48,135,.08)", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <section className="card ac-auto" style={{ padding: "18px 20px", display: "flex", alignItems: "center", gap: "16px" }}>
+                <span className="ac-auto__ic" style={{ width: "44px", height: "44px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "rgba(0,48,135,.08)", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M10.268 21a2 2 0 0 0 3.464 0" />
                     <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" />
                   </svg>
                 </span>
-                <div style={{ flexGrow: "1", minWidth: "0" }}>
-                  <div style={{ fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Send an automatic reminder</div>
-                  <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>{v.autoNote}</div>
+                <div className="ac-auto__txt" style={{ flexGrow: "1", minWidth: "0" }}>
+                  <div className="ac-auto__title" style={{ fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Send an automatic reminder</div>
+                  <div className="ac-auto__desc" style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>{v.autoNote}</div>
                 </div>
-                <__Link href="/auto-reminders" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", whiteSpace: "nowrap" }}>Edit message</__Link>
-                <button type="button" className={v.autoCls} role="switch" aria-checked={v.autoOn} aria-label="Automatic reminder" onClick={v.toggleAuto} />
+                <__Link className="ac-auto__edit" href="/auto-reminders" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", whiteSpace: "nowrap" }}>Edit message</__Link>
+                <button type="button" className={`${v.autoCls} ac-auto__sw`} role="switch" aria-checked={v.autoOn} aria-label="Automatic reminder" onClick={v.toggleAuto} />
               </section>
               <section className="card" style={{ overflow: "hidden", flexGrow: "1", display: "flex", flexDirection: "column" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "14px 16px", borderBottom: "1px solid #e2e8f0" }}>
+                <div className="ac-chips" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "14px 16px", borderBottom: "1px solid #e2e8f0" }}>
                   {__list(v.chips).map((c, $index) => (<React.Fragment key={$index}>
                       <button type="button" className={c?.cls} aria-pressed={c?.on} onClick={c?.pick}>{c?.label}<span style={{ minWidth: "22px", height: "20px", padding: "0 6px", borderRadius: "var(--radius-full)", background: "#eef2f6", color: "#475569", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{c?.count}</span></button>
                     </React.Fragment>))}

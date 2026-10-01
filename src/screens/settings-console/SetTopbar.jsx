@@ -6,6 +6,7 @@
 import React from 'react';
 import { DCLogic } from '@/runtime/dc';
 import { Topbar as __Topbar } from '@/shell/Shell';
+import { SetFragment as __SetFragment } from '@/screens/settings-console/SetChrome';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -23,11 +24,12 @@ const CSS = `.set-shell__top{flex:none;width:100%;position:sticky;top:0;z-index:
 export default class SetTopbarScreen extends Component {
   render() {
     const v = this.renderVals() || {};
-    return (
+    const screen = (
       <div className="dc-screen ds" data-screen="SetTopbar">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <__Topbar crumb="Settings" page={`${v.crumb ?? ""}`} placeholder="Search settings, orders, products…" />
       </div>
     );
+    return this.props.embedded ? screen : <__SetFragment name="Settings top bar">{screen}</__SetFragment>;
   }
 }

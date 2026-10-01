@@ -233,6 +233,18 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .lrow:hover{background:#f7f9fd}.lrow.on{background:rgba(0,48,135,.05)}
 .lrow:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:-3px}
 .lseg{display:inline-flex;padding:3px;border-radius:var(--radius-xl);background:#f1f4f9;border:1px solid #e7ebf2}.lseg button{height:32px;padding:0 13px;border:0;border-radius:var(--radius-lg);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer}.pgc>*{flex-shrink:0}.tb th{white-space:normal}.stp2{flex-shrink:0}.pgc>.fill{flex-shrink:1;min-height:0}
+/* phones: the Modules title and note take the full width, the status filter sits under them on one scrolling row;
+   the payment card keeps its logo and button inside the card */
+@media (max-width:640px){
+  .sub-mhead{flex-wrap:wrap;padding:16px 16px 12px!important}
+  .sub-mhead>div:first-child{flex:1 1 100%!important;min-width:0}
+  .sub-mhead>.lseg{max-width:100%;overflow-x:auto;scrollbar-width:none}
+  .sub-mhead>.lseg::-webkit-scrollbar{display:none}
+  .sub-mhead>.lseg>button{flex:none;white-space:nowrap;height:36px}
+  .sub-pmhead{flex-wrap:wrap;gap:var(--space-2) var(--space-4)!important}
+  .sub-pmhead>div:first-child{flex:1 1 180px;min-width:0}
+  .sub-change{align-self:stretch!important;height:44px!important}
+}
 `;
 
 // ---- markup ----
@@ -280,7 +292,7 @@ export default class SubscriptionScreen extends Component {
                 </div>
               </>) : null}
               <section className="tc" style={{ overflow: "hidden" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "18px 20px 12px" }}>
+                <div className="sub-mhead" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "18px 20px 12px" }}>
                   <div style={{ flexGrow: "1" }}>
                     <h2 className="h2">Modules</h2>
                     <p className="sub">Each module shows when it started, how much of the 14-day trial was used and how long it stays valid.</p>
@@ -337,7 +349,7 @@ export default class SubscriptionScreen extends Component {
                   </table>
                 </div>
               </section>
-              <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 8fr) minmax(0, 4fr)", gap: "16px", alignItems: "start" }}>
+              <div className="gc-split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 8fr) minmax(0, 4fr)", gap: "16px", alignItems: "start" }}>
                 <section className="tc" style={{ overflow: "hidden" }}>
                   <div style={{ padding: "18px 20px 12px" }}>
                     <h2 className="h2">Billing history</h2>
@@ -393,7 +405,7 @@ export default class SubscriptionScreen extends Component {
                     </div>
                   </section>
                   <section className="tc sec">
-                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px" }}>
+                    <div className="sub-pmhead" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px" }}>
                       <div>
                         <h2 className="h2">Payment method</h2>
                         <p className="sub">Renewals are charged 3 days before the date.</p>
@@ -409,7 +421,7 @@ export default class SubscriptionScreen extends Component {
                         <button type="button" className={v.autoRenew?.cls} role="switch" aria-checked={v.autoRenew?.on} aria-label="Renew automatically" onClick={v.autoRenew?.toggle} />
                       </div>
                     </div>
-                    <button type="button" className="btn line sm" onClick={v.changeCard} style={{ alignSelf: "flex-start" }}>Change payment method</button>
+                    <button type="button" className="btn line sm sub-change" onClick={v.changeCard} style={{ alignSelf: "flex-start" }}>Change payment method</button>
                   </section>
                 </div>
               </div>

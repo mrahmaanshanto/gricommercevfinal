@@ -348,7 +348,9 @@ body{margin:0;background:#eef2f7;font-family:var(--font-sans);color:#475569}a{co
 .mo-stock td{padding:var(--space-2) 0;border-bottom:1px solid var(--border-subtle);white-space:normal}
 .mo-stock .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .mo-short{color:var(--text-danger);font-weight:var(--weight-medium)}
-@media (max-width:640px){.mo-bulk{min-width:0;width:100%;justify-content:flex-start !important}}`;
+@media (max-width:640px){.mo-bulk{min-width:0;width:100%;justify-content:flex-start !important}}
+/* phones: a wholesale invoice with the same number as its order isn't listed twice on the card */
+@media (max-width:640px){.mo-inv--same{display:none}}`;
 
 const TH = { background: "#e2e8f0", padding: "10px 12px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "#1e293b", whiteSpace: "nowrap" };
 const TD = { padding: "14px 12px", borderBottom: "1px solid #e2e8f0" };
@@ -515,7 +517,7 @@ export default class MerchantOrdersScreen extends Component {
                               <td style={{ ...TD, whiteSpace: "nowrap" }}>
                                 <__Link href={o.href} style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087" }}>{o.id}</__Link>
                                 {o.invoiceHref
-                                  ? <__Link href={o.invoiceHref} className="mo-inv" aria-label={o.invoiceKind + " " + o.invoiceId + " for order " + o.id}>{o.invoiceKind} {o.invoiceId}</__Link>
+                                  ? <__Link href={o.invoiceHref} className={"mo-inv" + (o.invoiceId === o.id ? " mo-inv--same" : "")} aria-label={o.invoiceKind + " " + o.invoiceId + " for order " + o.id}>{o.invoiceKind} {o.invoiceId}</__Link>
                                   : <span className="mo-inv mo-inv--none">No invoice yet</span>}
                                 <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{o.placed} · {o.channel}</p>
                                 {o.dups.length ? <span className="gc-badge gc-badge--warning mo-dup" title={"Same phone and product as " + o.dups.join(", ") + " within 48 hours"}><__Icon name="copy" strokeWidth="1.75" width="12" height="12" aria-hidden="true" />Possible duplicate<span className="sr-only"> of {o.dups.join(", ")}</span></span> : null}

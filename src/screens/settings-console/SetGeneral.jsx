@@ -82,7 +82,7 @@ export default class SetGeneralScreen extends Component {
                       </span>
                     </header>
                     <section id="identity" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Store identity</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>The name and legal text shown to customers.</span>
@@ -114,7 +114,7 @@ export default class SetGeneralScreen extends Component {
                       </div>
                     </section>
                     <section id="formats" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>{"Formats & locale"}</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Every format shows a live sample of what it produces.</span>
@@ -182,7 +182,7 @@ export default class SetGeneralScreen extends Component {
                       </div>
                     </section>
                     <section id="assets" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Brand assets</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Eight images used across storefront, invoices and receipts. Each tile states its own size and format.</span>
@@ -222,7 +222,7 @@ export default class SetGeneralScreen extends Component {
                       </div>
                     </section>
                     <section id="support" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Support information</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Published in the footer, on invoices and in the storefront help widget.</span>
@@ -279,7 +279,7 @@ export default class SetGeneralScreen extends Component {
                       </div>
                     </section>
                     <section id="location" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Store location</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>The map embedded on the contact page.</span>

@@ -90,6 +90,8 @@ button{font:inherit;color:inherit}
 .tile{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--ink);text-align:center}
 .tile .ico{width:56px;height:56px;border-radius:var(--radius-xl)}
 .note{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:var(--radius-xl);font-size:var(--text-sm);line-height:20px}
+/* product names next to the quantity stepper wrap to two lines instead of being cut */
+.no-name{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 `;
 
 // ---- markup ----
@@ -147,7 +149,7 @@ export default class MNewOrderScreen extends Component {
                 <div className="row">
                   <span className="av" style={{ background: "#e0f3fb", color: "#003087" }}>D</span>
                   <span className="m">
-                    <span className="t ell" style={{ display: "block", fontWeight: "var(--weight-medium)" }}>Denim Jeans · Blue · 32</span>
+                    <span className="t no-name" style={{ fontWeight: "var(--weight-medium)" }}>Denim Jeans · Blue · 32</span>
                     <span className="s num">৳1,290 each</span>
                   </span>
                   <span className="step" role="group" aria-label="Quantity">
@@ -167,7 +169,7 @@ export default class MNewOrderScreen extends Component {
                 <div className="row">
                   <span className="av" style={{ background: "#e0f3fb", color: "#003087" }}>M</span>
                   <span className="m">
-                    <span className="t ell" style={{ display: "block", fontWeight: "var(--weight-medium)" }}>Men’s Polo · Navy · M</span>
+                    <span className="t no-name" style={{ fontWeight: "var(--weight-medium)" }}>Men’s Polo · Navy · M</span>
                     <span className="s num">৳990 each</span>
                   </span>
                   <span className="step" role="group" aria-label="Quantity">

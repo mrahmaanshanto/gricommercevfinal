@@ -124,6 +124,21 @@ a{color:#003087}a:hover{color:#002a77}
 .pulse{animation:gcPulse 1.6s ease-in-out infinite}
 @keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+/* phones: reminder header = number, title and switch on one row, Preview under the title;
+   the coupon amounts stack (percent line, cap line) so the steppers keep their size */
+@media (max-width:640px){
+  .ar-sh{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto;gap:var(--space-2) var(--space-3)!important}
+  .ar-sh>div{min-width:0}
+  .ar-sh__pv{grid-row:2;grid-column:2;justify-self:start}
+  .ar-sh__sw{grid-row:1;grid-column:3}
+  .ar-coupon{display:grid!important;grid-template-columns:auto minmax(0,1fr);gap:var(--space-2) var(--space-2)!important;flex:1 1 100%;min-width:0}
+  .ar-coupon>div{flex:none}
+  /* number rows: the label takes the full line, the stepper + unit sit under it */
+  .ar-steprow{flex-wrap:wrap;gap:var(--space-2) var(--space-3)!important}
+  .ar-steprow>div:first-child{flex:1 1 100%!important;min-width:0}
+  .ar-steprow>div:nth-child(2){flex:none}
+  .ar-steprow>span:last-child{min-width:0!important}
+}
 `;
 
 // ---- markup ----
@@ -185,20 +200,20 @@ export default class AutoRemindersScreen extends Component {
                     </div>
                     {__list(v.steps).map((st, $index) => (<React.Fragment key={$index}>
                         <article style={__sx(`border-radius: var(--radius-xl); border: 1.5px solid ${st?.border ?? ""}; background: ${st?.bg ?? ""}; padding: 18px; display: flex; flex-direction: column; gap: 14px; opacity: ${st?.op ?? ""};`)}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                            <span style={{ width: "32px", height: "32px", borderRadius: "var(--radius-full)", background: "#003087", color: "#fff", fontWeight: "var(--weight-semibold)", display: "flex", alignItems: "center", justifyContent: "center" }}>{st?.n}</span>
+                          <div className="ar-sh" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                            <span style={{ width: "32px", height: "32px", flexShrink: "0", borderRadius: "var(--radius-full)", background: "#003087", color: "#fff", fontWeight: "var(--weight-semibold)", display: "flex", alignItems: "center", justifyContent: "center" }}>{st?.n}</span>
                             <div style={{ flexGrow: "1" }}>
                               <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>{st?.title}</div>
                               <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{st?.sub}</div>
                             </div>
-                            <button type="button" className="btn line sm" onClick={st?.preview}>
+                            <button type="button" className="btn line sm ar-sh__pv" onClick={st?.preview}>
                               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                 <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
                                 <circle cx="12" cy="12" r="3" />
                               </svg>
                               <span>Preview</span>
                             </button>
-                            <button type="button" role="switch" aria-checked={st?.on} aria-label={`Reminder ${st?.n ?? ""}`} className={st?.swCls} onClick={st?.toggle} />
+                            <button type="button" role="switch" aria-checked={st?.on} aria-label={`Reminder ${st?.n ?? ""}`} className={`${st?.swCls} ar-sh__sw`} onClick={st?.toggle} />
                           </div>
                           <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
                             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -222,7 +237,7 @@ export default class AutoRemindersScreen extends Component {
                               </div>
                             </div>
                           </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                          <div className="ar-disc" style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
                             <span className="lbl">Discount</span>
                             <div style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
                               {__list(st?.dopts).map((w, $index) => (<React.Fragment key={$index}>
@@ -230,7 +245,7 @@ export default class AutoRemindersScreen extends Component {
                                 </React.Fragment>))}
                             </div>
                             {st?.hasDisc ? (<>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", color: "#334155" }}>
+                              <span className="ar-coupon" style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", color: "#334155" }}>
                                 <div style={{ display: "inline-flex", alignItems: "center", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", overflow: "hidden", background: "#fff" }}>
                                   <button type="button" className="ib" aria-label="Less discount percent" onClick={st?.pdn} style={{ borderRadius: "0" }}>
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -280,7 +295,7 @@ export default class AutoRemindersScreen extends Component {
                         <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }} />
                       </div>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
+                    <div className="ar-steprow" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
                       <div style={{ flexGrow: "1" }}>
                         <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>Skip small carts under</div>
                         <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Not worth a message</div>
@@ -329,7 +344,7 @@ export default class AutoRemindersScreen extends Component {
                       </div>
                       <button type="button" role="switch" aria-checked={v.skipBlocked?.on} aria-label="Skip blocked numbers" className={v.skipBlocked?.cls} onClick={v.skipBlocked?.toggle} />
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
+                    <div className="ar-steprow" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
                       <div style={{ flexGrow: "1" }}>
                         <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>Max messages per customer</div>
                         <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Shared with all your marketing, so nobody is spammed</div>
@@ -372,7 +387,7 @@ export default class AutoRemindersScreen extends Component {
                         <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }} />
                       </div>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
+                    <div className="ar-steprow" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
                       <div style={{ flexGrow: "1" }}>
                         <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>Call me for carts above</div>
                         <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>These go to “Call these” before any coupon is sent</div>

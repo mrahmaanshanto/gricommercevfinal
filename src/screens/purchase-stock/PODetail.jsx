@@ -205,6 +205,29 @@ a{color:#003087}a:hover{color:#002a77}
 .scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
 @keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+
+/* phones and small tablets: the order header stacks (title, badge, details, actions); the barcode is for print */
+@media (max-width:767px){
+  .pod-head{flex-direction:column;align-items:stretch!important;gap:16px!important}
+  .pod-title{flex-wrap:wrap;gap:6px 10px!important}
+  .pod-meta{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px!important}
+  .pod-code{display:none}
+  .pod-acts{width:100%!important}
+}
+/* phones: the progress steps run down the card */
+@media (max-width:640px){
+  .pod-card{padding:16px!important;gap:20px!important}
+  .pod-title>.mono{font-size:var(--text-xl)!important;line-height:28px!important}
+  .pod-steps{flex-direction:column}
+  .pod-steps>li{display:grid!important;grid-template-columns:36px minmax(0,1fr);column-gap:12px!important;row-gap:0!important;align-items:center;text-align:left!important;padding-bottom:14px}
+  .pod-steps>li:last-child{padding-bottom:0}
+  .pod-steps>li>span:nth-last-child(3){grid-column:1;grid-row:1/span 2}
+  .pod-steps>li>span:nth-last-child(2){grid-column:2;grid-row:1}
+  .pod-steps>li>span:last-child{grid-column:2;grid-row:2}
+  .pod-steps>li>span:last-child:empty{display:none}
+  .pod-steps>li>span:first-child:nth-last-child(4){left:17px!important;right:auto!important;top:40px!important;bottom:2px;width:2px;height:auto!important}
+  .pod-sechead{flex-wrap:wrap;gap:4px 12px;padding:16px!important}
+}
 `;
 
 // ---- markup ----
@@ -222,14 +245,14 @@ export default class PODetailScreen extends Component {
             <__Topbar crumb="Purchase › Purchase orders" page="Order details" placeholder="Search or scan any barcode" />
             <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
               <__PageHeader title="Order details" />
-              <section className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "28px" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "24px" }}>
+              <section className="card pod-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "28px" }}>
+                <div className="pod-head" style={{ display: "flex", alignItems: "flex-start", gap: "24px" }}>
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div className="pod-title" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       <span className="mono" style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>PO-2609-0020</span>
                       <span className="badge b-partial">Partly received</span>
                     </div>
-                    <div style={{ marginTop: "10px", display: "flex", gap: "28px", flexWrap: "wrap", fontSize: "var(--text-sm)", lineHeight: "20px" }}>
+                    <div className="pod-meta" style={{ marginTop: "10px", display: "flex", gap: "28px", flexWrap: "wrap", fontSize: "var(--text-sm)", lineHeight: "20px" }}>
                       <div>
                         <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Supplier</div>
                         <div style={{ fontWeight: "var(--weight-medium)" }}>Nabil Fashion House</div>
@@ -248,7 +271,7 @@ export default class PODetailScreen extends Component {
                       </div>
                     </div>
                   </div>
-                  <div style={{ textAlign: "center", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)" }}>
+                  <div className="pod-code" style={{ textAlign: "center", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)" }}>
                     <svg width="150" height="38" viewBox="0 0 150 38" aria-hidden="true">
                       <rect x="0" y="0" width="3" height="38" fill="#0f172a" />
                       <rect x="4" y="0" width="1" height="38" fill="#0f172a" />
@@ -296,7 +319,7 @@ export default class PODetailScreen extends Component {
                     </svg>
                     <div className="mono" style={{ fontSize: "var(--text-xs)", color: "#334155" }}>PO-2609-0020</div>
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", width: "210px" }}>
+                  <div className="pod-acts" style={{ display: "flex", flexDirection: "column", gap: "8px", width: "210px" }}>
                     <__Link href="/receive-goods" className="btn solid big" style={{ width: "100%" }}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M3 7V5a2 2 0 0 1 2-2h2" />
@@ -335,7 +358,7 @@ export default class PODetailScreen extends Component {
                     </div>
                   </div>
                 </div>
-                <ol aria-label="Order progress" style={{ listStyle: "none", margin: "0", padding: "0", display: "flex" }}>
+                <ol aria-label="Order progress" className="pod-steps" style={{ listStyle: "none", margin: "0", padding: "0", display: "flex" }}>
                   <li style={{ position: "relative", flexGrow: "1", flexBasis: "0", display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", textAlign: "center" }}>
                     <span style={{ position: "absolute", left: "calc(50% + 26px)", right: "calc(-50% + 26px)", top: "17px", height: "2px", background: "#10b981" }} />
                     <span style={{ width: "36px", height: "36px", borderRadius: "var(--radius-full)", background: "var(--fill-success)", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -396,7 +419,7 @@ export default class PODetailScreen extends Component {
               <div style={{ display: "flex", gap: "24px", alignItems: "flex-start" }}>
                 <div style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "20px" }}>
                   <section className="card" style={{ overflow: "hidden" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 20px" }}>
+                    <div className="pod-sechead" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 20px" }}>
                       <h2 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Products</h2>
                       <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}><strong style={{ color: "#0f172a" }}>140</strong> of 240 received · <strong style={{ color: "#b4410c" }}>100 still coming</strong></span>
                     </div>

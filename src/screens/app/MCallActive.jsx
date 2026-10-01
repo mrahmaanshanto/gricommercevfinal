@@ -198,7 +198,7 @@ export default class MCallActiveScreen extends Component {
   </svg>
 </span>Transfer</a>
           </div>
-          <div style={{ position: "absolute", left: "20px", right: "20px", bottom: "44px", display: "flex", gap: "12px", alignItems: "center", zIndex: "4" }}>
+          <div data-pin-bottom="" style={{ position: "absolute", left: "20px", right: "20px", bottom: "44px", display: "flex", gap: "12px", alignItems: "center", zIndex: "4" }}>
             <__Link href="/m-ticket-new" className="btn" style={{ flex: "1", height: "56px", background: "rgba(255,255,255,.12)", color: "#fff", fontSize: "var(--text-sm-plus)" }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
   <path d="M13 5v2M13 17v2M13 11v2" />

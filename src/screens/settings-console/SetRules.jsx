@@ -100,7 +100,7 @@ export default class SetRulesScreen extends Component {
                       </span>
                     </header>
                     <section id="s0" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Rules</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Checked top to bottom; the first match wins. Anything unmatched goes to the AI reply, or to the inbox if AI is off.</span>
@@ -276,7 +276,7 @@ export default class SetRulesScreen extends Component {
                           </tbody>
                         </table>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", borderTop: "1px solid #f1f5f9", background: "#f8fafc", padding: "11px 16px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><__Icon name="info" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />Drag the handle to reorder. Rule 3 is open in the editor.<span style={{ marginLeft: "auto" }}>1,284 rule matches this month · 43% of all replies</span></div>
+                      <div className="set-flow" style={{ display: "flex", alignItems: "center", gap: "12px", borderTop: "1px solid #f1f5f9", background: "#f8fafc", padding: "11px 16px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><__Icon name="info" strokeWidth="1.75" width="15" height="15" style={{ flex: "none", color: "var(--text-muted)" }} /><span className="set-grow">Drag the handle to reorder. Rule 3 is open in the editor.</span><span style={{ marginLeft: "auto" }}>1,284 rule matches this month · 43% of all replies</span></div>
                     </section>
                   </main>
                   <aside className="set-side" aria-label="Edit rule 3" hidden={!v.editor} style={{ width: "352px", flex: "none", display: "flex", flexDirection: "column", border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 12px 30px -16px rgba(15,23,42,.3)", overflow: "hidden" }}>

@@ -123,6 +123,29 @@ a{color:#003087}a:hover{color:#002a77}
 .pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
 .ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
 .thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
+/* phones and tablets: the section list becomes one scrolling row above the content */
+@media (max-width:1023px){
+  .cs-layout{flex-direction:column!important;align-items:stretch!important;gap:var(--space-3)!important}
+  .cs-nav{width:100%!important;flex-direction:row!important;overflow-x:auto;scrollbar-width:none;padding:6px!important;gap:4px!important}
+  .cs-nav::-webkit-scrollbar{display:none}
+  .cs-nav>button{flex:none;height:40px!important;white-space:nowrap}
+  .cs-body{width:100%}
+}
+@media (max-width:640px){
+  .cs-body>section{padding:16px!important}
+  .cs-head{flex-wrap:wrap;align-items:flex-start!important}
+  .cs-head>div:first-child{flex:1 1 200px!important;min-width:0}
+  .cs-checks{flex-wrap:wrap;gap:12px 20px!important}
+  .cs-attr{flex-wrap:wrap;gap:8px 12px!important}
+  .cs-attr__name{width:auto!important;flex:1 1 auto}
+  .cs-attr>div{order:3;flex:1 1 100%!important}
+  .cs-size{flex-direction:column}
+  .cs-size__list{width:100%!important;flex-direction:row!important;overflow-x:auto;scrollbar-width:none}
+  .cs-size__list::-webkit-scrollbar{display:none}
+  .cs-size__list>button{flex:none;white-space:nowrap}
+  .cs-size__bar{flex-wrap:wrap}
+  .cs-sizegrid .inp{min-width:64px}
+}
 `;
 
 // ---- markup ----
@@ -151,8 +174,8 @@ export default class CatalogSetupScreen extends Component {
                   <span>{v.msg}</span>
                 </div>
               </>) : null}
-              <div style={{ display: "flex", gap: "20px", alignItems: "flex-start" }}>
-                <nav className="pcard" aria-label="Catalog setup" style={{ width: "260px", flexShrink: "0", padding: "10px", display: "flex", flexDirection: "column", gap: "2px", alignSelf: "flex-start" }}>
+              <div className="cs-layout" style={{ display: "flex", gap: "20px", alignItems: "flex-start" }}>
+                <nav className="pcard cs-nav" aria-label="Catalog setup" style={{ width: "260px", flexShrink: "0", padding: "10px", display: "flex", flexDirection: "column", gap: "2px", alignSelf: "flex-start" }}>
                   {__list(v.secs).map((n, $index) => (<React.Fragment key={$index}>
                       <button type="button" onClick={n?.pick} aria-current={n?.on} style={__sx(`height: 46px; padding: 0 12px; border: 0; border-radius: var(--radius-lg); background: ${n?.bg ?? ""}; color: ${n?.fg ?? ""}; font: inherit; font-size: var(--text-sm); font-weight: ${n?.fw ?? ""}; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 10px;`)}>
                         <span style={{ flexGrow: "1" }}>{n?.l}</span>
@@ -160,10 +183,10 @@ export default class CatalogSetupScreen extends Component {
                       </button>
                     </React.Fragment>))}
                 </nav>
-                <div style={{ flexGrow: "1", minWidth: "0" }}>
+                <div className="cs-body" style={{ flexGrow: "1", minWidth: "0" }}>
                   {v.is_fields ? (<>
                     <section className="pcard fade" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div className="cs-head" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                         <div style={{ flexGrow: "1" }}>
                           <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>Custom fields</h2>
                           <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Extra details products can have — like RAM for phones or skin type for creams. Each field belongs to categories.</div>
@@ -235,7 +258,7 @@ export default class CatalogSetupScreen extends Component {
                               </select>
                             </label>
                           </div>
-                          <div style={{ display: "flex", gap: "24px", fontSize: "var(--text-sm)" }}>
+                          <div className="cs-checks" style={{ display: "flex", gap: "24px", fontSize: "var(--text-sm)" }}>
                             <label style={{ display: "flex", gap: "8px", alignItems: "center" }}><input type="checkbox" style={{ width: "16px", height: "16px" }} />Required</label>
                             <label style={{ display: "flex", gap: "8px", alignItems: "center" }}><input type="checkbox" defaultChecked={true} style={{ width: "16px", height: "16px" }} />Show on product page</label>
                             <label style={{ display: "flex", gap: "8px", alignItems: "center" }}><input type="checkbox" defaultChecked={true} style={{ width: "16px", height: "16px" }} />Use in shop filters</label>
@@ -251,7 +274,7 @@ export default class CatalogSetupScreen extends Component {
                   </>) : null}
                   {v.is_attrs ? (<>
                     <section className="pcard fade" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div className="cs-head" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                         <div style={{ flexGrow: "1" }}>
                           <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>Attributes and values</h2>
                           <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Used to make variants — pick them when you add colours or sizes to a product.</div>
@@ -266,8 +289,8 @@ export default class CatalogSetupScreen extends Component {
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                         {__list(v.attrs).map((a, $index) => (<React.Fragment key={$index}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px", borderRadius: "var(--radius-xl)", border: "1px solid #e6eaf0" }}>
-                              <span style={{ width: "120px", fontWeight: "var(--weight-medium)" }}>{a?.l}</span>
+                            <div className="cs-attr" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px", borderRadius: "var(--radius-xl)", border: "1px solid #e6eaf0" }}>
+                              <span className="cs-attr__name" style={{ width: "120px", fontWeight: "var(--weight-medium)" }}>{a?.l}</span>
                               <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", flexGrow: "1" }}>
                                 {__list(a?.v).map((x, $index) => (<React.Fragment key={$index}>
                                     <span style={{ height: "28px", padding: "0 10px", borderRadius: "var(--radius-full)", background: "#eef2f6", fontSize: "var(--text-xs-plus)", display: "inline-flex", alignItems: "center", gap: "6px" }}>{x?.sw ? (<>
@@ -284,7 +307,7 @@ export default class CatalogSetupScreen extends Component {
                   </>) : null}
                   {v.is_brands ? (<>
                     <section className="pcard fade" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div className="cs-head" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                         <div style={{ flexGrow: "1" }}>
                           <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>Brands</h2>
                           <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Shown on product pages and used in filters.</div>
@@ -312,7 +335,7 @@ export default class CatalogSetupScreen extends Component {
                   </>) : null}
                   {v.is_units ? (<>
                     <section className="pcard fade" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div className="cs-head" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                         <div style={{ flexGrow: "1" }}>
                           <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>Units</h2>
                           <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>How a product is counted and sold.</div>
@@ -351,7 +374,7 @@ export default class CatalogSetupScreen extends Component {
                   </>) : null}
                   {v.is_tax ? (<>
                     <section className="pcard fade" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div className="cs-head" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                         <div style={{ flexGrow: "1" }}>
                           <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>Tax rates</h2>
                           <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>VAT added to prices. Each category has a default; a product can change it.</div>
@@ -392,7 +415,7 @@ export default class CatalogSetupScreen extends Component {
                   </>) : null}
                   {v.is_size ? (<>
                     <section className="pcard fade" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div className="cs-head" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                         <div style={{ flexGrow: "1" }}>
                           <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>Size charts</h2>
                           <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Show customers the right size. Fewer returns.</div>
@@ -405,8 +428,8 @@ export default class CatalogSetupScreen extends Component {
                           <span>New size chart</span>
                         </button>
                       </div>
-                      <div style={{ display: "flex", gap: "16px" }}>
-                        <div style={{ width: "220px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "6px" }}>
+                      <div className="cs-size" style={{ display: "flex", gap: "16px" }}>
+                        <div className="cs-size__list" style={{ width: "220px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "6px" }}>
                           {__list(v.charts).map((c, $index) => (<React.Fragment key={$index}>
                               <button type="button" onClick={c?.pick} style={__sx(`text-align: left; padding: 12px; border-radius: var(--radius-lg); border: 1.5px solid ${c?.border ?? ""}; background: ${c?.bg ?? ""}; font: inherit; cursor: pointer;`)}>
                                 <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>{c?.l}</div>
@@ -415,7 +438,7 @@ export default class CatalogSetupScreen extends Component {
                             </React.Fragment>))}
                         </div>
                         <div style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "12px" }}>
-                          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                          <div className="cs-size__bar" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                             <span className="lbl">Measure in</span>
                             <div style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
                               {__list(v.units2).map((m, $index) => (<React.Fragment key={$index}>
@@ -427,7 +450,7 @@ export default class CatalogSetupScreen extends Component {
                             <button type="button" className="abtn">+ Column</button>
                           </div>
                           <div className="gc-table-wrap">
-                            <table style={{ width: "100%%", borderCollapse: "collapse" }}>
+                            <table className="gc-table--keep cs-sizegrid" style={{ width: "100%%", borderCollapse: "collapse" }}>
                               <thead>
                                 <tr>
                                   {__list(v.chHead).map((h, $index) => (<React.Fragment key={$index}>
@@ -455,7 +478,7 @@ export default class CatalogSetupScreen extends Component {
                   </>) : null}
                   {v.is_warranty ? (<>
                     <section className="pcard fade" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div className="cs-head" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                         <div style={{ flexGrow: "1" }}>
                           <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>Warranty policies</h2>
                           <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Made in Settings. Pick one on any product.</div>

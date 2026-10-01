@@ -40,7 +40,12 @@ class Component extends __SettingsLogic {
 
 // ---- styles (from the design's <helmet>) ----
 
-const CSS = ``;
+const CSS = `
+/* phone: the four figures sit two by two; the projection and the chart legend take their own line */
+@media (max-width:640px){
+  .set-kpis{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+  .set-sum>span:last-child,.set-chart-head>span:last-child{flex:1 1 100%;margin-left:0!important}
+}`;
 
 // ---- markup ----
 
@@ -79,7 +84,7 @@ export default class SetUsageScreen extends Component {
                       </span>
                     </header>
                     <section id="s1" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Spend against budget</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>September 2026 · cap $120.00 · billed by Anthropic in USD.</span>
@@ -91,7 +96,7 @@ export default class SetUsageScreen extends Component {
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: "14px", padding: "18px" }}>
                         <span style={{ display: "block" }}>
-                          <span style={{ display: "flex", alignItems: "baseline", gap: "10px", paddingBottom: "8px" }}>
+                          <span className="set-flow set-sum" style={{ display: "flex", alignItems: "baseline", gap: "10px", paddingBottom: "8px" }}>
                             <b style={{ fontSize: "var(--text-3xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>$42.18</b>
                             <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>of $120.00 · ৳5,120 at ৳121.40</span>
                             <span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Projected <b style={{ fontWeight: "var(--weight-medium)", color: "#1e293b" }}>$58.40</b> by 30 Sep</span>
@@ -106,7 +111,7 @@ export default class SetUsageScreen extends Component {
                             <span>Cap $120</span>
                           </span>
                         </span>
-                        <span style={{ display: "flex", gap: "12px" }}>
+                        <span className="set-kpis" style={{ display: "flex", gap: "12px" }}>
                           <div style={{ flex: "1", display: "flex", flexDirection: "column", gap: "3px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "13px 14px" }}>
                             <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Replies</span>
                             <span style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>1,596</span>
@@ -129,7 +134,7 @@ export default class SetUsageScreen extends Component {
                           </div>
                         </span>
                         <span style={{ display: "block", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", padding: "14px 15px" }}>
-                          <span style={{ display: "flex", alignItems: "baseline", gap: "10px", paddingBottom: "10px" }}>
+                          <span className="set-flow set-chart-head" style={{ display: "flex", alignItems: "baseline", gap: "10px", paddingBottom: "10px" }}>
                             <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Daily spend</span>
                             <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>1–30 September · peak $2.41 on 27 Sep</span>
                             <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "12px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
@@ -238,7 +243,7 @@ export default class SetUsageScreen extends Component {
                       </div>
                     </section>
                     <section id="s2" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Usage by model</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Read-only. Figures come from the provider’s billing API and are refreshed hourly.</span>

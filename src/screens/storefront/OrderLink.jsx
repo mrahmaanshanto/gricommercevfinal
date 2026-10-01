@@ -37,6 +37,7 @@ const CSS = `
 .ol__opt+.ol__opt{margin-top:var(--space-2)}
 .ol__opt:has(input:checked){border-color:var(--primary);background:var(--fill-primary-soft)}
 .ol__opt input{margin-top:3px;accent-color:var(--primary)}
+@media (max-width:640px){.ol__opt input{flex:none;width:20px;height:20px;margin:1px 0 0}} /* a radio a thumb can hit */
 .ol__opt b{display:block;font-weight:var(--weight-medium);color:var(--text-heading)}
 .ol__opt small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .ol__opt span:first-of-type{flex:1;min-width:0}

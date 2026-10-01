@@ -57,7 +57,24 @@ class Component extends __SettingsLogic {
 
 const CSS = `.dc-h439:hover{background:#e9eef5 !important;color:#1e293b !important}
 .dc-h440:hover{background:#f8fafc !important;color:#1e293b !important}
-.dc-h441:hover{background:#002a77 !important}`;
+.dc-h441:hover{background:#002a77 !important}
+/* phone: a tile's status chip drops under its title, its buttons wrap; below 480px each tile is one row
+   (preview on the left, details on the right) */
+@media (max-width:640px){
+  .set-tiles>div>div:last-child>span:first-child{flex-wrap:wrap;row-gap:4px}
+  .set-tiles>div>div:last-child>span:first-child>span:first-child{flex:1 1 auto!important}
+  .set-tiles>div>div:last-child>span:last-child{flex-wrap:wrap}
+  .set-drop{flex-wrap:wrap}
+  .set-drop>span:nth-child(2){flex:1 1 200px!important}
+  .set-drop>button{flex:1 1 100%;justify-content:center}
+}
+@media (max-width:480px){
+  .set-shell .gc-cols-4.set-tiles{grid-template-columns:minmax(0,1fr)!important;gap:10px!important}
+  .set-tiles>div{flex-direction:row!important}
+  .set-tiles>div>div:first-child{flex:none;width:112px;height:auto!important;min-height:104px;padding:8px;border-bottom:0!important;border-right:1px solid #e2e8f0}
+  .set-tiles>div>div:first-child>span{flex-wrap:wrap;justify-content:center;max-width:100%;text-align:center}
+  .set-tiles>div>div:last-child{flex:1;min-width:0}
+}`;
 
 // ---- markup ----
 
@@ -88,7 +105,7 @@ export default class SetMediaScreen extends Component {
                       </span>
                     </header>
                     <section id="s0" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Manage logos</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Eight assets. Every tile states the format and size it needs, and previews against the theme you pick.</span>
@@ -98,7 +115,7 @@ export default class SetMediaScreen extends Component {
                           <button type="button" onClick={v.pick("")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#f1f5f9", color: "#1e293b" }}><__Icon name="upload" strokeWidth="1.75" width="15" height="15" />Upload all</button>
                         </span>
                       </div>
-                      <div className="gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "14px", padding: "18px" }}>
+                      <div className="gc-cols-4 set-tiles" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "14px", padding: "18px" }}>
                         <div style={{ display: "flex", flexDirection: "column", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", overflow: "hidden" }}>
                           <div className={v.dark ? "gc-on-dark" : undefined} style={{ height: "104px", display: "grid", placeItems: "center", borderBottom: "1px solid #e2e8f0", background: v.dark ? "#192132" : "#f1f5f9" }}>
                             <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}><span style={{ display: "grid", placeItems: "center", width: "22px", height: "22px", borderRadius: "var(--radius-md)", background: "#003087", fontSize: "var(--text-xs)", color: "#fff" }}>S</span>GridShop</span>
@@ -245,7 +262,7 @@ export default class SetMediaScreen extends Component {
                           </div>
                         </div>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "0 18px 18px", border: "1px dashed #cbd5e1", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "13px 15px" }}>
+                      <div className="set-drop" style={{ display: "flex", alignItems: "center", gap: "12px", margin: "0 18px 18px", border: "1px dashed #cbd5e1", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "13px 15px" }}>
                         <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#fff", color: "#003087", boxShadow: "0 1px 3px 0 rgba(48,46,56,.1)" }}>
                           <__Icon name="upload-cloud" strokeWidth="1.75" width="18" height="18" />
                         </span>
@@ -258,7 +275,7 @@ export default class SetMediaScreen extends Component {
                       </div>
                     </section>
                     <section id="s1" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Where each asset appears</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>So you can tell which upload changes what.</span>

@@ -17,7 +17,7 @@ import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { Dialog, PageHeader, PhoneActionBar } from '@/components/ui';
+import { Dialog, PageHeader, PhoneActionBar, useIsPhone } from '@/components/ui';
 import { formatBDT, formatDate } from '@/lib/format';
 import { DAMAGED_PLACE, getReceivingPlaces, placeName } from '@/lib/locations';
 import { usePlaceList } from '@/lib/usePlaces';
@@ -152,6 +152,8 @@ const CSS = `
 .rg-form{display:flex;flex-direction:column;gap:var(--space-4)}
 .rg-qty{width:80px}
 @media (max-width:767px){.rg-scan{flex-direction:column}.rg-count{width:auto}.rg-cost{grid-template-columns:minmax(0,1fr) 120px 36px}}
+/* phones: the step chips wrap, so the connector lines would point at nothing */
+@media (max-width:640px){.rg-steps{gap:var(--space-2)}.rg-step-bar{display:none}}
 @media (prefers-reduced-motion:reduce){.rg-flash{animation:none}}
 `;
 
@@ -167,6 +169,7 @@ function Barcode() {
 }
 
 export default function ReceiveGoods() {
+  const phone = useIsPhone();
   const [order, setOrder] = useState(DEMO);
   const [got, setGot] = useState(DEMO_GOT);
   const [extra, setExtra] = useState({});        // line index -> 'return' (default keeps the extra)
@@ -393,7 +396,7 @@ export default function ReceiveGoods() {
                     <div className="rg-scan__row">
                       <label className="rg-scan__field">
                         <Icon name="scan-barcode" width="20" height="20" aria-hidden="true" />
-                        <input className="gc-input" type="text" inputMode="numeric" placeholder="Ready · scan or type a barcode and press Enter" aria-label="Scan a barcode" value={code} disabled={!!done} onChange={(e) => setCode(e.target.value)} onKeyDown={onCodeKey} />
+                        <input className="gc-input" type="text" inputMode="numeric" placeholder={phone ? 'Scan or type a barcode' : 'Ready · scan or type a barcode and press Enter'} aria-label="Scan a barcode" value={code} disabled={!!done} onChange={(e) => setCode(e.target.value)} onKeyDown={onCodeKey} />
                       </label>
                       <button type="button" className="gc-btn gc-btn--solid" onClick={scan} disabled={!!done}><Icon name="camera" width="18" height="18" aria-hidden="true" /> Scan with camera</button>
                     </div>

@@ -245,224 +245,226 @@ export default class MerchantPinAccessScreen extends Component {
     return (
       <div className="dc-screen" data-screen="MerchantPinAccess">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div data-board="" className={`cs ${v.miniCls ?? ""}`} style={{ width: "1440px", height: "1000px", position: "relative", overflow: "hidden", background: "#f4f7fb" }}>
-          <aside style={{ position: "absolute", left: "0", top: "0", bottom: "0", width: "240px", background: "#fff", borderRight: "1px solid #e6ebf3", padding: "18px 14px", display: "flex", flexDirection: "column", gap: "4px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 6px 16px" }}>
-              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-semibold)" }}>DG</span>
-              <div>
-                <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Dhaka Gadget Hub</div>
-                <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Merchant admin</div>
-              </div>
-            </div>
-            <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "40px", padding: "0 12px", borderRadius: "var(--radius-lg)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#475569", background: "transparent" }}>Dashboard</a>
-            <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "40px", padding: "0 12px", borderRadius: "var(--radius-lg)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#475569", background: "transparent" }}>Orders</a>
-            <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "40px", padding: "0 12px", borderRadius: "var(--radius-lg)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#475569", background: "transparent" }}>Products</a>
-            <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "40px", padding: "0 12px", borderRadius: "var(--radius-lg)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#475569", background: "transparent" }}>Customers</a>
-            <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "40px", padding: "0 12px", borderRadius: "var(--radius-lg)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#475569", background: "transparent" }}>Marketing</a>
-            <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "40px", padding: "0 12px", borderRadius: "var(--radius-lg)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#475569", background: "transparent" }}>Reports</a>
-            <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "40px", padding: "0 12px", borderRadius: "var(--radius-lg)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#003087", background: "#eaf1ff" }}>Settings</a>
-            <div style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: "8px", padding: "10px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Powered by <img src="/assets/62dadbbb3f365aebdd41bb9975f5931f.png" alt="GridCommerce" style={{ height: "14px", width: "auto" }} /></div>
-          </aside>
-          <main style={{ position: "absolute", left: "240px", right: "0", top: "0", bottom: "0", padding: "24px 32px", display: "flex", flexDirection: "column", gap: "16px" }}>
-            <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Settings / Support access</div>
-            <div style={{ display: "grid", gridTemplateColumns: "200px minmax(0,1fr)", gap: "24px" }}>
-              <nav aria-label="Settings" style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                <a href="#" style={{ display: "block", padding: "8px 12px", fontSize: "var(--text-xs-plus)", borderRadius: "var(--radius-lg)", color: "#475569", fontWeight: "var(--weight-regular)", background: "transparent" }}>General</a>
-                <a href="#" style={{ display: "block", padding: "8px 12px", fontSize: "var(--text-xs-plus)", borderRadius: "var(--radius-lg)", color: "#475569", fontWeight: "var(--weight-regular)", background: "transparent" }}>Payments</a>
-                <a href="#" style={{ display: "block", padding: "8px 12px", fontSize: "var(--text-xs-plus)", borderRadius: "var(--radius-lg)", color: "#475569", fontWeight: "var(--weight-regular)", background: "transparent" }}>Delivery</a>
-                <a href="#" style={{ display: "block", padding: "8px 12px", fontSize: "var(--text-xs-plus)", borderRadius: "var(--radius-lg)", color: "#475569", fontWeight: "var(--weight-regular)", background: "transparent" }}>Staff</a>
-                <a href="#" style={{ display: "block", padding: "8px 12px", fontSize: "var(--text-xs-plus)", borderRadius: "var(--radius-lg)", color: "#003087", fontWeight: "var(--weight-medium)", background: "#f2f5f9" }}>Support access</a>
-                <a href="#" style={{ display: "block", padding: "8px 12px", fontSize: "var(--text-xs-plus)", borderRadius: "var(--radius-lg)", color: "#475569", fontWeight: "var(--weight-regular)", background: "transparent" }}>Billing</a>
-              </nav>
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
+        <div className="cs-boardscroll">
+          <div data-board="" className={`cs ${v.miniCls ?? ""}`} style={{ width: "1440px", height: "1000px", position: "relative", overflow: "hidden", background: "#f4f7fb" }}>
+            <aside style={{ position: "absolute", left: "0", top: "0", bottom: "0", width: "240px", background: "#fff", borderRight: "1px solid #e6ebf3", padding: "18px 14px", display: "flex", flexDirection: "column", gap: "4px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 6px 16px" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-semibold)" }}>DG</span>
                 <div>
-                  <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Support access</h1>
-                  <p style={{ margin: "4px 0 0", fontSize: "var(--text-sm)", color: "#475569" }}>Let GridCommerce support into your store for a short time to fix a problem. <span className="bn">সমস্যা ঠিক করতে সাপোর্টকে অল্প সময়ের জন্য আপনার স্টোরে ঢুকতে দিন।</span></p>
+                  <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Dhaka Gadget Hub</div>
+                  <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Merchant admin</div>
                 </div>
-                <div role="group" aria-label="Prototype flow, owner side" style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                  {__list(v.stages).map((s, $index) => (<React.Fragment key={$index}>
-                      <button className={s?.cls} type="button" onClick={s?.pick} aria-pressed={s?.pressed}><span className="stgn">{s?.n}</span>{s?.label}</button>
-                    </React.Fragment>))}
-                </div>
-                <section className="panel" style={{ padding: "22px 24px" }}>
-                  {v.isNone ? (<>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div className="fld">
-                        <span className="flab">What can support change?</span>
-                        <div className="rgrid" role="radiogroup" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
-                          <div className="rc" role="radio" aria-checked="false" tabIndex="0">
-                            <span className="rdot" aria-hidden="true" />
-                            <div style={{ minWidth: "0" }}>
-                              <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>View only</div>
-                              <div className="fhelp" style={{ marginTop: "2px" }}>They can look, but not change anything.</div>
+              </div>
+              <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "40px", padding: "0 12px", borderRadius: "var(--radius-lg)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#475569", background: "transparent" }}>Dashboard</a>
+              <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "40px", padding: "0 12px", borderRadius: "var(--radius-lg)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#475569", background: "transparent" }}>Orders</a>
+              <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "40px", padding: "0 12px", borderRadius: "var(--radius-lg)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#475569", background: "transparent" }}>Products</a>
+              <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "40px", padding: "0 12px", borderRadius: "var(--radius-lg)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#475569", background: "transparent" }}>Customers</a>
+              <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "40px", padding: "0 12px", borderRadius: "var(--radius-lg)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#475569", background: "transparent" }}>Marketing</a>
+              <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "40px", padding: "0 12px", borderRadius: "var(--radius-lg)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#475569", background: "transparent" }}>Reports</a>
+              <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "40px", padding: "0 12px", borderRadius: "var(--radius-lg)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#003087", background: "#eaf1ff" }}>Settings</a>
+              <div style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: "8px", padding: "10px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Powered by <img src="/assets/62dadbbb3f365aebdd41bb9975f5931f.png" alt="GridCommerce" style={{ height: "14px", width: "auto" }} /></div>
+            </aside>
+            <main style={{ position: "absolute", left: "240px", right: "0", top: "0", bottom: "0", padding: "24px 32px", display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Settings / Support access</div>
+              <div style={{ display: "grid", gridTemplateColumns: "200px minmax(0,1fr)", gap: "24px" }}>
+                <nav aria-label="Settings" style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                  <a href="#" style={{ display: "block", padding: "8px 12px", fontSize: "var(--text-xs-plus)", borderRadius: "var(--radius-lg)", color: "#475569", fontWeight: "var(--weight-regular)", background: "transparent" }}>General</a>
+                  <a href="#" style={{ display: "block", padding: "8px 12px", fontSize: "var(--text-xs-plus)", borderRadius: "var(--radius-lg)", color: "#475569", fontWeight: "var(--weight-regular)", background: "transparent" }}>Payments</a>
+                  <a href="#" style={{ display: "block", padding: "8px 12px", fontSize: "var(--text-xs-plus)", borderRadius: "var(--radius-lg)", color: "#475569", fontWeight: "var(--weight-regular)", background: "transparent" }}>Delivery</a>
+                  <a href="#" style={{ display: "block", padding: "8px 12px", fontSize: "var(--text-xs-plus)", borderRadius: "var(--radius-lg)", color: "#475569", fontWeight: "var(--weight-regular)", background: "transparent" }}>Staff</a>
+                  <a href="#" style={{ display: "block", padding: "8px 12px", fontSize: "var(--text-xs-plus)", borderRadius: "var(--radius-lg)", color: "#003087", fontWeight: "var(--weight-medium)", background: "#f2f5f9" }}>Support access</a>
+                  <a href="#" style={{ display: "block", padding: "8px 12px", fontSize: "var(--text-xs-plus)", borderRadius: "var(--radius-lg)", color: "#475569", fontWeight: "var(--weight-regular)", background: "transparent" }}>Billing</a>
+                </nav>
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
+                  <div>
+                    <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Support access</h1>
+                    <p style={{ margin: "4px 0 0", fontSize: "var(--text-sm)", color: "#475569" }}>Let GridCommerce support into your store for a short time to fix a problem. <span className="bn">সমস্যা ঠিক করতে সাপোর্টকে অল্প সময়ের জন্য আপনার স্টোরে ঢুকতে দিন।</span></p>
+                  </div>
+                  <div role="group" aria-label="Prototype flow, owner side" style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                    {__list(v.stages).map((s, $index) => (<React.Fragment key={$index}>
+                        <button className={s?.cls} type="button" onClick={s?.pick} aria-pressed={s?.pressed}><span className="stgn">{s?.n}</span>{s?.label}</button>
+                      </React.Fragment>))}
+                  </div>
+                  <section className="panel" style={{ padding: "22px 24px" }}>
+                    {v.isNone ? (<>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                        <div className="fld">
+                          <span className="flab">What can support change?</span>
+                          <div className="rgrid" role="radiogroup" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
+                            <div className="rc" role="radio" aria-checked="false" tabIndex="0">
+                              <span className="rdot" aria-hidden="true" />
+                              <div style={{ minWidth: "0" }}>
+                                <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>View only</div>
+                                <div className="fhelp" style={{ marginTop: "2px" }}>They can look, but not change anything.</div>
+                              </div>
                             </div>
-                          </div>
-                          <div className="rc on" role="radio" aria-checked="true" tabIndex="0">
-                            <span className="rdot" aria-hidden="true" />
-                            <div style={{ minWidth: "0" }}>
-                              <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Fix only these areas</div>
-                              <div className="fhelp" style={{ marginTop: "2px" }}>Pick the areas below. Everything else stays view-only.</div>
+                            <div className="rc on" role="radio" aria-checked="true" tabIndex="0">
+                              <span className="rdot" aria-hidden="true" />
+                              <div style={{ minWidth: "0" }}>
+                                <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Fix only these areas</div>
+                                <div className="fhelp" style={{ marginTop: "2px" }}>Pick the areas below. Everything else stays view-only.</div>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="fld">
-                        <span className="flab">Areas</span>
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: "2px 16px" }}>
-                          <div className="chk" role="checkbox" aria-checked="true" tabIndex="0">
-                            <span className="cb on">
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <path d="M20 6 9 17l-5-5" />
-                              </svg>
-                            </span>
-                            <span className="ell">Courier and delivery</span>
-                          </div>
-                          <div className="chk" role="checkbox" aria-checked="true" tabIndex="0">
-                            <span className="cb on">
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <path d="M20 6 9 17l-5-5" />
-                              </svg>
-                            </span>
-                            <span className="ell">Orders</span>
-                          </div>
-                          <div className="chk" role="checkbox" aria-checked="false" tabIndex="0">
-                            <span className="cb" />
-                            <span className="ell">Payments</span>
-                          </div>
-                          <div className="chk" role="checkbox" aria-checked="false" tabIndex="0">
-                            <span className="cb" />
-                            <span className="ell">Products</span>
-                          </div>
-                          <div className="chk" role="checkbox" aria-checked="false" tabIndex="0">
-                            <span className="cb" />
-                            <span className="ell">Theme and pages</span>
-                          </div>
-                          <div className="chk" role="checkbox" aria-checked="false" tabIndex="0">
-                            <span className="cb" />
-                            <span className="ell">Settings</span>
+                        <div className="fld">
+                          <span className="flab">Areas</span>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: "2px 16px" }}>
+                            <div className="chk" role="checkbox" aria-checked="true" tabIndex="0">
+                              <span className="cb on">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <path d="M20 6 9 17l-5-5" />
+                                </svg>
+                              </span>
+                              <span className="ell">Courier and delivery</span>
+                            </div>
+                            <div className="chk" role="checkbox" aria-checked="true" tabIndex="0">
+                              <span className="cb on">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <path d="M20 6 9 17l-5-5" />
+                                </svg>
+                              </span>
+                              <span className="ell">Orders</span>
+                            </div>
+                            <div className="chk" role="checkbox" aria-checked="false" tabIndex="0">
+                              <span className="cb" />
+                              <span className="ell">Payments</span>
+                            </div>
+                            <div className="chk" role="checkbox" aria-checked="false" tabIndex="0">
+                              <span className="cb" />
+                              <span className="ell">Products</span>
+                            </div>
+                            <div className="chk" role="checkbox" aria-checked="false" tabIndex="0">
+                              <span className="cb" />
+                              <span className="ell">Theme and pages</span>
+                            </div>
+                            <div className="chk" role="checkbox" aria-checked="false" tabIndex="0">
+                              <span className="cb" />
+                              <span className="ell">Settings</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="fgrid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
-                        <label className="fld">
-                          <span className="flab">For how long</span>
-                          <select defaultValue="60 minutes" className="in">
-                            <option>60 minutes</option>
-                            <option>30 minutes</option>
-                            <option>2 hours</option>
-                          </select>
-                        </label>
-                        <label className="fld">
-                          <span className="flab">About ticket</span>
-                          <select defaultValue="T-2291 · Steadfast parcels not syncing" className="in">
-                            <option>T-2291 · Steadfast parcels not syncing</option>
-                            <option>No ticket</option>
-                          </select>
-                        </label>
-                      </div>
-                      <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                        <button className="btn btnp" type="button" onClick={v.generate} style={{ minHeight: "44px", fontSize: "var(--text-sm)" }}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <div className="fgrid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
+                          <label className="fld">
+                            <span className="flab">For how long</span>
+                            <select defaultValue="60 minutes" className="in">
+                              <option>60 minutes</option>
+                              <option>30 minutes</option>
+                              <option>2 hours</option>
+                            </select>
+                          </label>
+                          <label className="fld">
+                            <span className="flab">About ticket</span>
+                            <select defaultValue="T-2291 · Steadfast parcels not syncing" className="in">
+                              <option>T-2291 · Steadfast parcels not syncing</option>
+                              <option>No ticket</option>
+                            </select>
+                          </label>
+                        </div>
+                        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                          <button className="btn btnp" type="button" onClick={v.generate} style={{ minHeight: "44px", fontSize: "var(--text-sm)" }}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <circle cx="7.5" cy="15.5" r="4.5" />
   <path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3" />
 </svg>Generate PIN</button>
-                        <span className="bn" style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}>পিন শুধু গ্রিডকমার্স সাপোর্টকে দিন, অন্য কাউকে নয়।</span>
+                          <span className="bn" style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}>পিন শুধু গ্রিডকমার্স সাপোর্টকে দিন, অন্য কাউকে নয়।</span>
+                        </div>
                       </div>
-                    </div>
-                  </>) : null}
-                  {v.isPin ? (<>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", padding: "12px 0", textAlign: "center" }}>
-                      <div style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}>Read this PIN to the GridCommerce support person on the phone</div>
-                      <div className="bigpin">482 719</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#b45309" }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    </>) : null}
+                    {v.isPin ? (<>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", padding: "12px 0", textAlign: "center" }}>
+                        <div style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}>Read this PIN to the GridCommerce support person on the phone</div>
+                        <div className="bigpin">482 719</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#b45309" }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <circle cx="12" cy="12" r="10" />
   <path d="M12 6v6l4 2" />
 </svg>Use within <span className="num">9:48</span> · works once</div>
-                      <div style={{ display: "flex", gap: "8px" }}>
-                        <button className="btn btng" type="button" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          <button className="btn btng" type="button" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <rect x="9" y="9" width="13" height="13" rx="2" />
   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
 </svg>Copy</button>
-                        <button className="btn btng" type="button" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <button className="btn btng" type="button" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.9-.9L3 21l1.9-5.1A8.4 8.4 0 0 1 3.5 11.5 8.5 8.5 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z" />
 </svg>Send on WhatsApp</button>
-                        <button className="btn btng" type="button" onClick={v.cancel} style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}>Cancel PIN</button>
-                      </div>
-                      <div style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}>Fix mode: Courier and delivery, Orders · 60 minutes · T-2291</div>
-                      <button className="btn" type="button" onClick={v.used} style={{ minHeight: "36px", fontSize: "var(--text-xs-plus)", border: "1px dashed #0070a0", background: "#f2fafd", color: "#00567a" }}>Prototype: support enters the PIN</button>
-                    </div>
-                  </>) : null}
-                  {v.isIn ? (<>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                      <div className="banner-fix">
-                        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "40px", height: "40px", borderRadius: "var(--radius-xl)", background: "rgba(255,255,255,.14)" }}>
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <circle cx="12" cy="8" r="4" />
-                            <path d="M4 21a8 8 0 0 1 16 0" />
-                          </svg>
-                        </span>
-                        <div style={{ minWidth: "0" }}>
-                          <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>Farhana from GridCommerce is in your store</div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "#cbd8ee" }}>Can change: Courier and delivery, Orders · since 14:30</div>
+                          <button className="btn btng" type="button" onClick={v.cancel} style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}>Cancel PIN</button>
                         </div>
-                        <div style={{ marginLeft: "auto", textAlign: "right" }}>
-                          <div className="num" style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)" }}>54:12</div>
-                          <div style={{ fontSize: "var(--text-xs)", color: "#cbd8ee" }}>left</div>
+                        <div style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}>Fix mode: Courier and delivery, Orders · 60 minutes · T-2291</div>
+                        <button className="btn" type="button" onClick={v.used} style={{ minHeight: "36px", fontSize: "var(--text-xs-plus)", border: "1px dashed #0070a0", background: "#f2fafd", color: "#00567a" }}>Prototype: support enters the PIN</button>
+                      </div>
+                    </>) : null}
+                    {v.isIn ? (<>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                        <div className="banner-fix">
+                          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "40px", height: "40px", borderRadius: "var(--radius-xl)", background: "rgba(255,255,255,.14)" }}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <circle cx="12" cy="8" r="4" />
+                              <path d="M4 21a8 8 0 0 1 16 0" />
+                            </svg>
+                          </span>
+                          <div style={{ minWidth: "0" }}>
+                            <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>Farhana from GridCommerce is in your store</div>
+                            <div style={{ fontSize: "var(--text-xs-plus)", color: "#cbd8ee" }}>Can change: Courier and delivery, Orders · since 14:30</div>
+                          </div>
+                          <div style={{ marginLeft: "auto", textAlign: "right" }}>
+                            <div className="num" style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)" }}>54:12</div>
+                            <div style={{ fontSize: "var(--text-xs)", color: "#cbd8ee" }}>left</div>
+                          </div>
                         </div>
-                      </div>
-                      <div style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}>What she has done so far</div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "var(--text-xs-plus)", color: "#0f172a" }}>
-                        <span>14:32 · Replaced the Steadfast API key</span>
-                        <span>14:35 · Re-synced 23 stuck orders</span>
-                      </div>
-                      <div style={{ display: "flex", gap: "10px" }}>
-                        <button className="btn" type="button" onClick={v.stop} style={{ minHeight: "44px", fontSize: "var(--text-sm)", background: "#c2410c", color: "#fff" }}>End access now</button>
-                        <button className="btn btng" type="button" style={{ minHeight: "44px", fontSize: "var(--text-sm)" }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <div style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}>What she has done so far</div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "var(--text-xs-plus)", color: "#0f172a" }}>
+                          <span>14:32 · Replaced the Steadfast API key</span>
+                          <span>14:35 · Re-synced 23 stuck orders</span>
+                        </div>
+                        <div style={{ display: "flex", gap: "10px" }}>
+                          <button className="btn" type="button" onClick={v.stop} style={{ minHeight: "44px", fontSize: "var(--text-sm)", background: "#c2410c", color: "#fff" }}>End access now</button>
+                          <button className="btn btng" type="button" style={{ minHeight: "44px", fontSize: "var(--text-sm)" }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z" />
 </svg>Call support</button>
+                        </div>
                       </div>
+                    </>) : null}
+                    {v.isDone ? (<>
+                      <div className="note n-ok"><strong>Access ended.</strong> Farhana was in your store for 17 minutes and made 2 changes. A summary was sent to you by SMS.</div>
+                      <div style={{ marginTop: "12px" }}>
+                        <button className="btn btnp" type="button" onClick={v.again} style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}>Done</button>
+                      </div>
+                    </>) : null}
+                  </section>
+                  <section className="panel" style={{ overflow: "hidden" }}>
+                    <div style={{ padding: "14px 18px 6px", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Every time support entered your store</div>
+                    <div className="th" style={{ display: "grid", gridTemplateColumns: "120px minmax(0,1fr) 80px minmax(0,1fr) minmax(0,1.8fr)", gap: "12px", padding: "10px 18px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
+                      <span>When</span>
+                      <span>Who</span>
+                      <span style={{ textAlign: "right" }}>Time</span>
+                      <span>Could change</span>
+                      <span>What they did</span>
                     </div>
-                  </>) : null}
-                  {v.isDone ? (<>
-                    <div className="note n-ok"><strong>Access ended.</strong> Farhana was in your store for 17 minutes and made 2 changes. A summary was sent to you by SMS.</div>
-                    <div style={{ marginTop: "12px" }}>
-                      <button className="btn btnp" type="button" onClick={v.again} style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}>Done</button>
+                    <div style={{ display: "grid", gridTemplateColumns: "120px minmax(0,1fr) 80px minmax(0,1fr) minmax(0,1.8fr)", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 18px" }}>
+                      <span className="mono" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>20 Sep 14:30</span>
+                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Farhana Akter</span>
+                      <span className="num" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)", textAlign: "right" }}>17 min</span>
+                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Courier, Orders</span>
+                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Replaced Steadfast key; re-synced 23 orders</span>
                     </div>
-                  </>) : null}
-                </section>
-                <section className="panel" style={{ overflow: "hidden" }}>
-                  <div style={{ padding: "14px 18px 6px", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Every time support entered your store</div>
-                  <div className="th" style={{ display: "grid", gridTemplateColumns: "120px minmax(0,1fr) 80px minmax(0,1fr) minmax(0,1.8fr)", gap: "12px", padding: "10px 18px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
-                    <span>When</span>
-                    <span>Who</span>
-                    <span style={{ textAlign: "right" }}>Time</span>
-                    <span>Could change</span>
-                    <span>What they did</span>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "120px minmax(0,1fr) 80px minmax(0,1fr) minmax(0,1.8fr)", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 18px" }}>
-                    <span className="mono" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>20 Sep 14:30</span>
-                    <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Farhana Akter</span>
-                    <span className="num" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)", textAlign: "right" }}>17 min</span>
-                    <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Courier, Orders</span>
-                    <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Replaced Steadfast key; re-synced 23 orders</span>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "120px minmax(0,1fr) 80px minmax(0,1fr) minmax(0,1.8fr)", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 18px", borderTop: "1px solid var(--line)" }}>
-                    <span className="mono" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>22 Aug 11:10</span>
-                    <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Rakib Hasan</span>
-                    <span className="num" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)", textAlign: "right" }}>25 min</span>
-                    <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>POS</span>
-                    <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Paired 2 new barcode scanners</span>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "120px minmax(0,1fr) 80px minmax(0,1fr) minmax(0,1.8fr)", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 18px", borderTop: "1px solid var(--line)" }}>
-                    <span className="mono" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>06 Aug 2025</span>
-                    <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Tania Sultana</span>
-                    <span className="num" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)", textAlign: "right" }}>48 min</span>
-                    <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Products</span>
-                    <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Imported 412 products</span>
-                  </div>
-                </section>
+                    <div style={{ display: "grid", gridTemplateColumns: "120px minmax(0,1fr) 80px minmax(0,1fr) minmax(0,1.8fr)", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 18px", borderTop: "1px solid var(--line)" }}>
+                      <span className="mono" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>22 Aug 11:10</span>
+                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Rakib Hasan</span>
+                      <span className="num" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)", textAlign: "right" }}>25 min</span>
+                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>POS</span>
+                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Paired 2 new barcode scanners</span>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "120px minmax(0,1fr) 80px minmax(0,1fr) minmax(0,1.8fr)", alignItems: "center", gap: "12px", minHeight: "52px", padding: "0 18px", borderTop: "1px solid var(--line)" }}>
+                      <span className="mono" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>06 Aug 2025</span>
+                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Tania Sultana</span>
+                      <span className="num" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)", textAlign: "right" }}>48 min</span>
+                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Products</span>
+                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Imported 412 products</span>
+                    </div>
+                  </section>
+                </div>
               </div>
-            </div>
-          </main>
+            </main>
+          </div>
         </div>
       </div>
     );

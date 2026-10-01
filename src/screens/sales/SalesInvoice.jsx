@@ -77,6 +77,16 @@ const CSS = PAPER_CSS + DELIVERY_CSS + HOLD_CSS + `
 .si-extra label{display:flex;align-items:flex-start;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-heading);cursor:pointer}
 .si-extra .gc-check{flex:none;margin-top:1px}
 @media (max-width:1100px){.si-grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){
+  /* back button and invoice number share the first row; badges and actions wrap below */
+  .si-head > .si-back + div{flex:1 1 calc(100% - 56px)!important;min-width:0}
+  /* card heads: title (and its button) on top, the helper line under the title */
+  .si-card__head{flex-wrap:wrap;row-gap:2px}
+  .si-card__head > .iv-sub{order:3;flex:1 0 100%}
+  /* totals: the line above Total runs across both columns */
+  .si-sum{column-gap:0}
+  .si-sum dt{padding-right:var(--space-5)}
+}
 `;
 
 

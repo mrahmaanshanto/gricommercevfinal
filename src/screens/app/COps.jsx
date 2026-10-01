@@ -141,7 +141,7 @@ export default class COpsScreen extends Component {
             </div>
             <div className="card" style={{ margin: "0 20px" }}>
               <div className="row" style={{ minHeight: "52px" }}>
-                <span style={{ color: "#0f9f6e", display: "flex" }}>
+                <span style={{ color: "#0f9f6e", display: "flex", flex: "none", width: "16px", justifyContent: "center" }}>
                   <span className="sh ok" />
                 </span>
                 <span className="m">
@@ -150,7 +150,7 @@ export default class COpsScreen extends Component {
                 <span className="num" style={{ fontSize: "var(--text-sm)", color: "var(--muted)", fontWeight: "var(--weight-regular)" }}>100%</span>
               </div>
               <div className="row" style={{ minHeight: "52px" }}>
-                <span style={{ color: "#0f9f6e", display: "flex" }}>
+                <span style={{ color: "#0f9f6e", display: "flex", flex: "none", width: "16px", justifyContent: "center" }}>
                   <span className="sh ok" />
                 </span>
                 <span className="m">
@@ -159,7 +159,7 @@ export default class COpsScreen extends Component {
                 <span className="num" style={{ fontSize: "var(--text-sm)", color: "var(--muted)", fontWeight: "var(--weight-regular)" }}>99.99%</span>
               </div>
               <div className="row" style={{ minHeight: "52px" }}>
-                <span style={{ color: "#0f9f6e", display: "flex" }}>
+                <span style={{ color: "#0f9f6e", display: "flex", flex: "none", width: "16px", justifyContent: "center" }}>
                   <span className="sh ok" />
                 </span>
                 <span className="m">
@@ -168,7 +168,7 @@ export default class COpsScreen extends Component {
                 <span className="num" style={{ fontSize: "var(--text-sm)", color: "var(--muted)", fontWeight: "var(--weight-regular)" }}>99.98%</span>
               </div>
               <div className="row" style={{ minHeight: "52px" }}>
-                <span style={{ color: "#b45309", display: "flex" }}>
+                <span style={{ color: "#b45309", display: "flex", flex: "none", width: "16px", justifyContent: "center" }}>
                   <span className="sh warn" />
                 </span>
                 <span className="m">
@@ -177,7 +177,7 @@ export default class COpsScreen extends Component {
                 <span className="num" style={{ fontSize: "var(--text-sm)", color: "#b45309", fontWeight: "var(--weight-medium)" }}>1,284 waiting</span>
               </div>
               <div className="row" style={{ minHeight: "52px" }}>
-                <span style={{ color: "#c2410c", display: "flex" }}>
+                <span style={{ color: "#c2410c", display: "flex", flex: "none", width: "16px", justifyContent: "center" }}>
                   <span className="sh err" />
                 </span>
                 <span className="m">
@@ -186,7 +186,7 @@ export default class COpsScreen extends Component {
                 <span className="num" style={{ fontSize: "var(--text-sm)", color: "#c2410c", fontWeight: "var(--weight-medium)" }}>31% delivered</span>
               </div>
               <div className="row" style={{ minHeight: "52px" }}>
-                <span style={{ color: "#0f9f6e", display: "flex" }}>
+                <span style={{ color: "#0f9f6e", display: "flex", flex: "none", width: "16px", justifyContent: "center" }}>
                   <span className="sh ok" />
                 </span>
                 <span className="m">

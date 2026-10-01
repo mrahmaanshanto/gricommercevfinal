@@ -29,6 +29,8 @@ const CSS = `
 tr.is-off td{color:var(--text-muted)}
 @media (max-width:1023px){.ba-roles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:599px){.ba-roles{grid-template-columns:minmax(0,1fr)}}
+/* phones: the phone number gets its own line and never breaks */
+@media (max-width:640px){.ba-phone{display:block;white-space:nowrap}.ba-sep{display:none}}
 `;
 const n = (x) => Number(x || 0).toLocaleString('en-IN');
 
@@ -117,7 +119,7 @@ export default function BlogAuthors() {
                     <td>
                       <Link href={`/author-profile?id=${a.id}`} className="ba-who">
                         <Avatar author={a} size={40} />
-                        <span style={{ minWidth: 0 }}><span className="bl-strong">{a.name}</span><span className="bl-sub">{a.email || 'No email'}{a.phone ? ` · ${a.phone}` : ''}</span></span>
+                        <span style={{ minWidth: 0 }}><span className="bl-strong">{a.name}</span><span className="bl-sub">{a.email || 'No email'}{a.phone ? <span className="ba-phone"><span className="ba-sep"> · </span>{a.phone}</span> : null}</span></span>
                       </Link>
                     </td>
                     <td><span className={'gc-badge gc-badge--' + (ROLE_TONE[a.role] || 'slate')}>{a.role}</span></td>

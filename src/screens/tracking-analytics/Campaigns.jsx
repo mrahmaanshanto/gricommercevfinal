@@ -7,6 +7,7 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+import { TA_PHONE_CSS } from './taPhone';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -185,7 +186,15 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .tb tr:last-child td{border-bottom:0}
 .tb .r{text-align:right}
 @media (prefers-reduced-motion:reduce){.st>*,.gr,.draw,.fadein{animation:none}}
-`;
+@media (max-width:640px){
+  .cp-bar{flex-wrap:wrap;row-gap:10px!important}
+  .cp-bar>.cp-gap{flex:1 1 100%!important;height:0}
+  .cp-bar>.lseg{max-width:100%;overflow-x:auto;scrollbar-width:none}
+  .cp-bar>.lseg:last-child{flex:1 1 0;min-width:0}
+  .cp-bar>.lseg::-webkit-scrollbar{display:none}
+  .cp-bar .lseg button{flex:none;white-space:nowrap}
+}
+` + TA_PHONE_CSS;
 
 // ---- markup ----
 
@@ -255,13 +264,13 @@ export default class CampaignsScreen extends Component {
                     </React.Fragment>))}
                 </div>
                 {v.is_camp ? (<>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", borderBottom: "1px solid #eef1f6" }}>
+                  <div className="cp-bar" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", borderBottom: "1px solid #eef1f6" }}>
                     <div className="lseg">
                       {__list(v.pf).map((pq, $index) => (<React.Fragment key={$index}>
                           <button type="button" onClick={pq?.pick} aria-pressed={pq?.on} style={__sx(`background: ${pq?.bg ?? ""}; color: ${pq?.fg ?? ""}; box-shadow: ${pq?.sh ?? ""};`)}>{pq?.l}</button>
                         </React.Fragment>))}
                     </div>
-                    <span style={{ flexGrow: "1" }} />
+                    <span className="cp-gap" style={{ flexGrow: "1" }} />
                     <span className="ey">Sort</span>
                     <div className="lseg">
                       {__list(v.sorts).map((so, $index) => (<React.Fragment key={$index}>

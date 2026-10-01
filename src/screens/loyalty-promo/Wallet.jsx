@@ -26,6 +26,14 @@ const TABS = [['in', 'Add-money requests'], ['out', 'Cash-out requests'], ['wall
 const STATUS = { approved: ['Approved', 'success'], sent: ['Sent', 'success'], rejected: ['Rejected', 'error'], waiting: ['Pending', 'warning'] };
 const METHOD_BRAND = { bkash: 'bkash', nagad: 'nagad', rocket: 'rocket', bank: 'dbbl' };
 const when = (t) => `${formatDate(t)} · ${formatTime(t)}`;
+// phones: figure labels may take two lines instead of being cut, and payment logos are 24px inside their tile
+const CSS = `
+@media (max-width:640px){
+.gc-kpis .gc-kpi__label,.gc-kpis .gc-kpi__value small{white-space:normal}
+.gc-kpis .gc-kpi__label{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.ly-card .ac-who>span[style]:first-child{width:30px!important;height:30px!important}
+}
+`;
 
 export default function Wallet() {
   const tick = useLoyalty();
@@ -167,7 +175,7 @@ export default function Wallet() {
   };
 
   return (
-    <LoyPage screen="Wallet" active="loy-wallet" title="Customer wallet"
+    <LoyPage screen="Wallet" active="loy-wallet" title="Customer wallet" css={CSS}
       description="Customers can keep money with you and pay from it. It stays theirs until they spend it or take it back. Check each request in your bKash, Nagad or bank app before you approve."
       actions={<>
         <Link href="/loyalty" className="gc-btn gc-btn--neutral"><Icon name="settings" width="18" height="18" aria-hidden="true" /> Wallet settings</Link>

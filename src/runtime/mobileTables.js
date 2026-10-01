@@ -8,10 +8,20 @@ const KEEP = 'table.gc-table--keep, table[data-keep], table.rt-table, table.at-r
 const SKIP_INSIDE = '.gc-modal, .rc-sr, .ltr, .idc, .gc-sheet, [data-keep], .sp-cal, .pl-doc';
 const MQ = '(max-width: 640px)';
 
+/** A column's label: data-label on the header cell, else its first piece of text (a header such as
+ *  "Delivery charge <small>customer pays</small>" gives "Delivery charge", not the two run together). */
+function headLabel(th) {
+  if (th.dataset && th.dataset.label) return th.dataset.label;
+  const tw = document.createTreeWalker(th, NodeFilter.SHOW_TEXT);
+  let n = tw.nextNode();
+  while (n) { const v = n.nodeValue.replace(/\s+/g, ' ').trim(); if (v && !(n.parentElement && n.parentElement.closest('.sr-only') && th.innerText.trim())) return v; n = tw.nextNode(); }
+  return '';
+}
+
 function labelTable(t) {
   const head = t.tHead ? [...t.tHead.rows].pop() : null;
   const labels = [];
-  if (head) [...head.cells].forEach((th) => { const span = th.colSpan || 1; const text = (th.innerText || th.textContent || '').trim().replace(/\s+/g, ' '); for (let i = 0; i < span; i++) labels.push(text); });
+  if (head) [...head.cells].forEach((th) => { const span = th.colSpan || 1; const text = headLabel(th); for (let i = 0; i < span; i++) labels.push(text); });
   [...t.tBodies, ...(t.tFoot ? [t.tFoot] : [])].forEach((body) => {
     [...body.rows].forEach((tr) => {
       let col = 0;
@@ -22,7 +32,8 @@ function labelTable(t) {
         const label = span > 1 && cells.length === 1 ? '' : labels[col] || '';
         if (td.getAttribute('data-label') !== label) td.setAttribute('data-label', label);
         const onlyCheck = td.querySelector('input[type=checkbox]') && !(td.innerText || '').trim();
-        const controls = td.querySelectorAll('button, a.gc-btn, a[role=button]').length;
+        // a switch is a value (on / off), so its cell keeps its column label; other buttons are row actions
+        const controls = td.querySelectorAll('button:not(.sw):not(.set-sw):not(.gc-switch):not([role=switch]), a.gc-btn, a[role=button]').length;
         const text = (td.innerText || '').trim();
         const actions = controls > 0 && i === cells.length - 1 && i > 0 && !td.querySelector('input:not([type=checkbox]), select');
         const empty = !text && !td.querySelector('input, select, button, img, svg, a');

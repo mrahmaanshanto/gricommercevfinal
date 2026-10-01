@@ -202,6 +202,16 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .lrow:hover{background:#f7f9fd}.lrow.on{background:rgba(0,48,135,.05)}
 .lrow:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:-3px}
 .pgc>*{flex-shrink:0}.tb th{white-space:normal}.stp2{flex-shrink:0}.pgc>.fill{flex-shrink:1;min-height:0}
+/* narrow cards (one column on phones, two narrow columns on tablets): icon + name with the badge under it,
+   then the details at full card width and the button on its own row */
+@media (max-width:1023px){
+  .soc-card{flex-wrap:wrap;align-items:center!important;gap:8px 12px!important}
+  .soc-card>.soc-body{display:contents!important}
+  .soc-name{flex:1 1 0;min-width:0;flex-direction:column;align-items:flex-start!important;gap:4px!important}
+  .soc-card>.soc-body>:not(.soc-name){flex:1 1 100%;min-width:0}
+  .soc-card>button{flex:1 1 100%;justify-content:center;height:44px;margin-top:4px}
+}
+@media (max-width:640px){.soc-card{padding:16px!important}}
 `;
 
 // ---- markup ----
@@ -250,10 +260,10 @@ export default class SocialConnectionsScreen extends Component {
               </>) : null}
               <div className="st gc-cols-2" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "16px" }}>
                 {__list(v.cards).map((p, $index) => (<React.Fragment key={$index}>
-                    <section className="tc" style={{ padding: "18px 20px", display: "flex", gap: "14px", alignItems: "flex-start" }}>
+                    <section className="tc soc-card" style={{ padding: "18px 20px", display: "flex", gap: "14px", alignItems: "flex-start" }}>
                       <__ChannelIcon channel={p?.ch} size={46} label={p?.n} />
-                      <div style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <div className="soc-body" style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "6px" }}>
+                        <div className="soc-name" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                           <h2 className="h2" style={{ flexGrow: "1" }}>{p?.n}</h2>
                           <span className="badge sb" style={__sx(`background: ${p?.bb ?? ""}; color: ${p?.bf ?? ""};`)}><__Icon name={p?.si} width="12" height="12" aria-hidden="true" />{p?.st}</span>
                         </div>

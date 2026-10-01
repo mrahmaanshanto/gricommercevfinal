@@ -184,7 +184,17 @@ const CSS = `.dc-h442:hover{background:#f1f5f9 !important;color:#475569 !importa
 .dc-h456:hover{background:#e9eef5 !important;color:#1e293b !important}
 .dc-h457:hover{background:#e9eef5 !important;color:#1e293b !important}
 .dc-h458:hover{background:#f1f5f9 !important;color:#475569 !important}
-.dc-h459:hover{background:#f1f5f9 !important;color:#475569 !important}`;
+.dc-h459:hover{background:#f1f5f9 !important;color:#475569 !important}
+/* phone: an exchange rate is two lines (code, name and 30-day change, then "1 USD =" and the rate field) */
+@media (max-width:640px){
+  .set-rates__head{display:none!important}
+  .set-rates>div{flex-wrap:wrap;row-gap:8px!important}
+  .set-rates>div>span:nth-child(1){order:0;width:auto!important}
+  .set-rates>div>span:nth-child(2){order:1;flex:1 1 calc(100% - 120px)!important}
+  .set-rates>div>span:nth-child(5){order:2;width:auto!important}
+  .set-rates>div>span:nth-child(3){order:3;width:auto!important;white-space:nowrap}
+  .set-rates>div>span:nth-child(4){order:4;flex:1 1 150px!important;width:auto!important}
+}`;
 
 // ---- markup ----
 
@@ -216,7 +226,7 @@ export default class SetPaymentsScreen extends Component {
                     </header>
                     <GatewayList />
                     <section id="s0" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Online gateways</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Enable a gateway here, then open it to enter credentials. Order of the list is the order customers see at checkout.</span>
@@ -797,7 +807,7 @@ export default class SetPaymentsScreen extends Component {
                       <div {...v.f.panel("gw_paypal", false)} style={{ borderBottom: "1px solid #f1f5f9", background: "#f8fafc", padding: "14px 16px" }}>{v.gateway("PayPal")}</div>
                     </section>
                     <section id="s1" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Currency exchange rates</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Base currency is Bangladeshi Taka (৳, ISO code BDT). Used for the AI spend cap, Stripe settlements and export-order pricing.</span>
@@ -807,8 +817,8 @@ export default class SetPaymentsScreen extends Component {
                           <button type="button" onClick={v.f.say("Exchange rates are up to date. They were fetched today at 6:00 AM.")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#f1f5f9", color: "#1e293b" }}><__Icon name="refresh-cw" strokeWidth="1.75" width="15" height="15" />Refresh rates</button>
                         </span>
                       </div>
-                      <div style={{ padding: "6px 0 10px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "0 16px 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>
+                      <div className="set-rates" style={{ padding: "6px 0 10px" }}>
+                        <div className="set-rates__head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "0 16px 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>
                           <span style={{ width: "60px", flex: "none" }}>Code</span>
                           <span style={{ flex: "1" }}>Currency</span>
                           <span style={{ width: "40px", flex: "none" }} />
@@ -870,7 +880,7 @@ export default class SetPaymentsScreen extends Component {
                       </div>
                     </section>
                     <section id="s2" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Offline gateways</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Customer pays outside the platform, then submits the transaction ID. Orders wait in “payment review”.</span>

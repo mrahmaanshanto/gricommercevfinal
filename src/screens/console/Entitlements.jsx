@@ -550,7 +550,7 @@ export default class EntitlementsScreen extends Component {
     <path d="M20 6 9 17l-5-5" />
   </svg>
 </span>Override on</span>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}><span title="Trial" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "18px", height: "18px", borderRadius: "var(--radius-lg)", border: "2px dashed #009cde", color: "#0070a0", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>5d</span>Trial of one set</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}><span title="Trial" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", flex: "none", minWidth: "26px", height: "20px", padding: "0 3px", borderRadius: "var(--radius-lg)", border: "2px dashed #009cde", color: "#0070a0", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>5d</span>Trial of one set</span>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}><span title="Add-on credits" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "18px", height: "18px", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#00567a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>+</span>Add-on credits</span>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}><span title="Locked by plan" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "18px", height: "18px", borderRadius: "var(--radius-lg)", background: "var(--surface2)", color: "var(--text-muted)" }}>
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -561,7 +561,7 @@ export default class EntitlementsScreen extends Component {
                 <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}><span title="Not in segment" style={{ display: "inline-flex", width: "18px", height: "18px", borderRadius: "var(--radius-lg)", border: "1px solid var(--line)" }} />Not in segment</span>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 340px", gap: "14px", alignItems: "stretch" }}>
-                <div className="panel" style={{ overflow: "hidden" }}>
+                <div className="panel" style={{ overflow: "hidden", "--cs-row-min": "820px" }}>
                   <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.6fr) repeat(9,56px)", gap: "8px", padding: "10px 18px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
                     <span>Store</span>
                     <span style={{ textAlign: "center" }}>Core</span>

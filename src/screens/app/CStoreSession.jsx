@@ -9,8 +9,19 @@ import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
+// What the staff member has done inside the store so far (the header count is read from this list).
+const RECORDED = [
+  { at: '2:32', what: 'Replaced Steadfast API key' },
+  { at: '2:33', what: 'Test booking sent · success' },
+  { at: '2:35', what: 'Re-synced 23 stuck orders' },
+  { at: '2:36', what: 'Opened Orders · Ready to ship' },
+];
+
 class Component extends DCLogic {
-  renderVals() { return {}; }
+  renderVals() {
+    const n = RECORDED.length;
+    return { recorded: RECORDED, recordedLabel: n + (n === 1 ? ' change' : ' changes') };
+  }
 }
 
 // ---- styles (from the design's <helmet>) ----
@@ -147,25 +158,15 @@ export default class CStoreSessionScreen extends Component {
             </div>
             <div className="sec">
               <h2>Recorded so far</h2>
-              <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>2 changes</span>
+              <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>{v.recordedLabel}</span>
             </div>
             <div className="card" style={{ margin: "0 20px" }}>
-              <div className="row" style={{ minHeight: "52px" }}>
-                <span className="num" style={{ width: "44px", flex: "none", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>2:32</span>
-                <span className="t" style={{ fontWeight: "var(--weight-medium)", fontSize: "var(--text-sm)" }}>Replaced Steadfast API key</span>
-              </div>
-              <div className="row" style={{ minHeight: "52px" }}>
-                <span className="num" style={{ width: "44px", flex: "none", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>2:33</span>
-                <span className="t" style={{ fontWeight: "var(--weight-medium)", fontSize: "var(--text-sm)" }}>Test booking sent · success</span>
-              </div>
-              <div className="row" style={{ minHeight: "52px" }}>
-                <span className="num" style={{ width: "44px", flex: "none", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>2:35</span>
-                <span className="t" style={{ fontWeight: "var(--weight-medium)", fontSize: "var(--text-sm)" }}>Re-synced 23 stuck orders</span>
-              </div>
-              <div className="row" style={{ minHeight: "52px" }}>
-                <span className="num" style={{ width: "44px", flex: "none", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>2:36</span>
-                <span className="t" style={{ fontWeight: "var(--weight-medium)", fontSize: "var(--text-sm)" }}>Opened Orders · Ready to ship</span>
-              </div>
+              {__list(v.recorded).map((r) => (
+                <div className="row" key={r.at + r.what} style={{ minHeight: "52px" }}>
+                  <span className="num" style={{ width: "44px", flex: "none", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>{r.at}</span>
+                  <span className="t" style={{ fontWeight: "var(--weight-medium)", fontSize: "var(--text-sm)" }}>{r.what}</span>
+                </div>
+              ))}
             </div>
           </div>
           <div className="actbar">

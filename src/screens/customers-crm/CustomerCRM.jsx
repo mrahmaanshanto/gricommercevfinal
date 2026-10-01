@@ -283,6 +283,32 @@ a{color:#003087}a:hover{color:#002a77}
 .tkt{position:relative;display:flex;border-radius:var(--radius-xl);overflow:hidden;border:1px solid #e6eaf0;background:#fff}
 .tkt::before,.tkt::after{content:"";position:absolute;left:84px;width:14px;height:14px;border-radius:var(--radius-full);background:#f6f8fb;border:1px solid #e6eaf0}
 .tkt::before{top:-8px}.tkt::after{bottom:-8px}
+/* phones: the hero stacks (avatar + name, then actions, then details), KPIs in two columns, tiles in one column */
+@media (max-width:767px){
+.crm-hero{display:grid!important;grid-template-columns:auto minmax(0,1fr);align-items:center!important;gap:var(--space-3) var(--space-4)!important;padding:var(--space-5) var(--space-4) var(--space-4)!important}
+.crm-hero__ring{width:64px!important;height:64px!important}
+.crm-hero__info{display:contents!important}
+.crm-hero__info>*:not(:first-child){grid-column:1/-1;order:1}
+.crm-hero__name{font-size:var(--text-2xl)!important;line-height:30px!important}
+.crm-hero__acts{grid-column:1/-1;justify-content:flex-start!important}
+.crm-hero__info>*:nth-child(2){gap:var(--space-2) var(--space-4)!important}
+.bento>.tile>div:first-child{flex-wrap:wrap}
+.crm-rng{flex:none}.crm-rng>button{white-space:nowrap}
+.abtn{flex:none;white-space:nowrap}
+.crm-kpis{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-4) 0;margin:0 var(--space-4)!important;padding:var(--space-4) 0 var(--space-5)!important}
+.crm-kpis>*{min-width:0;padding:0 0 0 var(--space-4)!important}
+.crm-kpis>*:nth-child(odd){border-left:0!important;padding-left:0!important}
+.bento{grid-template-columns:minmax(0,1fr)!important;gap:var(--space-4)!important}
+.bento>.tile{grid-column:1/-1!important;padding:var(--space-4)}
+.crm-bars{gap:var(--space-1)!important}
+.crm-tl{grid-template-columns:64px 34px minmax(0,1fr)!important;gap:var(--space-3)!important}
+.crm-susp{flex-wrap:wrap}
+.crm-susp>div{flex:1 1 200px;min-width:0}
+.snav{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.snav::-webkit-scrollbar{display:none}
+.crm-overlay{position:fixed!important;z-index:var(--z-modal)!important}
+.crm-modal{width:calc(100% - 32px)!important;max-height:calc(100dvh - 32px);overflow:auto;padding:var(--space-5)!important}
+}
 `;
 
 // ---- markup ----
@@ -308,16 +334,16 @@ export default class CustomerCRMScreen extends Component {
                   </defs>
                   <rect width="100%" height="100%" fill="url(#gcgrid)" />
                 </svg>
-                <div style={{ position: "relative", padding: "28px 30px 22px", display: "flex", gap: "22px", alignItems: "flex-start" }}>
+                <div className="crm-hero" style={{ position: "relative", padding: "28px 30px 22px", display: "flex", gap: "22px", alignItems: "flex-start" }}>
                   <div style={{ position: "relative", flexShrink: "0" }}>
-                    <span style={{ width: "84px", height: "84px", borderRadius: "var(--radius-full)", padding: "3px", background: "conic-gradient(from 200deg, #f5c86b, #a16207, #f5c86b)", display: "block" }}>
+                    <span className="crm-hero__ring" style={{ width: "84px", height: "84px", borderRadius: "var(--radius-full)", padding: "3px", background: "conic-gradient(from 200deg, #f5c86b, #a16207, #f5c86b)", display: "block" }}>
                       <span style={{ width: "100%", height: "100%", borderRadius: "var(--radius-full)", background: "#e0f3fb", color: "#012169", fontSize: "var(--text-3xl)", fontWeight: "var(--weight-semibold)", display: "flex", alignItems: "center", justifyContent: "center", border: "3px solid #0b1733" }}>{v.profInitial}</span>
                     </span>
                     <span role="img" aria-label="Online now" title="Online now" style={{ position: "absolute", right: "4px", bottom: "6px", width: "14px", height: "14px", borderRadius: "var(--radius-full)", background: "#22c55e", border: "3px solid #012169" }} />
                   </div>
-                  <div style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <div className="crm-hero__info" style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "8px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                      <h2 style={{ margin: "0", fontSize: "var(--text-3xl)", lineHeight: "38px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--text-on-dark)" }}>{v.profName}</h2>
+                      <h2 className="crm-hero__name" style={{ margin: "0", fontSize: "var(--text-3xl)", lineHeight: "38px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--text-on-dark)" }}>{v.profName}</h2>
                       <span style={{ height: "24px", padding: "0 10px", borderRadius: "var(--radius-full)", background: "linear-gradient(90deg, #f5c86b, #d69e2e)", color: "#3b2503", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", display: "inline-flex", alignItems: "center", gap: "5px" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z" />
   <path d="M5 21h14" />
@@ -352,7 +378,7 @@ export default class CustomerCRMScreen extends Component {
                     </div>
                     <div style={{ fontSize: "var(--text-xs)", color: "var(--text-on-dark-muted)" }}>Customer since 2 Mar 2026 · came from Facebook ad “Eid skin care” · ID C-10482 · looked after by Tania</div>
                   </div>
-                  <div style={{ display: "flex", gap: "8px", flexShrink: "0", flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "100%" }}>
+                  <div className="crm-hero__acts" style={{ display: "flex", gap: "8px", flexShrink: "0", flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "100%" }}>
                     {v.profWhole ? (
                       <__Link href={v.profWholeHref} className="hbtn"><__Icon name="store" width="16" height="16" aria-hidden="true" /><span>Wholesale profile</span></__Link>
                     ) : null}
@@ -391,7 +417,7 @@ export default class CustomerCRMScreen extends Component {
                     </button>
                   </div>
                 </div>
-                <div style={{ position: "relative", display: "flex", padding: "18px 8px 22px", margin: "0 22px", borderTop: "1px solid rgba(255,255,255,.12)" }}>
+                <div className="crm-kpis" style={{ position: "relative", display: "flex", padding: "18px 8px 22px", margin: "0 22px", borderTop: "1px solid rgba(255,255,255,.12)" }}>
                   <div style={{ padding: "0 22px", display: "flex", flexDirection: "column", gap: "2px" }}>
                     <span style={{ fontSize: "var(--text-xs)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-on-dark-muted)" }}>Lifetime value</span>
                     <span className="num" style={{ fontSize: "var(--text-2xl)", lineHeight: "30px", fontWeight: "var(--weight-semibold)", color: "#ffffff" }}>৳58,200</span>
@@ -455,13 +481,13 @@ export default class CustomerCRMScreen extends Component {
                             <div className="tt">Spending</div>
                             <div className="ts">Last 12 months · ৳58,200 total</div>
                           </div>
-                          <div style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
+                          <div className="crm-rng" style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
                             {__list(v.rng).map((r, $index) => (<React.Fragment key={$index}>
                                 <button type="button" aria-pressed={r?.on} onClick={r?.pick} style={__sx(`height: 28px; padding: 0 12px; border: 0; border-radius: var(--radius-full); font: inherit; font-size: var(--text-xs); font-weight: var(--weight-medium); cursor: pointer; background: ${r?.bg ?? ""}; color: ${r?.fg ?? ""};`)}>{r?.l}</button>
                               </React.Fragment>))}
                           </div>
                         </div>
-                        <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", height: "190px", paddingTop: "8px", borderBottom: "1px solid #eef2f6" }}>
+                        <div className="crm-bars" style={{ display: "flex", alignItems: "flex-end", gap: "10px", height: "190px", paddingTop: "8px", borderBottom: "1px solid #eef2f6" }}>
                           {__list(v.bars).map((b, $index) => (<React.Fragment key={$index}>
                               <div style={{ flex: "1 1 0", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "center", gap: "6px" }}>
                                 <span className="num" style={__sx(`font-size: var(--text-2xs); color: var(--text-muted); opacity: ${b?.lop ?? ""};`)}>{b?.v}</span>
@@ -469,7 +495,7 @@ export default class CustomerCRMScreen extends Component {
                               </div>
                             </React.Fragment>))}
                         </div>
-                        <div style={{ display: "flex", gap: "10px", marginTop: "-6px" }}>
+                        <div className="crm-bars" style={{ display: "flex", gap: "10px", marginTop: "-6px" }}>
                           {__list(v.bars).map((b, $index) => (<React.Fragment key={$index}>
                               <span style={{ flex: "1 1 0", textAlign: "center", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{b?.m}</span>
                             </React.Fragment>))}
@@ -676,7 +702,7 @@ export default class CustomerCRMScreen extends Component {
                         </div>
                         <div>
                           {__list(v.tl).map((e, $index) => (<React.Fragment key={$index}>
-                              <div style={{ display: "grid", gridTemplateColumns: "92px 36px 1fr", gap: "12px" }}>
+                              <div className="crm-tl" style={{ display: "grid", gridTemplateColumns: "92px 36px 1fr", gap: "12px" }}>
                                 <span className="ts" style={{ textAlign: "right", paddingTop: "8px" }}>{e?.when}</span>
                                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                                   <span style={__sx(`width: 34px; height: 34px; border-radius: var(--radius-lg); background: ${e?.bg ?? ""}; color: ${e?.fg ?? ""}; font-size: var(--text-2xs); font-weight: var(--weight-medium); display: flex; align-items: center; justify-content: center;`)}>{e?.tag}</span>
@@ -793,7 +819,7 @@ export default class CustomerCRMScreen extends Component {
                       <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
                         {__list(v.tickets).map((t, $index) => (<React.Fragment key={$index}>
                             <__Link href="/support-tickets" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 16px", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", textDecoration: "none", color: "inherit" }}>
-                              <span className="mono" style={{ fontWeight: "var(--weight-medium)", color: "#003087" }}>{t?.no}</span>
+                              <span className="mono" style={{ fontWeight: "var(--weight-medium)", color: "#003087", whiteSpace: "nowrap" }}>{t?.no}</span>
                               <span style={{ flexGrow: "1" }}>
                                 <span style={{ display: "block", fontWeight: "var(--weight-medium)" }}>{t?.title}</span>
                                 <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{t?.sub}</span>
@@ -967,7 +993,7 @@ export default class CustomerCRMScreen extends Component {
                 {v.is_messages ? (<>
                   <div className="fade">
                     <section className="tile" style={{ padding: "0", overflow: "hidden" }}>
-                      <div style={{ padding: "16px", display: "grid", gridTemplateColumns: "1.1fr 1fr", gap: "20px" }}>
+                      <div className="gc-cols-2" style={{ padding: "16px", display: "grid", gridTemplateColumns: "1.1fr 1fr", gap: "20px" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                           <div style={{ display: "flex", gap: "4px", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6", alignSelf: "flex-start" }}>
                             {__list(v.mTabs).map((m, $index) => (<React.Fragment key={$index}>
@@ -1190,7 +1216,7 @@ export default class CustomerCRMScreen extends Component {
                           </select>
                         </div>
                       </section>
-                      <section className="tile" style={{ gridColumn: "span 12", borderColor: "#f5d0c5", flexDirection: "row", alignItems: "center", gap: "16px" }}>
+                      <section className="tile crm-susp" style={{ gridColumn: "span 12", borderColor: "#f5d0c5", flexDirection: "row", alignItems: "center", gap: "16px" }}>
                         <span style={{ width: "44px", height: "44px", borderRadius: "var(--radius-xl)", background: "#ffece6", color: "#b83210", display: "flex", alignItems: "center", justifyContent: "center" }}>
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <circle cx="12" cy="12" r="10" />
@@ -1213,8 +1239,8 @@ export default class CustomerCRMScreen extends Component {
                 </>) : null}
               </div>
               {v.mOpen ? (<>
-                <div style={{ position: "absolute", inset: "0", background: "rgba(15,23,42,.35)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: "5" }}>
-                  <section className="pcard fade" role="dialog" aria-label={v.mTitle} style={{ width: "560px", padding: "24px", display: "flex", flexDirection: "column", gap: "14px" }}>
+                <div className="crm-overlay" style={{ position: "absolute", inset: "0", background: "rgba(15,23,42,.35)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: "5" }}>
+                  <section className="pcard fade crm-modal" role="dialog" aria-label={v.mTitle} style={{ width: "560px", padding: "24px", display: "flex", flexDirection: "column", gap: "14px" }}>
                     <div style={{ display: "flex", alignItems: "center" }}>
                       <h2 style={{ margin: "0", flexGrow: "1", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>{v.mTitle}</h2>
                       <button type="button" className="ib" aria-label="Close" onClick={v.closeM}>

@@ -12,6 +12,8 @@ const MOVED = {
   '/staff-overview': '/staff-profile', '/staff-access': '/staff-profile?tab=access', '/staff-attendance': '/staff-profile?tab=attendance',
   '/staff-leave': '/staff-profile?tab=leave', '/staff-salary': '/staff-profile?tab=salary', '/staff-activity': '/staff-profile?tab=activity',
   '/staff-docs': '/staff-profile?tab=docs',
+  // the platform console's payment checks were folded into Collections
+  '/payment-checks': '/collections',
 };
 
 const nextConfig = {

@@ -115,6 +115,14 @@ const CSS = `
 .rq-po .gc-table th:last-child,.rq-po .gc-table td:last-child{padding-right:var(--space-4)}
 .rq-po__total td{font-weight:var(--weight-semibold);color:var(--text-heading)}
 @media (max-width:599px){.rq-two{grid-template-columns:1fr}}
+/* phones: the three steps run down the card with a short line between them; the search box takes the full width */
+@media (max-width:640px){
+  .rq-flow{flex-direction:column;align-items:flex-start;flex-wrap:nowrap;gap:2px}
+  .rq-flow i{width:1px;height:12px;margin:2px 0 2px 7px}
+  .rq-flow span{margin-left:24px}
+  .rq-bar{padding:0 var(--space-3-5)}
+  .rq-search{flex:1 1 100%;margin-bottom:var(--space-3)}
+}
 `;
 
 export default function Requests() {

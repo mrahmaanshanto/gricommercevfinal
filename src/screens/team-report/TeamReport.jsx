@@ -37,7 +37,24 @@ const CSS = `body{margin:0;background:#eef2f7;font-family:var(--font-sans);color
 .tr-board>div{min-width:640px}
 .tr-content h2{overflow-wrap:anywhere}
 @media (max-width:1279px){.tr-cols{grid-template-columns:minmax(0,1fr)!important}}
-@media (max-width:1023px){.tr-content{padding:20px 16px 32px!important;gap:20px!important}}`;
+@media (max-width:1023px){.tr-content{padding:20px 16px 32px!important;gap:20px!important}}
+/* phones: title and subtitle take the full width, period + Export share the next row;
+   the leaderboard becomes one card per agent (name, then the four numbers with their labels) */
+@media (max-width:640px){
+  .tr-head{gap:var(--space-2) var(--space-2)!important}
+  .tr-head>span:first-child{flex:1 1 100%!important}
+  .tr-period{flex:1 1 0;min-width:0;height:44px!important}
+  .tr-export{height:44px!important}
+  .tr-board{overflow-x:visible!important;contain:none!important}
+  .tr-board>div{min-width:0!important}
+  .tr-board>div:first-child{padding:0 16px 14px!important}
+  .tr-lb-head{display:none!important}
+  .tr-lb-row{grid-template-columns:repeat(4,minmax(0,1fr))!important;row-gap:28px!important;padding:14px 16px!important}
+  .tr-lb-head+.tr-lb-row{border-top:1px solid #f1f5f9}
+  .tr-lb-row>span:first-child{grid-column:1/-1}
+  .tr-lb-row>[data-label]{position:relative;justify-self:start}
+  .tr-lb-row>[data-label]::before{content:attr(data-label);position:absolute;left:0;bottom:100%;margin-bottom:2px;white-space:nowrap;font-size:var(--text-xs);font-weight:var(--weight-regular);line-height:16px;color:var(--text-muted);background:none}
+}`;
 
 // ---- markup ----
 
@@ -51,18 +68,18 @@ export default class TeamReportScreen extends Component {
           <__Sidebar sticky="" active="rep-marketing" />
           <div className="gc-shell__main" style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#f8fafc" }}>
             <__Topbar crumb="Reports" page="Team performance" />
-            <header className="mg-head" style={{ zIndex: "90", display: "flex", minHeight: "76px", flex: "none", alignItems: "center", gap: "16px", padding: "16px 32px", background: "#fff", borderBottom: "1px solid #e2e8f0" }}>
+            <header className="mg-head tr-head" style={{ zIndex: "90", display: "flex", minHeight: "76px", flex: "none", alignItems: "center", gap: "16px", padding: "16px 32px", background: "#fff", borderBottom: "1px solid #e2e8f0" }}>
               <span style={{ flex: "1", minWidth: "0" }}>
                 <h1 style={{ margin: "0", fontSize: "var(--text-xl)", lineHeight: "var(--text-xl-lh)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>Team performance</h1>
                 <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Support and sales · 6 agents · Asia/Dhaka</p>
               </span>
-              <select aria-label="Reporting period" style={{ height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 10px", fontSize: "var(--text-sm)", color: "#475569" }}>
+              <select className="tr-period" aria-label="Reporting period" style={{ height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 10px", fontSize: "var(--text-sm)", color: "#475569" }}>
                 <option>Last 7 days</option>
                 <option>Today</option>
                 <option>Last 30 days</option>
                 <option>This quarter</option>
               </select>
-              <button className="dc-h814" style={{ height: "36px", display: "inline-flex", alignItems: "center", gap: "8px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 14px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#334155", cursor: "pointer" }}><__Icon name="download" strokeWidth="1.75" width="16" height="16" />Export</button>
+              <button className="dc-h814 tr-export" style={{ height: "36px", display: "inline-flex", alignItems: "center", gap: "8px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 14px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#334155", cursor: "pointer" }}><__Icon name="download" strokeWidth="1.75" width="16" height="16" />Export</button>
             </header>
             <div className="tr-content" style={{ flex: "1", minHeight: "0", padding: "32px 36px 44px", display: "grid", gap: "28px", alignContent: "start" }}>
               <div className="gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: "20px" }}>
@@ -121,14 +138,14 @@ export default class TeamReportScreen extends Component {
                     <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>Agent leaderboard</h2>
                     <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Ranked by resolved</span>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 96px 108px 96px 88px", gap: "12px", padding: "10px 24px", background: "#f1f5f9", borderTop: "1px solid #e2e8f0", borderBottom: "1px solid #e2e8f0" }}>
+                  <div className="tr-lb-head" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 96px 108px 96px 88px", gap: "12px", padding: "10px 24px", background: "#f1f5f9", borderTop: "1px solid #e2e8f0", borderBottom: "1px solid #e2e8f0" }}>
                     <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>Agent</span>
                     <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>Resolved</span>
                     <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>First reply</span>
                     <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>Revenue</span>
                     <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>CSAT</span>
                   </div>
-                  <div className="dc-h815" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 96px 108px 96px 88px", gap: "12px", alignItems: "center", padding: "14px 24px", borderBottom: "1px solid #f1f5f9" }}>
+                  <div className="dc-h815 tr-lb-row" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 96px 108px 96px 88px", gap: "12px", alignItems: "center", padding: "14px 24px", borderBottom: "1px solid #f1f5f9" }}>
                     <span style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: "0" }}>
                       <span style={{ width: "30px", height: "30px", flex: "none", borderRadius: "var(--radius-full)", background: "rgba(0,48,135,.1)", color: "#003087", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>RA</span>
                       <span style={{ minWidth: "0" }}>
@@ -136,12 +153,12 @@ export default class TeamReportScreen extends Component {
                         <p style={{ margin: "0", fontSize: "var(--text-xs)", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Support lead</p>
                       </span>
                     </span>
-                    <span style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>318</span>
-                    <span style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>1m 42s</span>
-                    <span style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>৳2.1L</span>
-                    <span style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(16,185,129,.12)", color: "#0f7a5a" }}>4.8</span>
+                    <span data-label="Resolved" style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>318</span>
+                    <span data-label="First reply" style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>1m 42s</span>
+                    <span data-label="Revenue" style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>৳2.1L</span>
+                    <span data-label="CSAT" style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(16,185,129,.12)", color: "#0f7a5a" }}>4.8</span>
                   </div>
-                  <div className="dc-h816" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 96px 108px 96px 88px", gap: "12px", alignItems: "center", padding: "14px 24px", borderBottom: "1px solid #f1f5f9" }}>
+                  <div className="dc-h816 tr-lb-row" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 96px 108px 96px 88px", gap: "12px", alignItems: "center", padding: "14px 24px", borderBottom: "1px solid #f1f5f9" }}>
                     <span style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: "0" }}>
                       <span style={{ width: "30px", height: "30px", flex: "none", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.12)", color: "#0f7a5a", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>TA</span>
                       <span style={{ minWidth: "0" }}>
@@ -149,12 +166,12 @@ export default class TeamReportScreen extends Component {
                         <p style={{ margin: "0", fontSize: "var(--text-xs)", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Sales</p>
                       </span>
                     </span>
-                    <span style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>276</span>
-                    <span style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>2m 05s</span>
-                    <span style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>৳1.8L</span>
-                    <span style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(16,185,129,.12)", color: "#0f7a5a" }}>4.7</span>
+                    <span data-label="Resolved" style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>276</span>
+                    <span data-label="First reply" style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>2m 05s</span>
+                    <span data-label="Revenue" style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>৳1.8L</span>
+                    <span data-label="CSAT" style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(16,185,129,.12)", color: "#0f7a5a" }}>4.7</span>
                   </div>
-                  <div className="dc-h817" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 96px 108px 96px 88px", gap: "12px", alignItems: "center", padding: "14px 24px", borderBottom: "1px solid #f1f5f9" }}>
+                  <div className="dc-h817 tr-lb-row" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 96px 108px 96px 88px", gap: "12px", alignItems: "center", padding: "14px 24px", borderBottom: "1px solid #f1f5f9" }}>
                     <span style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: "0" }}>
                       <span style={{ width: "30px", height: "30px", flex: "none", borderRadius: "var(--radius-full)", background: "rgba(105,122,155,.15)", color: "var(--text-muted)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>MK</span>
                       <span style={{ minWidth: "0" }}>
@@ -162,12 +179,12 @@ export default class TeamReportScreen extends Component {
                         <p style={{ margin: "0", fontSize: "var(--text-xs)", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Support</p>
                       </span>
                     </span>
-                    <span style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>241</span>
-                    <span style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>2m 38s</span>
-                    <span style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>৳1.1L</span>
-                    <span style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(16,185,129,.12)", color: "#0f7a5a" }}>4.6</span>
+                    <span data-label="Resolved" style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>241</span>
+                    <span data-label="First reply" style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>2m 38s</span>
+                    <span data-label="Revenue" style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>৳1.1L</span>
+                    <span data-label="CSAT" style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(16,185,129,.12)", color: "#0f7a5a" }}>4.6</span>
                   </div>
-                  <div className="dc-h818" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 96px 108px 96px 88px", gap: "12px", alignItems: "center", padding: "14px 24px", borderBottom: "1px solid #f1f5f9" }}>
+                  <div className="dc-h818 tr-lb-row" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 96px 108px 96px 88px", gap: "12px", alignItems: "center", padding: "14px 24px", borderBottom: "1px solid #f1f5f9" }}>
                     <span style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: "0" }}>
                       <span style={{ width: "30px", height: "30px", flex: "none", borderRadius: "var(--radius-full)", background: "rgba(0,48,135,.1)", color: "#003087", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>SI</span>
                       <span style={{ minWidth: "0" }}>
@@ -175,12 +192,12 @@ export default class TeamReportScreen extends Component {
                         <p style={{ margin: "0", fontSize: "var(--text-xs)", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Support</p>
                       </span>
                     </span>
-                    <span style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>198</span>
-                    <span style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>3m 11s</span>
-                    <span style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>৳74k</span>
-                    <span style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(255,152,0,.14)", color: "#a15f00" }}>4.2</span>
+                    <span data-label="Resolved" style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>198</span>
+                    <span data-label="First reply" style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>3m 11s</span>
+                    <span data-label="Revenue" style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>৳74k</span>
+                    <span data-label="CSAT" style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(255,152,0,.14)", color: "#a15f00" }}>4.2</span>
                   </div>
-                  <div className="dc-h819" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 96px 108px 96px 88px", gap: "12px", alignItems: "center", padding: "14px 24px" }}>
+                  <div className="dc-h819 tr-lb-row" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 96px 108px 96px 88px", gap: "12px", alignItems: "center", padding: "14px 24px" }}>
                     <span style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: "0" }}>
                       <span style={{ width: "30px", height: "30px", flex: "none", borderRadius: "var(--radius-full)", background: "rgba(105,122,155,.15)", color: "var(--text-muted)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>NF</span>
                       <span style={{ minWidth: "0" }}>
@@ -188,10 +205,10 @@ export default class TeamReportScreen extends Component {
                         <p style={{ margin: "0", fontSize: "var(--text-xs)", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Sales · part time</p>
                       </span>
                     </span>
-                    <span style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>142</span>
-                    <span style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>2m 52s</span>
-                    <span style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>৳68k</span>
-                    <span style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(16,185,129,.12)", color: "#0f7a5a" }}>4.5</span>
+                    <span data-label="Resolved" style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>142</span>
+                    <span data-label="First reply" style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>2m 52s</span>
+                    <span data-label="Revenue" style={{ fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>৳68k</span>
+                    <span data-label="CSAT" style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(16,185,129,.12)", color: "#0f7a5a" }}>4.5</span>
                   </div>
                 </div>
                 <div style={{ display: "grid", gap: "20px", alignContent: "start" }}>

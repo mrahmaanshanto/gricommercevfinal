@@ -5,6 +5,7 @@
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
+import __Link from 'next/link';
 import { DCLogic, Icon as __Icon } from '@/runtime/dc';
 import { Sidebar as __Sidebar } from '@/shell/Shell';
 import { toast } from '@/runtime/ui';
@@ -254,6 +255,33 @@ export function SetSaveBar({ f, note }) {
   );
 }
 
+/** A layout part of Settings (main menu, section menu, top bar) opened on its own, as the design boards do.
+ *  On a wide window it shows the part; on a phone, where the part alone is blank or meaningless, it says
+ *  what it is and links to Settings. */
+const FRAG_CSS = `
+.set-frag,.set-frag__part{display:contents}
+.set-frag__note{display:none}
+@media (max-width:767px){
+  .set-frag__part{display:none}
+  .set-frag__note{display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-3);min-height:100dvh;padding:var(--space-8) var(--space-4);background:var(--surface-page,#f8fafc);font-family:var(--font-sans);color:var(--text-muted);box-sizing:border-box}
+  .set-frag__title{margin:0;font-size:var(--text-xl);line-height:var(--text-xl-lh);font-weight:var(--weight-semibold);color:var(--text-heading,#0f172a)}
+  .set-frag__body{margin:0;max-width:44ch;font-size:var(--text-sm);line-height:20px}
+  .set-frag__link{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);background:#003087;color:#fff;font-size:var(--text-sm);font-weight:var(--weight-medium);text-decoration:none}
+}`;
+export function SetFragment({ name, children }) {
+  return (
+    <div className="set-frag">
+      <style dangerouslySetInnerHTML={{ __html: FRAG_CSS }} />
+      <div className="set-frag__part">{children}</div>
+      <div className="set-frag__note">
+        <h1 className="set-frag__title">{name}</h1>
+        <p className="set-frag__body">This is a layout part of Settings, shown on its own for the design boards. Open Settings to use it.</p>
+        <__Link className="set-frag__link" href="/set-general">Open Settings<__Icon name="arrow-right" strokeWidth="1.75" width="16" height="16" aria-hidden="true" /></__Link>
+      </div>
+    </div>
+  );
+}
+
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
 class Component extends DCLogic { renderVals() { return {}; } }
@@ -382,13 +410,31 @@ input[type="time"].set-in{min-width:96px}
 .set-bar__discard[aria-disabled="true"],.set-bar__discard[aria-disabled="true"]:hover{border-color:transparent;background:none;color:var(--text-muted)}
 .set-bar__save[aria-disabled="true"],.set-bar__save[aria-disabled="true"]:hover{background:#e2e8f0;color:#475569}
 @media (max-width:767px){.set-bar{padding:10px 16px}.set-bar__hint{display:none}}
+
+/* phone layout (desktop unchanged). Hooks the settings screens carry:
+   .set-head   card head: title + description, then the actions (chips, selects, buttons)
+   .set-flow   a row that wraps on a phone; .set-grow is its text part (keeps ~200px before wrapping) */
+@media (max-width:767px){
+  .set-head{flex-wrap:wrap}
+  .set-head>span:first-child{flex:1 1 240px;min-width:0}
+}
+@media (max-width:640px){
+  .set-head>span:last-child{flex:1 1 100%!important;margin-left:0!important;justify-content:flex-start;flex-wrap:wrap}
+  .set-head>span:last-child:empty{display:none}
+  .set-head .set-box{flex:1 1 140px;width:auto!important}
+  .set-flow{flex-wrap:wrap!important;row-gap:6px!important}
+  .set-flow>.set-grow{flex:1 1 200px!important}
+  /* pills stay one line; button labels do not break inside the button */
+  .set-main [style*="--radius-full"][style*="inline-flex"]{white-space:nowrap}
+  .set-main button:not(.set-disc):not([role="switch"]){white-space:nowrap}
+}
 `;
 
 // ---- markup ----
 
 export default class SetChromeScreen extends Component {
   render() {
-    return (
+    const screen = (
       <div className="dc-screen ds" data-screen="SetChrome">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         {/* the main menu: full panel on wide windows, icon rail from 1024 to 1279px, and below
@@ -396,5 +442,6 @@ export default class SetChromeScreen extends Component {
         <__Sidebar sticky="" active="settings" />
       </div>
     );
+    return this.props.embedded ? screen : <SetFragment name="Settings main menu">{screen}</SetFragment>;
   }
 }

@@ -286,6 +286,31 @@ body{font-family:var(--font-sans)}
 .gfab:hover{background:#002a77;color:#fff}
 .gfab:focus-visible{outline:3px solid rgba(0,48,135,.45);outline-offset:3px}
 .th,.td{white-space:normal}
+/* tablets and phones: contact, address and credit stack instead of three squeezed columns */
+@media (max-width:1023px){
+  .sd-contact{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .sd-contact>:last-child{grid-column:1/-1}
+}
+@media (max-width:767px){
+  .sd-contact{grid-template-columns:minmax(0,1fr)!important;gap:16px!important;padding:16px!important}
+}
+/* phones: back and title share a row, Pay leads the actions, ledger tabs scroll, the pay dialog fits the screen */
+@media (max-width:640px){
+  .sd-hicon{display:none!important}
+  .sd-head{gap:8px 10px!important}
+  .sd-head>div:has(> h1){flex:1 1 calc(100% - 52px)!important;min-width:0}
+  .sd-head>.btn{flex:1 1 0;padding:0 12px}
+  .sd-head>.sd-pay{order:1;flex:1 1 100%}
+  .sd-head>.btn:not(.sd-pay){order:2}
+  .tabl{overflow-x:auto;scrollbar-width:none}
+  .tabl::-webkit-scrollbar{display:none}
+  .tabl>.tl{flex:none}
+  .modal{width:calc(100% - 24px)!important;top:76px!important}
+  .sd-amt{flex-wrap:wrap}
+  .sd-amt>div{width:100%!important}
+  .sd-methods{flex-wrap:wrap}
+  .sd-methods>button{flex:1 1 40%!important}
+}
 `;
 
 // ---- markup ----
@@ -309,13 +334,13 @@ export default class SupplierDetailScreen extends Component {
                   <h1 className="h2" style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)", color: "#475569" }}>{v.emptyMsg}</h1>
                 </section>
               ) : (<>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div className="sd-head" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <__Link href="/suppliers" className="ib" aria-label={v.t?.back}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="m15 18-6-6 6-6" />
                   </svg>
                 </__Link>
-                <span style={{ width: "52px", height: "52px", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e6eaf0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: "0" }}>
+                <span className="sd-hicon" style={{ width: "52px", height: "52px", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e6eaf0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: "0" }}>
                   <svg width="40" height="40" viewBox="0 0 48 48" aria-hidden="true">
                     <path d="M5 11H27A2 2 0 0 1 29 13V30A2 2 0 0 1 27 32H5A2 2 0 0 1 3 30V13A2 2 0 0 1 5 11Z" fill="#0ea5e9" />
                     <path d="M8.6 16H16.4A1.1 1.1 0 0 1 17.5 17.1V17.099999999999998A1.1 1.1 0 0 1 16.4 18.2H8.6A1.1 1.1 0 0 1 7.5 17.099999999999998V17.1A1.1 1.1 0 0 1 8.6 16Z" fill="#7dd3fc" />
@@ -339,11 +364,11 @@ export default class SupplierDetailScreen extends Component {
                 <__Link href="/new-po" className="btn line"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M2 3h3l2.7 12.4a2 2 0 0 0 2 1.6h8.5a2 2 0 0 0 2-1.5L22 8H6M9 21h.01M18 21h.01" />
 </svg>{v.t?.newBuy}</__Link>
-                <button type="button" className="btn solid" onClick={v.openPay}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <button type="button" className="btn solid sd-pay" onClick={v.openPay}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M7 7h11l-3-3M17 17H6l3 3" />
 </svg>{v.t?.pay}</button>
               </div>
-              <section className="card" style={{ padding: "18px 20px", display: "grid", gridTemplateColumns: "1.15fr 1.2fr 1fr", gap: "20px", alignItems: "start" }}>
+              <section className="card sd-contact" style={{ padding: "18px 20px", display: "grid", gridTemplateColumns: "1.15fr 1.2fr 1fr", gap: "20px", alignItems: "start" }}>
                 <div style={{ display: "flex", gap: "14px", alignItems: "center" }}>
                   <span style={{ position: "relative", width: "60px", height: "60px", borderRadius: "var(--radius-xl)", background: "#e7f8f1", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: "0" }}>
                     <svg width="44" height="44" viewBox="0 0 48 48" aria-hidden="true">
@@ -773,7 +798,7 @@ export default class SupplierDetailScreen extends Component {
                     </button>
                   </div>
                   <div style={{ padding: "18px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                    <div style={{ display: "flex", gap: "12px", alignItems: "flex-end" }}>
+                    <div className="sd-amt" style={{ display: "flex", gap: "12px", alignItems: "flex-end" }}>
                       <label className="fld" style={{ flexGrow: "1" }}>
                         <span className="lbl">{v.t?.amount}</span>
                         <input className="inp num" inputMode="numeric" value={v.pm?.amtTxt} onChange={v.pm?.typeAmt} aria-label={v.t?.amount} style={{ height: "58px", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)" }} />
@@ -785,7 +810,7 @@ export default class SupplierDetailScreen extends Component {
                     </div>
                     <div className="fld">
                       <span className="lbl">{v.t?.method}</span>
-                      <div style={{ display: "flex", gap: "8px" }}>
+                      <div className="sd-methods" style={{ display: "flex", gap: "8px" }}>
                         {__list(v.pm?.methods).map((o, $index) => (<React.Fragment key={$index}>
                             <button type="button" className={o?.cls} aria-pressed={o?.on} onClick={o?.pick} style={{ flex: "1", justifyContent: "center", height: "52px" }}>{o?.isCash ? (<>
   <svg width="22" height="22" viewBox="0 0 48 48" aria-hidden="true">

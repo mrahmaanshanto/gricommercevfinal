@@ -751,7 +751,7 @@ export default function Pos() {
               <button type="button" className="pos-topbtn" title="Exchange or return: opens Return & exchange (Alt E)" onClick={() => openReturns()}><Icon name="rotate-ccw" width="16" height="16" aria-hidden="true" /><span>Exchange / return</span></button>
               <button type="button" className="pos-topbtn" title="Cash drawer: pickup, cash in, paid out (F10)" onClick={() => openCash()}><Icon name="banknote" width="16" height="16" aria-hidden="true" /><span>Cash pickup</span>{overLimit ? <i className="pos-dot" aria-label="Drawer is over the pickup limit" role="img" /> : null}</button>
               <span className="pos-vr" />
-              <button type="button" className="pos-ic" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (F1)" onClick={() => setPanel('keys')}><Icon name="keyboard" width="20" height="20" /></button>
+              <button type="button" className="pos-ic pos-keysbtn" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (F1)" onClick={() => setPanel('keys')}><Icon name="keyboard" width="20" height="20" /></button>
               <Link href="/pos-manage" className="pos-ic" aria-label="POS management: counters, shifts, cash pickups and settings" title="POS management"><Icon name="settings" width="20" height="20" /></Link>
               <span className="pos-lang" role="group" aria-label="Language">
                 <button type="button" aria-pressed={locale === 'en'} className={locale === 'en' ? 'is-on' : ''} onClick={() => switchLocale('en')}>EN</button>

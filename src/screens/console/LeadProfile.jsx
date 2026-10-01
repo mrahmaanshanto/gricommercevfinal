@@ -578,7 +578,7 @@ export default class LeadProfileScreen extends Component {
               </div>
               <div className="panel" style={{ display: "flex", flexDirection: "column", minHeight: "0", overflow: "hidden" }}>
                 <div style={{ padding: "16px 18px 12px", display: "flex", flexDirection: "column", gap: "12px", borderBottom: "1px solid var(--line)" }}>
-                  <div style={{ display: "flex", gap: "3px" }}>
+                  <div className="cs-strip cs-stages" style={{ display: "flex", gap: "3px" }}>
                     <div style={{ flex: "1", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", height: "40px", background: "#003087", color: "#fff", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", clipPath: "polygon(0 0,calc(100% - 14px) 0,100% 50%,calc(100% - 14px) 100%,0 100%)" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M20 6 9 17l-5-5" />
 </svg>New</div>
@@ -612,14 +612,14 @@ export default class LeadProfileScreen extends Component {
                     <button className="btn btnp" type="button" style={{ marginLeft: "auto", minHeight: "36px", padding: "0 14px", fontSize: "var(--text-xs-plus)" }}>Mark as won</button>
                   </div>
                 </div>
-                <div role="tablist" style={{ display: "flex", gap: "20px", padding: "0 18px", borderBottom: "1px solid var(--line)" }}>
+                <div role="tablist" className="cs-strip" style={{ display: "flex", gap: "20px", padding: "0 18px", borderBottom: "1px solid var(--line)" }}>
                   <button className="tab on" type="button" role="tab" aria-selected="true">Timeline</button>
                   <button className="tab" type="button" role="tab">Trial activity</button>
                   <button className="tab" type="button" role="tab">Tickets <span className="cnt">1</span></button>
                   <button className="tab" type="button" role="tab">Files</button>
                 </div>
                 <div style={{ padding: "16px 18px 0", overflow: "hidden" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "36px minmax(0,1fr)", gap: "12px" }}>
+                  <div className="cs-keep" style={{ display: "grid", gridTemplateColumns: "36px minmax(0,1fr)", gap: "12px" }}>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "32px", height: "32px", borderRadius: "var(--radius-lg)", background: "var(--fill-success)", color: "#fff" }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -638,7 +638,7 @@ export default class LeadProfileScreen extends Component {
                       <div style={{ marginTop: "2px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "var(--body)" }}>First real order: #SB-1001, ৳1,450, Pathao booked.</div>
                     </div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "36px minmax(0,1fr)", gap: "12px" }}>
+                  <div className="cs-keep" style={{ display: "grid", gridTemplateColumns: "36px minmax(0,1fr)", gap: "12px" }}>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "32px", height: "32px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff" }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -655,7 +655,7 @@ export default class LeadProfileScreen extends Component {
                       <div style={{ marginTop: "2px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "var(--body)" }}>Walked through courier setup. Rahima wants bKash on checkout before running ads. Promised a guide.</div>
                     </div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "36px minmax(0,1fr)", gap: "12px" }}>
+                  <div className="cs-keep" style={{ display: "grid", gridTemplateColumns: "36px minmax(0,1fr)", gap: "12px" }}>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "32px", height: "32px", borderRadius: "var(--radius-lg)", background: "var(--accent-fill)", color: "#fff" }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -672,7 +672,7 @@ export default class LeadProfileScreen extends Component {
                       <div style={{ marginTop: "2px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "var(--body)" }}>bKash merchant setup guide (Bangla PDF) and a link to book a 15-minute call.</div>
                     </div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "36px minmax(0,1fr)", gap: "12px" }}>
+                  <div className="cs-keep" style={{ display: "grid", gridTemplateColumns: "36px minmax(0,1fr)", gap: "12px" }}>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "32px", height: "32px", borderRadius: "var(--radius-lg)", background: "var(--fill-success)", color: "#fff" }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -691,7 +691,7 @@ export default class LeadProfileScreen extends Component {
                       <div style={{ marginTop: "2px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "var(--body)" }}>Added 34 products by CSV · connected Pathao.</div>
                     </div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "36px minmax(0,1fr)", gap: "12px" }}>
+                  <div className="cs-keep" style={{ display: "grid", gridTemplateColumns: "36px minmax(0,1fr)", gap: "12px" }}>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "32px", height: "32px", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff" }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -709,7 +709,7 @@ export default class LeadProfileScreen extends Component {
                       <div style={{ marginTop: "2px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "var(--body)" }}>Online demo, 35 min. Interested in landing pages and COD risk scores. Budget up to ৳2,500 a month.</div>
                     </div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "36px minmax(0,1fr)", gap: "12px" }}>
+                  <div className="cs-keep" style={{ display: "grid", gridTemplateColumns: "36px minmax(0,1fr)", gap: "12px" }}>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "32px", height: "32px", borderRadius: "var(--radius-lg)", background: "#94a3b8", color: "#fff" }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

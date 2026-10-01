@@ -726,7 +726,7 @@ export default class MerchantsScreen extends Component {
                   <button className="btn btng" type="button" style={{ minHeight: "36px", padding: "0 12px", fontSize: "var(--text-xs-plus)" }}>Save this view</button>
                 </div>
               </div>
-              <div className="panel" style={{ overflow: "hidden" }}>
+              <div className="panel" style={{ overflow: "hidden", "--cs-row-min": "1180px" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "minmax(0,2fr) 150px minmax(0,1.3fr) 76px 130px minmax(0,1fr) 110px 110px 34px", gap: "12px", padding: "10px 18px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
                   <span>Store</span>
                   <span>Plan</span>

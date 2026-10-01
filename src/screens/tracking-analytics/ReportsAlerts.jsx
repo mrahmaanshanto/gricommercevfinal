@@ -7,6 +7,7 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+import { TA_PHONE_CSS } from './taPhone';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -185,7 +186,22 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .tb tr:last-child td{border-bottom:0}
 .tb .r{text-align:right}
 @media (prefers-reduced-motion:reduce){.st>*,.gr,.draw,.fadein{animation:none}}
-`;
+@media (max-width:640px){
+  /* alert rule: title + badge, toggle on the right; the sparkline gets the full width below */
+  .ra-rule{display:grid!important;grid-template-columns:4px minmax(0,1fr) auto;column-gap:10px!important;row-gap:8px;align-items:start!important}
+  .ra-rule>span:first-child{grid-row:1 / span 2;grid-column:1;align-self:stretch}
+  .ra-rule>div:nth-child(2){grid-column:2;grid-row:1}
+  .ra-rule>div:nth-child(2)>div:first-child{flex-wrap:wrap;row-gap:4px}
+  .ra-rule>div:nth-child(3){grid-column:2 / -1;grid-row:2;width:100%!important}
+  .ra-rule>div:nth-child(3)>svg{width:100%}
+  .ra-rule>button{grid-column:3;grid-row:1}
+  .ra-to{flex-wrap:wrap;row-gap:8px!important}
+  .ra-to>select{width:100%!important}
+  .ra-build{grid-template-columns:minmax(0,1fr)!important}
+  .ra-acts{flex-wrap:wrap}
+  .ra-acts>.btn{flex:1 1 auto}
+}
+` + TA_PHONE_CSS;
 
 // ---- markup ----
 
@@ -238,7 +254,7 @@ export default class ReportsAlertsScreen extends Component {
                   <span>{v.msg}</span>
                 </div>
               </>) : null}
-              <div className="st" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 1fr)", gap: "18px", alignItems: "start" }}>
+              <div className="st gc-split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 1fr)", gap: "18px", alignItems: "start" }}>
                 <section className="tc " style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
@@ -252,7 +268,7 @@ export default class ReportsAlertsScreen extends Component {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                     {__list(v.rules).map((ru, $index) => (<React.Fragment key={$index}>
-                        <div className="row" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", borderRadius: "var(--radius-xl)", border: "1px solid #eef1f6" }}>
+                        <div className="row ra-rule" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", borderRadius: "var(--radius-xl)", border: "1px solid #eef1f6" }}>
                           <span style={__sx(`width: 4px; align-self: stretch; border-radius: var(--radius-sm); background: ${ru?.sev ?? ""};`)} />
                           <div style={{ flexGrow: "1", minWidth: "0" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -271,7 +287,7 @@ export default class ReportsAlertsScreen extends Component {
                         </div>
                       </React.Fragment>))}
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "12px 0", borderBottom: "1px solid #eef2f6" }}>
+                  <div className="ra-to" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "12px 0", borderBottom: "1px solid #eef2f6" }}>
                     <div style={{ flexGrow: "1" }}>
                       <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Send alerts to</div>
                       <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Who hears about it</div>
@@ -355,7 +371,7 @@ export default class ReportsAlertsScreen extends Component {
                       </React.Fragment>))}
                   </div>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+                <div className="ra-build" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
                   <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                     <span className="lbl">Split by</span>
                     <select className="inp" value={v.dim} onChange={v.setDim} aria-label="Split by">
@@ -419,7 +435,7 @@ export default class ReportsAlertsScreen extends Component {
                     </table>
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+                <div className="ra-acts" style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
                   <button type="button" className="btn line" onClick={v.xls}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />

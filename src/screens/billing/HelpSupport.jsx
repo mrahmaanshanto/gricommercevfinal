@@ -215,6 +215,17 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .lrow:hover{background:#f7f9fd}.lrow.on{background:rgba(0,48,135,.05)}
 .lrow:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:-3px}
 .pgc>*{flex-shrink:0}.tb th{white-space:normal}.stp2{flex-shrink:0}.pgc>.fill{flex-shrink:1;min-height:0}
+/* phones: hero figures stay on one line; the open ticket's ID never breaks and "Mark solved" drops below the title */
+@media (max-width:640px){
+.hero{padding:var(--space-5) var(--space-4)}
+.hero .ht{padding:var(--space-3)}
+.hero .ht .tn{font-size:var(--text-lg)!important;line-height:26px!important;white-space:nowrap}
+.hs-thead{flex-wrap:wrap;padding:var(--space-4)!important}
+.hs-thead>div{flex:1 1 100%}
+.hs-tmeta{flex-wrap:wrap}
+.hs-tmeta>.mono,.hs-thead>.abtn{white-space:nowrap}
+.hs-thead>.abtn{height:36px}
+}
 `;
 
 // ---- markup ----
@@ -312,9 +323,9 @@ export default class HelpSupportScreen extends Component {
                     </React.Fragment>))}
                 </section>
                 <section className="tc" style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "18px 20px", borderBottom: "1px solid #eef1f6" }}>
+                  <div className="hs-thead" style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "18px 20px", borderBottom: "1px solid #eef1f6" }}>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <div className="hs-tmeta" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                         <span className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{v.cur?.id}</span>
                         <span className="badge" style={__sx(`background: ${v.cur?.bb ?? ""}; color: ${v.cur?.bf ?? ""};`)}>{v.cur?.st}</span>
                         <span className="pill">{v.cur?.c}</span>

@@ -114,7 +114,7 @@ return {
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `/* phones: rows of label + buttons wrap instead of running out of the card */
-@media (max-width:640px){.gc-shell__content [style*="display:flex"]:not([role="tablist"]),.gc-shell__content [style*="display: flex"]:not([role="tablist"]){flex-wrap:wrap}.gc-shell__content select,.gc-shell__content input{min-width:0;max-width:100%}.gc-shell__content .mono,.gc-shell__content [class*="badge"]{overflow-wrap:anywhere}}
+@media (max-width:640px){.gc-shell__content [style*="display:flex"]:not([role="tablist"]):not([style*="column"]),.gc-shell__content [style*="display: flex"]:not([role="tablist"]):not([style*="column"]){flex-wrap:wrap}.gc-shell__content select,.gc-shell__content input{min-width:0;max-width:100%}.gc-shell__content .mono,.gc-shell__content [class*="badge"]{overflow-wrap:anywhere}}
 
 *{box-sizing:border-box}
 body{margin:0;background:#e9eef5;color:#0f172a;-webkit-font-smoothing:antialiased;font-family:var(--font-bn)}
@@ -208,6 +208,22 @@ body{font-family:var(--font-sans)}
 .gfab:hover{background:#002a77;color:#fff}
 .gfab:focus-visible{outline:3px solid rgba(0,48,135,.45);outline-offset:3px}
 .th,.td{white-space:normal}
+
+/* tablets and phones: the set-up card stacks above the preview and takes the full width */
+@media (max-width:1023px){
+  .cc-layout{flex-direction:column!important;align-items:stretch!important}
+  .cc-setup{width:100%!important;max-width:100%;min-width:0}
+}
+@media (max-width:640px){
+  .cc-hicon{display:none!important}
+  .cc-setup{padding:16px!important}
+  .seg>button{flex-wrap:nowrap!important}
+  .gc-shell__content [style*="display"]:has(> .sw){flex-wrap:nowrap!important}
+  .gc-shell__content [style*="display"]:has(> .sw)>div{flex:1 1 0!important;min-width:0}
+  .cc-share{padding:16px!important;gap:14px!important}
+  .cc-share>div{flex:1 1 100%!important}
+  .cc-stats{width:auto!important;flex-direction:row!important;gap:24px!important;padding:12px 0 0!important;border-left:0!important;border-top:1px solid var(--border-subtle)}
+}
 `;
 
 // ---- markup ----
@@ -224,7 +240,7 @@ export default class CustomerCatalogueScreen extends Component {
             <__Topbar crumb="Products" page="Customer catalogue" placeholder="Search products, customers or memo no." />
             <div className="gc-shell__content" style={{ flexGrow: "1", minHeight: "0", padding: "22px 28px 28px", display: "flex", flexDirection: "column", gap: "18px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                <span style={{ width: "52px", height: "52px", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e6eaf0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: "0" }}>
+                <span className="cc-hicon" style={{ width: "52px", height: "52px", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e6eaf0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: "0" }}>
                   <svg width="40" height="40" viewBox="0 0 48 48" aria-hidden="true">
                     <path d="M6 8H22A2 2 0 0 1 24 10V39A2 2 0 0 1 22 41H6A2 2 0 0 1 4 39V10A2 2 0 0 1 6 8Z" fill="#e0f2fe" />
                     <path d="M26 8H42A2 2 0 0 1 44 10V39A2 2 0 0 1 42 41H26A2 2 0 0 1 24 39V10A2 2 0 0 1 26 8Z" fill="#7dd3fc" />
@@ -250,8 +266,8 @@ export default class CustomerCatalogueScreen extends Component {
   <path d="M20 6 9 17l-5-5" />
 </svg>{v.t?.save}</button>
               </div>
-              <div style={{ display: "flex", gap: "18px", alignItems: "flex-start" }}>
-                <section className="card" style={{ width: "420px", flexShrink: "0", padding: "18px", display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div className="cc-layout" style={{ display: "flex", gap: "18px", alignItems: "flex-start" }}>
+                <section className="card cc-setup" style={{ width: "420px", flexShrink: "0", padding: "18px", display: "flex", flexDirection: "column", gap: "16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true">
                       <path d="M12 7H36A7 7 0 0 1 43 14V34A7 7 0 0 1 36 41H12A7 7 0 0 1 5 34V14A7 7 0 0 1 12 7Z" fill="#e0f2fe" />
@@ -351,7 +367,7 @@ export default class CustomerCatalogueScreen extends Component {
                   </label>
                 </section>
                 <div style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "16px" }}>
-                  <section className="card" style={{ padding: "16px 18px", display: "flex", gap: "18px", alignItems: "center" }}>
+                  <section className="card cc-share" style={{ padding: "16px 18px", display: "flex", gap: "18px", alignItems: "center" }}>
                     <div style={{ flexShrink: "0", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
                       <div role="img" aria-label="QR" style={{ padding: "8px", borderRadius: "var(--radius-lg)", background: "#fff", border: "1px solid #e2e8f0", display: "grid", gridTemplateColumns: "repeat(21, 5px)", gridAutoRows: "5px" }}>
                         {__list(v.qr).map((qc, $index) => (<React.Fragment key={$index}>
@@ -387,7 +403,7 @@ export default class CustomerCatalogueScreen extends Component {
 </svg>{v.t?.pdf}</button>
                       </div>
                     </div>
-                    <div style={{ width: "130px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "10px", paddingLeft: "16px", borderLeft: "1px solid #eef2f6" }}>
+                    <div className="cc-stats" style={{ width: "130px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "10px", paddingLeft: "16px", borderLeft: "1px solid #eef2f6" }}>
                       <div>
                         <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "var(--text-xs-plus)", color: "#475569" }}><svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
   <path d="M8.5 16a5.5 5.5 0 1 0 11.0 0a5.5 5.5 0 1 0 -11.0 0Z" fill="#7dd3fc" />

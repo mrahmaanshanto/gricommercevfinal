@@ -48,7 +48,14 @@ class Component extends __SettingsLogic {
 const CSS = `.dc-h512:hover{background:#e9eef5 !important;color:#1e293b !important}
 .dc-h513:hover{background:#e9eef5 !important;color:#1e293b !important}
 .dc-h514:hover{background:#f8fafc !important;color:#1e293b !important}
-.dc-h515:hover{background:#002a77 !important}`;
+.dc-h515:hover{background:#002a77 !important}
+/* phone: the warning button sits under its text; driver cards go to one column on a narrow phone */
+@media (max-width:640px){
+  .set-note>button{margin-left:28px}
+}
+@media (max-width:420px){
+  .set-shell .gc-cols-4.set-picks{grid-template-columns:minmax(0,1fr)!important}
+}`;
 
 // ---- markup ----
 
@@ -79,7 +86,7 @@ export default class SetStorageScreen extends Component {
                       </span>
                     </header>
                     <section id="s0" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Storage driver</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Where product images, invoices and backups are written. The fields below change with this choice.</span>
@@ -88,7 +95,7 @@ export default class SetStorageScreen extends Component {
                           <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(0,156,222,.14)", color: "var(--accent-text)" }}>{v.f.get("driver", "S3-compatible")}</span>
                         </span>
                       </div>
-                      <div className="gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "12px", padding: "18px" }}>
+                      <div className="gc-cols-4 set-picks" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "12px", padding: "18px" }}>
                         <__Pick f={v.f} n="driver" val="Local disk" style={{ display: "flex", flexDirection: "column", gap: "7px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "12px 13px" }}>
                           <span style={{ display: "flex", alignItems: "center", gap: "9px" }}>
                             <span className="set-pick__dot" aria-hidden="true" />
@@ -104,9 +111,9 @@ export default class SetStorageScreen extends Component {
                           <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>AWS-hosted buckets. Region and bucket only — no endpoint needed.</span>
                         </__Pick>
                         <__Pick f={v.f} n="driver" val="S3-compatible" style={{ display: "flex", flexDirection: "column", gap: "7px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "12px 13px" }}>
-                          <span style={{ display: "flex", alignItems: "center", gap: "9px" }}>
+                          <span className="set-flow" style={{ display: "flex", alignItems: "center", gap: "9px" }}>
                             <span className="set-pick__dot" aria-hidden="true" />
-                            <span style={{ flex: "1", minWidth: "0", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>S3-compatible</span>
+                            <span className="set-grow" style={{ flex: "1", minWidth: "0", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>S3-compatible</span>
                             <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(0,156,222,.14)", color: "var(--accent-text)" }}>Active</span>
                           </span>
                           <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>DigitalOcean Spaces, Wasabi, MinIO, Backblaze B2. Needs a custom endpoint.</span>
@@ -119,9 +126,9 @@ export default class SetStorageScreen extends Component {
                           <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Zero egress fees. Uses an account-scoped endpoint and a token pair.</span>
                         </__Pick>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "11px", margin: "0 18px 18px", border: "1px solid rgba(255,152,0,.4)", borderRadius: "var(--radius-lg)", background: "rgba(255,152,0,.08)", padding: "11px 13px" }}>
+                      <div className="set-flow set-note" style={{ display: "flex", alignItems: "center", gap: "11px", margin: "0 18px 18px", border: "1px solid rgba(255,152,0,.4)", borderRadius: "var(--radius-lg)", background: "rgba(255,152,0,.08)", padding: "11px 13px" }}>
                         <__Icon name="shield-alert" strokeWidth="1.75" width="17" height="17" style={{ flex: "none", color: "var(--text-warning)" }} />
-                        <span style={{ flex: "1", minWidth: "0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#7a4a00" }}>Changing the driver asks for confirmation. Existing files are <b style={{ fontWeight: "var(--weight-medium)" }}>not</b> migrated — 48,210 images would need to be copied first, and the storefront serves broken images until they are.</span>
+                        <span className="set-grow" style={{ flex: "1", minWidth: "0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#7a4a00" }}>Changing the driver asks for confirmation. Existing files are <b style={{ fontWeight: "var(--weight-medium)" }}>not</b> migrated — 48,210 images would need to be copied first, and the storefront serves broken images until they are.</span>
                         <button type="button" onClick={v.f.say("“Plan a migration” is not available in the demo yet.")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "1px solid #cbd5e1", background: "#fff", color: "#1e293b" }}><__Icon name="arrow-right-left" strokeWidth="1.75" width="15" height="15" />Plan a migration</button>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "0 18px 18px", border: "1px dashed #cbd5e1", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "10px 13px" }}>
@@ -130,7 +137,7 @@ export default class SetStorageScreen extends Component {
                       </div>
                     </section>
                     <section id="s1" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>S3-compatible credentials</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>DigitalOcean → Spaces → <b style={{ fontWeight: "var(--weight-medium)", color: "#475569" }}>API → Spaces keys</b>. The key pair is shown once at creation.</span>
@@ -224,7 +231,7 @@ export default class SetStorageScreen extends Component {
                         </span>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: "11px", borderTop: "1px solid #f1f5f9", background: "#f8fafc", padding: "14px 18px" }}>
-                        <span style={{ display: "flex", alignItems: "center", gap: "11px" }}>
+                        <span className="set-flow" style={{ display: "flex", alignItems: "center", gap: "11px" }}>
                           <button type="button" onClick={v.test} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "1px solid #cbd5e1", background: "#fff", color: "#1e293b" }}><__Icon name="plug-zap" strokeWidth="1.75" width="15" height="15" />Test connection</button>
                           {v.testOk ? (<span role="status" style={{ display: "inline-flex", alignItems: "center", gap: "7px", borderRadius: "var(--radius-lg)", background: "rgba(16,185,129,.12)", padding: "7px 11px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-success)" }}><__Icon name="circle-check" strokeWidth="1.75" width="15" height="15" aria-hidden="true" />Connected in 412 ms · bucket found</span>) : (<span style={{ display: "inline-flex", alignItems: "center", gap: "7px", borderRadius: "var(--radius-lg)", background: "rgba(255,87,36,.1)", padding: "7px 11px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-danger)" }}><__Icon name="circle-x" strokeWidth="1.75" width="15" height="15" />Failed after 1.8 s · HTTP 403 SignatureDoesNotMatch</span>)}
                           <span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{v.testOk ? "Tested just now" : "Last successful test 17 Aug 2026, 10:41 AM"}</span>

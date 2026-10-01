@@ -104,10 +104,10 @@ class Component extends DCLogic {
       today: function () { self.setState({ ym: [TODAY[0], TODAY[1]], sel: TODAY.slice() }); },
       filters: [{ k: 'all', l: 'All', s: 'ALL', c: '#64748b' }].concat(PLAT.map(function (p) { return { k: p[0], l: p[1].replace(' broadcast', '').replace(' page', '').replace('Facebook Page', 'Facebook'), s: p[2], c: p[3] }; })).map(function (x) { var o = x.k === f; return { l: x.l, ch: CH[x.k], on: o, cls: o ? 'chip on' : 'chip', pick: function () { self.setState({ f: x.k }); } }; }),
       legend: ['sched', 'remind', 'done', 'draft'].map(function (k) { return { l: ST[k][0], c: ST[k][2], i: ST_ICON[k] }; }),
-      wd: WD.map(function (w) { return { l: w, off: w === 'Fri', c: w === 'Fri' ? 'var(--text-warning)' : 'var(--text-muted)' }; }),
+      wd: WD.map(function (w) { return { l: w, s: w.charAt(0), off: w === 'Fri', c: w === 'Fri' ? 'var(--text-warning)' : 'var(--text-muted)' }; }),
       cells: cells.map(function (c, idx) { var ev = on(c[0], c[1], c[2]); var t = isT(c), sl = isS(c); var fri = idx % 7 === 6;
         return { n: String(c[2]), op: c[3] ? .4 : 1, nb: t ? '#003087' : 'transparent', nc: t ? '#fff' : '#0f172a', bg: sl ? '#f3f6fc' : fri ? '#fffbf5' : '#fff', cls: sl ? 'dc on' : 'dc',
-          aria: c[2] + ' ' + MON[c[1]] + (fri ? ', weekend' : '') + ', ' + ev.length + (ev.length === 1 ? ' post' : ' posts') + (sl ? ', selected' : ''), sel: sl, ev: ev.slice(0, 2).map(card), more: ev.length > 2, moreL: '+' + (ev.length - 2) + ' more', moreAria: 'Show all ' + ev.length + ' posts on ' + c[2] + ' ' + MON[c[1]],
+          aria: c[2] + ' ' + MON[c[1]] + (fri ? ', weekend' : '') + ', ' + ev.length + (ev.length === 1 ? ' post' : ' posts') + (sl ? ', selected' : ''), sel: sl, ev: ev.slice(0, 2).map(card), dots: ev.slice(0, 3).map(function (p) { return ST[p[7]][2]; }), dotMore: ev.length > 3 ? '+' + (ev.length - 3) : '', more: ev.length > 2, moreL: '+' + (ev.length - 2) + ' more', moreAria: 'Show all ' + ev.length + ' posts on ' + c[2] + ' ' + MON[c[1]],
           pick: function () { self.setState({ sel: [c[0], c[1], c[2]] }); } }; }),
       wkHead: week.map(function (w) { var t = isT(w); return { d: WD[week.indexOf(w)], n: String(w[2]), c: t ? '#003087' : '#0f172a' }; }),
       wkRows: [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22].map(function (h) { return { h: h12(h), c: week.map(function (w, i) { return { bg: i === 6 ? '#fffbf5' : '#fff', ev: on(w[0], w[1], w[2]).filter(function (p) { return p[4] === h; }).map(function (p) { return { t: p[5], time: h12(p[4]), n: p[6].length, full: card(p).full, pick: card(p).pick, sc: ST[p[7]][3], bg: p[7] === 'done' ? '#ecfdf5' : p[7] === 'remind' ? '#eef2ff' : p[7] === 'draft' ? '#f1f5f9' : '#eaf5fd' }; }) }; }) }; }),
@@ -275,6 +275,30 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .wcell{position:relative;height:44px;border-right:1px solid #f1f4f8;border-bottom:1px solid #f1f4f8}
 .wev{position:absolute;left:4px;right:4px;top:3px;z-index:1;padding:5px 7px;border:0;border-radius:var(--radius-lg);border-left:3px solid;background:#eef3ff;font:inherit;font-size:var(--text-xs);line-height:17px;color:#0f172a;overflow:hidden;text-align:left;cursor:pointer}
 .hm{width:100%;aspect-ratio:1.6;border-radius:var(--radius-sm)}
+.cal-chips{display:contents}
+.dc-dots,.wd-s{display:none}
+/* phones: title and arrows share a row; filters are one swipe row; the month grid shows a dot per post
+   (tap a day: its posts are listed under the calendar); single-letter weekdays; the week view scrolls sideways */
+@media (max-width:640px){
+  .cal-head{gap:8px!important}
+  .gc-shell__content .cal-head>.cal-title{flex:1 1 calc(100% - 96px)!important;order:-1}
+  .cal-head>.cal-arrows{align-self:flex-start;margin-left:auto}
+  .cal-filters{row-gap:8px!important}
+  .cal-chips{display:flex;gap:6px;flex:1 1 100%;min-width:0;overflow-x:auto;scrollbar-width:none;margin-inline:-14px;padding:0 14px 2px;scroll-padding-inline:14px}
+  .cal-chips::-webkit-scrollbar{display:none}
+  .cal-chips>.chip{flex:none}
+  .cal-filters>.cal-gap{display:none}
+  .wd{position:relative;padding:8px 0!important;text-align:center}
+  .wd-l{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .wd-s{display:inline}
+  .dc{min-height:56px;padding:4px 2px 6px;align-items:center;gap:4px}
+  .dc>.pc,.dc>.more{display:none}
+  .dc-dots{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:3px;max-width:100%;font-size:var(--text-2xs);line-height:1;color:var(--text-muted)}
+  .dc-dots i{width:6px;height:6px;border-radius:var(--radius-full)}
+  .dc-dots b{font-weight:var(--weight-medium)}
+  .cal-box{overflow-x:auto!important}
+  .cal-box>.wk{min-width:600px}
+}
 `;
 
 // ---- markup ----
@@ -290,8 +314,8 @@ export default class CalendarScreen extends Component {
           <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
             <__Topbar crumb="Communication" page="Post calendar" placeholder="Search" />
             <div className="pgc gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "22px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <div className="cal-head" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div className="cal-arrows" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                   <button type="button" className="ib" aria-label="Previous month" onClick={v.prev}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="m15 18-6-6 6-6" />
@@ -303,7 +327,7 @@ export default class CalendarScreen extends Component {
                     </svg>
                   </button>
                 </div>
-                <div style={{ flexGrow: "1" }}>
+                <div className="cal-title" style={{ flexGrow: "1" }}>
                   <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "var(--tracking-tight)" }}>{v.title}</h1>
                   <p className="sub">{v.summary}</p>
                 </div>
@@ -325,26 +349,29 @@ export default class CalendarScreen extends Component {
                   <span>{v.msg}</span>
                 </div>
               </>) : null}
-              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px" }}>
+              <div className="cal-filters" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px" }}>
+                <div className="cal-chips">
                 {__list(v.filters).map((f, $index) => (<React.Fragment key={$index}>
                     <button type="button" className={f?.cls} aria-pressed={f?.on} onClick={f?.pick} style={{ height: "32px", fontSize: "var(--text-xs)", padding: "0 10px 0 4px" }}>{f?.ch ? <__ChannelIcon channel={f.ch} size={24} label="" /> : <span className="pd" aria-hidden="true"><__Icon name="layout-grid" width="14" height="14" /></span>}{f?.l}</button>
                   </React.Fragment>))}
-                <span style={{ flexGrow: "1" }} />
+                </div>
+                <span className="cal-gap" style={{ flexGrow: "1" }} />
                 {__list(v.legend).map((g, $index) => (<React.Fragment key={$index}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs)", color: "var(--text-body)" }}><__Icon name={g?.i} width="14" height="14" aria-hidden="true" style={{ color: g?.c }} />{g?.l}</span>
                   </React.Fragment>))}
               </div>
-              <section className="tc" style={{ overflow: "hidden" }}>
+              <section className="tc cal-box" style={{ overflow: "hidden" }}>
                 {v.isMonth ? (<>
                   <div className="cal" style={{ background: "#fbfcfe", borderBottom: "1px solid #eef1f6" }}>
                     {__list(v.wd).map((w, $index) => (<React.Fragment key={$index}>
-                        <div style={__sx(`padding: 10px; font-size: var(--text-xs); font-weight: var(--weight-medium); color: ${w?.c ?? ""};`)}>{w?.l}{w?.off ? <span style={{ fontWeight: "var(--weight-regular)" }}> · weekend</span> : null}</div>
+                        <div className="wd" style={__sx(`padding: 10px; font-size: var(--text-xs); font-weight: var(--weight-medium); color: ${w?.c ?? ""};`)}><span className="wd-l">{w?.l}{w?.off ? <span style={{ fontWeight: "var(--weight-regular)" }}> · weekend</span> : null}</span><span className="wd-s" aria-hidden="true">{w?.s}</span></div>
                       </React.Fragment>))}
                   </div>
                   <div className="cal">
                     {__list(v.cells).map((d, $index) => (<React.Fragment key={$index}>
                         <div className={d?.cls} style={__sx(`background: ${d?.bg ?? ""};`)}>
                           <button type="button" className="dn" onClick={d?.pick} aria-label={d?.aria} aria-pressed={d?.sel} style={__sx(`background: ${d?.nb ?? ""}; color: ${d?.nc ?? ""}; opacity: ${d?.op ?? ""};`)}>{d?.n}</button>
+                          {d?.dots?.length ? (<span className="dc-dots" aria-hidden="true">{d.dots.map((c, i) => <i key={i} style={{ background: c }} />)}{d.dotMore ? <b>{d.dotMore}</b> : null}</span>) : null}
                           {__list(d?.ev).map((e, $index) => (<React.Fragment key={$index}>
                               <button type="button" className="pc" onClick={e?.pick} aria-label={e?.full} title={e?.full} style={__sx(`border-left-color: ${e?.sc ?? ""};`)}>
                                 <span className="t">{e?.t}</span>

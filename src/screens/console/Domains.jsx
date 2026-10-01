@@ -541,7 +541,7 @@ export default class DomainsScreen extends Component {
                 </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 360px", gap: "14px", alignItems: "stretch" }}>
-                <div className="panel" style={{ overflow: "hidden" }}>
+                <div className="panel" style={{ overflow: "hidden", "--cs-row-min": "920px" }}>
                   <div className="th" style={{ display: "grid", gridTemplateColumns: "minmax(0,1.6fr) 70px 70px minmax(0,1.3fr) 150px 140px", gap: "12px", padding: "10px 18px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
                     <span>Domain and store</span>
                     <span>A</span>

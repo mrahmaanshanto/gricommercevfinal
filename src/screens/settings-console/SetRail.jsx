@@ -8,6 +8,7 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, list as __list } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
+import { SetFragment as __SetFragment } from '@/screens/settings-console/SetChrome';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -131,7 +132,7 @@ export default class SetRailScreen extends Component {
       <span className="set-nav__name">{it.name}</span>
       {it.badge ? <span className="set-nav__badge" aria-label={it.badge + ' to fix'}>{it.badge}</span> : null}
     </>);
-    return (
+    const screen = (
       <div className="dc-screen ds" data-screen="SetRail">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <nav aria-label="Settings sections" className={'set-nav' + (v.collapsed ? ' set-nav--collapsed' : '')}>
@@ -171,5 +172,6 @@ export default class SetRailScreen extends Component {
         </nav>
       </div>
     );
+    return this.props.embedded ? screen : <__SetFragment name="Settings section menu">{screen}</__SetFragment>;
   }
 }

@@ -84,6 +84,13 @@ const CSS = `
 .du-net-pos{color:var(--text-success)}
 .du-net-neg{color:var(--text-danger)}
 @media (max-width:760px){.du-ages{grid-template-columns:1fr 1fr}}
+@media (max-width:640px){
+  /* partner / wallet card: logos on their own row, then text · amount · chevron on one row */
+  .du-partner .du-logos{flex-basis:100%}
+  .du-partner .du-text{flex:1 1 0;min-width:0}
+  .du-partner .du-amt{white-space:nowrap}
+  .du-partner > svg{flex:none;margin-left:calc(var(--space-2) * -1)}
+}
 `;
 
 export default function Dues() {

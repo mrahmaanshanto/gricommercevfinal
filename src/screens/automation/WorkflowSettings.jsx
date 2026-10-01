@@ -185,6 +185,16 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .lrow:hover{background:#f7f9fd}.lrow.on{background:rgba(0,48,135,.05)}
 .lrow:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:-3px}
 .pgc>*{flex-shrink:0}.tb th{white-space:normal}.stp2{flex-shrink:0}.pgc>.fill{flex-shrink:1;min-height:0}
+/* phones: limits and failure settings stack (stepper and its unit stay on one line); a sender row puts its
+   label on top so the name or number and the badge keep the full width */
+@media (max-width:640px){
+  .sec{padding:18px 16px}
+  .ws-1col{grid-template-columns:minmax(0,1fr)}
+  .stp2+span{white-space:nowrap}
+  .ws-send{flex-wrap:wrap;row-gap:2px!important}
+  .ws-send>:first-child{flex:1 1 100%;width:auto!important}
+  .ws-send>:nth-child(2){flex:1 1 0;min-width:0;overflow-wrap:anywhere}
+}
 `;
 
 // ---- markup ----
@@ -265,7 +275,7 @@ export default class WorkflowSettingsScreen extends Component {
                       <h2 className="h2">Spending limits</h2>
                       <p className="sub">Charged from the wallet. Rules pause when a limit is reached and resume the next day.</p>
                     </div>
-                    <div className="row2">
+                    <div className="row2 ws-1col">
                       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                         <label className="lbl" htmlFor="cap">Daily limit for all automation</label>
                         <div style={{ position: "relative" }}>
@@ -355,7 +365,7 @@ export default class WorkflowSettingsScreen extends Component {
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", borderTop: "1px solid #f1f4f8" }}>
                       {__list(v.senders).map((k, $index) => (<React.Fragment key={$index}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 0", borderBottom: "1px solid #f1f4f8", fontSize: "var(--text-xs-plus)" }}>
+                          <div className="ws-send" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 0", borderBottom: "1px solid #f1f4f8", fontSize: "var(--text-xs-plus)" }}>
                             <span style={{ color: "var(--text-muted)", width: "110px", flexShrink: "0" }}>{k?.l}</span>
                             <span style={{ flexGrow: "1", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{k?.v}</span>
                             <span className="badge" style={{ background: "#e7f8f1", color: "#047857" }}>{k?.s}</span>
@@ -368,7 +378,7 @@ export default class WorkflowSettingsScreen extends Component {
                       <h2 className="h2">When something fails</h2>
                       <p className="sub">Failed steps retry before anyone is told.</p>
                     </div>
-                    <div className="row2">
+                    <div className="row2 ws-1col">
                       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                         <span className="lbl">Retries</span>
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>

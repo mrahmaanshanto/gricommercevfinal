@@ -122,7 +122,7 @@ const CSS = `
 .lb-heldtop .ac-mini{margin:0}
 .lb-heldtop .ac-mini tr:last-child td{border-bottom:0}
 @media (max-width:1024px){.lb-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.lb-acts{grid-column:1 / -1;justify-content:flex-start}}
-@media (max-width:640px){.lb-row{grid-template-columns:minmax(0,1fr)}.lb-line{grid-template-columns:auto minmax(0,1fr)}.lb-line .gc-input{grid-column:2}.lb-erow{grid-template-columns:1fr 1fr}.lb-ehead{display:none}}
+@media (max-width:640px){.lb-tools .gc-seg{flex-wrap:nowrap;width:100%;max-width:100%;overflow-x:auto;scrollbar-width:none}.lb-tools .gc-seg::-webkit-scrollbar{display:none}.lb-tools .gc-seg>.gc-seg__btn{flex:none}.lb-status{width:100%}.lb-row{grid-template-columns:minmax(0,1fr)}.lb-line{grid-template-columns:auto minmax(0,1fr)}.lb-line .gc-input{grid-column:2}.lb-erow{grid-template-columns:1fr 1fr}.lb-ehead{display:none}}
 `;
 
 export default function Liabilities() {

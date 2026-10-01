@@ -32,6 +32,11 @@ const CSS = `
 .rh-strong{font-weight:var(--weight-medium);color:var(--text-heading)}
 .rh-id{font-family:var(--font-data);font-size:var(--text-xs);color:var(--text-muted)}
 .rh-num{text-align:right;font-variant-numeric:tabular-nums}
+/* phones: the filter and the search each take the card's full width */
+@media (max-width:640px){
+  .rh-tools{flex:1 1 100%;flex-direction:column}
+  .rh-tools select,.rh-search{width:100%;flex:none}
+}
 `;
 
 export default function ReturnHistory() {

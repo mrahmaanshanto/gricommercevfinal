@@ -572,7 +572,7 @@ export default class LimitsScreen extends Component {
                     <span title="80 to 100%: 9" style={{ width: "15.5%", background: "#ff9800" }} />
                     <span title="At or over: 3" style={{ width: "5.2%", background: "#ff5724" }} />
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: "6px", marginTop: "10px" }}>
+                  <div className="cs-cols2" style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: "6px", marginTop: "10px" }}>
                     <div>
                       <div className="num" style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>22</div>
                       <div style={{ fontSize: "var(--text-xs)", color: "var(--body)" }}>Under 50%</div>
@@ -603,7 +603,7 @@ export default class LimitsScreen extends Component {
                     <span title="80 to 100%: 8" style={{ width: "13.8%", background: "#ff9800" }} />
                     <span title="At or over: 1" style={{ width: "1.7%", background: "#ff5724" }} />
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: "6px", marginTop: "10px" }}>
+                  <div className="cs-cols2" style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: "6px", marginTop: "10px" }}>
                     <div>
                       <div className="num" style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>35</div>
                       <div style={{ fontSize: "var(--text-xs)", color: "var(--body)" }}>Under 50%</div>
@@ -634,7 +634,7 @@ export default class LimitsScreen extends Component {
                     <span title="80 to 100%: 10" style={{ width: "17.2%", background: "#ff9800" }} />
                     <span title="At or over: 2" style={{ width: "3.4%", background: "#ff5724" }} />
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: "6px", marginTop: "10px" }}>
+                  <div className="cs-cols2" style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: "6px", marginTop: "10px" }}>
                     <div>
                       <div className="num" style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>28</div>
                       <div style={{ fontSize: "var(--text-xs)", color: "var(--body)" }}>Under 50%</div>
@@ -664,7 +664,7 @@ export default class LimitsScreen extends Component {
                     <span title="50 to 80%: 10" style={{ width: "16.1%", background: "#2e559d" }} />
                     <span title="80 to 100%: 4" style={{ width: "6.5%", background: "#ff9800" }} />
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: "6px", marginTop: "10px" }}>
+                  <div className="cs-cols2" style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: "6px", marginTop: "10px" }}>
                     <div>
                       <div className="num" style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>48</div>
                       <div style={{ fontSize: "var(--text-xs)", color: "var(--body)" }}>Under 50%</div>
@@ -695,7 +695,7 @@ export default class LimitsScreen extends Component {
                     <span title="80 to 100%: 6" style={{ width: "10.0%", background: "#ff9800" }} />
                     <span title="At or over: 2" style={{ width: "3.3%", background: "#ff5724" }} />
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: "6px", marginTop: "10px" }}>
+                  <div className="cs-cols2" style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: "6px", marginTop: "10px" }}>
                     <div>
                       <div className="num" style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>40</div>
                       <div style={{ fontSize: "var(--text-xs)", color: "var(--body)" }}>Under 50%</div>
@@ -726,7 +726,7 @@ export default class LimitsScreen extends Component {
                     <span title="80 to 100%: 3" style={{ width: "4.8%", background: "#ff9800" }} />
                     <span title="At or over: 1" style={{ width: "1.6%", background: "#ff5724" }} />
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: "6px", marginTop: "10px" }}>
+                  <div className="cs-cols2" style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: "6px", marginTop: "10px" }}>
                     <div>
                       <div className="num" style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>50</div>
                       <div style={{ fontSize: "var(--text-xs)", color: "var(--body)" }}>Under 50%</div>

@@ -677,7 +677,7 @@ export default class HealthRiskScreen extends Component {
                     </span>
                     <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: "16px" }}>
                       <div>
-                        <svg viewBox="0 0 360 150" width="100%" role="img" style={{ display: "block", overflow: "visible" }}>
+                        <svg className="cs-chart-s" viewBox="0 0 360 150" width="100%" role="img" style={{ "--cs-fs": "13px", display: "block", overflow: "visible" }}>
                           <text x="0" y="17" fontSize="11" fill="#475569" textAnchor="start" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">Activation</text>
                           <rect x="96" y="8" width="220" height="11" rx="5.5" fill="#eef2f7" />
                           <rect x="96" y="8" width="193.6" height="11" rx="5.5" fill="#003087" />
@@ -707,7 +707,7 @@ export default class HealthRiskScreen extends Component {
                         </svg>
                       </div>
                       <div>
-                        <svg viewBox="0 0 360 150" width="100%" role="img" style={{ display: "block", overflow: "visible" }}>
+                        <svg className="cs-chart-s" viewBox="0 0 360 150" width="100%" role="img" style={{ "--cs-fs": "13px", display: "block", overflow: "visible" }}>
                           <rect x="0" y="4" width="13" height="13" rx="3" fill="#003087" opacity="0.67" />
                           <rect x="0" y="20" width="13" height="13" rx="3" fill="#003087" opacity="0.72" />
                           <rect x="0" y="36" width="13" height="13" rx="3" fill="#003087" opacity="0.87" />

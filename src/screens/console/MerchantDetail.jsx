@@ -522,7 +522,7 @@ export default class MerchantDetailScreen extends Component {
                     <span className="pill p-grey">Account manager: Farhana Akter</span>
                   </div>
                 </div>
-                <div style={{ marginLeft: "auto", display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "560px" }}>
+                <div className="cs-actions" style={{ marginLeft: "auto", display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "560px" }}>
                   <a className="btn btng" href="https://dhakagadgethub.com.bd" target="_blank" rel="noopener" style={{ minHeight: "40px", fontSize: "var(--text-xs-plus)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
 </svg>Visit website</a>
@@ -541,7 +541,7 @@ export default class MerchantDetailScreen extends Component {
 </svg>Call owner</a>
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7,minmax(0,1fr))", marginTop: "14px", border: "1px solid var(--line)", borderRadius: "var(--radius-xl)", background: "var(--surface2)" }}>
+              <div className="cs-cols2" style={{ display: "grid", gridTemplateColumns: "repeat(7,minmax(0,1fr))", marginTop: "14px", border: "1px solid var(--line)", borderRadius: "var(--radius-xl)", background: "var(--surface2)" }}>
                 <div className="fact">
                   <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>Signed up</span>
                   <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>05 Aug 2025</span>
@@ -580,7 +580,7 @@ export default class MerchantDetailScreen extends Component {
               </div>
               <div style={{ height: "14px" }} />
             </div>
-            <div role="tablist" aria-label="Merchant sections" style={{ display: "flex", gap: "26px", padding: "0 24px", borderBottom: "1px solid var(--line)", background: "var(--surface)" }}>
+            <div role="tablist" aria-label="Merchant sections" className="cs-strip" style={{ display: "flex", gap: "26px", padding: "0 24px", borderBottom: "1px solid var(--line)", background: "var(--surface)" }}>
               {__list(v.tabs).map((t, $index) => (<React.Fragment key={$index}>
                   <button className={t?.cls} type="button" role="tab" aria-selected={t?.sel} onClick={t?.pick}>{t?.label}{t?.hasCount ? (<>
   <span className="cnt">{t?.count}</span>
@@ -676,7 +676,7 @@ export default class MerchantDetailScreen extends Component {
                         <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Store sales per month</h2>
                         <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }}>৳ thousand</div>
                       </div>
-                      <svg viewBox="0 0 640 200" width="100%" role="img" aria-hidden="true" style={{ display: "block" }}>
+                      <svg className="cs-chart-l" viewBox="0 0 640 200" width="100%" role="img" aria-hidden="true" style={{ display: "block" }}>
                         <line x1="36" x2="640" y1="178.0" y2="178.0" stroke="#eef2f7" />
                         <line x1="36" x2="640" y1="138.0" y2="138.0" stroke="#eef2f7" />
                         <line x1="36" x2="640" y1="98.0" y2="98.0" stroke="#eef2f7" />
@@ -690,6 +690,12 @@ export default class MerchantDetailScreen extends Component {
                         <text x="433.3" y="196" fontSize="11" fill="#64748b" textAnchor="middle" fontFamily="Poppins">Apr</text>
                         <text x="630.0" y="196" fontSize="11" fill="#64748b" textAnchor="middle" fontFamily="Poppins">Aug 26</text>
                       </svg>
+                      <div className="cs-axis" aria-hidden="true">
+                        <span style={{ left: "6.3%" }}>Aug 25</span>
+                        <span style={{ left: "37%" }}>Dec</span>
+                        <span style={{ left: "67.7%" }}>Apr</span>
+                        <span style={{ left: "98.4%" }}>Aug 26</span>
+                      </div>
                     </section>
                     <section className="panel" style={{ padding: "16px 20px", minWidth: "0" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "12px" }}>

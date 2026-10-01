@@ -100,7 +100,7 @@ body:has([data-screen="Pos"]) .gc-toasts{left:24px;right:auto;bottom:24px;align-
 .pos-listview .pos-card__liststock{display:inline}
 .pos-listview .pos-card__name{margin:0;min-height:0}
 .pos-listview .pos-card__row{grid-column:3;grid-row:1 / span 2;gap:12px;margin:0}
-.pos-catfoot{flex:none;display:flex;justify-content:space-between;gap:var(--space-3);font-size:var(--text-xs);color:var(--text-muted)}
+.pos-catfoot{flex:none;display:flex;flex-wrap:wrap;justify-content:space-between;gap:var(--space-3);font-size:var(--text-xs);color:var(--text-muted)}
 
 /* cart card */
 .pos-cart{width:clamp(380px,36%,520px);flex:none;display:flex;flex-direction:column;min-height:0;border-radius:var(--radius-lg);background:var(--surface-card);box-shadow:var(--shadow-soft);overflow:hidden}
@@ -313,7 +313,7 @@ body:has([data-screen="Pos"]) .gc-toasts{left:24px;right:auto;bottom:24px;align-
 
 /* one-page checkout, shortcuts, cash drawer */
 .pos-items__head .pos-orderno{margin-left:auto}
-.pos-open__links{display:flex;justify-content:space-between;gap:var(--space-2)}
+.pos-open__links{display:flex;flex-wrap:wrap;justify-content:space-between;gap:var(--space-2)}
 .pos-dot{width:8px;height:8px;flex:none;border-radius:var(--radius-full);background:#ff9800}
 .pos-banner .pos-link{margin-left:var(--space-2);color:inherit;text-decoration:underline}
 a.pos-sel,a.pos-ic{text-decoration:none;color:inherit}
@@ -361,6 +361,23 @@ a.pos-ic{color:var(--text-muted)}
   .pos-paycol--right{padding-left:0;border-left:0;padding-top:var(--space-4);border-top:1px solid var(--border-subtle)}
   .pos-two{grid-template-columns:1fr}
   .pos-tenders--3{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  /* "Open the register": the card keeps a page gutter */
+  .pos--closed{padding:var(--space-4)}
+}
+@media (max-width:480px){
+  .pos-open{padding:var(--space-6) var(--space-4)}
+  .pos-open__links{justify-content:center}
+  /* header: the menu button, the sale actions and the cashier fit one row; the title stays for screen readers,
+     the keyboard-shortcut button goes (no keyboard), and the action group scrolls if a phone is narrower still */
+  .pos-top .pos-h1{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .pos-keysbtn{display:none}
+  .pos-top__right{min-width:0;gap:4px;overflow-x:auto;scrollbar-width:none}
+  .pos-top__right::-webkit-scrollbar{display:none}
+  /* cart line: name on the first row, quantity, amount and remove on the second */
+  .pos-line{flex-wrap:wrap;row-gap:6px}
+  .pos-line__main{flex:1 1 calc(100% - 46px)}
+  .pos-line>.pos-step{margin-left:46px}
+  .pos-line>.pos-line__amt{margin-left:auto}
 }
 @media (prefers-reduced-motion:reduce){.pos-cart,.pos-switch,.pos-switch i{transition:none}.pos-scan input{animation:none}}
 `;

@@ -482,7 +482,7 @@ export default class PlansScreen extends Component {
                 </div>
                 <div style={{ display: "flex", gap: "10px", alignItems: "center", flex: "none" }} />
               </div>
-              <div role="tablist" style={{ display: "flex", gap: "22px", borderBottom: "1px solid var(--line)" }}>
+              <div role="tablist" className="cs-strip" style={{ display: "flex", gap: "22px", borderBottom: "1px solid var(--line)" }}>
                 <button className="tab on" type="button" role="tab" aria-selected="true">Online ladder<span className="cnt">41</span></button>
                 <button className="tab" type="button" role="tab" aria-selected="false">Retail ladder<span className="cnt">12</span></button>
                 <button className="tab" type="button" role="tab" aria-selected="false">Wholesale ladder<span className="cnt">9</span></button>
@@ -497,7 +497,7 @@ export default class PlansScreen extends Component {
 </svg>Draft version 4</__Link>
                 </span>
               </div>
-              <section className="panel" style={{ padding: "20px 24px", minWidth: "0" }}>
+              <section className="panel cs-compare" style={{ padding: "20px 24px", minWidth: "0" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "220px repeat(3,minmax(0,1fr))", gap: "14px", alignItems: "stretch" }}>
                   <div />
                   <div style={{ padding: "18px", borderRadius: "var(--radius-xl)", background: "var(--surface2)", border: "1px solid var(--line)" }}>
@@ -525,6 +525,11 @@ export default class PlansScreen extends Component {
                     <div style={{ marginTop: "4px", fontSize: "var(--text-xs-plus)", lineHeight: "1.5", color: "var(--body)" }}>Adds warehouses, payroll and custom terms.</div>
                     <div style={{ marginTop: "10px", fontSize: "var(--text-xs-plus)", color: "#0070a0", fontWeight: "var(--weight-medium)" }}>5 online stores on this plan</div>
                   </div>
+                </div>
+                <div className="cs-compare-head" aria-hidden="true">
+                  <span>Growth</span>
+                  <span>Business</span>
+                  <span>Enterprise</span>
                 </div>
                 <div style={{ marginTop: "10px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)", padding: "10px 0 6px" }}>Module sets</div>
                 <div style={{ display: "grid", gridTemplateColumns: "220px repeat(3,minmax(0,1fr))", gap: "14px", alignItems: "center", minHeight: "44px", borderTop: "1px solid var(--line)" }}>

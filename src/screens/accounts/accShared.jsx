@@ -105,6 +105,7 @@ export const ACC_CSS = `
 .ac-mini .ac-num{text-align:right}
 .ac-scroll{max-height:220px;overflow:auto}
 .ac-seg{display:inline-flex;padding:3px;gap:2px;border-radius:var(--radius-full);background:var(--surface-subtle);border:1px solid var(--border-subtle)}
+@media (max-width:640px){.ac-seg{max-width:100%;flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none}.ac-seg::-webkit-scrollbar{display:none}.ac-seg>*{flex:none}}
 .ac-seg button{height:34px;padding:0 var(--space-4);border:0;border-radius:var(--radius-full);background:none;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer}
 .ac-seg button[aria-pressed="true"]{background:var(--surface-card);color:var(--text-heading);box-shadow:0 1px 2px rgba(15,23,42,.08)}
 .ac-logo-line{display:flex;align-items:center;gap:var(--space-3)}

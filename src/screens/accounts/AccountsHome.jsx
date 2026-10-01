@@ -62,7 +62,7 @@ const CSS = `
 .ov-kinds li{display:flex;justify-content:space-between;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-body)}
 .ov-kinds li span:last-child{font-family:var(--font-data)}
 @media (max-width:1100px){.ov-bals{grid-template-columns:repeat(2,minmax(0,1fr))}.ov-grid{grid-template-columns:minmax(0,1fr)}}
-@media (max-width:520px){.ov-bals{grid-template-columns:minmax(0,1fr)}.ov-flow{grid-template-columns:1fr}}
+@media (max-width:520px){.ov-bals{gap:var(--space-2)}.ov-bal{padding:var(--space-3);gap:var(--space-1)}.ov-bal__fig{font-size:var(--text-lg)}.ov-bal__logos{flex-wrap:wrap;row-gap:4px}.ov-flow{grid-template-columns:1fr}}
 `;
 const RANGES = [['today', 'Today'], ['7', '7 days'], ['30', '30 days']];
 
@@ -140,10 +140,10 @@ export default function AccountsHome() {
   const actions = (<>
           <Link href="/expenses-bills?add=expense" className="gc-btn gc-btn--neutral"><Icon name="receipt" width="18" height="18" aria-hidden="true" /> Record expense</Link>
           <Link href="/money?do=transfer" className="gc-btn gc-btn--neutral"><Icon name="arrow-left-right" width="18" height="18" aria-hidden="true" /> Move money</Link>
-          <Link href="/settlements" className="gc-btn gc-btn--solid"><Icon name="hourglass" width="18" height="18" aria-hidden="true" /> Settlements</Link>
+          <Link href="/settlements" className="gc-btn gc-btn--solid"><Icon name="hourglass" width="18" height="18" aria-hidden="true" /> Payouts</Link>
         </>
   );
-  if (!tick) return <AccPage screen="AccountsHome" active="acc-home" page="Overview" title="Accounts" css={CSS} description="Where your money is, what needs you today, and what is on the way." actions={actions} />;
+  if (!tick) return <AccPage screen="AccountsHome" active="acc-home" page="Money overview" title="Money overview" css={CSS} description="Where your money is, what needs you today, and what is on the way." actions={actions} />;
 
   const bal = (href, label, g, extra) => (
     <Link href={href} className="ov-bal">
@@ -154,7 +154,7 @@ export default function AccountsHome() {
   );
 
   return (
-    <AccPage screen="AccountsHome" active="acc-home" page="Overview" title="Accounts" css={CSS}
+    <AccPage screen="AccountsHome" active="acc-home" page="Money overview" title="Money overview" css={CSS}
       description="Where your money is, what needs you today, and what is on the way."
       actions={actions}>
       <div className="ov-bals">

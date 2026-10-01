@@ -123,7 +123,7 @@ return {
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `/* phones: rows of label + buttons wrap instead of running out of the card */
-@media (max-width:640px){.gc-shell__content [style*="display:flex"]:not([role="tablist"]),.gc-shell__content [style*="display: flex"]:not([role="tablist"]){flex-wrap:wrap}.gc-shell__content select,.gc-shell__content input{min-width:0;max-width:100%}.gc-shell__content .mono,.gc-shell__content [class*="badge"]{overflow-wrap:anywhere}}
+@media (max-width:640px){.gc-shell__content [style*="display:flex"]:not([role="tablist"]):not([style*="column"]),.gc-shell__content [style*="display: flex"]:not([role="tablist"]):not([style*="column"]){flex-wrap:wrap}.gc-shell__content select,.gc-shell__content input{min-width:0;max-width:100%}.gc-shell__content .mono,.gc-shell__content [class*="badge"]{overflow-wrap:anywhere}}
 
 *{box-sizing:border-box}
 body{margin:0;background:#e9eef5;color:#0f172a;-webkit-font-smoothing:antialiased;font-family:var(--font-bn)}
@@ -217,6 +217,24 @@ body{font-family:var(--font-sans)}
 .gfab:hover{background:#002a77;color:#fff}
 .gfab:focus-visible{outline:3px solid rgba(0,48,135,.45);outline-offset:3px}
 .th,.td{white-space:normal}
+
+/* tablets and phones: the item list stacks above the layout and preview and takes the full width */
+@media (max-width:1023px){
+  .bl-layout{flex-direction:column!important;align-items:stretch!important}
+  .bl-items{width:100%!important;max-width:100%;min-width:0}
+}
+@media (max-width:640px){
+  .bl-hicon{display:none!important}
+  .bl-head>h2{flex:1 1 calc(100% - 38px)!important;min-width:0}
+  .bl-items .note{flex-wrap:wrap}
+  .bl-items .note>span{flex:1 1 calc(100% - 46px)!important;min-width:0}
+  .bl-items .note>.btn{margin-left:46px}
+  .bl-item{flex-wrap:wrap!important;row-gap:6px!important}
+  .bl-item>div:first-of-type{flex:1 1 calc(100% - 46px)!important}
+  .bl-item>div:last-child{margin-left:46px}
+  .bl-total{flex-wrap:nowrap!important}
+  .bl-row>.lbl{width:100%!important}
+}
 `;
 
 // ---- markup ----
@@ -233,7 +251,7 @@ export default class BarcodeLabelsScreen extends Component {
             <__Topbar crumb={"Stocks & inventory"} page="Barcode labels" placeholder="Search products, customers or memo no." />
             <div className="gc-shell__content" style={{ flexGrow: "1", minHeight: "0", padding: "22px 28px 28px", display: "flex", flexDirection: "column", gap: "18px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                <span style={{ width: "52px", height: "52px", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e6eaf0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: "0" }}>
+                <span className="bl-hicon" style={{ width: "52px", height: "52px", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e6eaf0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: "0" }}>
                   <svg width="40" height="40" viewBox="0 0 48 48" aria-hidden="true">
                     <path d="M8 10H40A4 4 0 0 1 44 14V34A4 4 0 0 1 40 38H8A4 4 0 0 1 4 34V14A4 4 0 0 1 8 10Z" fill="#e0f2fe" />
                     <path d="M8 14h2.5v16h-2.5Z" fill="#003087" />
@@ -256,9 +274,9 @@ export default class BarcodeLabelsScreen extends Component {
   <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16ZM3.3 7l8.7 5 8.7-5M12 22V12" />
 </svg>{v.t?.toProducts}</__Link>
               </div>
-              <div style={{ display: "flex", gap: "18px", alignItems: "flex-start" }}>
-                <section className="card" style={{ width: "470px", flexShrink: "0", padding: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div className="bl-layout" style={{ display: "flex", gap: "18px", alignItems: "flex-start" }}>
+                <section className="card bl-items" style={{ width: "470px", flexShrink: "0", padding: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                  <div className="bl-head" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true">
                       <path d="M10 17H36A2 2 0 0 1 38 19V39A2 2 0 0 1 36 41H10A2 2 0 0 1 8 39V19A2 2 0 0 1 10 17Z" fill="#7dd3fc" />
                       <path d="M8 11H38A2 2 0 0 1 40 13V17A2 2 0 0 1 38 19H8A2 2 0 0 1 6 17V13A2 2 0 0 1 8 11Z" fill="#0ea5e9" />
@@ -318,7 +336,7 @@ export default class BarcodeLabelsScreen extends Component {
                   </>) : null}
                   <div style={{ border: "1px solid #e6eaf0", borderRadius: "var(--radius-xl)", overflow: "hidden" }}>
                     {__list(v.items).map((it, $index) => (<React.Fragment key={$index}>
-                        <div style={__sx(`display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 12px; border-top: 1px solid ${it?.line ?? ""}; background: ${it?.bg ?? ""};`)}>
+                        <div className="bl-item" style={__sx(`display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 12px; border-top: 1px solid ${it?.line ?? ""}; background: ${it?.bg ?? ""};`)}>
                           <span style={__sx(`width: 36px; height: 36px; border-radius: var(--radius-lg); background: ${it?.tileBg ?? ""}; color: ${it?.tileFg ?? ""}; font-size: var(--text-sm-plus); font-weight: var(--weight-semibold); display: flex; align-items: center; justify-content: center; flex-shrink: 0; position: relative;`)}>{it?.ini}{it?.hasSw ? (<>
   <span style={__sx(`position: absolute; right: -3px; bottom: -3px; width: 14px; height: 14px; border-radius: var(--radius-full); background: ${it?.sw ?? ""}; border: 2px solid #fff;`)} />
 </>) : null}</span>
@@ -334,7 +352,7 @@ export default class BarcodeLabelsScreen extends Component {
                         </div>
                       </React.Fragment>))}
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 4px" }}>
+                  <div className="bl-total" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 4px" }}>
                     <svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true">
                       <path d="M6 8a3 3 0 0 1 3 -3H22L43 26L27 42L6 21Z" fill="#0ea5e9" />
                       <path d="M9 9H21L39 27L27 39L9 21Z" fill="#7dd3fc" />
@@ -358,7 +376,7 @@ export default class BarcodeLabelsScreen extends Component {
                       </svg>
                       <h2 className="h2">{v.t?.s2}</h2>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div className="bl-row" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       <span className="lbl" style={{ width: "110px" }}>{v.t?.size}</span>
                       <div className="seg" role="group" aria-label={v.t?.size}>
                         {__list(v.sizes).map((o, $index) => (<React.Fragment key={$index}>

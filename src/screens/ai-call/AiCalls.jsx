@@ -203,6 +203,12 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .lrow:hover{background:#f7f9fd}.lrow.on{background:rgba(0,48,135,.05)}
 .lrow:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:-3px}
 .pgc>*{flex-shrink:0}.tb th{white-space:normal}.stp2{flex-shrink:0}.pgc>.fill{flex-shrink:1;min-height:0}
+/* phones: the result filters are one swipe row instead of five wrapped rows */
+@media (max-width:640px){
+  .ai-chips{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;margin-inline:-14px;padding:0 14px 2px;scroll-padding-inline:14px}
+  .ai-chips::-webkit-scrollbar{display:none}
+  .ai-chips>.chip{flex:none}
+}
 `;
 
 // ---- markup ----
@@ -249,9 +255,9 @@ export default class AiCallsScreen extends Component {
                   <span>{v.msg}</span>
                 </div>
               </>) : null}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+              <div className="ai-chips" style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                 {__list(v.chips).map((ch, $index) => (<React.Fragment key={$index}>
-                    <button type="button" className={ch?.cls} onClick={ch?.pick}><span style={__sx(`width: 8px; height: 8px; border-radius: var(--radius-full); background: ${ch?.dot ?? ""};`)} />{ch?.label}<span className="pcnt">{ch?.n}</span></button>
+                    <button type="button" className={ch?.cls} aria-pressed={ch?.cls === 'chip on'} onClick={ch?.pick}><span style={__sx(`width: 8px; height: 8px; border-radius: var(--radius-full); background: ${ch?.dot ?? ""};`)} />{ch?.label}<span className="pcnt">{ch?.n}</span></button>
                   </React.Fragment>))}
               </div>
               <div className="gc-split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 400px", gap: "16px", alignItems: "start" }}>

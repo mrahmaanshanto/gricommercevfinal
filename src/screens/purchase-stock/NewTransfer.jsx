@@ -7,7 +7,7 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
-import { PageHeader as __PageHeader, PhoneActionBar as __PhoneActionBar } from '@/components/ui';
+import { PageHeader as __PageHeader, PhoneActionBar as __PhoneActionBar, useIsPhone as __useIsPhone } from '@/components/ui';
 import { toast as __toast, confirmDialog as __confirm } from '@/runtime/ui';
 import { STOCK_PLACES, getStockPlaces, placeName } from '@/lib/locations';
 import { CATALOG, productBy, stockAt, getMoves } from '@/lib/stock';
@@ -113,10 +113,16 @@ class Component extends DCLogic {
   }
 }
 
+// The scan box: a shorter hint on phones, where the full one is cut off.
+function ScanInput({ phonePlaceholder, placeholder, ...rest }) {
+  const phone = __useIsPhone();
+  return <input {...rest} placeholder={phone && phonePlaceholder ? phonePlaceholder : placeholder} />;
+}
+
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `/* phones: rows of label + buttons wrap instead of running out of the card */
-@media (max-width:640px){.gc-shell__content [style*="display:flex"]:not([role="tablist"]),.gc-shell__content [style*="display: flex"]:not([role="tablist"]){flex-wrap:wrap}.gc-shell__content select,.gc-shell__content input{min-width:0;max-width:100%}.gc-shell__content .mono,.gc-shell__content [class*="badge"]{overflow-wrap:anywhere}}
+@media (max-width:640px){.gc-shell__content [style*="display:flex"]:not([role="tablist"]):not([style*="column"]),.gc-shell__content [style*="display: flex"]:not([role="tablist"]):not([style*="column"]){flex-wrap:wrap}.gc-shell__content select,.gc-shell__content input{min-width:0;max-width:100%}.gc-shell__content .mono,.gc-shell__content [class*="badge"]{overflow-wrap:anywhere}}
 
 body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
@@ -170,6 +176,14 @@ a{color:#003087}a:hover{color:#002a77}
 .scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
 @keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+
+/* phones: item cards line up with the scan box, the picture stays beside the name, place pickers use the standard select text */
+@media (max-width:640px){
+  .ntr-lines.gc-cards-on>tbody{padding:0}
+  .ntr-lines td:first-child>div{flex-wrap:nowrap!important}
+  .ntr-lines td:first-child>div>div{min-width:0}
+  .locsel{font-size:var(--text-sm);font-weight:var(--weight-regular)}
+}
 `;
 
 // ---- markup ----
@@ -258,7 +272,7 @@ export default class NewTransferScreen extends Component {
                             <path d="M17 7v10" />
                           </svg>
                         </span>
-                        <input id="tr-scan" className="inp" type="search" placeholder="Scan an item or type a SKU, then Enter" aria-label="Scan an item to send" {...__inv(v.itemsErr, "tr-items-err")} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); v.scan(e); } }} style={{ height: "54px", paddingLeft: "50px", fontSize: "var(--text-sm-plus)", border: "2px solid #003087" }} />
+                        <ScanInput id="tr-scan" className="inp" type="search" placeholder="Scan an item or type a SKU, then Enter" phonePlaceholder="Scan or type a SKU" aria-label="Scan an item to send" {...__inv(v.itemsErr, "tr-items-err")} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); v.scan(e); } }} style={{ height: "54px", paddingLeft: "50px", fontSize: "var(--text-sm-plus)", border: "2px solid #003087" }} />
                       </label>
                       <button type="button" className="btn solid big" onClick={() => v.scan()}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -285,7 +299,7 @@ export default class NewTransferScreen extends Component {
                       </div>
                     </>) : null}
                     <div className="gc-table-wrap">
-                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <table className="ntr-lines" style={{ width: "100%", borderCollapse: "collapse" }}>
                         <thead>
                           <tr>
                             <th className="th" style={{ paddingLeft: "0" }}>Product</th>

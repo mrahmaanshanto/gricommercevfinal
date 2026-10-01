@@ -120,6 +120,11 @@ const CSS = `
 .od-step__label{margin:0;align-self:end}
 .od-step::after{top:36px;bottom:4px;left:15px;width:3px;height:auto}
 }
+@media (max-width:640px){
+/* totals: the line above Total runs across both columns */
+.od-sum{column-gap:0}
+.od-sum dt{padding-right:var(--space-5)}
+}
 `;
 
 // demo session data from the storefront (the same for every online order)

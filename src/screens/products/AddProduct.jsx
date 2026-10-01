@@ -301,7 +301,7 @@ class Component extends DCLogic {
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `/* phones: rows of label + buttons wrap instead of running out of the card */
-@media (max-width:640px){.gc-shell__content [style*="display:flex"]:not([role="tablist"]),.gc-shell__content [style*="display: flex"]:not([role="tablist"]){flex-wrap:wrap}.gc-shell__content select,.gc-shell__content input{min-width:0;max-width:100%}.gc-shell__content .mono,.gc-shell__content [class*="badge"]{overflow-wrap:anywhere}}
+@media (max-width:640px){.gc-shell__content [style*="display:flex"]:not([role="tablist"]):not([style*="column"]),.gc-shell__content [style*="display: flex"]:not([role="tablist"]):not([style*="column"]){flex-wrap:wrap}#product-form{flex-wrap:nowrap!important}.gc-shell__content select,.gc-shell__content input{min-width:0;max-width:100%}.gc-shell__content .mono,.gc-shell__content [class*="badge"]{overflow-wrap:anywhere}}
 
 body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
@@ -383,6 +383,21 @@ a{color:#003087}a:hover{color:#002a77}
 .tagx:hover{background:rgba(15,23,42,.08)}
 .tagx:focus-visible,.abtn:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
+
+/* phones: a switch row keeps icon, text and switch on one line; two-way choices share the width; save bar on one row */
+@media (max-width:640px){
+  .gc-shell__content [style*="display"]:has(> button[role="switch"]){flex-wrap:nowrap!important}
+  .gc-shell__content [style*="display"]:has(> button[role="switch"])>div{flex:1 1 0!important;min-width:0}
+  .apt-seg{display:grid!important;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);width:100%;border-radius:var(--radius-xl)!important}
+  .apt-seg>button{height:auto!important;min-height:36px;padding:6px 10px!important;border-radius:var(--radius-lg)!important;white-space:normal;line-height:16px}
+  .savebar{flex-wrap:wrap;gap:8px!important;padding:10px 12px!important}
+  .savebar__note:empty{display:none}
+  .savebar__note{flex:1 1 100%!important;font-size:var(--text-xs)!important}
+  .savebar>.btn{flex:1 1 auto;padding:0 12px}
+  .savebar>.savebar__note+.btn{flex:0 0 auto;background:none;border-color:transparent;padding:0 8px}
+  .savebar>.btn svg{display:none}
+  body:has(.savebar) .gc-ai{bottom:84px}
+}
 `;
 
 // ---- markup ----
@@ -864,7 +879,7 @@ export default class AddProductScreen extends Component {
                           <span className="bn">এই পণ্যে কি ওয়ারেন্টি আছে?</span>
                         </div>
                       </div>
-                      <div style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
+                      <div className="apt-seg" style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
                         {__list(v.wqOpts).map((o, $index) => (<React.Fragment key={$index}>
                             <button type="button" onClick={o?.pick} aria-pressed={o?.on} style={__sx(`height: 34px; padding: 0 16px; border: 0; border-radius: var(--radius-full); font: inherit; font-size: var(--text-xs-plus); font-weight: var(--weight-medium); cursor: pointer; background: ${o?.bg ?? ""}; color: ${o?.fg ?? ""};`)}>{o?.l}</button>
                           </React.Fragment>))}
@@ -916,7 +931,7 @@ export default class AddProductScreen extends Component {
                         <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Does each piece have its own serial or IMEI number?</div>
                         <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Phones, laptops, TVs — so you know exactly which piece was sold</div>
                       </div>
-                      <div style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
+                      <div className="apt-seg" style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
                         {__list(v.sqOpts).map((o, $index) => (<React.Fragment key={$index}>
                             <button type="button" onClick={o?.pick} aria-pressed={o?.on} style={__sx(`height: 34px; padding: 0 16px; border: 0; border-radius: var(--radius-full); font: inherit; font-size: var(--text-xs-plus); font-weight: var(--weight-medium); cursor: pointer; background: ${o?.bg ?? ""}; color: ${o?.fg ?? ""};`)}>{o?.l}</button>
                           </React.Fragment>))}
@@ -926,7 +941,7 @@ export default class AddProductScreen extends Component {
                       <div className="fade" style={{ marginLeft: "42px", display: "flex", flexDirection: "column", gap: "12px", padding: "16px", borderRadius: "var(--radius-xl)", background: "#f7f9fc", border: "1px solid #e6eaf0" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
                           <span className="lbl">Which number?</span>
-                          <div style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
+                          <div className="apt-seg" style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
                             {__list(v.sntOpts).map((o, $index) => (<React.Fragment key={$index}>
                                 <button type="button" onClick={o?.pick} aria-pressed={o?.on} style={__sx(`height: 34px; padding: 0 16px; border: 0; border-radius: var(--radius-full); font: inherit; font-size: var(--text-xs-plus); font-weight: var(--weight-medium); cursor: pointer; background: ${o?.bg ?? ""}; color: ${o?.fg ?? ""};`)}>{o?.l}</button>
                               </React.Fragment>))}

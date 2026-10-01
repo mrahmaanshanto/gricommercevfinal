@@ -97,7 +97,19 @@ const CSS = `
 .hd-date b{display:block;font-size:var(--text-base);font-weight:var(--weight-semibold);color:var(--text-heading);line-height:1.1}
 .hd-date span{font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase}
 @media (max-width:1180px){.hd-main{grid-template-columns:minmax(0,1fr)}}
-@media (max-width:767px){.hd-who{grid-template-columns:repeat(2,minmax(0,1fr))}.hd-nums{grid-template-columns:repeat(3,minmax(64px,1fr))}.hd-hero{padding:var(--space-4)}}
+@media (max-width:767px){.hd-who{grid-template-columns:repeat(2,minmax(0,1fr))}.hd-nums{flex:1 1 100%;grid-template-columns:repeat(3,minmax(0,1fr))}.hd-hero{padding:var(--space-4)}}
+.hd-short{display:none}
+@media (max-width:640px){
+  /* hero shortcuts: two even columns */
+  .hd-hero__links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .hd-hero__links a{min-width:0;padding:0 var(--space-3)}
+  .hd-long{display:none}
+  .hd-short{display:inline}
+  /* a card's count badge stays beside its heading */
+  .hd-head{flex-wrap:nowrap;align-items:flex-start}
+  .hd-head > div{flex:1 1 auto;min-width:0}
+  .hd-head > .gc-badge{flex:none}
+}
 `;
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const WORKED = ['P', 'L', 'HD'];
@@ -262,7 +274,7 @@ export default function HrDashboard() {
           <div className="hd-hero__links">
             <Link href="/staff-create" className="gc-btn gc-btn--sm"><Icon name="user-plus" width="16" height="16" aria-hidden="true" /> Add staff</Link>
             <Link href="/attendance" className="gc-btn gc-btn--sm"><Icon name="calendar-check" width="16" height="16" aria-hidden="true" /> Attendance</Link>
-            <Link href="/payroll" className="gc-btn gc-btn--sm"><Icon name="banknote" width="16" height="16" aria-hidden="true" /> {run ? `${run.title} payroll` : 'Payroll'}</Link>
+            <Link href="/payroll" className="gc-btn gc-btn--sm"><Icon name="banknote" width="16" height="16" aria-hidden="true" /> {run ? <><span className="hd-long">{run.title} payroll</span><span className="hd-short">Payroll</span></> : 'Payroll'}</Link>
             <Link href="/id-cards" className="gc-btn gc-btn--sm"><Icon name="id-card" width="16" height="16" aria-hidden="true" /> ID cards</Link>
           </div>
         </div>
@@ -277,7 +289,7 @@ export default function HrDashboard() {
 
       {needs.length ? (
         <section className="gc-card hr-card" aria-labelledby="hd-needs">
-          <div className="hr-head"><div><h2 id="hd-needs">Today needs you</h2><p>People missing, cover, machines, lates and records that will stop pay day.</p></div><span className="gc-badge gc-badge--warning">{needs.length}</span></div>
+          <div className="hr-head hd-head"><div><h2 id="hd-needs">Today needs you</h2><p>People missing, cover, machines, lates and records that will stop pay day.</p></div><span className="gc-badge gc-badge--warning">{needs.length}</span></div>
           <div className="hd-needs">{needs.map((n, i) => <Link key={i} href={n.href} className={'hd-need ' + needTone[n.tone]}><Icon name={n.icon} width="16" height="16" aria-hidden="true" /><span><b>{n.t}</b><span>{n.s}</span></span></Link>)}</div>
         </section>
       ) : null}
@@ -313,7 +325,7 @@ export default function HrDashboard() {
           </section>
 
           <section className="gc-card hr-card">
-            <div className="hr-head"><div><h2>Needs your approval</h2><p>Leave, advances and attendance fixes from the staff app</p></div><span className="gc-badge gc-badge--warning">{approvals.length}</span></div>
+            <div className="hr-head hd-head"><div><h2>Needs your approval</h2><p>Leave, advances and attendance fixes from the staff app</p></div><span className="gc-badge gc-badge--warning">{approvals.length}</span></div>
             <div className="hd-list">
               {approvals.length ? approvals.map((a) => (
                 <div key={a.id} className="hd-item">

@@ -159,6 +159,13 @@ section.card .td{white-space:normal;padding-left:12px;padding-right:12px}
 section.card .th{padding-left:12px;padding-right:12px}
 section.card .td:first-child,section.card .th:first-child{padding-left:16px}
 section.card .td .badge{white-space:nowrap}
+/* phones: search on its own row, then the filters, then the two page actions on a row of their own */
+@media (max-width:640px){
+  .st-filters{gap:8px!important;padding:12px 14px!important}
+  .st-filters>label{max-width:none!important}
+  .st-filters>div[style*="flex-grow"]{flex:1 1 100%!important;height:1px;margin:4px 0;background:var(--border-subtle)}
+  .st-filters>a.btn{flex:1 1 0}
+}
 `;
 
 // ---- markup ----
@@ -256,7 +263,7 @@ export default class StockScreen extends Component {
               </div>
               ) : null}
               <section className="card" style={{ overflow: "hidden" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "16px", borderBottom: "1px solid #e2e8f0", flexWrap: "wrap" }}>
+                <div className="st-filters" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "16px", borderBottom: "1px solid #e2e8f0", flexWrap: "wrap" }}>
                   <label style={{ position: "relative", width: "100%", maxWidth: "320px" }}>
                     <span style={{ position: "absolute", left: "14px", top: "12px", color: "#003087" }}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

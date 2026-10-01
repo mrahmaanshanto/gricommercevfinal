@@ -424,6 +424,12 @@ body:has(.ibx) .gc-ai{display:none}
 @media (max-width:1599px){.ibx-app{grid-template-columns:minmax(260px,300px) minmax(0,1fr) minmax(260px,290px)}.ibx-app[data-panel="closed"]{grid-template-columns:minmax(260px,300px) minmax(0,1fr)}}
 @media (max-width:1279px){.ibx-app,.ibx-app[data-panel]{grid-template-columns:minmax(280px,320px) minmax(0,1fr)}}
 @media (max-width:1023px){.ibx .gc-shell__content.ibx-content{padding:var(--space-4)!important}}
+/* phones: tags that don't fit wrap to a second line; the assignee and unread count stay at the right edge */
+@media (max-width:640px){
+  .ibx-row__foot{flex-wrap:wrap;row-gap:4px}
+  .ibx-row__foot>*{flex:none;max-width:100%}
+  .ibx-row__end{flex:none}
+}
 /* phones: one pane at a time */
 @media (max-width:767px){
   .ibx .gc-shell__main.ibx-main{height:100dvh;min-height:0}

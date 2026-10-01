@@ -115,6 +115,16 @@ a{color:#003087}a:hover{color:#002a77}
 .pulse{animation:gcPulse 1.6s ease-in-out infinite}
 @keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+/* phones: the offer button gets its own row, the activity filters scroll in one row, the four figures stay 2 × 2 */
+@media (max-width:767px){
+.cp-stats.gc-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.cp-offer{flex-wrap:wrap;align-items:flex-start!important;gap:var(--space-3) var(--space-4)!important;padding:var(--space-4)!important}
+.cp-offer>div{flex:1 1 calc(100% - 60px);min-width:0}
+.cp-offer>button{flex:1 1 100%}
+.cp-tabs{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none}
+.cp-tabs::-webkit-scrollbar{display:none}
+.cp-tabs>button{flex:none}
+}
 `;
 
 // ---- markup ----
@@ -147,7 +157,7 @@ export default class CustomerProfileScreen extends Component {
                       <span className="badge b-received">Loyal</span>
                       <span className="badge b-approved">Big spender</span>
                     </div>
-                    <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                    <div className="gc-cols-2 cp-stats" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
                       <div style={{ padding: "12px", borderRadius: "var(--radius-lg)", background: "#f8fafc" }}>
                         <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Total spent</div>
                         <div style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>৳58,200</div>
@@ -269,7 +279,7 @@ export default class CustomerProfileScreen extends Component {
                       <span>{v.msg}</span>
                     </div>
                   </>) : null}
-                  <section className="card" style={{ padding: "18px 20px", display: "flex", alignItems: "center", gap: "16px", border: "1.5px solid #f6d59a", background: "#fffaf0" }}>
+                  <section className="card cp-offer" style={{ padding: "18px 20px", display: "flex", alignItems: "center", gap: "16px", border: "1.5px solid #f6d59a", background: "#fffaf0" }}>
                     <span style={{ width: "44px", height: "44px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#fff4e0", color: "#a14f06", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
@@ -287,7 +297,7 @@ export default class CustomerProfileScreen extends Component {
                     </>) : null}
                   </section>
                   <section className="card" style={{ overflow: "hidden" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "14px 16px", borderBottom: "1px solid #e2e8f0", flexWrap: "wrap" }}>
+                    <div className="cp-tabs" style={{ display: "flex", alignItems: "center", gap: "6px", padding: "14px 16px", borderBottom: "1px solid #e2e8f0", flexWrap: "wrap" }}>
                       {__list(v.tabs).map((tb, $index) => (<React.Fragment key={$index}>
                           <button type="button" className={tb?.cls} aria-pressed={tb?.on} onClick={tb?.pick}>{tb?.label}{tb?.hasCount ? (<>
   <span style={__sx(`min-width: 22px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: ${tb?.countBg ?? ""}; font-size: var(--text-xs); font-weight: var(--weight-medium); display: inline-flex; align-items: center; justify-content: center;`)}>{tb?.count}</span>

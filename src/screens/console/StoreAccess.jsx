@@ -500,7 +500,7 @@ export default class StoreAccessScreen extends Component {
 </svg>Access log</__Link>
                 </div>
               </div>
-              <div role="group" aria-label="Prototype flow" style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <div role="group" aria-label="Prototype flow" className="cs-strip" style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 {__list(v.stages).map((s, $index) => (<React.Fragment key={$index}>
                     <button className={s?.cls} type="button" onClick={s?.pick} aria-pressed={s?.pressed}><span className="stgn">{s?.n}</span>{s?.label}</button>
                   </React.Fragment>))}
@@ -511,7 +511,7 @@ export default class StoreAccessScreen extends Component {
                     <h2 style={{ margin: "0 0 14px", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>Enter the owner's PIN</h2>
                     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                       <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "var(--body)" }}>Ask the owner to open <strong>Settings › Support access</strong> in their admin, generate a PIN, and read it to you. The PIN works once, for 10 minutes.</div>
-                      <div role="group" aria-label="Store PIN" style={{ display: "flex", gap: "10px" }}>
+                      <div role="group" aria-label="Store PIN" className="cs-pin" style={{ display: "flex", gap: "10px" }}>
                         <span className="pinbox f">4</span>
                         <span className="pinbox f">8</span>
                         <span className="pinbox f">2</span>

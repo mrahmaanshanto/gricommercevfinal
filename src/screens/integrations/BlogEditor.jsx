@@ -111,7 +111,7 @@ const CSS = `
 .be-checks{display:flex;flex-direction:column;gap:var(--space-2);margin:0;padding:0;list-style:none}
 .be-checks li{display:flex;align-items:flex-start;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-body)}
 .be-checks li svg{flex:none;margin-top:1px}
-.be-checks small{display:block;color:var(--text-muted)}
+.be-checks small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .be-og{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden;background:var(--surface-card)}
 .be-og .bl-cover{border-radius:0}
 .be-og div.be-ogtext{padding:var(--space-3);background:var(--surface-subtle)}
@@ -125,6 +125,8 @@ const CSS = `
 .be-pv--mobile{max-width:430px;margin:0 auto;width:100%;padding:var(--space-5) var(--space-4);border:8px solid var(--slate-800);border-radius:var(--radius-2xl)}
 @media (max-width:1023px){.be-layout{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:599px){.be-bar{position:static}.be-card{padding:var(--space-4)}.be-slug{flex-direction:column}.be-slug span{border-right:1px solid var(--border-field);border-bottom:0;border-radius:var(--radius-lg) var(--radius-lg) 0 0;height:32px}.be-slug input{border-radius:0 0 var(--radius-lg) var(--radius-lg)}.be-bbody{padding:var(--space-3)}}
+/* phones: the character count stays on one line; checklist tips use the helper-text size */
+@media (max-width:640px){.be-count>span:last-child{flex:none;white-space:nowrap}}
 `;
 
 // ---- collapsible side panel -------------------------------------------------------------------

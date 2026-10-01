@@ -110,6 +110,17 @@ const CSS = `
 .eb-kpi-link:hover{text-decoration:underline}
 .eb-help{margin:var(--space-2) 0 0}
 .eb-wait{padding:var(--space-8) var(--space-5);text-align:center;font-size:var(--text-xs);color:var(--text-muted)}
+@media (max-width:640px){
+  /* category chips: one row that scrolls sideways; month select and search share the next row */
+  .eb-chips{flex-wrap:nowrap;width:100%;max-width:100%;overflow-x:auto;scrollbar-width:none}
+  .eb-chips::-webkit-scrollbar{display:none}
+  .eb-chips > .gc-seg__btn{flex:none}
+  .eb-tools{flex:1 1 100%;flex-wrap:nowrap;justify-content:stretch}
+  .eb-tools .gc-select{flex:0 0 136px;min-width:0}
+  .eb-tools .gc-field__wrap{flex:1 1 0;max-width:none}
+  /* table-cards: the account sits on the right like the other values */
+  .gc-cards-on .eb-acc{justify-content:flex-end;white-space:normal;text-align:right}
+}
 `;
 
 export default function ExpensesBills() {

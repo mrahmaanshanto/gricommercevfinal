@@ -7,6 +7,7 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+import { TA_PHONE_CSS } from './taPhone';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -182,7 +183,7 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .tb tr:last-child td{border-bottom:0}
 .tb .r{text-align:right}
 @media (prefers-reduced-motion:reduce){.st>*,.gr,.draw,.fadein{animation:none}}
-`;
+` + TA_PHONE_CSS;
 
 // ---- markup ----
 

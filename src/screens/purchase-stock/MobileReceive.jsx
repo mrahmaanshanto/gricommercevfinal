@@ -93,6 +93,14 @@ a{color:#003087}a:hover{color:#002a77}
 .scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
 @keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+/* phones: the screen fills the phone (no fixed 844px frame) and Save delivery stays pinned to the bottom */
+@media (max-width:640px){
+  .mr-frame{width:100%!important;height:auto!important;min-height:100dvh;overflow:visible!important}
+  .mr-box{left:50%!important;margin-left:-140px}
+  .mr-scanline{left:50%!important;margin-left:-125px}
+  .mr-lines{overflow:visible!important;padding-bottom:var(--space-4)!important}
+  .mr-save{position:sticky;bottom:0;z-index:2;padding-bottom:calc(20px + env(safe-area-inset-bottom))!important}
+}
 `;
 
 // ---- markup ----
@@ -103,7 +111,7 @@ export default class MobileReceiveScreen extends Component {
     return (
       <div className="dc-screen" data-screen="MobileReceive">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div style={{ width: "min(390px, 100%)", height: "844px", background: "#f8fafc", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div className="mr-frame" style={{ width: "min(390px, 100%)", height: "844px", background: "#f8fafc", display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <header style={{ flexShrink: "0", display: "flex", alignItems: "center", gap: "8px", padding: "12px 12px 12px 8px", background: "#ffffff", borderBottom: "1px solid #e2e8f0" }}>
             <__Link href="/receive-goods" className="ib" aria-label="Back">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -111,7 +119,7 @@ export default class MobileReceiveScreen extends Component {
               </svg>
             </__Link>
             <div style={{ flexGrow: "1", minWidth: "0" }}>
-              <div style={{ fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Receive goods</div>
+              <h1 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Receive goods</h1>
               <div className="mono" style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>PO-2609-0020 · Nabil Fashion House</div>
             </div>
             <button type="button" className="ib" aria-label="Scan from a photo">
@@ -123,9 +131,9 @@ export default class MobileReceiveScreen extends Component {
             </button>
           </header>
           <button type="button" onClick={v.scan} aria-label="Scan a barcode" style={{ position: "relative", flexShrink: "0", height: "250px", margin: "0", border: "0", padding: "0", background: "#0b1220", cursor: "pointer", overflow: "hidden", font: "inherit" }}>
-            <span style={{ position: "absolute", left: "55px", top: "40px", width: "280px", height: "170px", borderRadius: "var(--radius-xl)", border: "2px solid rgba(255,255,255,.85)" }} />
+            <span className="mr-box" style={{ position: "absolute", left: "55px", top: "40px", width: "280px", height: "170px", borderRadius: "var(--radius-xl)", border: "2px solid rgba(255,255,255,.85)" }} />
             {" "}
-            <span className="scanline" style={{ position: "absolute", left: "70px", top: "50px", width: "250px", height: "2px", background: "#009cde", boxShadow: "0 0 12px 2px rgba(0,156,222,.8)" }} />
+            <span className="scanline mr-scanline" style={{ position: "absolute", left: "70px", top: "50px", width: "250px", height: "2px", background: "#009cde", boxShadow: "0 0 12px 2px rgba(0,156,222,.8)" }} />
             {" "}
             <span style={{ position: "absolute", left: "0", right: "0", bottom: "14px", textAlign: "center", fontSize: "var(--text-xs-plus)", color: "rgba(255,255,255,.85)" }}>Point the camera at a barcode · tap to try</span>
           </button>
@@ -154,7 +162,7 @@ export default class MobileReceiveScreen extends Component {
             <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>This delivery</span>
             <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}><strong style={{ fontSize: "var(--text-lg)", color: "#0f172a" }}>{v.got}</strong> of {v.pending} pieces</span>
           </div>
-          <div style={{ flexGrow: "1", overflow: "hidden", padding: "0 16px", display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div className="mr-lines" style={{ flexGrow: "1", overflow: "hidden", padding: "0 16px", display: "flex", flexDirection: "column", gap: "8px" }}>
             {__list(v.lines).map((l, $index) => (<React.Fragment key={$index}>
                 <div className={l?.cls} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 12px", borderRadius: "var(--radius-xl)", background: "#ffffff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
@@ -165,7 +173,7 @@ export default class MobileReceiveScreen extends Component {
                 </div>
               </React.Fragment>))}
           </div>
-          <div style={{ flexShrink: "0", padding: "12px 16px 20px", background: "#ffffff", borderTop: "1px solid #e2e8f0" }}>
+          <div className="mr-save" style={{ flexShrink: "0", padding: "12px 16px 20px", background: "#ffffff", borderTop: "1px solid #e2e8f0" }}>
             <button type="button" className="btn solid big" style={{ width: "100%", height: "52px", fontSize: "var(--text-base)" }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M20 6 9 17l-5-5" />

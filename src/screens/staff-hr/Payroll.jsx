@@ -65,7 +65,12 @@ const CSS = `
 .hr-print{display:none}
 @media (max-width:1100px){.pr-runs{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:1023px){.pr-main{grid-template-columns:minmax(0,1fr)}}
-@media (max-width:640px){.pr-runs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){
+  .pr-runs{grid-template-columns:repeat(2,minmax(0,1fr))}
+  /* half-width month cards: the title gets the whole line, the status badge sits under it */
+  .pr-run__top{flex-direction:column;align-items:flex-start;gap:4px}
+  .pr-run__top b{max-width:100%;white-space:normal}
+}
 @media print{
   body > *:not(.hr-print){display:none!important}
   .hr-print{display:block!important;width:100%}

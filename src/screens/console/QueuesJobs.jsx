@@ -565,7 +565,7 @@ export default class QueuesJobsScreen extends Component {
                     <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Courier queue, last 2 hours</h2>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }}>jobs waiting</div>
                   </div>
-                  <svg viewBox="0 0 700 170" width="100%" role="img" aria-hidden="true" style={{ display: "block" }}>
+                  <svg className="cs-chart-l" viewBox="0 0 700 170" width="100%" role="img" aria-hidden="true" style={{ display: "block" }}>
                     <line x1="36" x2="700" y1="148.0" y2="148.0" stroke="#eef2f7" />
                     <line x1="36" x2="700" y1="115.5" y2="115.5" stroke="#eef2f7" />
                     <line x1="36" x2="700" y1="83.0" y2="83.0" stroke="#eef2f7" />
@@ -578,6 +578,11 @@ export default class QueuesJobsScreen extends Component {
                     <text x="365.0" y="166" fontSize="11" fill="#64748b" textAnchor="middle" fontFamily="Poppins">13:30</text>
                     <text x="690.0" y="166" fontSize="11" fill="#64748b" textAnchor="middle" fontFamily="Poppins">14:30</text>
                   </svg>
+                  <div className="cs-axis" aria-hidden="true">
+                    <span style={{ left: "5.7%" }}>12:30</span>
+                    <span style={{ left: "52.1%" }}>13:30</span>
+                    <span style={{ left: "98.6%" }}>14:30</span>
+                  </div>
                 </section>
                 <section className="panel" style={{ padding: "16px 20px", minWidth: "0" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "12px" }}>

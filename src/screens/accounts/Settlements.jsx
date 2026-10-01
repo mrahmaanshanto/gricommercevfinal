@@ -48,6 +48,8 @@ const CSS = `
 .st-held{font-family:var(--font-data);font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .st-empty{padding:var(--space-6) var(--space-5);text-align:center;font-size:var(--text-sm);color:var(--text-muted)}
 @media (max-width:900px){.st-row{grid-template-columns:minmax(0,1fr) auto;row-gap:var(--space-2)}.st-into{grid-column:1}.st-acts{grid-column:1 / -1;justify-content:flex-start}}
+.st-nw{white-space:nowrap}
+@media (max-width:640px){.st-into > span:first-child{width:32px!important;height:32px!important}}
 `;
 
 function statusBadges(p, now) {
@@ -117,7 +119,7 @@ export default function Settlements() {
     <div key={p.id} className="st-row">
       <div className="st-name">
         <BrandLogo brand={p.p.brand} size={40} />
-        <span><b>{p.p.short}{statusBadges(p, now)}</b><small>{p.items.length} payment{p.items.length === 1 ? '' : 's'} from {daysText(p.days)}{p.status === 'delayed' ? ' · they said ' + dayWords(p.due, now) : ''}</small></span>
+        <span><b>{p.p.short}{statusBadges(p, now)}</b><small>{p.items.length} payment{p.items.length === 1 ? '' : 's'} from <span className="st-nw">{daysText(p.days)}</span>{p.status === 'delayed' ? ' · they said ' + dayWords(p.due, now) : ''}</small></span>
       </div>
       <div className="st-into"><BrandLogo brand={accBrand(p.account)} size={24} decorative /><span>into {accName(p.account)}</span></div>
       <div className="st-amt">{money(p.net)}<small>{money(p.gross)} − {money(p.fee + p.charge)}</small></div>
@@ -156,7 +158,7 @@ export default function Settlements() {
             <div className="st-ghead"><h3>Withdraw yourself</h3><span>This money stays in the partner’s wallet until you withdraw it</span><span className="st-gsum">{money(walletNet)}</span></div>
             {data.wallets.filter((w) => w.net > 0).map((w) => (
               <div key={w.partner} className="st-row">
-                <div className="st-name"><BrandLogo brand={w.p.brand} size={40} /><span><b>{w.p.short} wallet</b><small>{w.items.length} payments since {shortDate(w.since)} · {feeText(w.p)}</small></span></div>
+                <div className="st-name"><BrandLogo brand={w.p.brand} size={40} /><span><b>{w.p.short} wallet</b><small>{w.items.length} payments since <span className="st-nw">{shortDate(w.since)}</span> · {feeText(w.p)}</small></span></div>
                 <div className="st-into"><BrandLogo brand={accBrand(w.p.to)} size={24} decorative /><span>usually to {accName(w.p.to)}</span></div>
                 <div className="st-amt">{money(w.net)}<small>{money(w.gross)} − {money(w.fee)}</small></div>
                 <div className="st-acts"><button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => setWallet(w)}><Icon name="arrow-down-to-line" width="16" height="16" aria-hidden="true" /> Withdraw</button></div>

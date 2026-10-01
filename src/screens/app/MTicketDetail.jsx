@@ -106,6 +106,9 @@ button{font:inherit;color:inherit}
 .bar{height:6px;border-radius:var(--radius-full);background:#edf1f6;overflow:hidden}.bar i{display:block;height:100%;border-radius:var(--radius-full)}
 .lrow{display:flex;align-items:center;gap:14px;padding:14px 16px}
 .lrow + .lrow{border-top:1px solid var(--line)}
+/* activity list: a divider between items, none under the last one */
+.act-i{flex:1;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.act > :last-child .act-i{border-bottom:0}
 `;
 
 // ---- markup ----
@@ -204,14 +207,14 @@ export default class MTicketDetailScreen extends Component {
             <div className="sec">
               <h2>Activity</h2>
             </div>
-            <div className="card" style={{ margin: "0 20px", padding: "16px 16px 0", display: "flex", flexDirection: "column", gap: "14px" }}>
+            <div className="card act" style={{ margin: "0 20px", padding: "16px 16px 0", display: "flex", flexDirection: "column", gap: "14px" }}>
               <div style={{ display: "flex", gap: "12px" }}>
                 <span className="ico" style={{ width: "36px", height: "36px", borderRadius: "var(--radius-full)", background: "var(--okbg)", color: "var(--ok)" }}>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z" />
                   </svg>
                 </span>
-                <div style={{ flex: "1", paddingBottom: "16px", borderBottom: "1px solid var(--line)" }}>
+                <div className="act-i">
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-xs-plus)" }}>
                     <b style={{ fontWeight: "var(--weight-medium)" }}>Call from Nusrat · 2:14</b>
                     <span className="num" style={{ color: "var(--muted)" }}>10:58</span>
@@ -226,7 +229,7 @@ export default class MTicketDetailScreen extends Component {
                     <path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4Z" />
                   </svg>
                 </span>
-                <div style={{ flex: "1", paddingBottom: "16px", borderBottom: "1px solid var(--line)" }}>
+                <div className="act-i">
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-xs-plus)" }}>
                     <b style={{ fontWeight: "var(--weight-medium)" }}>Rina · internal note</b>
                     <span className="num" style={{ color: "var(--muted)" }}>11:06</span>
@@ -241,7 +244,7 @@ export default class MTicketDetailScreen extends Component {
                     <path d="M22 2 11 13" />
                   </svg>
                 </span>
-                <div style={{ flex: "1", paddingBottom: "16px", borderBottom: "1px solid var(--line)" }}>
+                <div className="act-i">
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-xs-plus)" }}>
                     <b style={{ fontWeight: "var(--weight-medium)" }}>You replied on Facebook</b>
                     <span className="num" style={{ color: "var(--muted)" }}>11:09</span>

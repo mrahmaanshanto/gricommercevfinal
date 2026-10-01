@@ -38,6 +38,7 @@ export const HR_CSS = `
 .hr-card .gc-table th:first-child,.hr-card .gc-table td:first-child{padding-left:var(--space-5)}
 .hr-card .gc-table th:last-child,.hr-card .gc-table td:last-child{padding-right:var(--space-5)}
 .hr-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-4) var(--space-5)}
+.hr-head>:first-child{flex:1 1 auto;min-width:0}
 .hr-head h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .hr-head p{margin:2px 0 0;font-size:var(--text-xs);color:var(--text-muted)}
 .hr-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-5);border-bottom:1px solid var(--border-subtle)}

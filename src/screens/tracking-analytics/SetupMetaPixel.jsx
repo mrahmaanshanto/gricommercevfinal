@@ -7,6 +7,7 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+import { TA_PHONE_CSS } from './taPhone';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -217,7 +218,10 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .pill{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:var(--radius-full);background:#f1f4f9;font-size:var(--text-xs);color:#334155}
 
 .pgc>*{flex-shrink:0}.tb th{white-space:normal}.stp2{flex-shrink:0}.pgc>.fill{flex-shrink:1;min-height:0}
-`;
+@media (max-width:640px){
+  .mp-23{grid-template-columns:minmax(0,1fr)!important}
+}
+` + TA_PHONE_CSS;
 
 // ---- markup ----
 
@@ -248,7 +252,7 @@ export default class SetupMetaPixelScreen extends Component {
                     <h1 style={{ margin: "4px 0 0", fontSize: "var(--text-2xl)", lineHeight: "30px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.headline}</h1>
                     <p style={{ margin: "4px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)" }}>Browser pixel plus Conversions API, so Facebook and Instagram ads see orders even when the pixel is blocked.</p>
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px", width: "220px", flexShrink: "0" }}>
+                  <div className="su-prog" style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px", width: "220px", flexShrink: "0" }}>
                     <span style={{ fontSize: "var(--text-xs)", color: "rgba(203,216,238,.8)" }}>{v.progLabel}</span>
                     <div style={{ width: "100%", height: "8px", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.12)", overflow: "hidden" }}>
                       <div className="gr" style={__sx(`width: ${v.progW ?? ""}; height: 100%; background: #34d399; border-radius: var(--radius-full);`)} />
@@ -301,7 +305,7 @@ export default class SetupMetaPixelScreen extends Component {
                       <span className="bn" style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>বিজনেস ম্যানেজারে অ্যাডমিন অ্যাক্সেস লাগবে।</span>
                     </div>
                   </section>
-                  <section className="tc sec" style={__sx(`padding: 20px 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-color: ${v.bd23 ?? ""}; box-shadow: ${v.sh23 ?? ""};`)}>
+                  <section className="tc sec mp-23" style={__sx(`padding: 20px 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-color: ${v.bd23 ?? ""}; box-shadow: ${v.sh23 ?? ""};`)}>
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px", minWidth: "0" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                         <span className="secn" style={__sx(`background: ${v.nb2 ?? ""}; color: ${v.nf2 ?? ""};`)}>2</span>

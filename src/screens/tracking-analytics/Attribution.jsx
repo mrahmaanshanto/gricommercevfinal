@@ -7,6 +7,7 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+import { TA_PHONE_CSS } from './taPhone';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -180,7 +181,33 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .tb tr:last-child td{border-bottom:0}
 .tb .r{text-align:right}
 @media (prefers-reduced-motion:reduce){.st>*,.gr,.draw,.fadein{animation:none}}
-`;
+.at-hlist{display:none}
+@media (max-width:640px){
+  .at-hctl{width:100%}
+  .at-win{width:100%}
+  .at-win select{flex:1 1 auto;width:auto!important;min-width:0}
+  /* one order, start to finish: a vertical timeline */
+  .at-path{grid-template-columns:minmax(0,1fr)!important;gap:14px!important}
+  .at-path>.at-line{left:27px!important;right:auto!important;top:28px!important;bottom:28px!important;width:2px!important;height:auto!important;background:linear-gradient(180deg,#db2777,#c026d3,#059669,#f59e0b,#0b1733)!important}
+  .at-step{display:grid!important;grid-template-columns:56px minmax(0,1fr);column-gap:14px;row-gap:2px!important;align-items:center!important;justify-items:start;text-align:left!important}
+  .at-step>span:first-child{grid-row:1 / span 3;align-self:start}
+  .at-step>span:not(:first-child){grid-column:2}
+  /* first vs last touch: name + change on one line, the two bars full width below */
+  .at-chrow{grid-template-columns:minmax(0,1fr) auto!important;row-gap:6px!important}
+  .at-chrow>div{grid-column:1 / -1;order:3}
+  .at-legend{flex-wrap:wrap;gap:6px 16px!important}
+  /* how did you hear: a list with bars instead of six thin columns */
+  .at-hbars,.at-hlabels{display:none!important}
+  .at-hlist{display:flex;flex-direction:column;gap:10px}
+  .at-hrow{display:grid;grid-template-columns:minmax(0,1fr) 40px;gap:4px 10px;align-items:center;font-size:var(--text-xs-plus)}
+  .at-hrow>i{grid-column:1 / -1;display:block;height:8px;border-radius:var(--radius-full);background:#f1f4f9;overflow:hidden}
+  .at-hrow>i>b{display:block;height:100%;border-radius:var(--radius-full)}
+  .at-utm{grid-template-columns:minmax(0,1fr)!important}
+  .at-url{flex-wrap:wrap}
+  .at-url>.mono{flex:1 1 100%!important}
+  .at-chead{padding:0 16px}
+}
+` + TA_PHONE_CSS;
 
 // ---- markup ----
 
@@ -202,8 +229,8 @@ export default class AttributionScreen extends Component {
                     <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>Who really brought the sale</h1>
                     <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "640px" }}>Every order keeps the first and last place the buyer came from, any creator code, and what they told you at checkout.</p>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: "0" }}>
-                    <div className="dseg" style={{ padding: "3px 3px 3px 12px", alignItems: "center", gap: "8px" }}>
+                  <div className="at-hctl" style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: "0" }}>
+                    <div className="dseg at-win" style={{ padding: "3px 3px 3px 12px", alignItems: "center", gap: "8px" }}>
                       <span style={{ fontSize: "var(--text-xs)", color: "rgba(226,232,240,.8)" }}>Credit window</span>
                       <select className="inp" aria-label="Window" style={{ height: "32px", width: "150px", borderRadius: "var(--radius-full)", border: "0", fontSize: "var(--text-xs-plus)" }}>
                         <option>7 days after click</option>
@@ -248,10 +275,10 @@ export default class AttributionScreen extends Component {
                     <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "0" }}>One order, start to finish · GC-24817 · ৳1,290 · COD</h2>
                   </div>
                 </div>
-                <div className="gc-cols-5" style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: "14px" }}>
-                  <div style={{ position: "absolute", left: "10%", right: "10%", top: "27px", height: "2px", background: "linear-gradient(90deg, #db2777, #c026d3, #059669, #f59e0b, #0b1733)" }} />
+                <div className="gc-cols-5 at-path" style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: "14px" }}>
+                  <div className="at-line" style={{ position: "absolute", left: "10%", right: "10%", top: "27px", height: "2px", background: "linear-gradient(90deg, #db2777, #c026d3, #059669, #f59e0b, #0b1733)" }} />
                   {__list(v.path).map((ph, $index) => (<React.Fragment key={$index}>
-                      <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "8px" }}>
+                      <div className="at-step" style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "8px" }}>
                         <span style={__sx(`width: 56px; height: 56px; border-radius: var(--radius-xl); background: ${ph?.b ?? ""}; color: ${ph?.f ?? ""}; box-shadow: 0 0 0 5px #fff, 0 10px 20px -10px rgba(15,23,42,.45); display: flex; align-items: center; justify-content: center; font-weight: var(--weight-semibold); font-size: var(--text-sm-plus);`)}>
                           {ph?.hasLg ? (<>
                             <img src={ph?.lg} alt="" width="30" height="30" style={{ width: "30px", height: "30px", objectFit: "contain", flexShrink: "0", display: "block" }} />
@@ -267,7 +294,7 @@ export default class AttributionScreen extends Component {
                     </React.Fragment>))}
                 </div>
               </section>
-              <div className="st" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.35fr) minmax(0, 1fr)", gap: "18px", alignItems: "stretch" }}>
+              <div className="st gc-split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.35fr) minmax(0, 1fr)", gap: "18px", alignItems: "stretch" }}>
                 <section className="tc " style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
@@ -277,7 +304,7 @@ export default class AttributionScreen extends Component {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                     {__list(v.chans).map((ch, $index) => (<React.Fragment key={$index}>
-                        <div style={{ display: "grid", gridTemplateColumns: "140px minmax(0, 1fr) 70px", gap: "14px", alignItems: "center" }}>
+                        <div className="at-chrow" style={{ display: "grid", gridTemplateColumns: "140px minmax(0, 1fr) 70px", gap: "14px", alignItems: "center" }}>
                           <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{ch?.n}</span>
                           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -297,7 +324,7 @@ export default class AttributionScreen extends Component {
                         </div>
                       </React.Fragment>))}
                   </div>
-                  <div style={{ display: "flex", gap: "16px", fontSize: "var(--text-xs)", color: "#475569" }}>
+                  <div className="at-legend" style={{ display: "flex", gap: "16px", fontSize: "var(--text-xs)", color: "#475569" }}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><span style={{ width: "12px", height: "8px", borderRadius: "var(--radius-sm)", background: "#a78bfa" }} />First touch — who introduced them</span>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><span style={{ width: "12px", height: "8px", borderRadius: "var(--radius-sm)", background: "#2563eb" }} />Last touch — who closed the sale</span>
                   </div>
@@ -309,7 +336,7 @@ export default class AttributionScreen extends Component {
                       <p style={{ margin: "3px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Asked after the address. Catches word of mouth that no pixel can see.</p>
                     </div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "flex-end", gap: "12px", height: "190px", paddingTop: "8px" }}>
+                  <div className="at-hbars" style={{ display: "flex", alignItems: "flex-end", gap: "12px", height: "190px", paddingTop: "8px" }}>
                     {__list(v.hear).map((hr2, $index) => (<React.Fragment key={$index}>
                         <div className="tt" style={{ flex: "1", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "center", gap: "6px" }}>
                           <span className="tn" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{hr2?.w}</span>
@@ -318,10 +345,19 @@ export default class AttributionScreen extends Component {
                         </div>
                       </React.Fragment>))}
                   </div>
-                  <div style={{ display: "flex", gap: "12px" }}>
+                  <div className="at-hlabels" style={{ display: "flex", gap: "12px" }}>
                     {__list(v.hear).map((hl, $index) => (<React.Fragment key={$index}>
                         <span style={{ flex: "1", fontSize: "var(--text-xs)", color: "var(--text-muted)", textAlign: "center", lineHeight: "17px" }}>{hl?.l}</span>
                       </React.Fragment>))}
+                  </div>
+                  <div className="at-hlist">
+                    {__list(v.hear).map((hl, $index) => (
+                      <div className="at-hrow" key={$index}>
+                        <span style={{ color: "#0f172a" }}>{hl?.l} <span style={{ color: "var(--text-muted)" }}>· {hl?.n} answers</span></span>
+                        <span className="tn" style={{ textAlign: "right", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{hl?.w}</span>
+                        <i aria-hidden="true"><b style={{ width: hl?.h, background: hl?.c }} /></i>
+                      </div>
+                    ))}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
                     <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -338,7 +374,7 @@ export default class AttributionScreen extends Component {
                 </section>
               </div>
               <section className="tc " style={{ padding: "18px 0 4px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+                <div className="at-chead" style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "0" }}>Creator and influencer codes</h2>
                     <p style={{ margin: "3px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>A code credits its creator even when nobody clicked a link.</p>
@@ -397,7 +433,7 @@ export default class AttributionScreen extends Component {
                     <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "0" }}>UTM link builder</h2>
                   </div>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 1.2fr", gap: "12px" }}>
+                <div className="at-utm" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 1.2fr", gap: "12px" }}>
                   <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                     <span className="lbl">Page</span>
                     <select className="inp" value={v.uPage} onChange={v.setPage} aria-label="Page">
@@ -432,7 +468,7 @@ export default class AttributionScreen extends Component {
                     <input className="inp" value={v.uCamp} onInput={v.typeCamp} onChange={v.typeCamp} aria-label="Campaign" />
                   </label>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "16px 18px", borderRadius: "var(--radius-xl)", background: "#0b1733", "--text-muted": "#94a3b8" }}>
+                <div className="at-url" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "16px 18px", borderRadius: "var(--radius-xl)", background: "#0b1733", "--text-muted": "#94a3b8" }}>
                   <div className="mono" style={{ flexGrow: "1", fontSize: "var(--text-xs-plus)", lineHeight: "20px", wordBreak: "break-all", color: "#cbd5e1" }}>
                     <span style={{ color: "#fff" }}>{v.uBase}</span>
                     <span style={{ color: "var(--text-muted)" }}>?utm_source=</span>

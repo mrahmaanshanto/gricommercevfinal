@@ -7,6 +7,7 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+import { TA_PHONE_CSS } from './taPhone';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -191,7 +192,16 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .tb tr:last-child td{border-bottom:0}
 .tb .r{text-align:right}
 @media (prefers-reduced-motion:reduce){.st>*,.gr,.draw,.fadein{animation:none}}
-`;
+@media (max-width:640px){
+  /* chart head: the legend gets its own row under the title */
+  .eh-bvs{flex-wrap:wrap;row-gap:8px!important}
+  .eh-bvs>div:last-child{flex:1 1 100%;flex-wrap:wrap;row-gap:4px}
+  .eh-live{flex-wrap:wrap;row-gap:10px!important}
+  .eh-live>.lseg{flex:1 1 100%;overflow-x:auto;scrollbar-width:none}
+  .eh-live>.lseg::-webkit-scrollbar{display:none}
+  .eh-live>.lseg button{flex:none;white-space:nowrap}
+}
+` + TA_PHONE_CSS;
 
 // ---- markup ----
 
@@ -322,7 +332,7 @@ export default class EventHealthScreen extends Component {
                       </React.Fragment>))}
                   </div>
                   <section className="tc " style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+                    <div className="eh-bvs" style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                       <div style={{ flexGrow: "1", minWidth: "0" }}>
                         <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "0" }}>Browser vs server · last 24 hours</h2>
                         <p style={{ margin: "3px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Server keeps counting when ad blockers stop the browser pixel — the gap is sales you would have missed.</p>
@@ -359,7 +369,7 @@ export default class EventHealthScreen extends Component {
                   </section>
                   <div style={{ display: "flex", gap: "18px", alignItems: "flex-start" }}>
                     <section className="tc" style={{ overflow: "hidden", flexGrow: "1", minWidth: "0" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", borderBottom: "1px solid #eef1f6" }}>
+                      <div className="eh-live" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", borderBottom: "1px solid #eef1f6" }}>
                         <span className="pulse" role="img" aria-label="Live" title="Live" style={{ width: "9px", height: "9px", borderRadius: "var(--radius-full)", background: "var(--fill-success)", boxShadow: "0 0 0 4px var(--fill-success-soft)" }} />
                         <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", flexGrow: "1" }}>Live events</h2>
                         <div className="lseg" role="group" aria-label="Filter live events by platform">
@@ -405,7 +415,7 @@ export default class EventHealthScreen extends Component {
                         </table>
                       </div>
                     </section>
-                    <div style={{ width: "360px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "18px" }}>
+                    <div className="gc-side" style={{ width: "360px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "18px" }}>
                       <section className="tc " style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                           <div style={{ flexGrow: "1", minWidth: "0" }}>

@@ -560,7 +560,7 @@ export default class PlatformHealthScreen extends Component {
                     <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Uptime, 90 days</h2>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }} />
                   </div>
-                  <svg viewBox="0 0 360 150" width="100%" role="img" style={{ display: "block", overflow: "visible" }}>
+                  <svg className="cs-chart-s" viewBox="0 0 360 150" width="100%" role="img" style={{ "--cs-fs": "13px", display: "block", overflow: "visible" }}>
                     <text x="0" y="20" fontSize="22" fill="#0f172a" textAnchor="start" fontWeight="700" fontFamily="Poppins, system-ui, sans-serif">99.96%</text>
                     <text x="86" y="20" fontSize="11" fill="#64748b" textAnchor="start" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">uptime · last 90 days</text>
                     <rect x="0" y="36" width="3" height="46" rx="1" fill="#10b981" />
@@ -654,16 +654,21 @@ export default class PlatformHealthScreen extends Component {
                     <rect x="352" y="36" width="3" height="46" rx="1" fill="#10b981" />
                     <rect x="356" y="36" width="3" height="46" rx="1" fill="#10b981" />
                     <path d="M245,92 l4,-6 l4,6 z" fill="#b45309" />
-                    <text x="258" y="100" fontSize="10" fill="#b45309" textAnchor="start" fontWeight="600" fontFamily="Poppins, system-ui, sans-serif">26 min degraded · 12 Aug</text>
+                    <text className="cs-tend" x="258" y="100" fontSize="10" fill="#b45309" textAnchor="start" fontWeight="600" fontFamily="Poppins, system-ui, sans-serif">26 min degraded · 12 Aug</text>
                     <text x="0" y="100" fontSize="10" fill="#64748b" textAnchor="start" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">90 days ago</text>
                     <text x="360" y="118" fontSize="10" fill="#64748b" textAnchor="end" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">Today</text>
-                    <circle cx="6" cy="138" r="5" fill="#10b981" />
-                    <text x="16" y="142" fontSize="10" fill="#475569" textAnchor="start" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">Operational</text>
-                    <path d="M96,132 L102,143 L90,143 Z" fill="#ff9800" />
-                    <text x="106" y="142" fontSize="10" fill="#475569" textAnchor="start" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">Degraded</text>
-                    <rect x="168" y="134" width="8" height="8" fill="#ff5724" transform="rotate(45 172 138)" />
-                    <text x="182" y="142" fontSize="10" fill="#475569" textAnchor="start" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">Down</text>
+                    <circle className="cs-svg-legend" cx="6" cy="138" r="5" fill="#10b981" />
+                    <text className="cs-svg-legend" x="16" y="142" fontSize="10" fill="#475569" textAnchor="start" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">Operational</text>
+                    <path className="cs-svg-legend" d="M96,132 L102,143 L90,143 Z" fill="#ff9800" />
+                    <text className="cs-svg-legend" x="106" y="142" fontSize="10" fill="#475569" textAnchor="start" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">Degraded</text>
+                    <rect className="cs-svg-legend" x="168" y="134" width="8" height="8" fill="#ff5724" transform="rotate(45 172 138)" />
+                    <text className="cs-svg-legend" x="182" y="142" fontSize="10" fill="#475569" textAnchor="start" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">Down</text>
                   </svg>
+                  <div className="cs-chart-legend" aria-hidden="true">
+                    <span><span className="shp shp-ok" />Operational</span>
+                    <span><span className="shp shp-warn" />Degraded</span>
+                    <span><span className="shp shp-err" />Down</span>
+                  </div>
                 </section>
                 <section className="panel" style={{ padding: "16px 20px", minWidth: "0" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "12px" }}>

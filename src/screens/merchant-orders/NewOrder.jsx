@@ -9,7 +9,7 @@ import { Icon } from '@/runtime/dc';
 import { navigate } from '@/runtime/routes';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { Dialog } from '@/components/ui';
+import { Dialog, PhoneActionBar } from '@/components/ui';
 import { formatBDT } from '@/lib/format';
 import { ORDER_STATUSES, orderStatus } from '@/lib/orderStatus';
 import { createOrderLink, addOrder, DELIVERY_RATES as DELIVERY, PAYMENT_LABEL, BD_MOBILE as PHONE, cleanPhone, prettyPhone } from '@/lib/orderLinks';
@@ -112,6 +112,17 @@ const CSS = `
 .no-bar__note{margin-right:auto;font-size:var(--text-sm);color:var(--text-muted)}
 @media (max-width:1100px){.no-grid{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:767px){.no-bar{margin:0 -16px -16px;padding:var(--space-3) 16px}.no-pay{grid-template-columns:110px minmax(0,1fr) auto}}
+/* one column (tablets and phones): the customer comes first and Payment, with the create buttons, comes last */
+@media (max-width:1023px){
+  .no-grid>.no-col{display:contents}
+  .no-card--cust{order:1}.no-card--products{order:2}.no-card--status{order:3}.no-card--notes{order:4}.no-card--tags{order:5}.no-card--pay{order:6}
+}
+/* phones: Create order / Order link sit in the bottom action bar (PhoneActionBar); Discard and Save as draft
+   become a plain row at the end of the form so the two bars don't stack */
+@media (max-width:640px){
+  .no-foot{display:none}
+  .no-bar{position:static;margin:0 0 var(--space-12);padding:0;border-top:0;background:none;backdrop-filter:none}
+}
 `;
 
 const initials = (name) => name.split(/[\s·—]+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
@@ -328,7 +339,7 @@ export default function NewOrder() {
             <div className="no-grid">
               <div className="no-col">
                 {/* 1. Products */}
-                <section className="no-card" aria-labelledby="no-products">
+                <section className="no-card no-card--products" aria-labelledby="no-products">
                   <h2 id="no-products" className="no-card__title">Products</h2>
                   <div className="no-row">
                     <div className="no-search">
@@ -381,7 +392,7 @@ export default function NewOrder() {
                 </section>
 
                 {/* 3. Payment */}
-                <section className="no-card" aria-labelledby="no-payment">
+                <section className="no-card no-card--pay" aria-labelledby="no-payment">
                   <h2 id="no-payment" className="no-card__title">Payment</h2>
                   <div className="no-pay">
                     <span>Subtotal</span><span className="hint">{items ? `${items} item${items > 1 ? 's' : ''}` : '—'}</span><span className="v">{formatBDT(subtotal)}</span>
@@ -429,7 +440,7 @@ export default function NewOrder() {
 
               <div className="no-col">
                 {/* Status */}
-                <section className="no-card">
+                <section className="no-card no-card--status">
                   <label className="no-card__title" htmlFor="no-status" style={{ display: 'block' }}>Order status</label>
                   <select id="no-status" className="gc-input gc-select" style={{ borderRadius: 'var(--radius-lg)' }} value={status} onChange={(e) => setStatus(e.target.value)}>
                     {ORDER_STATUSES.map((st) => <option key={st.key} value={st.key}>{st.label}</option>)}
@@ -446,13 +457,13 @@ export default function NewOrder() {
                 </section>
 
                 {/* Notes */}
-                <section className="no-card" aria-labelledby="no-notes">
+                <section className="no-card no-card--notes" aria-labelledby="no-notes">
                   <h2 id="no-notes" className="no-card__title">Notes</h2>
                   <textarea className="gc-input" rows="3" style={{ borderRadius: 'var(--radius-lg)' }} aria-labelledby="no-notes" placeholder="Visible to staff and printed on the invoice" value={note} onChange={(e) => setNote(e.target.value)} />
                 </section>
 
                 {/* 2. Customer */}
-                <section className="no-card" aria-labelledby="no-customer">
+                <section className="no-card no-card--cust" aria-labelledby="no-customer">
                   <div className="no-cardhead">
                     <h2 id="no-customer" className="no-card__title">Customer</h2>
                     {customer ? <button type="button" className="gc-iconbtn" aria-label="Remove customer from this order" onClick={() => setCustomer(null)}><Icon name="x" width="16" height="16" /></button> : null}
@@ -492,7 +503,7 @@ export default function NewOrder() {
                 </section>
 
                 {/* Tags */}
-                <section className="no-card" aria-labelledby="no-tags">
+                <section className="no-card no-card--tags" aria-labelledby="no-tags">
                   <h2 id="no-tags" className="no-card__title">Tags</h2>
                   <input className="gc-input" style={{ borderRadius: 'var(--radius-lg)' }} aria-labelledby="no-tags" placeholder="Type a tag and press Enter" value={tagText} onChange={(e) => setTagText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }} />
                   {tags.length ? (
@@ -509,6 +520,11 @@ export default function NewOrder() {
               <Link href="/merchant-orders" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={leave}>Discard</Link>
               <button type="button" className="gc-btn gc-btn--sm gc-btn--outlined" onClick={saveDraft}>Save as draft</button>
             </div>
+            {/* phones only: the main actions stay in reach at the bottom of the screen */}
+            <PhoneActionBar note={'Total ' + formatBDT(total)} label="Create order">
+              <button type="button" className="gc-btn gc-btn--soft" onClick={makeLink} aria-label="Create order link"><Icon name="link" width="18" height="18" aria-hidden="true" />Order link</button>
+              <button type="button" className="gc-btn gc-btn--solid" onClick={createOrder}>Create order</button>
+            </PhoneActionBar>
           </div>
         </main>
       </div>

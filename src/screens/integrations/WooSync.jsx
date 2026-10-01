@@ -209,6 +209,15 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .lrow:hover{background:#f7f9fd}.lrow.on{background:rgba(0,48,135,.05)}
 .lrow:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:-3px}
 .pgc>*{flex-shrink:0}.tb th{white-space:normal}.stp2{flex-shrink:0}.pgc>.fill{flex-shrink:1;min-height:0}
+/* phones: the five setup steps become a numbered list; the key fields stack, status under the button */
+@media (max-width:767px){
+  .woo-flow{grid-template-columns:minmax(0,1fr)!important;gap:8px!important}
+  .woo-flow>li{padding:12px 14px!important}
+}
+@media (max-width:640px){
+  .row2{grid-template-columns:minmax(0,1fr)}
+  .woo-conn{flex-direction:column;align-items:flex-start!important;gap:8px!important}
+}
 `;
 
 // ---- markup ----
@@ -260,7 +269,7 @@ export default class WooSyncScreen extends Component {
                   <h2 className="h2">How the connection works</h2>
                   <p className="sub">No plugin to install. Two API keys from WordPress are enough.</p>
                 </div>
-                <ol style={{ margin: "0", padding: "0", listStyle: "none", display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: "10px" }}>
+                <ol className="woo-flow" style={{ margin: "0", padding: "0", listStyle: "none", display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: "10px" }}>
                   {__list(v.flow).map((fl, $index) => (<React.Fragment key={$index}>
                       <li style={__sx(`display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: var(--radius-xl); border: 1px solid ${fl?.bd ?? ""}; background: ${fl?.bg ?? ""};`)}>
                         <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -330,7 +339,7 @@ export default class WooSyncScreen extends Component {
                         <span style={__sx(`font-size: var(--text-xs); color: ${v.f_ap?.nc ?? ""};`)}>{v.f_ap?.note}</span>
                       </div>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div className="woo-conn" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       <button type="button" className="btn solid sm" onClick={v.testConn}>Test connection</button>
                       <span style={__sx(`font-size: var(--text-xs-plus); color: ${v.connC ?? ""};`)}>{v.connNote}</span>
                     </div>

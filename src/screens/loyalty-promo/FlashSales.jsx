@@ -94,6 +94,13 @@ a{color:#003087}a:hover{color:#002a77}
 .pulse{animation:gcPulse 1.6s ease-in-out infinite}
 @keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+/* phones: the intro takes the full width with the button under it; the status tabs stay on one scrolling row */
+@media (max-width:640px){
+  .fs-intro{flex-direction:column;align-items:stretch!important}
+  .fs-tabs{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none}
+  .fs-tabs::-webkit-scrollbar{display:none}
+  .fs-tabs>.tab{flex:none}
+}
 `;
 
 // ---- markup ----
@@ -151,7 +158,7 @@ export default class FlashSalesScreen extends Component {
                   </div>
                 </div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div className="fs-intro" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <div style={{ flexGrow: "1", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#475569" }}>A flash sale shows a low price on some products for a short time, with a countdown clock on your website and app.</div>
                 <__Link href="/new-flash-sale" className="btn solid">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -161,7 +168,7 @@ export default class FlashSalesScreen extends Component {
                 </__Link>
               </div>
               <section className="card" style={{ overflow: "hidden" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "14px 16px", borderBottom: "1px solid #e2e8f0", flexWrap: "wrap" }}>
+                <div className="fs-tabs" style={{ display: "flex", alignItems: "center", gap: "6px", padding: "14px 16px", borderBottom: "1px solid #e2e8f0", flexWrap: "wrap" }}>
                   {__list(v.tabs).map((tb, $index) => (<React.Fragment key={$index}>
                       <button type="button" className={tb?.cls} aria-pressed={tb?.on} onClick={tb?.pick}>{tb?.label}{tb?.hasCount ? (<>
   <span style={__sx(`min-width: 22px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: ${tb?.countBg ?? ""}; font-size: var(--text-xs); font-weight: var(--weight-medium); display: inline-flex; align-items: center; justify-content: center;`)}>{tb?.count}</span>

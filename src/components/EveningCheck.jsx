@@ -35,7 +35,7 @@ const CSS = `
 .ec-later input{width:auto;min-width:160px}
 .ec-intro{margin:0;font-size:var(--text-sm);color:var(--text-body)}
 .ec-sec{margin:var(--space-2) 0 0;font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em}
-@media (max-width:640px){.ec-row{grid-template-columns:1fr}.ec-acts{justify-content:flex-start}}
+@media (max-width:640px){.ec-row{grid-template-columns:1fr}.ec-acts{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)}.ec-acts>.gc-btn{padding-inline:var(--space-2);white-space:nowrap}}
 `;
 
 /** Tell the top bar bell how many questions are waiting. */

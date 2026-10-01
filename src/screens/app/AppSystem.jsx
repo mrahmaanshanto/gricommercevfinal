@@ -94,6 +94,20 @@ button{font:inherit;color:inherit}
 .tile{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--ink);text-align:center}
 .tile .ico{width:56px;height:56px;border-radius:var(--radius-xl)}
 .note{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:var(--radius-xl);font-size:var(--text-sm);line-height:20px}
+/* the board: a fixed 1440px drawing on wide screens (zoomed to fit by console-responsive.css) */
+[data-screen="AppSystem"] > .ph{width:1440px;height:1150px}
+.as-board{width:1440px;height:1000px;background:#f5f7fa;padding:56px 64px;font-family:var(--font-sans);color:#0f172a}
+.as-grid{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:24px;margin-top:32px}
+/* phones and small tablets: a real page instead of a zoomed-out board */
+@media (max-width:767px){
+  [data-screen="AppSystem"] > .ph[data-board]{zoom:1 !important;width:100% !important;height:auto !important;min-height:100vh;overflow:visible}
+  .as-board{width:auto;height:auto;padding:24px 16px 40px}
+  .as-grid{grid-template-columns:minmax(0,1fr);gap:16px;margin-top:20px}
+  .as-grid > .card{padding:20px !important}
+  .as-type > div{flex-wrap:wrap;column-gap:12px}
+  .as-comps{padding:20px !important;gap:16px !important}
+  .as-comps > *{max-width:100%}
+}
 `;
 
 // ---- markup ----
@@ -104,8 +118,8 @@ export default class AppSystemScreen extends Component {
     return (
       <div className="dc-screen" data-screen="AppSystem">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div data-board="" className="ph" style={{ width: "1440px", height: "1150px" }}>
-          <div style={{ width: "1440px", height: "1000px", background: "#f5f7fa", padding: "56px 64px", fontFamily: "var(--font-sans)", color: "#0f172a" }}>
+        <div data-board="" className="ph">
+          <div className="as-board">
             <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
               <img src="/assets/9b6f9ad369f1cbde65271a968e6ba1f1.png" alt="GridCommerce" style={{ height: "40px" }} />
               <div>
@@ -114,7 +128,7 @@ export default class AppSystemScreen extends Component {
               </div>
             </div>
             <p style={{ maxWidth: "760px", fontSize: "var(--text-sm-plus)", color: "#475569", margin: "14px 0 0" }}>Clean, calm and breathable. Built for a merchant working one-handed between customers, and for staff checking the platform on the move. Separate from the web admin design.</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr 1fr", gap: "24px", marginTop: "32px" }}>
+            <div className="as-grid">
               <div className="card" style={{ padding: "24px" }}>
                 <h2 style={{ margin: "0 0 16px", fontSize: "var(--text-base)" }}>Colour</h2>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
@@ -197,7 +211,7 @@ export default class AppSystemScreen extends Component {
                   <span className="pill p-err"><span className="sh err" />Overdue</span>
                 </div>
               </div>
-              <div className="card" style={{ padding: "24px" }}>
+              <div className="card as-type" style={{ padding: "24px" }}>
                 <h2 style={{ margin: "0 0 6px", fontSize: "var(--text-base)" }}>Type · Poppins</h2>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "12px 0", borderTop: "1px solid #e8edf3" }}>
                   <span style={{ fontSize: "var(--text-3xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>Screen title</span>
@@ -269,7 +283,7 @@ export default class AppSystemScreen extends Component {
                 </ul>
               </div>
             </div>
-            <div className="card" style={{ padding: "24px", marginTop: "24px", display: "flex", gap: "28px", alignItems: "center", flexWrap: "wrap" }}>
+            <div className="card as-comps" style={{ padding: "24px", marginTop: "24px", display: "flex", gap: "28px", alignItems: "center", flexWrap: "wrap" }}>
               <h2 style={{ margin: "0", fontSize: "var(--text-base)", width: "100%" }}>Components</h2>
               <a className="btn btnp" href="#" style={{ width: "200px" }}>Primary</a>
               <a className="btn btns" href="#" style={{ width: "160px" }}>Secondary</a>

@@ -263,6 +263,31 @@ a{color:#003087}a:hover{color:#002a77}
 .fsel{height:36px;padding:0 10px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-xs-plus);color:#1e293b}
 .pvtab{flex:1;height:36px;border:0;border-radius:var(--radius-lg);background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer}
 .pvtab.on{background:#fff;color:#003087;box-shadow:0 1px 2px rgba(15,23,42,.12)}
+/* phones: scan box and Add product stack; the finder head keeps icon + title + Hide on one row with the
+   explanation under it; each suggested product reads top to bottom (name, why it fits, price) */
+@media (max-width:640px){
+  .nfs-scan{flex-direction:column}
+  .nfs-scan>.btn{width:100%}
+  .nfs-scan input{font-size:var(--text-sm)!important;padding-left:44px!important;padding-right:var(--space-2)!important}
+  .nfs-scan label>span{left:12px!important}
+  .nfs-selbar{flex-wrap:wrap;gap:var(--space-2)!important}
+  .nfs-selbar>span:first-child{flex:1 1 100%}
+  .nfs-selbar>span:nth-child(2){display:none}
+  .nfs-selbar>.btn:last-child{flex:1 1 0;min-width:0}
+  .nfs-fhead{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto;gap:4px var(--space-2-5)!important;padding:var(--space-3)!important}
+  .nfs-fhead>span:first-child{grid-row:1;grid-column:1;display:inline-flex}
+  .nfs-fhead>div{display:contents}
+  .nfs-fhead>div>div:first-child{grid-row:1;grid-column:2;min-width:0}
+  .nfs-fhead>div>div:last-child{grid-row:2;grid-column:1/-1}
+  .nfs-fhead>button{grid-row:1;grid-column:3}
+  .nfs-hide{flex-wrap:wrap;row-gap:2px!important}
+  .nfs-hide>span:nth-of-type(1){flex:1 1 0;min-width:0}
+  .nfs-hide>span:last-child{flex:1 1 100%;margin-left:0!important}
+  .nfs-cand{grid-template-columns:24px minmax(0,1fr)!important;gap:6px var(--space-2-5)!important;align-items:start!important}
+  .nfs-cand>:nth-child(n+3){grid-column:2;text-align:left!important}
+  .nfs-cand--head{align-items:center!important}
+  .nfs-cand--head>:nth-child(n+3){display:none}
+}
 `;
 
 // ---- markup ----
@@ -354,7 +379,7 @@ export default class NewFlashSaleScreen extends Component {
                         <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Profit is checked with your buying price, so you never sell at a loss by mistake.</p>
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: "12px" }}>
+                    <div className="nfs-scan" style={{ display: "flex", gap: "12px" }}>
                       <label style={{ position: "relative", flexGrow: "1" }}>
                         <span style={{ position: "absolute", left: "16px", top: "15px", color: "#003087" }}>
                           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -378,7 +403,7 @@ export default class NewFlashSaleScreen extends Component {
                       </button>
                     </div>
                     <div className="finder finderBlock">
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", borderBottom: "1px solid #e2e8f0", background: "#fff" }}>
+                      <div className="nfs-fhead" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", borderBottom: "1px solid #e2e8f0", background: "#fff" }}>
                         <span style={{ color: "#003087" }}>
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <path d="m12 3-1.9 5.8L4 10.8l4.9 3.6L7 21l5-3.6 5 3.6-1.9-6.6 4.9-3.6-6.1-2Z" />
@@ -432,13 +457,13 @@ export default class NewFlashSaleScreen extends Component {
   <option>Mirpur godown</option>
 </select></label>
                           </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs-plus)", color: "#334155" }}>
+                          <div className="nfs-hide" style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs-plus)", color: "#334155" }}>
                             <button type="button" role="switch" aria-checked={v.hideOther?.on} aria-label="Hide products already in another sale" className={v.hideOther?.cls} onClick={v.hideOther?.toggle} style={{ transform: "scale(.85)" }} />
                             <span>Hide products already in another running sale</span>
                             <span style={{ marginLeft: "auto", color: "var(--text-muted)" }}>{v.critHint}</span>
                           </div>
                           <div role="group" aria-label="Matching products" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", overflow: "hidden", background: "#fff" }}>
-                            <div style={{ display: "grid", gridTemplateColumns: "24px minmax(0, 1.25fr) minmax(0, 1fr) 128px", gap: "12px", alignItems: "center", padding: "10px 14px", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".04em", textTransform: "uppercase", color: "var(--text-muted)" }}>
+                            <div className="nfs-cand nfs-cand--head" style={{ display: "grid", gridTemplateColumns: "24px minmax(0, 1.25fr) minmax(0, 1fr) 128px", gap: "12px", alignItems: "center", padding: "10px 14px", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".04em", textTransform: "uppercase", color: "var(--text-muted)" }}>
                               <button type="button" className={v.allCbx} role="checkbox" aria-checked={v.allOn} aria-label="Select all shown" onClick={v.toggleAll}>
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                   <path d="M20 6 9 17l-5-5" />
@@ -449,7 +474,7 @@ export default class NewFlashSaleScreen extends Component {
                               <span style={{ textAlign: "right" }}>Suggested price</span>
                             </div>
                             {__list(v.cands).map((r, $index) => (<React.Fragment key={$index}>
-                                <div className="row" style={__sx(`display: grid; grid-template-columns: 24px minmax(0, 1.25fr) minmax(0, 1fr) 128px; gap: 12px; align-items: center; padding: 10px 14px; border-bottom: 1px solid #eef2f6; opacity: ${r?.op ?? ""};`)}>
+                                <div className="row nfs-cand" style={__sx(`display: grid; grid-template-columns: 24px minmax(0, 1.25fr) minmax(0, 1fr) 128px; gap: 12px; align-items: center; padding: 10px 14px; border-bottom: 1px solid #eef2f6; opacity: ${r?.op ?? ""};`)}>
                                   <button type="button" className={r?.cbx} role="checkbox" aria-checked={r?.on} aria-disabled={r?.inSale} aria-label={`Select ${r?.name ?? ""}`} onClick={r?.toggle}>
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                       <path d="M20 6 9 17l-5-5" />
@@ -481,7 +506,7 @@ export default class NewFlashSaleScreen extends Component {
                               <div style={{ padding: "22px", textAlign: "center", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Nothing matches. Try another category or turn off “Hide products already in another running sale”.</div>
                             </>) : null}
                           </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                          <div className="nfs-selbar" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                             <span style={{ fontSize: "var(--text-xs-plus)", color: "#334155" }}>{v.selText}</span>
                             <span style={{ flexGrow: "1" }} />
                             <button type="button" className="btn line sm" onClick={v.clearSel}>Clear</button>

@@ -196,6 +196,19 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .lrow:hover{background:#f7f9fd}.lrow.on{background:rgba(0,48,135,.05)}
 .lrow:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:-3px}
 .pgc>*{flex-shrink:0}.tb th{white-space:normal}.stp2{flex-shrink:0}.pgc>.fill{flex-shrink:1;min-height:0}
+.au-chips{display:contents}
+/* narrow screens: the category chips are one swipe row; Workflow settings moves under them */
+@media (max-width:1023px){
+  .au-filters{flex-wrap:wrap}
+  .au-chips{display:flex;gap:8px;flex:1 1 100%;min-width:0;overflow-x:auto;scrollbar-width:none}
+  .au-chips::-webkit-scrollbar{display:none}
+  .au-chips>.chip{flex:none}
+  .au-filters>.au-gap{display:none}
+  .au-filters>.au-set{margin-left:auto}
+}
+@media (max-width:640px){
+  .au-chips{margin-inline:-14px;padding:0 14px 2px;scroll-padding-inline:14px}
+}
 `;
 
 // ---- markup ----
@@ -242,12 +255,14 @@ export default class AutomationsScreen extends Component {
                   <span>{v.msg}</span>
                 </div>
               </>) : null}
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div className="au-filters" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div className="au-chips">
                 {__list(v.chips).map((ch, $index) => (<React.Fragment key={$index}>
-                    <button type="button" className={ch?.cls} onClick={ch?.pick}>{ch?.label}<span className="pcnt">{ch?.n}</span></button>
+                    <button type="button" className={ch?.cls} aria-pressed={ch?.cls === 'chip on'} onClick={ch?.pick}>{ch?.label}<span className="pcnt">{ch?.n}</span></button>
                   </React.Fragment>))}
-                <span style={{ flexGrow: "1" }} />
-                <__Link href="/workflow-settings" className="abtn" style={{ textDecoration: "none" }}>Workflow settings</__Link>
+                </div>
+                <span className="au-gap" style={{ flexGrow: "1" }} />
+                <__Link href="/workflow-settings" className="abtn au-set" style={{ textDecoration: "none" }}>Workflow settings</__Link>
               </div>
               <div className="st gc-cols-2" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "16px" }}>
                 {__list(v.rules).map((r, $index) => (<React.Fragment key={$index}>

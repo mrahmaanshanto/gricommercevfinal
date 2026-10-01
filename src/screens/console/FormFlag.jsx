@@ -561,7 +561,7 @@ export default class FormFlagScreen extends Component {
                       <p className="fsd">Stores matching every rule are in the audience.</p>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "180px 120px minmax(0,1fr) 40px", gap: "8px", alignItems: "center" }}>
+                      <div className="cs-rule" style={{ display: "grid", gridTemplateColumns: "180px 120px minmax(0,1fr) 40px", gap: "8px", alignItems: "center" }}>
                         <select aria-label="Segment" defaultValue="Segment" className="in">
                           <option>Segment</option>
                         </select>
@@ -575,7 +575,7 @@ export default class FormFlagScreen extends Component {
                           </svg>
                         </button>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "180px 120px minmax(0,1fr) 40px", gap: "8px", alignItems: "center" }}>
+                      <div className="cs-rule" style={{ display: "grid", gridTemplateColumns: "180px 120px minmax(0,1fr) 40px", gap: "8px", alignItems: "center" }}>
                         <select aria-label="Plan" defaultValue="Plan" className="in">
                           <option>Plan</option>
                         </select>
@@ -589,7 +589,7 @@ export default class FormFlagScreen extends Component {
                           </svg>
                         </button>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "180px 120px minmax(0,1fr) 40px", gap: "8px", alignItems: "center" }}>
+                      <div className="cs-rule" style={{ display: "grid", gridTemplateColumns: "180px 120px minmax(0,1fr) 40px", gap: "8px", alignItems: "center" }}>
                         <select aria-label="District" defaultValue="District" className="in">
                           <option>District</option>
                         </select>

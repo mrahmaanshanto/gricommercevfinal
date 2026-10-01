@@ -231,6 +231,23 @@ body{font-family:var(--font-sans)}
 .gfab:focus-visible{outline:3px solid rgba(0,48,135,.45);outline-offset:3px}
 .th,.td{white-space:normal}
 .th,.td{padding-left:10px!important;padding-right:10px!important}
+@media (max-width:900px){
+  /* rates and the sample VAT invoice stack instead of squeezing the rates table */
+  .vat-pair{flex-direction:column;align-items:stretch!important}
+  .vat-inv{width:auto!important;max-width:100%;min-width:0}
+}
+@media (max-width:640px){
+  .vat-inv{padding:var(--space-3) var(--space-3) var(--space-4)!important}
+  .vat-inv__head{flex-wrap:wrap}
+  .vat-inv__head > svg{flex:none}
+  .vat-inv__head > div{flex:1 1 0!important;min-width:0}
+  .vat-inv__head .h2{font-size:var(--text-base)}
+  .vat-rcpt{padding:var(--space-3)!important;min-width:0}
+  .vat-rcpt__items th,.vat-rcpt__items td{padding-left:var(--space-1)!important}
+  .vat-rcpt__items th:first-child,.vat-rcpt__items td:first-child{padding-left:0!important}
+  .vat-rcpt__items td:not(:first-child){white-space:nowrap}
+  .vat-rate{width:96px!important;min-width:96px;max-width:none!important}
+}
 `;
 
 // ---- markup ----
@@ -345,7 +362,7 @@ export default class VatScreen extends Component {
                       </span>
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: "18px", alignItems: "flex-start" }}>
+                  <div className="vat-pair" style={{ display: "flex", gap: "18px", alignItems: "flex-start" }}>
                     <section className="card" style={{ flexGrow: "1", minWidth: "0", overflow: "hidden" }}>
                       <div style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: "12px" }}>
                         <svg width="30" height="30" viewBox="0 0 48 48" aria-hidden="true">
@@ -381,7 +398,7 @@ export default class VatScreen extends Component {
   </span>{r?.l}</span>
                                   </td>
                                   <td className="td" style={{ padding: "8px 14px" }}>
-                                    <select className="inp num" value={r?.rate} onInput={r?.setRate} onChange={r?.setRate} aria-label={`${v.t?.cRate ?? ""} ${r?.l ?? ""}`} style={{ width: "96px", height: "40px", padding: "0 10px", fontWeight: "var(--weight-semibold)" }}>
+                                    <select className="inp num vat-rate" value={r?.rate} onInput={r?.setRate} onChange={r?.setRate} aria-label={`${v.t?.cRate ?? ""} ${r?.l ?? ""}`} style={{ width: "96px", height: "40px", padding: "0 10px", fontWeight: "var(--weight-semibold)" }}>
                                       {__list(r?.opts).map((o, $index) => (<React.Fragment key={$index}>
                                           <option value={o?.v}>{o?.l}</option>
                                         </React.Fragment>))}
@@ -405,8 +422,8 @@ export default class VatScreen extends Component {
                         </table>
                       </div>
                     </section>
-                    <section className="card" style={{ width: "440px", flexShrink: "0", padding: "14px 18px 18px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <section className="card vat-inv" style={{ width: "440px", flexShrink: "0", padding: "14px 18px 18px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                      <div className="vat-inv__head" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                         <svg width="30" height="30" viewBox="0 0 48 48" aria-hidden="true">
                           <path d="M11 4H33A3 3 0 0 1 36 7V39A3 3 0 0 1 33 42H11A3 3 0 0 1 8 39V7A3 3 0 0 1 11 4Z" fill="#e0f2fe" />
                           <path d="M11.5 5.5H32.5A2 2 0 0 1 34.5 7.5V38.5A2 2 0 0 1 32.5 40.5H11.5A2 2 0 0 1 9.5 38.5V7.5A2 2 0 0 1 11.5 5.5Z" fill="#ffffff" />
@@ -426,7 +443,7 @@ export default class VatScreen extends Component {
   <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z" />
 </svg>{v.t?.printInv}</button>
                       </div>
-                      <div style={{ border: "1.5px solid #94a3b8", borderRadius: "var(--radius-md)", padding: "14px 16px", background: "#fff", display: "flex", flexDirection: "column", gap: "8px", fontSize: "var(--text-sm)" }}>
+                      <div className="vat-rcpt" style={{ border: "1.5px solid #94a3b8", borderRadius: "var(--radius-md)", padding: "14px 16px", background: "#fff", display: "flex", flexDirection: "column", gap: "8px", fontSize: "var(--text-sm)" }}>
                         <div style={{ textAlign: "center", lineHeight: "20px" }}>
                           <div style={{ fontSize: "var(--text-xs-plus)", color: "#475569", fontWeight: "var(--weight-medium)" }}>{v.t?.rForm}</div>
                           <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>{v.t?.rTitle}</div>
@@ -445,7 +462,7 @@ export default class VatScreen extends Component {
                           <span className="num">{v.t?.rBuyerV}</span>
                         </div>
                         <div className="gc-table-wrap">
-                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
+                          <table data-keep="" className="vat-rcpt__items" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
                             <thead>
                               <tr>
                                 <th style={{ textAlign: "left", padding: "5px 0", borderTop: "1px solid #0f172a", borderBottom: "1px solid #0f172a", fontWeight: "var(--weight-semibold)" }}>{v.t?.rItem}</th>

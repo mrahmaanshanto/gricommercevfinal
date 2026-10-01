@@ -28,6 +28,13 @@ const CSS = `
 .ic-scan > div:first-child{flex:1 1 260px}
 .ic-hit{display:flex;align-items:center;gap:var(--space-3);margin:0 var(--space-5) var(--space-5);padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg)}
 @media (max-width:1023px){.ic-wrap{grid-template-columns:minmax(0,1fr)}.ic-list{max-height:320px}}
+@media (max-width:640px){
+  /* the select-all button stays beside the place picker; the staff list grows with the page */
+  .ic-bar{flex-wrap:nowrap}
+  .ic-bar > select{flex:1 1 0;min-width:0}
+  .ic-bar > .gc-btn{flex:none}
+  .ic-list{max-height:none;overflow:visible}
+}
 `;
 
 export default function IdCards() {
@@ -77,9 +84,9 @@ export default function IdCards() {
 
       <div className="ic-wrap">
         <section className="gc-card hr-card">
-          <div className="hr-bar">
+          <div className="hr-bar ic-bar">
             <select className="gc-input gc-select" aria-label="Place" value={place} onChange={(e) => setPlace(e.target.value)}><option value="">All places</option>{places.map((p) => <option key={p}>{p}</option>)}</select>
-            <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => setSel(list.every((s) => sel.includes(s.code)) ? sel.filter((c) => !list.some((s) => s.code === c)) : [...new Set([...sel, ...list.map((s) => s.code)])])}>{list.every((s) => sel.includes(s.code)) ? 'Clear' : 'All'}</button>
+            <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => setSel(list.every((s) => sel.includes(s.code)) ? sel.filter((c) => !list.some((s) => s.code === c)) : [...new Set([...sel, ...list.map((s) => s.code)])])}>{list.every((s) => sel.includes(s.code)) ? 'Clear selection' : 'Select all'}</button>
           </div>
           <div className="ic-list" role="group" aria-label="Staff">
             {list.map((s) => (

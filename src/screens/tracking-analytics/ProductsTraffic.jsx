@@ -7,6 +7,7 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+import { TA_PHONE_CSS } from './taPhone';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -191,7 +192,13 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .tb tr:last-child td{border-bottom:0}
 .tb .r{text-align:right}
 @media (prefers-reduced-motion:reduce){.st>*,.gr,.draw,.fadein{animation:none}}
-`;
+@media (max-width:640px){
+  /* legend under the tabs: caption on its own line, the colour keys wrap below */
+  .pt-leg{flex-wrap:wrap;height:auto!important;padding:14px 16px 6px!important;gap:6px 14px!important}
+  .pt-leg>.ey{flex:1 1 100%;margin-right:0!important}
+  .pt-leg>span:not(.ey){white-space:nowrap}
+}
+` + TA_PHONE_CSS;
 
 // ---- markup ----
 
@@ -253,7 +260,7 @@ export default class ProductsTrafficScreen extends Component {
                     </React.Fragment>))}
                 </div>
                 {v.is_prod ? (<>
-                  <div style={{ padding: "8px 18px 0", display: "flex", gap: "16px", fontSize: "var(--text-xs)", color: "#475569", alignItems: "center", height: "44px" }}>
+                  <div className="pt-leg" style={{ padding: "8px 18px 0", display: "flex", gap: "16px", fontSize: "var(--text-xs)", color: "#475569", alignItems: "center", height: "44px" }}>
                     <span className="ey" style={{ marginRight: "6px" }}>Each ৳100 of revenue goes to</span>
                     {__list(v.leg).map((lg, $index) => (<React.Fragment key={$index}>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><span style={__sx(`width: 10px; height: 10px; border-radius: 3px; background: ${lg?.c ?? ""};`)} />{lg?.l}</span>

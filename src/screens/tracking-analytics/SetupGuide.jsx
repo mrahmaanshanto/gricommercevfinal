@@ -7,6 +7,7 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+import { TA_PHONE_CSS } from './taPhone';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -218,7 +219,20 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .ord:hover{border-color:#94a3b8;text-decoration:none;color:#0f172a}
 
 .pgc>*{flex-shrink:0}.tb th{white-space:normal}.stp2{flex-shrink:0}.pgc>.fill{flex-shrink:1;min-height:0}
-`;
+@media (max-width:1023px){
+  .sg-route{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+@media (max-width:640px){
+  /* procedure: one step per row */
+  .sg-route{grid-template-columns:minmax(0,1fr)!important;gap:8px!important}
+  .sg-route .ord{padding:10px 12px!important}
+  .sg-ohead{flex-wrap:wrap;row-gap:2px!important}
+  /* recommended order: one row that scrolls sideways */
+  .sg-order{overflow-x:auto;scrollbar-width:none;margin:0 -20px;padding:2px 20px}
+  .sg-order::-webkit-scrollbar{display:none}
+  .sg-order>.ord{flex:none}
+}
+` + TA_PHONE_CSS;
 
 // ---- markup ----
 
@@ -270,7 +284,7 @@ export default class SetupGuideScreen extends Component {
                   <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>The connection procedure, page by page</h2>
                   <p style={{ margin: "4px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "var(--text-muted)" }}>{"Six pages in Tracking & analytics, used in this order. Each step opens the page where it happens."}</p>
                 </div>
-                <ol style={{ margin: "0", padding: "0", listStyle: "none", display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: "10px" }}>
+                <ol className="sg-route" style={{ margin: "0", padding: "0", listStyle: "none", display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: "10px" }}>
                   {__list(v.route).map((r, $index) => (<React.Fragment key={$index}>
                       <li style={{ display: "flex", minWidth: "0" }}>
                         <__A href={r?.href} className="ord" style={__sx(`flex-direction: column; align-items: flex-start; gap: 6px; padding: 12px 14px; background: ${r?.bg ?? ""}; border-color: ${r?.bd ?? ""};`)}>
@@ -286,11 +300,11 @@ export default class SetupGuideScreen extends Component {
                 </ol>
               </section>
               <section className="tc" style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: "12px" }}>
+                <div className="sg-ohead" style={{ display: "flex", alignItems: "baseline", gap: "12px" }}>
                   <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Recommended order</h2>
                   <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>GTM first, so every later tag loads through one container.</span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <div className="sg-order" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                   {__list(v.order).map((o, $index) => (<React.Fragment key={$index}>
                       <__A href={o?.href} className="ord" style={__sx(`border-color: ${o?.bd ?? ""}; background: ${o?.bg ?? ""};`)}>
                         <span style={__sx(`width: 24px; height: 24px; border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-size: var(--text-xs); font-weight: var(--weight-medium); flex-shrink: 0; background: ${o?.nb ?? ""}; color: ${o?.nf ?? ""};`)}>{o?.n}</span>
@@ -337,7 +351,7 @@ export default class SetupGuideScreen extends Component {
                     </__A>
                   </React.Fragment>))}
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 7fr) minmax(0, 5fr)", gap: "16px", alignItems: "start" }}>
+              <div className="gc-split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 7fr) minmax(0, 5fr)", gap: "16px", alignItems: "start" }}>
                 <section className="tc" style={{ overflow: "hidden" }}>
                   <div style={{ padding: "18px 20px 14px", display: "flex", flexDirection: "column", gap: "10px", borderBottom: "1px solid #eef1f6" }}>
                     <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>

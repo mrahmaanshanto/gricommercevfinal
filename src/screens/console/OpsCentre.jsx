@@ -683,7 +683,7 @@ export default class OpsCentreScreen extends Component {
                     <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Traffic, last hour</h2>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }}>requests per second</div>
                   </div>
-                  <svg viewBox="0 0 760 180" width="100%" role="img" aria-hidden="true" style={{ display: "block" }}>
+                  <svg className="cs-chart-l" viewBox="0 0 760 180" width="100%" role="img" aria-hidden="true" style={{ display: "block" }}>
                     <line x1="36" x2="760" y1="158.0" y2="158.0" stroke="#eef2f7" />
                     <line x1="36" x2="760" y1="123.0" y2="123.0" stroke="#eef2f7" />
                     <line x1="36" x2="760" y1="88.0" y2="88.0" stroke="#eef2f7" />
@@ -696,6 +696,11 @@ export default class OpsCentreScreen extends Component {
                     <text x="413.7" y="176" fontSize="11" fill="#64748b" textAnchor="middle" fontFamily="Poppins">14:02</text>
                     <text x="750.0" y="176" fontSize="11" fill="#64748b" textAnchor="middle" fontFamily="Poppins">14:32</text>
                   </svg>
+                  <div className="cs-axis" aria-hidden="true">
+                    <span style={{ left: "5.3%" }}>13:32</span>
+                    <span style={{ left: "54.4%" }}>14:02</span>
+                    <span style={{ left: "98.7%" }}>14:32</span>
+                  </div>
                 </section>
                 <section className="panel" style={{ padding: "16px 20px", minWidth: "0" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "12px" }}>

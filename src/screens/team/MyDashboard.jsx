@@ -69,7 +69,17 @@ const CSS = `
 .md-kv{display:flex;justify-content:space-between;gap:var(--space-3);font-size:var(--text-sm)}
 .md-kv > span:first-child{color:var(--text-muted)}
 @media (max-width:1180px){.md-grid{grid-template-columns:minmax(0,1fr)}}
-@media (max-width:640px){.md-hero{padding:var(--space-4)}.md-nums{grid-template-columns:repeat(3,minmax(64px,1fr))}}
+@media (max-width:640px){
+  .md-hero{padding:var(--space-4)}
+  .md-nums{grid-template-columns:repeat(3,minmax(64px,1fr))}
+  /* task rows: the title gets the line; priority and due date go under it */
+  .md-task{flex-wrap:wrap;row-gap:2px}
+  .md-task:not(.md-follow) > .md-task__main{flex-basis:calc(100% - 40px)}
+  .md-task:not(.md-follow) > .md-task__main + *{margin-left:calc(22px + var(--space-3))}
+  .md-task > span:empty{display:none}
+  /* follow-ups: the date above the name, the call button beside it */
+  .md-follow > .md-follow__when{flex:1 1 100%;width:auto!important}
+}
 `;
 
 const P_LABEL = { week: 'This week', lastmonth: 'Last month', month: 'This month', today: 'Today', yesterday: 'Yesterday' };
@@ -252,8 +262,8 @@ function MyFollowUps({ leads, now }) {
       <header><div><h2>My follow-ups</h2><p>{leads.length} open lead{leads.length === 1 ? '' : 's'} · {formatBDT(leads.reduce((a, l) => a + l.value, 0))}</p></div><Link href="/sales-leads" className="gc-btn gc-btn--sm gc-btn--flat">All leads</Link></header>
       <div className="md-body" style={{ gap: 0 }}>
         {list.map((l) => { const fs = followState(l, now); return (
-          <div key={l.id} className="md-task">
-            <span className={'tm-fig' + (fs === 'overdue' ? ' tm-out' : fs === 'today' ? ' tm-warn' : '')} style={{ width: 70, fontSize: 'var(--text-xs)' }}>{fs === 'today' ? formatTime(l.next.at) : formatDate(l.next.at).replace(/ \d{4}$/, '')}</span>
+          <div key={l.id} className="md-task md-follow">
+            <span className={'md-follow__when tm-fig' + (fs === 'overdue' ? ' tm-out' : fs === 'today' ? ' tm-warn' : '')} style={{ width: 70, fontSize: 'var(--text-xs)' }}>{fs === 'today' ? formatTime(l.next.at) : formatDate(l.next.at).replace(/ \d{4}$/, '')}</span>
             <Link href={`/sales-leads?lead=${l.id}`} className="md-task__main"><b>{l.name}{l.company ? ` · ${l.company}` : ''}</b><span className="tm-sub">{l.next.what} · {stageOf(l.stage)[1]} · {formatBDT(l.value)}</span></Link>
             <a href={'tel:' + l.phone.replace(/\D/g, '')} className="gc-btn gc-btn--sm gc-btn--neutral" aria-label={`Call ${l.name}`}><Icon name="phone" width="14" height="14" aria-hidden="true" /></a>
           </div>

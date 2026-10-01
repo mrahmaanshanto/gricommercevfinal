@@ -547,12 +547,12 @@ export default class ModuleCatalogueScreen extends Component {
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: "14px" }}>
                 <section className="panel" style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <div>
+                  <div className="cs-nowrap" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{ minWidth: "0" }}>
                       <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>Platform core</h2>
                       <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Runs in every store · 8 modules</div>
                     </div>
-                    <div style={{ marginLeft: "auto", display: "flex", gap: "4px" }}>
+                    <div style={{ marginLeft: "auto", flex: "none", display: "flex", gap: "4px" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#003087", color: "#fff" }} title="Growth">G</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#003087", color: "#fff" }} title="Business">B</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#003087", color: "#fff" }} title="Enterprise">E</span>
@@ -570,12 +570,12 @@ export default class ModuleCatalogueScreen extends Component {
                   </div>
                 </section>
                 <section className="panel" style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <div>
+                  <div className="cs-nowrap" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{ minWidth: "0" }}>
                       <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>Everyday core</h2>
                       <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Every segment, every plan · 10 modules</div>
                     </div>
-                    <div style={{ marginLeft: "auto", display: "flex", gap: "4px" }}>
+                    <div style={{ marginLeft: "auto", flex: "none", display: "flex", gap: "4px" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#003087", color: "#fff" }} title="Growth">G</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#003087", color: "#fff" }} title="Business">B</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#003087", color: "#fff" }} title="Enterprise">E</span>
@@ -595,12 +595,12 @@ export default class ModuleCatalogueScreen extends Component {
                   </div>
                 </section>
                 <section className="panel" style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <div>
+                  <div className="cs-nowrap" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{ minWidth: "0" }}>
                       <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>Online set</h2>
                       <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Online segment · 11 modules</div>
                     </div>
-                    <div style={{ marginLeft: "auto", display: "flex", gap: "4px" }}>
+                    <div style={{ marginLeft: "auto", flex: "none", display: "flex", gap: "4px" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#003087", color: "#fff" }} title="Growth">G</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#003087", color: "#fff" }} title="Business">B</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#003087", color: "#fff" }} title="Enterprise">E</span>
@@ -621,12 +621,12 @@ export default class ModuleCatalogueScreen extends Component {
                   </div>
                 </section>
                 <section className="panel" style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <div>
+                  <div className="cs-nowrap" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{ minWidth: "0" }}>
                       <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>Retail set</h2>
                       <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Retail segment · 4 modules</div>
                     </div>
-                    <div style={{ marginLeft: "auto", display: "flex", gap: "4px" }}>
+                    <div style={{ marginLeft: "auto", flex: "none", display: "flex", gap: "4px" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#003087", color: "#fff" }} title="Growth">G</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#003087", color: "#fff" }} title="Business">B</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#003087", color: "#fff" }} title="Enterprise">E</span>
@@ -640,12 +640,12 @@ export default class ModuleCatalogueScreen extends Component {
                   </div>
                 </section>
                 <section className="panel" style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <div>
+                  <div className="cs-nowrap" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{ minWidth: "0" }}>
                       <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>Wholesale set</h2>
                       <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Wholesale segment · 3 modules</div>
                     </div>
-                    <div style={{ marginLeft: "auto", display: "flex", gap: "4px" }}>
+                    <div style={{ marginLeft: "auto", flex: "none", display: "flex", gap: "4px" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#003087", color: "#fff" }} title="Growth">G</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#003087", color: "#fff" }} title="Business">B</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#003087", color: "#fff" }} title="Enterprise">E</span>
@@ -658,12 +658,12 @@ export default class ModuleCatalogueScreen extends Component {
                   </div>
                 </section>
                 <section className="panel" style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <div>
+                  <div className="cs-nowrap" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{ minWidth: "0" }}>
                       <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>Grow set</h2>
                       <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Offers, loyalty, recovery, analytics · 4 modules</div>
                     </div>
-                    <div style={{ marginLeft: "auto", display: "flex", gap: "4px" }}>
+                    <div style={{ marginLeft: "auto", flex: "none", display: "flex", gap: "4px" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "transparent", color: "var(--text-muted)", border: "1.5px dashed #cbd5e1" }} title="Growth">G</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#003087", color: "#fff" }} title="Business">B</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#003087", color: "#fff" }} title="Enterprise">E</span>
@@ -677,12 +677,12 @@ export default class ModuleCatalogueScreen extends Component {
                   </div>
                 </section>
                 <section className="panel" style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <div>
+                  <div className="cs-nowrap" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{ minWidth: "0" }}>
                       <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>Scale set</h2>
                       <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Locations, people, custom plans · 2 modules</div>
                     </div>
-                    <div style={{ marginLeft: "auto", display: "flex", gap: "4px" }}>
+                    <div style={{ marginLeft: "auto", flex: "none", display: "flex", gap: "4px" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "transparent", color: "var(--text-muted)", border: "1.5px dashed #cbd5e1" }} title="Growth">G</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "transparent", color: "var(--text-muted)", border: "1.5px dashed #cbd5e1" }} title="Business">B</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#003087", color: "#fff" }} title="Enterprise">E</span>
@@ -694,12 +694,12 @@ export default class ModuleCatalogueScreen extends Component {
                   </div>
                 </section>
                 <section className="panel" style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <div>
+                  <div className="cs-nowrap" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{ minWidth: "0" }}>
                       <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>Credit add-ons</h2>
                       <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Bought as credits · 3 modules</div>
                     </div>
-                    <div style={{ marginLeft: "auto", display: "flex", gap: "4px" }}>
+                    <div style={{ marginLeft: "auto", flex: "none", display: "flex", gap: "4px" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "transparent", color: "var(--text-muted)", border: "1.5px dashed #cbd5e1" }} title="Growth">G</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "transparent", color: "var(--text-muted)", border: "1.5px dashed #cbd5e1" }} title="Business">B</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "transparent", color: "var(--text-muted)", border: "1.5px dashed #cbd5e1" }} title="Enterprise">E</span>
@@ -712,12 +712,12 @@ export default class ModuleCatalogueScreen extends Component {
                   </div>
                 </section>
                 <section className="panel" style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <div>
+                  <div className="cs-nowrap" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{ minWidth: "0" }}>
                       <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>Service add-on</h2>
                       <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Managed service · 1 modules</div>
                     </div>
-                    <div style={{ marginLeft: "auto", display: "flex", gap: "4px" }}>
+                    <div style={{ marginLeft: "auto", flex: "none", display: "flex", gap: "4px" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "transparent", color: "var(--text-muted)", border: "1.5px dashed #cbd5e1" }} title="Growth">G</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "transparent", color: "var(--text-muted)", border: "1.5px dashed #cbd5e1" }} title="Business">B</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "transparent", color: "var(--text-muted)", border: "1.5px dashed #cbd5e1" }} title="Enterprise">E</span>

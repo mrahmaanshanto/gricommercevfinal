@@ -58,6 +58,13 @@ const CSS = `
 .mo-table .gc-badge{white-space:nowrap}
 .mo-more{display:flex;justify-content:center;padding:var(--space-3)}
 @media (max-width:1100px){.mo-grid{grid-template-columns:minmax(0,1fr)}.mo-list{position:static}}
+@media (max-width:640px){
+  /* the accounts list above already shows "All your accounts" and its total: don't repeat it */
+  .mo-hero--all > span:first-child,.mo-hero--all .mo-hero__meta{display:none!important}
+  .mo-hero--all{padding-bottom:var(--space-3)}
+  /* table-cards: the account (logo + name) sits on the right like the other values */
+  .mo-table.gc-cards-on .ac-who{justify-content:flex-end}
+}
 `;
 
 export default function Money() {
@@ -194,7 +201,7 @@ export default function Money() {
         </nav>
 
         <section className="gc-card ac-card" aria-label={acc ? accName(acc.id) : 'All accounts'}>
-          <div className="mo-hero">
+          <div className={'mo-hero' + (!acc && !type ? ' mo-hero--all' : '')}>
             {acc ? <BrandLogo brand={acc.brand} size={52} /> : <span style={{ display: 'grid', placeItems: 'center', width: 52, height: 52, borderRadius: 'var(--radius-lg)', background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="wallet" width="24" height="24" aria-hidden="true" /></span>}
             <div className="mo-hero__meta">
               <h2>{acc ? acc.name : type ? TYPES.find((x) => x[0] === type)[1] : 'All your accounts'}</h2>

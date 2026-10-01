@@ -536,7 +536,7 @@ export default class SupportDeskScreen extends Component {
                 </div>
               </div>
             </div>
-            <div role="tablist" aria-label="Queues" style={{ display: "flex", gap: "22px", padding: "0 24px", borderBottom: "1px solid var(--line)", background: "var(--surface)" }}>
+            <div role="tablist" aria-label="Queues" className="cs-strip" style={{ display: "flex", gap: "22px", padding: "0 24px", borderBottom: "1px solid var(--line)", background: "var(--surface)" }}>
               {__list(v.queues).map((q, $index) => (<React.Fragment key={$index}>
                   <button className={q?.cls} type="button" role="tab" aria-selected={q?.sel} onClick={q?.pick}>{q?.label}<span className="cnt">{q?.count}</span></button>
                 </React.Fragment>))}

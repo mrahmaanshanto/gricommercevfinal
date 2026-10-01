@@ -160,7 +160,7 @@ export default class MCallSettingsScreen extends Component {
             <div className="card" style={{ margin: "0 20px" }}>
               <a className="lrow" href="#">
                 <span style={{ flex: "1", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Opening hours</span>
-                <span style={{ fontSize: "var(--text-sm)", color: "var(--muted)" }}>Sat–Thu · 10:00 AM–9:00 PM</span>
+                <span style={{ fontSize: "var(--text-sm)", color: "var(--muted)", whiteSpace: "nowrap" }}>Sat–Thu · 10 AM–9 PM</span>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="m9 18 6-6-6-6" />
                 </svg>

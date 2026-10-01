@@ -217,6 +217,16 @@ section.card .td .badge,section.card .td .btn{white-space:nowrap}
 .tf-facts{display:grid;grid-template-columns:auto 1fr;gap:6px var(--space-4);margin:0;font-size:var(--text-sm)}
 .tf-facts dt{color:var(--text-muted)}.tf-facts dd{margin:0;color:var(--text-heading)}
 @media (max-width:599px){.tf-two{grid-template-columns:1fr}}
+.tf-phone-new{display:none!important}
+/* phones: New transfer moves up beside the title, status chips scroll on one row, the From → To arrow cell is dropped */
+@media (max-width:640px){
+  .tf-phone-new{display:inline-flex!important}
+  .tf-intro>.btn{display:none}
+  .tf-tabs{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;padding:12px 14px!important}
+  .tf-tabs::-webkit-scrollbar{display:none}
+  .tf-tabs>button{flex:none}
+  .tf-table>tbody>tr>td:nth-child(3){display:none!important}
+}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
 `;
 
@@ -233,7 +243,7 @@ export default class TransfersScreen extends Component {
           <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
             <__Topbar crumb="Stock" page="Transfers" placeholder="Search or scan any barcode" />
             <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <__PageHeader title="Transfers" />
+              <__PageHeader title="Transfers" actions={<__Link href="/new-transfer" className="gc-btn gc-btn--solid tf-phone-new"><__Icon name="arrow-left-right" width="18" height="18" aria-hidden="true" /> New transfer</__Link>} />
               <div className="gc-cardrow" style={{ display: "flex", gap: "16px" }}>
                 <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
                   <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "rgba(0,48,135,.08)", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -279,7 +289,7 @@ export default class TransfersScreen extends Component {
                   </div>
                 </div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div className="tf-intro" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <div style={{ flexGrow: "1", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#475569" }}>Move stock between your warehouses and shops. Scan out when it leaves, scan in when it arrives.</div>
                 <__Link href="/new-transfer" className="btn solid">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -292,7 +302,7 @@ export default class TransfersScreen extends Component {
                 </__Link>
               </div>
               <section className="card" style={{ overflow: "hidden" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "14px 16px", borderBottom: "1px solid #e2e8f0", flexWrap: "wrap" }}>
+                <div className="tf-tabs" style={{ display: "flex", alignItems: "center", gap: "6px", padding: "14px 16px", borderBottom: "1px solid #e2e8f0", flexWrap: "wrap" }}>
                   {__list(v.tabs).map((tb, $index) => (<React.Fragment key={$index}>
                       <button type="button" className={tb?.cls} aria-pressed={tb?.on} onClick={tb?.pick}>{tb?.label}{tb?.hasCount ? (<>
   <span style={__sx(`min-width: 22px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: ${tb?.countBg ?? ""}; font-size: var(--text-xs); font-weight: var(--weight-medium); display: inline-flex; align-items: center; justify-content: center;`)}>{tb?.count}</span>
@@ -300,7 +310,7 @@ export default class TransfersScreen extends Component {
                     </React.Fragment>))}
                 </div>
                 <div className="gc-table-wrap">
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <table className="tf-table" style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                       <tr>
                         <th className="th">Transfer</th>

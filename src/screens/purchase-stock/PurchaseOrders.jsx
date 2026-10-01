@@ -71,7 +71,7 @@ class Component extends DCLogic {
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `/* phones: rows of label + buttons wrap instead of running out of the card */
-@media (max-width:640px){.gc-shell__content [style*="display:flex"]:not([role="tablist"]),.gc-shell__content [style*="display: flex"]:not([role="tablist"]){flex-wrap:wrap}.gc-shell__content select,.gc-shell__content input{min-width:0;max-width:100%}.gc-shell__content .mono,.gc-shell__content [class*="badge"]{overflow-wrap:anywhere}}
+@media (max-width:640px){.gc-shell__content [style*="display:flex"]:not([role="tablist"]):not([style*="column"]),.gc-shell__content [style*="display: flex"]:not([role="tablist"]):not([style*="column"]){flex-wrap:wrap}.gc-shell__content select,.gc-shell__content input{min-width:0;max-width:100%}.gc-shell__content .mono,.gc-shell__content [class*="badge"]{overflow-wrap:anywhere}}
 
 body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
@@ -118,6 +118,32 @@ a{color:#003087}a:hover{color:#002a77}
 .scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
 @keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+
+/* tablets and phones: the four shortcuts are actions, not a statistic strip: a 2-column grid inside the gutter */
+@media (max-width:1023px){
+  .gc-shell__content .po-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px!important}
+  .gc-shell__content .po-actions>*{min-width:0!important;max-width:none!important}
+}
+@media (max-width:767px){
+  .gc-shell__content .po-actions{margin-inline:0!important;padding:0!important;overflow:visible!important}
+}
+/* phones: status chips on one scrolling row, Export joins the filter row as an icon, the whole card opens the order */
+@media (max-width:640px){
+  .gc-shell__content .po-actions{gap:8px!important}
+  .gc-shell__content .po-actions>*{flex-direction:column;align-items:flex-start!important}
+  .po-tabs{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;padding:12px 14px!important}
+  .po-tabs::-webkit-scrollbar{display:none}
+  .po-tabs>button{flex:none}
+  .po-filters{gap:8px!important;padding:12px 14px!important}
+  .po-filters>label{flex:1 1 100%!important;max-width:none!important}
+  .po-filters>.chip{padding:0 12px}
+  .po-filters>.chip>svg:first-child{display:none}
+  .po-export{width:36px;padding:0!important}
+  .po-export>span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .po-table>tbody>tr{position:relative}
+  .po-table>tbody>tr>td:first-child a::after{content:"";position:absolute;inset:0;border-radius:var(--radius-lg)}
+  .po-table>tbody>tr>td:last-child{display:none!important}
+}
 `;
 
 // ---- markup ----
@@ -134,7 +160,7 @@ export default class PurchaseOrdersScreen extends Component {
             <__Topbar crumb="Purchase" page="Purchase orders" placeholder="Search or scan any barcode" />
             <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
               <__PageHeader title="Purchase orders" />
-              <div className="gc-cardrow" style={{ display: "flex", gap: "16px" }}>
+              <div className="gc-cardrow po-actions" style={{ display: "flex", gap: "16px" }}>
                 <__Link href="/new-po" className="card" style={{ flexGrow: "1", flexBasis: "0", minWidth: "0", display: "flex", alignItems: "center", gap: "14px", padding: "18px", textDecoration: "none", background: "#003087", color: "#ffffff" }}>
                   <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "rgba(255,255,255,0.14)", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -202,12 +228,12 @@ export default class PurchaseOrdersScreen extends Component {
                 <button type="button" className="btn warnbtn sm" onClick={v.showApproval}>Review now</button>
               </div>
               <section className="card" style={{ display: "flex", flexDirection: "column", minHeight: "0" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "14px 16px", borderBottom: "1px solid #e2e8f0", flexWrap: "wrap" }}>
+                <div className="po-tabs" style={{ display: "flex", alignItems: "center", gap: "6px", padding: "14px 16px", borderBottom: "1px solid #e2e8f0", flexWrap: "wrap" }}>
                   {__list(v.tabs).map((tb, $index) => (<React.Fragment key={$index}>
                       <button type="button" className={tb?.cls} aria-pressed={tb?.on} onClick={tb?.pick}>{tb?.label}<span style={__sx(`min-width: 22px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: ${tb?.countBg ?? ""}; font-size: var(--text-xs); font-weight: var(--weight-medium); display: inline-flex; align-items: center; justify-content: center;`)}>{tb?.count}</span></button>
                     </React.Fragment>))}
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 16px" }}>
+                <div className="po-filters" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 16px" }}>
                   <label style={{ position: "relative", flexGrow: "1", maxWidth: "420px" }}>
                     <span style={{ position: "absolute", left: "14px", top: "12px", color: "var(--text-muted)" }}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -242,7 +268,7 @@ export default class PurchaseOrdersScreen extends Component {
                     </svg>
                   </button>
                   <div style={{ flexGrow: "1" }} />
-                  <button type="button" className="btn line sm" onClick={v.exportRows}>
+                  <button type="button" className="btn line sm po-export" onClick={v.exportRows}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                       <path d="M17 8 12 3 7 8" />
@@ -252,7 +278,7 @@ export default class PurchaseOrdersScreen extends Component {
                   </button>
                 </div>
                 <div className="gc-table-wrap">
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <table className="po-table" style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                       <tr>
                         <th className="th">Purchase order</th>

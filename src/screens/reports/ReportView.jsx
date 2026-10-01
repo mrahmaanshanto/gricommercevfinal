@@ -40,6 +40,9 @@ const CSS = CHART_CSS + TABLE_CSS + `
 .rv-notes li::before{content:'· '}
 .rv-error{padding:var(--space-5);font-size:var(--text-sm);color:var(--text-danger)}
 @media (max-width:640px){.rv-controls .gc-input{min-width:0;width:100%}.rv-controls > div{flex:1 1 140px}}
+/* phones: figures two to a row (an odd last one takes the full row); filters one per row on narrow phones */
+@media (max-width:640px){.rv-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.rv-kpi:last-child:nth-child(odd){grid-column:1/-1}}
+@media (max-width:400px){.rv-controls > div{flex-basis:100%}}
 /* the PDF: letterhead, report details, figures, table and sign-off on A4 */
 .rv-doc{display:none}
 @media print{

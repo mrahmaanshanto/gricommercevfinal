@@ -509,19 +509,19 @@ export default class TrialsScreen extends Component {
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr)", gap: "14px" }}>
                 <section className="panel" style={{ padding: "14px 18px", display: "flex", flexDirection: "column", gap: "8px" }}>
                   <h2 style={{ margin: "0 0 2px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>This month's trials</h2>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div className="cs-barrow" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <span style={{ width: "100%", minWidth: "60px", height: "30px", borderRadius: "var(--radius-md)", background: "#012169", color: "#fff", display: "flex", alignItems: "center", padding: "0 10px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }} className="num">18</span>
                     <span style={{ flex: "none", fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Trials running</span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div className="cs-barrow" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <span style={{ width: "61%", minWidth: "60px", height: "30px", borderRadius: "var(--radius-md)", background: "#003087", color: "#fff", display: "flex", alignItems: "center", padding: "0 10px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }} className="num">11</span>
                     <span style={{ flex: "none", fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Set up 3 or more steps</span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div className="cs-barrow" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <span style={{ width: "44%", minWidth: "60px", height: "30px", borderRadius: "var(--radius-md)", background: "#2e559d", color: "#fff", display: "flex", alignItems: "center", padding: "0 10px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }} className="num">8</span>
                     <span style={{ flex: "none", fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>First real order</span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div className="cs-barrow" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <span style={{ width: "39%", minWidth: "60px", height: "30px", borderRadius: "var(--radius-md)", background: "#0070a0", color: "#fff", display: "flex", alignItems: "center", padding: "0 10px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }} className="num">7</span>
                     <span style={{ flex: "none", fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Likely to pay</span>
                   </div>
@@ -595,7 +595,7 @@ export default class TrialsScreen extends Component {
                   </div>
                 </span>
               </div>
-              <div className="panel" style={{ overflow: "hidden" }}>
+              <div className="panel" style={{ overflow: "hidden", "--cs-row-min": "940px" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.5fr) minmax(0,1.2fr) 170px 110px 90px minmax(0,1.4fr)", gap: "14px", padding: "12px 18px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
                   <span>Store and contact</span>
                   <span>Trial</span>

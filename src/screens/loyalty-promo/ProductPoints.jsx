@@ -15,6 +15,13 @@ import { getProductPoints, setProductPoints, pointsForProduct, getLoyaltySetting
 import { LoyPage, Kpi, useLoyalty, money, pts, plural } from './loyShared';
 
 const MODE_WORD = { normal: 'normal points', double: 'double points', off: 'no points' };
+// phones: the Points cell's label sits level with its Normal / Double / Off control
+const CSS = `
+@media (max-width:640px){
+.gc-cards-on>*>tr>td.pp-mode{display:flex!important;align-items:center;justify-content:space-between;gap:var(--space-3)}
+.gc-cards-on>*>tr>td.pp-mode::before{float:none;margin-right:0}
+}
+`;
 
 export default function ProductPoints() {
   const tick = useLoyalty();
@@ -44,7 +51,7 @@ export default function ProductPoints() {
   };
 
   return (
-    <LoyPage screen="ProductPoints" active="loy-products" title="Product points"
+    <LoyPage screen="ProductPoints" active="loy-products" title="Product points" css={CSS}
       description="Every product gives points by default. Give double points to push a product, or turn points off for low-profit items."
       actions={<Link href="/loyalty" className="gc-btn gc-btn--neutral"><Icon name="sliders-horizontal" width="18" height="18" aria-hidden="true" /> Point rules</Link>}>
       <div className="gc-kpis gc-kpis--tight">
@@ -79,12 +86,12 @@ export default function ProductPoints() {
                       <td><span className="ac-strong">{p.name}</span><span className="ac-sub ac-fig">{[p.sku, p.variant].filter(Boolean).join(' · ')}</span></td>
                       <td>{p.cat || '—'}</td>
                       <td className="ac-num ac-fig">{money(p.price)}</td>
-                      <td>
+                      <td className="pp-mode">
                         <div className="gc-seg" role="group" aria-label={`Points for ${p.name}`}>
                           {PRODUCT_MODES.map(([k, label]) => <button key={k} type="button" className={'gc-seg__btn' + (m === k ? ' gc-seg__btn--active' : '')} aria-pressed={m === k} onClick={() => setOne(p, k)}>{label}</button>)}
                         </div>
                       </td>
-                      <td className="ac-num">{m === 'off' ? <span className="ac-sub" style={{ display: 'inline' }}>No points</span> : <><span className="ac-fig ac-strong">{pts(n)} points</span><span className="ac-sub">for 1 piece · {money(n * data.s.pointValue)}</span></>}</td>
+                      <td className="ac-num">{m === 'off' ? <span className="ac-sub" style={{ display: 'inline' }}>No points</span> : <><span className="ac-fig ac-strong">{pts(n)} {Math.round(n) === 1 ? 'point' : 'points'}</span><span className="ac-sub">for 1 piece · {money(n * data.s.pointValue)}</span></>}</td>
                     </tr>
                   );
                 })}

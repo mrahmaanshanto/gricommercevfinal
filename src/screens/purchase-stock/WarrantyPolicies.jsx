@@ -99,7 +99,7 @@ class Component extends DCLogic {
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `/* phones: rows of label + buttons wrap instead of running out of the card */
-@media (max-width:640px){.gc-shell__content [style*="display:flex"]:not([role="tablist"]),.gc-shell__content [style*="display: flex"]:not([role="tablist"]){flex-wrap:wrap}.gc-shell__content select,.gc-shell__content input{min-width:0;max-width:100%}.gc-shell__content .mono,.gc-shell__content [class*="badge"]{overflow-wrap:anywhere}}
+@media (max-width:640px){.gc-shell__content [style*="display:flex"]:not([role="tablist"]):not([style*="column"]),.gc-shell__content [style*="display: flex"]:not([role="tablist"]):not([style*="column"]){flex-wrap:wrap}.gc-shell__content select,.gc-shell__content input{min-width:0;max-width:100%}.gc-shell__content .mono,.gc-shell__content [class*="badge"]{overflow-wrap:anywhere}}
 
 body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
@@ -172,6 +172,27 @@ a{color:#003087}a:hover{color:#002a77}
 .pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
 .ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
 .thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
+/* the policy title on the dark editor bar is light text (a heading colour rule would otherwise make it navy on navy) */
+.wp-editbar .wp-editbar__title{color:var(--text-on-dark)}
+/* tablets and phones: the side column (applies to, preview) stacks under the editor */
+@media (max-width:1023px){
+  .wp-layout{flex-direction:column!important;align-items:stretch!important}
+  .wp-side{width:100%!important}
+}
+/* phones: the intro's two actions share a row; the editor bar's buttons wrap in pairs; form grids are one column */
+@media (max-width:640px){
+  .wp-intro{gap:10px!important}
+  .wp-intro>div{flex:1 1 100%!important}
+  .wp-intro>.btn{flex:1 1 auto;padding:0 12px}
+  .wp-editbar{padding:16px!important;gap:10px!important}
+  .wp-editbar>div:first-child{flex:1 1 100%!important;min-width:0}
+  .wp-editbar__title{font-size:var(--text-xl)!important}
+  .wp-editbar>.btn{flex:1 1 auto;padding:0 14px}
+  .wp-grid{grid-template-columns:minmax(0,1fr)!important}
+  .wp-grid label>div[style*="display"]{flex-wrap:nowrap!important}
+  .gc-shell__content [style*="display"]:has(> button[role="switch"]){flex-wrap:nowrap!important}
+  .gc-shell__content [style*="display"]:has(> button[role="switch"])>div{flex:1 1 0!important;min-width:0}
+}
 `;
 
 // ---- markup ----
@@ -188,7 +209,7 @@ export default class WarrantyPoliciesScreen extends Component {
             <__Topbar crumb="Stock" page="Warranty policies" placeholder="Search policy, product or brand" />
             <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
               <__PageHeader title="Warranty policies" />
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div className="wp-intro" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <div style={{ flexGrow: "1", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#475569" }}>Write a warranty policy once. Attach it to products, categories or brands — it then shows on the product page, invoice and warranty card by itself.</div>
                 <__Link href="/warranty-claims" className="btn line">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -234,11 +255,11 @@ export default class WarrantyPoliciesScreen extends Component {
   <path d="M12 5v14" />
 </svg>New policy</button>
               </div>
-              <div className="gc-on-dark" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "20px 24px", borderRadius: "var(--radius-xl)", background: "#0b1733", color: "#fff" }}>
+              <div className="gc-on-dark wp-editbar" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "20px 24px", borderRadius: "var(--radius-xl)", background: "#0b1733", color: "#fff" }}>
                 <div style={{ flexGrow: "1" }}>
                   <div style={{ fontSize: "var(--text-xs)", opacity: ".7" }}>Stock › Warranty policies › {v.pName}</div>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "2px" }}>
-                    <h2 style={{ margin: "0", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.pName}</h2>
+                    <h2 className="wp-editbar__title" style={{ margin: "0", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.pName}</h2>
                     <span style={{ height: "24px", padding: "0 10px", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.14)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center" }}>{v.pVer}</span>
                   </div>
                 </div>
@@ -257,7 +278,7 @@ export default class WarrantyPoliciesScreen extends Component {
                   <span>Publish policy</span>
                 </button>
               </div>
-              <div style={{ display: "flex", gap: "18px", alignItems: "flex-start" }}>
+              <div className="wp-layout" style={{ display: "flex", gap: "18px", alignItems: "flex-start" }}>
                 <div style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "18px" }}>
                   <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -265,7 +286,7 @@ export default class WarrantyPoliciesScreen extends Component {
                         <div className="psec" style={{ color: "#0a5bd0" }}>Policy basics</div>
                       </div>
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr", gap: "14px" }}>
+                    <div className="wp-grid" style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr", gap: "14px" }}>
                       <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                         <span className="lbl">Policy name</span>
                         <input className="inp" value={v.pName} onInput={v.typeName} onChange={v.typeName} aria-label="Policy name" />
@@ -289,7 +310,7 @@ export default class WarrantyPoliciesScreen extends Component {
                         </select>
                       </label>
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px" }}>
+                    <div className="wp-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px" }}>
                       <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                         <span className="lbl">Period</span>
                         <div style={{ display: "flex", gap: "8px" }}>
@@ -436,7 +457,7 @@ export default class WarrantyPoliciesScreen extends Component {
                         <label style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "38px", padding: "0 12px", borderRadius: "var(--radius-lg)", border: "1px solid #e2e8f0", background: "#fff", fontSize: "var(--text-sm)", cursor: "pointer" }}><input type="checkbox" style={{ width: "16px", height: "16px", accentColor: "#003087" }} />On-site visit</label>
                       </div>
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: "14px" }}>
+                    <div className="wp-grid" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: "14px" }}>
                       <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                         <span className="lbl">Service centre</span>
                         <input className="inp" defaultValue="Service centre, Mirpur 10, Dhaka" aria-label="Service centre" />
@@ -454,7 +475,7 @@ export default class WarrantyPoliciesScreen extends Component {
                           </React.Fragment>))}
                       </div>
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px" }}>
+                    <div className="wp-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px" }}>
                       <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                         <span className="lbl">Turnaround</span>
                         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
@@ -513,7 +534,7 @@ export default class WarrantyPoliciesScreen extends Component {
                     </div>
                   </section>
                 </div>
-                <div style={{ width: "380px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "18px" }}>
+                <div className="wp-side" style={{ width: "380px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "18px" }}>
                   <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       <div style={{ flexGrow: "1" }}>

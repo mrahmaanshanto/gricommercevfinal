@@ -260,6 +260,9 @@ a{color:#003087;font-weight:var(--weight-medium);text-decoration:none}a:hover{co
 .gc-check-mark{stroke-dasharray:40;stroke-dashoffset:40;animation:gcDraw 380ms 460ms cubic-bezier(0,0,.2,1) forwards}
 @keyframes gcDraw{to{stroke-dashoffset:0}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-delay:0ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}.gc-stripes{animation:none!important}}
+/* Sign in / Create an account is one two-option switch: it stays one row on a phone (the shared gc-cols-2 reflow would stack it) */
+.dc-screen .msi-seg.gc-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.msi-seg>.gc-tab{padding:0 6px;white-space:nowrap}
 `;
 
 // ---- markup ----
@@ -300,7 +303,7 @@ export default class MobileSignInScreen extends Component {
             </div>
           </div>
           <div className="gc-rise" style={{ position: "relative", margin: "-56px 16px 24px", padding: "20px", background: "#ffffff", borderRadius: "var(--radius-xl)", boxShadow: "0 3px 10px 0 rgba(48, 46, 56, 0.06), 0 20px 40px -20px rgba(1, 33, 105, 0.25)", display: "flex", flexDirection: "column", gap: "20px", animationDelay: "120ms" }}>
-            <div className="gc-cols-2" style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", padding: "4px", borderRadius: "var(--radius-full)", background: "#e9eef5" }}>
+            <div className="gc-cols-2 msi-seg" style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", padding: "4px", borderRadius: "var(--radius-full)", background: "#e9eef5" }}>
               <div style={__sx(`position: absolute; left: 4px; top: 4px; width: calc(50% - 4px); height: 40px; border-radius: var(--radius-full); background: #ffffff; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12); transform: ${v.pillX ?? ""}; transition: transform 300ms ease-in-out;`)} />
               <button type="button" aria-pressed={v.panelSignin} onClick={v.toSignin} className="gc-tab" style={__sx(`position: relative; z-index: 1; height: 40px; border-radius: var(--radius-full); color: ${v.panelSigninColor ?? ""};`)}>{v.t?.signIn}</button>
               <__Link href="/mobile-sign-up" className="gc-tab" style={__sx(`position: relative; z-index: 1; height: 40px; border-radius: var(--radius-full); color: ${v.panelSignupColor ?? ""}; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: var(--text-sm); font-weight: var(--weight-medium);`)}>{v.t?.createAccount}</__Link>

@@ -10,6 +10,12 @@ import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
 class Component extends DCLogic {
+  // On a phone the thread scrolls: open it at the latest message.
+  componentDidMount() {
+    if (!window.matchMedia('(max-width: 480px)').matches) return;
+    const thread = document.querySelector('[data-screen="MChat"] .content');
+    if (thread) thread.scrollTop = thread.scrollHeight;
+  }
   renderVals() { return {}; }
 }
 
@@ -106,6 +112,12 @@ button{font:inherit;color:inherit}
 .bar{height:6px;border-radius:var(--radius-full);background:#edf1f6;overflow:hidden}.bar i{display:block;height:100%;border-radius:var(--radius-full)}
 .lrow{display:flex;align-items:center;gap:14px;padding:14px 16px}
 .lrow + .lrow{border-top:1px solid var(--line)}
+/* phone: the thread scrolls under the composer (10 + chips 36 + 10 + reply bar 52 + bottom inset);
+   it still sits at the bottom when short, and starts at the top (not cut off) when long */
+@media (max-width:480px){
+  [data-screen="MChat"] > .ph:not([data-board]) > .content{bottom:0 !important;justify-content:flex-start !important;padding-bottom:calc(108px + max(12px, var(--app-sab, 0px)) + var(--space-3)) !important}
+  [data-screen="MChat"] > .ph:not([data-board]) > .content > :first-child{margin-top:auto}
+}
 `;
 
 // ---- markup ----
@@ -204,7 +216,7 @@ export default class MChatScreen extends Component {
               <span style={{ width: "7px", height: "7px", borderRadius: "var(--radius-full)", background: "#d5dce6" }} />
             </div>
           </div>
-          <div style={{ position: "absolute", left: "0", right: "0", bottom: "0", padding: "10px 0 34px", background: "linear-gradient(to top,var(--bg) 70%,rgba(245,247,250,0))", zIndex: "6" }}>
+          <div className="composer" style={{ position: "absolute", left: "0", right: "0", bottom: "0", padding: "10px 0 34px", background: "linear-gradient(to top,var(--bg) 70%,rgba(245,247,250,0))", zIndex: "6" }}>
             <div className="chips" style={{ padding: "0 12px" }}>
               <span className="chip" style={{ borderColor: "#cfe0f7", color: "var(--brand)" }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />

@@ -139,8 +139,10 @@ a.hm-box:hover{background:var(--fill-primary-soft)}
   .hm-card>header{padding:var(--space-3) var(--space-4) var(--space-1)}
   .hm-body{padding:var(--space-2) var(--space-4) var(--space-4)}
   .hm-bars{height:120px;gap:4px}
-  .hm-tools .gc-seg{flex:1}
-  .hm-tools select{flex:1}
+  /* day switch and place picker each get a full row */
+  .hm-tools .gc-seg{flex:1 1 100%}
+  .hm-tools .gc-seg>.gc-seg__btn{flex:1 1 0}
+  .hm-tools select{flex:1 1 100%;width:100%!important;min-width:0!important}
   .hm-quick{flex-wrap:nowrap;overflow-x:auto;width:calc(100% + 28px);margin:0 -14px;padding:0 14px;scrollbar-width:none}
   .hm-quick::-webkit-scrollbar{display:none}
   .hm-quick a{flex:none;border:1px solid var(--border-subtle)}

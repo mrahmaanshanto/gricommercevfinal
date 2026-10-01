@@ -90,6 +90,11 @@ button{font:inherit;color:inherit}
 .tile{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--ink);text-align:center}
 .tile .ico{width:56px;height:56px;border-radius:var(--radius-xl)}
 .note{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:var(--radius-xl);font-size:var(--text-sm);line-height:20px}
+/* phone: the thread scrolls and its last message clears the reply composer
+   (composer = 1px border + 10 + tabs 44 + chips 46 + reply row 56 + bottom inset) */
+@media (max-width:480px){
+  [data-screen="CTicket"] > .ph:not([data-board]) > .content{bottom:0 !important;padding-bottom:calc(157px + max(12px, var(--app-sab, 0px)) + var(--space-4)) !important}
+}
 `;
 
 // ---- markup ----
@@ -174,12 +179,12 @@ export default class CTicketScreen extends Component {
               <div style={{ fontSize: "var(--text-sm-plus)", lineHeight: "22px", marginTop: "4px" }}>Arif bhai, your 23 bookings are safe and will get tracking numbers as the replay finishes. I’ll update you by 11:00.</div>
             </div>
           </div>
-          <div style={{ position: "absolute", left: "0", right: "0", bottom: "0", background: "var(--card)", borderTop: "1px solid var(--line)", padding: "10px 0 34px", zIndex: "6" }}>
-            <div className="seg" style={{ margin: "0 16px" }}>
+          <div className="composer" style={{ position: "absolute", left: "0", right: "0", bottom: "0", background: "var(--card)", borderTop: "1px solid var(--line)", padding: "10px 0 34px", zIndex: "6" }}>
+            <div className="seg" style={{ margin: "0 20px" }}>
               <span className="on">Reply to merchant</span>
               <span>Internal note</span>
             </div>
-            <div className="chips" style={{ padding: "10px 16px 0" }}>
+            <div className="chips" style={{ padding: "10px 20px 0" }}>
               <span className="chip"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
 </svg>Macro</span>
@@ -189,7 +194,7 @@ export default class CTicketScreen extends Component {
 </svg>Enter store</span>
               <span className="chip">Mark solved</span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px 0" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px 0" }}>
               <div className="inp" style={{ flex: "1", height: "46px", borderRadius: "var(--radius-full)", color: "var(--muted)" }}>Reply on WhatsApp…</div>
               <a className="ib" href="#" aria-label="Send" style={{ background: "var(--brand)", color: "#fff", borderRadius: "var(--radius-full)" }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

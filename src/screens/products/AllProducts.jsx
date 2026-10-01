@@ -212,6 +212,14 @@ a{color:#003087}a:hover{color:#002a77}
 .pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
 .ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
 .thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
+
+/* phones: the search box takes its own row; Filter and Export share the row below */
+@media (max-width:640px){
+  .ap-toolbar{gap:8px!important;padding:12px!important}
+  .ap-toolbar>label.ap-search.ap-search{flex:1 1 100%!important;max-width:none!important;width:100%!important}
+  .ap-toolbar>span:empty{display:none}
+  .ap-toolbar>.gc-mf__btn,.ap-toolbar>.abtn{flex:1 1 0;height:44px;justify-content:center}
+}
 `;
 
 // ---- markup ----
@@ -303,7 +311,7 @@ class AllProductsView extends Component {
 </>) : null}</button>
                     </React.Fragment>))}
                 </div>
-                <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "10px", padding: "12px 16px", borderBottom: "1px solid #e6eaf0" }}>
+                <div className="ap-toolbar" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "10px", padding: "12px 16px", borderBottom: "1px solid #e6eaf0" }}>
                   <label className="ap-search" style={{ position: "relative", flex: "1 1 240px", maxWidth: "340px" }}>
                     <span style={{ position: "absolute", left: "14px", top: "12px", color: "var(--text-muted)" }}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

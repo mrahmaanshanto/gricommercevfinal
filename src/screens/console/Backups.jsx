@@ -548,7 +548,7 @@ export default class BackupsScreen extends Component {
                       <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Nightly backups, all stores</h2>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }}>one bar per night</div>
                     </div>
-                    <svg viewBox="0 0 650 76" width="100%" aria-hidden="true">
+                    <svg className="cs-chart-l" viewBox="0 0 650 76" width="100%" aria-hidden="true">
                       <rect x="10" y="10" width="17" height="40" rx="4" fill="#003087" opacity="0.75" />
                       <rect x="31" y="10" width="17" height="40" rx="4" fill="#003087" opacity="0.75" />
                       <rect x="52" y="10" width="17" height="40" rx="4" fill="#003087" opacity="0.75" />
@@ -583,6 +583,11 @@ export default class BackupsScreen extends Component {
                       <text x="640" y="70" fontSize="11" fill="#64748b" textAnchor="end" fontFamily="Poppins">Today 03:00</text>
                       <text x="250" y="70" fontSize="11" fill="#b45309" fontFamily="Poppins" textAnchor="middle">1 Sep · retried 03:40</text>
                     </svg>
+                    <div className="cs-axis" aria-hidden="true">
+                      <span style={{ left: "1.5%" }}>21 Aug</span>
+                      <span style={{ left: "38.5%", color: "#b45309" }}>1 Sep · retried 03:40</span>
+                      <span style={{ left: "98.5%" }}>Today 03:00</span>
+                    </div>
                   </section>
                   <section className="panel" style={{ padding: "16px 20px", minWidth: "0" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "12px" }}>

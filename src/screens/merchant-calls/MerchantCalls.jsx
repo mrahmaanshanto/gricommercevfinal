@@ -623,4 +623,11 @@ const CSS = PARTS_CSS + DIALER_CSS + `
   .gc-pagehead__actions>.ib-menu{flex:1}
   .gc-pagehead__actions>.ib-menu>.gc-btn,.cl-dialbtn{flex:1}
 }
+/* phones: search on its own row; the two selects share the next row with the export button */
+@media (max-width:640px){
+  .cl-toolbar__row .ib-search{flex:1 1 100%}
+  .cl-toolbar__row .cl-fit{flex:1 1 0}
+  .cl-toolbar__row .cl-icononly{flex:none}
+  .cl-c-act .gc-iconbtn{min-width:36px;min-height:36px}
+}
 `;

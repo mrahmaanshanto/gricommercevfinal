@@ -166,7 +166,7 @@ export const BN = {
   'What to show': 'কী দেখাবেন',
   'All invoices': 'সব Invoice', 'All wholesale orders': 'সব Wholesale Order', 'Not delivered': 'Delivered হয়নি', 'Delivered in full': 'পুরো Delivered',
   'Order value today': 'আজকের Order-এর মূল্য', 'Return rate': 'ফেরতের হার', 'Cash on delivery to collect ·': 'তুলতে বাকি COD ·', 'stock not changed': 'Stock বদলায়নি',
-  'Invoices by payment': 'Payment অনুযায়ী Invoice',
+  'Invoices by payment': 'Payment অনুযায়ী Invoice', 'Clear selection': 'বাছাই মুছুন', 'Open Settings': 'Settings খুলুন',
 };
 
 // Sentences with a number in them: [pattern, (match) => Bangla]

@@ -565,7 +565,7 @@ export default class SupportPerformanceScreen extends Component {
                       <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs)", color: "var(--body)" }}><span style={{ width: "10px", height: "10px", borderRadius: "3px", background: "#94a3b8" }} />Phone</span>
                     </div>
                   </div>
-                  <svg viewBox="0 0 680 214" width="100%" height="214" role="img" aria-label="Tickets per day by channel, last 30 days">
+                  <svg className="cs-chart-l cs-chart-fit" viewBox="0 0 680 214" width="100%" height="214" role="img" aria-label="Tickets per day by channel, last 30 days">
                     <line x1="36" x2="670" y1="190" y2="190" stroke="#eef2f7" />
                     <text x="30" y="194" fontSize="11" fill="#64748b" textAnchor="end" fontFamily="Poppins">0</text>
                     <line x1="36" x2="670" y1="138" y2="138" stroke="#eef2f7" />
@@ -701,6 +701,13 @@ export default class SupportPerformanceScreen extends Component {
                     <text x="467" y="208" fontSize="11" fill="#64748b" textAnchor="middle" fontFamily="Poppins">10 Sep</text>
                     <text x="656" y="208" fontSize="11" fill="#64748b" textAnchor="middle" fontFamily="Poppins">19 Sep</text>
                   </svg>
+                  <div className="cs-axis" aria-hidden="true">
+                    <span style={{ left: "6.9%" }}>21 Aug</span>
+                    <span style={{ left: "37.8%" }}>31 Aug</span>
+                    <span style={{ left: "68.7%" }}>10 Sep</span>
+                    <span style={{ left: "96.5%" }}>19 Sep</span>
+                  </div>
+                  <div className="cs-chart-note" aria-hidden="true">Up to 30 tickets a day · <span style={{ color: "#c2410c" }}>12 Aug · Steadfast incident</span></div>
                 </section>
                 <section className="panel" style={{ padding: "16px 20px" }}>
                   <h2 style={{ margin: "0 0 10px", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>What merchants ask about</h2>
@@ -781,7 +788,7 @@ export default class SupportPerformanceScreen extends Component {
                     <span style={{ fontSize: "var(--text-xs)", color: "var(--muted)" }}>Dhaka time</span>
                   </div>
                   <div style={{ marginTop: "10px" }}>
-                    <svg viewBox="0 0 430 178" width="100%" height="178" role="img" aria-label="Tickets by hour and weekday">
+                    <svg className="cs-chart-s cs-chart-fit" viewBox="0 0 430 178" width="100%" height="178" role="img" style={{ "--cs-fs": "16px" }} aria-label="Tickets by hour and weekday">
                       <text x="0" y="16" fontSize="11" fill="#64748b" fontFamily="Poppins">Sat</text>
                       <rect x="38" y="4" width="21" height="18" rx="3" fill="#003087" opacity="0.38" />
                       <rect x="62" y="4" width="21" height="18" rx="3" fill="#003087" opacity="0.44" />

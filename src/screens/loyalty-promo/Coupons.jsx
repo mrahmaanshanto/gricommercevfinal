@@ -116,6 +116,17 @@ a{color:#003087}a:hover{color:#002a77}
 .pulse{animation:gcPulse 1.6s ease-in-out infinite}
 @keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+
+/* phones: the intro sits above its button, status tabs stay on one scrolling row */
+@media (max-width:640px){
+  .cp-times{display:none}
+  .cp-intro{flex-wrap:wrap;gap:10px!important}
+  .cp-intro>div{flex:1 1 100%!important}
+  .cp-intro>.btn{width:100%}
+  .cp-tabs{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;padding:12px 14px!important}
+  .cp-tabs::-webkit-scrollbar{display:none}
+  .cp-tabs>button{flex:none}
+}
 `;
 
 // ---- markup ----
@@ -160,7 +171,7 @@ export default class CouponsScreen extends Component {
                   <div>
                     <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#003087" }}>642</div>
                     <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Used this month</div>
-                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>times</div>
+                    <div className="cp-times" style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>times</div>
                   </div>
                 </div>
                 <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
@@ -192,7 +203,7 @@ export default class CouponsScreen extends Component {
                   </div>
                 </div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div className="cp-intro" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <div style={{ flexGrow: "1", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#475569" }}>A discount code gives money off when the customer types it on your website or tells it at the counter.</div>
                 <__Link href="/new-coupon" className="btn solid">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -203,7 +214,7 @@ export default class CouponsScreen extends Component {
                 </__Link>
               </div>
               <section className="card" style={{ overflow: "hidden" }}>
-                <div role="tablist" aria-label="Coupons by status" onKeyDown={tabKeys} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "14px 16px", borderBottom: "1px solid #e2e8f0", flexWrap: "wrap" }}>
+                <div role="tablist" aria-label="Coupons by status" onKeyDown={tabKeys} className="cp-tabs" style={{ display: "flex", alignItems: "center", gap: "6px", padding: "14px 16px", borderBottom: "1px solid #e2e8f0", flexWrap: "wrap" }}>
                   {__list(v.tabs).map((tb, $index) => (<React.Fragment key={$index}>
                       <button type="button" role="tab" id={tb?.id} aria-selected={tb?.on} aria-controls="cp-panel" tabIndex={tb?.on ? 0 : -1} className={tb?.cls} onClick={tb?.pick}>{tb?.label}{tb?.hasCount ? (<>
   <span style={__sx(`min-width: 22px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: ${tb?.countBg ?? ""}; font-size: var(--text-xs); font-weight: var(--weight-medium); display: inline-flex; align-items: center; justify-content: center;`)}>{tb?.count}</span>

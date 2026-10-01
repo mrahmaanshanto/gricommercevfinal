@@ -296,6 +296,11 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .var{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:var(--radius-xl);border:1px solid #e2e8f0;background:#fff}
 .phone{border-radius:28px;border:8px solid #0f172a;background:#fff;overflow:hidden}
 .emo{width:34px;height:36px;border:0;border-radius:var(--radius-lg);background:transparent;font-size:var(--text-lg);cursor:pointer}.emo:hover{background:#eef2f7}
+/* phones: media tiles wrap and the link field takes its own full-width row */
+@media (max-width:640px){
+  .cmp-media{flex-wrap:wrap}
+  .cmp-media>.cmp-link{flex:1 1 100%}
+}
 `;
 
 // ---- markup ----
@@ -409,12 +414,12 @@ export default class ComposerScreen extends Component {
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                       <span className="lbl">Media</span>
-                      <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                      <div className="cmp-media" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                         {__list(v.mediaList).map((m, $index) => (<React.Fragment key={$index}>
                             <div className="media" style={__sx(`background: ${m?.bg ?? ""};`)}>{m?.l}</div>
                           </React.Fragment>))}
                         <button type="button" onClick={v.addMedia} style={{ width: "92px", height: "92px", borderRadius: "var(--radius-lg)", border: "1.5px dashed #cbd5e1", background: "#f7f9fc", font: "inherit", fontSize: "var(--text-xs-plus)", color: "var(--text-body)", cursor: "pointer", display: "inline-flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "4px" }}><__Icon name="plus" width="16" height="16" aria-hidden="true" />Photo or video</button>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "8px", flexGrow: "1", minWidth: "0" }}>
+                        <div className="cmp-link" style={{ display: "flex", flexDirection: "column", gap: "8px", flexGrow: "1", minWidth: "0" }}>
                           <label className="lbl" htmlFor="lnk">Link</label>
                           <input id="lnk" className="inp mono" value={v.link} onChange={v.onLink} placeholder="https://" />
                         </div>

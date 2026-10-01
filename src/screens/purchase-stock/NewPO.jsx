@@ -10,7 +10,7 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
-import { PageHeader as __PageHeader, PhoneActionBar as __PhoneActionBar } from '@/components/ui';
+import { PageHeader as __PageHeader, PhoneActionBar as __PhoneActionBar, useIsPhone as __useIsPhone } from '@/components/ui';
 import { toast as __toast, confirmDialog as __confirm } from '@/runtime/ui';
 import { SUPPLIERS, getSuppliers, termsLabel } from '@/lib/supplierBills';
 import { addPOs, getPOs } from '@/lib/purchaseOrders';
@@ -155,10 +155,16 @@ class Component extends DCLogic {
   }
 }
 
+// The scan box: a shorter hint on phones, where the full one is cut off.
+function ScanInput({ phonePlaceholder, placeholder, ...rest }) {
+  const phone = __useIsPhone();
+  return <input {...rest} placeholder={phone && phonePlaceholder ? phonePlaceholder : placeholder} />;
+}
+
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `/* phones: rows of label + buttons wrap instead of running out of the card */
-@media (max-width:640px){.gc-shell__content [style*="display:flex"]:not([role="tablist"]),.gc-shell__content [style*="display: flex"]:not([role="tablist"]){flex-wrap:wrap}.gc-shell__content select,.gc-shell__content input{min-width:0;max-width:100%}.gc-shell__content .mono,.gc-shell__content [class*="badge"]{overflow-wrap:anywhere}}
+@media (max-width:640px){.gc-shell__content [style*="display:flex"]:not([role="tablist"]):not([style*="column"]),.gc-shell__content [style*="display: flex"]:not([role="tablist"]):not([style*="column"]){flex-wrap:wrap}.gc-shell__content select,.gc-shell__content input{min-width:0;max-width:100%}.gc-shell__content .mono,.gc-shell__content [class*="badge"]{overflow-wrap:anywhere}}
 
 body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
@@ -209,6 +215,13 @@ a{color:#003087}a:hover{color:#002a77}
 .scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
 @keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+
+/* phones: product cards line up with the scan box above them */
+@media (max-width:640px){
+  .npo-lines.gc-cards-on>tbody{padding:0}
+  .npo-lines td:first-child>div{flex-wrap:nowrap!important}
+  .npo-lines td:first-child>div>div{min-width:0}
+}
 `;
 
 // ---- markup ----
@@ -354,7 +367,7 @@ export default class NewPOScreen extends Component {
                             <path d="M17 7v10" />
                           </svg>
                         </span>
-                        <input id="po-scan" className="inp" type="search" placeholder="Scan a barcode or type product name" aria-label="Scan a barcode or type product name" {...__inv(v.itemsErr, "po-items-err")} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); v.scan(); } }} style={{ height: "54px", paddingLeft: "50px", fontSize: "var(--text-sm-plus)", borderColor: "#003087" }} />
+                        <ScanInput id="po-scan" className="inp" type="search" placeholder="Scan a barcode or type product name" phonePlaceholder="Scan or type a product" aria-label="Scan a barcode or type product name" {...__inv(v.itemsErr, "po-items-err")} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); v.scan(); } }} style={{ height: "54px", paddingLeft: "50px", fontSize: "var(--text-sm-plus)", borderColor: "#003087" }} />
                       </label>
                       <button type="button" className="btn solid big" onClick={v.scan}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -374,7 +387,7 @@ export default class NewPOScreen extends Component {
                       </div>
                     </>) : null}
                     <div className="gc-table-wrap">
-                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <table className="npo-lines" style={{ width: "100%", borderCollapse: "collapse" }}>
                         <thead>
                           <tr>
                             <th className="th" style={{ paddingLeft: "0" }}>Product</th>

@@ -71,7 +71,24 @@ class Component extends __SettingsLogic {
 
 const CSS = `.dc-h431:hover{background:#e9eef5 !important;color:#1e293b !important}
 .dc-h432:hover{background:#f8fafc !important;color:#1e293b !important}
-.dc-h433:hover{background:#002a77 !important}`;
+.dc-h433:hover{background:#002a77 !important}
+/* phone: each zone is a card; every charge is a label (with its note under it) and a field in one column */
+.set-zl{display:none}
+@media (max-width:640px){
+  .set-zones.gc-cards-on>tbody>tr>td{display:grid!important;grid-template-columns:minmax(0,1fr) 120px;align-items:center;gap:6px 12px;padding:6px 0!important;text-align:left!important}
+  .set-zones.gc-cards-on>tbody>tr>td::before{display:none!important}
+  .set-zones.gc-cards-on>tbody>tr>td:last-child{grid-template-columns:minmax(0,1fr)}
+  .set-zones .set-zl{display:block;min-width:0;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);line-height:18px;color:#1e293b}
+  .set-zones .set-zl small{display:block;font-size:var(--text-xs);font-weight:var(--weight-regular);color:var(--text-muted)}
+  .set-zones td>.set-box{width:100%!important;height:44px!important}
+  .set-zones td>.set-err{grid-column:1/-1}
+  .set-zt{flex-wrap:wrap;gap:8px!important}
+  .set-zt>.set-box{flex:none;height:44px!important}
+  .set-zt>.set-box:last-of-type{flex:1 1 92px}
+}`;
+
+/* the label a zone's field carries on a phone (the column header is hidden there) */
+const ZL = ({ l, s }) => <span className="set-zl" aria-hidden="true">{l}<small>{s}</small></span>;
 
 // ---- markup ----
 
@@ -102,7 +119,7 @@ export default class SetDeliveryScreen extends Component {
                       </span>
                     </header>
                     <section id="s0" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>{"Origin & partner"}</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Where shipments leave from and who carries them by default.</span>
@@ -150,7 +167,7 @@ export default class SetDeliveryScreen extends Component {
                       </div>
                     </section>
                     <section id="s1" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Charges by zone</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>One row per zone, one column per charge. Values are per order unless the column says per unit.</span>
@@ -161,7 +178,7 @@ export default class SetDeliveryScreen extends Component {
                         </span>
                       </div>
                       <div className="gc-table-wrap" style={{ overflow: "auto", padding: "4px 0 0" }}>
-                        <table style={{ width: "100%", minWidth: "720px", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
+                        <table className="set-zones" style={{ width: "100%", minWidth: "720px", borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
                           <thead>
                             <tr>
                               <th style={{ padding: "9px 8px", borderBottom: "1px solid #e2e8f0", textAlign: "left", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Zone</th>
@@ -179,36 +196,41 @@ export default class SetDeliveryScreen extends Component {
                                 <span style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>Dhaka city corporations</span>
                               </th>
                               <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9" }}>
+                                <ZL l="Delivery charge" s="customer pays" />
                                 <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", width: "104px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                   <__In f={v.f} n="inside_dhaka_delivery_charge" />
                                 </span>
                                 <__Err f={v.f} n="inside_dhaka_delivery_charge" />
                               </td>
                               <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9" }}>
+                                <ZL l="Extra per unit" s="qty above 1" />
                                 <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", width: "104px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                   <__In f={v.f} n="inside_dhaka_extra_per_unit" />
                                 </span>
                                 <__Err f={v.f} n="inside_dhaka_extra_per_unit" />
                               </td>
                               <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9" }}>
+                                <ZL l="Courier cost" s="you pay" />
                                 <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", width: "104px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                   <__In f={v.f} n="inside_dhaka_courier_cost" />
                                 </span>
                                 <__Err f={v.f} n="inside_dhaka_courier_cost" />
                               </td>
                               <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9" }}>
+                                <ZL l="Courier extra" s="per unit" />
                                 <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", width: "104px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                   <__In f={v.f} n="inside_dhaka_courier_extra" />
                                 </span>
                                 <__Err f={v.f} n="inside_dhaka_courier_extra" />
                               </td>
                               <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9", borderLeft: "1px solid #f1f5f9" }}>
-                                <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <ZL l="Delivery time" s="shown at checkout" />
+                                <span className="set-zt" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                                   <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", width: "58px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                     <__In f={v.f} n="inside_dhaka_delivery_time" />
                                   </span>
                                   <__Err f={v.f} n="inside_dhaka_delivery_time" />
-                                  <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>to</span>
+                                  <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", whiteSpace: "nowrap" }}>to</span>
                                   <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", width: "58px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                     <__In f={v.f} n="inside_dhaka_delivery_time_to" />
                                   </span>
@@ -227,36 +249,41 @@ export default class SetDeliveryScreen extends Component {
                                 <span style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>Savar, Gazipur, Narayanganj, Keraniganj</span>
                               </th>
                               <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9" }}>
+                                <ZL l="Delivery charge" s="customer pays" />
                                 <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", width: "104px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                   <__In f={v.f} n="sub_dhaka_delivery_charge" />
                                 </span>
                                 <__Err f={v.f} n="sub_dhaka_delivery_charge" />
                               </td>
                               <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9" }}>
+                                <ZL l="Extra per unit" s="qty above 1" />
                                 <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", width: "104px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                   <__In f={v.f} n="sub_dhaka_extra_per_unit" />
                                 </span>
                                 <__Err f={v.f} n="sub_dhaka_extra_per_unit" />
                               </td>
                               <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9" }}>
+                                <ZL l="Courier cost" s="you pay" />
                                 <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", width: "104px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                   <__In f={v.f} n="sub_dhaka_courier_cost" />
                                 </span>
                                 <__Err f={v.f} n="sub_dhaka_courier_cost" />
                               </td>
                               <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9" }}>
+                                <ZL l="Courier extra" s="per unit" />
                                 <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", width: "104px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                   <__In f={v.f} n="sub_dhaka_courier_extra" />
                                 </span>
                                 <__Err f={v.f} n="sub_dhaka_courier_extra" />
                               </td>
                               <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9", borderLeft: "1px solid #f1f5f9" }}>
-                                <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <ZL l="Delivery time" s="shown at checkout" />
+                                <span className="set-zt" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                                   <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", width: "58px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                     <__In f={v.f} n="sub_dhaka_delivery_time" />
                                   </span>
                                   <__Err f={v.f} n="sub_dhaka_delivery_time" />
-                                  <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>to</span>
+                                  <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", whiteSpace: "nowrap" }}>to</span>
                                   <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", width: "58px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                     <__In f={v.f} n="sub_dhaka_delivery_time_to" />
                                   </span>
@@ -275,36 +302,41 @@ export default class SetDeliveryScreen extends Component {
                                 <span style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>Rest of Bangladesh</span>
                               </th>
                               <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9" }}>
+                                <ZL l="Delivery charge" s="customer pays" />
                                 <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", width: "104px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                   <__In f={v.f} n="outside_dhaka_delivery_charge" />
                                 </span>
                                 <__Err f={v.f} n="outside_dhaka_delivery_charge" />
                               </td>
                               <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9" }}>
+                                <ZL l="Extra per unit" s="qty above 1" />
                                 <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", width: "104px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                   <__In f={v.f} n="outside_dhaka_extra_per_unit" />
                                 </span>
                                 <__Err f={v.f} n="outside_dhaka_extra_per_unit" />
                               </td>
                               <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9" }}>
+                                <ZL l="Courier cost" s="you pay" />
                                 <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", width: "104px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                   <__In f={v.f} n="outside_dhaka_courier_cost" />
                                 </span>
                                 <__Err f={v.f} n="outside_dhaka_courier_cost" />
                               </td>
                               <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9" }}>
+                                <ZL l="Courier extra" s="per unit" />
                                 <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", width: "104px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                   <__In f={v.f} n="outside_dhaka_courier_extra" />
                                 </span>
                                 <__Err f={v.f} n="outside_dhaka_courier_extra" />
                               </td>
                               <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9", borderLeft: "1px solid #f1f5f9" }}>
-                                <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <ZL l="Delivery time" s="shown at checkout" />
+                                <span className="set-zt" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                                   <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", width: "58px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                     <__In f={v.f} n="outside_dhaka_delivery_time" />
                                   </span>
                                   <__Err f={v.f} n="outside_dhaka_delivery_time" />
-                                  <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>to</span>
+                                  <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", whiteSpace: "nowrap" }}>to</span>
                                   <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", width: "58px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                     <__In f={v.f} n="outside_dhaka_delivery_time_to" />
                                   </span>
@@ -326,7 +358,7 @@ export default class SetDeliveryScreen extends Component {
                       </div>
                     </section>
                     <section id="s2" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>What the customer sees</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Rendered from the values above — check the wording before saving.</span>

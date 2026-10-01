@@ -176,7 +176,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       const locale = getLocale();
       const L = (x) => t(x, locale);
       const base = a('base', '../'), dark = a('theme', '') === 'dark', o = this._open;
-      const title = a('page', ''), crumb = ((c) => (c === title ? '' : c))(menuCrumb(a('crumb', ''))), ph = L(a('placeholder', 'Search orders, products, customers, invoices…'));
+      const title = a('page', ''), crumb = ((c) => (c === title ? '' : c))(menuCrumb(a('crumb', ''))), ph = (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 640px)').matches) ? L('Search') : L(a('placeholder', 'Search orders, products, customers, invoices…'));
       const exp = (k) => `aria-expanded="${o === k}" aria-haspopup="true"`;
       const pop = (k, html, style) => (o === k ? `<div class="pop" role="dialog" style="${style}">${html}</div>` : '');
       const searchPop = `<div class="ph">${L('Recent searches')}</div><div class="chips"><button class="chip">#136779</button><button class="chip">01711-234567</button><button class="chip">Denim Jeans</button><button class="chip">INV-2026-0912</button></div>

@@ -10,11 +10,11 @@ import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
 var SLIDES = [
-  { img: '/assets/cfbbbbd758347fbb3f71590345d24674.webp', alt: 'Fashion boutique owner packing an order', tag: 'Fashion boutique · Dhaka', quote: 'Facebook orders, courier booking and stock used to live in three notebooks. Now it’s one screen.', who: '[Merchant name]', where: '[Shop name] · Online fashion' },
-  { img: '/assets/99e39eac40a8abf8968649c253b23f9e.webp', alt: 'Phone accessories shop owner at a POS counter', tag: 'Electronics shop · Dhaka', quote: 'The counter and the website share one stock. When a case sells in the shop, it disappears online.', who: '[Merchant name]', where: '[Shop name] · Phones & accessories' },
-  { img: '/assets/dec2496b57e91a856eaa9f8fd17d9124.webp', alt: 'Skincare seller preparing a live sale', tag: 'Beauty & skincare · Live selling', quote: 'I go live, orders come in, and bKash links go out before the video ends.', who: '[Merchant name]', where: '[Shop name] · Skincare' },
-  { img: '/assets/901f735d539a8b71fb8e8162bb755ec3.webp', alt: 'Warehouse staff scanning a parcel barcode', tag: 'Warehouse · Scan in, scan out', quote: 'Every parcel is scanned in and out. We know where each piece is.', who: '[Merchant name]', where: '[Company name] · Distribution' },
-  { img: '/assets/937ca529653ad58861f011f257ebc4df.webp', alt: 'Senior business owner in a Dhaka office', tag: 'Growing brands · Multi-branch', quote: 'Serious retail needs serious systems — built for how Bangladesh buys and sells.', who: '[Business leader name]', where: '[Company name] · [Title]' }
+  { img: '/assets/cfbbbbd758347fbb3f71590345d24674.webp', alt: 'Fashion boutique owner packing an order', tag: 'Fashion boutique · Dhaka', quote: 'Facebook orders, courier booking and stock used to live in three notebooks. Now it’s one screen.', who: 'Nusrat Jahan', where: 'Nusrat’s Closet · Online fashion' },
+  { img: '/assets/99e39eac40a8abf8968649c253b23f9e.webp', alt: 'Phone accessories shop owner at a POS counter', tag: 'Electronics shop · Dhaka', quote: 'The counter and the website share one stock. When a case sells in the shop, it disappears online.', who: 'Rakib Hasan', where: 'Rakib Mobile Corner · Phones & accessories' },
+  { img: '/assets/dec2496b57e91a856eaa9f8fd17d9124.webp', alt: 'Skincare seller preparing a live sale', tag: 'Beauty & skincare · Live selling', quote: 'I go live, orders come in, and bKash links go out before the video ends.', who: 'Tania Islam', where: 'Glow by Tania · Skincare' },
+  { img: '/assets/901f735d539a8b71fb8e8162bb755ec3.webp', alt: 'Warehouse staff scanning a parcel barcode', tag: 'Warehouse · Scan in, scan out', quote: 'Every parcel is scanned in and out. We know where each piece is.', who: 'Kamal Uddin', where: 'Kamal Traders · Distribution' },
+  { img: '/assets/937ca529653ad58861f011f257ebc4df.webp', alt: 'Senior business owner in a Dhaka office', tag: 'Growing brands · Multi-branch', quote: 'Serious retail needs serious systems — built for how Bangladesh buys and sells.', who: 'Farzana Rahman', where: 'Deshi Bazaar Group · Managing director' }
 ];
 var CATS = [
   { k: 'fashion', label: 'Fashion & clothing', slide: 0 }, { k: 'beauty', label: 'Beauty & skincare', slide: 2 }, { k: 'elec', label: 'Phones & electronics', slide: 1 },
@@ -190,6 +190,8 @@ a{color:#003087;font-weight:var(--weight-medium);text-decoration:none}a:hover{co
 .ob-slug input:focus{outline:none}
 .ob-slug span{flex:none;padding-right:14px;font-size:var(--text-sm);color:var(--text-muted);white-space:nowrap}
 @media (min-width:480px){.ob-cats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* phone: the main button takes the rest of the row (the whole row on the first step) instead of half of it */
+@media (max-width:479px){.ob-nav>div:empty{display:none}.ob-next{flex:1 1 140px}}
 @media (min-width:1024px){
   .ob-root{grid-template-columns:minmax(0,2fr) minmax(0,3fr);grid-template-rows:minmax(0,1fr)}
   .ob-band{display:none}

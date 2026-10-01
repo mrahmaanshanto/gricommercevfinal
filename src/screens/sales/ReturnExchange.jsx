@@ -204,6 +204,14 @@ const CSS = `
 @media (max-width:1100px){.re-grid{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:760px){.re-res{grid-template-columns:minmax(0,1fr) auto}.re-res__when{grid-column:1}.re-res .gc-badge{grid-column:2;grid-row:1}}
 @media (max-width:599px){.re-cands{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){
+  /* step heads: number + title on one row, the helper line under the title */
+  .re-head{flex-wrap:wrap;row-gap:2px}
+  .re-head h2{flex:1 1 0;min-width:0}
+  .re-head p{flex:1 0 100%;margin:0}
+  .re-head > .re-step ~ p{padding-left:36px}
+  .re-head > .re-done__ico ~ p{padding-left:44px}
+}
 `;
 
 export default function ReturnExchange() {

@@ -34,7 +34,11 @@ class Component extends DCLogic {
     super(props);
     this.state = { view: props.view === 'list' ? 'list' : 'board', detail: props.detailPanel !== false, reply: 'public', sel: '2304', mobileDetail: false };
   }
-  componentDidMount() { this.paint(); }
+  componentDidMount() {
+    // phones open on the list (the board is five 288px columns); Board stays one tap away
+    if (this.props.view !== 'board' && window.matchMedia && window.matchMedia('(max-width: 640px)').matches && this.state.view === 'board') this.setState({ view: 'list' });
+    this.paint();
+  }
   componentDidUpdate() { this.paint(); }
   paint() {
     const go = () => { if (window.lucide && window.lucide.createIcons) window.lucide.createIcons({ attrs: { width: 20, height: 20, 'stroke-width': 1.75 } }); };

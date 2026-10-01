@@ -491,7 +491,7 @@ export default class FormLimitsScreen extends Component {
                       <h2 className="fsh">Limit rules</h2>
                       <p className="fsd">Applies to every plan version. Plans set the numbers; these rules set what happens at them.</p>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
+                    <div className="cs-fit cs-cards" style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0", "--cs-cols": "repeat(2,minmax(0,1fr))" }}>
                       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) 130px 110px minmax(0,1.3fr) minmax(0,1.3fr)", gap: "12px", padding: "0 0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
                         <span>Limit</span>
                         <span>Resets</span>
@@ -501,129 +501,213 @@ export default class FormLimitsScreen extends Component {
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) 130px 110px minmax(0,1.3fr) minmax(0,1.3fr)", gap: "12px", alignItems: "center", minHeight: "60px", borderTop: "1px solid var(--line)" }}>
                         <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Orders a month</span>
-                        <select aria-label="Monthly" defaultValue="Monthly" className="in">
-                          <option>Monthly</option>
-                          <option>Monthly</option>
-                          <option>Never</option>
-                        </select>
-                        <div className="affix ">
-                          <input type="text" defaultValue="80" />
-                          <span className="post">%</span>
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">Resets</span>
+                          <select aria-label="Orders a month, resets" defaultValue="Monthly" className="in">
+                            <option>Monthly</option>
+                            <option>Monthly</option>
+                            <option>Never</option>
+                          </select>
                         </div>
-                        <select aria-label="Block, offer top-up" defaultValue="Block, offer top-up" className="in">
-                          <option>Block, offer top-up</option>
-                          <option>Allow and bill</option>
-                          <option>Allow, notify only</option>
-                        </select>
-                        <input className="in " type="text" defaultValue="৳300 per 200 orders" placeholder="" />
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">Warn at</span>
+                          <div className="affix ">
+                            <input aria-label="Orders a month, warn at" type="text" defaultValue="80" />
+                            <span className="post">%</span>
+                          </div>
+                        </div>
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">At the limit</span>
+                          <select aria-label="Orders a month, at the limit" defaultValue="Block, offer top-up" className="in">
+                            <option>Block, offer top-up</option>
+                            <option>Allow and bill</option>
+                            <option>Allow, notify only</option>
+                          </select>
+                        </div>
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">Top-up pack</span>
+                          <input aria-label="Orders a month, top-up pack" className="in " type="text" defaultValue="৳300 per 200 orders" placeholder="" />
+                        </div>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) 130px 110px minmax(0,1.3fr) minmax(0,1.3fr)", gap: "12px", alignItems: "center", minHeight: "60px", borderTop: "1px solid var(--line)" }}>
                         <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Products</span>
-                        <select aria-label="Never" defaultValue="Never" className="in">
-                          <option>Never</option>
-                          <option>Monthly</option>
-                          <option>Never</option>
-                        </select>
-                        <div className="affix ">
-                          <input type="text" defaultValue="90" />
-                          <span className="post">%</span>
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">Resets</span>
+                          <select aria-label="Products, resets" defaultValue="Never" className="in">
+                            <option>Never</option>
+                            <option>Monthly</option>
+                            <option>Never</option>
+                          </select>
                         </div>
-                        <select aria-label="Block new products" defaultValue="Block new products" className="in">
-                          <option>Block new products</option>
-                          <option>Allow and bill</option>
-                          <option>Allow, notify only</option>
-                        </select>
-                        <input className="in " type="text" defaultValue="৳200 per 500 products" placeholder="" />
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">Warn at</span>
+                          <div className="affix ">
+                            <input aria-label="Products, warn at" type="text" defaultValue="90" />
+                            <span className="post">%</span>
+                          </div>
+                        </div>
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">At the limit</span>
+                          <select aria-label="Products, at the limit" defaultValue="Block new products" className="in">
+                            <option>Block new products</option>
+                            <option>Allow and bill</option>
+                            <option>Allow, notify only</option>
+                          </select>
+                        </div>
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">Top-up pack</span>
+                          <input aria-label="Products, top-up pack" className="in " type="text" defaultValue="৳200 per 500 products" placeholder="" />
+                        </div>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) 130px 110px minmax(0,1.3fr) minmax(0,1.3fr)", gap: "12px", alignItems: "center", minHeight: "60px", borderTop: "1px solid var(--line)" }}>
                         <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Staff seats</span>
-                        <select aria-label="Never" defaultValue="Never" className="in">
-                          <option>Never</option>
-                          <option>Monthly</option>
-                          <option>Never</option>
-                        </select>
-                        <div className="affix ">
-                          <input type="text" defaultValue="100" />
-                          <span className="post">%</span>
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">Resets</span>
+                          <select aria-label="Staff seats, resets" defaultValue="Never" className="in">
+                            <option>Never</option>
+                            <option>Monthly</option>
+                            <option>Never</option>
+                          </select>
                         </div>
-                        <select aria-label="Block new invites" defaultValue="Block new invites" className="in">
-                          <option>Block new invites</option>
-                          <option>Allow and bill</option>
-                          <option>Allow, notify only</option>
-                        </select>
-                        <input className="in " type="text" defaultValue="৳150 per seat" placeholder="" />
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">Warn at</span>
+                          <div className="affix ">
+                            <input aria-label="Staff seats, warn at" type="text" defaultValue="100" />
+                            <span className="post">%</span>
+                          </div>
+                        </div>
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">At the limit</span>
+                          <select aria-label="Staff seats, at the limit" defaultValue="Block new invites" className="in">
+                            <option>Block new invites</option>
+                            <option>Allow and bill</option>
+                            <option>Allow, notify only</option>
+                          </select>
+                        </div>
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">Top-up pack</span>
+                          <input aria-label="Staff seats, top-up pack" className="in " type="text" defaultValue="৳150 per seat" placeholder="" />
+                        </div>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) 130px 110px minmax(0,1.3fr) minmax(0,1.3fr)", gap: "12px", alignItems: "center", minHeight: "60px", borderTop: "1px solid var(--line)" }}>
                         <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Storage</span>
-                        <select aria-label="Never" defaultValue="Never" className="in">
-                          <option>Never</option>
-                          <option>Monthly</option>
-                          <option>Never</option>
-                        </select>
-                        <div className="affix ">
-                          <input type="text" defaultValue="85" />
-                          <span className="post">%</span>
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">Resets</span>
+                          <select aria-label="Storage, resets" defaultValue="Never" className="in">
+                            <option>Never</option>
+                            <option>Monthly</option>
+                            <option>Never</option>
+                          </select>
                         </div>
-                        <select aria-label="Block uploads" defaultValue="Block uploads" className="in">
-                          <option>Block uploads</option>
-                          <option>Allow and bill</option>
-                          <option>Allow, notify only</option>
-                        </select>
-                        <input className="in " type="text" defaultValue="৳250 per 10 GB" placeholder="" />
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">Warn at</span>
+                          <div className="affix ">
+                            <input aria-label="Storage, warn at" type="text" defaultValue="85" />
+                            <span className="post">%</span>
+                          </div>
+                        </div>
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">At the limit</span>
+                          <select aria-label="Storage, at the limit" defaultValue="Block uploads" className="in">
+                            <option>Block uploads</option>
+                            <option>Allow and bill</option>
+                            <option>Allow, notify only</option>
+                          </select>
+                        </div>
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">Top-up pack</span>
+                          <input aria-label="Storage, top-up pack" className="in " type="text" defaultValue="৳250 per 10 GB" placeholder="" />
+                        </div>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) 130px 110px minmax(0,1.3fr) minmax(0,1.3fr)", gap: "12px", alignItems: "center", minHeight: "60px", borderTop: "1px solid var(--line)" }}>
                         <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Courier connections</span>
-                        <select aria-label="Never" defaultValue="Never" className="in">
-                          <option>Never</option>
-                          <option>Monthly</option>
-                          <option>Never</option>
-                        </select>
-                        <div className="affix ">
-                          <input type="text" defaultValue="100" />
-                          <span className="post">%</span>
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">Resets</span>
+                          <select aria-label="Courier connections, resets" defaultValue="Never" className="in">
+                            <option>Never</option>
+                            <option>Monthly</option>
+                            <option>Never</option>
+                          </select>
                         </div>
-                        <select aria-label="Block new connection" defaultValue="Block new connection" className="in">
-                          <option>Block new connection</option>
-                          <option>Allow and bill</option>
-                          <option>Allow, notify only</option>
-                        </select>
-                        <input className="in " type="text" defaultValue="—" placeholder="" />
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">Warn at</span>
+                          <div className="affix ">
+                            <input aria-label="Courier connections, warn at" type="text" defaultValue="100" />
+                            <span className="post">%</span>
+                          </div>
+                        </div>
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">At the limit</span>
+                          <select aria-label="Courier connections, at the limit" defaultValue="Block new connection" className="in">
+                            <option>Block new connection</option>
+                            <option>Allow and bill</option>
+                            <option>Allow, notify only</option>
+                          </select>
+                        </div>
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">Top-up pack</span>
+                          <input aria-label="Courier connections, top-up pack" className="in " type="text" defaultValue="—" placeholder="" />
+                        </div>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) 130px 110px minmax(0,1.3fr) minmax(0,1.3fr)", gap: "12px", alignItems: "center", minHeight: "60px", borderTop: "1px solid var(--line)" }}>
                         <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Landing pages</span>
-                        <select aria-label="Never" defaultValue="Never" className="in">
-                          <option>Never</option>
-                          <option>Monthly</option>
-                          <option>Never</option>
-                        </select>
-                        <div className="affix ">
-                          <input type="text" defaultValue="100" />
-                          <span className="post">%</span>
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">Resets</span>
+                          <select aria-label="Landing pages, resets" defaultValue="Never" className="in">
+                            <option>Never</option>
+                            <option>Monthly</option>
+                            <option>Never</option>
+                          </select>
                         </div>
-                        <select aria-label="Block publishing" defaultValue="Block publishing" className="in">
-                          <option>Block publishing</option>
-                          <option>Allow and bill</option>
-                          <option>Allow, notify only</option>
-                        </select>
-                        <input className="in " type="text" defaultValue="৳300 per 5 pages" placeholder="" />
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">Warn at</span>
+                          <div className="affix ">
+                            <input aria-label="Landing pages, warn at" type="text" defaultValue="100" />
+                            <span className="post">%</span>
+                          </div>
+                        </div>
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">At the limit</span>
+                          <select aria-label="Landing pages, at the limit" defaultValue="Block publishing" className="in">
+                            <option>Block publishing</option>
+                            <option>Allow and bill</option>
+                            <option>Allow, notify only</option>
+                          </select>
+                        </div>
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">Top-up pack</span>
+                          <input aria-label="Landing pages, top-up pack" className="in " type="text" defaultValue="৳300 per 5 pages" placeholder="" />
+                        </div>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) 130px 110px minmax(0,1.3fr) minmax(0,1.3fr)", gap: "12px", alignItems: "center", minHeight: "60px", borderTop: "1px solid var(--line)" }}>
                         <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>SMS</span>
-                        <select aria-label="Monthly" defaultValue="Monthly" className="in">
-                          <option>Monthly</option>
-                          <option>Monthly</option>
-                          <option>Never</option>
-                        </select>
-                        <div className="affix ">
-                          <input type="text" defaultValue="80" />
-                          <span className="post">%</span>
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">Resets</span>
+                          <select aria-label="SMS, resets" defaultValue="Monthly" className="in">
+                            <option>Monthly</option>
+                            <option>Monthly</option>
+                            <option>Never</option>
+                          </select>
                         </div>
-                        <select aria-label="Allow and bill" defaultValue="Allow and bill" className="in">
-                          <option>Allow and bill</option>
-                          <option>Allow and bill</option>
-                          <option>Allow, notify only</option>
-                        </select>
-                        <input className="in " type="text" defaultValue="৳0.35 per SMS" placeholder="" />
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">Warn at</span>
+                          <div className="affix ">
+                            <input aria-label="SMS, warn at" type="text" defaultValue="80" />
+                            <span className="post">%</span>
+                          </div>
+                        </div>
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">At the limit</span>
+                          <select aria-label="SMS, at the limit" defaultValue="Allow and bill" className="in">
+                            <option>Allow and bill</option>
+                            <option>Allow and bill</option>
+                            <option>Allow, notify only</option>
+                          </select>
+                        </div>
+                        <div className="cs-cell">
+                          <span className="cs-cell-lab" aria-hidden="true">Top-up pack</span>
+                          <input aria-label="SMS, top-up pack" className="in " type="text" defaultValue="৳0.35 per SMS" placeholder="" />
+                        </div>
                       </div>
                     </div>
                   </section>

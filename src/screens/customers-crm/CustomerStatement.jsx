@@ -9,7 +9,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { EmptyState } from '@/components/ui';
+import { EmptyState, PageHeader } from '@/components/ui';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
 import { MERCHANT } from '@/lib/merchant';
 import { getCustomers, findCustomer, tierOf, phoneDigits } from '@/lib/customers';
@@ -53,6 +53,10 @@ const CSS = `
 .cs-open td{background:var(--surface-subtle);font-weight:var(--weight-medium);color:var(--text-heading)}
 .cs-close td{border-top:1px solid var(--border-strong);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .cs-sheet{display:none}
+.cs-empty{display:flex;flex-direction:column;align-items:center}
+.cs-empty>.gc-empty{padding-bottom:var(--space-5)}
+.cs-empty>p{margin:0}
+@media (max-width:640px){.cs-empty>.gc-empty{padding-top:var(--space-10)}.cs-head>div:nth-child(2){flex:1 1 0!important;min-width:0}.cs-actions{flex:1 1 100%;justify-content:flex-end}.cs-title{font-size:var(--text-xl);line-height:var(--text-xl-lh)}}
 @media print{
   body *{visibility:hidden!important}
   .cs-sheet,.cs-sheet *{visibility:visible!important}
@@ -130,9 +134,11 @@ export default function CustomerStatement() {
   if (!ready) return shell(null, 'Statement');
   if (!name) {
     return shell(<>
-      <h1 className="sr-only">Customer statement</h1>
-      <EmptyState icon="scroll-text" title="No customer to show" body={phone ? `There is no customer or invoice with the number ${phone} in this browser.` : 'Open a statement from a customer’s page or an invoice.'} />
-      <p style={{ textAlign: 'center' }}><Link href="/all-customers" className="gc-btn gc-btn--soft">Go to Customers</Link></p>
+      <PageHeader title="Customer statement" />
+      <div className="cs-empty">
+        <EmptyState icon="scroll-text" title="No customer to show" body={phone ? `There is no customer or invoice with the number ${phone} in this browser.` : 'Open a statement from a customer’s page or an invoice.'} />
+        <p><Link href="/all-customers" className="gc-btn gc-btn--soft">Go to Customers</Link></p>
+      </div>
     </>, 'Statement');
   }
 

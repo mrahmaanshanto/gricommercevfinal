@@ -106,6 +106,8 @@ button{font:inherit;color:inherit}
 .bar{height:6px;border-radius:var(--radius-full);background:#edf1f6;overflow:hidden}.bar i{display:block;height:100%;border-radius:var(--radius-full)}
 .lrow{display:flex;align-items:center;gap:14px;padding:14px 16px}
 .lrow + .lrow{border-top:1px solid var(--line)}
+/* trailing status column on the received lines: one width, so every progress bar is the same length */
+.po-end{flex:none;width:72px;display:flex;justify-content:flex-end}
 `;
 
 // ---- markup ----
@@ -186,9 +188,11 @@ export default class MPurchaseDetailScreen extends Component {
                     <i style={{ width: "100%", background: "#10b981" }} />
                   </span>
                 </span>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M20 6 9 17l-5-5" />
-                </svg>
+                <span className="po-end">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-label="All received" role="img">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                </span>
               </div>
               <div className="lrow">
                 <span className="av" style={{ width: "44px", height: "44px", background: "#e0f3fb", color: "#003087" }}>D</span>
@@ -199,7 +203,7 @@ export default class MPurchaseDetailScreen extends Component {
                     <i style={{ width: "80%", background: "#003087" }} />
                   </span>
                 </span>
-                <span className="pill p-warn">20 due</span>
+                <span className="po-end"><span className="pill p-warn">20 due</span></span>
               </div>
               <div className="lrow">
                 <span className="av" style={{ width: "44px", height: "44px", background: "#e0f3fb", color: "#003087" }}>D</span>
@@ -210,7 +214,7 @@ export default class MPurchaseDetailScreen extends Component {
                     <i style={{ width: "0%", background: "#003087" }} />
                   </span>
                 </span>
-                <span className="pill p-warn">100 due</span>
+                <span className="po-end"><span className="pill p-warn">100 due</span></span>
               </div>
             </div>
             <a href="#" className="card" style={{ display: "flex", alignItems: "center", gap: "12px", margin: "12px 20px 0", padding: "14px 16px" }}>

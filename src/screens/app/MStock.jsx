@@ -106,6 +106,10 @@ button{font:inherit;color:inherit}
 .bar{height:6px;border-radius:var(--radius-full);background:#edf1f6;overflow:hidden}.bar i{display:block;height:100%;border-radius:var(--radius-full)}
 .lrow{display:flex;align-items:center;gap:14px;padding:14px 16px}
 .lrow + .lrow{border-top:1px solid var(--line)}
+/* stock rows: names wrap (two lines at most) and the action is an icon button in one fixed column, so bars line up */
+.st-name{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:20px}
+.st-end{flex:none;width:40px;display:flex;justify-content:flex-end}
+.st-act{width:40px;height:40px;background:var(--soft);color:var(--brand)}
 `;
 
 // ---- markup ----
@@ -209,55 +213,57 @@ export default class MStockScreen extends Component {
               <div className="lrow">
                 <span className="av" style={{ width: "48px", height: "48px", background: "#fff4e0", color: "#003087", fontSize: "var(--text-lg)" }}>S</span>
                 <span style={{ flex: "1", minWidth: "0" }}>
-                  <span className="ell" style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Sunscreen SPF 50 · 50ml</span>
+                  <span className="st-name" style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Sunscreen SPF 50 · 50ml</span>
                   <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "var(--err)", marginTop: "2px" }}><span className="sh err" style={{ color: "var(--text-danger)" }} />4 left · reorder at 20</span>
                   <span className="bar" style={{ display: "block", marginTop: "8px" }}>
                     <i style={{ width: "10%", background: "#ff5724" }} />
                   </span>
                 </span>
-                <__Link href="/m-purchase-new" className="btn btns" style={{ flex: "none", height: "36px", padding: "0 12px", fontSize: "var(--text-xs-plus)", borderRadius: "var(--radius-lg)" }}>Reorder</__Link>
+                <span className="st-end"><__Link href="/m-purchase-new" className="ib st-act" aria-label="Reorder" title="Reorder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m17 2 4 4-4 4" /><path d="M3 11v-1a4 4 0 0 1 4-4h14" /><path d="m7 22-4-4 4-4" /><path d="M21 13v1a4 4 0 0 1-4 4H3" /></svg></__Link></span>
               </div>
               <div className="lrow">
                 <span className="av" style={{ width: "48px", height: "48px", background: "#e7f7f0", color: "#003087", fontSize: "var(--text-lg)" }}>R</span>
                 <span style={{ flex: "1", minWidth: "0" }}>
-                  <span className="ell" style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Rice Water Cleanser 150ml</span>
+                  <span className="st-name" style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Rice Water Cleanser 150ml</span>
                   <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "var(--warn)", marginTop: "2px" }}><span className="sh warn" style={{ color: "var(--text-warning)" }} />8 left · reorder at 15</span>
                   <span className="bar" style={{ display: "block", marginTop: "8px" }}>
                     <i style={{ width: "27%", background: "#ff9800" }} />
                   </span>
                 </span>
-                <__Link href="/m-purchase-new" className="btn btns" style={{ flex: "none", height: "36px", padding: "0 12px", fontSize: "var(--text-xs-plus)", borderRadius: "var(--radius-lg)" }}>Reorder</__Link>
+                <span className="st-end"><__Link href="/m-purchase-new" className="ib st-act" aria-label="Reorder" title="Reorder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m17 2 4 4-4 4" /><path d="M3 11v-1a4 4 0 0 1 4-4h14" /><path d="m7 22-4-4 4-4" /><path d="M21 13v1a4 4 0 0 1-4 4H3" /></svg></__Link></span>
               </div>
               <div className="lrow">
                 <span className="av" style={{ width: "48px", height: "48px", background: "#fde7ef", color: "#003087", fontSize: "var(--text-lg)" }}>V</span>
                 <span style={{ flex: "1", minWidth: "0" }}>
-                  <span className="ell" style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Vitamin C Serum 30ml</span>
+                  <span className="st-name" style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Vitamin C Serum 30ml</span>
                   <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "var(--err)", marginTop: "2px" }}><span className="sh err" style={{ color: "var(--text-danger)" }} />Out of stock · 14 on order</span>
                   <span className="bar" style={{ display: "block", marginTop: "8px" }}>
                     <i style={{ width: "0%", background: "#ff5724" }} />
                   </span>
                 </span>
-                <__Link href="/m-purchase-new" className="btn btns" style={{ flex: "none", height: "36px", padding: "0 12px", fontSize: "var(--text-xs-plus)", borderRadius: "var(--radius-lg)" }}>Track</__Link>
+                <span className="st-end"><__Link href="/m-purchase-new" className="ib st-act" aria-label="Track the order" title="Track the order"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2M15 18H9M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62L18.3 9.38a1 1 0 0 0-.78-.38H14" /><circle cx="17" cy="18" r="2" /><circle cx="7" cy="18" r="2" /></svg></__Link></span>
               </div>
               <div className="lrow">
                 <span className="av" style={{ width: "48px", height: "48px", background: "#e0f3fb", color: "#003087", fontSize: "var(--text-lg)" }}>D</span>
                 <span style={{ flex: "1", minWidth: "0" }}>
-                  <span className="ell" style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Denim Jeans · Blue · 32</span>
+                  <span className="st-name" style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Denim Jeans · Blue · 32</span>
                   <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "var(--muted)", marginTop: "2px" }}><span className="sh ok" style={{ color: "var(--text-success)" }} />40 in stock · 3 weeks left</span>
                   <span className="bar" style={{ display: "block", marginTop: "8px" }}>
                     <i style={{ width: "100%", background: "#10b981" }} />
                   </span>
                 </span>
+                <span className="st-end" aria-hidden="true" />
               </div>
               <div className="lrow">
                 <span className="av" style={{ width: "48px", height: "48px", background: "#e7f7f0", color: "#003087", fontSize: "var(--text-lg)" }}>A</span>
                 <span style={{ flex: "1", minWidth: "0" }}>
-                  <span className="ell" style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Aloe Soothing Gel 300ml</span>
+                  <span className="st-name" style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }}>Aloe Soothing Gel 300ml</span>
                   <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "var(--muted)", marginTop: "2px" }}><span className="sh ok" style={{ color: "var(--text-success)" }} />120 in stock · expires Mar 2027</span>
                   <span className="bar" style={{ display: "block", marginTop: "8px" }}>
                     <i style={{ width: "100%", background: "#10b981" }} />
                   </span>
                 </span>
+                <span className="st-end" aria-hidden="true" />
               </div>
             </div>
           </div>

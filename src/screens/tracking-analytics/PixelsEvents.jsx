@@ -7,6 +7,7 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+import { TA_PHONE_CSS } from './taPhone';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -188,7 +189,16 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .tb tr:last-child td{border-bottom:0}
 .tb .r{text-align:right}
 @media (prefers-reduced-motion:reduce){.st>*,.gr,.draw,.fadein{animation:none}}
-`;
+@media (max-width:640px){
+  /* platform card head: the status pill gets its own line under the name */
+  .pe-phead{flex-wrap:wrap;row-gap:6px!important}
+  .pe-phead>div{flex:1 1 calc(100% - 54px)!important}
+  .pe-phead>.dl{margin-left:54px}
+  .pe-life>div>div:first-child{flex-wrap:wrap;row-gap:4px}
+  .pe-ehead{flex-wrap:wrap;row-gap:4px!important}
+  .pe-ehead>span{flex:1 1 100%}
+}
+` + TA_PHONE_CSS;
 
 // ---- markup ----
 
@@ -252,7 +262,7 @@ export default class PixelsEventsScreen extends Component {
               <div className="st gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "16px" }}>
                 {__list(v.plats).map((pt, $index) => (<React.Fragment key={$index}>
                     <section className="tc lift" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div className="pe-phead" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                         <span style={{ width: "42px", height: "42px", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e7ebf2", boxShadow: "0 1px 2px rgba(15,23,42,.06)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: "0" }}>
                           <img src={pt?.lg} alt="" width="24" height="24" style={{ width: "24px", height: "24px", objectFit: "contain", flexShrink: "0", display: "block" }} />
                         </span>
@@ -306,7 +316,7 @@ export default class PixelsEventsScreen extends Component {
                     <p style={{ margin: "3px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Platforms learn from delivered buyers — and stop chasing people who return.</p>
                   </div>
                 </div>
-                <div className="gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "12px" }}>
+                <div className="gc-cols-4 pe-life" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "12px" }}>
                   {__list(v.life).map((lf, $index) => (<React.Fragment key={$index}>
                       <div style={__sx(`position: relative; padding: 16px; border-radius: var(--radius-xl); background: ${lf?.bg ?? ""}; color: ${lf?.fg ?? ""}; display: flex; flex-direction: column; gap: 6px;`)}>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -323,7 +333,7 @@ export default class PixelsEventsScreen extends Component {
                 </div>
               </section>
               <section className="tc " style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+                <div className="pe-ehead" style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "0" }}>Which events go where</h2>
                     <p style={{ margin: "3px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Purchase fires when the order is placed; Delivered fires when the courier confirms. Returned tells the platforms to stop chasing people who return.</p>

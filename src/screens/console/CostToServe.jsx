@@ -541,7 +541,7 @@ export default class CostToServeScreen extends Component {
                     <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Cost against revenue, every store</h2>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }} />
                   </div>
-                  <svg viewBox="0 0 360 150" width="100%" role="img" style={{ display: "block", overflow: "visible" }}>
+                  <svg className="cs-chart-s" viewBox="0 0 360 150" width="100%" role="img" style={{ "--cs-fs": "13px", display: "block", overflow: "visible" }}>
                     <line x1="30" y1="126" x2="354" y2="126" stroke="#cbd5e1" />
                     <line x1="30" y1="10" x2="30" y2="126" stroke="#cbd5e1" />
                     <line x1="30" y1="126" x2="354" y2="34" stroke="#003087" strokeWidth="1.5" strokeDasharray="5 4" />

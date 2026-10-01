@@ -550,7 +550,7 @@ export default class TrialFunnelScreen extends Component {
                     <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Signup to paid, 90 days</h2>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }} />
                   </div>
-                  <svg viewBox="0 0 360 150" width="100%" role="img" style={{ display: "block", overflow: "visible" }}>
+                  <svg className="cs-chart-s" viewBox="0 0 360 150" width="100%" role="img" style={{ "--cs-fs": "13px", display: "block", overflow: "visible" }}>
                     <rect x="0" y="4" width="272.0" height="28" rx="6" fill="#012169" />
                     <text x="12" y="22" fontSize="11" fill="#fff" textAnchor="start" fontWeight="500" fontFamily="Poppins, system-ui, sans-serif">Signups · 96</text>
                     <rect x="0" y="40" width="201.2" height="28" rx="6" fill="#003087" />
@@ -570,7 +570,7 @@ export default class TrialFunnelScreen extends Component {
                     <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Retention by signup month</h2>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }}>share still paying</div>
                   </div>
-                  <svg viewBox="0 0 360 150" width="100%" role="img" style={{ display: "block", overflow: "visible" }}>
+                  <svg className="cs-chart-s" viewBox="0 0 360 150" width="100%" role="img" style={{ "--cs-fs": "13px", display: "block", overflow: "visible" }}>
                     <text x="61" y="10" fontSize="9" fill="#64748b" textAnchor="middle" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">M0</text>
                     <text x="115" y="10" fontSize="9" fill="#64748b" textAnchor="middle" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">M1</text>
                     <text x="169" y="10" fontSize="9" fill="#64748b" textAnchor="middle" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">M2</text>
@@ -675,7 +675,7 @@ export default class TrialFunnelScreen extends Component {
                     <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Trial to paid by month</h2>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }}>%</div>
                   </div>
-                  <svg viewBox="0 0 420 180" width="100%" role="img" aria-hidden="true" style={{ display: "block" }}>
+                  <svg className="cs-chart-s" viewBox="0 0 420 180" width="100%" role="img" aria-hidden="true" style={{ "--cs-fs": "15px", display: "block" }}>
                     <line x1="36" x2="420" y1="158.0" y2="158.0" stroke="#eef2f7" />
                     <line x1="36" x2="420" y1="123.0" y2="123.0" stroke="#eef2f7" />
                     <line x1="36" x2="420" y1="88.0" y2="88.0" stroke="#eef2f7" />
