@@ -391,8 +391,8 @@ export default class PromoScreen extends Component {
                   </table>
                 </div>
               </section>
-              <section id="strip" className="card" style={{ padding: "24px", display: "flex", gap: "28px", alignItems: "flex-start" }}>
-                <div style={{ flexGrow: "1", display: "flex", flexDirection: "column", gap: "16px" }}>
+              <section id="strip" className="card" style={{ padding: "24px", display: "flex", flexWrap: "wrap", gap: "28px", alignItems: "flex-start" }}>
+                <div style={{ flex: "1 1 280px", minWidth: "0", display: "flex", flexDirection: "column", gap: "16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <div style={{ flexGrow: "1" }}>
                       <div>
@@ -424,7 +424,7 @@ export default class PromoScreen extends Component {
                 </div>
                 <div style={{ width: "300px", maxWidth: "100%", flexShrink: "1", display: "flex", flexDirection: "column", gap: "8px", alignItems: "center" }}>
                   <div className="lbl" style={{ alignSelf: "flex-start" }}>Preview on phone</div>
-                  <div style={{ width: "280px", height: "300px", borderRadius: "28px 28px 0 0", border: "8px solid #0f172a", borderBottom: "0", overflow: "hidden", background: "#f8fafc", display: "flex", flexDirection: "column" }}>
+                  <div style={{ width: "280px", maxWidth: "100%", boxSizing: "border-box", height: "300px", borderRadius: "28px 28px 0 0", border: "8px solid #0f172a", borderBottom: "0", overflow: "hidden", background: "#f8fafc", display: "flex", flexDirection: "column" }}>
                     <div style={{ height: "22px", background: "#0f172a" }} />
                     {v.stripOn ? (<>
                       <div className="fade bn" style={__sx(`padding: 8px 12px; background: ${v.stripBg ?? ""}; color: #ffffff; font-size: var(--text-xs); line-height: 16px; font-weight: var(--weight-medium); text-align: center; white-space: normal; overflow-wrap: anywhere;`)}>{v.stripText}</div>

@@ -633,6 +633,7 @@ html.dark .gc-table__money{color:var(--navy-100)}
 .gc-tab--active{border-bottom-color:var(--primary);color:var(--primary)}
 html.dark .gc-tab--active{border-bottom-color:var(--accent);color:var(--accent-light)}
 .gc-seg{display:flex;gap:var(--space-2)}
+@media (max-width:640px){.gc-seg{max-width:100%;overflow-x:auto;scrollbar-width:none}.gc-seg::-webkit-scrollbar{display:none}.gc-seg>.gc-seg__btn{flex:none}}
 .gc-seg__btn{height:36px;border:none;border-radius:var(--radius-full);background:none;padding:0 var(--space-4);color:var(--text-body);font-family:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);cursor:pointer;transition:var(--transition-base)}
 .gc-seg__btn:hover{background:color-mix(in srgb,var(--slate-300) 20%,transparent)}
 .gc-seg__btn--active{background:var(--fill-primary-soft);color:var(--primary)}

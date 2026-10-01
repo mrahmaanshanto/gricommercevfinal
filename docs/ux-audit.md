@@ -142,3 +142,46 @@ The full dictionary (English + Bangla) is `docs/terminology.md`, used by `src/li
 
 ## Business logic
 No change to orders, stock, prices, money, payroll or purchase logic is needed for any of the above.
+
+---
+
+# Changes implemented (1 Oct 2026)
+
+Business logic is unchanged everywhere: no order, stock, price, money, payroll or purchase calculation was touched.
+Display-only fixes: status words, page titles, and counts that were fixed design numbers now count the real records.
+
+## By stage
+| Stage | Done |
+|---|---|
+| 1 Layout, navigation, shared components | Menu 13 → 9 groups, max two levels, duplicates folded (`NAV_ALIAS` keeps old links and role access). Shared `Sheet`, `PhoneMore`, `PhoneActionBar`, `FilterBar`, `MobileFilters`; `PageHeader` keeps one primary action and folds the rest into More on phones; crumb follows the menu. |
+| 2 Search, filters, tables, responsive | Phone list tables become cards on every page (`runtime/mobileTables.js`); statistic rows become a swipe strip; filters open in a bottom sheet with a count and Clear all; the shell uses the full phone width; forms keep their main action in a bottom bar. |
+| 3 Terminology | `docs/terminology.md` (EN + BN). Partly paid, Overdue (money), Pending (approvals), Unpaid / Due, Payouts, Bills to pay, Stock, Coupon applied across screens and libraries. |
+| 4 Core daily modules | Orders, Products, Customers, Tasks, Leads, New PO, New transfer, Receive goods reworked for phones (see table). |
+| 5 Mobile | See stage 2; checked at 390 px on the daily pages. |
+| 6 Dashboard | Home rebuilt on the real books (was a static design dated 29 Sep). |
+| 7 Bangla | Every page: dictionary (`lib/i18n/bn.js`, ~680 strings + number patterns) applied at runtime; English restored on switch; data and option values never change. |
+| 8 Help | Help button on every page (top bar, Shift+?): what, how, good to know, video placeholder, related pages; 40 written entries in EN + BN, the rest built from the menu and header. |
+| 9 Secondary modules | Covered by the shared patterns (cards, filters, Help, Bangla, crumbs). Not individually redesigned yet — see "Still to do". |
+| 10 Final audit | Build prerenders every route; `check:screens` passes; 36 daily pages checked at 390 px: nothing wider than the screen outside a scroll area (All staff status switch and Promo preview fixed in this pass). |
+
+## By module
+| Module | Problems found | Changes implemented |
+|---|---|---|
+| Home | Static numbers, fixed date, tiles first, no money or incoming stock | Rebuilt: today at a glance (sales vs day before, online orders, money in hand, payouts this week, expenses), needs your attention (10 live checks, each opens the page that fixes it), orders pipeline + latest, money to collect / you owe, stock (low, coming from suppliers, transfers on the way), last 7 days by channel + best sellers, monthly target, recent activity; Today / Yesterday, place filter, Customise (show / hide, target). |
+| Orders | Tabs and cards showed fixed numbers (696, 128…); 4 filters + 4 header buttons on phone; wide table | Counts come from the orders; header: date range + More (Export CSV, Courier returns) + New order; search + Filter sheet on phone; orders as cards; tabs scroll in one row. |
+| Products | Intro sentence + action row; 4 filters; wide table; overflow | Shared header (Catalog setup, Import CSV, Add product); Filter sheet on phone; "Inventory" column → Stock; cards on phone. |
+| Customers | Toolbar wrapped into 3 rows on phone | Print + CSV fold into More; view switch hidden on phones (cards make it unnecessary). |
+| Purchase & stock | Long forms with the save button at the very end on phone | New PO, New transfer and Receive goods keep their main action in a bottom bar with the total. Crumbs "Stocks & Inventory" → menu group. |
+| Money | Jargon in titles (Settlements, Liabilities); status words differed | Titles Payouts and Bills to pay; Partner rules → Payout rules; Partly paid / Overdue everywhere; supplier bill status recomputed when read. |
+| Staff & HR | "Waiting", "Not paid yet" | Pending / Unpaid / Due. |
+| Team (tasks, leads) | 6 filter controls above the list | Search first, Filter sheet on phone. |
+| Marketing | "Discount codes" vs "Coupons" | Coupons everywhere. |
+| All pages | No Help, no Bangla, menu names in crumbs out of date | Help panel, Bangla, crumbs from the menu, GridAI button is a round icon on phones and moves above action bars. |
+
+## Still to do (next pass)
+- Order detail: one primary action + More (today four equal buttons).
+- Reports centre (14,078 px on phone) and Payment settings (12,191 px): collapse sections.
+- Accounts overview: shorten the phone page (statistic strip done; sections still long).
+- Secondary modules (storefront, automation, loyalty detail pages, communication): individual review.
+- Bangla: extend `lib/i18n/bn.js` with long sentences per module (labels, buttons, headers and statuses are covered).
+- Orders: the four statistic cards repeat tab counts; consider keeping only "Orders today".
