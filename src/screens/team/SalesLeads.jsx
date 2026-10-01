@@ -260,7 +260,7 @@ function LeadDialog({ lead, me, onMove, onClose }) {
     setLog({ ...log, text: '', nextWhat: '' });
   };
   const saveEdit = (e) => { e.preventDefault(); saveLead({ id: lead.id, name: edit.name.trim(), company: edit.company, phone: edit.phone, area: edit.area, interest: edit.interest, value: edit.value, kind: edit.kind, source: edit.source, owner: edit.owner }); toast('Lead saved.'); setEdit(null); };
-  const task = () => { const t = saveTask({ title: `Follow up ${lead.name}${lead.company ? ' · ' + lead.company : ''}`, assignee: lead.owner, by: me.id, due: lead.next ? new Date(lead.next.at).toISOString().slice(0, 10) : '', priority: 'high', area: 'Sales', notes: lead.next ? lead.next.what : lead.interest, link: { href: `/sales-leads?lead=${lead.id}`, label: lead.id } }); toast(`Task ${t.id} added for ${userName(lead.owner)}.`); };
+  const task = () => { const t = saveTask({ assignees: [lead.owner], title: `Follow up ${lead.name}${lead.company ? ' · ' + lead.company : ''}`, assignee: lead.owner, by: me.id, due: lead.next ? new Date(lead.next.at).toISOString().slice(0, 10) : '', priority: 'high', team: 'sales', tags: ['customer'], notes: lead.next ? lead.next.what : lead.interest, link: { href: `/sales-leads?lead=${lead.id}`, label: lead.id } }); toast(`Task ${t.id} added for ${userName(lead.owner)}.`); };
   const remove = async () => { if (await confirmDialog({ title: `Delete ${lead.name}?`, body: 'The lead and its history go for good.', confirmLabel: 'Delete', tone: 'danger' })) { removeLead(lead.id); toast('Lead deleted.'); onClose(); } };
   return (
     <Dialog open title={`${lead.name}${lead.company ? ' · ' + lead.company : ''}`} onClose={onClose} width={760}

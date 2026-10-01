@@ -2994,6 +2994,17 @@ export const SCREENS = [
     "interactive": true
   },
   {
+    "name": "TeamChat",
+    "route": "/team-chat",
+    "folder": "team",
+    "title": "Team chat",
+    "description": "Channels per team, #general, announcements and direct messages with mentions, task links and reactions.",
+    "canvasPage": "Team",
+    "width": 1440,
+    "height": 1000,
+    "interactive": true
+  },
+  {
     "name": "MyDashboard",
     "route": "/my-dashboard",
     "folder": "team",

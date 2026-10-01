@@ -13,7 +13,7 @@ export const SESSION_KEY = 'gc.session';
 export const SESSION_EVENT = 'gc:session';
 
 // the items everyone has
-const BASE = ['my-dash', 'tasks'];
+const BASE = ['my-dash', 'tasks', 'team-chat'];
 
 export const ROLES = {
   ceo: { title: 'CEO', icon: 'crown', tone: 'primary', blurb: 'Everything: sales, profit, cash, people and approvals.', access: '*' },

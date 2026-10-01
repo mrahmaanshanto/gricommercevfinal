@@ -14,11 +14,13 @@ import { periodOf, fmt } from '@/lib/reports/period';
 import { ORDER_STATUSES } from '@/lib/orderStatus';
 import { getPosts } from '@/lib/blog';
 import { USERS, roleOf, userBy } from '@/lib/team';
-import { setStatus, dueState, dayKeyOf, priorityOf } from '@/lib/tasks';
+import { setStatus, dueState, dayKeyOf, priorityOf, isMine, getTeams, teamBy } from '@/lib/tasks';
+import { unreadTotal } from '@/lib/teamChat';
 import { OPEN_STAGES, followState, stageOf, STAGE_WEIGHT } from '@/lib/leads';
 import { staffBy, cellOf, todayKey, shiftBy, t12, leaveBalance, loanLeft, leaveType, statusOf } from '@/lib/hr';
 import { useHr } from '@/screens/staff-hr/hrShared';
-import { TeamPage, useMe, useTasks, useLeads, UserAvatar, userName } from './teamShared';
+import { TeamPage, useMe, useTasks, useLeads, useTick, UserAvatar, userName } from './teamShared';
+import { channelsFor, unread, getMessages, CHAT_EVENT } from '@/lib/teamChat';
 
 const CSS = `
 .md-hero{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-4) var(--space-6);padding:var(--space-5) var(--space-6);border-radius:var(--radius-xl);background:var(--brand-navy-deep, var(--primary));color:var(--text-inverse)}
@@ -125,7 +127,7 @@ export default function MyDashboard() {
   const cfg = DASH[me.role] || DASH.ceo;
   const now = Date.now();
   const today = dayKeyOf(now);
-  const mine = tasks.filter((t) => t.assignee === me.id && t.status !== 'done');
+  const mine = tasks.filter((t) => isMine(t, me.id) && t.status !== 'done');
   const late = mine.filter((t) => dueState(t, today) === 'overdue');
   const dueToday = mine.filter((t) => dueState(t, today) === 'today');
   const myLeads = leads.filter((l) => l.owner === me.id && OPEN_STAGES.includes(l.stage));
@@ -158,6 +160,7 @@ export default function MyDashboard() {
           {ready ? cfg.blocks.map((b, i) => <ReportBlock key={b.id + i} b={b} me={me} />) : <section className="gc-card md-card" style={{ minHeight: 200 }} aria-busy="true" />}
         </div>
         <div className="md-col">
+          <ChatPeek me={me} ready={ready} />
           {st ? <MeAtWork S={S} st={st} /> : null}
           {cfg.side.map((w) => {
             if (w === 'approvals') return <Approvals key={w} S={S} tasks={tasks} me={me} />;
@@ -230,7 +233,7 @@ function MyTasks({ tasks, today }) {
           return (
             <div key={t.id} className="md-task">
               <button type="button" className="md-check" aria-label={`Mark “${t.title}” done`} onClick={() => { const made = setStatus(t.id, 'done'); toast(made ? 'Done — the next one is on your list.' : 'Done.'); }} />
-              <Link href={`/tasks?task=${t.id}`} className="md-task__main"><b>{t.title}</b><span className="tm-sub">{t.area}{t.by !== t.assignee ? ` · from ${userName(t.by).split(' ')[0]}` : ''}</span></Link>
+              <Link href={`/tasks?task=${t.id}`} className="md-task__main"><b>{t.title}</b><span className="tm-sub">{(teamBy(t.team) || { name: '' }).name}{!(t.assignees || []).length ? ' · open for the team' : ''}{t.by !== t.assignee ? ` · from ${userName(t.by).split(' ')[0]}` : ''}</span></Link>
               {t.priority === 'urgent' || t.priority === 'high' ? <span className={'gc-badge gc-badge--' + pr[2]}>{pr[1]}</span> : null}
               <span className={'tm-sub' + (ds === 'overdue' ? ' tm-out' : ds === 'today' ? ' tm-warn' : '')} style={{ whiteSpace: 'nowrap' }}>{ds === 'today' ? 'Today' : ds === 'overdue' ? 'Late' : t.due ? formatDate(new Date(t.due + 'T00:00:00').getTime()) : ''}</span>
             </div>
@@ -319,7 +322,7 @@ function Pipeline({ leads, me }) {
 }
 
 function TeamTasks({ tasks, team, today }) {
-  const rows = team.map((id) => ({ id, open: tasks.filter((t) => t.assignee === id && t.status !== 'done'), })).filter((r) => userBy(r.id));
+  const rows = team.map((id) => ({ id, open: tasks.filter((t) => (t.assignees || []).includes(id) && t.status !== 'done'), })).filter((r) => userBy(r.id));
   return (
     <section className="gc-card md-card">
       <header><div><h2>Team tasks</h2><p>Open and late, per person.</p></div><Link href="/tasks?scope=all" className="gc-btn gc-btn--sm gc-btn--flat">All tasks</Link></header>
@@ -405,6 +408,22 @@ function OnDuty({ S, place }) {
           const txt = c.rec && c.rec.in ? `In ${t12(c.rec.in)}${c.rec.late ? ` · ${c.rec.late} min late` : ''}` : c.plan.kind === 'leave' ? 'On leave' : k === 'suspended' ? 'Suspended' : c.plan.kind === 'off' ? 'Weekly off' : sh ? `Not in · ${sh.name} ${t12(sh.start)}` : 'Not in';
           return <Link key={s.code} href={`/staff-profile?code=${s.code}`} className="md-row" style={{ textDecoration: 'none', color: 'inherit' }}><span className="tm-av" style={{ width: 28, height: 28, background: 'var(--surface-subtle)', color: 'var(--text-body)' }} aria-hidden="true">{s.name.split(' ').map((x) => x[0]).join('').slice(0, 2)}</span><span><span className="tm-strong">{s.name}</span><span className="tm-sub">{s.designation}</span></span><span className={'tm-sub' + (c.rec && c.rec.late ? ' tm-warn' : c.rec ? ' tm-in' : '')} style={{ textAlign: 'right' }}>{txt}</span></Link>;
         })}
+      </div>
+    </section>
+  );
+}
+
+function ChatPeek({ me, ready }) {
+  useTick([CHAT_EVENT]);
+  if (!ready) return null;
+  const msgs = getMessages();
+  const chans = channelsFor(me, undefined, msgs).map((c) => ({ c, n: unread(c.id, me.id, msgs), last: msgs.filter((m) => m.ch === c.id).slice(-1)[0] })).filter((x) => x.last).sort((a, b) => b.n - a.n || b.last.at - a.last.at).slice(0, 4);
+  const total = chans.reduce((a, x) => a + x.n, 0);
+  return (
+    <section className="gc-card md-card">
+      <header><div><h2>Team chat</h2><p>{total ? `${total} unread` : 'All caught up'}</p></div><Link href="/team-chat" className="gc-btn gc-btn--sm gc-btn--flat">Open chat</Link></header>
+      <div className="md-body">
+        {chans.map(({ c, n, last }) => <Link key={c.id} href={`/team-chat?ch=${encodeURIComponent(c.id)}`} className="md-row" style={{ textDecoration: 'none', color: 'inherit' }}>{c.kind === 'dm' ? <UserAvatar id={c.other} size={28} /> : <span className="tm-tile" style={{ width: 28, height: 28 }}><Icon name={c.icon} width="14" height="14" aria-hidden="true" /></span>}<span><span className={n ? 'tm-strong' : ''}>{c.kind === 'channel' ? '# ' + c.name : c.name}</span><span className="tm-sub" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{userName(last.by).split(' ')[0]}: {last.text}</span></span>{n ? <span className="gc-badge gc-badge--info">{n}</span> : null}</Link>)}
       </div>
     </section>
   );

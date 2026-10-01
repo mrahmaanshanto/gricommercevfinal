@@ -90,7 +90,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   role can open. The sign-in page lists them (`components/DemoAccounts.jsx`); `?as=<user id>` on any page signs in too.
   The side menu shows only the role's items (`navFor`), `components/RoleGuard.jsx` covers menu pages outside the role,
   and the top bar shows the user with Switch account. `/my-dashboard` (`screens/team/MyDashboard.jsx`) is each role's
-  day, built from the report definitions plus role widgets; `/tasks` is the task manager (`lib/tasks.js`) and
+  day, built from the report definitions plus role widgets; `/tasks` is the task manager (`lib/tasks.js`: teams, tags,
+  several assignees, watchers, IT requests / bugs / requests, blocked-by, time, history; list, board, calendar,
+  workload, bulk changes, Ask IT), `/team-chat` the team chat (`lib/teamChat.js`: channels per team, DMs) and
   `/sales-leads` leads & follow-ups (`lib/leads.js`; `/leads` is taken by the platform console).
 - Responsive rules for the platform console frame (`.cs`) and fixed design boards (`data-board`, zoomed to fit) are in
   `src/styles/console-responsive.css`. `?quiet=1` stops the evening payout check from opening by itself (tests, screenshots).

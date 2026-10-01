@@ -10,6 +10,7 @@ export const NAV = [
     { id: 'home', icon: 'layout-dashboard', label: 'Home', to: 'merchant-overview/MerchantOverview.dc.html' },
     { id: 'my-dash', icon: 'user-round', label: 'My dashboard', to: 'team/MyDashboard.dc.html' },
     { id: 'tasks', icon: 'list-checks', label: 'Tasks', to: 'team/Tasks.dc.html' },
+    { id: 'team-chat', icon: 'messages-square', label: 'Team chat', to: 'team/TeamChat.dc.html' },
     { id: 'orders', icon: 'shopping-cart', label: 'Orders', to: 'merchant-orders/MerchantOrders.dc.html', children: [
       { id: 'orders-all', icon: 'inbox', label: 'All orders', count: ORDER_TOTAL, to: 'merchant-orders/MerchantOrders.dc.html' },
       { id: 'orders-online', icon: 'globe', label: 'Online orders', to: 'merchant-orders/MerchantOrders.dc.html', q: 'channel=online' },
