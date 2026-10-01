@@ -11,12 +11,11 @@ import { toast, confirmDialog } from '@/runtime/ui';
 import { navigate } from '@/runtime/routes';
 import { formatDate } from '@/lib/format';
 import { fromKey } from '@/lib/settlements';
-import { accName } from '@/screens/accounts/accShared';
 import {
   saveStaff, nextStaffCode, todayKey, shiftBy, t12, WEEKDAYS, WEEK_ORDER, PAY_METHODS, payToText, gradeLabel, positionOf,
   partsOf, monthLabel, monthOf, devicesAt, addDays,
 } from '@/lib/hr';
-import { useHr, money, HR_CSS, profileHref } from '@/screens/staff-hr/hrShared';
+import { useHr, money, HrPage, profileHref } from '@/screens/staff-hr/hrShared';
 import { IdCard, ID_CARD_CSS, ID_CARD_PRINT } from '@/components/hr/IdCard';
 import { printNode } from '@/lib/printNode';
 import {
@@ -29,19 +28,15 @@ const STEPS = [
   ['job', 'Job', 'briefcase', 'Their job in the shop', 'Position and grade set the salary band. The employee number is made for you.'],
   ['access', 'Login and access', 'shield-check', 'How do they sign in?', 'One account for the admin panel and the POS register. Limits above these need a manager PIN.'],
   ['shift', 'Shift and attendance', 'clock', 'When do they work?', 'The shift drives late marks and overtime. Save their fingerprint or face on the machine at their place.'],
-  ['salary', 'Salary', 'wallet', 'What are they paid, and how?', 'Gross is split into the shop’s salary components. Salary goes to their bank account or bKash.'],
+  ['salary', 'Salary', 'wallet', 'What are they paid, and how?', 'Gross is split into the shop’s salary components. Salary goes to their bank account or MFS number.'],
   ['leave', 'Leave', 'palmtree', 'Leave they get', 'From HR setup › Leave types. The first year is counted from the joining date.'],
   ['review', 'Review', 'check-check', 'Check everything', 'Nothing is saved and no message is sent until you press Create.'],
 ];
 
 const CSS = `
-.sc{display:flex;flex-direction:column;min-height:100vh;background:var(--surface-page)}
-.sc-top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-5);background:var(--surface-card);border-bottom:1px solid var(--border-subtle)}
-.sc-top h1{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading);line-height:1.3}
-.sc-top small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
-.sc-logo{display:grid;place-items:center;width:36px;height:36px;border-radius:var(--radius-lg);background:var(--primary);color:#fff;flex:none}
-.sc-top__end{display:flex;gap:var(--space-2);margin-left:auto}
-.sc-steps{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-5);background:var(--surface-card);border-bottom:1px solid var(--border-subtle);overflow-x:auto;scrollbar-width:none}
+.sc{display:flex;flex-direction:column;gap:var(--space-4);width:100%;max-width:1080px;margin:0 auto;min-width:0}
+.sc > *{min-width:0;max-width:100%}
+.sc-steps{display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;justify-content:flex-start!important;align-items:center!important;gap:var(--space-2);padding:var(--space-3) var(--space-4);overflow-x:auto;scrollbar-width:none}
 .sc-steps::-webkit-scrollbar{display:none}
 .sc-step{display:flex;align-items:center;gap:var(--space-2);flex:none;height:36px;padding:0 var(--space-3) 0 4px;border:0;border-radius:var(--radius-full);background:none;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer}
 .sc-step:disabled{cursor:default}
@@ -49,14 +44,13 @@ const CSS = `
 .sc-step.is-done{color:var(--text-body)}
 .sc-step.is-done i{background:var(--fill-success-soft);border-color:transparent;color:var(--text-success)}
 .sc-step[aria-current="step"]{background:var(--fill-primary-soft);color:var(--primary)}
-.sc-step[aria-current="step"] i{background:var(--primary);border-color:var(--primary);color:#fff}
+.sc-step[aria-current="step"] i{background:var(--primary);border-color:var(--primary);color:var(--text-on-dark)}
 .sc-line{flex:1 0 16px;max-width:48px;height:1px;background:var(--border-subtle)}
-.sc-body{flex:1;width:100%;max-width:820px;margin:0 auto;padding:var(--space-6) var(--space-5) 120px;display:flex;flex-direction:column;gap:var(--space-4)}
 .sc-card{padding:var(--space-5)}
 .sc-card > header{margin-bottom:var(--space-4)}
 .sc-card > header h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .sc-card > header p{margin:2px 0 0;font-size:var(--text-xs);color:var(--text-muted)}
-.sc-foot{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-5);background:var(--surface-card);border-top:1px solid var(--border-subtle)}
+.sc-foot{position:sticky;bottom:var(--space-3);z-index:5;display:flex!important;flex-direction:row!important;justify-content:flex-start!important;align-items:center!important;gap:var(--space-3);padding:var(--space-3) var(--space-4);box-shadow:var(--shadow-lg)}
 .sc-foot p{flex:1;margin:0;font-size:var(--text-xs);color:var(--text-muted)}
 .sc-foot > :last-child{margin-left:auto}
 .sc-review{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:var(--space-3)}
@@ -73,8 +67,7 @@ const CSS = `
 .sc-done .idc-pair{justify-content:center}
 .sc-tick{display:grid;place-items:center;width:56px;height:56px;border-radius:var(--radius-full);background:var(--fill-success-soft);color:var(--text-success)}
 .sc-done__actions{display:flex;flex-wrap:wrap;justify-content:center;gap:var(--space-2)}
-@media (max-width:640px){.sc-body{padding:var(--space-4) var(--space-4) 120px}.sc-card{padding:var(--space-4)}.sc-foot p{display:none}.sc-top__end .sc-hide{display:none}}
-@media print{.sc-top,.sc-steps,.sc-foot{display:none!important}}
+@media (max-width:640px){.sc-card{padding:var(--space-4)}.sc-foot p{display:none}}
 `;
 
 const blank = (S) => ({
@@ -82,7 +75,7 @@ const blank = (S) => ({
   department: S.settings.departments[0].name, designation: '', grade: '', branch: 'Dhanmondi branch', reportsTo: '', joined: todayKey(S), type: 'Full-time', status: 'active',
   role: 'Sales staff', access: { loginWith: 'phone', twoFactor: false, scope: 'place', maxDisc: 3, maxRefund: 0, phoneMask: true, costHidden: true },
   shift: S.shifts[0].id, offDays: null, checkIn: 'Fingerprint', bio: { fingers: 0, face: false, card: '' },
-  gross: '', payMethod: 'bkash', payAccount: S.settings.payAccounts.bkash, bank: { bank: '', branch: '', accName: '', accNo: '', routing: '' }, bkash: { number: '', type: 'Personal', verified: false },
+  gross: '', payMethod: 'bkash', payAccount: S.settings.payAccounts.bkash, bank: { bank: '', branch: '', accName: '', accNo: '', routing: '' }, bkash: { number: '', provider: 'bKash' },
   invite: 'sms',
 });
 
@@ -181,7 +174,7 @@ export default function StaffCreate() {
             <Group title="Job" onEdit={() => go(1)} rows={[['Employee no.', <span className="hr-fig">{f.code || nextStaffCode(S)}</span>], ['Position', `${f.designation}${pos ? ' · ' + gradeLabel(S, pos.grade) : ''}`], ['Department', f.department], ['Works at', f.branch], ['Reports to', mgr ? `${mgr.name} · ${mgr.designation}` : 'Owner'], ['Type', f.type + (f.probationEnd && f.type === 'Probation' ? ` · until ${formatDate(fromKey(f.probationEnd))}` : f.contractEnd && f.type === 'Contract' ? ` · until ${formatDate(fromKey(f.contractEnd))}` : '')], ['Joins', f.joined ? formatDate(fromKey(f.joined)) : '—']]} />
             <Group title="Login and access" onEdit={() => go(2)} rows={f.role === 'No login' ? [['Role', 'No login']] : [['Role', f.role], ['Sign in with', f.access.loginWith === 'email' ? 'Email' : 'Mobile number'], ['Two-step', f.access.twoFactor ? 'On' : 'Off'], ['Places', f.access.scope === 'all' ? 'All places' : 'Own place only'], ['Limits', `${f.access.maxDisc}% discount · ${money(f.access.maxRefund)} refund · phone ${f.access.phoneMask ? 'masked' : 'visible'} · cost ${f.access.costHidden ? 'hidden' : 'visible'}`]]} />
             <Group title="Shift and attendance" onEdit={() => go(3)} rows={[['Shift', sh ? `${sh.name} · ${t12(sh.start)}–${t12(sh.end)}` : '—'], ['Weekly off', offs.length ? WEEK_ORDER.filter((d) => offs.includes(d)).map((d) => WEEKDAYS[d]).join(', ') : 'None'], ['Clocks in with', f.checkIn], ['Machine', devicesAt(S, f.branch).length ? `${devicesAt(S, f.branch)[0].name} · ${f.bio.fingers ? f.bio.fingers + ' fingerprint' + (f.bio.fingers > 1 ? 's' : '') : 'no fingerprint'}${f.bio.face ? ' · face' : ''}` : 'None at this place']]} />
-            <Group title="Salary" onEdit={() => go(4)} rows={[['Gross', <b className="hr-fig">{money(Number(f.gross) || 0)} a month</b>], ['Split', partsOf(S, Number(f.gross) || 0).slice(0, 2).map(([l, v]) => `${l.split(' (')[0]} ${money(v)}`).join(' · ') + ' …'], ['Paid by', `${PAY_METHODS[f.payMethod]}${f.payMethod !== 'cash' ? ' · ' + (payToText({ ...f, bank: f.bank, bkash: f.bkash }) || '—') : ''}`], ['From', accName(f.payAccount)], ['First salary', f.joined ? `${monthLabel(monthOf(f.joined))}, pro-rated` : '—']]} />
+            <Group title="Salary" onEdit={() => go(4)} rows={[['Gross', <b className="hr-fig">{money(Number(f.gross) || 0)} a month</b>], ['Split', partsOf(S, Number(f.gross) || 0).slice(0, 2).map(([l, v]) => `${l.split(' (')[0]} ${money(v)}`).join(' · ') + ' …'], ['Paid by', `${PAY_METHODS[f.payMethod]}${f.payMethod !== 'cash' ? ' · ' + (payToText({ ...f, bank: f.bank, bkash: f.bkash }) || '—') : ''}`], ['First salary', f.joined ? `${monthLabel(monthOf(f.joined))}, pro-rated` : '—']]} />
             <Group title="Leave" onEdit={() => go(5)} rows={leaveRows.filter((t) => t.days || t.accrue).slice(0, 4).map((t) => [t.name, t.get])} />
           </div>
           {f.role !== 'No login' ? (
@@ -200,12 +193,9 @@ export default function StaffCreate() {
 
   if (done) {
     return (
-      <div className="dc-screen ds" data-screen="StaffCreate">
-        <style dangerouslySetInnerHTML={{ __html: HR_CSS + FORM_CSS + ID_CARD_CSS + CSS }} />
+      <HrPage screen="StaffCreate" active="hr-add" page="Add staff" title="Add staff" css={FORM_CSS + ID_CARD_CSS + CSS} description="Done — the new person is on the staff list.">
         <div className="sc">
-          <header className="sc-top"><span className="sc-logo"><Icon name="user-plus" width="18" height="18" aria-hidden="true" /></span><div><h1>Add staff</h1><small>Done</small></div></header>
-          <main className="sc-body">
-            <section className="gc-card sc-done">
+          <section className="gc-card sc-done">
               <span className="sc-tick"><Icon name="check" width="28" height="28" aria-hidden="true" /></span>
               <h2>{done.name} added as {done.code}</h2>
               <p>{done.access && done.access.invite === 'sent' ? `Invitation sent by ${done.access.inviteBy === 'email' ? 'email to ' + done.email : 'SMS to ' + done.phone}. ` : ''}They are on the {(shiftBy(S, done.shift) || {}).name || ''} shift at {done.branch} from {formatDate(fromKey(done.joined))}, and in {monthLabel(monthOf(done.joined))} payroll.{done.bio && (done.bio.fingers || done.bio.face) ? ' Their fingerprint / face is saved for the machine.' : ' Save their fingerprint or face on the machine on the first day.'}</p>
@@ -217,26 +207,18 @@ export default function StaffCreate() {
                 <Link href="/all-staff" className="gc-btn gc-btn--flat">All staff</Link>
               </div>
             </section>
-          </main>
         </div>
-      </div>
+      </HrPage>
     );
   }
 
   const [, label, , title, help] = STEPS[step];
   return (
-    <div className="dc-screen ds" data-screen="StaffCreate">
-      <style dangerouslySetInnerHTML={{ __html: HR_CSS + FORM_CSS + CSS }} />
+    <HrPage screen="StaffCreate" active="hr-add" page="Add staff" title="Add staff" css={FORM_CSS + CSS}
+      description={`Step ${step + 1} of ${STEPS.length} · ${label}. Everything can be changed later on their profile.`}
+      actions={<button type="button" className="gc-btn gc-btn--neutral" onClick={saveDraft} disabled={!ready}><Icon name="save" width="18" height="18" aria-hidden="true" /> Save as draft</button>}>
       <div className="sc">
-        <header className="sc-top">
-          <span className="sc-logo"><Icon name="user-plus" width="18" height="18" aria-hidden="true" /></span>
-          <div><h1>Add staff</h1><small>Step {step + 1} of {STEPS.length} · {label}</small></div>
-          <div className="sc-top__end">
-            <button type="button" className="gc-btn gc-btn--neutral gc-btn--sm" onClick={saveDraft} disabled={!ready}><Icon name="save" width="16" height="16" aria-hidden="true" /><span className="sc-hide"> Save as draft</span></button>
-            <button type="button" className="gc-iconbtn" aria-label="Close" onClick={leave}><Icon name="x" width="18" height="18" aria-hidden="true" /></button>
-          </div>
-        </header>
-        <nav className="sc-steps" aria-label="Steps">
+        <nav className="gc-card sc-steps" aria-label="Steps">
           {STEPS.map(([k, l], i) => (
             <React.Fragment key={k}>
               {i ? <span className="sc-line" aria-hidden="true" /> : null}
@@ -246,13 +228,11 @@ export default function StaffCreate() {
             </React.Fragment>
           ))}
         </nav>
-        <main className="sc-body">
-          <section className="gc-card sc-card" aria-labelledby="sc-title">
-            <header><h2 id="sc-title">{title}</h2><p>{help}</p></header>
-            {body()}
-          </section>
-        </main>
-        <footer className="sc-foot">
+        <section className="gc-card sc-card" aria-labelledby="sc-title">
+          <header><h2 id="sc-title">{title}</h2><p>{help}</p></header>
+          {body()}
+        </section>
+        <footer className="gc-card sc-foot">
           {step ? <button type="button" className="gc-btn gc-btn--neutral" onClick={() => go(step - 1)}><Icon name="arrow-left" width="18" height="18" aria-hidden="true" /> Back</button> : <button type="button" className="gc-btn gc-btn--neutral" onClick={leave}><Icon name="arrow-left" width="18" height="18" aria-hidden="true" /> Cancel</button>}
           <p>You can leave at any step — Save as draft keeps what you entered.</p>
           {key === 'review'
@@ -260,7 +240,7 @@ export default function StaffCreate() {
             : <button type="button" className="gc-btn gc-btn--solid" onClick={next}>Continue <Icon name="arrow-right" width="18" height="18" aria-hidden="true" /></button>}
         </footer>
       </div>
-    </div>
+    </HrPage>
   );
 }
 

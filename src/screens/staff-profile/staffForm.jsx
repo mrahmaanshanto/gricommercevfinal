@@ -7,7 +7,6 @@ import React, { useState } from 'react';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { Dialog } from '@/components/ui';
-import { AccountSelect } from '@/screens/accounts/accShared';
 import {
   HR_PLACES, STAFF_TYPES, LOGIN_ROLES, WEEKDAYS, WEEK_ORDER, t12, partsOf, basicOf, positionOf, gradeLabel, savePosition,
   devicesAt, DEVICE_KINDS, nextStaffCode,
@@ -15,6 +14,7 @@ import {
 import { money } from '@/screens/staff-hr/hrShared';
 
 export const BANKS = ['BRAC Bank', 'Dutch-Bangla Bank', 'City Bank', 'Eastern Bank', 'Islami Bank Bangladesh', 'Prime Bank', 'Bank Asia', 'Mutual Trust Bank', 'Sonali Bank', 'Standard Chartered'];
+export const MFS = ['bKash', 'Nagad', 'Rocket', 'Upay'];
 export const BLOOD = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 export const CHECK_INS = ['Fingerprint', 'Face', 'QR card', 'POS log-in', 'Staff app', 'Rider app'];
 export const PHONE_RE = /^01[3-9]\d{2}-?[\dX]{6}$/;
@@ -273,23 +273,18 @@ export function PayFields({ S, f, set, err = {}, showGross = true }) {
         </>
       ) : null}
       <p className="sf-sub">How salary is paid</p>
-      <Field id="sf-method" label="Paid by"><Seg label="Paid by" value={f.payMethod} options={[['bank', 'Bank transfer'], ['bkash', 'bKash'], ['cash', 'Cash']]} onChange={(v) => set({ payMethod: v, payAccount: S.settings.payAccounts[v] || f.payAccount })} /></Field>
+      <Field id="sf-method" label="Paid by"><Seg label="Paid by" value={f.payMethod} options={[['bank', 'Bank account'], ['bkash', 'MFS'], ['cash', 'Cash']]} onChange={(v) => set({ payMethod: v, payAccount: S.settings.payAccounts[v] || f.payAccount })} /></Field>
       {f.payMethod === 'bank' ? (
         <div className="hr-two">
           <Field id="sf-bank" label="Bank" req err={err.bank}><select {...inputProps('sf-bank', err.bank)} className={'gc-input gc-select' + (err.bank ? ' gc-input--error' : '')} value={bank.bank || ''} onChange={(e) => putBank({ bank: e.target.value })}><option value="">Choose…</option>{BANKS.map((b) => <option key={b}>{b}</option>)}</select></Field>
-          <Field id="sf-branch" label="Branch"><input id="sf-branch" className="gc-input" value={bank.branch || ''} onChange={(e) => putBank({ branch: e.target.value })} /></Field>
-          <Field id="sf-accname" label="Account name" help="As the bank has it — usually their full name."><input id="sf-accname" className="gc-input" value={bank.accName ?? f.name ?? ''} onChange={(e) => putBank({ accName: e.target.value })} /></Field>
           <Field id="sf-accno" label="Account number" req err={err.accNo}><input {...inputProps('sf-accno', err.accNo)} className={'gc-input hr-fig' + (err.accNo ? ' gc-input--error' : '')} inputMode="numeric" value={bank.accNo || ''} onChange={(e) => putBank({ accNo: e.target.value.replace(/[^\d]/g, '') })} /></Field>
-          <Field id="sf-routing" label="Routing number" err={err.routing} help="9 digits, for BEFTN transfers."><input {...inputProps('sf-routing', err.routing)} className={'gc-input hr-fig' + (err.routing ? ' gc-input--error' : '')} inputMode="numeric" value={bank.routing || ''} onChange={(e) => putBank({ routing: e.target.value.replace(/\D/g, '').slice(0, 9) })} /></Field>
         </div>
       ) : f.payMethod === 'bkash' ? (
         <div className="hr-two">
-          <Field id="sf-bk" label="bKash number" req err={err.bkash}><input {...inputProps('sf-bk', err.bkash)} className={'gc-input hr-fig' + (err.bkash ? ' gc-input--error' : '')} inputMode="tel" placeholder="01XXX-XXXXXX" value={bk.number ?? ''} onChange={(e) => putBk({ number: e.target.value })} /></Field>
-          <Field id="sf-bktype" label="Account type"><Seg label="bKash account type" value={bk.type || 'Personal'} options={[['Personal', 'Personal'], ['Agent', 'Agent'], ['Merchant', 'Merchant']]} onChange={(v) => putBk({ type: v })} /></Field>
-          <div className="sf-inline" style={{ gridColumn: '1 / -1' }}><button type="button" className="gc-btn gc-btn--neutral gc-btn--sm" disabled={!PHONE_RE.test(String(bk.number || '').replace(/\s/g, ''))} onClick={() => { putBk({ verified: true }); toast(`৳1 test sent to ${bk.number}. Marked as checked.`); }}><Icon name="badge-check" width="16" height="16" aria-hidden="true" /> {bk.verified ? 'Checked · send again' : 'Send ৳1 to check'}</button></div>
+          <Field id="sf-mfs" label="MFS"><select id="sf-mfs" className="gc-input gc-select" value={bk.provider || 'bKash'} onChange={(e) => putBk({ provider: e.target.value })}>{MFS.map((m) => <option key={m}>{m}</option>)}</select></Field>
+          <Field id="sf-bk" label={`${bk.provider || 'bKash'} number`} req err={err.bkash}><input {...inputProps('sf-bk', err.bkash)} className={'gc-input hr-fig' + (err.bkash ? ' gc-input--error' : '')} inputMode="tel" placeholder="01XXX-XXXXXX" value={bk.number ?? ''} onChange={(e) => putBk({ number: e.target.value })} /></Field>
         </div>
-      ) : <div className="hr-note hr-note--info"><Icon name="info" width="16" height="16" aria-hidden="true" /><span>Paid in cash from the shop. They sign the salary sheet on pay day.</span></div>}
-      <AccountSelect id="sf-acc" label="Pay salary from (shop account)" value={f.payAccount} onChange={(v) => set({ payAccount: v })} />
+      ) : <p className="gc-help" style={{ margin: 0 }}>Paid in cash; they sign the salary sheet on pay day.</p>}
     </div>
   );
 }
@@ -300,8 +295,7 @@ export function checkPay(f, withGross = true) {
     const b = f.bank || {};
     if (!b.bank) e.bank = 'Choose the bank.';
     if (!b.accNo || b.accNo.length < 8) e.accNo = 'Enter the account number.';
-    if (b.routing && b.routing.length !== 9) e.routing = 'Routing numbers have 9 digits.';
   }
-  if (f.payMethod === 'bkash' && !PHONE_RE.test(String((f.bkash || {}).number || '').replace(/\s/g, ''))) e.bkash = 'Enter the bKash number, 01XXX-XXXXXX.';
+  if (f.payMethod === 'bkash' && !PHONE_RE.test(String((f.bkash || {}).number || '').replace(/\s/g, ''))) e.bkash = 'Enter the MFS number, 01XXX-XXXXXX.';
   return e;
 }

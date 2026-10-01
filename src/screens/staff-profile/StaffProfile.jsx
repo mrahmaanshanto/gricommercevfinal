@@ -12,7 +12,6 @@ import { Dialog, EmptyState } from '@/components/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { formatDate } from '@/lib/format';
 import { fromKey } from '@/lib/settlements';
-import { accName } from '@/screens/accounts/accShared';
 import { printNode } from '@/lib/printNode';
 import {
   staffBy, shiftBy, todayKey, cellOf, monthSummary, leaveBalance, leaveType, t12, hm, WEEKDAYS, WEEK_ORDER, ATT_CODES, PAY_METHODS,
@@ -209,7 +208,7 @@ export default function StaffProfile() {
     return ['clock', s0 ? `Not in yet · ${s0.name} starts ${t12(s0.start)}` : 'Not in yet'];
   })();
 
-  const openEdit = (kind) => setEdit({ kind, f: { ...st, gross: String(st.gross), bank: st.bank || { bank: '', branch: '', accName: st.name, accNo: '', routing: '' }, bkash: st.bkash || { number: st.payMethod === 'bkash' ? st.payTo || st.phone : '', type: 'Personal' }, emergency: st.emergency || {}, access: st.access || {}, bio: st.bio || {} }, err: {} });
+  const openEdit = (kind) => setEdit({ kind, f: { ...st, gross: String(st.gross), bank: st.bank || { bank: '', branch: '', accName: st.name, accNo: '', routing: '' }, bkash: st.bkash || { number: st.payMethod === 'bkash' ? st.payTo || st.phone : '', provider: 'bKash' }, emergency: st.emergency || {}, access: st.access || {}, bio: st.bio || {} }, err: {} });
   const saveEdit = (e) => {
     e.preventDefault();
     const f = edit.f;
@@ -286,7 +285,7 @@ export default function StaffProfile() {
                     <button type="button" role="menuitem" onClick={() => { setMenu(false); setChange('transfer'); }}><Icon name="arrow-left-right" width="16" height="16" aria-hidden="true" /> Transfer</button>
                     <hr />
                     <button type="button" role="menuitem" onClick={() => { setMenu(false); openEdit('personal'); }}><Icon name="pencil" width="16" height="16" aria-hidden="true" /> Edit personal details</button>
-                    <button type="button" role="menuitem" onClick={() => { setMenu(false); openEdit('pay'); }}><Icon name="landmark" width="16" height="16" aria-hidden="true" /> Bank / bKash for salary</button>
+                    <button type="button" role="menuitem" onClick={() => { setMenu(false); openEdit('pay'); }}><Icon name="landmark" width="16" height="16" aria-hidden="true" /> Bank / MFS for salary</button>
                     <hr />
                     <button type="button" role="menuitem" onClick={suspend}><Icon name={st.status === 'suspended' ? 'play' : 'pause'} width="16" height="16" aria-hidden="true" /> {st.status === 'suspended' ? 'Reinstate' : 'Suspend'}</button>
                     <button type="button" role="menuitem" className="is-danger" onClick={() => { setMenu(false); setLeaving(true); }}><Icon name="log-out" width="16" height="16" aria-hidden="true" /> Leaving · final settlement</button>
@@ -307,7 +306,7 @@ export default function StaffProfile() {
       <div id="sp-panel" role="tabpanel" aria-label={TABS.find((t) => t[0] === tab)[1]} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>{body()}</div>
 
       {edit ? (
-        <Dialog open title={{ personal: 'Personal details', job: 'Job', access: 'Login and access', shift: 'Shift and attendance machine', pay: 'How salary is paid' }[edit.kind]} onClose={() => setEdit(null)} width={760}
+        <Dialog open title={{ personal: 'Personal details', job: 'Job', access: 'Login and access', shift: 'Shift and attendance machine', pay: 'Bank or MFS for salary' }[edit.kind]} onClose={() => setEdit(null)} width={760}
           footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setEdit(null)}>Cancel</button><button type="submit" form="sp-edit" className="gc-btn gc-btn--solid">Save</button></>}>
           <form id="sp-edit" className="hr-form" onSubmit={saveEdit}>
             {edit.kind === 'personal' ? <PersonalFields f={edit.f} set={setF} err={edit.err} /> : null}
@@ -757,20 +756,17 @@ function SalaryTab({ S, st, onEdit, onLeave }) {
           <div className="sp-card__body">
             <div className="sp-pay">
               <span className="rp-tile"><Icon name={st.payMethod === 'bank' ? 'landmark' : st.payMethod === 'bkash' ? 'smartphone' : 'banknote'} width="18" height="18" aria-hidden="true" /></span>
-              <div style={{ minWidth: 0 }}><b className="hr-strong">{PAY_METHODS[st.payMethod]}</b><span className="hr-sub">{st.payMethod === 'cash' ? 'In hand, signs the salary sheet' : payToText(st) || 'Details missing'}</span></div>
+              <div style={{ minWidth: 0 }}><b className="hr-strong">{st.payMethod === 'bkash' ? `MFS · ${bk.provider || 'bKash'}` : PAY_METHODS[st.payMethod]}</b><span className="hr-sub">{st.payMethod === 'cash' ? 'In hand, signs the salary sheet' : payToText(st) || 'Details missing'}</span></div>
             </div>
             {st.payMethod === 'bank' ? (
               <dl className="sp-kv">
                 <div><dt>Bank</dt><dd>{bank.bank || '—'}</dd></div>
-                <div><dt>Branch</dt><dd>{bank.branch || '—'}</dd></div>
-                <div><dt>Account name</dt><dd>{bank.accName || '—'}</dd></div>
                 <div><dt>Account number</dt><dd className={'hr-fig' + (bank.accNo ? '' : ' hr-out')}>{bank.accNo ? '•••• ' + bank.accNo.slice(-4) : 'Missing'}</dd></div>
-                <div><dt>Routing</dt><dd className="hr-fig">{bank.routing || '—'}</dd></div>
               </dl>
             ) : st.payMethod === 'bkash' ? (
-              <dl className="sp-kv"><div><dt>bKash number</dt><dd className="hr-fig">{bk.number || st.payTo || '—'}</dd></div><div><dt>Type</dt><dd>{bk.type || 'Personal'}</dd></div><div><dt>Checked</dt><dd>{bk.verified ? 'Yes · ৳1 test' : 'Not yet'}</dd></div></dl>
+              <dl className="sp-kv"><div><dt>MFS</dt><dd>{bk.provider || 'bKash'}</dd></div><div><dt>Number</dt><dd className="hr-fig">{bk.number || st.payTo || '—'}</dd></div></dl>
             ) : null}
-            <dl className="sp-kv"><div><dt>Paid from</dt><dd>{accName(st.payAccount)}</dd></div><div><dt>Pay day</dt><dd>{S.settings.payDay === 'last' ? 'Last day of the month' : S.settings.payDay === 'seventh' ? '7th of the next month' : '1st of the next month'}</dd></div></dl>
+            <dl className="sp-kv"><div><dt>Pay day</dt><dd>{S.settings.payDay === 'last' ? 'Last day of the month' : S.settings.payDay === 'seventh' ? '7th of the next month' : '1st of the next month'}</dd></div></dl>
           </div>
         </section>
         <section className="gc-card sp-card">

@@ -61,7 +61,7 @@ export const todayKey = (S) => dayKey(S.now);
 
 // ---- places, pay methods -----------------------------------------------------------------------
 export const HR_PLACES = ['Head office', ...LOCATIONS.filter((l) => !l.noSale).map((l) => l.name)];
-export const PAY_METHODS = { bank: 'Bank transfer', bkash: 'bKash', cash: 'Cash' };
+export const PAY_METHODS = { bank: 'Bank account', bkash: 'MFS', cash: 'Cash' };
 export const STAFF_TYPES = ['Full-time', 'Part-time', 'Contract', 'Probation'];
 export const STAFF_STATUS = { active: ['Active', 'success'], probation: ['Probation', 'warning'], leave: ['On leave', 'info'], suspended: ['Suspended', 'error'], left: ['Left', 'slate'] };
 export const LOGIN_ROLES = ['Owner', 'Manager', 'Cashier', 'Sales staff', 'Stock staff', 'Rider', 'Accounts', 'Support', 'Marketing', 'No login'];
@@ -479,7 +479,7 @@ export function nextStaffCode(S) {
 export function payToText(st) {
   if (st.payMethod === 'bank' && st.bank && st.bank.accNo) return `${st.bank.bank} · A/C ••••${String(st.bank.accNo).slice(-4)}`;
   if (st.payMethod === 'bank') return '';
-  if (st.payMethod === 'bkash' && st.bkash && st.bkash.number) return st.bkash.number;
+  if (st.payMethod === 'bkash' && st.bkash && st.bkash.number) return `${st.bkash.provider || 'bKash'} · ${st.bkash.number}`;
   return st.payMethod === 'cash' ? '' : st.payTo || '';
 }
 /** Add (no code yet) or change a staff member. Returns the saved row. */
@@ -1280,7 +1280,7 @@ export function profileIssues(S, st) {
   const out = [];
   if (st.status === 'left') return out;
   if (st.payMethod === 'bank' && !(st.bank && st.bank.accNo)) out.push({ tone: 'error', text: 'Paid by bank but no account number — payroll cannot send salary.', tab: 'salary' });
-  if (st.payMethod === 'bkash' && !(st.bkash && st.bkash.number)) out.push({ tone: 'error', text: 'Paid by bKash but no bKash number.', tab: 'salary' });
+  if (st.payMethod === 'bkash' && !(st.bkash && st.bkash.number)) out.push({ tone: 'error', text: 'Paid by MFS but no MFS number.', tab: 'salary' });
   (S.settings.docTypes || []).filter(([, , need]) => need).forEach(([k, label]) => { if (!(st.docs || []).some((d) => d.kind === k)) out.push({ tone: 'warning', text: `${label} not uploaded.`, tab: 'docs' }); });
   const en = enrolmentOf(S, st);
   if (en.device && !en.ok && st.checkIn !== 'Staff app' && st.checkIn !== 'Rider app' && st.checkIn !== 'POS log-in') out.push({ tone: 'warning', text: `${en.needs} not enrolled on ${en.device.name}.`, tab: 'attendance' });
