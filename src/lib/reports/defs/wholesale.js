@@ -20,7 +20,7 @@ const phoneOf = (inv) => digits(inv.customer && inv.customer.phone);
 const allInvoices = () => safe(() => getInvoices(), []).filter((i) => i && i.totals);
 const wholesaleInvoices = () => allInvoices().filter((i) => i.wholesale);
 const ageOf = (inv, now) => Math.max(0, Math.floor((now - inv.at) / DAY));
-const STATUS = { paid: 'Paid', partial: 'Part paid', unpaid: 'Unpaid' };
+const STATUS = { paid: 'Paid', partial: 'Partly paid', unpaid: 'Unpaid' };
 /** The customer book entry for a phone or a name. */
 function bookFinder() {
   const book = safe(() => getCustomers(), []);
@@ -129,11 +129,11 @@ const invoiceStatus = {
       kpis: [
         { key: 'due', label: 'Still due', value: due, format: 'money0', good: 'down', sub: `${of('unpaid').length + of('partial').length} invoices` },
         { key: 'unpaid', label: 'Unpaid', value: of('unpaid').length, format: 'int', good: 'down', sub: fmt(sum(of('unpaid'), (r) => r.due), 'money0') },
-        { key: 'partial', label: 'Part paid', value: of('partial').length, format: 'int', good: 'down', sub: fmt(sum(of('partial'), (r) => r.due), 'money0') + ' left' },
+        { key: 'partial', label: 'Partly paid', value: of('partial').length, format: 'int', good: 'down', sub: fmt(sum(of('partial'), (r) => r.due), 'money0') + ' left' },
         { key: 'overdue', label: 'Over 30 days', value: sum(overdue, (r) => r.due), format: 'money0', good: 'down', sub: `${overdue.length} invoice${overdue.length === 1 ? '' : 's'}` },
         { key: 'paid', label: 'Paid', value: of('paid').length, format: 'int', good: 'up' },
       ],
-      chart: { type: 'donut', labels: ['Unpaid', 'Part paid', 'Paid'], series: [{ name: 'Invoices', values: [of('unpaid').length, of('partial').length, of('paid').length] }], format: 'int' },
+      chart: { type: 'donut', labels: ['Unpaid', 'Partly paid', 'Paid'], series: [{ name: 'Invoices', values: [of('unpaid').length, of('partial').length, of('paid').length] }], format: 'int' },
       table: {
         columns: [
           { key: 'id', label: 'Invoice' },

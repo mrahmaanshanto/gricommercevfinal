@@ -21,7 +21,7 @@ import { clockNow } from '@/lib/settlements';
 import { AccountSelect, accName } from '@/screens/accounts/accShared';
 import { LoyPage, Kpi, Stepper, useLoyalty, money, pts, plural } from './loyShared';
 
-const STATUS = { due: ['Not paid yet', 'warning'], given: ['Given', 'success'], waiting: ['No order yet', 'slate'] };
+const STATUS = { due: ['Unpaid', 'warning'], given: ['Given', 'success'], waiting: ['No order yet', 'slate'] };
 const HOW = { wallet: 'Into wallet', cash: 'Paid', points: 'As points' };
 const CSS = `
 .rf-rule{display:flex;flex-direction:column;gap:var(--space-4);padding:var(--space-5)}
@@ -119,7 +119,7 @@ export default function Referrals() {
         {!data ? <EmptyState icon="loader" title="Reading invites" /> : (
           <div className="gc-table-wrap">
             <table className="gc-table gc-table--compact gc-table--hoverable">
-              <thead><tr><th scope="col">#</th><th scope="col">Customer</th><th scope="col">Invite code</th><th scope="col" className="ac-num">Friends joined</th><th scope="col" className="ac-num">Bought</th><th scope="col" className="ac-num">Friends’ sales</th><th scope="col" className="ac-num">Earned</th><th scope="col" className="ac-num">Not paid yet</th><th scope="col"><span className="sr-only">Pay</span></th></tr></thead>
+              <thead><tr><th scope="col">#</th><th scope="col">Customer</th><th scope="col">Invite code</th><th scope="col" className="ac-num">Friends joined</th><th scope="col" className="ac-num">Bought</th><th scope="col" className="ac-num">Friends’ sales</th><th scope="col" className="ac-num">Earned</th><th scope="col" className="ac-num">Due</th><th scope="col"><span className="sr-only">Pay</span></th></tr></thead>
               <tbody>
                 {data.referrers.map((r, i) => (
                   <tr key={r.phone}>

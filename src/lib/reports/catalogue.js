@@ -38,7 +38,7 @@ export const GROUPS = [
   { id: 'online', label: 'Online & delivery', icon: 'truck', help: 'Orders, couriers, cash on delivery and returns to origin' },
   { id: 'wholesale', label: 'Wholesale', icon: 'warehouse', help: 'Wholesale customers, invoices, dues and deliveries' },
   { id: 'customers', label: 'Customers & loyalty', icon: 'users', help: 'New and returning customers, best buyers, points and wallets' },
-  { id: 'inventory', label: 'Inventory', icon: 'boxes', help: 'Stock value, low and slow stock, movements and shrinkage' },
+  { id: 'inventory', label: 'Stock', icon: 'boxes', help: 'Stock value, low and slow stock, movements and shrinkage' },
   { id: 'purchase', label: 'Purchase & suppliers', icon: 'shopping-bag', help: 'What you bought, from whom, and what you owe' },
   { id: 'finance', label: 'Finance', icon: 'landmark', help: 'Profit, cash, expenses, dues and VAT' },
   { id: 'pos', label: 'POS', icon: 'monitor-smartphone', help: 'Shifts, counters, cash over and short' },

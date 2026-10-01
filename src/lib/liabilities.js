@@ -59,15 +59,15 @@ export const getLiabilities = () => (typeof window === 'undefined' ? LIAB_SEED :
 
 export const paidOf = (l) => r2(l.lines.reduce((a, x) => a + (x.paid || 0), 0));
 export const leftOf = (l) => r2(l.amount - paidOf(l));
-/** 'Paid' · 'Part paid' · 'Overdue' · 'Due' */
+/** 'Paid' · 'Partly paid' · 'Overdue' · 'Due' */
 export function liabStatus(l, now = Date.now()) {
   const left = leftOf(l);
   if (left <= 0) return 'Paid';
   const d = new Date(now); d.setHours(0, 0, 0, 0);
   if (l.due < d.getTime()) return 'Overdue';
-  return paidOf(l) > 0 ? 'Part paid' : 'Due';
+  return paidOf(l) > 0 ? 'Partly paid' : 'Due';
 }
-export const LIAB_TONE = { Paid: 'success', 'Part paid': 'warning', Overdue: 'error', Due: 'slate' };
+export const LIAB_TONE = { Paid: 'success', 'Partly paid': 'warning', Overdue: 'error', Due: 'slate' };
 
 /** Add a liability: { type, title, party, period ('YYYY-MM'), due (ms), lines: [{ name, note, amount, account }], channel, note }. */
 export function addLiability(x) {

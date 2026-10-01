@@ -133,7 +133,7 @@ export default function Loyalty() {
         <div className="ac-head">
           <div><h2 id="lo-books">In your books</h2><p>Points and wallet money are held for customers (Accounts › Liabilities). Points used and rewards given are costs of the channel (Accounts › Sales &amp; profit).</p></div>
           <div className="ac-row-actions">
-            <Link href="/liabilities" className="gc-btn gc-btn--sm gc-btn--neutral">Liabilities</Link>
+            <Link href="/liabilities" className="gc-btn gc-btn--sm gc-btn--neutral">Bills to pay</Link>
             <Link href="/sales-profit" className="gc-btn gc-btn--sm gc-btn--neutral">Sales &amp; profit</Link>
           </div>
         </div>

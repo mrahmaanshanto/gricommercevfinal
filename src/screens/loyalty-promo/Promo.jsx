@@ -28,10 +28,10 @@ var B = [
 ];
 var L = [
   { id: 1, name: 'Weekend Mega Sale', sub: '12 products, up to 40% off', type: 'Flash sale', left: '2 days 06:14:22', used: '184 sold', sales: 142300, st: 'live' },
-  { id: 2, name: 'EID300', sub: '৳300 off on ৳2,000+', type: 'Discount code', left: '2 days', used: '318', sales: 96400, st: 'live' },
-  { id: 3, name: 'FIRST20', sub: '20% off first order, max ৳400', type: 'Discount code', left: '12 days', used: '140', sales: 73700, st: 'live' },
+  { id: 2, name: 'EID300', sub: '৳300 off on ৳2,000+', type: 'Coupon', left: '2 days', used: '318', sales: 96400, st: 'live' },
+  { id: 3, name: 'FIRST20', sub: '20% off first order, max ৳400', type: 'Coupon', left: '12 days', used: '140', sales: 73700, st: 'live' },
   { id: 4, name: 'Skin care week', sub: '8 products, 25% off', type: 'Flash sale', left: 'Starts 22 Sep', used: '—', sales: 0, st: 'soon' },
-  { id: 5, name: 'PUJA10', sub: '10% off, up to ৳250', type: 'Discount code', left: 'Starts 25 Sep', used: '—', sales: 0, st: 'soon' }
+  { id: 5, name: 'PUJA10', sub: '10% off, up to ৳250', type: 'Coupon', left: 'Starts 25 Sep', used: '—', sales: 0, st: 'soon' }
 ];
 var COL = { live: '#10b981', soon: '#0ea5e9', ended: '#94a3b8' };
 var FG = { coupon: '#003087', flash: '#a14f06', msg: '#047857' };

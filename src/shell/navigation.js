@@ -4,7 +4,6 @@
 // Shared by <gc-sidebar> and anything else that needs the menu (site map, search).
 // `q` is an optional query string added to the route (for example the POS / Retail order filter).
 
-import { ORDER_TOTAL } from '../lib/orderStatus';
 
 export const NAV = [
   { label: 'General', items: [
@@ -15,7 +14,7 @@ export const NAV = [
   ] },
   { label: 'Sales', items: [
     { id: 'orders', icon: 'shopping-cart', label: 'Orders', to: 'merchant-orders/MerchantOrders.dc.html', children: [
-      { id: 'orders-all', icon: 'inbox', label: 'All orders', count: ORDER_TOTAL, to: 'merchant-orders/MerchantOrders.dc.html' },
+      { id: 'orders-all', icon: 'inbox', label: 'All orders', to: 'merchant-orders/MerchantOrders.dc.html' },
       { id: 'orders-wholesale', icon: 'truck', label: 'Wholesale orders', to: 'sales/WholesaleOrders.dc.html' },
       { id: 'orders-rto', icon: 'package-x', label: 'Courier returns', to: 'merchant-orders/CourierReturns.dc.html' },
     ] },

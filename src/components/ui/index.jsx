@@ -16,6 +16,7 @@ import { createPortal } from 'react-dom';
 import { Icon } from '@/runtime/dc';
 import { getLocale } from '@/runtime/ui';
 import { startMobileTables } from '@/runtime/mobileTables';
+import { startTranslator } from '@/runtime/translateDom';
 
 // ---- focus helpers ---------------------------------------------------------------------------
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
@@ -251,7 +252,7 @@ export function Overlays() {
   const t = COPY[locale] || COPY.en;
   const copyRef = useRef(t);
   copyRef.current = t;
-  useEffect(() => { startMobileTables(); }, []);
+  useEffect(() => { startMobileTables(); startTranslator(); }, []);
 
   const push = useCallback((detail) => {
     const id = Date.now() + Math.random();

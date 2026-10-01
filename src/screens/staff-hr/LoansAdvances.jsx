@@ -18,7 +18,7 @@ import {
 import { HrPage, useHr, money, Person } from './hrShared';
 
 const TABS = [['run', 'Running'], ['req', 'Requests'], ['closed', 'Paid back · rejected'], ['people', 'By person']];
-const STATUS = { run: ['Running', 'info'], req: ['Waiting', 'warning'], done: ['Paid back', 'success'], no: ['Rejected', 'error'] };
+const STATUS = { run: ['Running', 'info'], req: ['Pending', 'warning'], done: ['Paid back', 'success'], no: ['Rejected', 'error'] };
 const TYPE = { loan: 'Loan', advance: 'Advance' };
 const HIST = { given: 'Paid out', instalment: 'Cut from salary', cash: 'Paid back in cash', request: 'Asked', rejected: 'Rejected' };
 const MONTHS_OPTS = [1, 2, 3, 4, 6, 10, 12, 18, 24];

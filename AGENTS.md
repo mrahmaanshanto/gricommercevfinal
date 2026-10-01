@@ -48,8 +48,14 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   must scroll sideways gets `gc-table--keep`), and statistic rows (`gc-kpis`, `gc-cardrow`) become a swipe strip.
 - Menu: `src/shell/navigation.js` (9 groups, at most two levels). Old menu ids still used by a screen's `active`
   map to the new item through `NAV_ALIAS` (sidebar highlight and role access both read it).
-- Language: the switch in the account menu and on sign-in calls `setLocale`. Only the shell (menu,
-  top bar, overlays: `src/shell/i18n.js`) and the sign-in page are translated so far.
+- Language: the switch in the account menu, on sign-in and in Help calls `setLocale`. The shell translates itself
+  (`src/shell/i18n.js`); every page is translated by `src/runtime/translateDom.js`, which swaps whole strings
+  found in `src/lib/i18n/bn.js` (plus number patterns) and restores English on switch back. Words follow
+  `docs/terminology.md` (one word per idea, EN + BN): add a string to both when you add UI copy. Never select
+  elements in CSS/JS by their visible text, placeholder or a control's aria-label (they change in Bangla).
+- Home (`/merchant-overview`, `screens/merchant-overview/Home.jsx`) is built from the shared books via
+  `reports/dailySummary` (no sample numbers); sections can be hidden with Customise (`gc.home.layout`). The old
+  design screen `MerchantOverview.jsx` stays as reference. The top bar crumb comes from the menu group.
 - POS: `/pos` (`src/screens/pos-register/Pos.jsx`) is the one register; `/pos-manage` (`PosManage.jsx`) is its
   back office (counters, employees and shifts, cash pickups, settings). Both read and write
   `src/lib/posStore.js` (browser storage). Register shortcuts are listed in `SHORTCUTS` in `Pos.jsx` (F1 on screen).

@@ -10,8 +10,8 @@ const E = (what, steps, tips, video) => ({ what, steps, tips, video });
 
 export const HELP = {
   '/merchant-overview': {
-    en: E('Your shop this morning: what needs you, how today is going, money to collect and stock to watch.', ['Start with "Needs your attention" — each line opens the page where you fix it.', 'Check today’s sales, orders and collection against yesterday.', 'Use Customize to hide sections you do not use.'], ['Numbers update as orders, payments and stock change.', 'Deeper analysis is in Reports.'], ['Your morning in 2 minutes', '2:10']),
-    bn: E('সকালে Shop-এর অবস্থা: কী কী দেখতে হবে, আজ বিক্রি কেমন, কত টাকা তুলতে হবে আর কোন Stock কমে গেছে।', ['আগে "আপনার নজর দরকার" অংশ দেখুন — প্রতিটি লাইনে চাপ দিলে ঠিক করার page খুলবে।', 'আজকের Sales, Order আর Collection গতকালের সাথে মিলিয়ে দেখুন।', 'যে অংশ লাগে না, Customize থেকে লুকিয়ে রাখুন।'], ['Order, Payment, Stock বদলালে সংখ্যাও বদলায়।', 'বিস্তারিত হিসাব Reports-এ।'], ['২ মিনিটে আপনার সকাল', '2:10']),
+    en: E('Your shop this morning: what needs you, how today is going, money to collect and stock to watch.', ['Start with "Needs your attention" — each line opens the page where you fix it.', 'Check today’s sales, orders and collection against yesterday.', 'Use Customise to hide sections you do not use.'], ['Numbers update as orders, payments and stock change.', 'Deeper analysis is in Reports.'], ['Your morning in 2 minutes', '2:10']),
+    bn: E('সকালে Shop-এর অবস্থা: কী কী দেখতে হবে, আজ বিক্রি কেমন, কত টাকা তুলতে হবে আর কোন Stock কমে গেছে।', ['আগে "আপনার নজর দরকার" অংশ দেখুন — প্রতিটি লাইনে চাপ দিলে ঠিক করার page খুলবে।', 'আজকের Sales, Order আর Collection গতকালের সাথে মিলিয়ে দেখুন।', 'যে অংশ লাগে না, Customise থেকে লুকিয়ে রাখুন।'], ['Order, Payment, Stock বদলালে সংখ্যাও বদলায়।', 'বিস্তারিত হিসাব Reports-এ।'], ['২ মিনিটে আপনার সকাল', '2:10']),
     related: ['/my-dashboard', '/merchant-orders', '/daily-summary', '/reports-centre'],
   },
   '/my-dashboard': {

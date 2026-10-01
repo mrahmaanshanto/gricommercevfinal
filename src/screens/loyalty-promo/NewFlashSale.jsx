@@ -653,10 +653,10 @@ export default class NewFlashSaleScreen extends Component {
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
                       <div style={{ flexGrow: "1" }}>
-                        <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Discount codes also work</div>
+                        <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Coupons also work</div>
                         <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Customers can add a code on top of the sale price</div>
                       </div>
-                      <button type="button" role="switch" aria-checked={v.stack?.on} aria-label="Discount codes also work" className={v.stack?.cls} onClick={v.stack?.toggle} />
+                      <button type="button" role="switch" aria-checked={v.stack?.on} aria-label="Coupons also work" className={v.stack?.cls} onClick={v.stack?.toggle} />
                     </div>
                   </section>
                 </div>

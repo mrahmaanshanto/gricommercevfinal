@@ -239,7 +239,7 @@ export default class NewCouponScreen extends Component {
         <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
           <__Sidebar sticky="" active="promo-coupons" />
           <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
-            <__Topbar crumb="Promo / Discount codes" page="Make a new code" placeholder="Search a code" />
+            <__Topbar crumb="Marketing" page="New coupon" placeholder="Search a code" />
             <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
               <__PageHeader title="Make a new code" />
               <form noValidate onSubmit={v.submit} aria-label="New discount code" style={{ display: "flex", gap: "20px", alignItems: "flex-start" }}>

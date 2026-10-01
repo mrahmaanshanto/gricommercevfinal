@@ -90,7 +90,7 @@ class Component extends DCLogic {
     var posters = [poster(O[0], FEAT), poster(O.filter(function (o) { return o.id === 'skinweek'; })[0], FEAT_SKIN)].filter(function (x) { return !x.ended; });
     var cnt = { all: O.filter(function (o) { return st(o) !== 'ended'; }).length, code: 0, flash: 0, pay: 0, ended: endL.length };
     O.forEach(function (o) { if (st(o) !== 'ended') cnt[o.kind]++; });
-    var CH = [{ k: 'all', label: 'All offers' }, { k: 'code', label: 'Discount codes' }, { k: 'flash', label: 'Flash sales' }, { k: 'pay', label: 'bKash & card offers' }, { k: 'ended', label: 'Ended' }];
+    var CH = [{ k: 'all', label: 'All offers' }, { k: 'code', label: 'Coupons' }, { k: 'flash', label: 'Flash sales' }, { k: 'pay', label: 'bKash & card offers' }, { k: 'ended', label: 'Ended' }];
     return {
       chips: CH.map(function (c) { var on = c.k === f; return { label: c.label, on: on, cls: on ? 'chip on' : 'chip', count: cnt[c.k], cBg: on ? 'rgba(0,48,135,.14)' : '#eef2f6', pick: function () { self.setState({ f: c.k }); } }; }),
       showFeat: (f === 'all' || f === 'flash') && posters.length > 0,

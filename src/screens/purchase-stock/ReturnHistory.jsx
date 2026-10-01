@@ -54,7 +54,7 @@ export default function ReturnHistory() {
       <div className="gc-shell">
         <Sidebar sticky="" active="rep-sales" />
         <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
-          <Topbar crumb="Stocks & Inventory" page="Returns & exchanges" />
+          <Topbar crumb="Products & stock" page="Returns & exchanges" />
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
             <PageHeader
               title="Returns & exchanges"

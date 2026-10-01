@@ -47,7 +47,7 @@ function DueWords({ l, now }) {
   return (
     <>
       <span className={'gc-badge gc-badge--' + tone}>{words}</span>
-      {st === 'Part paid' ? <span className={'gc-badge gc-badge--' + LIAB_TONE['Part paid']}>Part paid</span> : null}
+      {st === 'Partly paid' ? <span className={'gc-badge gc-badge--' + LIAB_TONE['Partly paid']}>Partly paid</span> : null}
     </>
   );
 }
@@ -173,7 +173,7 @@ export default function Liabilities() {
   const pool = data ? data.list.filter(byStatus) : [];
   const counts = { all: pool.length };
   TYPE_KEYS.forEach((k) => { counts[k] = pool.filter((l) => l.type === k).length; });
-  const rank = { Overdue: 0, 'Part paid': 1, Due: 1, Paid: 2 };
+  const rank = { Overdue: 0, 'Partly paid': 1, Due: 1, Paid: 2 };
   const shown = pool.filter((l) => type === 'all' || l.type === type)
     .sort((a, b) => rank[liabStatus(a, data.now)] - rank[liabStatus(b, data.now)] || a.due - b.due);
   const payL = data && payId ? data.list.find((l) => l.id === payId) : null;
@@ -183,11 +183,11 @@ export default function Liabilities() {
   );
 
   return (
-    <AccPage screen="Liabilities" active="acc-liab" page="Liabilities" title="Liabilities" css={CSS}
+    <AccPage screen="Liabilities" active="acc-liab" page="Bills to pay" title="Bills to pay" css={CSS}
       description="Money the shop owes that is not a supplier bill: salaries, sales commission, affiliate payouts and promotions."
       actions={<>
         <Link href="/dues?tab=owe" className="gc-btn gc-btn--neutral"><Icon name="scale" width="18" height="18" aria-hidden="true" /> All dues</Link>
-        <button type="button" className="gc-btn gc-btn--solid" onClick={() => setAdding(true)}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Add liability</button>
+        <button type="button" className="gc-btn gc-btn--solid" onClick={() => setAdding(true)}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Add bill</button>
       </>}>
       <div className="gc-kpis gc-kpis--tight">
         {kpi('hand-coins', 'var(--fill-primary-soft)', 'var(--primary)', 'Owed now', data && money(data.owed), data && plural(data.openCount, 'liability', 'liabilities'))}

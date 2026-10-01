@@ -417,7 +417,7 @@ export default function OrderDetail() {
                 <dt>Products ({o.units} {o.units === 1 ? 'item' : 'items'})</dt><dd>{formatBDT(o.subtotal)}</dd>
                 {o.shipping ? <><dt>Delivery · {o.zone}</dt><dd>{formatBDT(o.shipping)}</dd></> : null}
                 {adj > 0 ? <><dt>VAT and charges</dt><dd>{formatBDT(adj)}</dd></> : adj < 0 ? <><dt>Discount</dt><dd>−{formatBDT(-adj)}</dd></> : null}
-                <dt>Paid by customer</dt><dd>{o.paid == null ? 'Part paid' : formatBDT(o.paid)}</dd>
+                <dt>Paid by customer</dt><dd>{o.paid == null ? 'Partly paid' : formatBDT(o.paid)}</dd>
                 <dt className="is-total">{due === 0 ? 'Total' : 'Total due'}</dt><dd className="is-total">{formatBDT(due == null || due === 0 ? o.amount : due)}</dd>
               </dl>
             </section>

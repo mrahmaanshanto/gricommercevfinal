@@ -7,6 +7,29 @@
 import { routeOf, navigate } from '../runtime/routes';
 import { getLocale, setLocale, toast } from '../runtime/ui';
 import { t } from './i18n';
+import { NAV, NAV_ALIAS } from './navigation';
+
+// The crumb follows the menu: the page's menu group (or its parent item), found from the side menu's active id
+// or the address. Screens still pass their old crumb; it is only used when the page is not in the menu.
+const OLD_CRUMB = { 'Stocks & Inventory': 'Products & stock', Stock: 'Products & stock', Purchase: 'Products & stock', Accounts: 'Money', General: 'Home', Promo: 'Marketing', Communication: 'Customer support', Management: 'Online store & settings' };
+function menuCrumb(fallback) {
+  if (typeof document === 'undefined') return fallback;
+  const sb = document.querySelector('gc-sidebar');
+  const raw = (sb && sb.getAttribute('active')) || '';
+  const id = NAV_ALIAS[raw] || raw;
+  const path = (window.location.pathname.replace(/\/$/, '') || '/');
+  const pathOf = (it) => (it.to ? routeOf(it.to).split('?')[0] : '');
+  let byPath = '';
+  for (const g of NAV) {
+    for (const it of g.items) {
+      if (it.id === id) return g.label;
+      for (const c of it.children || []) if (c.id === id) return it.label;
+      if (!byPath && pathOf(it) === path) byPath = g.label;
+      for (const c of it.children || []) if (!byPath && pathOf(c) === path) byPath = it.label;
+    }
+  }
+  return byPath || OLD_CRUMB[fallback] || fallback;
+}
 import { USERS, currentUser, roleOf, signInAs, signOut, SESSION_EVENT } from '../lib/team';
 
 export function defineGcTopbar() {
@@ -153,7 +176,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       const locale = getLocale();
       const L = (x) => t(x, locale);
       const base = a('base', '../'), dark = a('theme', '') === 'dark', o = this._open;
-      const crumb = a('crumb', ''), title = a('page', ''), ph = L(a('placeholder', 'Search orders, products, customers, invoices…'));
+      const title = a('page', ''), crumb = ((c) => (c === title ? '' : c))(menuCrumb(a('crumb', ''))), ph = L(a('placeholder', 'Search orders, products, customers, invoices…'));
       const exp = (k) => `aria-expanded="${o === k}" aria-haspopup="true"`;
       const pop = (k, html, style) => (o === k ? `<div class="pop" role="dialog" style="${style}">${html}</div>` : '');
       const searchPop = `<div class="ph">${L('Recent searches')}</div><div class="chips"><button class="chip">#136779</button><button class="chip">01711-234567</button><button class="chip">Denim Jeans</button><button class="chip">INV-2026-0912</button></div>

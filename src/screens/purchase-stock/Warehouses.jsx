@@ -37,7 +37,7 @@ export default function Warehouses() {
       <div className="gc-shell">
         <Sidebar sticky="" active="stock-wh" />
         <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
-          <Topbar crumb="Stocks & Inventory" page="Warehouses" />
+          <Topbar crumb="Products & stock" page="Warehouses" />
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
             <PageHeader
               title="Warehouses"

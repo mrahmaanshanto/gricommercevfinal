@@ -39,7 +39,7 @@ const CSS = `
 `;
 const TONE = { casual: ['var(--fill-info-soft)', 'var(--text-info)'], sick: ['var(--fill-error-soft)', 'var(--text-danger)'], earned: ['var(--fill-success-soft)', 'var(--text-success)'], festival: ['var(--fill-secondary-soft)', 'var(--secondary)'], maternity: ['var(--fill-primary-soft)', 'var(--primary)'], paternity: ['var(--fill-primary-soft)', 'var(--primary)'], unpaid: ['var(--surface-subtle)', 'var(--text-body)'] };
 const toneOf = (t) => TONE[t] || TONE.unpaid;
-const STATUS = { wait: ['Waiting', 'warning'], ok: ['Approved', 'success'], no: ['Rejected', 'error'] };
+const STATUS = { wait: ['Pending', 'warning'], ok: ['Approved', 'success'], no: ['Rejected', 'error'] };
 const range = (a, b) => (a === b ? `${WEEKDAYS[dowOf(a)]} ${dayLabel(a)}` : `${dayLabel(a)} – ${dayLabel(b)}`);
 
 export default function Leave() {
@@ -99,7 +99,7 @@ export default function Leave() {
           <>
             <div className="hr-bar">
               <div className="gc-seg" role="group" aria-label="Show">
-                {[['wait', 'Waiting'], ['ok', 'Approved'], ['no', 'Rejected'], ['all', 'All']].map(([k, l]) => <button key={k} type="button" className={'gc-seg__btn' + (rf === k ? ' gc-seg__btn--active' : '')} aria-pressed={rf === k} onClick={() => setRf(k)}>{l} · {reqs.filter((r) => k === 'all' || r.status === k).length}</button>)}
+                {[['wait', 'Pending'], ['ok', 'Approved'], ['no', 'Rejected'], ['all', 'All']].map(([k, l]) => <button key={k} type="button" className={'gc-seg__btn' + (rf === k ? ' gc-seg__btn--active' : '')} aria-pressed={rf === k} onClick={() => setRf(k)}>{l} · {reqs.filter((r) => k === 'all' || r.status === k).length}</button>)}
               </div>
             </div>
             {shown.length ? (
@@ -147,7 +147,7 @@ export default function Leave() {
               </div>
               <div className="lv-legend">
                 {['casual', 'sick', 'earned', 'festival', 'unpaid'].map((k) => <span key={k}><i style={{ background: toneOf(k)[1] }} />{leaveType(S, k).name.split(' ')[0]}</span>)}
-                <span><i style={{ border: '1px dashed var(--text-muted)' }} />Waiting</span>
+                <span><i style={{ border: '1px dashed var(--text-muted)' }} />Pending</span>
               </div>
             </div>
             <div className="lv-cal">

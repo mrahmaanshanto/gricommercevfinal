@@ -1,4 +1,4 @@
-import Screen from '@/screens/merchant-overview/MerchantOverview';
+import Screen from '@/screens/merchant-overview/Home';
 
 export const metadata = { title: "Home" };
 

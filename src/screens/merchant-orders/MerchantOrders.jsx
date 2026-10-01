@@ -181,6 +181,11 @@ class Component extends DCLogic {
     const pageAllChecked = rows.length > 0 && rows.every(o => sel[o.id]);
     const from = encodeURIComponent(this.listUrl(st, page));
     const tabLabel = st.status === 'all' ? 'All orders' : orderStatus(st.status).label + ' orders';
+    // tab and card counts come from the orders themselves (channel view applied, search and filters not)
+    const inView = st.all.filter(o => st.extra.channel === 'online' ? !/^(POS|Wholesale)/.test(o.channel) : st.extra.channel === 'pos' ? o.channel.startsWith('POS') : st.extra.channel === 'wholesale' ? o.channel.startsWith('Wholesale') : true);
+    const counts = { all: inView.length };
+    ORDER_STATUSES.forEach(x => { counts[x.key] = inView.filter(o => o.statusKey === x.key).length; });
+    const dayFrom = new Date(); dayFrom.setHours(0, 0, 0, 0);
     const extraCount = (st.extra.channel ? 1 : 0) + (st.extra.assigned ? 1 : 0) + (Number(st.extra.minTotal) > 0 ? 1 : 0);
     const hasFilters = !!(st.q || st.courier || st.payment || st.zone || extraCount);
     const focusTab = (key) => setTimeout(() => { const el = document.getElementById('orders-tab-' + key); if (el) el.focus(); }, 0);
@@ -203,7 +208,7 @@ class Component extends DCLogic {
       };
     }
     return {
-      tabs: TABS.map(t => ({ ...t, id: 'orders-tab-' + t.key, on: st.status === t.key, onClick: () => this.view({ status: t.key }) })),
+      tabs: TABS.map(t => ({ ...t, count: counts[t.key] || 0, id: 'orders-tab-' + t.key, on: st.status === t.key, onClick: () => this.view({ status: t.key }) })),
       activeTabId: 'orders-tab-' + st.status,
       onTabKey: (e) => {
         const i = TABS.findIndex(t => t.key === st.status);
@@ -214,15 +219,15 @@ class Component extends DCLogic {
         focusTab(TABS[next].key);
       },
       tabLabel,
-      kpiPending: orderStatus('pending').count,
+      kpiPending: counts.pending,
       pageTitle: { pos: 'Retail orders', online: 'Online orders', wholesale: 'Wholesale orders' }[st.extra.channel] || 'All orders',
       newOrderHref: st.extra.channel === 'pos' || st.extra.channel === 'wholesale' ? '/pos' : '/new-order',
-      kpiToday: 77, // demo figure, same as the Home sales strip
-      kpiApproved: orderStatus('approved').count,
-      kpiDispatched: 58, // demo figure: parcels handed to couriers today
-      kpiShipped: orderStatus('shipped').count,
-      kpiCourier: orderStatus('ready').count + orderStatus('shipped').count,
-      total: ORDER_TOTAL,
+      kpiToday: inView.filter(o => (o.at || 0) >= dayFrom.getTime()).length,
+      kpiApproved: counts.approved,
+      kpiDispatched: counts.ready,
+      kpiShipped: counts.shipped,
+      kpiCourier: counts.ready + counts.shipped,
+      total: counts.all,
       q: st.q, courier: st.courier, payment: st.payment, zone: st.zone,
       onSearch: (e) => this.view({ q: e.target.value }),
       onCourier: (e) => this.view({ courier: e.target.value }),
@@ -317,7 +322,7 @@ const CSS = `/* order KPI strip: icon tile + label over value, two lines, compac
   .mo-kpi__value{font-size:var(--text-lg);line-height:24px}
   .mo-search{flex:1 1 0!important;max-width:none!important}
   .mo-bulk:not(:has(button)){display:none!important}
-  [role=tablist][aria-label="Order status"]{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none}
+  .mo-tabs{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none}
 }
 body{margin:0;background:#eef2f7;font-family:var(--font-sans);color:#475569}a{color:#003087;text-decoration:none}a:hover{color:#002a77}table{border-collapse:collapse}
 .dc-h213:hover{background:#002a77 !important}
@@ -394,7 +399,7 @@ export default class MerchantOrdersScreen extends Component {
                     <__Icon name="shopping-cart" strokeWidth="1.75" width="24" height="24" aria-hidden="true" />
                   </span>
                   <div className="mo-kpi__text">
-                    <p className="mo-kpi__label">Total orders today</p>
+                    <p className="mo-kpi__label">Orders today</p>
                     <p className="mo-kpi__value">{v.kpiToday}</p>
                   </div>
                 </div>
@@ -412,7 +417,7 @@ export default class MerchantOrdersScreen extends Component {
                     <__Icon name="truck" strokeWidth="1.75" width="24" height="24" aria-hidden="true" />
                   </span>
                   <div className="mo-kpi__text">
-                    <p className="mo-kpi__label">Courier dispatched</p>
+                    <p className="mo-kpi__label">Ready to ship</p>
                     <p className="mo-kpi__value">{v.kpiDispatched}</p>
                   </div>
                 </div>
@@ -427,7 +432,7 @@ export default class MerchantOrdersScreen extends Component {
                 </div>
               </div>
               <div style={{ borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
-                <div role="tablist" aria-label="Order status" onKeyDown={v.onTabKey} style={{ display: "flex", flexWrap: "wrap", gap: "4px", padding: "10px 16px", borderBottom: "1px solid #e2e8f0" }}>
+                <div className="mo-tabs" role="tablist" aria-label="Order status" onKeyDown={v.onTabKey} style={{ display: "flex", flexWrap: "wrap", gap: "4px", padding: "10px 16px", borderBottom: "1px solid #e2e8f0" }}>
                   {__list(v.tabs).map((t) => (
                     <button key={t.key} id={t.id} type="button" role="tab" aria-selected={t.on ? "true" : "false"} aria-controls="orders-panel" tabIndex={t.on ? 0 : -1} className={t.on ? undefined : "dc-h216"} onClick={t.onClick} style={{ display: "inline-flex", height: "36px", alignItems: "center", gap: "8px", border: "none", borderRadius: "var(--radius-full)", background: t.on ? "rgba(0,48,135,.1)" : "none", boxShadow: t.on ? "inset 0 0 0 1.5px #003087" : "none", padding: "0 14px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: t.on ? "var(--weight-semibold)" : "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: t.on ? "#003087" : "#475569", cursor: "pointer", whiteSpace: "nowrap" }}>{t.on ? <__Icon name="check" strokeWidth="2" width="14" height="14" aria-hidden="true" /> : null}{t.label}<span style={{ fontVariantNumeric: "tabular-nums", color: t.on ? "#003087" : "var(--text-muted)" }}>{t.count}</span></button>
                   ))}
@@ -452,7 +457,7 @@ export default class MerchantOrdersScreen extends Component {
                       <option value="">Any payment</option>
                       <option value="Paid">Paid</option>
                       <option value="Unpaid">Unpaid</option>
-                      <option value="Partial">Partially paid</option>
+                      <option value="Partial">Partly paid</option>
                       <option value="COD">Cash on delivery</option>
                     </select>
                     <select aria-label="Filter by delivery zone" value={v.zone} onChange={v.onZone} style={FILTER_SELECT}>

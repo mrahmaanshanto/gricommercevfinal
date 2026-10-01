@@ -316,7 +316,7 @@ export default function Dues() {
                   <tr key={l.id}>
                     <td><div className="du-type"><span aria-hidden="true"><Icon name={t.icon} width="16" height="16" /></span><span><span className="ac-strong">{l.title}</span><span className="ac-sub">{t.label} · <span className="ac-fig">{l.id}</span></span></span></div></td>
                     <td>{l.party}</td>
-                    <td><DueBadge due={l.due} today={data.today} />{st === 'Part paid' ? <> <span className={'gc-badge gc-badge--' + LIAB_TONE[st]}>{st}</span></> : null}<span className="ac-sub">{formatDate(l.due)}</span></td>
+                    <td><DueBadge due={l.due} today={data.today} />{st === 'Partly paid' ? <> <span className={'gc-badge gc-badge--' + LIAB_TONE[st]}>{st}</span></> : null}<span className="ac-sub">{formatDate(l.due)}</span></td>
                     <td className="ac-num ac-fig ac-strong">{money(leftOf(l))}</td>
                     <td><div className="ac-row-actions"><Link href={`/liabilities?id=${encodeURIComponent(l.id)}`} className="gc-btn gc-btn--sm gc-btn--solid" aria-label={`Settle ${l.title}`}>Settle</Link></div></td>
                   </tr>

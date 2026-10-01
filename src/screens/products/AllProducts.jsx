@@ -442,7 +442,7 @@ class AllProductsView extends Component {
                         </th>
                         <th className="th">Product</th>
                         <th className="th">Status</th>
-                        <th className="th">Inventory</th>
+                        <th className="th">Stock</th>
                         <th className="th">Category</th>
                         <th className="th">Brand</th>
                         <th className="th">Sell to</th>

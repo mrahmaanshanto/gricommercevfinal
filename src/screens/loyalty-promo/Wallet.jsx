@@ -23,7 +23,7 @@ import { accName, accBrand } from '@/screens/accounts/accShared';
 import { LoyPage, Kpi, WalletDialog, useLoyalty, money, plural } from './loyShared';
 
 const TABS = [['in', 'Add-money requests'], ['out', 'Cash-out requests'], ['wallets', 'Wallets'], ['all', 'All money moves']];
-const STATUS = { approved: ['Approved', 'success'], sent: ['Sent', 'success'], rejected: ['Rejected', 'error'], waiting: ['Waiting', 'warning'] };
+const STATUS = { approved: ['Approved', 'success'], sent: ['Sent', 'success'], rejected: ['Rejected', 'error'], waiting: ['Pending', 'warning'] };
 const METHOD_BRAND = { bkash: 'bkash', nagad: 'nagad', rocket: 'rocket', bank: 'dbbl' };
 const when = (t) => `${formatDate(t)} · ${formatTime(t)}`;
 

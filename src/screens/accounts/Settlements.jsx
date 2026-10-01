@@ -52,7 +52,7 @@ const CSS = `
 
 function statusBadges(p, now) {
   const out = [];
-  if (p.late) out.push(<span key="late" className="gc-badge gc-badge--error">Late {Math.max(1, Math.round((startOfDay(now) - p.due) / 864e5))}d</span>);
+  if (p.late) out.push(<span key="late" className="gc-badge gc-badge--error">Overdue {Math.max(1, Math.round((startOfDay(now) - p.due) / 864e5))}d</span>);
   if (p.status === 'delayed') out.push(<span key="del" className="gc-badge gc-badge--warning">Delayed · was {shortDate(p.date)}</span>);
   return out.length ? <span className="st-badges">{out}</span> : null;
 }
@@ -93,7 +93,7 @@ export default function Settlements() {
   const late = openPays.filter((p) => p.late || p.due < today);
   const upcoming = openPays.filter((p) => !(p.late || p.due < today));
   const groups = [];
-  if (late.length) groups.push({ key: 'late', label: 'Late', sub: 'Should have arrived already', list: late });
+  if (late.length) groups.push({ key: 'late', label: 'Overdue', sub: 'Should have arrived already', list: late });
   upcoming.forEach((p) => {
     let g = groups.find((x) => x.key === p.due);
     if (!g) { g = { key: p.due, label: dayLabel(p.due, now), sub: shortDate(p.due), list: [] }; groups.push(g); }
@@ -129,10 +129,10 @@ export default function Settlements() {
   );
 
   return (
-    <AccPage screen="Settlements" active="acc-settle" page="Settlements" title="Settlements" css={CSS}
+    <AccPage screen="Settlements" active="acc-settle" page="Payouts" title="Payouts" css={CSS}
       description="Money that payment gateways, the card machine and couriers collected for you and pay out later. See what arrives when, and tick it off when it lands."
       actions={<>
-        <Link href="/account-setup?tab=partners" className="gc-btn gc-btn--neutral"><Icon name="sliders-horizontal" width="18" height="18" aria-hidden="true" /> Partner rules</Link>
+        <Link href="/account-setup?tab=partners" className="gc-btn gc-btn--neutral"><Icon name="sliders-horizontal" width="18" height="18" aria-hidden="true" /> Payout rules</Link>
         <button type="button" className="gc-btn gc-btn--solid" onClick={() => window.dispatchEvent(new CustomEvent('gc:check'))}><Icon name="list-checks" width="18" height="18" aria-hidden="true" /> Check today’s payouts</button>
       </>}>
       <div className="gc-kpis gc-kpis--tight">

@@ -22,7 +22,7 @@ import { getHolds } from '@/lib/stockHolds';
 import { MANAGERS, EMPLOYEES } from '@/lib/posStore';
 import { getAdjustments, addAdjustment, approveAdjustment, rejectAdjustment, needsApproval, APPROVAL_LIMIT, ADJUST_REASONS } from '@/lib/stockAdjustments';
 
-const TABS = [['waiting', 'Waiting'], ['approved', 'Approved'], ['rejected', 'Rejected']];
+const TABS = [['waiting', 'Pending'], ['approved', 'Approved'], ['rejected', 'Rejected']];
 const STATUS = { waiting: ['Waiting for approval', 'warning'], approved: ['Approved', 'success'], rejected: ['Rejected', 'error'] };
 const STAFF = ['Karim', ...EMPLOYEES.map((e) => e.name)];
 const num = (v) => Math.max(0, Math.round(Number(v) || 0));
@@ -162,7 +162,7 @@ export default function StockAdjustments() {
       <div className="gc-shell">
         <Sidebar sticky="" active="stock-adjust" />
         <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
-          <Topbar crumb="Stocks & Inventory" page="Stock adjustments" />
+          <Topbar crumb="Products & stock" page="Stock adjustments" />
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
             <PageHeader
               title="Stock adjustments"

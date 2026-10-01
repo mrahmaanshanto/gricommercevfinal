@@ -19,7 +19,7 @@ import { productBy } from '@/lib/stock';
 import { addPOs, unitCost } from '@/lib/purchaseOrders';
 
 const KEY = 'gc.requests';
-const TABS = [['waiting', 'Waiting'], ['approved', 'Approved'], ['ordered', 'Turned into orders'], ['rejected', 'Rejected']];
+const TABS = [['waiting', 'Pending'], ['approved', 'Approved'], ['ordered', 'Turned into orders'], ['rejected', 'Rejected']];
 const PRODUCTS = [
   { name: 'Sunscreen SPF 50 · 50ml', code: '8941100500235', stock: 4, supplier: 'Rahman Traders' },
   { name: 'Aloe Vera Soothing Gel 300ml', code: '8941100500112', stock: 9, supplier: 'Rahman Traders' },
@@ -67,7 +67,7 @@ const SEED = [
   { id: 'RQ-0099', ...PRODUCTS[6], qty: 120, by: 'Moumita Das', place: 'Mirpur branch', need: day(18), status: 'ordered', po: 'PO-2609-0021', note: '' },
   { id: 'RQ-0098', ...PRODUCTS[5], qty: 200, by: 'Karim', place: 'Central Warehouse', need: day(15), status: 'rejected', reason: 'Enough stock in Mirpur. Transfer it instead.', note: '' },
 ];
-const BADGE = { waiting: ['Waiting', 'warning'], approved: ['Approved', 'info'], ordered: ['Ordered', 'success'], rejected: ['Rejected', 'error'] };
+const BADGE = { waiting: ['Pending', 'warning'], approved: ['Approved', 'info'], ordered: ['Ordered', 'success'], rejected: ['Rejected', 'error'] };
 const num = (v) => Math.max(0, Math.round(Number(v) || 0));
 
 const CSS = `

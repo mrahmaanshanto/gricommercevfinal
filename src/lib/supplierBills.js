@@ -117,7 +117,7 @@ const SEED_PAYMENTS = [
 ].map((p, i) => ({ ...p, no: 'SP-' + String(i + 1).padStart(4, '0') }));
 
 const billLeftRaw = (b) => Math.max(0, (b.amount || 0) - (b.paid || 0) - (b.credited || 0));
-const statusFor = (b) => (billLeftRaw(b) <= 0 ? 'Paid' : (b.paid || 0) + (b.credited || 0) > 0 ? 'Part paid' : 'Open');
+const statusFor = (b) => (billLeftRaw(b) <= 0 ? 'Paid' : (b.paid || 0) + (b.credited || 0) > 0 ? 'Partly paid' : 'Open');
 const withStatus = (b) => ({ ...b, status: statusFor(b) });
 
 function seedDb() {
@@ -139,7 +139,7 @@ function fromOld(db) {
 const read = () => {
   try {
     const s = JSON.parse(window.localStorage.getItem(KEY));
-    if (s && Array.isArray(s.bills)) return { suppliers: [], payments: [], credits: [], returns: [], ...s, bills: s.bills.map(withSeedLines) };
+    if (s && Array.isArray(s.bills)) return { suppliers: [], payments: [], credits: [], returns: [], ...s, bills: s.bills.map((b) => withStatus(withSeedLines(b))) };
   } catch { /* ignore */ }
   return fromOld(seedDb());
 };
@@ -177,12 +177,12 @@ export function ensureSupplier(name) {
 }
 
 export const billLeft = billLeftRaw;
-/** 'Paid' | 'Part paid' | 'Open' | 'Overdue' (open and past its due day). */
+/** 'Paid' | 'Partly paid' | 'Open' | 'Overdue' (open and past its due day). */
 export function billStatus(b, today = dayStart()) {
   const s = statusFor(b);
   return s !== 'Paid' && daysFrom(b.due, today) < 0 ? 'Overdue' : s;
 }
-export const BILL_TONE = { Paid: 'success', 'Part paid': 'warning', Open: 'slate', Overdue: 'error' };
+export const BILL_TONE = { Paid: 'success', 'Partly paid': 'warning', Open: 'slate', Overdue: 'error' };
 
 function nextNo(list, prefix) {
   const last = list.reduce((m, x) => (x.no.startsWith(prefix) ? Math.max(m, Number(x.no.slice(prefix.length)) || 0) : m), 0);

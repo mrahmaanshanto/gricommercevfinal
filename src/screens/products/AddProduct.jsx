@@ -639,7 +639,7 @@ export default class AddProductScreen extends Component {
                   <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                       <div style={{ flexGrow: "1" }}>
-                        <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Inventory</h2>
+                        <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Stock</h2>
                         <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", marginTop: "2px" }}>Connected to Purchase, Stock and POS — you never enter stock twice.</div>
                       </div>
                     </div>

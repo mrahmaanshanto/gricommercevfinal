@@ -208,7 +208,7 @@ const payrollRegister = {
       lines.forEach((ln) => {
         if ((f.staff && ln.name !== f.staff) || (f.place && ln.branch !== f.place)) return;
         const ll = liab && (liab.lines || []).find((x) => x.name === ln.name);
-        const status = run.status === 'paid' || (ll && (ll.paid || 0) >= ll.amount) ? 'Paid' : ll && ll.paid > 0 ? 'Part paid' : runStatusLabel(run);
+        const status = run.status === 'paid' || (ll && (ll.paid || 0) >= ll.amount) ? 'Paid' : ll && ll.paid > 0 ? 'Partly paid' : runStatusLabel(run);
         const extra = (ln.extras || []).reduce((a, x) => a + (x.amount || 0), 0);
         rows.push({
           _key: run.id + ':' + ln.code, month: label, name: ln.name, branch: ln.branch, gross: run.kind === 'bonus' ? ln.bonus || ln.net : ln.gross,

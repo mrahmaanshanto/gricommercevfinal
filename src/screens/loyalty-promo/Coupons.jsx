@@ -129,9 +129,9 @@ export default class CouponsScreen extends Component {
         <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
           <__Sidebar sticky="" active="promo-coupons" />
           <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
-            <__Topbar crumb="Promo" page="Discount codes" placeholder="Search a code" />
+            <__Topbar crumb="Promo" page="Coupons" placeholder="Search a code" />
             <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <__PageHeader title="Discount codes" />
+              <__PageHeader title="Coupons" />
               <div className="gc-cardrow" style={{ display: "flex", gap: "16px" }}>
                 <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
                   <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#e7f8f1", color: "#047857", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -203,7 +203,7 @@ export default class CouponsScreen extends Component {
                 </__Link>
               </div>
               <section className="card" style={{ overflow: "hidden" }}>
-                <div role="tablist" aria-label="Discount codes by status" onKeyDown={tabKeys} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "14px 16px", borderBottom: "1px solid #e2e8f0", flexWrap: "wrap" }}>
+                <div role="tablist" aria-label="Coupons by status" onKeyDown={tabKeys} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "14px 16px", borderBottom: "1px solid #e2e8f0", flexWrap: "wrap" }}>
                   {__list(v.tabs).map((tb, $index) => (<React.Fragment key={$index}>
                       <button type="button" role="tab" id={tb?.id} aria-selected={tb?.on} aria-controls="cp-panel" tabIndex={tb?.on ? 0 : -1} className={tb?.cls} onClick={tb?.pick}>{tb?.label}{tb?.hasCount ? (<>
   <span style={__sx(`min-width: 22px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: ${tb?.countBg ?? ""}; font-size: var(--text-xs); font-weight: var(--weight-medium); display: inline-flex; align-items: center; justify-content: center;`)}>{tb?.count}</span>

@@ -19,8 +19,8 @@ import { getHolds } from '@/lib/stockHolds';
 import { HoldStockDialog, HOLD_CSS, canHold } from './HoldStockDialog';
 
 const METHODS = ['Cash', 'bKash', 'Nagad', 'Card', 'Bank'];
-const TABS = [['all', 'Invoices'], ['paid', 'Paid'], ['partial', 'Partially paid'], ['unpaid', 'Unpaid']];
-const STATUS = { paid: ['Paid', 'success'], partial: ['Partially paid', 'info'], unpaid: ['Unpaid', 'warning'] };
+const TABS = [['all', 'Invoices'], ['paid', 'Paid'], ['partial', 'Partly paid'], ['unpaid', 'Unpaid']];
+const STATUS = { paid: ['Paid', 'success'], partial: ['Partly paid', 'info'], unpaid: ['Unpaid', 'warning'] };
 const money = (n) => formatBDT(n, { decimals: Number.isInteger(n) ? 0 : 2 });
 const num = (v) => Math.max(0, Number(v) || 0);
 
@@ -162,7 +162,7 @@ export default function SalesInvoices() {
             <div className="gc-kpis">
               <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="files" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Invoices</p><p className="gc-kpi__value">{counts.all}<small>{money(sum(rows, (r) => r.totals.total))}</small></p></div></div>
               <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="file-check" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Paid</p><p className="gc-kpi__value">{counts.paid}<small>{money(sum(paid, (r) => r.totals.total))}</small></p></div></div>
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-info-soft)', color: 'var(--text-info)' }}><Icon name="file-clock" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Partially paid</p><p className="gc-kpi__value">{counts.partial}<small>{money(sum(partial, (r) => r.due))} left</small></p></div></div>
+              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-info-soft)', color: 'var(--text-info)' }}><Icon name="file-clock" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Partly paid</p><p className="gc-kpi__value">{counts.partial}<small>{money(sum(partial, (r) => r.due))} left</small></p></div></div>
               <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-error-soft)', color: 'var(--text-danger)' }}><Icon name="file-x" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Unpaid</p><p className="gc-kpi__value">{counts.unpaid}<small>{money(sum(unpaid, (r) => r.due))}</small></p></div></div>
             </div>
 
@@ -223,7 +223,7 @@ export default function SalesInvoices() {
               </div>
             ) : null}
             <div><label className="gc-label" htmlFor="iv-by">Who receives the money *</label><select id="iv-by" className="gc-input gc-select" aria-required="true" value={pay.by} onChange={(e) => setPay({ ...pay, by: e.target.value })}>{EMPLOYEES.map((m) => <option key={m.name} value={m.name}>{m.name} · {m.role}</option>)}</select></div>
-            <p className="gc-help" style={{ margin: 0 }} role="status">{payCalc.byCredit ? `Uses ${money(payCalc.amount)} of ${money(pay.credit)} credit.${payCalc.amount < pay.inv.due ? ` ${money(r2(pay.inv.due - payCalc.amount))} will be left.` : ' This pays the invoice in full.'}` : payCalc.amount >= pay.inv.due ? 'This pays the invoice in full. It becomes Paid and counts as a completed sale.' : payCalc.amount ? `The invoice becomes Partially paid. ${money(r2(pay.inv.due - payCalc.amount))} will be left.` : 'Enter the amount the customer paid.'}</p>
+            <p className="gc-help" style={{ margin: 0 }} role="status">{payCalc.byCredit ? `Uses ${money(payCalc.amount)} of ${money(pay.credit)} credit.${payCalc.amount < pay.inv.due ? ` ${money(r2(pay.inv.due - payCalc.amount))} will be left.` : ' This pays the invoice in full.'}` : payCalc.amount >= pay.inv.due ? 'This pays the invoice in full. It becomes Paid and counts as a completed sale.' : payCalc.amount ? `The invoice becomes Partly paid. ${money(r2(pay.inv.due - payCalc.amount))} will be left.` : 'Enter the amount the customer paid.'}</p>
             <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setPay(null)}>Cancel</button><button type="submit" className="gc-btn gc-btn--solid" disabled={!payCalc.amount}>Record payment</button></div>
           </form>
         ) : null}

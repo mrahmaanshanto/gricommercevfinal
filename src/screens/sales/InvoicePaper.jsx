@@ -7,7 +7,7 @@ import { formatBDT, formatDate } from '@/lib/format';
 import { MERCHANT } from '@/lib/merchant';
 import { paidSoFar, discountsOf, statusOf, activePayments } from '@/lib/invoices';
 
-export const INVOICE_STATUS = { paid: ['Paid', 'success'], partial: ['Partially paid', 'info'], unpaid: ['Unpaid', 'warning'] };
+export const INVOICE_STATUS = { paid: ['Paid', 'success'], partial: ['Partly paid', 'info'], unpaid: ['Unpaid', 'warning'] };
 const money = (n) => formatBDT(n, { decimals: Number.isInteger(n) ? 0 : 2 });
 
 export const PAPER_CSS = `
