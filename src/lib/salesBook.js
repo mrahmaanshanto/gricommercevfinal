@@ -3,7 +3,8 @@
 // (getSaleLines) for the reports.
 //   Retail     the counters' daily Z-reports (demo September, same figures as the ledger) and the
 //              POS sales made in this browser
-//   Online     demo September order days, and the orders made in this browser (not cancelled)
+//   Online     demo September order days, the orders that keep coming in after September (liveOrders.js)
+//              and the orders made in this browser (not cancelled)
 //   Wholesale  demo September invoices, and every invoice (the demo ones and those made at the POS)
 //   Returns    from the return history, taken off the channel they came from
 // Cost of goods: each line's product buying price (products.js cost, else purchase cost); days
@@ -20,7 +21,7 @@
 
 import { LEDGER_SEED } from './ledgerSeed';
 import { getInvoices } from './invoices';
-import { getOrders, isCounterSale, demoOrders, holdPlaceOf, RTO_REASONS } from './orders';
+import { getOrders, isCounterSale, demoOrders, holdPlaceOf, RTO_REASONS, DEFAULT_HOLD_PLACE } from './orders';
 import { getReturns } from './returns';
 import { POS_KEYS, load, getCounters } from './posStore';
 import { CATALOG, productBy } from './stock';
@@ -28,6 +29,7 @@ import { productCostOf } from './productCost';
 import { loadVat, vatRateFor } from './vat';
 import { CHANNELS } from './categories';
 import { editionChannels } from './edition';
+import { ONLINE_PEOPLE, FIRST, LAST, AREAS } from './demoPeople';
 
 export { CHANNELS, productCostOf };
 /** Usual cost of goods as a share of sales, for demo days without item lines. */
@@ -153,11 +155,6 @@ const RETAIL_PEOPLE = [
   ['Nasrin Akter', '01924551870'], ['Salma Begum', '01912330845'], ['Jahangir Alam', '01811290467'], ['Rumana Haque', '01734118802'],
   ['Kamal Hossain', '01675903318'], ['Mitu Rahman', '01628447190'], ['Shahidul Islam', '01913805562'], ['Laila Arjumand', '01552918406'],
 ];
-const ONLINE_PEOPLE = {
-  'Inside Dhaka': [['Nusrat Jahan', '01553336655'], ['Karim Saheb', '01718445120'], ['Rakib Uddin', '01677220945'], ['Imran Kabir', '01533889001'], ['Shirin Akter', '01811843300'], ['Tasnim Ahmed', '01716223419'], ['Fahim Chowdhury', '01819340276'], ['Anika Tabassum', '01911874503'], ['Sabrina Hossain', '01552407718'], ['Mehedi Hasan', '01679551283'], ['Nadia Islam', '01733920641'], ['Arafat Rahman', '01817736452'], ['Sumaiya Akter', '01923405817'], ['Tanjila Haque', '01644210395']],
-  'Sub-Dhaka': [['Salma Begum', '01912330845'], ['Tanvir Hasan', '01822771190'], ['Jannat Ara', '01715609824'], ['Rubel Mia', '01831447265'], ['Sharif Uddin', '01676390142'], ['Afroza Khatun', '01558214906']],
-  'Outside Dhaka': [['Rafiq Mia', '01676221904'], ['Mahmudul Hasan', '01815667723'], ['Sadia Afrin', '01966330012'], ['Farhana Islam', '01744556677'], ['Mostafizur Rahman', '01711902244'], ['Ziaul Haque', '01819203447'], ['Popy Akter', '01717584033'], ['Nazmul Huda', '01534668210'], ['Sajib Das', '01985220417'], ['Mithila Roy', '01767301985']],
-};
 const WHOLESALE_PHONES = { 'Rahim Traders': '01711458822', 'Jamal Telecom': '01819447210', 'Habib Telecom': '01715332908', 'Maa Fatema Mobile': '01912804551', 'Bismillah Mobile Corner': '01674210987', 'New Madina Telecom': '01845667302' };
 const WHOLESALE_METHODS = ['Cash', 'bKash', 'Bank', 'Cash', 'Bank', 'bKash', 'Cash', 'Bank'];
 const RETAIL_HOURS = { 10: 3, 11: 4, 12: 5, 13: 5, 14: 4, 15: 5, 16: 6, 17: 8, 18: 10, 19: 10, 20: 8, 21: 3 };
@@ -304,14 +301,6 @@ function wholesaleSeedLines(rec, i) {
 // walk-ins with no number, the rest loyalty members and regular customers. Loyalty members only buy
 // up to the last visit the loyalty seed gives them; members whose last visit was in August do not
 // appear in September at all (they show as inactive).
-const FIRST = ['Ayesha', 'Fatema', 'Nusrat', 'Sumaiya', 'Tasnim', 'Farhana', 'Jannatul', 'Sadia', 'Mim', 'Riya', 'Tania', 'Nadia', 'Sabrina', 'Lamia', 'Afsana', 'Moushumi', 'Rupa', 'Shapla', 'Sharmin', 'Ishrat', 'Tahmina', 'Rokeya', 'Mahiya', 'Anika', 'Sanjida',
-  'Rahim', 'Karim', 'Tanvir', 'Imran', 'Rakib', 'Sakib', 'Fahim', 'Nayeem', 'Mehedi', 'Arif', 'Sohel', 'Jahid', 'Shuvo', 'Rifat', 'Hasan', 'Mamun', 'Sajjad', 'Tareq', 'Rubel', 'Shakil', 'Ashik', 'Rasel', 'Zahid', 'Masud', 'Habib'];
-const LAST = ['Rahman', 'Hossain', 'Islam', 'Ahmed', 'Akter', 'Chowdhury', 'Khan', 'Uddin', 'Sarker', 'Mia', 'Haque', 'Alam', 'Begum', 'Sultana', 'Talukder', 'Bhuiyan', 'Mondal', 'Sheikh', 'Kabir', 'Siddique', 'Karim', 'Hasan', 'Das', 'Roy', 'Mahmud'];
-const AREAS = {
-  'Inside Dhaka': ['Mirpur 10, Dhaka 1216', 'Mirpur 2, Dhaka 1216', 'Dhanmondi, Dhaka 1209', 'Mohammadpur, Dhaka 1207', 'Uttara Sector 7, Dhaka 1230', 'Uttara Sector 11, Dhaka 1230', 'Banani, Dhaka 1213', 'Gulshan 1, Dhaka 1212', 'Badda, Dhaka 1212', 'Rampura, Dhaka 1219', 'Bashundhara R/A, Dhaka 1229', 'Khilgaon, Dhaka 1219', 'Malibagh, Dhaka 1217', 'Shyamoli, Dhaka 1207', 'Lalbagh, Dhaka 1211', 'Jatrabari, Dhaka 1204', 'Farmgate, Dhaka 1215', 'Wari, Dhaka 1203'],
-  'Sub-Dhaka': ['Savar, Dhaka 1340', 'Ashulia, Savar 1341', 'Gazipur Chowrasta, Gazipur 1700', 'Tongi, Gazipur 1710', 'Konabari, Gazipur 1751', 'Chashara, Narayanganj 1400', 'Fatullah, Narayanganj 1421', 'Keraniganj, Dhaka 1310'],
-  'Outside Dhaka': ['Agrabad, Chattogram 4100', 'GEC Circle, Chattogram 4000', 'Zindabazar, Sylhet 3100', 'Shaheb Bazar, Rajshahi 6100', 'Sonadanga, Khulna 9100', 'Band Road, Barishal 8200', 'Kandirpar, Cumilla 3500', 'Jahaj Company Mor, Rangpur 5400', 'Ganginarpar, Mymensingh 2200', 'Satmatha, Bogura 5800', 'Doratana, Jashore 7400', 'Court Para, Kushtia 7000'],
-};
 /** Loyalty members (loyalty.js seed) with the last day they bought in September; 0 = not in September. */
 const MEMBERS = [
   ['Farzana Akter', '01711245518', 21, 7], ['Rakibul Hasan', '01819072332', 16, 4], ['Mostafizur Rahman', '01711902244', 14, 5], ['Tanvir Ahmed', '01914622045', 15, 3],
@@ -557,11 +546,11 @@ function allSales() {
     const rec = sold(s);
     out.push({ ...rec, paid: (s.totals || {}).total || 0, due: 0 });
   });
-  // online orders made in this browser
-  getOrders().filter((o) => o.made && !isCounterSale(o) && o.status !== 'Cancelled').forEach((o) => {
+  // online orders made in this browser and the ones that keep coming in after September (liveOrders.js)
+  getOrders().filter((o) => (o.made || o.live) && !isCounterSale(o) && o.status !== 'Cancelled').forEach((o) => {
     const rec = {
       id: o.id, at: o.at, channel: 'Online', ref: o.id, party: o.customer, revenue: o.subtotal, orders: 1, paid: o.paid || 0, due: r2(Math.max(0, o.amount - (o.paid || 0))), delivery: o.shipping || 0,
-      place: holdPlaceOf(o.id), counter: '', cashier: '', salesperson: '', source: o.source || 'Phone', zone: o.zone || '', method: o.method || ORDER_METHOD[o.payment] || 'COD',
+      place: o.made ? holdPlaceOf(o.id) : DEFAULT_HOLD_PLACE, counter: '', cashier: '', salesperson: '', source: o.source || 'Phone', zone: o.zone || '', method: o.method || ORDER_METHOD[o.payment] || 'COD',
       customer: { name: o.customer, phone: digits(o.phone), type: 'Online' },
     };
     rec.lines = orderLines(o, rec);

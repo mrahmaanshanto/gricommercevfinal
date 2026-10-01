@@ -29,6 +29,7 @@ import { getPlaces } from '@/lib/locations';
 import { currentUser } from '@/lib/team';
 import { hasModule, editionChannels, currentEditionId, LOCKED, EDITION_EVENT } from '@/lib/edition';
 import CommsHome from './CommsHome';
+import OnlineHome from './OnlineHome';
 
 const LAYOUT_KEY = 'gc.home.layout';
 const SECTIONS = [
@@ -307,6 +308,7 @@ export default function Home() {
   const shortcuts = [['/add-product', 'package-plus', 'Add product', 'catalog'], ['/receive-goods', 'package-check', 'Receive goods', 'catalog'], ['/new-po', 'shopping-bag', 'Purchase order', 'catalog'], ['/expenses-bills', 'wallet', 'Add expense', 'money'], ['/sales-invoices', 'file-text', 'Invoices', 'wholesale']].filter((x) => has(x[3]));
 
   if (ed === 'comms') return <CommsHome />;
+  if (ed === 'online') return <OnlineHome />;
 
   const dayName = data ? (dayOffset === 0 ? 'today' : 'yesterday') : 'today';
   const change = data ? pct(data.sales.today, data.sales.prev) : null;

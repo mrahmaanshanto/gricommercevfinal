@@ -1,5 +1,6 @@
-// orders — the one list of orders that the order screens read: demo online orders, orders made in
-// this browser (Create order, order links, POS sales) and the demo wholesale invoices.
+// orders — the one list of orders that the order screens read: demo online orders, the online orders that
+// keep coming in after September (liveOrders.js), orders made in this browser (Create order, order links,
+// POS sales) and the demo wholesale invoices.
 // Also what happens to an order: approve (hold stock), cancel (release it), deliver, courier return
 // (RTO) and merging a duplicate.
 // Front end only: status changes, merged lines, activity and courier-return receipts live in this browser:
@@ -22,8 +23,9 @@ import { getHolds, addHolds, closeHold, holdsFor, endHoldsFor } from './stockHol
 import { productBy, addMove, stockAt } from './stock';
 import { DAMAGED_PLACE } from './locations';
 import { addReturn } from './returns';
-import { collectCod, removeItem } from './settlements';
+import { collectCod, removeItem, clockNow } from './settlements';
 import { editionChannels } from './edition';
+import { liveOrders } from './liveOrders';
 
 const STATUS_KEY = 'gc.orders.status';
 const EDITS_KEY = 'gc.orders.edits';
@@ -185,8 +187,13 @@ function allOrders() {
   const stamped = readMap(TIMES_KEY, {});
   const made = extraOrders().map((o) => ({ ...o, made: true }));
   const invoices = getInvoices().filter((r) => r.src === 'demo').map(fromInvoice);
-  return [...made, ...invoices, ...DEMO].map((o) => finish(o, sales, statuses, edits, stamped));
+  const live = liveOrders(clockNow());
+  // a live order the courier brought back is booked in the next day (the last day's are still to receive)
+  LIVE_RTO = {};
+  live.forEach((o) => { if (o.status === 'Returned' && o.times.returned + 20 * HOUR <= clockNow()) LIVE_RTO[o.id] = [{ at: o.times.returned + 20 * HOUR, by: 'Sadia Akter', lines: o.lines.map((l) => ({ name: l.name, good: l.qty, damaged: 0 })) }]; });
+  return [...made, ...invoices, ...live, ...DEMO].map((o) => finish(o, sales, statuses, edits, stamped));
 }
+let LIVE_RTO = {};
 export const findOrder = (id, all = getOrders()) => all.find((o) => o.id === id) || null;
 export const orderHref = (id, from) => '/order-detail?id=' + encodeURIComponent(id) + (from ? '&from=' + from : '');
 export const invoiceHref = (id) => '/sales-invoice?id=' + encodeURIComponent(id);
@@ -292,7 +299,7 @@ export function mergeInto(dup, target, by = 'Staff') {
 // ---- courier returns (RTO) --------------------------------------------------------------------
 /** Online orders the courier is bringing back or has brought back. */
 export const courierReturns = (all) => all.filter((o) => o.statusKey === 'returned' && !isCounterSale(o));
-export const rtoReceipts = (id) => readMap(RTO_KEY, RTO_SEED)[id] || [];
+export const rtoReceipts = (id) => readMap(RTO_KEY, RTO_SEED)[id] || LIVE_RTO[id] || [];
 /** Per line: sent, received good, received damaged, still with the courier. */
 export function rtoState(o) {
   const receipts = rtoReceipts(o.id);

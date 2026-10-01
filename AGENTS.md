@@ -73,6 +73,14 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Home (`/merchant-overview`, `screens/merchant-overview/Home.jsx`) is built from the shared books via
   `reports/dailySummary` (no sample numbers); sections can be hidden with Customise (`gc.home.layout`). The old
   design screen `MerchantOverview.jsx` stays as reference. The top bar crumb comes from the menu group.
+  The Online edition has its own Home, `OnlineHome.jsx` (wallet, sales summary, revenue overview, attention, latest
+  orders, in courier, visitors by hour, low stock, top products and customers; Customise = `gc.home.online`), drawn
+  with `components/charts/DashCharts.jsx` (ColumnChart with an optional line, Sparkline, Donut, StackBar, HBars,
+  Legend: hover and arrow-key tooltips, a hidden table per chart, bars rise once on first show). Chart colours are
+  the `--viz-1…8` tokens (checked for colour-blind separation; keep the order; a colour follows one thing across the
+  page, e.g. Facebook is always `--viz-1`). Orders keep coming after the demo September: `lib/liveOrders.js` makes
+  each day's online orders from 1 October up to now (fixed seed per date; statuses move with the clock); orders.js
+  lists them and the sales book counts them. Website visitors by hour and source: `lib/traffic.js`.
 - POS: `/pos` (`src/screens/pos-register/Pos.jsx`) is the one register; `/pos-manage` (`PosManage.jsx`) is its
   back office (counters, employees and shifts, cash pickups, settings). Both read and write
   `src/lib/posStore.js` (browser storage). Register shortcuts are listed in `SHORTCUTS` in `Pos.jsx` (F1 on screen).
