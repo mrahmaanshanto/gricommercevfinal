@@ -13,11 +13,13 @@ export const SHELL_CSS = `
 .rp-head p{margin:2px 0 0;font-size:var(--text-xs);color:var(--text-muted)}
 .rp-tile{display:grid;place-items:center;width:36px;height:36px;flex:none;border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary)}
 @media print{
-  .gc-sidebar,gc-sidebar,gc-topbar,.rp-noprint,.gc-ai,.gc-pagehead__actions{display:none!important}
+  .gc-sidebar,gc-sidebar,gc-topbar,.rp-noprint,.gc-ai,.gc-pagehead__actions,.gc-skip{display:none!important}
+  html,body,.dc-screen,.gc-shell,.gc-shell__main{background:#fff!important}
   .gc-shell{display:block!important}
   .gc-shell__main{border:0!important}
   .gc-shell__content{padding:0!important}
   .gc-card{break-inside:avoid;box-shadow:none!important}
+  .gc-card:has(table){break-inside:auto}
 }
 `;
 
@@ -34,14 +36,14 @@ export function useDataTick() {
   return tick;
 }
 
-export function ReportsShell({ screen, active, page, title, description, actions, children, css = '' }) {
+export function ReportsShell({ screen, active, page, title, description, actions, children, css = '', crumb = 'Reports' }) {
   return (
     <div className="dc-screen ds" data-screen={screen}>
       <style dangerouslySetInnerHTML={{ __html: SHELL_CSS + css }} />
       <div className="gc-shell">
         <Sidebar sticky="" active={active} />
         <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
-          <Topbar crumb="Reports" page={page} />
+          <Topbar crumb={crumb} page={page} />
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
             <PageHeader title={title} description={description} actions={actions} />
             {children}

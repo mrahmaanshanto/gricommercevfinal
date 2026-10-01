@@ -111,12 +111,12 @@ export default function ScheduledReports() {
   const actions = (
     <>
       <Link href="/reports-centre" className="gc-btn gc-btn--neutral"><Icon name="file-bar-chart" width="18" height="18" aria-hidden="true" /> All reports</Link>
-      {!hasDaily ? <button type="button" className="gc-btn gc-btn--solid" onClick={() => setEdit({ report: DAILY })}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Schedule the daily summary</button> : null}
+      <button type="button" className="gc-btn gc-btn--solid" onClick={() => setEdit({ report: hasDaily ? null : DAILY, choose: true })}><Icon name="plus" width="18" height="18" aria-hidden="true" /> New scheduled report</button>
     </>
   );
 
   return (
-    <ReportsShell screen="ScheduledReports" active="rep-scheduled" page="Scheduled reports" title="Scheduled reports" description="Reports sent to you by WhatsApp or email every day, week or month." actions={actions} css={CSS}>
+    <ReportsShell screen="ScheduledReports" crumb="Automation" active="auto-reports" page="Scheduled reports" title="Scheduled reports" description="Send any report automatically by WhatsApp or email every day, week or month, for example the daily summary to the manager at 8 PM." actions={actions} css={CSS}>
       <div className="sr-note" role="note">
         <Icon name="info" width="18" height="18" aria-hidden="true" />
         <span>Sending needs the shop’s server, which is not connected yet. Your schedules are kept in this browser and start going out once it is. “Send a test now” shows the exact message that would be sent.</span>
@@ -124,7 +124,7 @@ export default function ScheduledReports() {
 
       {list && !list.length ? (
         <section className="gc-card">
-          <EmptyState icon="calendar-clock" title="No reports scheduled yet" body="Open any report and press Schedule to get it by WhatsApp or email, or schedule the daily summary for 8 PM every evening." actionLabel="Browse reports" onAction={() => navigate('/reports-centre')} />
+          <EmptyState icon="calendar-clock" title="No reports scheduled yet" body="Pick a report and who should get it, how often and at what time. For example the daily summary to the manager every evening at 8 PM." actionLabel="New scheduled report" onAction={() => setEdit({ report: DAILY, choose: true })} />
         </section>
       ) : null}
 
@@ -169,7 +169,7 @@ export default function ScheduledReports() {
         </section>
       ) : null}
 
-      {edit ? <ScheduleDialog report={edit.report} existing={edit.existing} onClose={() => setEdit(null)} /> : null}
+      {edit ? <ScheduleDialog report={edit.report} existing={edit.existing} choose={!!edit.choose} onClose={() => setEdit(null)} /> : null}
 
       <Dialog open={!!preview} title="Test message" onClose={() => setTest(null)} width={520}
         footer={<>

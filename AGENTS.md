@@ -75,7 +75,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Reports: one menu group (after Accounts) and one page, `/reports-centre`. Every report is a definition in
   `src/lib/reports/defs/<group>.js` (contract at the top of `src/lib/reports/catalogue.js`) rendered by
   `/report?id=<id>` (`screens/reports/ReportView.jsx`: period + compare, filters, KPIs, `components/reports/ReportChart`,
-  `ReportTable`, CSV, print, favourites, saved views, schedules in `lib/reports/prefs.js`). Report pages that existed
+  `ReportTable` with a per-report column chooser, CSV and a letterhead PDF via print; `components/reports/PrintLetterhead`
+  for other report pages). Scheduled reports (email/WhatsApp) live under Automation (`/scheduled-reports`, `lib/reports/prefs.js`). Report pages that existed
   before (Sales & profit, Account reports, Sales book …) are listed in the catalogue as `kind: 'page'`. Sale lines with
   cost/place/staff/source come from `salesBook.getSaleLines()`; demo online orders from `getOnlineOrders()`; the
   manager PIN log from `lib/auditLog.js`; ad spend from `lib/adSpend.js`. Add a report = add a definition object.

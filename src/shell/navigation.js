@@ -85,7 +85,6 @@ export const NAV = [
       { id: 'rep-marketing', icon: 'megaphone', label: 'Marketing & support', to: 'reports/ReportsCentre.dc.html', q: 'group=marketing' },
     ] },
     { id: 'rep-daily', icon: 'sun', label: 'Daily summary', to: 'reports/DailySummary.dc.html' },
-    { id: 'rep-scheduled', icon: 'calendar-clock', label: 'Scheduled reports', to: 'reports/ScheduledReports.dc.html' },
   ] },
   { label: 'Staff & HR', items: [
     { id: 'hr-home', icon: 'layout-grid', label: 'HR dashboard', to: 'staff-hr/HrDashboard.dc.html' },
@@ -140,7 +139,8 @@ export const NAV = [
   { label: 'Automation', items: [
     { id: 'auto-rules', icon: 'zap', label: 'Rules', to: 'automation/Automations.dc.html' },
     { id: 'auto-builder', icon: 'workflow', label: 'Workflow builder', to: 'automation/WorkflowBuilder.dc.html' },
-    { id: 'auto-settings', icon: 'settings-2', label: 'Workflow settings', to: 'automation/WorkflowSettings.dc.html' }
+    { id: 'auto-settings', icon: 'settings-2', label: 'Workflow settings', to: 'automation/WorkflowSettings.dc.html' },
+    { id: 'auto-reports', icon: 'calendar-clock', label: 'Scheduled reports', to: 'reports/ScheduledReports.dc.html' }
   ] },
   { label: 'Loyalty', items: [
     { id: 'loy-home', icon: 'gift', label: 'Loyalty & rewards', to: 'loyalty-promo/Loyalty.dc.html' },

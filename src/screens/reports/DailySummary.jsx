@@ -3,7 +3,7 @@
 //   sales by channel and by branch · online orders placed, delivered, returned · cash, banks and wallets
 //   at closing · payouts that arrived and those running late · low stock · dues collected · expenses ·
 //   the day's top 5 products. Each block opens the full report or page behind it.
-// Actions: Print, Schedule this (sent every evening once the server is connected), Download CSV.
+// Actions: Download PDF, Download CSV. Sending it every evening is set up in Automation › Scheduled reports.
 // The figures come from src/lib/reports/dailySummary.js (also used by Scheduled reports).
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { ReportsShell, useDataTick } from '@/components/reports/ReportsShell';
-import { ScheduleDialog } from '@/components/reports/ScheduleDialog';
+import { PrintLetterhead, PrintSignOff, LETTERHEAD_CSS, savePdf } from '@/components/reports/PrintLetterhead';
 import { dailySummary } from '@/lib/reports/dailySummary';
 import { fmt, downloadCsv, csvValue, clockNow, dayKey, fromKey, addDays, startOfDay } from '@/lib/reports/period';
 
@@ -52,7 +52,7 @@ const CSS = `
 .ds-cash th:last-child,.ds-cash td:last-child{padding-right:var(--space-5)}
 .ds-cash td:last-child,.ds-cash tfoot td{font-weight:var(--weight-semibold);color:var(--text-heading)}
 .ds-cash-wrap{padding-bottom:var(--space-3)}
-@media print{.ds-day{display:none}.ds-grid{display:block}.ds-grid > *{margin-bottom:var(--space-4)}}
+@media print{section[aria-label="Day"],.ds-day{display:none!important}.ds-grid{display:block}.ds-grid > *{margin-bottom:var(--space-4)}}
 `;
 
 const money = (n) => fmt(n, 'money0');
@@ -75,7 +75,6 @@ const Row = ({ label, note, value, cls }) => <li className={cls || undefined}><s
 export default function DailySummary() {
   const tick = useDataTick();
   const [day, setDay] = useState(null);       // start of the chosen day, set after mount
-  const [scheduling, setScheduling] = useState(false);
 
   useEffect(() => {
     const read = () => setDay(startOfDay(readDay() ?? clockNow()));
@@ -119,14 +118,14 @@ export default function DailySummary() {
 
   const actions = (
     <span className="rp-noprint" style={{ display: 'contents' }}>
-      <button type="button" className="gc-btn gc-btn--neutral" onClick={() => window.print()}><Icon name="printer" width="18" height="18" aria-hidden="true" /> Print</button>
-      <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setScheduling(true)}><Icon name="calendar-clock" width="18" height="18" aria-hidden="true" /> Schedule this</button>
-      <button type="button" className="gc-btn gc-btn--solid" onClick={csv} disabled={!s}><Icon name="download" width="18" height="18" aria-hidden="true" /> Download CSV</button>
+      <button type="button" className="gc-btn gc-btn--neutral" onClick={csv} disabled={!s}><Icon name="sheet" width="18" height="18" aria-hidden="true" /> Download CSV</button>
+      <button type="button" className="gc-btn gc-btn--solid" onClick={() => savePdf('Daily summary - ' + longDay(day))} disabled={!s}><Icon name="file-down" width="18" height="18" aria-hidden="true" /> Download PDF</button>
     </span>
   );
 
   return (
-    <ReportsShell screen="DailySummary" active="rep-daily" page="Daily summary" title="Daily summary" description="The day in one page: sales, orders, money at closing, payouts, stock, dues and expenses." actions={actions} css={CSS}>
+    <ReportsShell screen="DailySummary" active="rep-daily" page="Daily summary" title="Daily summary" description="The day in one page: sales, orders, money at closing, payouts, stock, dues and expenses." actions={actions} css={CSS + LETTERHEAD_CSS}>
+      {day != null ? <PrintLetterhead kind="Daily report" title="Daily summary" meta={[['Day', longDay(day)], ['Prepared', fmt(clockNow(), 'datetime')], ['Prepared by', 'Mehedi Rahman · Owner']]} /> : null}
       <section className="gc-card" aria-label="Day">
         <div className="ds-day">
           <button type="button" className="ds-iconbtn rp-noprint" aria-label="Day before" onClick={() => pick(addDays(day, -1))} disabled={day == null}><Icon name="chevron-left" width="18" height="18" aria-hidden="true" /></button>
@@ -206,8 +205,7 @@ export default function DailySummary() {
           </div>
         </>
       ) : null}
-
-      {scheduling ? <ScheduleDialog report={REPORT} onClose={() => setScheduling(false)} /> : null}
+      {day != null ? <PrintSignOff when={fmt(clockNow(), 'datetime')} /> : null}
     </ReportsShell>
   );
 }

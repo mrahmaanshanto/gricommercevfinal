@@ -3,22 +3,23 @@
 //   period (Today … This year, Custom) + compare with the previous period or last year
 //   filters the report asks for (channel, place, staff, category, courier …)
 //   KPIs with the change against the compared period · chart · table with drill-down · notes
-//   Download CSV · Print / PDF · Favourite · Save view · Schedule · Copy link
-// Everything chosen lives in the address, so a link or a saved view opens the same report.
+//   choose and order the table's columns (kept per report on this device)
+//   Download PDF (an A4 report with the shop's letterhead, period, filters and sign-off) · Download CSV
+// Everything chosen lives in the address. Sending reports by email/WhatsApp is set up in Automation › Scheduled reports.
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { navigate } from '@/runtime/routes';
-import { Dialog, EmptyState } from '@/components/ui';
+import { EmptyState } from '@/components/ui';
 import { reportBy, GROUP_BY_ID, FILTERS } from '@/lib/reports/catalogue';
-import { PRESETS, PRESET_LABEL, periodOf, compareOf, rangeText, fmt, change, csvValue, downloadCsv, clockNow, dayKey, addDays } from '@/lib/reports/period';
-import { getPrefs, toggleFav, markViewed, saveView, PREFS_EVENT } from '@/lib/reports/prefs';
+import { PRESETS, periodOf, compareOf, rangeText, fmt, change, csvValue, downloadCsv, clockNow, dayKey, addDays } from '@/lib/reports/period';
+import { markViewed } from '@/lib/reports/prefs';
+import { MERCHANT } from '@/lib/merchant';
 import { ReportsShell, useDataTick } from '@/components/reports/ReportsShell';
 import { ReportChart, CHART_CSS } from '@/components/reports/ReportChart';
-import { ReportTable, TABLE_CSS, totalsOf } from '@/components/reports/ReportTable';
-import { ScheduleDialog } from '@/components/reports/ScheduleDialog';
+import { ReportTable, TABLE_CSS, totalsOf, visibleColumns } from '@/components/reports/ReportTable';
 import { AdSpendDialog } from '@/components/reports/AdSpendDialog';
 
 const CSS = CHART_CSS + TABLE_CSS + `
@@ -39,6 +40,51 @@ const CSS = CHART_CSS + TABLE_CSS + `
 .rv-notes li::before{content:'· '}
 .rv-error{padding:var(--space-5);font-size:var(--text-sm);color:var(--text-danger)}
 @media (max-width:640px){.rv-controls .gc-input{min-width:0;width:100%}.rv-controls > div{flex:1 1 140px}}
+/* the PDF: letterhead, report details, figures, table and sign-off on A4 */
+.rv-doc{display:none}
+@media print{
+  @page{size:A4 portrait;margin:14mm 12mm 16mm;@bottom-left{content:"${MERCHANT.name} · confidential";font-family:var(--font-sans);font-size:8pt;color:#64748b}@bottom-right{content:"Page " counter(page) " of " counter(pages);font-family:var(--font-sans);font-size:8pt;color:#64748b}}
+  @page wide{size:A4 landscape;margin:12mm 12mm 14mm;@bottom-left{content:"${MERCHANT.name} · confidential";font-family:var(--font-sans);font-size:8pt;color:#64748b}@bottom-right{content:"Page " counter(page) " of " counter(pages);font-family:var(--font-sans);font-size:8pt;color:#64748b}}
+  body.rv-print-wide{page:wide}
+  html,body{background:#fff!important}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .rv-doc{display:block}
+  .gc-pagehead{display:none!important}
+  .gc-shell__content{gap:10px!important}
+  .rv-doc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;padding-bottom:12px;border-bottom:2px solid var(--primary);margin-bottom:12px}
+  .rv-doc-brand{display:flex;gap:12px;align-items:flex-start}
+  .rv-doc-brand b{display:block;font-size:15pt;font-weight:var(--weight-semibold);color:var(--text-heading)}
+  .rv-doc-brand span{display:block;font-size:8pt;line-height:1.5;color:var(--text-body)}
+  .rv-doc-meta{text-align:right;max-width:55%}
+  .rv-doc-kind{display:block;font-size:8pt;letter-spacing:.08em;text-transform:uppercase;color:var(--primary);font-weight:var(--weight-semibold)}
+  .rv-doc-meta h2{margin:2px 0 6px;font-size:17pt;line-height:1.2;font-weight:var(--weight-semibold);color:var(--text-heading)}
+  .rv-doc-meta dl{margin:0;display:grid;grid-template-columns:auto auto;justify-content:end;gap:1px 10px;font-size:8pt}
+  .rv-doc-meta dt{color:var(--text-muted)}
+  .rv-doc-meta dd{margin:0;color:var(--text-heading);font-weight:var(--weight-medium);text-align:right}
+  .rv-doc-desc{margin:0 0 10px;font-size:9pt;color:var(--text-body)}
+  .rv-kpis{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:6px!important}
+  .rv-kpi{padding:7px 9px!important;border:1px solid var(--border-subtle)!important;border-radius:var(--radius-md)!important;break-inside:avoid}
+  .rv-kpi b{font-size:12pt!important;white-space:normal!important}
+  .rv-kpi span,.rv-kpi small{font-size:7.5pt!important}
+  .gc-card{border:1px solid var(--border-subtle)!important;border-radius:var(--radius-md)!important;box-shadow:none!important}
+  section[aria-label="Chart"]{break-inside:avoid}
+  section[aria-label="Table"]{break-inside:auto!important;overflow:visible!important}
+  .rv-chart{padding:10px 12px!important}
+  .rc-bars{height:150px!important}
+  .gc-table-wrap{overflow:visible!important}
+  .rt-table{font-size:8pt!important;width:100%}
+  .rt-table th{background:var(--surface-subtle)!important;font-size:7.5pt!important;padding:6px 8px!important}
+  .rt-table td{padding:4px 8px!important}
+  .rt-table thead{display:table-header-group}
+  .rt-table tfoot{display:table-row-group}
+  .rt-table tr{break-inside:avoid}
+  .rt-table a{color:inherit;text-decoration:none}
+  .rt-table th button svg{display:none}
+  .rv-notes{font-size:7.5pt!important;padding:8px 10px!important}
+  .rv-doc-sign{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:34px;break-inside:avoid}
+  .rv-doc-sign div{border-top:1px solid var(--text-body);padding-top:4px;font-size:8pt;color:var(--text-muted)}
+  .rv-doc-end{margin-top:10px;font-size:7.5pt;color:var(--text-muted)}
+}
 `;
 
 function readQuery() {
@@ -52,9 +98,8 @@ function readQuery() {
 export default function ReportView() {
   const tick = useDataTick();
   const [q, setQ] = useState(null);            // the query, read after mount
-  const [fav, setFav] = useState(false);
-  const [dialog, setDialog] = useState(null);  // 'save' | 'schedule'
-  const [viewName, setViewName] = useState('');
+  const [dialog, setDialog] = useState(null);  // 'adspend'
+  const [cols, setCols] = useState(null);      // chosen columns (keys in order) for this report, null = as designed
 
   useEffect(() => {
     const read = () => setQ(readQuery());
@@ -64,14 +109,16 @@ export default function ReportView() {
     return () => { window.removeEventListener('gc:route', read); window.removeEventListener('popstate', read); };
   }, []);
   const def = q ? reportBy(q.id) : null;
+  const colsKey = def ? 'gc.reports.cols.' + def.id : '';
   useEffect(() => {
-    if (!def) return undefined;
+    if (!def) return;
     markViewed(def.id);
-    const on = () => setFav(getPrefs().favs.includes(def.id));
-    on();
-    window.addEventListener(PREFS_EVENT, on);
-    return () => window.removeEventListener(PREFS_EVENT, on);
+    try { setCols(JSON.parse(window.localStorage.getItem(colsKey)) || null); } catch { setCols(null); }
   }, [def && def.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const chooseCols = (keys) => {
+    setCols(keys);
+    try { if (keys) window.localStorage.setItem(colsKey, JSON.stringify(keys)); else window.localStorage.removeItem(colsKey); } catch { /* ignore */ }
+  };
 
   const preset = (q && q.preset) || (def && def.defaultPeriod) || 'month';
   const now = q ? clockNow() : 0;
@@ -127,28 +174,62 @@ export default function ReportView() {
     const rows = [[def.title], [def.snapshot ? 'As of ' + fmt(now, 'datetime') : rangeText(period.from, period.to)], []];
     (res.kpis || []).forEach((k) => rows.push([k.label, csvValue(k.value, k.format)]));
     if (res.table) {
+      const shown = visibleColumns(res.table, cols);
       rows.push([]);
-      rows.push(res.table.columns.map((c) => c.label));
-      res.table.rows.forEach((r) => rows.push(res.table.columns.map((c) => csvValue(r[c.key], c.format))));
-      const t = res.table.totals || totalsOf(res.table, res.table.rows);
-      if (t) rows.push(res.table.columns.map((c) => (t[c.key] == null ? '' : typeof t[c.key] === 'number' ? csvValue(t[c.key], c.format) : t[c.key])));
+      rows.push(shown.map((c) => c.label));
+      res.table.rows.forEach((r) => rows.push(shown.map((c) => csvValue(r[c.key], c.format))));
+      const t = res.table.totals || totalsOf(res.table, res.table.rows, shown);
+      if (t) rows.push(shown.map((c) => (t[c.key] == null ? '' : typeof t[c.key] === 'number' ? csvValue(t[c.key], c.format) : t[c.key])));
     }
     downloadCsv(`${def.id}-${dayKey(period.from)}.csv`, rows);
     toast('CSV downloaded');
   };
-  const copyLink = async () => { try { await navigator.clipboard.writeText(window.location.href); toast('Link copied'); } catch { toast('Copy the address from the browser bar', { tone: 'info' }); } };
+  const periodText = def.snapshot ? 'As of ' + fmt(now, 'datetime') : rangeText(period.from, period.to);
+  // the browser's "Save as PDF" names the file after the page title
+  const pdf = () => {
+    const before = document.title;
+    document.title = `${MERCHANT.name} - ${def.title} - ${periodText}`;
+    // tables with many columns go on landscape pages
+    document.body.classList.toggle('rv-print-wide', shownCols.length > 7);
+    window.print();
+    setTimeout(() => { document.title = before; document.body.classList.remove('rv-print-wide'); }, 500);
+  };
+  const filterText = (def.filters || []).filter((k) => FILTERS[k] && q.filters[k]).map((k) => {
+    const opt = (options[k] || []).find(([v]) => v === q.filters[k]);
+    return `${FILTERS[k].label}: ${opt ? opt[1] : q.filters[k]}`;
+  }).join(' · ');
+  const shownCols = res && res.table ? visibleColumns(res.table, cols) : [];
 
   const actions = (
     <span className="rp-noprint" style={{ display: 'contents' }}>
-      <button type="button" className="gc-btn gc-btn--neutral" onClick={() => { const on = toggleFav(def.id); toast(on ? 'Added to favourites' : 'Removed from favourites'); }} aria-pressed={fav}><Icon name="star" width="18" height="18" aria-hidden="true" style={fav ? { fill: 'currentColor', color: 'var(--text-warning)' } : undefined} /> {fav ? 'Favourite' : 'Add to favourites'}</button>
-      <button type="button" className="gc-btn gc-btn--neutral" onClick={() => window.print()}><Icon name="printer" width="18" height="18" aria-hidden="true" /> Print</button>
       {def.id === 'ad-spend-roas' ? <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setDialog('adspend')}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Add ad spend</button> : null}
-      <button type="button" className="gc-btn gc-btn--solid" onClick={csv} disabled={!res}><Icon name="download" width="18" height="18" aria-hidden="true" /> Download CSV</button>
+      <button type="button" className="gc-btn gc-btn--neutral" onClick={csv} disabled={!res}><Icon name="sheet" width="18" height="18" aria-hidden="true" /> Download CSV</button>
+      <button type="button" className="gc-btn gc-btn--solid" onClick={pdf} disabled={!res}><Icon name="file-down" width="18" height="18" aria-hidden="true" /> Download PDF</button>
     </span>
   );
 
   return (
     <ReportsShell screen="ReportView" active={'rep-' + def.group} page={def.title} title={def.title} description={def.description} actions={actions} css={CSS}>
+      <div className="rv-doc" aria-hidden="true">
+        <header className="rv-doc-head">
+          <div className="rv-doc-brand">
+            <svg width="44" height="44" viewBox="0 0 52 52"><rect width="52" height="52" rx="12" fill="var(--primary)" /><path d="M35 19a10 10 0 1 0 1 13v-6h-9" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <div><b>{MERCHANT.name}</b><span>{MERCHANT.address}</span><span>{MERCHANT.phone} · {MERCHANT.email}</span><span>{MERCHANT.web} · BIN {MERCHANT.bin}</span></div>
+          </div>
+          <div className="rv-doc-meta">
+            <span className="rv-doc-kind">{group.label} report</span>
+            <h2>{def.title}</h2>
+            <dl>
+              <dt>{def.snapshot ? 'Figures' : 'Period'}</dt><dd>{periodText}</dd>
+              {cmp ? <><dt>Compared with</dt><dd>{rangeText(cmp.from, cmp.to)}</dd></> : null}
+              <dt>Filters</dt><dd>{filterText || 'None (everything)'}</dd>
+              <dt>Prepared</dt><dd>{fmt(now, 'datetime')}</dd>
+              <dt>Prepared by</dt><dd>Mehedi Rahman · Owner</dd>
+            </dl>
+          </div>
+        </header>
+        <p className="rv-doc-desc">{def.description}</p>
+      </div>
       <section className="gc-card rp-noprint" aria-label="Period and filters">
         <div className="rv-controls">
           {!def.snapshot ? (
@@ -182,13 +263,8 @@ export default function ReportView() {
               </select>
             </div>
           ))}
-          <div style={{ marginLeft: 'auto', flexDirection: 'row', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-            <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => { setViewName(def.title + ' · ' + (def.snapshot ? 'now' : PRESET_LABEL[preset])); setDialog('save'); }}><Icon name="bookmark-plus" width="16" height="16" aria-hidden="true" /> Save view</button>
-            <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setDialog('schedule')}><Icon name="calendar-clock" width="16" height="16" aria-hidden="true" /> Schedule</button>
-            <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={copyLink}><Icon name="link" width="16" height="16" aria-hidden="true" /> Copy link</button>
-          </div>
           <p className="rv-range" aria-live="polite">
-            <Link href={'/reports-centre?group=' + def.group}>{group.label}</Link> · <b>{def.snapshot ? 'As of ' + fmt(now, 'datetime') : rangeText(period.from, period.to)}</b>{cmp ? ` · compared with ${rangeText(cmp.from, cmp.to)}` : ''}
+            <Link href={'/reports-centre?group=' + def.group}>{group.label}</Link> · <b>{periodText}</b>{cmp ? ` · compared with ${rangeText(cmp.from, cmp.to)}` : ''}
           </p>
         </div>
       </section>
@@ -220,20 +296,18 @@ export default function ReportView() {
 
       {res && res.table ? (
         <section className="gc-card" aria-label="Table" style={{ overflow: 'hidden' }}>
-          <ReportTable key={def.id} table={res.table} onOpen={(href) => navigate(href)} />
+          <ReportTable key={def.id} table={res.table} onOpen={(href) => navigate(href)} colKeys={cols} onColumns={chooseCols} />
           {res.notes && res.notes.length ? <ul className="rv-notes" style={{ paddingTop: 'var(--space-3)' }}>{res.notes.map((n) => <li key={n}>{n}</li>)}</ul> : null}
         </section>
       ) : null}
 
       {!result && tick ? <section className="gc-card"><EmptyState icon="loader" title="Working out the report…" body="" /></section> : null}
 
-      <Dialog open={dialog === 'save'} title="Save this view" onClose={() => setDialog(null)} width={460}
-        footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setDialog(null)}>Cancel</button><button type="button" className="gc-btn gc-btn--solid" onClick={() => { if (!viewName.trim()) return; saveView({ name: viewName.trim(), reportId: def.id, query: window.location.search }); setDialog(null); toast('View saved · find it on the Reports page'); }}>Save view</button></>}>
-        <div><label className="gc-label" htmlFor="rv-view">Name</label><input id="rv-view" className="gc-input" value={viewName} onChange={(e) => setViewName(e.target.value)} data-autofocus /></div>
-        <p className="gc-help" style={{ margin: '8px 0 0' }}>Keeps the period, comparison and filters you chose.</p>
-      </Dialog>
+      <div className="rv-doc" aria-hidden="true">
+        <div className="rv-doc-sign"><div>Prepared by</div><div>Checked by</div><div>Approved by</div></div>
+        <p className="rv-doc-end">Generated by GridCommerce on {fmt(now, 'datetime')}. Figures as recorded in the shop’s books at that time.</p>
+      </div>
       {dialog === 'adspend' ? <AdSpendDialog onClose={() => setDialog(null)} /> : null}
-      {dialog === 'schedule' ? <ScheduleDialog report={def} query={typeof window === 'undefined' ? '' : window.location.search} onClose={() => setDialog(null)} /> : null}
     </ReportsShell>
   );
 }
