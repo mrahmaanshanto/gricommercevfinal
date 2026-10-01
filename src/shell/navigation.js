@@ -88,12 +88,25 @@ export const NAV = [
   ] },
   { label: 'Staff & HR', items: [
     { id: 'hr-home', icon: 'layout-grid', label: 'HR dashboard', to: 'staff-hr/HrDashboard.dc.html' },
-    { id: 'hr-staff', icon: 'contact', label: 'All staff', to: 'staff-hr/AllStaff.dc.html' },
-    { id: 'hr-attendance', icon: 'calendar-check', label: 'Attendance', to: 'staff-hr/Attendance.dc.html' },
-    { id: 'hr-shifts', icon: 'calendar-clock', label: 'Shifts & roster', to: 'staff-hr/Shifts.dc.html' },
-    { id: 'hr-leave', icon: 'plane', label: 'Leave', to: 'staff-hr/Leave.dc.html' },
-    { id: 'hr-payroll', icon: 'banknote', label: 'Payroll', to: 'staff-hr/Payroll.dc.html' },
-    { id: 'hr-loans', icon: 'hand-coins', label: 'Loans & advances', to: 'staff-hr/LoansAdvances.dc.html' },
+    { id: 'hr-people', icon: 'contact', label: 'Staff', to: 'staff-hr/AllStaff.dc.html', children: [
+      { id: 'hr-staff', icon: 'contact', label: 'All staff', to: 'staff-hr/AllStaff.dc.html' },
+      { id: 'hr-add', icon: 'user-plus', label: 'Add staff', to: 'staff-profile/StaffCreate.dc.html' },
+      { id: 'hr-positions', icon: 'network', label: 'Positions & grades', to: 'staff-hr/Positions.dc.html' },
+      { id: 'hr-idcards', icon: 'id-card', label: 'ID cards & QR', to: 'staff-hr/IdCards.dc.html' },
+    ] },
+    { id: 'hr-time', icon: 'calendar-check', label: 'Time & attendance', to: 'staff-hr/Attendance.dc.html', children: [
+      { id: 'hr-attendance', icon: 'calendar-check', label: 'Attendance', to: 'staff-hr/Attendance.dc.html' },
+      { id: 'hr-shifts', icon: 'calendar-clock', label: 'Shifts & roster', to: 'staff-hr/Shifts.dc.html' },
+      { id: 'hr-leave', icon: 'plane', label: 'Leave', to: 'staff-hr/Leave.dc.html' },
+      { id: 'hr-devices', icon: 'fingerprint', label: 'Attendance devices', to: 'staff-hr/AttendanceDevices.dc.html' },
+    ] },
+    { id: 'hr-pay', icon: 'banknote', label: 'Pay', to: 'staff-hr/Payroll.dc.html', children: [
+      { id: 'hr-payroll', icon: 'banknote', label: 'Payroll', to: 'staff-hr/Payroll.dc.html' },
+      { id: 'hr-statements', icon: 'file-spreadsheet', label: 'Salary statements', to: 'staff-hr/SalaryStatements.dc.html' },
+      { id: 'hr-changes', icon: 'trending-up', label: 'Increments & promotions', to: 'staff-hr/PayChanges.dc.html' },
+      { id: 'hr-gratuity', icon: 'award', label: 'Gratuity & leaving', to: 'staff-hr/Gratuity.dc.html' },
+      { id: 'hr-loans', icon: 'hand-coins', label: 'Loans & advances', to: 'staff-hr/LoansAdvances.dc.html' },
+    ] },
     { id: 'hr-setup', icon: 'settings-2', label: 'HR setup', to: 'staff-hr/HrSetup.dc.html' },
   ] },
   { label: 'Promo', items: [

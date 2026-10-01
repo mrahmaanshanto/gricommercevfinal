@@ -16,6 +16,7 @@ export const LIAB_TYPES = {
   commission: { label: 'Sales commission', icon: 'percent', kind: 'commission', cat: 'Sales commission' },
   affiliate: { label: 'Affiliate payout', icon: 'share-2', kind: 'affiliate payout', cat: 'Affiliate payout' },
   promotion: { label: 'Promotion', icon: 'megaphone', kind: 'promotion', cat: 'Promotion' },
+  gratuity: { label: 'Gratuity & final pay', icon: 'award', kind: 'salary', cat: 'Salary' },
   other: { label: 'Other', icon: 'file-text', kind: 'expense', cat: 'Other' },
 };
 

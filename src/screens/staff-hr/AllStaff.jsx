@@ -1,6 +1,6 @@
 'use client';
-// All staff — the one staff list (src/lib/hr.js). Add or edit a person (place, usual shift, salary,
-// login role, and how and from which account they are paid); every HR page reads the same list.
+// All staff — the one staff list (src/lib/hr.js). New people join through Add staff (/staff-create, the 7-step
+// flow); each name opens the full profile. Quick edit here changes place, shift, role and status.
 // "Today" comes from Attendance, "On leave" from approved leave.
 
 import React, { useState } from 'react';
@@ -9,11 +9,11 @@ import { toast } from '@/runtime/ui';
 import { Dialog, EmptyState } from '@/components/ui';
 import { formatDate } from '@/lib/format';
 import { fromKey } from '@/lib/settlements';
-import { AccountSelect } from '@/screens/accounts/accShared';
 import {
-  todayKey, cellOf, statusOf, saveStaff, nextStaffCode, shiftBy, t12, HR_PLACES, PAY_METHODS, STAFF_TYPES, LOGIN_ROLES, STAFF_STATUS, basicOf,
+  todayKey, cellOf, statusOf, saveStaff, nextStaffCode, shiftBy, t12, HR_PLACES, PAY_METHODS, STAFF_TYPES, LOGIN_ROLES, STAFF_STATUS,
 } from '@/lib/hr';
-import { HrPage, useHr, Person, Avatar, ShiftChip, StaffStatus, money } from './hrShared';
+import Link from 'next/link';
+import { HrPage, useHr, Person, Avatar, ShiftChip, StaffStatus, money, profileHref } from './hrShared';
 
 const CSS = `
 .as-search{position:relative;min-width:220px;flex:1 1 220px;max-width:320px}
@@ -23,7 +23,7 @@ const CSS = `
 .as-sel{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-5);background:var(--fill-primary-soft);border-bottom:1px solid var(--border-subtle);font-size:var(--text-sm)}
 .as-sel b{font-weight:var(--weight-semibold);color:var(--primary);margin-right:auto}
 .as-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:var(--space-3);padding:var(--space-4) var(--space-5)}
-.as-card{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card);text-align:left;font:inherit;cursor:pointer;min-width:0}
+.as-card{text-decoration:none;color:inherit;display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card);text-align:left;font:inherit;cursor:pointer;min-width:0}
 .as-card:hover{border-color:var(--primary);box-shadow:var(--shadow-sm)}
 .as-card b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 .as-chips{display:flex;flex-wrap:wrap;gap:6px}
@@ -60,17 +60,15 @@ export default function AllStaff() {
     download('staff.csv', csvOf([['Code', 'Name', 'Designation', 'Department', 'Place', 'Shift', 'Gross', 'Type', 'Status', 'Phone', 'Joined', 'Login role', 'Pay by', 'Paid to'], ...rows.map((s) => [s.code, s.name, s.designation, s.department, s.branch, (shiftBy(S, s.shift) || {}).name, s.gross, s.type, STAFF_STATUS[statusOf(S, s)][0], s.phone, s.joined, s.role, PAY_METHODS[s.payMethod], s.payTo])]));
     toast(`${rows.length} staff exported as CSV.`);
   };
-  const newForm = () => setForm({ code: '', name: '', designation: '', department: S.settings.departments[0].name, branch: 'Dhanmondi branch', shift: S.shifts[0].id, gross: '', type: 'Full-time', status: 'active', phone: '', joined: today, role: 'Sales staff', payMethod: 'bkash', payAccount: S.settings.payAccounts.bkash, payTo: '', isNew: true });
   const save = (e) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.designation.trim()) { toast('Name and designation are needed', { tone: 'error' }); return; }
-    if (!(Number(form.gross) > 0)) { toast('Enter the monthly gross salary', { tone: 'error' }); return; }
+    if (!form.name.trim()) { toast('Enter the name', { tone: 'error' }); return; }
     if (!/^01\d{3}-?[\dX]{6}$/.test(form.phone.replace(/\s/g, ''))) { toast('Phone looks wrong — use 01XXX-XXXXXX', { tone: 'error' }); return; }
     const { isNew, ...row } = form;
     if (row.status === 'suspended' && !row.suspendedFrom) row.suspendedFrom = today;
     if (row.status !== 'suspended') delete row.suspendedFrom;
-    const saved = saveStaff({ ...row, name: row.name.trim(), designation: row.designation.trim(), type: row.status === 'probation' ? 'Probation' : row.type });
-    toast(isNew ? `${saved.name} added as ${saved.code}. They show in attendance, the roster and next payroll.` : `${saved.name} saved.`);
+    const saved = saveStaff({ ...row, gross: Number(row.gross), name: row.name.trim(), type: row.status === 'probation' ? 'Probation' : row.type });
+    toast(`${saved.name} saved.`);
     setForm(null);
   };
   const saveAssign = (e) => {
@@ -88,7 +86,7 @@ export default function AllStaff() {
       actions={<>
         <button type="button" className="gc-btn gc-btn--neutral" onClick={() => toast('Staff import from a spreadsheet is not in the demo yet. Add people one by one with Add staff.', { tone: 'info' })}><Icon name="upload" width="18" height="18" aria-hidden="true" /> Import</button>
         <button type="button" className="gc-btn gc-btn--neutral" onClick={() => exportRows(list)}><Icon name="download" width="18" height="18" aria-hidden="true" /> Export</button>
-        <button type="button" className="gc-btn gc-btn--solid" onClick={newForm}><Icon name="user-plus" width="18" height="18" aria-hidden="true" /> Add staff</button>
+        <Link href="/staff-create" className="gc-btn gc-btn--solid"><Icon name="user-plus" width="18" height="18" aria-hidden="true" /> Add staff</Link>
       </>}>
 
       <div className="gc-kpis">
@@ -135,7 +133,7 @@ export default function AllStaff() {
                       <td><span className="gc-badge gc-badge--slate">{s.role}</span></td>
                       <td className="hr-num hr-strong">{money(s.gross)}<span className="hr-sub">{PAY_METHODS[s.payMethod]}</span></td>
                       <td><StaffStatus S={S} st={s} /></td>
-                      <td><div className="hr-actions"><button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => edit(s)} aria-label={`Edit ${s.name}`}>Edit</button></div></td>
+                      <td><div className="hr-actions"><button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => edit(s)} aria-label={`Quick edit ${s.name}`}>Edit</button><Link href={profileHref(s.code)} className="gc-btn gc-btn--sm gc-btn--neutral" aria-label={`Open ${s.name}’s profile`}>Profile</Link></div></td>
                     </tr>
                   );
                 })}
@@ -147,23 +145,22 @@ export default function AllStaff() {
             {list.map((s) => {
               const t = todayOf(s);
               return (
-                <button key={s.code} type="button" className="as-card" onClick={() => edit(s)} aria-label={`Edit ${s.name}`}>
+                <Link key={s.code} href={profileHref(s.code)} className="as-card" aria-label={`Open ${s.name}’s profile`}>
                   <div className="hr-who"><Avatar st={s} large /><span><b>{s.name}</b><span className="hr-sub">{s.designation}</span></span></div>
                   <div className="as-chips"><StaffStatus S={S} st={s} /><ShiftChip S={S} id={s.shift} /></div>
                   <span className="hr-sub">{s.branch} · {s.phone}</span>
                   <span className={'hr-sub ' + t.cls} style={{ fontWeight: 'var(--weight-medium)' }}>{t.l}</span>
-                </button>
+                </Link>
               );
             })}
           </div>
         )}
       </section>
 
-      <Dialog open={!!form} title={form ? (form.isNew ? 'Add staff' : `Edit · ${form.name}`) : 'Staff'} onClose={() => setForm(null)} width={720}
+      <Dialog open={!!form} title={form ? (form.isNew ? 'Add staff' : `Quick edit · ${form.name}`) : 'Staff'} onClose={() => setForm(null)} width={720}
         footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setForm(null)}>Cancel</button><button type="submit" form="as-form" className="gc-btn gc-btn--solid">{form && form.isNew ? 'Add staff' : 'Save'}</button></>}>
         {form ? (() => {
-          const dept = S.settings.departments.find((d) => d.name === form.department);
-          return (
+                  return (
             <form id="as-form" className="hr-form" onSubmit={save}>
               <p className="as-sec">Person · {form.code || nextStaffCode(S)}</p>
               <div className="hr-three">
@@ -173,8 +170,8 @@ export default function AllStaff() {
               </div>
               <p className="as-sec">Job</p>
               <div className="hr-three">
-                <div><label className="gc-label" htmlFor="as-dept">Department</label><select id="as-dept" className="gc-input gc-select" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })}>{S.settings.departments.map((d) => <option key={d.name}>{d.name}</option>)}</select></div>
-                <div><label className="gc-label" htmlFor="as-des">Designation *</label><input id="as-des" className="gc-input" list="as-titles" value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} /><datalist id="as-titles">{(dept ? dept.titles : []).map((t) => <option key={t} value={t} />)}</datalist></div>
+                <div><span className="gc-label">Department</span><span className="hr-strong" style={{ display: 'block', paddingTop: 10 }}>{form.department}</span></div>
+                <div><span className="gc-label">Position</span><span className="hr-strong" style={{ display: 'block', paddingTop: 10 }}>{form.designation}</span><span className="gc-help">Change it with a promotion on the profile.</span></div>
                 <div><label className="gc-label" htmlFor="as-role">Login role</label><select id="as-role" className="gc-input gc-select" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>{LOGIN_ROLES.map((r) => <option key={r}>{r}</option>)}</select></div>
               </div>
               <div className="hr-three">
@@ -183,18 +180,11 @@ export default function AllStaff() {
                 <div><label className="gc-label" htmlFor="as-type">Type</label><select id="as-type" className="gc-input gc-select" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>{STAFF_TYPES.map((t) => <option key={t}>{t}</option>)}</select></div>
               </div>
               <div className="hr-two">
-                <div><label className="gc-label" htmlFor="as-status">Status</label><select id="as-status" className="gc-input gc-select" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>{['active', 'probation', 'suspended', 'left'].map((k) => <option key={k} value={k}>{STAFF_STATUS[k][0]}</option>)}</select>{form.status === 'suspended' ? <span className="gc-help">No shifts and no salary from {form.suspendedFrom ? formatDate(fromKey(form.suspendedFrom)) : 'today'}.</span> : form.status === 'left' ? <span className="gc-help">Hidden from lists and payroll. Pay what is owed first.</span> : null}</div>
+                <div><label className="gc-label" htmlFor="as-status">Status</label><select id="as-status" className="gc-input gc-select" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>{['active', 'probation', 'suspended'].map((k) => <option key={k} value={k}>{STAFF_STATUS[k][0]}</option>)}</select>{form.status === 'suspended' ? <span className="gc-help">No shifts and no salary from {form.suspendedFrom ? formatDate(fromKey(form.suspendedFrom)) : 'today'}.</span> : <span className="gc-help">Someone leaving? Use Leaving on their profile — it works out the final pay.</span>}</div>
                 {form.status === 'probation' ? <div><label className="gc-label" htmlFor="as-prob">Probation ends</label><input id="as-prob" type="date" className="gc-input" value={form.probationEnd || ''} onChange={(e) => setForm({ ...form, probationEnd: e.target.value })} /></div>
                   : form.type === 'Contract' ? <div><label className="gc-label" htmlFor="as-contract">Contract ends</label><input id="as-contract" type="date" className="gc-input" value={form.contractEnd || ''} onChange={(e) => setForm({ ...form, contractEnd: e.target.value })} /></div> : <div />}
               </div>
-              <p className="as-sec">Pay</p>
-              <div className="hr-three">
-                <div><label className="gc-label" htmlFor="as-gross">Gross salary / month (৳) *</label><input id="as-gross" className="gc-input hr-fig" inputMode="numeric" value={form.gross} onChange={(e) => setForm({ ...form, gross: e.target.value.replace(/[^\d]/g, '') })} /><span className="gc-help">Basic {money(basicOf(S, Number(form.gross) || 0))}</span></div>
-                <div><label className="gc-label" htmlFor="as-method">Paid by</label><select id="as-method" className="gc-input gc-select" value={form.payMethod} onChange={(e) => setForm({ ...form, payMethod: e.target.value, payAccount: S.settings.payAccounts[e.target.value] || form.payAccount })}>{Object.entries(PAY_METHODS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
-                <div><label className="gc-label" htmlFor="as-to">{form.payMethod === 'bank' ? 'Their bank account' : form.payMethod === 'bkash' ? 'Their bKash number' : 'Paid to'}</label><input id="as-to" className="gc-input" disabled={form.payMethod === 'cash'} placeholder={form.payMethod === 'bank' ? 'Bank · A/C number' : form.payMethod === 'bkash' ? '01XXX-XXXXXX' : 'In hand, signs the sheet'} value={form.payMethod === 'cash' ? '' : form.payTo} onChange={(e) => setForm({ ...form, payTo: e.target.value })} /></div>
-              </div>
-              <AccountSelect id="as-acc" label="Pay salary from (shop account)" value={form.payAccount} onChange={(v) => setForm({ ...form, payAccount: v })} />
-              {form.payMethod === 'bank' && !form.payTo.trim() ? <div className="hr-note hr-note--warn"><Icon name="triangle-alert" width="16" height="16" aria-hidden="true" /><span>No bank account number yet — payroll will flag it before pay day.</span></div> : null}
+              <div className="hr-note hr-note--info"><Icon name="info" width="16" height="16" aria-hidden="true" /><span>Salary, increments and the bank / bKash account it goes to are on the profile: <Link href={profileHref(form.code, 'salary')} className="hr-link">Salary & payroll</Link>.</span></div>
             </form>
           );
         })() : null}

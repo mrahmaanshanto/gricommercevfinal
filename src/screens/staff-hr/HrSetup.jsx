@@ -40,7 +40,7 @@ const CSS = `
 @media (max-width:1023px){.su-wrap{grid-template-columns:minmax(0,1fr)}.su-nav{flex-direction:row;overflow-x:auto}.su-nav button{flex:none}}
 @media (max-width:640px){.su-row{grid-template-columns:minmax(0,1fr)}.su-split{grid-template-columns:repeat(2,minmax(0,1fr))}}
 `;
-const SECS = [['dept', 'Departments'], ['pay', 'Salary components'], ['leave', 'Leave types'], ['att', 'Attendance rules'], ['hol', 'Holidays'], ['roles', 'Roles and permissions'], ['run', 'Payroll settings']];
+const SECS = [['dept', 'Departments'], ['ids', 'Employee numbers & ID cards'], ['docs', 'Documents'], ['pay', 'Salary components'], ['leave', 'Leave types'], ['att', 'Attendance rules'], ['hol', 'Holidays'], ['roles', 'Roles and permissions'], ['run', 'Payroll settings']];
 const ROLES = [['Owner', 'Everything', '—'], ['Manager', 'Orders, stock, staff attendance, approve leave', 'Salary of others, delete data'], ['Cashier', 'POS, returns up to ৳2,000, own attendance', 'Discounts over 10%, reports'], ['Sales staff', 'POS, customers', 'Refunds, cash drawer'], ['Stock staff', 'Receive goods, stock count, transfers', 'Prices, orders'], ['Rider', 'Rider app, own deliveries', 'Admin panel'], ['Accounts', 'Payroll, accounting, reports', 'Change products'], ['Support', 'Inbox, tickets, orders (view)', 'Refunds, stock'], ['Marketing', 'Campaigns, social posts, reviews', 'Orders, money']];
 
 function Switch({ on, onChange, label }) {
@@ -62,7 +62,9 @@ export default function HrSetup() {
   const spTotal = sp.reduce((a, x) => a + (Number(x[2]) || 0), 0);
 
   const put = (patch, msg) => { saveSettings(patch); toast(msg || 'Saved. Used from the next payroll and roster.'); };
-  const count = (k) => ({ dept: set.departments.length, pay: set.split.length + 5, leave: set.leaveTypes.length, hol: holidays.length, roles: ROLES.length }[k]);
+  const count = (k) => ({ dept: set.departments.length, docs: (set.docTypes || []).length, pay: set.split.length + 5, leave: set.leaveTypes.length, hol: holidays.length, roles: ROLES.length }[k]);
+  const emp = set.empNo || { prefix: 'EMP-', digits: 4 };
+  const card = set.idCard || {};
   const saveSplit = (e) => {
     e.preventDefault();
     if (Math.abs(spTotal - 100) > 0.001) { toast(`The parts add up to ${spTotal}% — they must make 100%`, { tone: 'error' }); return; }
@@ -118,7 +120,7 @@ export default function HrSetup() {
         </nav>
         <section className="gc-card hr-card">
           {sec === 'dept' ? <>
-            {head('Departments and designations', 'Used on the staff profile, reports and payroll groups.', <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => setDept({ name: '', titles: '', head: 'Owner' })}><Icon name="plus" width="14" height="14" aria-hidden="true" /> Department</button>)}
+            {head('Departments and designations', 'Used on the staff profile, reports and payroll groups. Grades and salary bands are in Positions & grades.', <div className="hr-actions"><Link href="/positions" className="gc-btn gc-btn--sm gc-btn--neutral"><Icon name="network" width="14" height="14" aria-hidden="true" /> Positions & grades</Link><button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => setDept({ name: '', titles: '', head: 'Owner' })}><Icon name="plus" width="14" height="14" aria-hidden="true" /> Department</button></div>)}
             <div className="su-body">
               <div className="su-dept">
                 {set.departments.map((d) => (
@@ -129,6 +131,25 @@ export default function HrSetup() {
                   </button>
                 ))}
               </div>
+            </div>
+          </> : null}
+
+          {sec === 'ids' ? <>
+            {head('Employee numbers & ID cards', 'The number every new person gets, and what the ID card shows.', <Link href="/id-cards" className="gc-btn gc-btn--sm gc-btn--neutral"><Icon name="id-card" width="14" height="14" aria-hidden="true" /> Print ID cards</Link>)}
+            <div className="su-body su-rows">
+              {row('Starts with', 'Letters before the number, e.g. EMP- or GS-.', <input className="gc-input hr-fig" aria-label="Employee number starts with" value={emp.prefix} maxLength={6} onChange={(e) => saveSettings({ empNo: { ...emp, prefix: e.target.value.toUpperCase().replace(/[^A-Z-]/g, '') } })} />)}
+              {row('Digits', `The next person gets ${emp.prefix}${String(S.staff.reduce((m, x) => Math.max(m, Number(String(x.code).replace(/\D/g, '')) || 0), 0) + 1).padStart(emp.digits, '0')}. People already on the list keep their numbers.`, select('su-digits', emp.digits, [[3, '3 · 001'], [4, '4 · 0001'], [5, '5 · 00001']], (v) => put({ empNo: { ...emp, digits: Number(v) } }, 'Employee numbers saved.')))}
+              {row('QR on the card holds', 'The employee number works with the POS and the attendance kiosk; a link lets anyone check the card on a phone.', select('su-qr', card.qr || 'code', [['code', 'Employee number'], ['link', 'Link to check the card']], (v) => put({ idCard: { ...card, qr: v } }, 'ID card QR saved.')))}
+              {row('Card valid for', 'Printed on the back.', select('su-valid', card.validYears || 2, [[1, '1 year'], [2, '2 years'], [3, '3 years']], (v) => put({ idCard: { ...card, validYears: Number(v) } }, 'Saved.')))}
+              {row('Machines and gratuity', 'Attendance machines and the gratuity rule have their own pages.', <div className="hr-actions" style={{ justifyContent: 'flex-start' }}><Link href="/attendance-devices" className="gc-btn gc-btn--sm gc-btn--neutral">Attendance devices</Link><Link href="/gratuity" className="gc-btn gc-btn--sm gc-btn--neutral">Gratuity</Link></div>)}
+            </div>
+          </> : null}
+
+          {sec === 'docs' ? <>
+            {head('Documents', 'Papers kept on each profile. Required ones show as missing until uploaded.')}
+            <div className="su-body su-rows">
+              {(set.docTypes || []).map(([k, l, need]) => <React.Fragment key={k}>{row(l, need ? 'Required for everyone' : 'Optional', <Switch on={!!need} label={`${l} required`} onChange={(v) => put({ docTypes: set.docTypes.map((d) => (d[0] === k ? [d[0], d[1], v] : d)) }, `${l} is ${v ? 'required' : 'optional'} now.`)} />)}</React.Fragment>)}
+              <p className="hr-sub" style={{ margin: 0 }}>{S.staff.filter((x) => x.status !== 'left' && (set.docTypes || []).some(([k, , need]) => need && !(x.docs || []).some((d) => d.kind === k))).length} people are missing a required paper.</p>
             </div>
           </> : null}
 

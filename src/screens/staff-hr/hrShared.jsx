@@ -98,6 +98,7 @@ export const HR_CSS = `
 .hr-empty{padding:var(--space-6) var(--space-5);text-align:center;font-size:var(--text-sm);color:var(--text-muted)}
 .hr-link{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-link);text-decoration:none}
 .hr-link:hover{text-decoration:underline}
+.rp-tile{display:grid;place-items:center;width:36px;height:36px;flex:none;border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary)}
 @media (max-width:640px){.hr-two,.hr-three{grid-template-columns:1fr}.hr-sum{grid-template-columns:1fr 1fr}}
 `;
 
@@ -129,12 +130,14 @@ export function Avatar({ st, large }) {
   const [bg, fg] = toneOf(st.code);
   return <span className={'hr-av' + (large ? ' hr-av--lg' : '')} style={{ background: bg, color: fg }} aria-hidden="true">{initials(st.name)}</span>;
 }
+/** The address of a staff profile (optionally on one tab). */
+export const profileHref = (code, tab) => `/staff-profile?code=${encodeURIComponent(code)}${tab ? '&tab=' + tab : ''}`;
 /** Avatar + name (to the staff profile) + a second line. */
 export function Person({ st, sub }) {
   return (
     <div className="hr-who">
       <Avatar st={st} />
-      <span><Link href="/staff-profile">{st.name}</Link><span className="hr-sub">{sub}</span></span>
+      <span><Link href={profileHref(st.code)}>{st.name}</Link><span className="hr-sub">{sub}</span></span>
     </div>
   );
 }

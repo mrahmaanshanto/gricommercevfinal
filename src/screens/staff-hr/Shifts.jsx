@@ -15,7 +15,7 @@ import {
   todayKey, weekStartOf, weekKeys, addDays, dayLabel, dowOf, WEEKDAYS, dayPlan, shiftBy, shiftHours, shiftTime, t12,
   coverageOf, weekWarnings, isClosedDay, setRoster, copyWeek, publishWeek, saveShift, removeShift, SHIFT_COLORS, HR_PLACES, leaveType, staffBy,
 } from '@/lib/hr';
-import { HrPage, useHr, Avatar } from './hrShared';
+import { HrPage, useHr, Avatar, profileHref } from './hrShared';
 
 const CSS = `
 .sf-shifts{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:var(--space-3)}
@@ -177,7 +177,7 @@ export default function Shifts() {
                   const h = hoursOf(st);
                   return (
                     <tr key={st.code}>
-                      <td><div className="hr-who"><Avatar st={st} /><span><Link href="/staff-profile">{st.name}</Link><span className="hr-sub">{st.designation} · {st.branch.replace(' branch', '')}</span></span></div></td>
+                      <td><div className="hr-who"><Avatar st={st} /><span><Link href={profileHref(st.code)}>{st.name}</Link><span className="hr-sub">{st.designation} · {st.branch.replace(' branch', '')}</span></span></div></td>
                       {keys.map((k) => {
                         const c = cellView(st, k);
                         return (

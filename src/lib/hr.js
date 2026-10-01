@@ -8,10 +8,15 @@
 //   leave        requests (waiting / approved / rejected) and the days taken before this browser
 //   loans        loans and salary advances: money given (posted to the ledger), instalments, cash repaid
 //   runs         payroll runs: draft → checked → sent → approved (a salary liability) → paid → payslips
+//   changes      increments, promotions, confirmations and transfers (planned ones apply in their month)
+//   devices      fingerprint / face machines at each place; each person's enrolment is on their staff row
+// Each staff row also carries the profile (Bangla name, NID, address, emergency contact), how they are paid
+// (bank account or bKash), login and limits, check-in method, documents and any final settlement.
 // Money moves through src/lib/ledger.js (loans given and repaid) and src/lib/liabilities.js (salaries).
 // Front end only: kept in this browser; the demo history is September 2026, today is Thu 1 Oct 2026.
 
 import { LOCATIONS } from './locations';
+import { formatBDT } from './format';
 import { holidaysOf, clockNow, dayKey, fromKey, DEFAULT_CONFIG } from './settlements';
 import { postEntry } from './ledger';
 import { addLiability, payLiability, getLiabilities, updateLiability, LIAB_SEED, leftOf, paidOf } from './liabilities';
@@ -20,6 +25,7 @@ export const HR_EVENT = 'gc:hr';
 const K = {
   staff: 'gc.hr.staff', settings: 'gc.hr.settings', shifts: 'gc.hr.shifts', roster: 'gc.hr.roster',
   att: 'gc.hr.attendance', fixes: 'gc.hr.fixes', leave: 'gc.hr.leave', loans: 'gc.hr.loans', runs: 'gc.hr.runs',
+  changes: 'gc.hr.changes', devices: 'gc.hr.devices',
 };
 const ssr = () => typeof window === 'undefined';
 const read = (k) => { if (ssr()) return null; try { return JSON.parse(window.localStorage.getItem(k)); } catch { return null; } };
@@ -89,9 +95,59 @@ const STAFF_ROWS = [
   ['EMP-0112', 'Kamrul Islam', 'Senior sales associate', 'Store operations', 'Dhanmondi branch', 'evening', 19000, 'Full-time', 'suspended', '01670-XX2254', '2021-04-11', 'Sales staff', 'cash', '', { suspendedFrom: '2026-09-09', note: 'Suspended while a cash shortage at Dhanmondi is checked. Salary on hold.' }],
 ];
 const PAY_ACC = { bank: 'brac', bkash: 'bkash', cash: 'cash-shop' };
-const STAFF_SEED = STAFF_ROWS.map(([code, name, designation, department, branch, shift, gross, type, status, phone, joined, role, payMethod, payTo, extra = {}]) => ({
-  code, name, designation, department, branch, shift, gross, type, status, phone, joined, role, payMethod, payAccount: PAY_ACC[payMethod], payTo, ...extra,
-}));
+// profile: [Bangla name, email, year born, gender, blood, area, emergency [name, relation, phone], reports to,
+//           bank [bank, branch, account no, routing] | null, check-in, enrolment [fingers, face, card]]
+const PROFILE = {
+  'EMP-0118': ['রাকিব হাসান', 'rakib.hasan@gridshop.com.bd', 1990, 'Male', 'B+', 'Road 4, Dhanmondi, Dhaka 1205', ['Shirin Hasan', 'Wife', '01711-XX2210'], '', ['BRAC Bank', 'Dhanmondi', '1501204414410', '060261726'], 'Fingerprint', [2, true, '0004410']],
+  'EMP-0142': ['সাদিয়া আক্তার', 'sadia.akter@gmail.com', 2001, 'Female', 'O+', 'House 42, Road 8, Dhanmondi, Dhaka 1209', ['Rahim Akter', 'Father', '01911-XX6045'], 'EMP-0118', null, 'POS log-in', [2, true, '0008821']],
+  'EMP-0151': ['রাফি আহমেদ', 'rafi.ahmed@gmail.com', 2000, 'Male', 'A+', 'Kalabagan, Dhaka 1205', ['Salma Begum', 'Mother', '01819-XX7741'], 'EMP-0118', null, 'Staff app', [1, false, '']],
+  'EMP-0121': ['নাবিলা রহমান', 'nabila.rahman@gridshop.com.bd', 1992, 'Female', 'AB+', 'Section 10, Mirpur, Dhaka 1216', ['Farhan Rahman', 'Husband', '01715-XX9031'], '', ['BRAC Bank', 'Mirpur', '1501206636630', '060262938'], 'Fingerprint', [2, false, '0006630']],
+  'EMP-0149': ['মৌমিতা দাস', 'moumita.das@gmail.com', 1998, 'Female', 'B-', 'Pallabi, Mirpur, Dhaka 1216', ['Shyamal Das', 'Father', '01911-XX5512'], 'EMP-0121', ['City Bank', 'Mirpur', '2302960190194', '225262935'], 'POS log-in', [2, false, '0000194']],
+  'EMP-0160': ['আরিফ রহমান', 'arif.rahman@gmail.com', 2003, 'Male', 'O+', 'Kazipara, Mirpur, Dhaka 1216', ['Abdur Rahman', 'Father', '01633-XX1190'], 'EMP-0121', null, 'POS log-in', [0, false, '']],
+  'EMP-0133': ['তারেক আজিজ', 'tareq.aziz@gmail.com', 1994, 'Male', 'B+', 'Tejgaon I/A, Dhaka 1208', ['Rokeya Aziz', 'Mother', '01556-XX3302'], '', null, 'Face', [1, true, '0007713']],
+  'EMP-0155': ['সাব্বির হোসেন', '', 2002, 'Male', 'A-', 'Nakhalpara, Tejgaon, Dhaka 1215', ['Delwar Hossain', 'Brother', '01798-XX5521'], 'EMP-0133', null, 'Face', [0, true, '']],
+  'EMP-0145': ['জাহিদ হাসান', 'jahid.rider@gmail.com', 1997, 'Male', 'O-', 'Rampura, Dhaka 1219', ['Nasima Begum', 'Mother', '01877-XX4402'], 'EMP-0133', null, 'Rider app', [1, true, '0009046']],
+  'EMP-0163': ['সোহেল রানা', '', 1985, 'Male', 'B+', 'Begunbari, Tejgaon, Dhaka 1208', ['Rehana Rana', 'Wife', '01309-XX6670'], 'EMP-0133', null, 'Face', [1, true, '']],
+  'EMP-0137': ['লামিয়া সুলতানা', 'lamia.sultana@gridshop.com.bd', 1996, 'Female', 'A+', 'Shyamoli, Dhaka 1207', ['Kamal Sultan', 'Father', '01521-XX0081'], '', ['BRAC Bank', 'Gulshan', '1501208854467', '060261355'], 'Staff app', [2, false, '0004467']],
+  'EMP-0158': ['রুমানা ইসলাম', 'rumana.islam@gridshop.com.bd', 1989, 'Female', 'O+', 'Banani DOHS, Dhaka 1206', ['Mahbub Islam', 'Husband', '01711-XX3390'], '', ['BRAC Bank', 'Banani', '1501203300625', '060260435'], 'Staff app', [2, false, '0000625']],
+  'EMP-0161': ['জান্নাতুল ফেরদৌস', 'jannatul.f@gmail.com', 2003, 'Female', 'AB-', 'Mohammadpur, Dhaka 1207', ['Firoza Begum', 'Mother', '01404-XX1902'], 'EMP-0158', ['Dutch-Bangla Bank', 'Mohammadpur', '', '090262691'], 'Staff app', [0, false, '']],
+  'EMP-0112': ['কামরুল ইসলাম', '', 1988, 'Male', 'B+', 'Jigatola, Dhanmondi, Dhaka 1209', ['Shahana Islam', 'Wife', '01670-XX8812'], 'EMP-0118', null, 'Fingerprint', [2, false, '0002254']],
+};
+const MANAGERS = { 'Store operations': 'EMP-0118', Warehouse: 'EMP-0133', Delivery: 'EMP-0133', 'Customer care': '', Accounts: '', Marketing: 'EMP-0158' };
+const DOCS = (code, joined, extra = []) => [
+  { id: code + '-D1', kind: 'nid', name: 'NID, both sides.pdf', at: joined, size: '412 KB' },
+  { id: code + '-D2', kind: 'photo', name: 'Photo.jpg', at: joined, size: '96 KB' },
+  { id: code + '-D3', kind: 'letter', name: 'Appointment letter.pdf', at: joined, size: '188 KB' },
+  ...extra,
+];
+function profileOf(code, payMethod, phone, joined, branch, role, born) {
+  const p = PROFILE[code];
+  if (!p) return {};
+  const [nameBn, email, year, gender, blood, address, [ename, erel, ephone], reportsTo, bank, checkIn, [fingers, face, card]] = p;
+  const n = Number(code.slice(4));
+  return {
+    nameBn, email, dob: born ? `${year}-${born}` : `${year}-${pad((n % 12) + 1)}-${pad((n % 27) + 1)}`, gender, blood,
+    nid: `XXX XXX ${String(n * 37).padStart(4, '0').slice(-4)}`, address,
+    emergency: { name: ename, relation: erel, phone: ephone }, reportsTo,
+    bank: bank ? { bank: bank[0], branch: bank[1], accName: '', accNo: bank[2], routing: bank[3] } : null,
+    bkash: payMethod === 'bkash' ? { number: phone, type: 'Personal', verified: true } : null,
+    checkIn,
+    bio: { uid: n, fingers, face, card, at: new Date(fromKey(joined) + 864e5).getTime() },
+    access: {
+      loginWith: role === 'No login' ? 'none' : 'phone', twoFactor: ['Manager', 'Accounts', 'Cashier'].includes(role), invite: role === 'No login' ? 'none' : 'accepted',
+      scope: role === 'Manager' || role === 'Cashier' || role === 'Sales staff' ? 'place' : 'all', maxDisc: role === 'Manager' ? 15 : role === 'Cashier' ? 5 : role === 'Sales staff' ? 3 : 0,
+      maxRefund: role === 'Manager' ? 10000 : role === 'Cashier' ? 2000 : 0, phoneMask: role !== 'Manager' && role !== 'Support', costHidden: !['Manager', 'Accounts', 'Owner'].includes(role),
+    },
+    docs: DOCS(code, joined, code === 'EMP-0145' ? [{ id: code + '-D4', kind: 'licence', name: 'Driving licence.jpg', at: joined, size: '220 KB' }] : code === 'EMP-0163' ? [{ id: code + '-D4', kind: 'police', name: 'Police verification.pdf', at: '2026-02-20', size: '301 KB' }] : []),
+    branchNote: branch,
+  };
+}
+const STAFF_SEED = STAFF_ROWS.map(([code, name, designation, department, branch, shift, gross, type, status, phone, joined, role, payMethod, payTo, extra = {}]) => {
+  const { branchNote, ...prof } = profileOf(code, payMethod, phone, joined, branch, role, extra.born);
+  if (!prof.reportsTo && MANAGERS[department] && MANAGERS[department] !== code) prof.reportsTo = MANAGERS[department];
+  if (prof.bank && !prof.bank.accName) prof.bank.accName = name;
+  return { code, name, designation, department, branch, shift, gross, type, status, phone, joined, role, payMethod, payAccount: PAY_ACC[payMethod], payTo, ...prof, ...extra };
+});
 
 export const SETTINGS_SEED = {
   weeklyOff: [5], hoursPerDay: 8, monthDays: 'fixed', graceMin: 10, lateRule: 'days', latesPerCut: 3, halfDayHours: 4, otRate: 2,
@@ -117,6 +173,26 @@ export const SETTINGS_SEED = {
     { name: 'Accounts', titles: ['Accountant'], head: 'Rumana Islam' },
     { name: 'Marketing', titles: ['Social media executive'], head: 'Owner' },
   ],
+  // positions: the jobs in the shop, with a grade and a salary band; `openings` = people still to hire
+  positions: [
+    ['PS-01', 'Branch manager', 'Store operations', 'G5', 32000, 45000, 'Owner', 0],
+    ['PS-02', 'Senior sales associate', 'Store operations', 'G3', 17000, 22000, 'Branch manager', 0],
+    ['PS-03', 'Cashier', 'Store operations', 'G2', 18000, 25000, 'Branch manager', 0],
+    ['PS-04', 'Sales associate', 'Store operations', 'G1', 14000, 18000, 'Branch manager', 1],
+    ['PS-05', 'Stock keeper', 'Warehouse', 'G2', 16000, 22000, 'Owner', 0],
+    ['PS-06', 'Packer', 'Warehouse', 'G1', 12000, 15000, 'Stock keeper', 1],
+    ['PS-07', 'Security guard', 'Warehouse', 'G1', 11000, 14000, 'Stock keeper', 0],
+    ['PS-08', 'Delivery rider', 'Delivery', 'G1', 13000, 17000, 'Stock keeper', 0],
+    ['PS-09', 'Customer care', 'Customer care', 'G2', 17000, 24000, 'Owner', 0],
+    ['PS-10', 'Accountant', 'Accounts', 'G4', 32000, 45000, 'Owner', 0],
+    ['PS-11', 'Social media executive', 'Marketing', 'G2', 10000, 22000, 'Accountant', 0],
+  ].map(([id, title, department, grade, min, max, reportsTo, openings]) => ({ id, title, department, grade, min, max, reportsTo, openings })),
+  grades: [['G1', 'Entry'], ['G2', 'Skilled'], ['G3', 'Senior'], ['G4', 'Officer'], ['G5', 'Manager'], ['G6', 'Head']],
+  empNo: { prefix: 'EMP-', digits: 4 },
+  idCard: { qr: 'code', validYears: 2, showBlood: true, showPhone: true },
+  // gratuity (Bangladesh Labour Act 2006, s.2(10)): 30 days' basic for each full year, 45 days after 10 years
+  gratuity: { on: true, after: 5, days: 30, daysAfter10: 45, base: 'basic', encashEarned: true },
+  docTypes: [['nid', 'NID copy', true], ['photo', 'Photo', true], ['letter', 'Appointment letter', true], ['cv', 'CV', false], ['police', 'Police verification', false], ['licence', 'Driving licence', false], ['other', 'Other', false]],
 };
 
 const SHIFT_SEED = [
@@ -180,7 +256,7 @@ const RUN_HISTORY = [
 const LATE = { 'EMP-0160': { 7: 18, 15: 22, 23: 16 }, 'EMP-0151': { 8: 14, 30: 24 }, 'EMP-0142': { 21: 12 }, 'EMP-0155': { 14: 11 } };
 const ABSENT = { 'EMP-0151': [17], 'EMP-0155': [2, 3] };
 const OT = { 'EMP-0142': { 26: 114 }, 'EMP-0133': { 12: 180, 17: 180, 24: 180 }, 'EMP-0155': { 17: 200, 24: 200, 29: 200 }, 'EMP-0163': Object.fromEntries([1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23].map((d) => [d, 60])) };
-const SRC = { 'EMP-0142': 'POS log-in', 'EMP-0149': 'POS log-in', 'EMP-0151': 'Staff app', 'EMP-0145': 'Rider app', 'EMP-0137': 'Staff app', 'EMP-0158': 'Staff app', 'EMP-0161': 'Staff app' };
+const SRC = { 'EMP-0160': 'POS log-in', 'EMP-0142': 'POS log-in', 'EMP-0149': 'POS log-in', 'EMP-0151': 'Staff app', 'EMP-0145': 'Rider app', 'EMP-0137': 'Staff app', 'EMP-0158': 'Staff app', 'EMP-0161': 'Staff app' };
 // today, Thu 1 Oct, as the punches came in
 const TODAY_PUNCH = { 'EMP-0118': '08:52', 'EMP-0142': '08:57', 'EMP-0151': '13:24', 'EMP-0121': '08:49', 'EMP-0160': '09:18', 'EMP-0133': '07:55', 'EMP-0155': '08:03', 'EMP-0145': '08:04', 'EMP-0137': '09:26', 'EMP-0158': '09:31' };
 const FIX_SEED = [
@@ -203,7 +279,7 @@ function seedAttendance(S) {
       const ot = (OT[st.code] || {})[d] || 0;
       const inT = late ? toMin(sh.start) + late : toMin(sh.start) - jitter;
       const outT = toMin(sh.end) + ot + (jitter % 7);
-      const rec = { s: 'P', in: fromMin(inT), out: fromMin(outT), late, ot, src: SRC[st.code] || 'Fingerprint' };
+      const rec = { s: 'P', in: fromMin(inT), out: fromMin(outT), late, ot, src: SRC[st.code] || punchSrc(st) };
       if (st.code === 'EMP-0160' && d === 29) rec.out = '';   // forgot to punch out (a fix request is waiting)
       put(key, st.code, rec);
     });
@@ -211,13 +287,15 @@ function seedAttendance(S) {
     if (tin) {
       const sh = shiftBy(S, st.shift);
       const late = lateFor(sh, tin);
-      put('2026-10-01', st.code, { s: 'P', in: tin, out: '', late, ot: 0, src: SRC[st.code] || 'Fingerprint' });
+      put('2026-10-01', st.code, { s: 'P', in: tin, out: '', late, ot: 0, src: SRC[st.code] || punchSrc(st) });
     }
   });
   // the night guard's Wednesday shift ended this morning
-  put('2026-09-30', 'EMP-0163', { s: 'P', in: '21:01', out: '07:02', late: 0, ot: 0, src: 'Fingerprint' });
+  put('2026-09-30', 'EMP-0163', { s: 'P', in: '21:01', out: '07:02', late: 0, ot: 0, src: 'Face' });
   return att;
 }
+/** How a punch came in at a person's place: the machine there (fingerprint or face). */
+const punchSrc = (st) => (st.checkIn === 'Face' || st.checkIn === 'Fingerprint' ? st.checkIn : st.branch === 'Central Warehouse' ? 'Face' : 'Fingerprint');
 /** Minutes late for an in-time on a shift (0 inside the grace time). */
 export function lateFor(shift, inTime) {
   if (!shift || !inTime) return 0;
@@ -234,11 +312,11 @@ let SEED = null;
 /** The demo data as it is on a first visit (also what the server renders). */
 export function seedSnapshot() {
   if (SEED) return SEED;
-  const S = { ...base(DEMO_NOW, holidaysOf(DEFAULT_CONFIG), LIAB_SEED), staff: STAFF_SEED, settings: SETTINGS_SEED, shifts: SHIFT_SEED, roster: ROSTER_SEED, leave: LEAVE_SEED, loans: LOAN_SEED, fixes: FIX_SEED, att: {}, runs: [] };
+  const S = { ...base(DEMO_NOW, holidaysOf(DEFAULT_CONFIG), LIAB_SEED), staff: STAFF_SEED, settings: SETTINGS_SEED, shifts: SHIFT_SEED, roster: ROSTER_SEED, leave: LEAVE_SEED, loans: LOAN_SEED, fixes: FIX_SEED, att: {}, runs: [], changes: CHANGE_SEED, devices: DEVICE_SEED };
   S.att = seedAttendance(S);
   const sep = { id: 'PR-2026-09', month: '2026-09', kind: 'salary', title: 'September 2026', status: 'draft', step: 4, incentive: SEP_INCENTIVE, extras: {}, at: at(9, 28, 10), checkedAt: at(9, 29, 18), checkedBy: 'Rumana Islam', sentAt: at(9, 30, 12), sentBy: 'Rumana Islam' };
   const lines = computeLines(S, sep);
-  S.runs = [...RUN_HISTORY, { ...sep, status: 'approved', lines, total: sumNet(lines), count: lines.length, approvedAt: at(9, 30, 18), approvedBy: 'Owner', liabilityId: 'LB-0001' }];
+  S.runs = [...RUN_HISTORY.map((r) => historyRun(S, r)), { ...sep, status: 'approved', lines, total: sumNet(lines), count: lines.length, approvedAt: at(9, 30, 18), approvedBy: 'Owner', liabilityId: 'LB-0001' }];
   SEED = S;
   return S;
 }
@@ -250,8 +328,9 @@ export function loadSnapshot() {
     staff: read(K.staff) || seed.staff, settings: { ...seed.settings, ...(read(K.settings) || {}) }, shifts: read(K.shifts) || seed.shifts,
     roster: read(K.roster) || seed.roster, leave: read(K.leave) || seed.leave, loans: read(K.loans) || seed.loans,
     fixes: read(K.fixes) || seed.fixes, att: read(K.att) || seed.att, runs: read(K.runs) || seed.runs,
+    changes: read(K.changes) || seed.changes, devices: read(K.devices) || seed.devices,
   };
-  return syncRuns(S);
+  return syncRuns(applyDueChanges(S));
 }
 const live = () => (ssr() ? seedSnapshot() : loadSnapshot());
 
@@ -392,13 +471,23 @@ export function decideFix(id, ok, by = 'Owner') {
 
 // ---- staff -------------------------------------------------------------------------------------
 export function nextStaffCode(S) {
-  return 'EMP-' + String(S.staff.reduce((m, s) => Math.max(m, Number(s.code.slice(4)) || 0), 0) + 1).padStart(4, '0');
+  const { prefix = 'EMP-', digits = 4 } = S.settings.empNo || {};
+  const n = S.staff.reduce((m, s) => Math.max(m, Number(String(s.code).replace(/\D/g, '')) || 0), 0) + 1;
+  return prefix + String(n).padStart(digits, '0');
+}
+/** What the "paid to" line says for a person: bank and the last four digits, or the bKash number. */
+export function payToText(st) {
+  if (st.payMethod === 'bank' && st.bank && st.bank.accNo) return `${st.bank.bank} · A/C ••••${String(st.bank.accNo).slice(-4)}`;
+  if (st.payMethod === 'bank') return '';
+  if (st.payMethod === 'bkash' && st.bkash && st.bkash.number) return st.bkash.number;
+  return st.payMethod === 'cash' ? '' : st.payTo || '';
 }
 /** Add (no code yet) or change a staff member. Returns the saved row. */
 export function saveStaff(row) {
   const S = live();
   const st = { ...row, gross: Math.round(Number(row.gross) || 0) };
   if (!st.code) st.code = nextStaffCode(S);
+  if (st.bank || st.bkash || st.payMethod === 'cash') st.payTo = payToText(st);
   if (!st.payAccount) st.payAccount = S.settings.payAccounts[st.payMethod] || 'cash-shop';
   const exists = S.staff.some((s) => s.code === st.code);
   write(K.staff, exists ? S.staff.map((s) => (s.code === st.code ? st : s)) : [...S.staff, st]);
@@ -838,4 +927,387 @@ export function takaWords(n) {
   if (x) parts.push(three(x));
   const s = parts.join(' ');
   return 'Taka ' + s + ' only';
+}
+
+// ---- positions ---------------------------------------------------------------------------------
+export const positionOf = (S, title) => (S.settings.positions || []).find((p) => p.title === title) || null;
+export const gradeOf = (S, st) => st.grade || (positionOf(S, st.designation) || {}).grade || '';
+export const gradeLabel = (S, id) => { const g = (S.settings.grades || []).find((x) => x[0] === id); return g ? `${g[0]} · ${g[1]}` : id || '—'; };
+/** People in a position now (left staff not counted). */
+export const holdersOf = (S, title) => S.staff.filter((st) => st.designation === title && st.status !== 'left');
+/** Add or change a position. The department's list of titles follows. */
+export function savePosition(p) {
+  const S = live();
+  const list = S.settings.positions || [];
+  const row = { ...p, min: Math.round(Number(p.min) || 0), max: Math.round(Number(p.max) || 0), openings: Math.max(0, Math.round(Number(p.openings) || 0)), title: String(p.title).trim() };
+  if (!row.id) row.id = nextId(list, 'PS-');
+  const before = list.find((x) => x.id === row.id);
+  const positions = before ? list.map((x) => (x.id === row.id ? row : x)) : [...list, row];
+  const departments = S.settings.departments.map((d) => {
+    let titles = d.titles.filter((t) => !(before && t === before.title && (before.title !== row.title || d.name !== row.department)));
+    if (d.name === row.department && !titles.includes(row.title)) titles = [...titles, row.title];
+    return { ...d, titles };
+  });
+  let staff = S.staff;
+  if (before && before.title !== row.title) staff = staff.map((st) => (st.designation === before.title ? { ...st, designation: row.title } : st));
+  saveSettings({ positions, departments });
+  if (staff !== S.staff) write(K.staff, staff);
+  return row;
+}
+/** Remove a position nobody holds. Returns the holders when it cannot. */
+export function removePosition(id) {
+  const S = live();
+  const p = (S.settings.positions || []).find((x) => x.id === id);
+  if (!p) return [];
+  const holders = holdersOf(S, p.title);
+  if (holders.length) return holders;
+  saveSettings({ positions: S.settings.positions.filter((x) => x.id !== id), departments: S.settings.departments.map((d) => ({ ...d, titles: d.titles.filter((t) => t !== p.title) })) });
+  return [];
+}
+
+// ---- increments, promotions, confirmations, transfers --------------------------------------------
+export const CHANGE_KINDS = {
+  increment: ['Increment', 'trending-up', 'success'],
+  promotion: ['Promotion', 'award', 'info'],
+  confirmation: ['Confirmation', 'badge-check', 'success'],
+  transfer: ['Transfer', 'arrow-left-right', 'slate'],
+  decrease: ['Pay cut', 'trending-down', 'error'],
+};
+const CH = (id, code, kind, effective, from, to, reason, by = 'Owner', status = 'done') => ({ id, code, kind, effective, from, to, reason, by, status, at: at(Number(effective.slice(5)) === 1 ? 12 : Number(effective.slice(5)) - 1, 26, 16, 0, Number(effective.slice(0, 4)) - (effective.slice(5) === '01' ? 1 : 0)) });
+const YEARLY_25 = 'Yearly increment 2025';
+const YEARLY_26 = 'Yearly increment 2026 · reviewed with sales and attendance';
+const CHANGE_SEED = [
+  CH('CH-0001', 'EMP-0118', 'promotion', '2024-01', { gross: 26000, designation: 'Senior sales associate', grade: 'G3' }, { gross: 32000, designation: 'Branch manager', grade: 'G5' }, 'Dhanmondi branch opened its second counter'),
+  CH('CH-0002', 'EMP-0112', 'promotion', '2024-04', { gross: 15000, designation: 'Sales associate', grade: 'G1' }, { gross: 17000, designation: 'Senior sales associate', grade: 'G3' }, 'Best seller three quarters in a row'),
+  CH('CH-0003', 'EMP-0121', 'promotion', '2024-07', { gross: 24000, designation: 'Senior sales associate', grade: 'G3' }, { gross: 30000, designation: 'Branch manager', grade: 'G5' }, 'Mirpur branch opened'),
+  CH('CH-0004', 'EMP-0118', 'increment', '2025-01', { gross: 32000 }, { gross: 35000 }, YEARLY_25),
+  CH('CH-0005', 'EMP-0121', 'increment', '2025-01', { gross: 30000 }, { gross: 32000 }, YEARLY_25),
+  CH('CH-0006', 'EMP-0158', 'increment', '2025-01', { gross: 34000 }, { gross: 37000 }, YEARLY_25),
+  CH('CH-0007', 'EMP-0137', 'increment', '2025-01', { gross: 17000 }, { gross: 18500 }, YEARLY_25),
+  CH('CH-0008', 'EMP-0133', 'increment', '2025-01', { gross: 15000 }, { gross: 16500 }, YEARLY_25),
+  CH('CH-0009', 'EMP-0112', 'increment', '2025-01', { gross: 17000 }, { gross: 18000 }, YEARLY_25),
+  CH('CH-0010', 'EMP-0149', 'transfer', '2025-06', { branch: 'Dhanmondi branch' }, { branch: 'Mirpur branch' }, 'Mirpur needed an evening cashier'),
+  CH('CH-0011', 'EMP-0118', 'increment', '2026-01', { gross: 35000 }, { gross: 38000 }, YEARLY_26),
+  CH('CH-0012', 'EMP-0121', 'increment', '2026-01', { gross: 32000 }, { gross: 35000 }, YEARLY_26),
+  CH('CH-0013', 'EMP-0158', 'increment', '2026-01', { gross: 37000 }, { gross: 40000 }, YEARLY_26),
+  CH('CH-0014', 'EMP-0137', 'increment', '2026-01', { gross: 18500 }, { gross: 20000 }, YEARLY_26),
+  CH('CH-0015', 'EMP-0133', 'increment', '2026-01', { gross: 16500 }, { gross: 18000 }, YEARLY_26),
+  CH('CH-0016', 'EMP-0112', 'increment', '2026-01', { gross: 18000 }, { gross: 19000 }, YEARLY_26),
+  CH('CH-0017', 'EMP-0142', 'increment', '2026-01', { gross: 20000 }, { gross: 22000 }, YEARLY_26),
+  CH('CH-0018', 'EMP-0149', 'increment', '2026-01', { gross: 18500 }, { gross: 20000 }, YEARLY_26),
+  CH('CH-0019', 'EMP-0145', 'increment', '2026-01', { gross: 14000 }, { gross: 15000 }, YEARLY_26),
+  { ...CH('CH-0020', 'EMP-0151', 'increment', '2026-11', { gross: 16000 }, { gross: 17500 }, 'Top add-on seller at Dhanmondi; agreed at the September review'), status: 'planned', at: at(9, 24, 17) },
+];
+/** A person's changes, newest first. */
+export const changesOf = (S, code) => (S.changes || []).filter((c) => c.code === code).sort((a, b) => (b.effective + b.id).localeCompare(a.effective + a.id));
+export const changePct = (c) => (c.from && c.to && c.from.gross && c.to.gross ? Math.round(((c.to.gross - c.from.gross) / c.from.gross) * 1000) / 10 : null);
+/** What a person was paid (and called) in a month, walking back through the changes done after it. */
+export function standingAt(S, st, month) {
+  let gross = st.gross, designation = st.designation, branch = st.branch;
+  (S.changes || []).filter((c) => c.code === st.code && c.status === 'done' && c.effective > month)
+    .sort((a, b) => b.effective.localeCompare(a.effective))
+    .forEach((c) => { if (c.from.gross != null) gross = c.from.gross; if (c.from.designation) designation = c.from.designation; if (c.from.branch) branch = c.from.branch; });
+  return { gross, designation, branch };
+}
+/** When the person last had a raise (or joined): the month, and how many months ago. */
+export function lastRaiseOf(S, st) {
+  const c = changesOf(S, st.code).find((x) => x.status === 'done' && x.to.gross != null && x.from.gross != null && x.to.gross > x.from.gross);
+  const month = c ? c.effective : monthOf(st.joined);
+  const [y, m] = month.split('-').map(Number), now = new Date(S.now);
+  return { month, change: c || null, months: (now.getFullYear() - y) * 12 + now.getMonth() + 1 - m };
+}
+function applyChangeTo(st, c) {
+  const next = { ...st };
+  ['gross', 'designation', 'department', 'grade', 'branch', 'type'].forEach((k) => { if (c.to[k] != null && c.to[k] !== '') next[k] = c.to[k]; });
+  if (c.kind === 'confirmation') { next.status = st.status === 'probation' ? 'active' : st.status; next.type = c.to.type || (st.type === 'Probation' ? 'Full-time' : st.type); delete next.probationEnd; }
+  return next;
+}
+/** Planned changes whose month has come are applied to the staff list (once). */
+function applyDueChanges(S) {
+  const month = monthOf(dayKey(S.now));
+  const due = (S.changes || []).filter((c) => c.status === 'planned' && c.effective <= month);
+  if (!due.length) return S;
+  let staff = S.staff;
+  due.forEach((c) => { staff = staff.map((st) => (st.code === c.code ? applyChangeTo(st, c) : st)); });
+  const changes = S.changes.map((c) => (due.includes(c) ? { ...c, status: 'done', appliedAt: S.now } : c));
+  if (!ssr()) { try { window.localStorage.setItem(K.staff, JSON.stringify(staff)); window.localStorage.setItem(K.changes, JSON.stringify(changes)); } catch { /* ignore */ } }
+  return { ...S, staff, changes };
+}
+/**
+ * Record an increment / promotion / confirmation / transfer: { code, kind, effective: 'YYYY-MM', to: { gross?, designation?,
+ * department?, grade?, branch?, type? }, reason }. From this month or earlier it changes the person now; a later
+ * month is kept as planned and applied when that month starts. Returns the change.
+ */
+export function saveChange({ code, kind, effective, to, reason = '', by = 'Owner' }) {
+  const S = live();
+  const st = staffBy(S, code);
+  if (!st) return null;
+  const clean = Object.fromEntries(Object.entries(to || {}).filter(([, v]) => v != null && v !== '').map(([k, v]) => [k, k === 'gross' ? Math.round(Number(v)) : v]));
+  const from = Object.fromEntries(Object.keys(clean).map((k) => [k, st[k] ?? (k === 'grade' ? gradeOf(S, st) : '')]));
+  const status = effective <= monthOf(dayKey(S.now)) ? 'done' : 'planned';
+  const row = { id: nextId(S.changes || [], 'CH-'), code, kind, effective, from, to: clean, reason, by, status, at: Date.now() };
+  write(K.changes, [...(S.changes || []), row]);
+  if (status === 'done') write(K.staff, live().staff.map((x) => (x.code === code ? applyChangeTo(x, row) : x)));
+  return row;
+}
+/** The same percentage raise for several people (rounded up to `round` taka). Returns the changes made. */
+export function yearlyIncrement({ codes, pct, effective, round = 100, reason = '', by = 'Owner' }) {
+  return codes.map((code) => {
+    const st = staffBy(live(), code);
+    const gross = Math.ceil(Math.round(st.gross * (1 + Number(pct) / 100)) / round) * round;
+    return saveChange({ code, kind: 'increment', effective, to: { gross }, reason, by });
+  }).filter(Boolean);
+}
+/** Drop a planned change before it applies. */
+export function cancelChange(id) {
+  const S = live();
+  write(K.changes, (S.changes || []).filter((c) => !(c.id === id && c.status === 'planned')));
+}
+
+// ---- payroll history (runs kept before this browser get a line per person) -------------------------
+/** The demo's older runs only had a total; give them lines that add up to it, from each person's pay then. */
+function historyRun(S, run) {
+  const month = run.month;
+  // people who joined after the 1st were paid from the next month
+  const people = S.staff.filter((st) => st.joined <= `${month}-01` && !(st.suspendedFrom && st.suspendedFrom.slice(0, 7) < month));
+  let lines;
+  if (run.kind === 'bonus') {
+    lines = people.filter((st) => (fromKey(`${month}-20`) - fromKey(st.joined)) / (864e5 * 30.44) >= S.settings.bonusMonths).map((st) => {
+      const was = standingAt(S, st, month);
+      const amt = Math.round(basicOf(S, was.gross) * S.settings.bonusPct / 100);
+      return { code: st.code, name: st.name, designation: was.designation, branch: was.branch, gross: was.gross, parts: [[`${run.title} (${S.settings.bonusPct}% of basic)`, amt]], bonus: amt, days: 0, payable: 0, absent: 0, late: 0, lateDays: 0, otMin: 0, ot: 0, incentive: 0, extras: [], cut: 0, loanCuts: [], loan: 0, net: amt, payMethod: st.payMethod, payAccount: st.payAccount, payTo: st.payTo || '' };
+    });
+  } else {
+    lines = people.map((st) => {
+      const was = standingAt(S, st, month);
+      const loanCuts = S.loans.filter((l) => l.code === st.code).flatMap((l) => l.history.filter((h) => h.kind === 'instalment' && h.month === month).map((h) => ({ id: l.id, type: l.type, amount: h.amount })));
+      const loan = loanCuts.reduce((a, c) => a + c.amount, 0);
+      return { code: st.code, name: st.name, designation: was.designation, branch: was.branch, gross: was.gross, parts: partsOf(S, was.gross), baseDays: 30, days: daysIn(month), payable: daysIn(month), absent: 0, unpaidLeave: 0, half: 0, paidLeave: 0, late: 0, lateDays: 0, lateMin: 0, otMin: 0, unmarked: 0, notJoined: 0, ot: 0, incentive: 0, extras: [], cut: 0, loanCuts, loan, net: was.gross - loan, payMethod: st.payMethod, payAccount: st.payAccount, payTo: st.payTo || '' };
+    });
+    // the difference to the total paid that month was incentive (sales staff and riders) or days cut
+    let diff = (run.total || 0) - sumNet(lines);
+    if (diff > 0) {
+      const earners = lines.filter((l) => /manager|cashier|sales|rider/i.test(l.designation));
+      const w = earners.reduce((a, l) => a + l.gross, 0);
+      earners.forEach((l) => { const v = Math.round((diff * l.gross / w) / 10) * 10; l.incentive = v; l.net += v; });
+    } else if (diff < 0) {
+      const takers = lines.filter((l) => /packer|associate|guard/i.test(l.designation)).slice(0, 3);
+      takers.forEach((l, i) => { const v = Math.round((-diff / takers.length) / 10) * 10; l.cut = v; l.net -= v; l.absent = Math.max(1, Math.round(v / (l.gross / 30))); l.payable = l.days - l.absent; if (i === 0) l.cutNote = 'Absent'; });
+    }
+    diff = (run.total || 0) - sumNet(lines);
+    if (diff && lines.length) { const l = lines.find((x) => x.incentive || x.cut) || lines[0]; if (l.cut) l.cut -= diff; else l.incentive += diff; l.net += diff; }
+  }
+  return { ...run, lines, total: run.kind === 'bonus' || !run.total ? sumNet(lines) : run.total, count: lines.length };
+}
+
+// ---- salary statements -----------------------------------------------------------------------------
+/** The Bangladesh tax year a month falls in: July–June. '2026-09' → { from: '2026-07', to: '2027-06', label: '2026–27' }. */
+export function taxYearOf(month) {
+  const [y, m] = month.split('-').map(Number);
+  const start = m >= 7 ? y : y - 1;
+  return { from: `${start}-07`, to: `${start + 1}-06`, label: `${start}–${String(start + 1).slice(2)}` };
+}
+/**
+ * One person's pay between two months (inclusive), from the payroll runs: one row per salary or bonus run with
+ * the person in it: { run, month, title, kind, gross, earn: { ot, incentive, extras, bonus }, cut, loan, net, status, paidAt, via }.
+ */
+export function statementOf(S, code, fromMonth, toMonth) {
+  const st = staffBy(S, code);
+  const rows = S.runs.filter((r) => r.month >= fromMonth && r.month <= toMonth && r.status !== 'draft')
+    .map((r) => ({ r, ln: (r.lines || []).find((x) => x.code === code) }))
+    .filter((x) => x.ln)
+    .map(({ r, ln }) => {
+      const extras = (ln.extras || []).reduce((a, x) => a + x.amount, 0);
+      return {
+        run: r.id, month: r.month, title: r.kind === 'bonus' ? r.title : monthLabel(r.month), kind: r.kind,
+        gross: r.kind === 'bonus' ? 0 : ln.gross, ot: ln.ot || 0, incentive: ln.incentive || 0, extras, bonus: ln.bonus || 0,
+        cut: ln.cut || 0, loan: ln.loan || 0, net: ln.net, payable: ln.payable, days: ln.days, absent: ln.absent || 0,
+        status: r.status, paidAt: r.paidAt || null, via: PAY_METHODS[ln.payMethod || (st && st.payMethod)] || '',
+        payTo: ln.payTo || (st && st.payTo) || '',
+      };
+    })
+    .sort((a, b) => (a.month + a.kind).localeCompare(b.month + b.kind));
+  const sum = (k) => rows.reduce((a, x) => a + x[k], 0);
+  const totals = { gross: sum('gross'), ot: sum('ot'), incentive: sum('incentive'), extras: sum('extras'), bonus: sum('bonus'), cut: sum('cut'), loan: sum('loan'), net: sum('net') };
+  totals.earned = totals.gross + totals.ot + totals.incentive + totals.extras + totals.bonus;
+  totals.paid = rows.filter((x) => x.status === 'paid').reduce((a, x) => a + x.net, 0);
+  totals.owed = totals.net - totals.paid;
+  return { rows, totals };
+}
+
+// ---- gratuity and leaving ------------------------------------------------------------------------
+/** Full years and months of service up to a day. */
+export function serviceOf(st, key) {
+  const a = new Date(fromKey(st.joined)), b = new Date(fromKey(key));
+  let months = (b.getFullYear() - a.getFullYear()) * 12 + b.getMonth() - a.getMonth();
+  if (b.getDate() < a.getDate()) months--;
+  months = Math.max(0, months);
+  return { years: Math.floor(months / 12), months: months % 12, total: months, text: `${Math.floor(months / 12)} y ${months % 12} m` };
+}
+/**
+ * Gratuity for a person on a day (default today): { years, eligible, eligibleOn, perYearDays, daily, amount (what is
+ * payable if they left that day), provision (built up so far, as if every year counted) }.
+ */
+export function gratuityOf(S, st, key = todayKey(S)) {
+  const g = S.settings.gratuity || {};
+  const sv = serviceOf(st, key);
+  const basic = g.base === 'gross' ? st.gross : basicOf(S, st.gross);
+  const daily = basic / 30;
+  const perYearDays = sv.years >= 10 ? (g.daysAfter10 || g.days) : g.days;
+  const eligible = !!g.on && sv.years >= (g.after || 0);
+  const on = new Date(fromKey(st.joined)); on.setFullYear(on.getFullYear() + (g.after || 0));
+  return {
+    years: sv.years, service: sv, eligible, eligibleOn: dayKey(on.getTime()), perYearDays, daily, basic,
+    amount: eligible ? Math.round(daily * perYearDays * sv.years) : 0,
+    provision: g.on ? Math.round(daily * (g.days || 30) * (sv.total / 12)) : 0,
+  };
+}
+/**
+ * What is owed when someone leaves on `lastDay`: salary for the days of this month not yet in a run, earned leave
+ * cashed in, gratuity, less what they still owe on loans. { lines: [{ label, amount }], net }.
+ */
+export function finalSettlementOf(S, code, lastDay) {
+  const st = staffBy(S, code);
+  const month = monthOf(lastDay);
+  const runDone = S.runs.some((r) => r.kind === 'salary' && r.month === month && r.status !== 'draft');
+  const dayPay = st.gross / 30;
+  // days of the month worked up to the last day (none while suspended — salary is on hold)
+  let paidTo = lastDay;
+  if (st.status === 'suspended' && st.suspendedFrom) paidTo = st.suspendedFrom <= lastDay ? addDays(st.suspendedFrom, -1) : lastDay;
+  const days = runDone || monthOf(paidTo) !== month ? 0 : Number(paidTo.slice(8));
+  const lines = [];
+  if (days) lines.push({ key: 'salary', label: `Salary for ${days} day${days === 1 ? '' : 's'} of ${monthLabel(month, true)}`, amount: Math.round(dayPay * days) });
+  const earned = (leaveBalance(S, code).earned || {}).left || 0;
+  if (S.settings.gratuity.encashEarned && earned > 0) lines.push({ key: 'leave', label: `Earned leave cashed in · ${earned} day${earned === 1 ? '' : 's'}`, amount: Math.round(dayPay * earned) });
+  const gr = gratuityOf(S, st, lastDay);
+  if (gr.amount) lines.push({ key: 'gratuity', label: `Gratuity · ${gr.years} year${gr.years === 1 ? '' : 's'} × ${gr.perYearDays} days' basic`, amount: gr.amount });
+  const owe = S.loans.filter((l) => l.code === code && l.status === 'run').reduce((a, l) => a + loanLeft(l), 0);
+  if (owe) lines.push({ key: 'loan', label: 'Loans and advances still owed', amount: -owe });
+  return { lines, net: lines.reduce((a, l) => a + l.amount, 0), gratuity: gr, earned, days, owe };
+}
+/**
+ * The person leaves: status Left from `lastDay`, and what is owed becomes a liability (Accounts › Liabilities) to pay
+ * from `account`. Loans still owed are closed against it. Returns { liability }.
+ */
+export function settleLeaving(code, { lastDay, reason = '', account, by = 'Owner' }) {
+  const S = live();
+  const st = staffBy(S, code);
+  const fs = finalSettlementOf(S, code, lastDay);
+  let liability = null;
+  const pay = fs.lines.filter((l) => l.amount > 0);
+  if (fs.net > 0 && pay.length) {
+    let off = fs.owe;   // loans owed come off the first lines
+    const lines = pay.map((l) => { const take = Math.min(off, l.amount); off -= take; return { name: `${st.name} · ${l.key === 'salary' ? 'salary' : l.key === 'leave' ? 'leave cash-in' : 'gratuity'}`, note: l.label + (take ? ` · less ৳${take} loan` : ''), amount: l.amount - take, account: account || st.payAccount }; }).filter((l) => l.amount > 0);
+    liability = addLiability({ type: 'gratuity', title: `Final settlement · ${st.name}`, party: st.name, period: monthOf(lastDay), due: fromKey(lastDay) + 7 * 864e5, lines, note: `From Staff & HR. ${reason}`.trim() });
+  }
+  if (fs.owe) {
+    const loans = S.loans.map((l) => (l.code === code && l.status === 'run' ? { ...l, status: 'done', history: [...l.history, { kind: 'cash', amount: loanLeft(l), at: Date.now(), account: '', by, note: 'Taken from the final settlement' }] } : l));
+    write(K.loans, loans);
+  }
+  write(K.staff, live().staff.map((x) => (x.code === code ? { ...x, status: 'left', leftOn: addDays(lastDay, 1), lastDay, leftReason: reason, settlement: { at: Date.now(), net: fs.net, gratuity: fs.gratuity.amount, liabilityId: liability ? liability.id : '' } } : x)));
+  return { liability, fs };
+}
+
+// ---- attendance machines -----------------------------------------------------------------------------
+export const DEVICE_KINDS = { finger: ['Fingerprint', 'fingerprint'], face: ['Face', 'scan-face'], both: ['Face + fingerprint', 'scan-face'], card: ['Card / QR', 'qr-code'] };
+const DEVICE_SEED = [
+  { id: 'DV-01', name: 'Dhanmondi front door', place: 'Dhanmondi branch', kind: 'both', brand: 'ZKTeco', model: 'MB560-VL', serial: 'CKJE221460031', ip: '192.168.10.21', port: 4370, status: 'online', lastSync: at(10, 1, 10, 58), added: at(3, 2, 12, 0, 2024), punchesToday: 4 },
+  { id: 'DV-02', name: 'Mirpur counter', place: 'Mirpur branch', kind: 'finger', brand: 'ZKTeco', model: 'K40 Pro', serial: 'AEH3194600217', ip: '192.168.20.15', port: 4370, status: 'online', lastSync: at(10, 1, 10, 55), added: at(7, 1, 12, 0, 2024), punchesToday: 2 },
+  { id: 'DV-03', name: 'Warehouse gate', place: 'Central Warehouse', kind: 'face', brand: 'ZKTeco', model: 'SpeedFace-V5L', serial: 'CN8L230510044', ip: '192.168.30.10', port: 4370, status: 'online', lastSync: at(10, 1, 10, 57), added: at(10, 14, 12, 0, 2023), punchesToday: 4 },
+  { id: 'DV-04', name: 'Head office entrance', place: 'Head office', kind: 'finger', brand: 'ZKTeco', model: 'F22', serial: 'BJ2C201960871', ip: '192.168.40.12', port: 4370, status: 'offline', lastSync: at(9, 30, 18, 42), added: at(1, 15, 12, 0, 2023), punchesToday: 0, note: 'No reply since 6:42 PM yesterday. Head office staff are using the staff app.' },
+];
+export const devicesAt = (S, place) => (S.devices || []).filter((d) => d.place === place);
+/** Is a person enrolled on the machine(s) at their place? { device, finger, face, ok, needs } */
+export function enrolmentOf(S, st) {
+  const devs = devicesAt(S, st.branch);
+  const b = st.bio || {};
+  const d = devs[0] || null;
+  if (!d) return { device: null, ok: true, needs: '' };
+  const wantFinger = d.kind === 'finger' || d.kind === 'both';
+  const wantFace = d.kind === 'face' || d.kind === 'both';
+  const ok = (wantFinger && (b.fingers || 0) > 0) || (wantFace && b.face) || (d.kind === 'card' && b.card);
+  return { device: d, finger: b.fingers || 0, face: !!b.face, ok: !!ok, needs: ok ? '' : wantFace && wantFinger ? 'Face or fingerprint' : wantFace ? 'Face' : 'Fingerprint' };
+}
+export function saveDevice(d) {
+  const S = live();
+  const list = S.devices || [];
+  const row = { ...d, port: Number(d.port) || 4370 };
+  if (!row.id) { row.id = 'DV-' + String(list.reduce((m, x) => Math.max(m, Number(x.id.slice(3)) || 0), 0) + 1).padStart(2, '0'); row.added = Date.now(); row.status = 'online'; row.lastSync = Date.now(); row.punchesToday = 0; }
+  write(K.devices, list.some((x) => x.id === row.id) ? list.map((x) => (x.id === row.id ? row : x)) : [...list, row]);
+  return row;
+}
+export function removeDevice(id) { const S = live(); write(K.devices, (S.devices || []).filter((d) => d.id !== id)); }
+/** Reach the machine and pull its punches (demo: it answers, nothing new to pull). */
+export function syncDevice(id) {
+  const S = live();
+  const now = Date.now();
+  write(K.devices, (S.devices || []).map((d) => (d.id === id ? { ...d, status: 'online', lastSync: now, note: '' } : d)));
+  return (S.devices || []).find((d) => d.id === id);
+}
+/** Save a person's enrolment: { fingers, face, card }. */
+export function saveEnrolment(code, patch) {
+  const S = live();
+  write(K.staff, S.staff.map((st) => (st.code === code ? { ...st, bio: { uid: Number(String(code).replace(/\D/g, '')) || 0, ...(st.bio || {}), ...patch, at: Date.now() } } : st)));
+}
+/** Today's punches, newest first: [{ st, time, kind: 'in'|'out', src, device }]. */
+export function punchesOn(S, key) {
+  const out = [];
+  Object.entries(S.att[key] || {}).forEach(([code, rec]) => {
+    const st = staffBy(S, code);
+    if (!st || !rec || rec.s === 'A') return;
+    const device = /Fingerprint|Face/.test(rec.src || '') ? (devicesAt(S, st.branch)[0] || null) : null;
+    if (rec.in) out.push({ st, time: rec.in, kind: 'in', src: rec.src, device });
+    if (rec.out) out.push({ st, time: rec.out, kind: 'out', src: rec.src, device });
+  });
+  return out.sort((a, b) => toMin(b.time) - toMin(a.time));
+}
+
+// ---- ID card, documents, checks ------------------------------------------------------------------
+/** What the QR on the ID card holds. */
+export function qrTextOf(S, st, web = 'www.gridshop.com.bd') {
+  return (S.settings.idCard || {}).qr === 'link' ? `https://${web}/staff/${st.code}` : st.code;
+}
+export function saveDoc(code, doc) {
+  const S = live();
+  write(K.staff, S.staff.map((st) => (st.code === code ? { ...st, docs: [...(st.docs || []).filter((d) => d.id !== doc.id), { id: doc.id || code + '-D' + Date.now().toString(36), at: dayKey(Date.now()), ...doc }] } : st)));
+}
+export function removeDoc(code, id) {
+  const S = live();
+  write(K.staff, S.staff.map((st) => (st.code === code ? { ...st, docs: (st.docs || []).filter((d) => d.id !== id) } : st)));
+}
+/** Things missing on a person's record that will cause trouble: [{ tone, text, tab }]. */
+export function profileIssues(S, st) {
+  const out = [];
+  if (st.status === 'left') return out;
+  if (st.payMethod === 'bank' && !(st.bank && st.bank.accNo)) out.push({ tone: 'error', text: 'Paid by bank but no account number — payroll cannot send salary.', tab: 'salary' });
+  if (st.payMethod === 'bkash' && !(st.bkash && st.bkash.number)) out.push({ tone: 'error', text: 'Paid by bKash but no bKash number.', tab: 'salary' });
+  (S.settings.docTypes || []).filter(([, , need]) => need).forEach(([k, label]) => { if (!(st.docs || []).some((d) => d.kind === k)) out.push({ tone: 'warning', text: `${label} not uploaded.`, tab: 'docs' }); });
+  const en = enrolmentOf(S, st);
+  if (en.device && !en.ok && st.checkIn !== 'Staff app' && st.checkIn !== 'Rider app' && st.checkIn !== 'POS log-in') out.push({ tone: 'warning', text: `${en.needs} not enrolled on ${en.device.name}.`, tab: 'attendance' });
+  if (!st.emergency || !st.emergency.phone) out.push({ tone: 'warning', text: 'No emergency contact.', tab: 'overview' });
+  if (st.status === 'probation' && st.probationEnd && st.probationEnd < todayKey(S)) out.push({ tone: 'warning', text: `Probation ended ${dayLabel(st.probationEnd, true)} — confirm or extend.`, tab: 'job' });
+  if (st.contractEnd && st.contractEnd >= todayKey(S) && st.contractEnd <= addDays(todayKey(S), 45)) out.push({ tone: 'warning', text: `Contract ends ${dayLabel(st.contractEnd, true)} — renew or end it.`, tab: 'job' });
+  return out;
+}
+/** Everything that happened to a person, newest first: [{ at, icon, text, sub }]. */
+export function activityOf(S, code) {
+  const st = staffBy(S, code);
+  const out = [];
+  if (!st) return out;
+  out.push({ at: fromKey(st.joined) + 9 * 36e5, icon: 'user-plus', text: `Joined as ${(changesOf(S, code).slice(-1)[0] || {}).from?.designation || st.designation}`, sub: st.branch });
+  changesOf(S, code).forEach((c) => {
+    const [label, icon] = CHANGE_KINDS[c.kind] || CHANGE_KINDS.increment;
+    const parts = [];
+    if (c.to.designation) parts.push(`${c.from.designation} → ${c.to.designation}`);
+    if (c.to.gross != null) parts.push(`${formatBDT(c.from.gross)} → ${formatBDT(c.to.gross)}`);
+    if (c.to.branch) parts.push(`${c.from.branch} → ${c.to.branch}`);
+    out.push({ at: c.status === 'planned' ? fromKey(c.effective + '-01') : fromKey(c.effective + '-01') + 9 * 36e5, icon, text: `${label}${c.status === 'planned' ? ' (planned)' : ''} · ${parts.join(' · ')}`, sub: c.reason });
+  });
+  S.leave.requests.filter((r) => r.code === code).forEach((r) => out.push({ at: r.at, icon: 'plane', text: `${leaveType(S, r.type).name} leave ${dayLabel(r.from)}${r.to !== r.from ? '–' + dayLabel(r.to) : ''} · ${r.status === 'ok' ? 'approved' : r.status === 'no' ? 'rejected' : 'waiting'}`, sub: r.reason }));
+  S.loans.filter((l) => l.code === code).forEach((l) => out.push({ at: l.at, icon: 'hand-coins', text: `${l.type === 'loan' ? 'Loan' : 'Salary advance'} ${formatBDT(l.amount)} · ${l.status === 'req' ? 'asked' : l.status === 'no' ? 'rejected' : `${l.months} month${l.months === 1 ? '' : 's'}`}`, sub: l.reason }));
+  S.fixes.filter((f) => f.code === code).forEach((f) => out.push({ at: f.at, icon: 'fingerprint', text: `Attendance fix for ${dayLabel(f.key)} · ${f.status === 'ok' ? 'accepted' : f.status === 'no' ? 'rejected' : 'waiting'}`, sub: f.text }));
+  S.runs.filter((r) => r.status === 'paid' && (r.lines || []).some((x) => x.code === code)).forEach((r) => out.push({ at: r.paidAt, icon: 'banknote', text: `${r.kind === 'bonus' ? r.title : monthLabel(r.month) + ' salary'} paid · ${formatBDT((r.lines.find((x) => x.code === code) || {}).net || 0)}`, sub: PAY_METHODS[st.payMethod] }));
+  (st.docs || []).forEach((d) => out.push({ at: fromKey(d.at) + 10 * 36e5, icon: 'file-text', text: `Document added · ${d.name}`, sub: '' }));
+  if (st.lastDay) out.push({ at: fromKey(st.lastDay) + 18 * 36e5, icon: 'log-out', text: 'Left the shop', sub: st.leftReason || '' });
+  return out.filter((x) => x.at).sort((a, b) => b.at - a.at);
 }

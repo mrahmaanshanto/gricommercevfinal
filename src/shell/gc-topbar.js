@@ -176,7 +176,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
         <a class="foot" href="${routeOf('merchant-inbox/MerchantInbox.dc.html')}">${L('View all notifications')}</a>`;
       const mePop = `<div style="display:flex;align-items:center;gap:10px;padding:8px"><span class="av">MR<i></i></span><span><span class="mn" style="display:block">Mehedi Rahman</span><span class="mr">mehedi@gridshop.com.bd</span></span></div>
         <div class="hr"></div>
-        <a class="it" href="${routeOf('staff-profile/StaffProfile.dc.html')}"><span class="ico">${ic('user', 16)}</span><span><b>${L('My profile')}</b><small>${L('Details, password and two-factor sign-in')}</small></span></a>
+        <a class="it" href="${routeOf('settings-console/SetSecurity.dc.html')}"><span class="ico">${ic('user', 16)}</span><span><b>${L('My profile')}</b><small>${L('Details, password and two-factor sign-in')}</small></span></a>
         <a class="it" href="${routeOf('settings-console/SetGeneral.dc.html')}"><span class="ico">${ic('gear', 16)}</span><span><b>${L('Store settings')}</b></span></a>
         <a class="it only-narrow" href="${routeOf('storefront/Offers.dc.html')}"><span class="ico">${ic('store', 16)}</span><span><b>${L('View store')}</b></span></a>
         <a class="it only-narrow" href="${routeOf('order-detail/OrderDetail.dc.html')}"><span class="ico">${ic('receipt', 16)}</span><span><b>${L('Invoices')}</b></span></a>

@@ -69,7 +69,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   suppliers: `src/lib/supplierBills.js` (bills from receiving, payments, credit notes). `docs/GridCommerce-flows.pdf` maps the flows.
 - More shared data: places are live (`getPlaces()` in `locations.js`, `usePlaceList(kind)` in `lib/usePlaces.js` for
   pickers: first render = built-in list, then the live one); racks and bins `lib/racks.js`; HR (staff, shifts, roster,
-  attendance, leave, loans, payroll runs) `lib/hr.js` — payroll approval makes the month's salary liability; loyalty
+  attendance, leave, loans, payroll runs, increments / promotions (`changes`), attendance machines (`devices`), positions,
+  gratuity and final settlement, salary statements) `lib/hr.js` — payroll approval makes the month's salary liability;
+  new staff join through `/staff-create` (the 7-step flow) and each person has `/staff-profile?code=&tab=`; field groups
+  are shared in `screens/staff-profile/staffForm.jsx`; HR pages: `/pay-changes`, `/positions`, `/gratuity`,
+  `/salary-statements`, `/id-cards`, `/attendance-devices`. QR codes: `lib/qr.js` + `components/QrCode.jsx`; print one
+  element (letters, ID cards) with `lib/printNode.js`; loyalty
   (members, points, wallets, referrals; POS checkout reads it) `lib/loyalty.js`; blog posts, categories, authors
   `lib/blog.js`; inbox chats, comments and calls `lib/inbox.js`.
 - Reports: one menu group (after Accounts) and one page, `/reports-centre`. Every report is a definition in
