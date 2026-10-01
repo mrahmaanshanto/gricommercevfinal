@@ -13,7 +13,7 @@ import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { navigate } from '@/runtime/routes';
 import { EmptyState } from '@/components/ui';
-import { reportBy, GROUP_BY_ID, FILTERS } from '@/lib/reports/catalogue';
+import { reportBy, GROUP_BY_ID, FILTERS, reportInEdition } from '@/lib/reports/catalogue';
 import { PRESETS, periodOf, compareOf, rangeText, fmt, change, csvValue, downloadCsv, clockNow, dayKey, addDays } from '@/lib/reports/period';
 import { markViewed } from '@/lib/reports/prefs';
 import { MERCHANT } from '@/lib/merchant';
@@ -111,7 +111,8 @@ export default function ReportView() {
     window.addEventListener('popstate', read);
     return () => { window.removeEventListener('gc:route', read); window.removeEventListener('popstate', read); };
   }, []);
-  const def = q ? reportBy(q.id) : null;
+  const found = q ? reportBy(q.id) : null;
+  const def = found && reportInEdition(found) ? found : null;   // a report outside this site's edition is not shown
   const colsKey = def ? 'gc.reports.cols.' + def.id : '';
   useEffect(() => {
     if (!def) return;
@@ -163,7 +164,7 @@ export default function ReportView() {
   if (!def) {
     return (
       <ReportsShell screen="ReportView" active="rep-all" page="Report" title="Report not found" css={CSS}>
-        <section className="gc-card"><EmptyState icon="file-question" title="This report doesn’t exist" body="It may have been renamed. Open it from the list of reports." actionLabel="All reports" onAction={() => navigate('/reports-centre')} /></section>
+        <section className="gc-card"><EmptyState icon="file-question" title={found ? "This report isn’t in your edition" : "This report doesn’t exist"} body={found ? "It belongs to a module your shop doesn’t use. Open the reports you have from the list." : "It may have been renamed. Open it from the list of reports."} actionLabel="All reports" onAction={() => navigate('/reports-centre')} /></section>
       </ReportsShell>
     );
   }

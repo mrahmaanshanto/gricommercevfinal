@@ -48,6 +48,14 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   must scroll sideways gets `gc-table--keep`), and statistic rows (`gc-kpis`, `gc-cardrow`) become a swipe strip.
   Never show statistic cards that repeat the tabs under them: make the tabs summary tabs (`gc-stattabs` /
   `gc-stattab`: label, count and amount, tap to filter — see Invoices). On phones the title and main button share a row.
+- Editions (`src/lib/edition.js`): the product is sold as editions, each its own site built with `NEXT_PUBLIC_EDITION`
+  = `retail-wholesale` | `online` | `retail-online` | `comms` (GridCommerce Connect: communication, CRM, POS, automation).
+  Unset = the full product, where `?edition=<id>` previews an edition (Settings › Subscription & billing has a switcher).
+  `MODULES` maps each module to its menu ids and the pages outside the menu it owns; every menu id belongs to exactly one
+  module. The menu (`team.js › navFor`), the page guard (`components/RoleGuard.jsx`), Home (Comms edition: `CommsHome.jsx`),
+  Reports (`catalogue.js › editionReports`), Settings' section list, Help links, the top bar, My dashboard and the demo
+  accounts follow it; orders and sales are filtered to the edition's channels (`editionChannels()` in `orders.getOrders`,
+  `salesBook.getSales`). New page or menu item → add it to a module in `MODULES`.
 - Phone (checked page by page at 390 px, Oct 2026): `.gc-shell__content` clips sideways overflow on phones, so anything
   wider than the screen must scroll inside its own box (`gc-table-wrap`, a bordered `overflow-x:auto` strip) or be made to
   fit — never rely on the page scrolling sideways. Tap targets are ≥36px (the shared rules cover switches, `.ib`, small

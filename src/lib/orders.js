@@ -23,6 +23,7 @@ import { productBy, addMove, stockAt } from './stock';
 import { DAMAGED_PLACE } from './locations';
 import { addReturn } from './returns';
 import { collectCod, removeItem } from './settlements';
+import { editionChannels } from './edition';
 
 const STATUS_KEY = 'gc.orders.status';
 const EDITS_KEY = 'gc.orders.edits';
@@ -169,7 +170,14 @@ function finish(o, sales, statuses, edits, stamped = {}) {
 export const demoOrders = () => DEMO.map((o) => finish(o, [], {}, {}));
 
 /** Every order: made in this browser first, then the demo wholesale invoices, then the demo orders. */
+/** The sales channel an order belongs to: Retail (POS counter), Wholesale (invoice) or Online. */
+export const orderChannel = (o) => (o.isInvoice || /^Wholesale/.test(o.channel) ? 'Wholesale' : /^POS/.test(o.channel) ? 'Retail' : 'Online');
+/** Every order the site's edition sells through (src/lib/edition.js › editionChannels). */
 export function getOrders() {
+  const chans = editionChannels();
+  return allOrders().filter((o) => chans.includes(orderChannel(o)));
+}
+function allOrders() {
   if (typeof window === 'undefined') return demoOrders();
   const sales = load(POS_KEYS.sales, []);
   const statuses = readMap(STATUS_KEY, {});

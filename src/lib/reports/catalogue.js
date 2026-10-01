@@ -21,6 +21,7 @@ import { PARTNERS } from '../settlements';
 import { getSuppliers } from '../supplierBills';
 import { OWN_ACCOUNTS } from '../ledger';
 import { loadSnapshot } from '../hr';
+import { hasModule, routeInEdition, editionChannels, currentEditionId } from '../edition';
 
 import sales from './defs/sales';
 import online from './defs/online';
@@ -69,6 +70,16 @@ const DEFS = [...sales, ...online, ...wholesale, ...customers, ...inventory, ...
 /** Every report: definitions first, then report pages. */
 export const REPORTS = [...DEFS.map((d) => ({ kind: 'def', ...d, href: '/report?id=' + d.id })), ...PAGES];
 export const reportBy = (id) => REPORTS.find((r) => r.id === id) || null;
+
+// ---- editions (src/lib/edition.js): a report group needs one of these modules ------------------------
+const GROUP_MODULES = { online: ['online'], wholesale: ['wholesale'], inventory: ['catalog'], purchase: ['catalog'], finance: ['money'], pos: ['pos'], hr: ['hr'], marketing: ['marketing', 'online', 'comms'] };
+const groupInEdition = (g, ed) => !GROUP_MODULES[g] || GROUP_MODULES[g].some((m) => hasModule(m, ed));
+/** The report groups of an edition. */
+export const editionGroups = (ed = currentEditionId()) => GROUPS.filter((g) => groupInEdition(g.id, ed));
+/** The reports of an edition (report pages only when their page is in the edition). */
+export const editionReports = (ed = currentEditionId()) => REPORTS.filter((r) => groupInEdition(r.group, ed) && (r.kind !== 'page' || routeInEdition(r.href.split('?')[0], ed)));
+/** Is a report part of the edition? */
+export const reportInEdition = (r, ed = currentEditionId()) => !!r && groupInEdition(r.group, ed);
 export const reportsIn = (group) => REPORTS.filter((r) => r.group === group);
 
 // ---- filters ------------------------------------------------------------------------------------
@@ -76,7 +87,7 @@ const uniq = (list) => [...new Set(list.filter(Boolean))];
 const safe = (fn, fb) => { try { return fn(); } catch { return fb; } };
 /** Filter definitions: key → { label, all, options() → [[value, label]] }. options() runs in the browser. */
 export const FILTERS = {
-  channel: { label: 'Channel', all: 'All channels', options: () => CHANNELS.map((c) => [c, c]) },
+  channel: { label: 'Channel', all: 'All channels', options: () => CHANNELS.filter((c) => editionChannels().includes(c)).map((c) => [c, c]) },
   place: { label: 'Branch or warehouse', all: 'All places', options: () => safe(() => getPlaces({}).map((p) => [p.name, p.name + (p.active === false ? ' (closed)' : '')]), []) },
   branch: { label: 'Branch', all: 'All branches', options: () => safe(() => getPlaces({}).filter((p) => p.type === 'Branch').map((p) => [p.name, p.name]), []) },
   counter: { label: 'Counter', all: 'All counters', options: () => safe(() => getCounters().map((c) => [c.name, c.name]), []) },

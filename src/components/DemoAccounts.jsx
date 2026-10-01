@@ -5,7 +5,7 @@
 import React from 'react';
 import { Icon } from '@/runtime/dc';
 import { navigate } from '@/runtime/routes';
-import { USERS, ROLES, signInAs, currentUser } from '@/lib/team';
+import { USERS, ROLES, signInAs, currentUser, hasWorkInEdition } from '@/lib/team';
 
 const CSS = `
 .da{margin-top:28px;padding-top:20px;border-top:1px solid #e2e8f0}
@@ -23,7 +23,10 @@ const CSS = `
 
 export function DemoAccounts() {
   const [me, setMe] = React.useState('');
-  React.useEffect(() => { setMe(currentUser().id); }, []);
+  // only the roles that have work in this site's edition (the list is worked out after mount, so a preview
+  // picked on the full site never changes the server HTML)
+  const [list, setList] = React.useState(USERS);
+  React.useEffect(() => { setMe(currentUser().id); setList(USERS.filter(hasWorkInEdition)); }, []);
   const go = (id) => { signInAs(id); navigate('/my-dashboard'); };
   return (
     <section className="da" aria-labelledby="da-title">
@@ -31,7 +34,7 @@ export function DemoAccounts() {
       <h2 id="da-title">Demo accounts</h2>
       <p>Sign in as a member of the team to see their dashboard, tasks and menu.</p>
       <div className="da__grid">
-        {USERS.map((u) => (
+        {list.map((u) => (
           <button key={u.id} type="button" className="da__btn" aria-current={me === u.id} onClick={() => go(u.id)}>
             <span className="da__ic"><Icon name={ROLES[u.role].icon} width="16" height="16" aria-hidden="true" /></span>
             <span style={{ minWidth: 0 }}><b>{ROLES[u.role].title}</b><small>{u.name}</small></span>

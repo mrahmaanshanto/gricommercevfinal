@@ -164,6 +164,14 @@ export const BN = {
   'Choose what you see. Today at a glance always stays at the top.': 'কী দেখবেন বাছুন। আজকের সারসংক্ষেপ সবসময় উপরে থাকে।',
   'Monthly sales target (৳)': 'মাসের বিক্রির লক্ষ্য (৳)', 'No money has moved yet.': 'এখনো কোনো লেনদেন হয়নি।',
   'What to show': 'কী দেখাবেন',
+  // editions (src/lib/edition.js)
+  'Retail + Wholesale': 'Retail + Wholesale', 'Retail + Online': 'Retail + Online', 'Communication & CRM': 'যোগাযোগ ও CRM',
+  'Automation & settings': 'Automation ও Settings', 'Included': 'যা আছে', 'Not in this edition': 'এই সংস্করণে নেই', 'Preview an edition': 'অন্য সংস্করণ দেখুন',
+  'Show all modules': 'সব module দেখুন', 'Go to Dashboard': 'Dashboard-এ যান', 'Products, stock & purchase': 'Product, Stock ও কেনা', 'Orders & returns': 'Order ও ফেরত',
+  'Offers & loyalty': 'অফার ও Loyalty', 'Communication': 'যোগাযোগ', 'Automation': 'Automation', 'Core': 'মূল',
+  'Chats waiting for a reply': 'উত্তরের অপেক্ষায় Chat', 'Missed calls': 'মিস হওয়া Call', 'Follow-ups due': 'Follow-up বাকি', 'Comments to answer': 'উত্তর দিতে হবে এমন Comment',
+  'At the counter today': 'আজ Counter-এ', 'Waiting the longest': 'সবচেয়ে বেশি অপেক্ষায়', 'Every chat has an answer.': 'সব Chat-এর উত্তর দেওয়া হয়েছে।',
+  'No follow-ups due today.': 'আজ কোনো Follow-up বাকি নেই।', 'All calls': 'সব Call', 'Go to': 'যান', 'Open inbox': 'Inbox খুলুন', 'No calls yet.': 'এখনো কোনো Call নেই।',
   'All invoices': 'সব Invoice', 'All wholesale orders': 'সব Wholesale Order', 'Not delivered': 'Delivered হয়নি', 'Delivered in full': 'পুরো Delivered',
   'Order value today': 'আজকের Order-এর মূল্য', 'Return rate': 'ফেরতের হার', 'Cash on delivery to collect ·': 'তুলতে বাকি COD ·', 'stock not changed': 'Stock বদলায়নি',
   'Invoices by payment': 'Payment অনুযায়ী Invoice', 'Clear selection': 'বাছাই মুছুন', 'Open Settings': 'Settings খুলুন',
@@ -212,6 +220,8 @@ export const BN_PATTERNS = [
   [/^(৳.+) due$/, (m) => `${m[1]} Due`],
   [/^(\d[\d,]*) pcs to send$/, (m) => `${m[1]} পিস পাঠাতে বাকি`],
   [/^(net )?([+−]?\d[\d,]*) pcs$/, (m) => `${m[1] ? 'নিট ' : ''}${m[2]} পিস`],
+  [/^Not in (.+)$/, (m) => `${m[1]}-এ নেই`],
+  [/^Your edition: (.+)$/, (m) => `আপনার সংস্করণ: ${m[1]}`],
   [/^Low stock · (\d[\d,]*)$/, (m) => `Stock কম · ${m[1]}`],
   [/^Showing (\d[\d,]*)[–-](\d[\d,]*) of (\d[\d,]*)(.*)$/, (m) => `${m[3]}টির মধ্যে ${m[1]}–${m[2]}${m[4]}`],
 ];

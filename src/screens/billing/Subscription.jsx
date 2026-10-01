@@ -6,6 +6,7 @@
 import React from 'react';
 import __Link from 'next/link';
 import { PaymentLogo } from '@/components/PaymentLogo';
+import { EditionCard as __EditionCard } from '@/components/EditionCard';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 
@@ -294,6 +295,7 @@ export default class SubscriptionScreen extends Component {
                   <span>{v.msg}</span>
                 </div>
               </>) : null}
+              <__EditionCard />
               <section className="tc" style={{ overflow: "hidden" }}>
                 <div className="sub-mhead" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "18px 20px 12px" }}>
                   <div style={{ flexGrow: "1" }}>

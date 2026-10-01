@@ -7,7 +7,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { EmptyState } from '@/components/ui';
-import { REPORTS, GROUPS, GROUP_BY_ID, reportBy } from '@/lib/reports/catalogue';
+import { REPORTS as ALL_REPORTS, GROUPS as ALL_GROUPS, GROUP_BY_ID, reportBy, editionReports, editionGroups } from '@/lib/reports/catalogue';
+import { currentEditionId, LOCKED, EDITION_EVENT } from '@/lib/edition';
 import { getPrefs, PREFS_EVENT } from '@/lib/reports/prefs';
 import { ReportsShell } from '@/components/reports/ReportsShell';
 
@@ -51,11 +52,16 @@ export default function ReportsCentre() {
     window.history.replaceState(window.history.state, '', u.pathname + u.search);
   };
 
+  // only the reports of this site's edition (a preview picked on the full site is read after mount)
+  const [ed, setEd] = useState(() => (LOCKED ? currentEditionId() : 'full'));
+  useEffect(() => { const on = () => setEd(currentEditionId()); on(); window.addEventListener(EDITION_EVENT, on); return () => window.removeEventListener(EDITION_EVENT, on); }, []);
+  const REPORTS = useMemo(() => (ed === 'full' ? ALL_REPORTS : editionReports(ed)), [ed]);
+  const GROUPS = useMemo(() => (ed === 'full' ? ALL_GROUPS : editionGroups(ed)), [ed]);
   const words = q.trim().toLowerCase();
   const match = (r) => !words || [r.title, r.description, r.keywords, (GROUP_BY_ID[r.group] || {}).label].join(' ').toLowerCase().includes(words);
-  const shown = useMemo(() => REPORTS.filter((r) => (!group || r.group === group) && match(r)), [group, words]); // eslint-disable-line react-hooks/exhaustive-deps
+  const shown = useMemo(() => REPORTS.filter((r) => (!group || r.group === group) && match(r)), [group, words, REPORTS]); // eslint-disable-line react-hooks/exhaustive-deps
   const counts = Object.fromEntries(GROUPS.map((g) => [g.id, REPORTS.filter((r) => r.group === g.id).length]));
-  const recent = prefs.recent.map(reportBy).filter(Boolean).slice(0, 4);
+  const recent = prefs.recent.map(reportBy).filter((r) => r && REPORTS.includes(r)).slice(0, 4);
 
   const card = (r) => {
     const g = GROUP_BY_ID[r.group] || {};
@@ -81,7 +87,7 @@ export default function ReportsCentre() {
 
   return (
     <ReportsShell screen="ReportsCentre" active={group ? 'rep-' + group : 'rep-all'} page={group ? GROUP_BY_ID[group].label : 'All reports'} title="Reports"
-      description={`Every report for the shop in one place: ${REPORTS.length} reports across sales, delivery, wholesale, customers, stock, purchase, money, POS, staff and marketing.`} actions={actions} css={CSS}>
+      description={`Every report for the shop in one place: ${REPORTS.length} reports across ${GROUPS.map((g) => g.label.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' and $1')}.`} actions={actions} css={CSS}>
       <div className="rc-top">
         <input type="search" className="gc-input" placeholder="Search reports, e.g. courier, slow stock, VAT" aria-label="Search reports" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>

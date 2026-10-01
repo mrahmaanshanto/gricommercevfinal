@@ -9,7 +9,8 @@ import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
-import { reportBy } from '@/lib/reports/catalogue';
+import { reportBy, reportInEdition } from '@/lib/reports/catalogue';
+import { routeInEdition, hasModule, currentEditionId, LOCKED, EDITION_EVENT } from '@/lib/edition';
 import { periodOf, fmt } from '@/lib/reports/period';
 import { ORDER_STATUSES } from '@/lib/orderStatus';
 import { getPosts } from '@/lib/blog';
@@ -134,7 +135,17 @@ export default function MyDashboard() {
   const { leads } = useLeads();
   const { S } = useHr();
   const role = roleOf(me);
-  const cfg = DASH[me.role] || DASH.ceo;
+  // only what this site's edition has (src/lib/edition.js): report blocks, links and side widgets
+  const [ed, setEd] = React.useState(() => (LOCKED ? currentEditionId() : 'full'));
+  React.useEffect(() => { const on = () => setEd(currentEditionId()); on(); window.addEventListener(EDITION_EVENT, on); return () => window.removeEventListener(EDITION_EVENT, on); }, []);
+  const base = DASH[me.role] || DASH.ceo;
+  const SIDE_MODULE = { orders: 'commerce', hr: 'hr' };
+  const cfg = ed === 'full' ? base : {
+    ...base,
+    links: base.links.filter(([, href]) => routeInEdition(href.split('?')[0], ed)),
+    blocks: base.blocks.filter((b) => reportInEdition(reportBy(b.id), ed)),
+    side: base.side.filter((w) => { const m = SIDE_MODULE[w] || (w.startsWith('duty:') ? 'hr' : null); return !m || hasModule(m, ed); }),
+  };
   const now = Date.now();
   const today = dayKeyOf(now);
   const mine = tasks.filter((t) => isMine(t, me.id) && t.status !== 'done');

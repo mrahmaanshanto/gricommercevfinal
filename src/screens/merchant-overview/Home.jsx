@@ -27,6 +27,8 @@ import { getLiabilities, leftOf, liabStatus } from '@/lib/liabilities';
 import { getEntries, KIND_LABEL, accountBy } from '@/lib/ledger';
 import { getPlaces } from '@/lib/locations';
 import { currentUser } from '@/lib/team';
+import { hasModule, editionChannels, currentEditionId, LOCKED, EDITION_EVENT } from '@/lib/edition';
+import CommsHome from './CommsHome';
 
 const LAYOUT_KEY = 'gc.home.layout';
 const SECTIONS = [
@@ -150,7 +152,9 @@ a.hm-box:hover{background:var(--fill-primary-soft)}
 `;
 
 /** Everything the page shows, worked out once from the books. */
-function build({ dayOffset, place }) {
+function build({ dayOffset, place, ed = 'full' }) {
+  const has = (m) => hasModule(m, ed);
+  const CH = CHANNELS.filter(([c]) => editionChannels(ed).includes(c));
   const now = clockNow();
   const day = addDays(startOfDay(now), -dayOffset);
   const d = dailySummary(day, now);
@@ -209,7 +213,7 @@ function build({ dayOffset, place }) {
   for (let i = 6; i >= 0; i -= 1) {
     const from = addDays(day, -i), to = addDays(from, 1);
     const ch = safe(() => salesByChannel(from, to, all), null);
-    trend.push({ from, today: i === 0, total: ch ? ch.all.revenue : 0, parts: CHANNELS.map(([c]) => (ch ? ch[c].revenue : 0)) });
+    trend.push({ from, today: i === 0, total: ch ? ch.all.revenue : 0, parts: CH.map(([c]) => (ch ? ch[c].revenue : 0)) });
   }
   const month = safe(() => salesByChannel(monthStart(day), addDays(day, 1), all).all.revenue, 0);
 
@@ -222,18 +226,18 @@ function build({ dayOffset, place }) {
   // what needs attention, most urgent first
   const att = [];
   const add = (show, item) => { if (show) att.push(item); };
-  add(byStatus.pending > 0, { icon: 'clock', tone: 'warning', title: `${byStatus.pending} order${byStatus.pending === 1 ? '' : 's'} to confirm`, sub: 'Call or approve so they can be packed', href: '/merchant-orders?status=pending' });
-  add(m.late.length > 0, { icon: 'clock-alert', tone: 'error', title: `${m.late.length} payout${m.late.length === 1 ? '' : 's'} overdue · ${money(m.lateTotal)}`, sub: 'Payment partners should have paid already', href: '/settlements' });
-  add(m.supplierOverdue.length > 0, { icon: 'receipt', tone: 'error', title: `${m.supplierOverdue.length} supplier bill${m.supplierOverdue.length === 1 ? '' : 's'} overdue`, sub: `${money(m.supplierOverdue.reduce((a, b) => a + billLeft(b), 0))} past the due date`, href: '/dues?tab=owe' });
-  add(m.toPayOverdue.length > 0, { icon: 'file-clock', tone: 'error', title: `${m.toPayOverdue.length} bill${m.toPayOverdue.length === 1 ? '' : 's'} to pay overdue`, sub: 'Salaries, commission or promotions', href: '/liabilities' });
-  add(stock.lowCount > 0, { icon: 'triangle-alert', tone: 'warning', title: `${stock.lowCount} product${stock.lowCount === 1 ? '' : 's'} low on stock`, sub: place ? `At ${place}` : 'Reorder or move stock from another place', href: '/stock' });
-  add(adjustments.length > 0, { icon: 'clipboard-check', tone: 'warning', title: `${adjustments.length} stock adjustment${adjustments.length === 1 ? '' : 's'} to approve`, sub: 'A manager approves every decrease', href: '/stock-adjustments' });
-  add(poApproval.length > 0, { icon: 'shopping-bag', tone: 'info', title: `${poApproval.length} purchase order${poApproval.length === 1 ? '' : 's'} to approve`, sub: money(poApproval.reduce((a, p) => a + (Number(p.total) || 0), 0)), href: '/purchase-orders' });
-  add(returnsToReceive.length > 0, { icon: 'package-x', tone: 'info', title: `${returnsToReceive.length} courier return${returnsToReceive.length === 1 ? '' : 's'} to receive`, sub: 'Check the parcels back into stock', href: '/courier-returns' });
-  add(transfers.length > 0, { icon: 'truck', tone: 'info', title: `${transfers.length} transfer${transfers.length === 1 ? '' : 's'} on the way`, sub: 'Receive them when they arrive', href: '/transfers' });
-  add(m.invoiceCount > 0, { icon: 'file-text', tone: 'info', title: `${m.invoiceCount} invoice${m.invoiceCount === 1 ? '' : 's'} not fully paid`, sub: `${money(m.invoices)} due from customers`, href: '/sales-invoices' });
+  add(has('online') && byStatus.pending > 0, { icon: 'clock', tone: 'warning', title: `${byStatus.pending} order${byStatus.pending === 1 ? '' : 's'} to confirm`, sub: 'Call or approve so they can be packed', href: '/merchant-orders?status=pending' });
+  add(has('money') && m.late.length > 0, { icon: 'clock-alert', tone: 'error', title: `${m.late.length} payout${m.late.length === 1 ? '' : 's'} overdue · ${money(m.lateTotal)}`, sub: 'Payment partners should have paid already', href: '/settlements' });
+  add(has('money') && m.supplierOverdue.length > 0, { icon: 'receipt', tone: 'error', title: `${m.supplierOverdue.length} supplier bill${m.supplierOverdue.length === 1 ? '' : 's'} overdue`, sub: `${money(m.supplierOverdue.reduce((a, b) => a + billLeft(b), 0))} past the due date`, href: '/dues?tab=owe' });
+  add(has('money') && m.toPayOverdue.length > 0, { icon: 'file-clock', tone: 'error', title: `${m.toPayOverdue.length} bill${m.toPayOverdue.length === 1 ? '' : 's'} to pay overdue`, sub: 'Salaries, commission or promotions', href: '/liabilities' });
+  add(has('catalog') && stock.lowCount > 0, { icon: 'triangle-alert', tone: 'warning', title: `${stock.lowCount} product${stock.lowCount === 1 ? '' : 's'} low on stock`, sub: place ? `At ${place}` : 'Reorder or move stock from another place', href: '/stock' });
+  add(has('catalog') && adjustments.length > 0, { icon: 'clipboard-check', tone: 'warning', title: `${adjustments.length} stock adjustment${adjustments.length === 1 ? '' : 's'} to approve`, sub: 'A manager approves every decrease', href: '/stock-adjustments' });
+  add(has('catalog') && poApproval.length > 0, { icon: 'shopping-bag', tone: 'info', title: `${poApproval.length} purchase order${poApproval.length === 1 ? '' : 's'} to approve`, sub: money(poApproval.reduce((a, p) => a + (Number(p.total) || 0), 0)), href: '/purchase-orders' });
+  add(has('online') && returnsToReceive.length > 0, { icon: 'package-x', tone: 'info', title: `${returnsToReceive.length} courier return${returnsToReceive.length === 1 ? '' : 's'} to receive`, sub: 'Check the parcels back into stock', href: '/courier-returns' });
+  add(has('catalog') && transfers.length > 0, { icon: 'truck', tone: 'info', title: `${transfers.length} transfer${transfers.length === 1 ? '' : 's'} on the way`, sub: 'Receive them when they arrive', href: '/transfers' });
+  add(has('wholesale') && m.invoiceCount > 0, { icon: 'file-text', tone: 'info', title: `${m.invoiceCount} invoice${m.invoiceCount === 1 ? '' : 's'} not fully paid`, sub: `${money(m.invoices)} due from customers`, href: '/sales-invoices' });
 
-  return { now, day, d, prev, sales, byStatus, total: orders.length, latest, money: m, stock, trend, month, activity, att };
+  return { chans: CH, now, day, d, prev, sales, byStatus, total: orders.length, latest, money: m, stock, trend, month, activity, att };
 }
 
 function Stat({ icon, label, value, sub, href, tone }) {
@@ -257,6 +261,9 @@ function Card({ icon, title, link, children }) {
 function greeting(hour) { return hour < 12 ? ['Good morning', 'শুভ সকাল'] : hour < 17 ? ['Good afternoon', 'শুভ অপরাহ্ন'] : ['Good evening', 'শুভ সন্ধ্যা']; }
 
 export default function Home() {
+  // the site's edition (src/lib/edition.js): a preview picked on the full site is read after mount
+  const [ed, setEd] = useState(() => (LOCKED ? currentEditionId() : 'full'));
+  const has = (m) => hasModule(m, ed);
   const [ready, setReady] = useState(false);
   const [tick, setTick] = useState(0);
   const [dayOffset, setDayOffset] = useState(0);
@@ -266,23 +273,26 @@ export default function Home() {
   const [locale, setLoc] = useState('en');
 
   useEffect(() => {
-    setLayout(readLayout()); setLoc(getLocale()); setReady(true);
+    setLayout(readLayout()); setLoc(getLocale()); setEd(currentEditionId()); setReady(true);
+    const edChange = () => { setEd(currentEditionId()); setTick((n) => n + 1); };
+    window.addEventListener(EDITION_EVENT, edChange);
     const again = () => setTick((n) => n + 1);
     const loc = () => setLoc(getLocale());
     ['gc:ledger', 'gc:orders', 'storage', 'focus'].forEach((e) => window.addEventListener(e, again));
     window.addEventListener('gc:locale', loc);
-    return () => { ['gc:ledger', 'gc:orders', 'storage', 'focus'].forEach((e) => window.removeEventListener(e, again)); window.removeEventListener('gc:locale', loc); };
+    return () => { ['gc:ledger', 'gc:orders', 'storage', 'focus'].forEach((e) => window.removeEventListener(e, again)); window.removeEventListener('gc:locale', loc); window.removeEventListener(EDITION_EVENT, edChange); };
   }, []);
 
   // worked out after the first paint, so the page shows its outline at once
   const [data, setData] = useState(null);
   useEffect(() => {
     if (!ready) return undefined;
-    const id = window.setTimeout(() => setData(build({ dayOffset, place })), 0);
+    const id = window.setTimeout(() => setData(build({ dayOffset, place, ed })), 0);
     return () => window.clearTimeout(id);
-  }, [ready, dayOffset, place, tick]);
+  }, [ready, dayOffset, place, tick, ed]);
   const places = useMemo(() => (ready ? safe(() => getPlaces({ active: true }).filter((p) => p.type === 'Branch' || p.type === 'Warehouse'), []) : []), [ready]);
-  const shown = (k) => layout[k] !== false;
+  const SECTION_MODULE = { orders: 'online', money: 'money', stock: 'catalog', activity: 'money' };
+  const shown = (k) => layout[k] !== false && (!SECTION_MODULE[k] || has(SECTION_MODULE[k]));
   const toggle = (k) => { const next = { ...layout, [k]: !shown(k) }; setLayout(next); writeLayout(next); };
   const target = Number(layout.target) || DEFAULT_TARGET;
   const user = ready ? safe(() => currentUser(), null) : null;
@@ -291,10 +301,12 @@ export default function Home() {
 
   const actions = (<>
     <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setCustom(true)}><Icon name="layout-grid" width="18" height="18" aria-hidden="true" /> Customise</button>
-    <Link href="/new-order" className="gc-btn gc-btn--neutral"><Icon name="file-plus" width="18" height="18" aria-hidden="true" /> New order</Link>
-    <Link href="/pos" className="gc-btn gc-btn--solid"><Icon name="scan-barcode" width="18" height="18" aria-hidden="true" /> New sale</Link>
+    {has('online') ? <Link href="/new-order" className={'gc-btn ' + (has('pos') ? 'gc-btn--neutral' : 'gc-btn--solid')}><Icon name="file-plus" width="18" height="18" aria-hidden="true" /> New order</Link> : null}
+    {has('pos') ? <Link href="/pos" className="gc-btn gc-btn--solid"><Icon name="scan-barcode" width="18" height="18" aria-hidden="true" /> New sale</Link> : null}
   </>);
-  const shortcuts = [['/add-product', 'package-plus', 'Add product'], ['/receive-goods', 'package-check', 'Receive goods'], ['/new-po', 'shopping-bag', 'Purchase order'], ['/expenses-bills', 'wallet', 'Add expense']];
+  const shortcuts = [['/add-product', 'package-plus', 'Add product', 'catalog'], ['/receive-goods', 'package-check', 'Receive goods', 'catalog'], ['/new-po', 'shopping-bag', 'Purchase order', 'catalog'], ['/expenses-bills', 'wallet', 'Add expense', 'money'], ['/sales-invoices', 'file-text', 'Invoices', 'wholesale']].filter((x) => has(x[3]));
+
+  if (ed === 'comms') return <CommsHome />;
 
   const dayName = data ? (dayOffset === 0 ? 'today' : 'yesterday') : 'today';
   const change = data ? pct(data.sales.today, data.sales.prev) : null;
@@ -332,10 +344,10 @@ export default function Home() {
               <div className="hm-glance" aria-label={`At a glance, ${dayName}`}>
                 <Stat icon="banknote" label={`Sales ${dayName}`} value={money(data.sales.today)} href="/daily-summary"
                   sub={!data.sales.today ? `Day before ${money(data.sales.prev)}` : change == null ? `${data.sales.bills} bill${data.sales.bills === 1 ? '' : 's'}` : `${change >= 0 ? '▲' : '▼'} ${Math.abs(change)}% vs day before`} tone={!data.sales.today || change == null ? '' : change >= 0 ? 'up' : 'down'} />
-                <Stat icon="shopping-cart" label={`Online orders ${dayName}`} value={String(data.d.orders.placed)} href="/merchant-orders" sub={`${data.d.orders.delivered} delivered · ${data.d.orders.returned} returned`} />
-                <Stat icon="wallet" label="Money in hand" value={short(data.money.cashTotal)} href="/money" sub={data.money.cash.map((c) => `${c.label.replace('Mobile wallets', 'Wallets')} ${short(c.closing)}`).join(' · ')} />
-                <Stat icon="hourglass" label="Payouts this week" value={short(data.money.thisWeek)} href="/settlements" sub={data.money.late.length ? `${data.money.late.length} overdue` : 'None overdue'} tone={data.money.late.length ? 'down' : ''} />
-                <Stat icon="receipt" label={`Expenses ${dayName}`} value={money(data.d.expenses.total)} href="/expenses-bills" sub={data.d.expenses.byCat[0] ? `Most: ${data.d.expenses.byCat[0].cat}` : 'Nothing spent'} />
+                {has('online') ? <Stat icon="shopping-cart" label={`Online orders ${dayName}`} value={String(data.d.orders.placed)} href="/merchant-orders" sub={`${data.d.orders.delivered} delivered · ${data.d.orders.returned} returned`} /> : has('wholesale') ? <Stat icon="file-text" label="Customer invoices due" value={short(data.money.invoices)} href="/sales-invoices" sub={`${data.money.invoiceCount} invoice${data.money.invoiceCount === 1 ? '' : 's'} not fully paid`} /> : null}
+                {has('money') ? <Stat icon="wallet" label="Money in hand" value={short(data.money.cashTotal)} href="/money" sub={data.money.cash.map((c) => `${c.label.replace('Mobile wallets', 'Wallets')} ${short(c.closing)}`).join(' · ')} /> : null}
+                {has('money') ? <Stat icon="hourglass" label="Payouts this week" value={short(data.money.thisWeek)} href="/settlements" sub={data.money.late.length ? `${data.money.late.length} overdue` : 'None overdue'} tone={data.money.late.length ? 'down' : ''} /> : null}
+                {has('money') ? <Stat icon="receipt" label={`Expenses ${dayName}`} value={money(data.d.expenses.total)} href="/expenses-bills" sub={data.d.expenses.byCat[0] ? `Most: ${data.d.expenses.byCat[0].cat}` : 'Nothing spent'} /> : null}
               </div>
 
               <div className="hm-grid">
@@ -394,7 +406,7 @@ export default function Home() {
                             {data.trend.map((t) => (
                               <div key={t.from} className={'hm-bar' + (t.today ? ' is-today' : '')} title={`${formatDate(t.from)} · ${money(t.total)}`}>
                                 <div className="hm-bar__stack" style={{ height: `${(t.total / max) * 100}%` }}>
-                                  {t.parts.map((v, i) => <span key={CHANNELS[i][0]} style={{ height: `${t.total ? (v / t.total) * 100 : 0}%`, background: CHANNELS[i][1] }} />)}
+                                  {t.parts.map((v, i) => <span key={data.chans[i][0]} style={{ height: `${t.total ? (v / t.total) * 100 : 0}%`, background: data.chans[i][1] }} />)}
                                 </div>
                                 <span className="hm-bar__day">{new Date(t.from).toLocaleDateString('en-GB', { weekday: 'short' })}</span>
                               </div>
@@ -402,7 +414,7 @@ export default function Home() {
                           </div>
                         );
                       })()}
-                      <div className="hm-legend">{CHANNELS.map(([c, col]) => <span key={c}><i className="hm-dot" style={{ background: col }} />{c}</span>)}<span>Week {short(data.trend.reduce((a, t) => a + t.total, 0))}</span></div>
+                      <div className="hm-legend">{data.chans.map(([c, col]) => <span key={c}><i className="hm-dot" style={{ background: col }} />{c}</span>)}<span>Week {short(data.trend.reduce((a, t) => a + t.total, 0))}</span></div>
                       {data.d.top.length ? (<>
                         <h3 className="hm-h3">Best sellers {dayName}</h3>
                         <div className="hm-list">{data.d.top.map((p) => <div key={p.sku || p.name} className="hm-row"><span className="hm-row__main"><b>{p.name}</b><span>{p.qty} sold</span></span><span className="hm-num">{money(p.revenue)}</span></div>)}</div>
@@ -415,9 +427,9 @@ export default function Home() {
                   {shown('money') ? (
                     <Card icon="hand-coins" title="Money to collect" link={['/dues', 'Dues']}>
                       <div className="hm-split">
-                        <Link href="/settlements" className="hm-box"><span>Cash on delivery with couriers</span><b>{short(data.money.cod)}</b><small>{data.money.codCount} payout{data.money.codCount === 1 ? '' : 's'} to come</small></Link>
+                        {has('online') ? <Link href="/settlements" className="hm-box"><span>Cash on delivery with couriers</span><b>{short(data.money.cod)}</b><small>{data.money.codCount} payout{data.money.codCount === 1 ? '' : 's'} to come</small></Link> : null}
                         <Link href="/settlements" className="hm-box"><span>bKash, Nagad & card payouts</span><b>{short(data.money.gateways)}</b><small>{data.money.gateCount} payout{data.money.gateCount === 1 ? '' : 's'} to come</small></Link>
-                        <Link href="/sales-invoices" className="hm-box"><span>Customer invoices due</span><b>{short(data.money.invoices)}</b><small>{data.money.invoiceCount} invoice{data.money.invoiceCount === 1 ? '' : 's'}</small></Link>
+                        {has('wholesale') ? <Link href="/sales-invoices" className="hm-box"><span>Customer invoices due</span><b>{short(data.money.invoices)}</b><small>{data.money.invoiceCount} invoice{data.money.invoiceCount === 1 ? '' : 's'}</small></Link> : null}
                         <Link href="/settlements" className="hm-box"><span>Arriving in 7 days</span><b>{short(data.money.thisWeek)}</b><small>{data.d.payouts.dueToday.length ? `${data.d.payouts.dueToday.length} due today` : 'Nothing due today'}</small></Link>
                       </div>
                       <h3 className="hm-h3">Money you owe</h3>
@@ -494,7 +506,7 @@ export default function Home() {
         footer={<button type="button" className="gc-btn gc-btn--solid" onClick={() => { setCustom(false); toast('Dashboard saved'); }}>Done</button>}>
         <p className="hm-sub" style={{ margin: 0 }}>Choose what you see. Today at a glance always stays at the top.</p>
         <div className="hm-cust">
-          {SECTIONS.map(([k, l]) => <label key={k}><input type="checkbox" checked={shown(k)} onChange={() => toggle(k)} />{l}</label>)}
+          {SECTIONS.filter(([k]) => !SECTION_MODULE[k] || has(SECTION_MODULE[k])).map(([k, l]) => <label key={k}><input type="checkbox" checked={shown(k)} onChange={() => toggle(k)} />{l}</label>)}
         </div>
         <div>
           <label className="gc-label" htmlFor="hm-target">Monthly sales target (৳)</label>

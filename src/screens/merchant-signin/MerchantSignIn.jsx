@@ -4,12 +4,30 @@
 // Edit freely: this file is now the source for the screen.
 
 import { DemoAccounts } from '@/components/DemoAccounts';
+import { EditionTag } from '@/components/EditionCard';
+import { currentEditionId, LOCKED } from '@/lib/edition';
 import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { getLocale, setLocale } from '@/runtime/ui';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
+
+// what the brand panel promises follows the site's edition (src/lib/edition.js)
+var EDITION_COPY = {
+  'retail-wholesale': {
+    en: { heroSubSignin: 'Run your shops and your wholesale book in one place — counters, stock, credit and cash.', fStore: 'POS at every counter', fStoreSub: 'Sell fast, even offline.', fOrders: 'Wholesale on credit', fOrdersSub: 'Price lists, invoices and dues.', fPay: 'Stock in every branch', fPaySub: 'Transfers, counts and purchase.', fStats: 'Money and profit', fStatsSub: 'Cash, bank and dues, daily.' },
+    bn: { heroSubSignin: 'দোকান আর Wholesale এক জায়গায় — Counter, Stock, বাকি আর Cash।', fStore: 'প্রতি Counter-এ POS', fStoreSub: 'দ্রুত বিক্রি, Internet ছাড়াও।', fOrders: 'বাকিতে Wholesale', fOrdersSub: 'দামের তালিকা, Invoice আর Due।', fPay: 'প্রতি Branch-এর Stock', fPaySub: 'Transfer, গণনা আর কেনা।', fStats: 'টাকা আর লাভ', fStatsSub: 'Cash, Bank আর Due, প্রতিদিন।' },
+  },
+  'retail-online': {
+    en: { heroSubSignin: 'Your shops and your online store on one stock — counters, orders, couriers and payments.' },
+    bn: { heroSubSignin: 'দোকান আর Online store এক Stock-এ — Counter, Order, Courier আর Payment।' },
+  },
+  comms: {
+    en: { eyebrowSignin: 'COMMUNICATION & CRM', heroSubSignin: 'Every chat, call and customer in one place — and a counter to sell from.', fStore: 'One inbox', fStoreSub: 'Facebook, Instagram, WhatsApp, more.', fOrders: 'Calls and AI calls', fOrdersSub: 'Never miss a customer.', fPay: 'Customers and leads', fPaySub: 'Follow-ups that don’t slip.', fStats: 'POS and automation', fStatsSub: 'Sell at the counter, automate the rest.' },
+    bn: { eyebrowSignin: 'যোগাযোগ ও CRM', heroSubSignin: 'সব Chat, Call আর Customer এক জায়গায় — সাথে বিক্রির Counter।', fStore: 'এক Inbox', fStoreSub: 'Facebook, Instagram, WhatsApp আর আরও।', fOrders: 'Call আর AI call', fOrdersSub: 'কোনো Customer মিস হবে না।', fPay: 'Customer আর Lead', fPaySub: 'Follow-up আর ভুলবেন না।', fStats: 'POS আর Automation', fStatsSub: 'Counter-এ বিক্রি, বাকিটা Automation।' },
+  },
+};
 
 var GC_COPY = {
   en: {
@@ -88,6 +106,7 @@ class Component extends DCLogic {
     var saved = getLocale();
     var cur = (this.state && this.state.lang) || this.props.startLang || 'en';
     if (saved === 'bn' && cur !== 'bn') this.setState({ lang: 'bn' });
+    this.setState({ ed: currentEditionId() });
   }
   componentWillUnmount() { clearTimeout(this.timer); clearInterval(this.tick); }
   go(mode) {
@@ -109,7 +128,7 @@ class Component extends DCLogic {
     var self = this;
     var lang = s.lang || this.props.startLang || 'en';
     var bn = lang === 'bn';
-    var t = GC_COPY[bn ? 'bn' : 'en'];
+    var t = Object.assign({}, GC_COPY[bn ? 'bn' : 'en'], (EDITION_COPY[(this.state && this.state.ed) || (LOCKED ? currentEditionId() : '')] || {})[bn ? 'bn' : 'en'] || {});
     var mode = s.mode || 'signin';
     var method = s.method || 'email';
     var status = s.status || 'idle';
@@ -620,6 +639,7 @@ export default class MerchantSignInScreen extends Component {
               <div className="au-brand__logo">
                 <img src="/assets/820d4a69b45ed8fa40c9bc6015985c0e.png" alt="GridCommerce" />
               </div>
+              <EditionTag dark />
               <p className="au-brand__line">{v.brandLine}</p>
               <div className={`au-brand__body ${v.swapCls}`}>
                 {v.panelSignin ? (<>

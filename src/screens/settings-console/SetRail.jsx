@@ -9,6 +9,7 @@ import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, list as __list } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { SetFragment as __SetFragment } from '@/screens/settings-console/SetChrome';
+import { hasModule, currentEditionId, LOCKED } from '@/lib/edition';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -28,14 +29,16 @@ const GROUPS = [
 ];
 
 const STATE = { ok: 'configured', warn: 'needs setup', off: 'turned off' };
+// sections that belong to a module (src/lib/edition.js); the rest are in every edition
+const SECTION_MODULE = { pos: 'pos', report: 'reports', payment: 'commerce', delivery: 'online', courier: 'online', social: 'comms', ai: 'comms', rules: 'comms', seo: 'online', smart: 'online', imgsearch: 'online' };
 
 class Component extends DCLogic {
   constructor(p) {
     super(p);
     this.scroller = React.createRef();
-    this.state = { q: '', closed: {}, collapsed: false };
+    this.state = { q: '', closed: {}, collapsed: false, ed: LOCKED ? currentEditionId() : 'full' };
   }
-  componentDidMount() { this.reveal(); }
+  componentDidMount() { this.setState({ ed: currentEditionId() }); this.reveal(); }
   /** Bring the current section into view, in the column (vertical) and in the strip (horizontal). */
   reveal() {
     const run = () => {
@@ -54,7 +57,7 @@ class Component extends DCLogic {
       label,
       open: !!q || !this.state.closed[label],
       items: items
-        .filter(([, name]) => !q || name.toLowerCase().includes(q))
+        .filter(([id, name]) => (!q || name.toLowerCase().includes(q)) && (!SECTION_MODULE[id] || hasModule(SECTION_MODULE[id], this.state.ed)))
         .map(([id, name, dot, badge]) => ({ id, name, dot, badge: badge || '', href: ROUTES[id] || '', active: id === active })),
     })).map((g) => ({ ...g, count: g.items.length })).filter((g) => g.items.length);
     return {

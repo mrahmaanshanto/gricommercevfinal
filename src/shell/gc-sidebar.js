@@ -9,6 +9,7 @@ import { routeOf, assetUrl, navigate } from '../runtime/routes';
 import { getLocale, readFlag, writeFlag } from '../runtime/ui';
 import { t } from './i18n';
 import { navFor, currentUser, SESSION_EVENT } from '../lib/team';
+import { currentEdition, EDITION_EVENT } from '../lib/edition';
 
 export function defineGcSidebar() {
   if (typeof window === 'undefined' || customElements.get('gc-sidebar')) return;
@@ -22,6 +23,7 @@ export function defineGcSidebar() {
 .gc-sidebar--sticky{position:sticky;top:var(--shell-inset,12px);align-self:flex-start;height:calc(100vh - var(--shell-inset,12px)*2)}
 .gc-sidebar__head{display:flex;height:var(--header-height,72px);flex:none;align-items:center;justify-content:space-between;gap:8px;padding:0 var(--nav-pad-x,12px) 0 20px}
 .gc-sidebar--collapsed .gc-sidebar__head{justify-content:center;padding:0}
+.gc-sidebar__ed{font-size:var(--text-xs,12px);font-weight:var(--weight-medium,500);letter-spacing:.02em;color:var(--text-muted,#64748b);white-space:nowrap;padding-left:2px}
 .gc-sidebar__body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;padding:8px 8px 24px 12px}
 .gc-sidebar__body::-webkit-scrollbar{width:6px}
 .gc-sidebar__body::-webkit-scrollbar-track{background:transparent}
@@ -138,6 +140,7 @@ nav{display:block}
       window.addEventListener('gc:locale', this._route);
       window.addEventListener('gc:route', this._route);
       window.addEventListener(SESSION_EVENT, this._route);
+      window.addEventListener(EDITION_EVENT, this._route);
       window.addEventListener('popstate', this._route);
       document.addEventListener('keydown', this._key);
       this.drill = this.drillFor(this.activeId());
@@ -152,6 +155,7 @@ nav{display:block}
       window.removeEventListener('gc:locale', this._route);
       window.removeEventListener('gc:route', this._route);
       window.removeEventListener(SESSION_EVENT, this._route);
+      window.removeEventListener(EDITION_EVENT, this._route);
       window.removeEventListener('popstate', this._route);
       document.removeEventListener('keydown', this._key);
     }
@@ -312,6 +316,7 @@ nav{display:block}
         }).join('');
       }
       const logoHref = routeOf('merchant-overview/MerchantOverview.dc.html');
+      const ed = currentEdition();
       const dark = this.getAttribute('theme') === 'dark';
       const classes = 'gc-sidebar' + (c ? ' gc-sidebar--collapsed' : '')
         + (mode === 'drawer' ? ' gc-sidebar--drawer' + (this.open ? ' is-open' : '') : '')
@@ -321,9 +326,9 @@ nav{display:block}
       this.shadowRoot.innerHTML = `<style>${CSS}</style>
 ${mode === 'drawer' && this.open ? `<button type="button" class="gc-backdrop" aria-label="${esc(L('Close menu'))}"></button>` : ''}
 <aside class="${classes}" id="gc-nav">
-<div class="gc-sidebar__head"><a href="${logoHref}" aria-label="GridCommerce" style="display:flex;align-items:center;text-decoration:none">${c
+<div class="gc-sidebar__head"><a href="${logoHref}" aria-label="${esc(ed.name)}" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-decoration:none">${c
         ? `<img src="${assetUrl('8c3babaf605936b39809e7960e7c846f')}" alt="" style="width:36px;height:36px;flex:none;object-fit:contain">`
-        : `<img src="${dark ? assetUrl('820d4a69b45ed8fa40c9bc6015985c0e') : assetUrl('ff462bc6abaa5d30500a126b259de9d6')}" alt="" style="height:30px;width:auto;display:block">`}</a>${c ? '' : `<button type="button" class="gc-sidebar__toggle" data-toggle aria-label="${esc(toggleLabel)}">${glyph(mode === 'drawer' ? 'x' : 'panel-left-close', 17)}</button>`}</div>
+        : `<img src="${dark ? assetUrl('820d4a69b45ed8fa40c9bc6015985c0e') : assetUrl('ff462bc6abaa5d30500a126b259de9d6')}" alt="" style="height:30px;width:auto;display:block">${ed.id !== 'full' ? `<span class="gc-sidebar__ed">${esc(L(ed.short))}</span>` : ''}`}</a>${c ? '' : `<button type="button" class="gc-sidebar__toggle" data-toggle aria-label="${esc(toggleLabel)}">${glyph(mode === 'drawer' ? 'x' : 'panel-left-close', 17)}</button>`}</div>
 <nav class="gc-sidebar__body" aria-label="${esc(L('Main'))}">${body}</nav></aside>`;
     }
   }

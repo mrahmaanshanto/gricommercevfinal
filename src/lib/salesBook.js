@@ -27,6 +27,7 @@ import { CATALOG, productBy } from './stock';
 import { productCostOf } from './productCost';
 import { loadVat, vatRateFor } from './vat';
 import { CHANNELS } from './categories';
+import { editionChannels } from './edition';
 
 export { CHANNELS, productCostOf };
 /** Usual cost of goods as a share of sales, for demo days without item lines. */
@@ -518,7 +519,12 @@ const ORDER_METHOD = { COD: 'COD', Paid: 'Gateway', Partial: 'Mixed', Unpaid: 'D
  *   place, counter, cashier, salesperson, source, zone, method, lines }
  * A demo September retail or online record is a whole day; its lines are that day's sales.
  */
+/** Every sale in the channels the site's edition sells through (src/lib/edition.js › editionChannels). */
 export function getSales() {
+  const chans = editionChannels();
+  return allSales().filter((r) => chans.includes(r.channel));
+}
+function allSales() {
   const vat = loadVat();
   const built = seedBuilt();
   const lineMix = (lines, key) => { const set = new Set(lines.map((l) => l[key]).filter(Boolean)); return set.size === 1 ? [...set][0] : ''; };

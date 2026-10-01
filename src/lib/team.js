@@ -8,6 +8,7 @@
 
 import { NAV, NAV_ALIAS } from '../shell/navigation';
 import { routeOf } from '../runtime/routes';
+import { navForEdition } from './edition';
 
 export const SESSION_KEY = 'gc.session';
 export const SESSION_EVENT = 'gc:session';
@@ -75,11 +76,11 @@ export function canSee(u, id) {
   // an old menu id in a role's list still opens the item it was merged into
   return r.access.includes(id) || r.access.some((a) => NAV_ALIAS[a] === id);
 }
-/** The menu for a user: NAV with items (and children) they cannot see removed, empty groups dropped. */
+/** The menu for a user: NAV with items (and children) they cannot see — or that the edition leaves out — removed. */
 export function navFor(u) {
   const r = roleOf(u);
-  if (r.access === '*') return NAV;
-  return NAV.map((g) => ({
+  if (r.access === '*') return navForEdition(NAV);
+  return navForEdition(NAV.map((g) => ({
     ...g,
     items: g.items.map((it) => {
       if (!it.children) return canSee(u, it.id) ? it : null;
@@ -87,8 +88,10 @@ export function navFor(u) {
       if (!kids.length) return canSee(u, it.id) ? { ...it, children: undefined } : null;
       return { ...it, children: kids };
     }).filter(Boolean),
-  })).filter((g) => g.items.length);
+  })).filter((g) => g.items.length));
 }
+/** Does this role have work in the site's edition (anything beyond the shared tasks / chat / my dashboard)? */
+export const hasWorkInEdition = (u) => navFor(u).some((g) => g.items.some((it) => !BASE.includes(it.id)));
 const pathOf = (it) => (it.to ? routeOf(it.to).split('?')[0] : '');
 /** Can this user open a page? Pages that are not in the menu (details, profiles) are always allowed. */
 export function canOpen(u, path) {

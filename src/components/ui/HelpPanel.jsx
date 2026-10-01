@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { getLocale, setLocale, toast } from '@/runtime/ui';
 import { helpFor, labelFor } from '@/lib/help';
+import { routeInEdition } from '@/lib/edition';
 import { Sheet } from './index';
 
 const CSS = `
@@ -72,8 +73,8 @@ export function HelpPanel() {
           <span><b lang={locale}>{(c.video || [])[0] || t.watch}</b><small>{t.watch} · {(c.video || [])[1] || '2:00'}</small></span>
         </button>
       </section>
-      {page.related && page.related.length ? (
-        <section className="hp-sec"><h3>{t.related}</h3><div className="hp-rel">{page.related.map((r) => <Link key={r} href={r} onClick={() => setOpen(false)}><Icon name="arrow-up-right" width="14" height="14" aria-hidden="true" />{labelFor(r)}</Link>)}</div></section>
+      {page.related && page.related.filter((r) => routeInEdition(r.split('?')[0])).length ? (
+        <section className="hp-sec"><h3>{t.related}</h3><div className="hp-rel">{page.related.filter((r) => routeInEdition(r.split('?')[0])).map((r) => <Link key={r} href={r} onClick={() => setOpen(false)}><Icon name="arrow-up-right" width="14" height="14" aria-hidden="true" />{labelFor(r)}</Link>)}</div></section>
       ) : null}
     </Sheet>
   );

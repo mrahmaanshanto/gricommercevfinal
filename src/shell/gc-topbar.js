@@ -8,6 +8,7 @@ import { routeOf, navigate } from '../runtime/routes';
 import { getLocale, setLocale, toast } from '../runtime/ui';
 import { t } from './i18n';
 import { NAV, NAV_ALIAS } from './navigation';
+import { currentEdition, EDITION_EVENT } from '../lib/edition';
 
 // The crumb follows the menu: the page's menu group (or its parent item), found from the side menu's active id
 // or the address. Screens still pass their old crumb; it is only used when the page is not in the menu.
@@ -159,6 +160,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       window.addEventListener('gc:locale', this._loc);
       window.addEventListener('gc:settle', this._loc);
       window.addEventListener(SESSION_EVENT, this._loc);
+      window.addEventListener(EDITION_EVENT, this._loc);
       this._key = (e) => {
         if (e.key === 'Escape' && this._open) { this.close(true); }
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); const i = this.root.querySelector('input'); if (i) i.focus(); }
@@ -166,25 +168,28 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       if (!this._navBound) { this._navBound = true; this.root.addEventListener('click', (e) => { const a = e.composedPath().find((el) => el.matches && el.matches('a[href^="/"]')); if (a && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) { e.preventDefault(); this._open = ''; navigate(a.getAttribute('href')); } }); }
       document.addEventListener('pointerdown', this._doc); document.addEventListener('keydown', this._key);
     }
-    disconnectedCallback() { document.removeEventListener('pointerdown', this._doc); document.removeEventListener('keydown', this._key); window.removeEventListener('gc:locale', this._loc); window.removeEventListener('gc:settle', this._loc); window.removeEventListener(SESSION_EVENT, this._loc); }
+    disconnectedCallback() { document.removeEventListener('pointerdown', this._doc); document.removeEventListener('keydown', this._key); window.removeEventListener('gc:locale', this._loc); window.removeEventListener(EDITION_EVENT, this._loc); window.removeEventListener('gc:settle', this._loc); window.removeEventListener(SESSION_EVENT, this._loc); }
     /** Closes the open popover; from the keyboard, focus goes back to the button that opened it. */
     close(refocus) { const k = this._open; this._open = ''; this.render(); if (refocus && k) { const el = this.root.querySelector(k === 'search' ? 'input' : `[data-act="${k}"]`); if (el) el.focus(); } }
     attributeChangedCallback() { if (this.isConnected) this.render(); }
     toggle(k) { this._open = this._open === k ? '' : k; if (k === 'scan' && this._open) { this._scanHit = false; clearTimeout(this._st); this._st = setTimeout(() => { this._scanHit = true; if (this._open === 'scan') this.render(); }, 1400); } this.render(); }
     render() {
       const a = (n, d) => this.getAttribute(n) || d;
+      const ed = currentEdition();
+      const has = (m) => ed.modules.includes(m);   // shortcuts only for the edition's modules (src/lib/edition.js)
       const locale = getLocale();
       const L = (x) => t(x, locale);
       const base = a('base', '../'), dark = a('theme', '') === 'dark', o = this._open;
-      const title = a('page', ''), crumb = ((c) => (c === title ? '' : c))(menuCrumb(a('crumb', ''))), ph = (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 640px)').matches) ? L('Search') : L(a('placeholder', 'Search orders, products, customers, invoices…'));
+      const title = a('page', ''), crumb = ((c) => (c === title ? '' : c))(menuCrumb(a('crumb', ''))), ph = (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 640px)').matches) ? L('Search') : L(a('placeholder', has('catalog') ? 'Search orders, products, customers, invoices…' : 'Search customers, chats and calls…'));
       const exp = (k) => `aria-expanded="${o === k}" aria-haspopup="true"`;
       const pop = (k, html, style) => (o === k ? `<div class="pop" role="dialog" style="${style}">${html}</div>` : '');
       const searchPop = `<div class="ph">${L('Recent searches')}</div><div class="chips"><button class="chip">#136779</button><button class="chip">01711-234567</button><button class="chip">Denim Jeans</button><button class="chip">INV-2026-0912</button></div>
         <div class="ph">${L('Jump to')}</div>
-        <a class="it" href="${routeOf('merchant-orders/MerchantOrders.dc.html')}"><span class="ico">${ic('cart', 16)}</span><span><b>Orders</b><small>Search by order ID, phone or customer</small></span></a>
-        <a class="it" href="${routeOf('products/AllProducts.dc.html')}"><span class="ico">${ic('box', 16)}</span><span><b>Products</b><small>Name, SKU or barcode</small></span></a>
+        ${has('commerce') ? `<a class="it" href="${routeOf('merchant-orders/MerchantOrders.dc.html')}"><span class="ico">${ic('cart', 16)}</span><span><b>Orders</b><small>Search by order ID, phone or customer</small></span></a>` : ''}
+        ${has('catalog') ? `<a class="it" href="${routeOf('products/AllProducts.dc.html')}"><span class="ico">${ic('box', 16)}</span><span><b>Products</b><small>Name, SKU or barcode</small></span></a>` : ''}
         <a class="it" href="${routeOf('customers-crm/AllCustomers.dc.html')}"><span class="ico">${ic('user', 16)}</span><span><b>Customers</b><small>Name, phone or email</small></span></a>
-        <a class="it" href="${routeOf('order-detail/OrderDetail.dc.html')}"><span class="ico">${ic('receipt', 16)}</span><span><b>Invoices</b><small>Invoice number or amount</small></span></a>`;
+        ${has('commerce') ? `<a class="it" href="${routeOf('order-detail/OrderDetail.dc.html')}"><span class="ico">${ic('receipt', 16)}</span><span><b>Invoices</b><small>Invoice number or amount</small></span></a>` : ''}
+        ${has('comms') ? `<a class="it" href="${routeOf('merchant-inbox/MerchantInbox.dc.html')}"><span class="ico">${ic('user', 16)}</span><span><b>Inbox</b><small>Name, phone or message</small></span></a>` : ''}`;
       const scanPop = `<div class="ph">Scan a barcode <span style="text-transform:none;letter-spacing:0;font-weight:var(--weight-medium)">USB scanner ready</span></div>
         <div class="scanbox">Point the camera at a barcode, or scan with the USB scanner</div>
         ${this._scanHit ? `<div class="hit" role="status"><span class="ok">${ic('check', 16, 2.5)}</span><span><b style="display:block">Denim Jeans · Blue · 32</b><span style="font-family:var(--font-data);font-size:11.5px;color:var(--muted)">8941200200214 · 40 in stock · ৳1,890</span></span></div>
@@ -201,7 +206,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       const settleNote = settle.count ? `<a class="it note unread" href="/settlements?check=1"><span class="ico">${ic('wallet', 16)}</span><span><b>${esc(settle.text)}</b><small>Did the expected money reach your bank? Tap to answer.</small></span><span class="t">Now</span><i class="dot" role="img" aria-label="Unread"></i></a>` : '';
       const unread = this._unread + (settle.count ? 1 : 0);
       const notePop = `<div class="ph">${L('Notifications')} <button data-act="readall">${L('Mark all read')}</button></div>
-        ${settleNote}${NOTES.map((n, i) => { const un = n.u && i < this._unread; return `<a class="it note${un ? ' unread' : ''}" href="${routeOf('merchant-orders/MerchantOrders.dc.html')}"><span class="ico">${ic(n.i, 16)}</span><span><b>${n.t}</b><small>${n.d}</small></span><span class="t">${n.w}</span><i class="dot"${un ? ' role="img" aria-label="Unread"' : ' aria-hidden="true"'}></i></a>`; }).join('')}
+        ${settleNote}${NOTES.map((n, i) => { const un = n.u && i < this._unread; return `<a class="it note${un ? ' unread' : ''}" href="${routeOf(has('commerce') ? 'merchant-orders/MerchantOrders.dc.html' : 'merchant-inbox/MerchantInbox.dc.html')}"><span class="ico">${ic(n.i, 16)}</span><span><b>${n.t}</b><small>${n.d}</small></span><span class="t">${n.w}</span><i class="dot"${un ? ' role="img" aria-label="Unread"' : ' aria-hidden="true"'}></i></a>`; }).join('')}
         <a class="foot" href="${routeOf('merchant-inbox/MerchantInbox.dc.html')}">${L('View all notifications')}</a>`;
       const me = currentUser(), myRole = roleOf(me);
       const others = USERS.filter((u) => u.id !== me.id);
@@ -211,8 +216,8 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
         <a class="it" href="/tasks"><span class="ico">${ic('check', 16)}</span><span><b>${L('My tasks')}</b></span></a>
         <a class="it" href="${routeOf('settings-console/SetSecurity.dc.html')}"><span class="ico">${ic('user', 16)}</span><span><b>${L('My profile')}</b><small>${L('Details, password and two-factor sign-in')}</small></span></a>
         <a class="it" href="${routeOf('settings-console/SetGeneral.dc.html')}"><span class="ico">${ic('gear', 16)}</span><span><b>${L('Store settings')}</b></span></a>
-        <a class="it only-narrow" href="${routeOf('storefront/Offers.dc.html')}"><span class="ico">${ic('store', 16)}</span><span><b>${L('View store')}</b></span></a>
-        <a class="it only-narrow" href="${routeOf('order-detail/OrderDetail.dc.html')}"><span class="ico">${ic('receipt', 16)}</span><span><b>${L('Invoices')}</b></span></a>
+        ${has('online') ? `<a class="it only-narrow" href="${routeOf('storefront/Offers.dc.html')}"><span class="ico">${ic('store', 16)}</span><span><b>${L('View store')}</b></span></a>` : ''}
+        ${has('commerce') ? `<a class="it only-narrow" href="${routeOf('order-detail/OrderDetail.dc.html')}"><span class="ico">${ic('receipt', 16)}</span><span><b>${L('Invoices')}</b></span></a>` : ''}
         <a class="it only-narrow" href="${routeOf('settings-console/SetMedia.dc.html')}"><span class="ico">${ic('folder', 16)}</span><span><b>${L('Files')}</b></span></a>
         <div class="it" style="cursor:default"><span class="ico">${ic('store', 16)}</span><span><b>GridShop</b><small>${L('Business plan · 3 branches')}</small></span><span class="t" style="color:#047857">${ic('check', 14, 2.5)}</span></div>
         <div class="it" style="cursor:default;align-items:center"><span class="ico">${ic('kb', 16)}</span><b>${L('Language')}</b><span class="seg" role="group" aria-label="${L('Language')}"><button data-lang="en" class="${locale === 'en' ? 'on' : ''}" aria-pressed="${locale === 'en'}">EN</button><button data-lang="bn" lang="bn" class="${locale === 'bn' ? 'on' : ''}" aria-pressed="${locale === 'bn'}">বাংলা</button></span></div>
@@ -234,11 +239,11 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
   </div>
   <div class="grp" role="group" aria-label="Quick access">
     <a class="ib" href="${routeOf('settings-console/SetGeneral.dc.html')}" aria-label="${L('Settings')}">${ic('gear')}<span class="tip">${L('Settings')}</span></a>
-    <span class="wrap"><button class="ib" data-act="inv" ${exp('inv')} aria-label="${L('Invoices')}">${ic('receipt')}<span class="tip">${L('Invoices')}</span></button>${pop('inv', invPop, 'right:-60px;width:330px')}</span>
+    ${has('commerce') ? `<span class="wrap"><button class="ib" data-act="inv" ${exp('inv')} aria-label="${L('Invoices')}">${ic('receipt')}<span class="tip">${L('Invoices')}</span></button>${pop('inv', invPop, 'right:-60px;width:330px')}</span>` : ''}
     <span class="wrap"><button class="ib" data-act="files" ${exp('files')} aria-label="${L('Files')}">${ic('folder')}<span class="tip">${L('Files')}</span></button>${pop('files', filesPop, 'right:-20px;width:340px')}</span>
   </div>
   <span class="sep" aria-hidden="true"></span>
-  <a class="store" href="${routeOf('storefront/Offers.dc.html')}" aria-label="View store (opens the storefront)">${ic('store', 16)}<span>${L('View store')}</span>${ic('ext', 13)}</a>
+  ${has('online') ? `<a class="store" href="${routeOf('storefront/Offers.dc.html')}" aria-label="View store (opens the storefront)">${ic('store', 16)}<span>${L('View store')}</span>${ic('ext', 13)}</a>` : ''}
   <span class="wrap"><button class="ib" data-act="notes" ${exp('notes')} aria-label="${L('Notifications')}${unread ? ', ' + unread + ' unread' : ''}">${ic('bell')}${unread ? `<span class="badge">${unread}</span>` : ''}<span class="tip">${L('Notifications')}</span></button>${pop('notes', notePop, 'right:-8px;width:360px')}</span>
   <span class="wrap" style="margin-left:auto"><button class="me" data-act="me" ${exp('me')} aria-label="${L('Account menu')}, ${esc(me.name)}"><span class="av">${esc(me.initials)}<i></i></span><span class="mnm"><span class="mn" style="display:block">${esc(me.name)}</span><span class="mr">${esc(L(myRole.title))}</span></span><span class="chev">${ic('chev', 16)}</span></button>${pop('me', mePop, 'right:0;width:300px')}</span>
 </div>`;
