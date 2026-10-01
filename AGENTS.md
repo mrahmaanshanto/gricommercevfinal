@@ -72,6 +72,13 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   attendance, leave, loans, payroll runs) `lib/hr.js` — payroll approval makes the month's salary liability; loyalty
   (members, points, wallets, referrals; POS checkout reads it) `lib/loyalty.js`; blog posts, categories, authors
   `lib/blog.js`; inbox chats, comments and calls `lib/inbox.js`.
+- Reports: one menu group (after Accounts) and one page, `/reports-centre`. Every report is a definition in
+  `src/lib/reports/defs/<group>.js` (contract at the top of `src/lib/reports/catalogue.js`) rendered by
+  `/report?id=<id>` (`screens/reports/ReportView.jsx`: period + compare, filters, KPIs, `components/reports/ReportChart`,
+  `ReportTable`, CSV, print, favourites, saved views, schedules in `lib/reports/prefs.js`). Report pages that existed
+  before (Sales & profit, Account reports, Sales book …) are listed in the catalogue as `kind: 'page'`. Sale lines with
+  cost/place/staff/source come from `salesBook.getSaleLines()`; demo online orders from `getOnlineOrders()`; the
+  manager PIN log from `lib/auditLog.js`; ad spend from `lib/adSpend.js`. Add a report = add a definition object.
 - Responsive rules for the platform console frame (`.cs`) and fixed design boards (`data-board`, zoomed to fit) are in
   `src/styles/console-responsive.css`. `?quiet=1` stops the evening payout check from opening by itself (tests, screenshots).
 - Reference pages (UI kit, flows, site map, storyboards) are under `/dev/…`. They and the POS /

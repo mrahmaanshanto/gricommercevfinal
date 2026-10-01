@@ -155,7 +155,10 @@ export function stockAt(key, place, holds = getHolds(), moves = getMoves(), tran
   const bay = place === DAMAGED_PLACE;
   // stock moved to the damaged bay has left the shelf it came from
   const leftShelf = place && !bay ? sum(mine.filter((h) => h.status === 'damaged' && isHere(h.from) && !isHere(h.place))) : 0;
-  const onHand = base + moved - leftShelf + (bay ? damaged : 0);
+  // the bay counts damaged holds that came off a shelf; pieces reported damaged on arrival (from the bay
+  // itself) are already in the bay through their 'receive' stock move, so they are not added twice
+  const offShelf = bay ? sum(mine.filter((h) => h.status === 'damaged' && here(h) && h.from && h.from !== DAMAGED_PLACE)) : 0;
+  const onHand = base + moved - leftShelf + offShelf;
   const held = sum(mine.filter((h) => h.status === 'held' && here(h)));
   let transit;
   if (transfers) { const t = inTransit(transfers); transit = places.reduce((a, x) => a + ((t[x] && t[x][p.sku]) || 0), 0); }

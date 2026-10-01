@@ -7,7 +7,7 @@ const MOVED = {
   '/mfs-accounts': '/money?type=Mobile', '/mfs-providers': '/account-setup?tab=accounts', '/fund-transfers': '/money',
   '/payment-sessions': '/settlements', '/reconciliation': '/settlements', '/expenses': '/expenses-bills',
   '/investment': '/expenses-bills', '/owner-withdraw': '/expenses-bills', '/liability-settlement': '/liabilities',
-  '/commissions': '/liabilities', '/reports': '/account-reports', '/ledger-balances': '/money',
+  '/commissions': '/liabilities', '/reports': '/reports-centre', '/ledger-balances': '/money',
 };
 
 const nextConfig = {

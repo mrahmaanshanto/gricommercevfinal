@@ -52,7 +52,7 @@ export default function ReturnHistory() {
     <div className="dc-screen ds" data-screen="ReturnHistory">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="gc-shell">
-        <Sidebar sticky="" active="stock-returns" />
+        <Sidebar sticky="" active="rep-sales" />
         <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
           <Topbar crumb="Stocks & Inventory" page="Returns & exchanges" />
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>

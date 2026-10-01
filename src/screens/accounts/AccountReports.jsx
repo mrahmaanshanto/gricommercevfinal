@@ -354,7 +354,7 @@ export default function AccountReports() {
   );
 
   return (
-    <AccPage screen="AccountReports" active="acc-reports" page="Reports" title="Reports" css={CSS}
+    <AccPage screen="AccountReports" active="rep-finance" page="Reports" title="Reports" css={CSS}
       description="How the shop did over a period: profit, where the money went, what partners kept, and VAT."
       actions={actions}>
 

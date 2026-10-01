@@ -48,7 +48,7 @@ export default class TeamReportScreen extends Component {
       <div className="dc-screen ds" data-screen="TeamReport">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div className="gc-shell" style={{ display: "flex", gap: "12px", padding: "12px", background: "#eef2f7" }}>
-          <__Sidebar sticky="" active="team-report" />
+          <__Sidebar sticky="" active="rep-marketing" />
           <div className="gc-shell__main" style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#f8fafc" }}>
             <__Topbar crumb="Reports" page="Team performance" />
             <header className="mg-head" style={{ zIndex: "90", display: "flex", minHeight: "76px", flex: "none", alignItems: "center", gap: "16px", padding: "16px 32px", background: "#fff", borderBottom: "1px solid #e2e8f0" }}>

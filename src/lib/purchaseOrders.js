@@ -33,6 +33,41 @@ export function unitCost(name) {
   return p ? Math.round((p.price * 0.7) / 5) * 5 : 0;
 }
 
+// ---- the demo purchase orders (Purchase orders list, PO detail, reports) ----------------------------
+// s: draft | approval | approved | ordered | partial | received | closed | cancelled (the list's tabs).
+// Lines: { name, code, sku, qty, cost, received }; the quantities add up to `of`, the received ones to `got`,
+// and qty × cost adds up to `total`. PO-2609-0020 is the order Receive goods opens (its pending pieces match).
+const DL = (sku, name, qty, cost, received = 0, code = '') => ({ name, code, sku, qty, cost, received });
+const PO_DAY = (day, m) => new Date(2026, m - 1, day).getTime();
+export const DEMO_POS = [
+  { no: 'PO-2609-0024', date: '18 Sep 2026', at: PO_DAY(18, 9), supplier: 'Rahman Traders', place: 'Central Warehouse', got: 0, of: 120, total: 86400, paid: 0, due: '', s: 'approval',
+    lines: [DL('SK-TON-150', 'Hyaluronic Toner 150ml', 114, 710), DL('SK-SUN-50', 'Sunscreen SPF 50 · 50ml', 6, 910)] },
+  { no: 'PO-2609-0023', date: '17 Sep 2026', at: PO_DAY(17, 9), supplier: 'Dhaka Beauty Imports', place: 'Central Warehouse', got: 0, of: 48, total: 38250, paid: 0, due: '', s: 'draft',
+    lines: [DL('SK-SUN-50', 'Sunscreen SPF 50 · 50ml', 21, 915), DL('SK-TON-150', 'Hyaluronic Toner 150ml', 27, 705)] },
+  { no: 'PO-2609-0022', date: '16 Sep 2026', at: PO_DAY(16, 9), supplier: 'Chattogram Packaging Co.', place: 'Central Warehouse', got: 0, of: 500, total: 27500, paid: 0, due: '', s: 'approved',
+    lines: [DL('', 'Shipping box · Medium', 25, 17, 0, '8941300900014'), DL('', 'Packing tape 2 inch', 475, 57)] },
+  { no: 'PO-2609-0021', date: '14 Sep 2026', at: PO_DAY(14, 9), supplier: 'Rahman Traders', place: 'Central Warehouse', got: 0, of: 200, total: 64800, paid: 0, due: '', s: 'approval',
+    lines: [DL('SK-SHA-340', 'Daily Care Shampoo 340ml', 188, 300), DL('SK-TON-150', 'Hyaluronic Toner 150ml', 12, 700)] },
+  { no: 'PO-2609-0020', date: '12 Sep 2026', at: PO_DAY(12, 9), supplier: 'Nabil Fashion House', place: 'Central Warehouse', got: 140, of: 240, total: 112600, paid: 50000, due: 'Due 12 Oct 2026', s: 'partial',
+    lines: [
+      DL('', 'Men’s Polo Shirt · Navy · M', 60, 420, 40, '8941200100118'), DL('', 'Men’s Polo Shirt · Navy · L', 60, 420, 40, '8941200100125'),
+      DL('CL-JNS-32', 'Denim Jeans · Blue · 32', 40, 720, 30, '8941200200214'), DL('', 'Denim Jeans · Blue · 34', 40, 720, 30, '8941200200221'),
+      DL('', 'Cotton T-shirt · Black · M', 40, 115, 0, '8941200300317'),
+    ] },
+  { no: 'PO-2609-0019', date: '5 Sep 2026', at: PO_DAY(5, 9), supplier: 'Dhaka Beauty Imports', place: 'Central Warehouse', got: 96, of: 96, total: 52980, paid: 52980, due: '', s: 'received',
+    lines: [DL('SK-SUN-50', 'Sunscreen SPF 50 · 50ml', 42, 895, 42), DL('SK-SHA-340', 'Daily Care Shampoo 340ml', 54, 285, 54)] },
+  { no: 'PO-2608-0017', date: '20 Aug 2026', at: PO_DAY(20, 8), supplier: 'Mim Enterprise', place: 'Central Warehouse', got: 60, of: 60, total: 41300, paid: 0, due: 'Overdue 15 days', s: 'received', overdue: true,
+    lines: [DL('HM-RCK-18', 'Rice Cooker 1.8L Walton', 8, 2075, 8), DL('HM-BTL-750', 'Steel Water Bottle 750ml', 52, 475, 52)] },
+  { no: 'PO-2609-0018', date: '3 Sep 2026', at: PO_DAY(3, 9), supplier: 'Rahman Traders', place: 'Central Warehouse', got: 0, of: 150, total: 48600, paid: 0, due: 'Due on delivery', s: 'ordered',
+    lines: [DL('SK-SHA-340', 'Daily Care Shampoo 340ml', 141, 300), DL('SK-TON-150', 'Hyaluronic Toner 150ml', 9, 700)] },
+  { no: 'PO-2608-0015', date: '12 Aug 2026', at: PO_DAY(12, 8), supplier: 'Rahman Traders', place: 'Central Warehouse', got: 300, of: 300, total: 95000, paid: 95000, due: '', s: 'closed',
+    lines: [DL('SK-SHA-340', 'Daily Care Shampoo 340ml', 275, 285, 275), DL('SK-TON-150', 'Hyaluronic Toner 150ml', 25, 665, 25)] },
+  { no: 'PO-2608-0014', date: '8 Aug 2026', at: PO_DAY(8, 8), supplier: 'Nabil Fashion House', place: 'Central Warehouse', got: 0, of: 80, total: 22000, paid: 0, due: '', s: 'cancelled',
+    lines: [DL('CL-JNS-32', 'Denim Jeans · Blue · 32', 20, 755), DL('', 'Cotton T-shirt · Black · M', 60, 115)] },
+];
+/** A demo order's status in the words of orders made here. */
+export const DEMO_STATUS = { draft: 'Draft', approval: 'Waiting approval', approved: 'Approved', ordered: 'Sent', partial: 'Partly received', received: 'Received', closed: 'Received', cancelled: 'Cancelled' };
+
 const read = () => { try { return JSON.parse(window.localStorage.getItem(KEY)) || []; } catch { return []; } };
 const write = (list) => { try { window.localStorage.setItem(KEY, JSON.stringify(list)); } catch { /* ignore */ } };
 

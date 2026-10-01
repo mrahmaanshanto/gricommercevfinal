@@ -7,9 +7,13 @@
 //   gc.orders.edits   { id: { lines, total, ... } }  e.g. after a duplicate was merged in
 //   gc.orders.log     { id: [{ at, icon, title, meta }] }
 //   gc.orders.rto     { id: [{ at, by, lines: [{ name, good, damaged }] }] }
+//   gc.orders.times   { id: { approved, shipped, … } }  status times of orders not made in this browser
 // Orders made in this browser keep their changes on their own row (updateOrder).
+// Every order has `times` { placed, approved, ready, shipped, delivered, returned, cancelled } (ms or
+// null; the demo orders' times are set from their status) and `source` (Website, Facebook, Phone,
+// Order link, Chat; '' for counter sales and invoices).
 
-import { extraOrders, updateOrder } from './orderLinks';
+import { extraOrders, updateOrder, STATUS_TIME } from './orderLinks';
 import { getInvoices, deliveryOf, statusOf } from './invoices';
 import { POS_KEYS, load, save } from './posStore';
 import { formatBDT, formatDate } from './format';
@@ -24,6 +28,7 @@ const STATUS_KEY = 'gc.orders.status';
 const EDITS_KEY = 'gc.orders.edits';
 const LOG_KEY = 'gc.orders.log';
 const RTO_KEY = 'gc.orders.rto';
+const TIMES_KEY = 'gc.orders.times';
 
 export const DEFAULT_HOLD_PLACE = 'Central Warehouse';
 /** Which statuses allow which action. */
@@ -54,6 +59,45 @@ const initialsOf = (name) => String(name || '').split(/\s+/).filter(Boolean).sli
 const sum = (list, f) => list.reduce((a, x) => a + f(x), 0);
 const readMap = (key, fallback) => (typeof window === 'undefined' ? fallback : load(key, fallback));
 
+// ---- order times and source ---------------------------------------------------------------------
+const HOUR = 60 * 60 * 1000;
+/** Demo times never go past the morning of 1 October (the demo's today). */
+const DEMO_CUTOFF = new Date(2026, 9, 1, 10, 0).getTime();
+const atCounter = (o) => /^(POS|Wholesale)/.test(String(o.channel || ''));
+const blankTimes = (placed) => ({ placed: placed || null, approved: null, ready: null, shipped: null, delivered: null, returned: null, cancelled: null });
+/** Where a demo order came from (a few were taken by phone, in chat or through an order link). */
+const DEMO_SOURCE = { '#136810': 'Phone', '#136771': 'Chat', '#136742': 'Order link' };
+function sourceOf(o) {
+  if (o.source) return o.source;
+  if (DEMO_SOURCE[o.id]) return DEMO_SOURCE[o.id];
+  if (atCounter(o)) return '';
+  return { 'Online store': 'Website', 'Facebook shop': 'Facebook', 'Order link': 'Order link', Chat: 'Chat' }[o.channel] || 'Phone';
+}
+/** The times a demo order went through, from its status: approved an hour after it was placed, packed
+ *  3 hours later, with the courier 16 hours after that, delivered or brought back after the zone's days. */
+function demoTimes(o) {
+  const t = blankTimes(o.at);
+  if (atCounter(o)) { t.approved = o.at; if (o.status === 'Delivered') t.delivered = o.at; return t; }
+  if (o.status === 'Pending') return t;
+  if (o.status === 'Cancelled') { t.cancelled = o.at + 3 * HOUR; return t; }
+  t.approved = o.at + HOUR;
+  if (o.status === 'Approved') return t;
+  t.ready = t.approved + 3 * HOUR;
+  if (o.status === 'Ready to ship') return t;
+  t.shipped = t.ready + 16 * HOUR;
+  const end = t.shipped + ({ 'Inside Dhaka': 1, 'Sub-Dhaka': 2, 'Outside Dhaka': 3 }[o.zone] || 2) * 24 * HOUR;
+  if (o.status === 'Delivered') t.delivered = Math.min(end, DEMO_CUTOFF);
+  if (o.status === 'Returned') { const got = (RTO_SEED[o.id] || [])[0]; t.returned = Math.max(t.shipped, Math.min(end, DEMO_CUTOFF, got ? got.at - 2 * HOUR : Infinity)); }
+  return t;
+}
+
+// courier returns already booked in (they match the demo stock holds and the returns history)
+const RTO_SEED = {
+  '#136804': [{ at: at(30, 9, 30), by: 'Sadia Akter', lines: [{ name: 'Denim Jeans · Blue · 32', good: 1, damaged: 0 }] }],
+  '#136799': [{ at: at(29, 11, 0), by: 'Sadia Akter', lines: [{ name: 'Hyaluronic Toner 150ml', good: 0, damaged: 1 }] }],
+  '#136795': [{ at: at(29, 15, 40), by: 'Arif Rahman', lines: [{ name: 'Premium Cotton Oversized T-Shirt', good: 1, damaged: 0 }] }],
+};
+
 // ---- demo orders ------------------------------------------------------------------------------
 const L = (name, qty, price) => ({ name, qty, price });
 const NUSRAT = 'House 14, Road 7, Sector 4, Uttara, Dhaka 1230';
@@ -74,14 +118,7 @@ const DEMO = [
   demo('#136750', at(5, 18, 22), 'Online store', 'Imran Kabir', '01533-889001', 'Inside Dhaka', 'House 5, Road 12, Banani, Dhaka 1213', [L('Wireless Earbuds Pro', 1, 3490)], 70, 'Carrybee', 'CB-7729014', 'Cancelled', 'Unpaid'),
   demo('#136742', at(5, 13, 15), 'Online store', 'Farhana Islam', '01744-556677', 'Outside Dhaka', 'Amberkhana, Sylhet 3100', [L('Rice Cooker 1.8L Walton', 1, 2950)], 150, 'Steadfast', 'SF-9918770', 'Returned', 'Paid', { rtoReason: 'Wrong address' }),
   demo('#136737', at(4, 10, 48), 'Online store', 'Rakib Uddin', '01677-220945', 'Inside Dhaka', 'House 31, Lake Circus, Kalabagan, Dhaka 1205', [L('Classic White Sneakers', 1, 3450)], 70, 'Pathao', 'PT-4469881', 'Delivered', 'Paid'),
-].map((o) => ({ ...o, total: sum(o.lines, (l) => l.price * l.qty) + o.shipping }));
-
-// courier returns already booked in (they match the demo stock holds and the returns history)
-const RTO_SEED = {
-  '#136804': [{ at: at(30, 9, 30), by: 'Sadia Akter', lines: [{ name: 'Denim Jeans · Blue · 32', good: 1, damaged: 0 }] }],
-  '#136799': [{ at: at(29, 11, 0), by: 'Sadia Akter', lines: [{ name: 'Hyaluronic Toner 150ml', good: 0, damaged: 1 }] }],
-  '#136795': [{ at: at(29, 15, 40), by: 'Arif Rahman', lines: [{ name: 'Premium Cotton Oversized T-Shirt', good: 1, damaged: 0 }] }],
-};
+].map((o) => ({ ...o, total: sum(o.lines, (l) => l.price * l.qty) + o.shipping, source: sourceOf(o), times: demoTimes(o) }));
 
 // ---- building the list ------------------------------------------------------------------------
 /** A demo wholesale invoice as an order row. */
@@ -93,6 +130,7 @@ function fromInvoice(r) {
     courier: { none: 'Not delivered', partial: 'Partly delivered', full: 'Delivered' }[dv], consignment: '—',
     status: dv === 'full' && r.due <= 0 ? 'Delivered' : 'Pending', payment: { paid: 'Paid', partial: 'Partial', unpaid: 'Unpaid' }[statusOf(r)],
     total: r.totals.total, paid: r.totals.total - Math.max(0, r.due), invoiceId: r.id, invoiceKind: 'Invoice', isInvoice: true,
+    source: '', times: { ...blankTimes(r.at), approved: r.at, delivered: dv === 'full' ? Math.max(...(r.deliveries || []).map((d) => d.at || 0), r.at) : null },
   };
 }
 /** Old rows made before lines were kept: rebuild one line from the item summary. */
@@ -101,7 +139,7 @@ function guessLines(row) {
   const sub = numOf(String(row.itemMeta || '').split('·')[1]) || numOf(row.total);
   return [{ name: String(row.itemTitle || 'Item').replace(/ \+ \d+ more$/, ''), qty, price: Math.round(sub / qty) }];
 }
-function finish(o, sales, statuses, edits) {
+function finish(o, sales, statuses, edits, stamped = {}) {
   const row = { ...o, ...(edits[o.id] || {}) };
   if (statuses[o.id]) row.status = statuses[o.id];
   const sale = sales.find((s) => s.orderId === row.id) || null;
@@ -122,6 +160,8 @@ function finish(o, sales, statuses, edits) {
     invoiceId: row.invoiceId || (sale ? sale.id : ''),
     invoiceKind: row.invoiceKind || (sale ? (sale.invoice || sale.wholesale || sale.due > 0 ? 'Invoice' : 'Memo') : ''),
     made: !!o.made,
+    source: sourceOf(row),
+    times: { ...blankTimes(when), ...(row.times || (isCounterSale(row) ? { approved: when, delivered: row.status === 'Delivered' ? when : null } : {})), ...(stamped[o.id] || {}) },
   };
 }
 
@@ -134,9 +174,10 @@ export function getOrders() {
   const sales = load(POS_KEYS.sales, []);
   const statuses = readMap(STATUS_KEY, {});
   const edits = readMap(EDITS_KEY, {});
+  const stamped = readMap(TIMES_KEY, {});
   const made = extraOrders().map((o) => ({ ...o, made: true }));
   const invoices = getInvoices().filter((r) => r.src === 'demo').map(fromInvoice);
-  return [...made, ...invoices, ...DEMO].map((o) => finish(o, sales, statuses, edits));
+  return [...made, ...invoices, ...DEMO].map((o) => finish(o, sales, statuses, edits, stamped));
 }
 export const findOrder = (id, all = getOrders()) => all.find((o) => o.id === id) || null;
 export const orderHref = (id, from) => '/order-detail?id=' + encodeURIComponent(id) + (from ? '&from=' + from : '');
@@ -150,10 +191,14 @@ export function patchOrder(o, patch) {
   const edits = readMap(EDITS_KEY, {});
   save(EDITS_KEY, { ...edits, [o.id]: { ...(edits[o.id] || {}), ...patch } });
 }
-/** Change the status (a label from orderStatus.js, e.g. 'Cancelled'). Kept in this browser. */
+/** Change the status (a label from orderStatus.js, e.g. 'Cancelled'). Kept in this browser; the time
+ *  of the new status is stamped in the order's `times`. */
 export function setOrderStatus(o, label) {
   if (o.made) { updateOrder(o.id, { status: label }); return; }
+  const was = o.status;
   save(STATUS_KEY, { ...readMap(STATUS_KEY, {}), [o.id]: label });
+  const k = STATUS_TIME[label];
+  if (k && label !== was) { const map = readMap(TIMES_KEY, {}); save(TIMES_KEY, { ...map, [o.id]: { ...(map[o.id] || {}), [k]: Date.now() } }); }
 }
 export function logOrder(id, icon, title, meta) {
   const log = readMap(LOG_KEY, {});

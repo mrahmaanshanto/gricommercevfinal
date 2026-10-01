@@ -16,6 +16,9 @@
 // register's points store is kept in step. A member can pay from their customer wallet (Alt 7): no
 // money moves, the wallet balance goes down.
 // Returns and exchanges have one flow: the Return & exchange page (/return-exchange?ref=<sale id>).
+// "Sold by" (Alt S at checkout) names the salesperson, the cashier unless changed; it is saved on the
+// sale (sale.salesperson) for staff sales and commission. Each saved line keeps its sku, category and
+// buying price at the time of sale (cost of one piece, lib/productCost).
 // Front end only: the shift, held sales and completed sales are kept in this browser.
 // Counters, employees, shifts, cash movements and settings are shared with POS management (posStore).
 
@@ -39,6 +42,8 @@ import { STOCK_PLACES, getStockPlaces, placeName } from '@/lib/locations';
 import { usePlaceList } from '@/lib/usePlaces';
 import { navigate } from '@/runtime/routes';
 import { ManagerPin } from '@/components/ManagerPin';
+import { freezeLine } from '@/lib/productCost';
+import { logAudit } from '@/lib/auditLog';
 import { getMembers as getLoyaltyMembers, getLoyaltySettings, getProductPoints, pointsForSale, spendWallet, syncPosPoints, DEFAULT_SETTINGS as LOYALTY_DEFAULTS } from '@/lib/loyalty';
 import { POS_CSS } from './posStyles';
 
@@ -99,7 +104,7 @@ const SHORTCUTS = [
   ]],
   ['At checkout', [
     ['Enter', 'Take the amount and complete the sale'], ['F4', 'Complete the sale'], ['Alt 1 – 5', 'Cash, Card, bKash, Nagad, Rocket'], ['Alt 6', 'Due / credit'], ['Alt 7', 'Customer wallet (members)'],
-    ['Alt A', 'Amount received'], ['Alt M', 'Customer mobile number'], ['Alt D', 'Discount'], ['Alt C', 'Coupon code'], ['Alt R', 'Use member points'],
+    ['Alt A', 'Amount received'], ['Alt M', 'Customer mobile number'], ['Alt S', 'Sold by (salesperson)'], ['Alt D', 'Discount'], ['Alt C', 'Coupon code'], ['Alt R', 'Use member points'],
     ['Alt P', 'Print receipt on or off'], ['Alt T', 'Wholesale: customer takes the goods now, on or off'], ['Enter', 'New sale, once the receipt shows'],
   ]],
 ];
@@ -182,6 +187,7 @@ export default function Pos() {
   const [sheet, setSheet] = useState(false);          // cart as a bottom sheet on phones
   const [products, setProducts] = useState(BASE_PRODUCTS); // the product cards (stock catalogue)
   const [takeNow, setTakeNow] = useState(null);       // wholesale: customer takes the goods now; null = follow the payment
+  const [soldBy, setSoldBy] = useState('');           // salesperson of this sale; '' = the cashier on the shift
   const searchRef = useRef(null);
 
   useEffect(() => {
@@ -332,26 +338,29 @@ export default function Pos() {
     else if (e.key === '-') { e.preventDefault(); setQty(last.id, last.qty - 1); }
     else if (e.key === 'Delete') { e.preventDefault(); setQty(last.id, 0); }
   };
-  const clearSale = () => { setLines([]); setCustomer({ name: '', phone: '' }); setDiscount(null); setCoupon(''); setCouponText(''); setTenders([]); setTender({ method: 'Cash', amount: '' }); setSheet(false); setRedeem(false); setRetailFor(''); setTakeNow(null); };
+  const clearSale = () => { setLines([]); setCustomer({ name: '', phone: '' }); setDiscount(null); setCoupon(''); setCouponText(''); setTenders([]); setTender({ method: 'Cash', amount: '' }); setSheet(false); setRedeem(false); setRetailFor(''); setTakeNow(null); setSoldBy(''); };
   const newSale = async () => {
     if (!lines.length || await confirmDialog({ title: 'Start a new sale?', body: 'The items in the cart will be removed. Hold the sale first if you need it later.', confirmLabel: 'New sale' })) { clearSale(); focusId('pos-scan'); }
   };
   const cancelSale = async () => {
     if (!lines.length) return;
-    if (await confirmDialog({ title: 'Cancel this sale?', body: `${t.units} item${t.units > 1 ? 's' : ''} will be removed from the cart.`, confirmLabel: 'Cancel sale', cancelLabel: 'Keep sale', tone: 'danger' })) { clearSale(); toast('Sale cancelled'); }
+    if (await confirmDialog({ title: 'Cancel this sale?', body: `${t.units} item${t.units > 1 ? 's' : ''} will be removed from the cart.`, confirmLabel: 'Cancel sale', cancelLabel: 'Keep sale', tone: 'danger' })) {
+      logAudit({ action: 'Void sale', detail: `Sale cancelled at the counter: ${t.units} item${t.units > 1 ? 's' : ''} removed from the cart`, by: (shift && shift.cashier) || 'Staff', approvedBy: '', ok: true, ref: '', amount: t.total, counter: (shift && shift.counter) || '', place: warehouse });
+      clearSale(); toast('Sale cancelled');
+    }
   };
   const openCustomer = () => { setCustDraft(customer); setPanel('customer'); };
 
   // ---- hold and resume --------------------------------------------------------------------------
   const hold = () => {
     if (!lines.length) return;
-    const next = [{ id: 'HOLD-' + String(held.length + 1).padStart(4, '0'), at: Date.now(), lines, customer, discount, coupon, retail: atRetail, total: t.total }, ...held];
+    const next = [{ id: 'HOLD-' + String(held.length + 1).padStart(4, '0'), at: Date.now(), lines, customer, discount, coupon, retail: atRetail, total: t.total, soldBy }, ...held];
     setHeld(next); save(KEYS.held, next); clearSale();
     toast(`Sale held as ${next[0].id}`);
   };
   const resume = async (h) => {
     if (lines.length && !(await confirmDialog({ title: 'Replace the current sale?', body: 'The items in the cart now will be removed. Hold the current sale first if you need it.', confirmLabel: 'Replace' }))) return;
-    setLines(fitLines(h.lines, warehouse)); setCustomer(h.customer); setRetailFor(h.retail ? phoneDigits(h.customer.phone) : ''); setDiscount(h.discount); setCoupon(h.coupon || ''); setCouponText(h.coupon || ''); setTenders([]);
+    setLines(fitLines(h.lines, warehouse)); setCustomer(h.customer); setRetailFor(h.retail ? phoneDigits(h.customer.phone) : ''); setDiscount(h.discount); setCoupon(h.coupon || ''); setCouponText(h.coupon || ''); setTenders([]); setSoldBy(h.soldBy || '');
     const next = held.filter((x) => x.id !== h.id);
     setHeld(next); save(KEYS.held, next); setPanel('');
   };
@@ -423,13 +432,16 @@ export default function Pos() {
     if (fromWallet && (!member || fromWallet > (member.wallet || 0) + 0.001)) { toast(`Only ${money(member ? member.wallet : 0)} in the wallet`, { tone: 'error' }); return; }
     const who = { name: customer.name || (member ? member.name : buyer ? buyer.name : ''), phone: customer.phone };
     const owed = r2(stillDue + onAccount);
+    // each line keeps its sku, category and buying price as they are today
+    const soldLines = lines.map(freezeLine);
+    const salesperson = soldBy || shift.cashier;
     // the sale also shows under Orders > POS / Retail orders; an unpaid one stays Pending until it is paid
-    const order = addOrder({ lines, customer: who.name || 'Walk-in customer', phone: who.phone || '—', zone: 'Counter sale', total: t.total, status: owed ? 'Pending' : tier && !takesNow ? 'Approved' : 'Delivered', payment: !owed ? 'Paid' : owed < t.total ? 'Partial' : 'Unpaid', channel: (priceTier ? 'Wholesale · ' : 'POS · ') + shift.counter });
+    const order = addOrder({ lines: soldLines, customer: who.name || 'Walk-in customer', phone: who.phone || '—', zone: 'Counter sale', total: t.total, status: owed ? 'Pending' : tier && !takesNow ? 'Approved' : 'Delivered', payment: !owed ? 'Paid' : owed < t.total ? 'Partial' : 'Unpaid', channel: (priceTier ? 'Wholesale · ' : 'POS · ') + shift.counter });
     // Stock: a retail sale, or a wholesale customer taking the goods now, takes them out of this place.
     // A wholesale customer who does not take them now gets them held here for the invoice; the
     // invoice's deliveries take them out later. Either way they leave only once.
     const stockOut = !tier || takesNow;
-    const sale = { id: orderNo, orderId: order.id, wholesale: !!tier, tier: tier ? tier.label : '', atRetail, invoice: !!(who.name || who.phone), rev: 1, payments: [], at: Date.now(), lines, customer: who, member, earned, totals: t, tenders: list, change, due: owed, creditBy, printed: printReceipt, cashier: shift.cashier, counter: shift.counter, place: warehouse, offline, returned: {}, stockOut, deliveries: [] };
+    const sale = { id: orderNo, orderId: order.id, wholesale: !!tier, tier: tier ? tier.label : '', atRetail, invoice: !!(who.name || who.phone), rev: 1, payments: [], at: Date.now(), lines: soldLines, customer: who, member, earned, totals: t, coupon: t.couponDisc ? coupon : '', tenders: list, change, due: owed, creditBy, printed: printReceipt, cashier: shift.cashier, salesperson, counter: shift.counter, place: warehouse, offline, returned: {}, stockOut, deliveries: [] };
     let next = [sale, ...sales];
     save(KEYS.sales, next);
     if (stockOut) {
@@ -572,6 +584,7 @@ export default function Pos() {
         if (n >= 0) return run(() => k.pickTender(TENDER_KEYS[n]));
         if (alt === 'KeyA') return run(() => focusId('pos-amt'));
         if (alt === 'KeyM') return run(() => focusId('pos-mobile'));
+        if (alt === 'KeyS') return run(() => focusId('pos-soldby'));
         if (alt === 'KeyD') return run(() => focusId('pos-disc'));
         if (alt === 'KeyC') return run(() => focusId('pos-coupon'));
         if (alt === 'KeyR' && k.member) return run(() => k.setRedeem((on) => !on));
@@ -646,6 +659,10 @@ export default function Pos() {
     </label>
   ) : null;
   const counterId = shift.counterId || (counters.find((c) => c.name === shift.counter) || {}).id || 'REG';
+  // who can be named as the salesperson: the counter's staff and the staff of its branch, cashier first
+  const counterRow = counters.find((c) => c.name === shift.counter) || {};
+  const sellers = [...new Set([shift.cashier, ...(counterRow.staff || []), ...EMPLOYEES.filter((x) => x.branch === counterRow.location).map((x) => x.name)])];
+  const roleOfStaff = (name) => (EMPLOYEES.find((x) => x.name === name) || {}).role;
   const overLimit = expected > cfg.pickupLimit;
 
   const cart = (
@@ -835,6 +852,12 @@ export default function Pos() {
                 <input id="pos-mobile" className="pos-in" inputMode="tel" aria-label="Customer mobile number" placeholder="Mobile number (optional)" value={customer.phone} onChange={(e) => { setCustomer({ ...customer, phone: e.target.value }); setRedeem(false); }} />
                 <input className="pos-in" aria-label="Customer name" placeholder={member ? member.name : buyer ? buyer.name : 'Walk-in customer'} value={customer.name} onChange={(e) => setCustomer({ ...customer, name: e.target.value })} />
               </div>
+              <div className="pos-discrow">
+                <label className="pos-cap" htmlFor="pos-soldby">Sold by <kbd>Alt S</kbd></label>
+                <select id="pos-soldby" className="pos-in" value={soldBy || shift.cashier} onChange={(e) => setSoldBy(e.target.value === shift.cashier ? '' : e.target.value)}>
+                  {sellers.map((n) => <option key={n} value={n}>{n}{n === shift.cashier ? ' · cashier' : roleOfStaff(n) ? ' · ' + roleOfStaff(n) : ''}</option>)}
+                </select>
+              </div>
               {member ? (
                 <div className="pos-member" role="status">
                   <div className="pos-member__head">
@@ -957,7 +980,7 @@ export default function Pos() {
             <div className="pos-paycol pos-paycol--right">
               <div className="pos-receipt" aria-label="Receipt">
                 <b className="pos-receipt__shop">GridShop</b>
-                <span>{receipt.counter} · {receipt.cashier}</span>
+                <span>{receipt.counter} · {receipt.cashier}{receipt.salesperson && receipt.salesperson !== receipt.cashier ? ` · sold by ${receipt.salesperson}` : ''}</span>
                 <span>{receipt.id} · {clock(receipt.at)}</span>
                 <span>{receipt.customer.name || 'Walk-in customer'}{receipt.member ? ` · ${receipt.member.tier} member` : ''}</span>
                 <hr />

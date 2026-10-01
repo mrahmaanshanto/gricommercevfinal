@@ -61,6 +61,8 @@ export default function DamagedStockPanel() {
   const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
   const writtenOff = holds.filter((h) => h.status === 'disposed' && (h.closedAt || 0) >= monthStart.getTime()).reduce((a, h) => a + costOf(h), 0);
 
+  // received damaged at Receive goods: the stock move went into the bay itself (see stockAt in lib/stock.js)
+  const arrivedDamaged = (h) => !!h.from && placeName(h.from) === DAMAGED_PLACE;
   const doDispose = (e) => {
     e.preventDefault();
     const h = dispose.hold;
@@ -69,6 +71,8 @@ export default function DamagedStockPanel() {
     setHolds(closeHold(h.id, 'disposed', `Written off: ${why}`));
     // the pieces still counted at the shelf they came from leave the stock for good
     if (p && cameFromShelf(h)) addMove({ sku: p.sku, place: h.from, qty: -h.qty, kind: 'write-off', reason: `Written off from ${DAMAGED_PLACE}: ${why}`, by: 'Staff', ref: h.id });
+    // pieces that arrived damaged were received straight into the bay: they leave the bay
+    else if (p && arrivedDamaged(h)) addMove({ sku: p.sku, place: DAMAGED_PLACE, qty: -h.qty, kind: 'write-off', reason: `Written off: ${why}`, by: 'Staff', ref: h.id });
     toast(`${h.qty} × ${h.product} written off · loss of ${formatBDT(costOf(h))} at cost`);
     setDispose(null);
   };
@@ -87,6 +91,7 @@ export default function DamagedStockPanel() {
           addMove({ sku: p.sku, place: to, qty: h.qty, kind: 'repaired', reason: `Repaired · from ${DAMAGED_PLACE}`, by: 'Staff', ref: h.id });
         }
       } else {
+        if (arrivedDamaged(h)) addMove({ sku: p.sku, place: DAMAGED_PLACE, qty: -h.qty, kind: 'transfer', reason: `Repaired · sent to ${to}`, by: 'Staff', ref: h.id });
         addMove({ sku: p.sku, place: to, qty: h.qty, kind: 'repaired', reason: `Repaired · from ${DAMAGED_PLACE}`, by: 'Staff', ref: h.id });
       }
     }

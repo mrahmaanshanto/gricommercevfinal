@@ -283,7 +283,7 @@ export default function SalesProfit() {
   const loss = ready && p.net < 0;
 
   return (
-    <AccPage screen="SalesProfit" active="acc-sales" page="Sales & profit" title="Sales & profit" css={CSS}
+    <AccPage screen="SalesProfit" active="rep-finance" page="Sales & profit" title="Sales & profit" css={CSS}
       description="How much each channel sold, and how much profit each one made after its own costs."
       actions={actions}>
 

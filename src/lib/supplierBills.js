@@ -11,6 +11,7 @@
 // Front end only: starts from demo rows and is kept in this browser.
 
 import { postEntry } from './ledger';
+import { DEMO_POS } from './purchaseOrders';
 
 const KEY = 'gc.supplier.bills';
 const OLD_KEY = 'gc.suppliers';   // the Suppliers page's own store before this library
@@ -50,6 +51,34 @@ export const SUPPLIERS = [
 const B = (no, supplier, at, amount, due, po, grn) => ({ no, supplier, at, amount, due, po: po || '', grn: grn || '', ref: no, paid: 0, credited: 0, lines: [], extra: 0, notes: '', seed: true });
 // payment: supplier, at, amount, method, account, by, ref, { bill: amount }
 const P = (supplier, at, amount, method, account, by, ref, alloc) => ({ supplier, at, amount, method, account, by, ref, alloc, bills: Object.keys(alloc), note: '', seed: true });
+// item lines of the demo bills: { sku, name, qty, cost }, adding up to the bill's amount exactly.
+// A bill for a demo purchase order carries that order's lines.
+const BL = (sku, name, qty, cost) => ({ sku, name, qty, cost });
+const EAR = (q, c) => BL('EL-EAR-PRO', 'Wireless Earbuds Pro', q, c);
+const PHN = (q, c) => BL('EL-PHN-128', 'Budget Android Phone 6/128', q, c);
+const BTL = (q, c) => BL('HM-BTL-750', 'Steel Water Bottle 750ml', q, c);
+const BOX = (q, c) => BL('', 'Shipping box · Medium', q, c);
+const TAPE = (q, c) => BL('', 'Packing tape 2 inch', q, c);
+const SHA = (q, c) => BL('SK-SHA-340', 'Daily Care Shampoo 340ml', q, c);
+const SOY = (q, c) => BL('GR-SOY-2', 'Soybean Cooking Oil 2L', q, c);
+const ATTA = (q, c) => BL('GR-ATTA-2', 'Atta Wheat Flour 2kg', q, c);
+const DAL = (q, c) => BL('GR-DAL-1', 'Chickpeas Boot Dal 1kg', q, c);
+const poLines = (no) => ((DEMO_POS.find((p) => p.no === no) || {}).lines || []).map((l) => BL(l.sku, l.name, l.qty, l.cost));
+const SEED_LINES = {
+  'DGH-58011': [EAR(4, 2500)], 'DGH-58102': [PHN(1, 10520), EAR(11, 2680)], 'DGH-58190': [EAR(1, 2650), PHN(2, 11175)],
+  'TLI-1019': [PHN(1, 9960), EAR(12, 2420)], 'TLI-1043': [PHN(5, 10280), EAR(4, 2525)], 'TLI-1071': [EAR(5, 2575), PHN(3, 10375)],
+  'TLI-1098': [PHN(1, 10560), EAR(16, 2590)], 'TLI-1127': [EAR(2, 2680), PHN(3, 10880)],
+  'MM-8990': [BTL(20, 500)], 'MM-9031': [BTL(15, 460), EAR(5, 2620)], 'MM-9058': [BTL(17, 500)],
+  'EE-44702': [EAR(4, 2500)], 'EE-44781': [EAR(3, 2600), BTL(16, 450)], 'EE-44820': [EAR(4, 2640), BTL(14, 460)],
+  'KF-5490': [BL('GR-RICE-5', 'Premium Miniket Rice 5kg', 2, 640), DAL(28, 115)], 'KF-5521': [DAL(20, 115), ATTA(7, 100)],
+  'PC-2174': [EAR(2, 2555), BTL(2, 445)], 'PC-2210': [EAR(2, 2630), BTL(28, 455)],
+  'PR-3265': [BOX(30, 18), TAPE(172, 55)], 'PR-3302': [BOX(8, 19), TAPE(33, 56)],
+  'CT-7702': [SHA(14, 295), BTL(2, 435)], 'CT-7765': [SHA(20, 295), BTL(8, 450)],
+  'RW-112': [SOY(6, 275), BTL(10, 455)], 'RW-118': [SOY(5, 280), ATTA(26, 100)],
+  'RT-4410': poLines('PO-2608-0015'), 'NFH-2231-A': poLines('PO-2609-0020'), 'DBI-7702': poLines('PO-2609-0019'), 'MIM-0817': poLines('PO-2608-0017'),
+};
+/** A demo bill saved before it had item lines gets them (nothing else changes). */
+const withSeedLines = (b) => (b && b.seed && !(b.lines && b.lines.length) && SEED_LINES[b.no] ? { ...b, lines: SEED_LINES[b.no].map((l) => ({ ...l })) } : b);
 const SEED_BILLS = [
   B('DGH-58102', 'dgh', d(15, 9), 40000, d(29, 9)), B('DGH-58190', 'dgh', d(22, 9), 25000, d(6, 10)), B('DGH-58011', 'dgh', d(8, 9), 10000, d(22, 9)),
   B('TLI-1019', 'tli', d(20, 6), 39000, d(20, 7)), B('TLI-1043', 'tli', d(12, 7), 61500, d(11, 8)), B('TLI-1071', 'tli', d(5, 8), 44000, d(4, 9)),
@@ -92,7 +121,7 @@ const statusFor = (b) => (billLeftRaw(b) <= 0 ? 'Paid' : (b.paid || 0) + (b.cred
 const withStatus = (b) => ({ ...b, status: statusFor(b) });
 
 function seedDb() {
-  const bills = SEED_BILLS.map((b) => ({ ...b }));
+  const bills = SEED_BILLS.map((b) => withSeedLines({ ...b }));
   SEED_PAYMENTS.forEach((p) => Object.entries(p.alloc).forEach(([no, amt]) => { const b = bills.find((x) => x.no === no); if (b) b.paid += amt; }));
   return { suppliers: [], bills: bills.map(withStatus), payments: SEED_PAYMENTS.slice(), credits: [], returns: [] };
 }
@@ -110,7 +139,7 @@ function fromOld(db) {
 const read = () => {
   try {
     const s = JSON.parse(window.localStorage.getItem(KEY));
-    if (s && Array.isArray(s.bills)) return { suppliers: [], payments: [], credits: [], returns: [], ...s };
+    if (s && Array.isArray(s.bills)) return { suppliers: [], payments: [], credits: [], returns: [], ...s, bills: s.bills.map(withSeedLines) };
   } catch { /* ignore */ }
   return fromOld(seedDb());
 };

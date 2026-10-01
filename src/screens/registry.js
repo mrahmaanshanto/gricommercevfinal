@@ -2730,6 +2730,50 @@ export const SCREENS = [
     "interactive": true
   },
   {
+    "name": "ReportsCentre",
+    "route": "/reports-centre",
+    "folder": "reports",
+    "title": "Reports",
+    "description": "Reports \u2014 every report in one place: search, groups, favourites, saved views.",
+    "canvasPage": "Reports",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "ReportView",
+    "route": "/report",
+    "folder": "reports",
+    "title": "Report",
+    "description": "Reports \u2014 one report (?id=) with period, comparison, filters, KPIs, chart, table, export and schedule.",
+    "canvasPage": "Reports",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "DailySummary",
+    "route": "/daily-summary",
+    "folder": "reports",
+    "title": "Daily summary",
+    "description": "Reports \u2014 the owner's end-of-day pack: sales, cash, payouts, stock, orders and dues.",
+    "canvasPage": "Reports",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
+    "name": "ScheduledReports",
+    "route": "/scheduled-reports",
+    "folder": "reports",
+    "title": "Scheduled reports",
+    "description": "Reports \u2014 reports sent by email or WhatsApp every day, week or month.",
+    "canvasPage": "Reports",
+    "width": 1440,
+    "height": 900,
+    "interactive": true
+  },
+  {
     "name": "MoneyBook",
     "route": "/money-book",
     "folder": "accounts",

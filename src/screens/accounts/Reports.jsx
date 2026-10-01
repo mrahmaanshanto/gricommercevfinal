@@ -266,7 +266,7 @@ export default class ReportsScreen extends Component {
       <div className="dc-screen ds" data-screen="Reports">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div className={"gc-shell " + (v.rootCls || "")} style={{ position: "relative", background: "#e9eef5", padding: "12px", display: "flex", gap: "12px" }}>
-          <__Sidebar sticky="" active="acc-reports" />
+          <__Sidebar sticky="" active="rep-finance" />
           <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f6f8fb", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", position: "relative" }}>
             <__Topbar crumb="Accounts" page="Reports" placeholder="Search products, customers or memo no." />
             <div className="gc-shell__content" style={{ flexGrow: "1", minHeight: "0", padding: "22px 28px 28px", display: "flex", flexDirection: "column", gap: "18px" }}>

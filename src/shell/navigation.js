@@ -15,11 +15,10 @@ export const NAV = [
       { id: 'orders-wholesale', icon: 'truck', label: 'Wholesale orders', to: 'sales/WholesaleOrders.dc.html' },
       { id: 'orders-rto', icon: 'package-x', label: 'Courier returns', to: 'merchant-orders/CourierReturns.dc.html' },
     ] },
-    { id: 'sales', icon: 'receipt-text', label: 'Sales', to: 'sales/SalesBook.dc.html', children: [
+    { id: 'sales', icon: 'receipt-text', label: 'Sales', to: 'sales/SalesInvoices.dc.html', children: [
       { id: 'sales-new', icon: 'plus-circle', label: 'New sale', to: 'pos-register/Pos.dc.html' },
-      { id: 'sales-book', icon: 'book-open', label: 'Sales book', to: 'sales/SalesBook.dc.html' },
       { id: 'sales-invoices', icon: 'file-text', label: 'Invoices', to: 'sales/SalesInvoices.dc.html' },
-      { id: 'sales-return', icon: 'undo-2', label: 'Return & exchange', to: 'sales/ReturnExchange.dc.html' }
+      { id: 'sales-return', icon: 'undo-2', label: 'Return & exchange', to: 'sales/ReturnExchange.dc.html' },
     ] },
     { id: 'products', icon: 'package', label: 'Products', to: 'products/AllProducts.dc.html', children: [
       { id: 'products-all', icon: 'package', label: 'All products', count: 412, to: 'products/AllProducts.dc.html' },
@@ -52,7 +51,6 @@ export const NAV = [
     { id: 'stock-list', icon: 'boxes', label: 'Stock list', to: 'purchase-stock/Stock.dc.html' },
     { id: 'stock-holds', icon: 'lock', label: 'Stock holds', to: 'purchase-stock/StockHolds.dc.html' },
     { id: 'stock-adjust', icon: 'sliders-horizontal', label: 'Stock adjustments', to: 'purchase-stock/StockAdjustments.dc.html' },
-    { id: 'stock-returns', icon: 'undo-2', label: 'Returns & exchanges', to: 'purchase-stock/ReturnHistory.dc.html' },
     { id: 'stock-count', icon: 'clipboard-check', label: 'Stock count', to: 'purchase-stock/StockCount.dc.html' },
     { id: 'stock-transfers', icon: 'arrow-left-right', label: 'Transfers', to: 'purchase-stock/Transfers.dc.html' },
     { id: 'stock-expiry', icon: 'calendar-x', label: 'Damaged & expired', count: 6, to: 'purchase-stock/ExpiryDisposal.dc.html' },
@@ -67,12 +65,27 @@ export const NAV = [
     { id: 'acc-home', icon: 'layout-dashboard', label: 'Overview', to: 'accounts/AccountsHome.dc.html' },
     { id: 'acc-money', icon: 'wallet', label: 'Money', to: 'accounts/Money.dc.html' },
     { id: 'acc-settle', icon: 'hourglass', label: 'Settlements', to: 'accounts/Settlements.dc.html' },
-    { id: 'acc-sales', icon: 'chart-column', label: 'Sales & profit', to: 'accounts/SalesProfit.dc.html' },
     { id: 'acc-spend', icon: 'receipt', label: 'Income & expenses', to: 'accounts/ExpensesBills.dc.html' },
     { id: 'acc-dues', icon: 'scale', label: 'Dues', to: 'accounts/Dues.dc.html' },
     { id: 'acc-liab', icon: 'file-clock', label: 'Liabilities', to: 'accounts/Liabilities.dc.html' },
-    { id: 'acc-reports', icon: 'file-bar-chart', label: 'Reports', to: 'accounts/AccountReports.dc.html' },
     { id: 'acc-setup', icon: 'sliders-horizontal', label: 'Setup', to: 'accounts/AccountSetup.dc.html' }
+  ] },
+  // Every report in one place (src/lib/reports/catalogue.js). Report pages from other areas live here too.
+  { label: 'Reports', items: [
+    { id: 'rep-all', icon: 'file-bar-chart', label: 'All reports', to: 'reports/ReportsCentre.dc.html', children: [
+      { id: 'rep-sales', icon: 'chart-column', label: 'Sales', to: 'reports/ReportsCentre.dc.html', q: 'group=sales' },
+      { id: 'rep-online', icon: 'truck', label: 'Online & delivery', to: 'reports/ReportsCentre.dc.html', q: 'group=online' },
+      { id: 'rep-wholesale', icon: 'warehouse', label: 'Wholesale', to: 'reports/ReportsCentre.dc.html', q: 'group=wholesale' },
+      { id: 'rep-customers', icon: 'users', label: 'Customers & loyalty', to: 'reports/ReportsCentre.dc.html', q: 'group=customers' },
+      { id: 'rep-inventory', icon: 'boxes', label: 'Inventory', to: 'reports/ReportsCentre.dc.html', q: 'group=inventory' },
+      { id: 'rep-purchase', icon: 'shopping-bag', label: 'Purchase & suppliers', to: 'reports/ReportsCentre.dc.html', q: 'group=purchase' },
+      { id: 'rep-finance', icon: 'landmark', label: 'Finance', to: 'reports/ReportsCentre.dc.html', q: 'group=finance' },
+      { id: 'rep-pos', icon: 'monitor-smartphone', label: 'POS', to: 'reports/ReportsCentre.dc.html', q: 'group=pos' },
+      { id: 'rep-hr', icon: 'contact', label: 'Staff & HR', to: 'reports/ReportsCentre.dc.html', q: 'group=hr' },
+      { id: 'rep-marketing', icon: 'megaphone', label: 'Marketing & support', to: 'reports/ReportsCentre.dc.html', q: 'group=marketing' },
+    ] },
+    { id: 'rep-daily', icon: 'sun', label: 'Daily summary', to: 'reports/DailySummary.dc.html' },
+    { id: 'rep-scheduled', icon: 'calendar-clock', label: 'Scheduled reports', to: 'reports/ScheduledReports.dc.html' },
   ] },
   { label: 'Staff & HR', items: [
     { id: 'hr-home', icon: 'layout-grid', label: 'HR dashboard', to: 'staff-hr/HrDashboard.dc.html' },
@@ -104,7 +117,6 @@ export const NAV = [
     { id: 'inbox', icon: 'messages-square', label: 'Inbox', count: 12, to: 'merchant-inbox/MerchantInbox.dc.html' },
     { id: 'calls', icon: 'phone', label: 'Calls', to: 'merchant-calls/MerchantCalls.dc.html' },
     { id: 'tickets', icon: 'life-buoy', label: 'Support tickets', count: 5, to: 'support-tickets/SupportTickets.dc.html' },
-    { id: 'team-report', icon: 'bar-chart-3', label: 'Team report', to: 'team-report/TeamReport.dc.html' },
     { id: 'storefront', icon: 'store', label: 'Storefront', children: [
       { id: 'storefront-pages', icon: 'layout-template', label: 'Landing pages', to: 'landing-page-builder/LandingPageBuilder.dc.html' },
       { id: 'storefront-wp', icon: 'refresh-cw', label: 'WordPress sync', to: 'integrations/WooSync.dc.html' },
@@ -138,11 +150,6 @@ export const NAV = [
     { id: 'loy-referrals', icon: 'share-2', label: 'Invite a friend', to: 'loyalty-promo/Referrals.dc.html' },
   ] },
   { label: 'Tracking & analytics', items: [
-    { id: 'ta-hub', icon: 'bar-chart-3', label: 'Analytics hub', to: 'tracking-analytics/AnalyticsHub.dc.html' },
-    { id: 'ta-campaigns', icon: 'layers', label: 'Campaigns & creatives', to: 'tracking-analytics/Campaigns.dc.html' },
-    { id: 'ta-products', icon: 'filter', label: 'Products & traffic', to: 'tracking-analytics/ProductsTraffic.dc.html' },
-    { id: 'ta-attrib', icon: 'git-branch', label: 'Attribution & UTM', to: 'tracking-analytics/Attribution.dc.html' },
-    { id: 'ta-reports', icon: 'bell-ring', label: 'Reports & alerts', count: 3, to: 'tracking-analytics/ReportsAlerts.dc.html' },
     { id: 'ta-track', icon: 'radar', label: 'Pixels & events', to: 'tracking-analytics/PixelsEvents.dc.html' },
     { id: 'ta-health', icon: 'activity', label: 'Event health', count: 3, to: 'tracking-analytics/EventHealth.dc.html' },
     { id: 'ta-conn', icon: 'plug', label: 'Connections', count: 2, to: 'tracking-analytics/Connections.dc.html' },

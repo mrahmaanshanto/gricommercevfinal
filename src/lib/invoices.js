@@ -7,6 +7,7 @@
 import { POS_KEYS, load, save } from './posStore';
 import { updateOrder } from './orderLinks';
 import { accountForMethod, postEntry, getEntries } from './ledger';
+import { freezeLine } from './productCost';
 
 const KEY = 'gc.invoices';
 const at = (day, h, m) => new Date(2026, 8, day, h, m).getTime();
@@ -197,6 +198,7 @@ export function voidPayment(inv, key, reason, by) {
 
 /**
  * Rebuild the totals after an edit: new lines and one discount, VAT at the rate the invoice had.
+ * Lines keep their sku, category and buying price (cost of one piece); new lines get them now.
  * The version being replaced is kept in inv.revisions. If the new total is below what was already
  * paid, the difference is kept as the customer's credit.
  */
@@ -210,7 +212,7 @@ export function reviseInvoice(inv, lines, discount, by) {
   const paid = paidSoFar(inv);
   const prev = { rev: inv.rev || 1, at: Date.now(), madeAt: inv.editedAt || inv.at, by: by || 'Staff', lines: inv.lines, totals: inv.totals };
   const next = {
-    ...inv, lines: lines.map((l) => ({ ...l, disc: 0 })), rev: (inv.rev || 1) + 1, editedAt: Date.now(), editedBy: by || 'Staff',
+    ...inv, lines: lines.map((l) => ({ ...freezeLine(l), disc: 0 })), rev: (inv.rev || 1) + 1, editedAt: Date.now(), editedBy: by || 'Staff',
     revisions: [...(inv.revisions || []), prev],
     totals: { ...inv.totals, gross, lineDisc: 0, cartDisc, couponDisc: 0, memberDisc: 0, pointsDisc: 0, pointsUsed: 0, taxable, tax, total, units: lines.reduce((s, l) => s + l.qty, 0) },
     due: Math.max(0, r2(total - paid)),

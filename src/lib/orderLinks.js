@@ -2,8 +2,12 @@
 //   merchant: createOrderLink(draft) -> id -> /order-link?id=<id>
 //   customer: getOrderLink(id), then submitLinkOrder(id, form) -> the order shows in Orders as Pending
 // addOrder() is also used by the Create order page, so a new order appears in the list.
+// Each order keeps `times` (placed, approved, ready, shipped, delivered, returned, cancelled: ms or
+// null), stamped when its status changes, its `source` (Website, Facebook, Phone, Order link, Chat)
+// and the payment `method` it was taken with; its lines keep sku, cat and the buying price (cost).
 
 import { formatBDT } from './format';
+import { freezeLine } from './productCost';
 
 const LINKS = 'gc.orderLinks';
 const ORDERS = 'gc.extraOrders';
@@ -47,16 +51,29 @@ const stamp = (d) => {
   return `${d.getDate()} ${MONTHS[d.getMonth()]}, ${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
 };
 
+/** Which time an order status stamps in `times`. */
+export const STATUS_TIME = { Approved: 'approved', 'Ready to ship': 'ready', Shipped: 'shipped', Delivered: 'delivered', Returned: 'returned', Cancelled: 'cancelled' };
+/** The payment method an order was taken with, from its payment label. */
+export const METHOD_OF_PAYMENT = { COD: 'COD', Paid: 'Gateway', Partial: 'Mixed', Unpaid: 'Due' };
+const isCounter = (channel) => /^(POS|Wholesale)/.test(String(channel || ''));
+
 /** Adds an order row (the shape the orders list uses) and returns it. The lines are kept so the
- *  order page can show them: [{ name, qty, price, variant }]. */
-export function addOrder({ lines, customer, phone, zone, total, status = 'Pending', payment = 'COD', channel = 'Manual order', address = '', shipping = 0, paid }) {
+ *  order page can show them: [{ name, qty, price, variant, sku, cat, cost }] (cost = buying price of one). */
+export function addOrder({ lines, customer, phone, zone, total, status = 'Pending', payment = 'COD', channel = 'Manual order', address = '', shipping = 0, paid, source, method }) {
   const list = read(ORDERS, []);
   const count = lines.reduce((n, l) => n + l.qty, 0);
   const now = new Date();
+  const t = now.getTime();
+  const counter = isCounter(channel);
+  const times = { placed: t, approved: null, ready: null, shipped: null, delivered: null, returned: null, cancelled: null };
+  if (status === 'Approved' || status === 'Delivered') times.approved = t;
+  if (STATUS_TIME[status]) times[STATUS_TIME[status]] = t;
   const row = {
     id: '#' + (136813 + list.length),
-    at: now.getTime(), placed: stamp(now), channel, customer, address, shipping,
-    lines: lines.map((l) => ({ name: l.name, qty: l.qty, price: l.price, variant: l.variant || l.meta || '' })),
+    at: t, placed: stamp(now), channel, customer, address, shipping, times,
+    source: source || (counter ? '' : channel === 'Order link' ? 'Order link' : 'Phone'),
+    method: method || (counter ? '' : METHOD_OF_PAYMENT[payment] || ''),
+    lines: lines.map((l) => { const f = freezeLine(l); return { name: l.name, qty: l.qty, price: l.price, variant: l.variant || l.meta || '', sku: f.sku, cat: f.cat, cost: f.cost }; }),
     initials: customer.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase(),
     phone, zone,
     itemTitle: lines[0].name + (lines.length > 1 ? ` + ${lines.length - 1} more` : ''),
@@ -68,9 +85,16 @@ export function addOrder({ lines, customer, phone, zone, total, status = 'Pendin
   return row;
 }
 
-/** Change an order made in this browser, for example when its invoice is paid. */
+/** Change an order made in this browser, for example when its invoice is paid. A new status stamps its time. */
 export function updateOrder(id, patch) {
-  write(ORDERS, read(ORDERS, []).map((o) => (o.id === id ? { ...o, ...patch } : o)));
+  const now = Date.now();
+  write(ORDERS, read(ORDERS, []).map((o) => {
+    if (o.id !== id) return o;
+    const next = { ...o, ...patch };
+    const k = STATUS_TIME[patch.status];
+    if (k && patch.status !== o.status) next.times = { ...(o.times || { placed: o.at || null }), ...(patch.times || {}), [k]: now };
+    return next;
+  }));
 }
 
 /** Orders created in this browser, newest first. */

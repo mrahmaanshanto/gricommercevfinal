@@ -10,7 +10,7 @@ import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher,
 import { PageHeader as __PageHeader } from '@/components/ui';
 import { toast as uiToast } from '@/runtime/ui';
 import { formatDate } from '@/lib/format';
-import { getPOs, poPieces, poReceived } from '@/lib/purchaseOrders';
+import { getPOs, poPieces, poReceived, DEMO_POS } from '@/lib/purchaseOrders';
 
 // Orders made in this browser (from staff requests) are listed first, then the demo orders.
 var STORED_KEY = { Draft: 'draft', Sent: 'ordered', 'Partly received': 'partial', Received: 'received' };
@@ -24,18 +24,8 @@ function storedRows() {
 function bdt(n) { var neg = n < 0; var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return (neg ? '−' : '') + '৳' + s; }
 var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
-var PO_ROWS = [
-  { no: 'PO-2609-0024', date: '18 Sep 2026', supplier: 'Rahman Traders', got: 0, of: 120, total: 86400, paid: 0, due: '', s: 'approval' },
-  { no: 'PO-2609-0023', date: '17 Sep 2026', supplier: 'Dhaka Beauty Imports', got: 0, of: 48, total: 38250, paid: 0, due: '', s: 'draft' },
-  { no: 'PO-2609-0022', date: '16 Sep 2026', supplier: 'Chattogram Packaging Co.', got: 0, of: 500, total: 27500, paid: 0, due: '', s: 'approved' },
-  { no: 'PO-2609-0021', date: '14 Sep 2026', supplier: 'Rahman Traders', got: 0, of: 200, total: 64800, paid: 0, due: '', s: 'approval' },
-  { no: 'PO-2609-0020', date: '12 Sep 2026', supplier: 'Nabil Fashion House', got: 140, of: 240, total: 112600, paid: 50000, due: 'Due 12 Oct 2026', s: 'partial' },
-  { no: 'PO-2609-0019', date: '5 Sep 2026', supplier: 'Dhaka Beauty Imports', got: 96, of: 96, total: 52980, paid: 52980, due: '', s: 'received' },
-  { no: 'PO-2608-0017', date: '20 Aug 2026', supplier: 'Mim Enterprise', got: 60, of: 60, total: 41300, paid: 0, due: 'Overdue 15 days', s: 'received', overdue: true },
-  { no: 'PO-2609-0018', date: '3 Sep 2026', supplier: 'Rahman Traders', got: 0, of: 150, total: 48600, paid: 0, due: 'Due on delivery', s: 'ordered' },
-  { no: 'PO-2608-0015', date: '12 Aug 2026', supplier: 'Rahman Traders', got: 300, of: 300, total: 95000, paid: 95000, due: '', s: 'closed' },
-  { no: 'PO-2608-0014', date: '8 Aug 2026', supplier: 'Nabil Fashion House', got: 0, of: 80, total: 22000, paid: 0, due: '', s: 'cancelled' }
-];
+// the demo orders live in src/lib/purchaseOrders.js (DEMO_POS), with their item lines, so reports read the same rows
+var PO_ROWS = DEMO_POS;
 var PO_STATUS = [
   { k: 'all', label: 'All' }, { k: 'draft', label: 'Draft' }, { k: 'approval', label: 'Waiting approval' }, { k: 'approved', label: 'Approved' },
   { k: 'ordered', label: 'Ordered' }, { k: 'partial', label: 'Partly received' }, { k: 'received', label: 'Received' }, { k: 'closed', label: 'Closed' }, { k: 'cancelled', label: 'Cancelled' }
