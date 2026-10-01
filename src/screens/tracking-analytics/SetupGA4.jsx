@@ -220,6 +220,10 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .chk:last-child{border-bottom:0}
 
 .pgc>*{flex-shrink:0}.tb th{white-space:normal}.stp2{flex-shrink:0}.pgc>.fill{flex-shrink:1;min-height:0}
+/* phones: the events table turns into cards, so its outer frame goes (no card in a card in a card) */
+@media (max-width:640px){
+  .ga-evbox{border:0!important;border-radius:0!important;overflow:visible!important}
+}
 ` + TA_PHONE_CSS;
 
 // ---- markup ----
@@ -354,7 +358,7 @@ export default class SetupGA4Screen extends Component {
                         <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Browsing events come from the browser. Purchase and refund come from the store server, so they are never lost.</p>
                       </div>
                     </div>
-                    <div style={{ border: "1px solid #eef1f6", borderRadius: "var(--radius-xl)", overflow: "hidden" }}>
+                    <div className="ga-evbox" style={{ border: "1px solid #eef1f6", borderRadius: "var(--radius-xl)", overflow: "hidden" }}>
                       <div className="gc-table-wrap">
                         <table className="tb">
                           <thead>

@@ -122,7 +122,10 @@ return {
 
 // ---- styles (from the design's <helmet>) ----
 
-const CSS = `/* phones: rows of label + buttons wrap instead of running out of the card */
+const CSS = `
+/* phones: both columns take the row width and never run past it */
+@media (max-width:640px){.bl-layout>*{flex:1 1 100%!important;max-width:100%!important;min-width:0!important}}
+/* phones: rows of label + buttons wrap instead of running out of the card */
 @media (max-width:640px){.gc-shell__content [style*="display:flex"]:not([role="tablist"]):not([style*="column"]),.gc-shell__content [style*="display: flex"]:not([role="tablist"]):not([style*="column"]){flex-wrap:wrap}.gc-shell__content select,.gc-shell__content input{min-width:0;max-width:100%}.gc-shell__content .mono,.gc-shell__content [class*="badge"]{overflow-wrap:anywhere}}
 
 *{box-sizing:border-box}
@@ -225,6 +228,11 @@ body{font-family:var(--font-sans)}
 }
 @media (max-width:640px){
   .bl-hicon{display:none!important}
+  .gc-shell__content .bl-top{flex-wrap:nowrap!important;gap:var(--space-3)!important}
+  .gc-shell__content .bl-title{min-width:0!important;flex:1 1 auto}
+  .bl-title .h1{font-size:var(--text-xl);line-height:var(--text-xl-lh);color:var(--text-heading);letter-spacing:var(--tracking-tight)}
+  .bl-title .sub{display:none}
+  .bl-top>.btn{flex:none;padding:0 var(--space-3)}
   .bl-head>h2{flex:1 1 calc(100% - 38px)!important;min-width:0}
   .bl-items .note{flex-wrap:wrap}
   .bl-items .note>span{flex:1 1 calc(100% - 46px)!important;min-width:0}
@@ -250,7 +258,7 @@ export default class BarcodeLabelsScreen extends Component {
           <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f6f8fb", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", position: "relative" }}>
             <__Topbar crumb={"Stocks & inventory"} page="Barcode labels" placeholder="Search products, customers or memo no." />
             <div className="gc-shell__content" style={{ flexGrow: "1", minHeight: "0", padding: "22px 28px 28px", display: "flex", flexDirection: "column", gap: "18px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+              <div className="bl-top" style={{ display: "flex", alignItems: "center", gap: "14px" }}>
                 <span className="bl-hicon" style={{ width: "52px", height: "52px", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e6eaf0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: "0" }}>
                   <svg width="40" height="40" viewBox="0 0 48 48" aria-hidden="true">
                     <path d="M8 10H40A4 4 0 0 1 44 14V34A4 4 0 0 1 40 38H8A4 4 0 0 1 4 34V14A4 4 0 0 1 8 10Z" fill="#e0f2fe" />
@@ -266,7 +274,7 @@ export default class BarcodeLabelsScreen extends Component {
                     <path d="M9.2 32H38.8A1.2 1.2 0 0 1 40 33.2V33.199999999999996A1.2 1.2 0 0 1 38.8 34.4H9.2A1.2 1.2 0 0 1 8 33.199999999999996V33.2A1.2 1.2 0 0 1 9.2 32Z" fill="#0ea5e9" />
                   </svg>
                 </span>
-                <div style={{ flexGrow: "1", minWidth: "0" }}>
+                <div className="bl-title" style={{ flexGrow: "1", minWidth: "0" }}>
                   <h1 className="h1">{v.t?.h}</h1>
                   <div className="sub">{v.t?.hsub}</div>
                 </div>

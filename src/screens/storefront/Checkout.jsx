@@ -78,6 +78,8 @@ a{color:#003087}a:hover{color:#002a77}
 .ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
 .ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
 .inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
+/* 16px on phones, so focusing a field doesn't zoom the page (same as the order link page) */
+@media (max-width:640px){.inp{font-size:var(--text-base)}}
 .inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
 .inp::placeholder{color:var(--text-muted)}
 .lbl{font-size:var(--text-sm);line-height:20px;font-weight:var(--weight-medium);color:#334155}
@@ -131,7 +133,7 @@ a{color:#003087}a:hover{color:#002a77}
 .ck-opt:focus-visible,.ck-q:focus-visible{outline:3px solid rgba(0,48,135,.4);outline-offset:2px}
 .ck-dot{width:18px;height:18px;border-radius:var(--radius-full);border:2px solid #cbd5e1;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .ck-opt.on .ck-dot{border-color:#003087}.ck-opt.on .ck-dot::after{content:"";width:8px;height:8px;border-radius:var(--radius-full);background:#003087}
-.ck-q{width:30px;height:28px;border-radius:var(--radius-lg);border:1px solid #cbd5e1;background:#fff;font-size:var(--text-base);cursor:pointer;color:#0f172a}
+.ck-q{width:36px;height:36px;border-radius:var(--radius-lg);border:1px solid #cbd5e1;background:#fff;font-size:var(--text-base);cursor:pointer;color:#0f172a}
 .ck-row{display:flex;justify-content:space-between;font-size:var(--text-sm);color:#475569}
 .ck-txt{min-width:0}
 .ck-fee,.ck-tag{flex:none;white-space:nowrap}
@@ -140,6 +142,8 @@ a{color:#003087}a:hover{color:#002a77}
   .ck-opt:has(>.ck-tag){flex-wrap:wrap;row-gap:8px}
   .ck-opt:has(>.ck-tag)>.ck-txt{flex:1 1 calc(100% - 92px)}
   .ck-opt>.ck-tag{margin-left:30px}
+  /* "Keep shopping" is a quiet text link under the title, not a lone outline button */
+  .ck-keep{height:auto!important;min-height:44px;padding:0!important;border:0!important;background:none!important;font-weight:var(--weight-medium)}
 }
 `;
 
@@ -206,7 +210,7 @@ export default class CheckoutScreen extends Component {
                   <h1 style={{ margin: "0", fontSize: "var(--text-3xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>Checkout</h1>
                   <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>{v.itemCount} items · pay when it arrives, or pay now with bKash, Nagad, Rocket or card.</p>
                 </div>
-                <__Link href="/offers" className="btn" style={{ background: "#fff", color: "#003087", border: "1px solid #cbd5e1" }}>Keep shopping</__Link>
+                <__Link href="/offers" className="btn ck-keep" style={{ background: "#fff", color: "#003087", border: "1px solid #cbd5e1" }}>Keep shopping</__Link>
               </div>
               {v.hasErr ? (<>
                 <div role="alert" style={{ padding: "12px 16px", borderRadius: "var(--radius-lg)", background: "#ffece6", color: "#8a2a0e", fontSize: "var(--text-sm)" }}>{v.err}</div>

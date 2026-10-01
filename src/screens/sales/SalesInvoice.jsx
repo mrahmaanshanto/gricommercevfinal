@@ -86,6 +86,8 @@ const CSS = PAPER_CSS + DELIVERY_CSS + HOLD_CSS + `
   /* totals: the line above Total runs across both columns */
   .si-sum{column-gap:0}
   .si-sum dt{padding-right:var(--space-5)}
+  /* payment tiles: the bKash / Nagad marks fill a wider box so the wordmark is readable */
+  .si-method>span:has(>img){width:56px!important;height:34px!important;margin:-6px 0 -4px;padding:0!important;border:0!important;background:none!important}
 }
 `;
 

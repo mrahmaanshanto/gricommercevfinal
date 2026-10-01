@@ -152,7 +152,7 @@ export default class MPurchaseScreen extends Component {
               <div className="card" style={{ padding: "14px 16px" }}>
                 <div className="k">Owed to suppliers</div>
                 <div className="v num" style={{ color: "var(--err)" }}>৳1,86,400</div>
-                <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>3 suppliers · 1 overdue</div>
+                <div className="ell" style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>3 suppliers · <span style={{ color: "var(--err)" }}>1 late</span></div>
               </div>
               <div className="card" style={{ padding: "14px 16px" }}>
                 <div className="k">Arriving this week</div>

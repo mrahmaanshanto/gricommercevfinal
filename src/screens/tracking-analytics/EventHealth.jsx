@@ -8,6 +8,7 @@ import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 import { TA_PHONE_CSS } from './taPhone';
+import { clockNow } from '@/lib/settlements';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -55,7 +56,9 @@ class Component extends DCLogic {
   renderVals() {
     var self = this, s = this.state || {};
     var tab = s.tab || this.props.tab || 'health', ff = s.ff || 'all', mode = s.mode || 'notice', share = s.share || {}, fixed = s.fixed || {};
-    var A = [['tok', 'TikTok token expires in 6 days', 'Events will stop on 25 Sep if it is not renewed.', 'Reconnect', '#fff4e0', '#7a3b04'], ['stop', '“Add to wishlist” stopped firing on Meta', 'Nothing since 17 Sep, 4:12 PM — the heart button may have changed.', 'Check', '#ffece6', '#9f1239'], ['dup', 'Double counting risk on Google', '14% of purchases arrive twice without the same event ID.', 'Fix', '#fff4e0', '#7a3b04']];
+    // demo dates follow today (the token runs out in 6 days; the wishlist event went quiet 2 days ago)
+    var dayAt = function (n) { var d = new Date(clockNow() + n * 864e5); return d.getDate() + ' ' + MONTHS[d.getMonth()]; };
+    var A = [['tok', 'TikTok token expires in 6 days', 'Events will stop on ' + dayAt(6) + ' if it is not renewed.', 'Reconnect', '#fff4e0', '#7a3b04'], ['stop', '“Add to wishlist” stopped firing on Meta', 'Nothing since ' + dayAt(-2) + ', 4:12 PM — the heart button may have changed.', 'Check', '#ffece6', '#9f1239'], ['dup', 'Double counting risk on Google', '14% of purchases arrive twice without the same event ID.', 'Fix', '#fff4e0', '#7a3b04']];
     var srv = series(24, 330, 70, 2, .1), brw = srv.map(function (x, i) { return x * (.72 + .06 * Math.sin(i)); }); var mxv = Math.max.apply(null, srv) * 1.15; var sl = curve(pts(srv, 900, 160, mxv, 0, 15, 2));
     var nOpen = A.filter(function (a) { return !fixed[a[0]]; }).length;
     var v = {
@@ -292,7 +295,7 @@ export default class EventHealthScreen extends Component {
                           </span>
                           <div style={{ flexGrow: "1", minWidth: "0" }}>
                             <div style={{ fontWeight: "var(--weight-medium)", fontSize: "var(--text-sm)", color: "#0f172a" }}>{al?.t}</div>
-                            <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", marginTop: "2px" }}>{al?.s}</div>
+                            <div suppressHydrationWarning style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", marginTop: "2px" }}>{al?.s}</div>
                           </div>
                           <button type="button" className="btn solid sm" onClick={al?.go}>{al?.btn}</button>
                         </div>

@@ -63,7 +63,7 @@ class Component extends DCLogic {
     const out = {
       onSearch: (ev) => this.setState({ q: ev.target.value }),
       sort, onSort: (ev) => this.setState({ sort: ev.target.value }),
-      more: !!s.more, moreLabel: s.more ? 'Fewer filters' : 'More filters · segment, source, onboarded by, district',
+      more: !!s.more, moreLabel: s.more ? 'Fewer filters' : <>More filters<span className="cs-desk-only"> · segment, source, onboarded by, district</span></>,
       toggleMore: () => this.setState({ more: !s.more }),
       clearAll: () => { const r = { q: '' }; FILTERS.forEach(([k]) => { r['f_' + k] = undefined; }); this.setState(r); },
       count: list.length, none: list.length === 0,

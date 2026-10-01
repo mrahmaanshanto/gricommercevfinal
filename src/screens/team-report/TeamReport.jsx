@@ -43,6 +43,10 @@ const CSS = `body{margin:0;background:#eef2f7;font-family:var(--font-sans);color
 @media (max-width:640px){
   .tr-head{gap:var(--space-2) var(--space-2)!important}
   .tr-head>span:first-child{flex:1 1 100%!important}
+  /* KPI cards: the change figure sits under its label instead of squeezing it onto two lines */
+  .tr-kpis{gap:12px!important}
+  .tr-kpis>div{padding:16px!important}
+  .tr-kpis>div>div:nth-child(2){flex-direction:column;align-items:flex-start!important;gap:2px!important}
   .tr-period{flex:1 1 0;min-width:0;height:44px!important}
   .tr-export{height:44px!important}
   .tr-board{overflow-x:visible!important;contain:none!important}
@@ -82,7 +86,7 @@ export default class TeamReportScreen extends Component {
               <button className="dc-h814 tr-export" style={{ height: "36px", display: "inline-flex", alignItems: "center", gap: "8px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 14px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#334155", cursor: "pointer" }}><__Icon name="download" strokeWidth="1.75" width="16" height="16" />Export</button>
             </header>
             <div className="tr-content" style={{ flex: "1", minHeight: "0", padding: "32px 36px 44px", display: "grid", gap: "28px", alignContent: "start" }}>
-              <div className="gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: "20px" }}>
+              <div className="gc-cols-4 tr-kpis" style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: "20px" }}>
                 <div style={{ borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", padding: "24px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <p style={{ margin: "0", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#334155", fontVariantNumeric: "tabular-nums" }}>1,284</p>

@@ -339,7 +339,7 @@ export default class HelpSupportScreen extends Component {
                     {__list(v.thread).map((m, $index) => (<React.Fragment key={$index}>
                         <div style={__sx(`display: flex; flex-direction: column; align-items: ${m?.al ?? ""}; gap: 4px;`)}>
                           {m?.isEvent ? (<>
-                            <div style={{ alignSelf: "center", display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px", borderRadius: "var(--radius-full)", background: "#f1f4f9", fontSize: "var(--text-xs)", color: "#475569" }}>{m?.t} · {m?.w}</div>
+                            <div style={{ alignSelf: "center", display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px", borderRadius: "var(--radius-full)", background: "#f1f4f9", fontSize: "var(--text-xs)", color: "#475569", textAlign: "center" }}><span>{m?.t} · <span style={{ whiteSpace: "nowrap" }}>{m?.w}</span></span></div>
                           </>) : null}
                           {m?.isMsg ? (<>
                             <div className="msgb" style={__sx(`background: ${m?.bg ?? ""}; color: ${m?.fg ?? ""};`)}>{m?.t}</div>

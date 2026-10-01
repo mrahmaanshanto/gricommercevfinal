@@ -111,7 +111,7 @@ export default class SetDeliveryScreen extends Component {
                     <header style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
                       <span style={{ display: "block", minWidth: "0" }}>
                         <h1 style={{ margin: "0 0 4px", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>Delivery Settings</h1>
-                        <p style={{ margin: "0", maxWidth: "640px", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "var(--text-muted)", textWrap: "pretty" }}>Charges, courier cost and promised time across three zones. It is a matrix, so it is laid out as one — twelve numbers in a table you can read across, not twenty-four stacked inputs.</p>
+                        <p style={{ margin: "0", maxWidth: "640px", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "var(--text-muted)", textWrap: "pretty" }}>Delivery charge, courier cost and promised delivery time for each of the three zones. Each zone has the same five values, so they are easy to compare.</p>
                       </span>
                       <span style={{ marginLeft: "auto", flex: "none", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>3 zones · 15 values</span>

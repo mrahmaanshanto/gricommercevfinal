@@ -17,6 +17,7 @@ import { addPOs, getPOs } from '@/lib/purchaseOrders';
 import { STOCK_PLACES, getReceivingPlaces } from '@/lib/locations';
 import { productBy } from '@/lib/stock';
 import { formatBDT, formatDate } from '@/lib/format';
+import { clockNow } from '@/lib/settlements';
 
 // ---- form helpers: required marker, field error text, invalid attributes, focus the first error ----
 function __Req() { return <span aria-hidden="true" style={{ color: 'var(--text-danger)' }}> *</span>; }
@@ -46,17 +47,18 @@ var BLANK = { lines: [], ship: 0, customs: 0, courier: 0, split: 'value', toast:
 class Component extends DCLogic {
   st() {
     var s = this.state || {};
+    var today = s.today || FIRST_DAY;
     return {
       lines: s.lines || [{ i: 0, qty: 60 }, { i: 1, qty: 48 }, { i: 2, qty: 40 }],
       ship: s.ship != null ? s.ship : 1500, customs: s.customs != null ? s.customs : 0, courier: s.courier != null ? s.courier : 600,
       split: s.split || 'value', term: s.term != null ? s.term : 30, next: s.next || 3, toast: s.toast || '', flash: s.flash,
-      sup: s.sup != null ? s.sup : 'Rahman Traders', date: s.date != null ? s.date : '25 Sep 2026', errs: s.errs || {},
-      place: s.place || 'Central Warehouse', sups: s.sups || SUPPLIERS, pos: s.pos || [], today: s.today || FIRST_DAY,
+      sup: s.sup != null ? s.sup : 'Rahman Traders', date: s.date != null ? s.date : fmtDate(new Date(today + 7 * DAY)), errs: s.errs || {},
+      place: s.place || 'Central Warehouse', sups: s.sups || SUPPLIERS, pos: s.pos || [], today: today,
       inv: s.inv || '', note: s.note || '', saved: s.saved || null, fileGone: !!s.fileGone
     };
   }
   componentDidMount() {
-    var d = new Date(); d.setHours(0, 0, 0, 0);
+    var d = new Date(clockNow()); d.setHours(0, 0, 0, 0);   // the app clock (gc.clock.offset moves it for testing)
     this.setState({ sups: getSuppliers(), pos: getPOs(), today: d.getTime(), places: getReceivingPlaces() });   // live places that can receive deliveries
   }
   componentWillUnmount() { clearTimeout(this.t); }
@@ -125,7 +127,7 @@ class Component extends DCLogic {
       addFile: function () { set({ fileGone: false }); __toast('Quotation attached'); },
       saved: s.saved, isSaved: !!s.saved, notSaved: !s.saved, poNo: s.saved ? s.saved.no : 'Number given when you save',
       savedHref: s.saved ? '/po-detail?no=' + encodeURIComponent(s.saved.no) : '/purchase-orders',
-      startNew: function () { var d0 = new Date(); d0.setHours(0, 0, 0, 0); self.setState(Object.assign({}, BLANK, { sups: getSuppliers(), pos: getPOs(), today: d0.getTime() })); },
+      startNew: function () { var d0 = new Date(clockNow()); d0.setHours(0, 0, 0, 0); self.setState(Object.assign({}, BLANK, { sups: getSuppliers(), pos: getPOs(), today: d0.getTime() })); },
       notReady: function (what) { return function () { __toast(what + ' is not available in this demo yet. Scan or add the products one by one.', { tone: 'info' }); }; },
       dateIn: function (e) { set({ date: e.target.value, errs: __without(s.errs, 'date') }); },
       submit: function (e) { if (e && e.preventDefault) e.preventDefault(); save(false); },

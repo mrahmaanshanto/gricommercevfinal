@@ -190,7 +190,7 @@ export default class MTicketsScreen extends Component {
                   <span className="ell" style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>Nusrat Jahan</span>
                   <span className="ell" style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--muted)" }}>From a call · 18 min ago</span>
                 </span>
-                <span style={{ fontSize: "var(--text-xs)", color: "var(--warn)", fontWeight: "var(--weight-medium)" }}>Unassigned</span>
+                <span className="av" style={{ width: "28px", height: "28px", borderRadius: "var(--radius-full)", background: "#0a8a63", color: "#fff", fontSize: "var(--text-xs)" }} title="Assigned to Rina Akter" aria-label="Assigned to Rina Akter">RA</span>
               </div>
             </__Link>
             <__Link href="/m-ticket-detail" className="card" style={{ display: "block", margin: "0 20px 12px", padding: "16px" }}>

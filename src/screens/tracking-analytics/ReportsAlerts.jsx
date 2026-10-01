@@ -201,6 +201,8 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
   .ra-acts{flex-wrap:wrap}
   .ra-acts>.btn{flex:1 1 auto}
 }
+/* selects use the shared chevron (gc-select); .inp's background shorthand would wipe it, so it is restated here */
+.inp.gc-select{padding-right:var(--space-8);background-image:linear-gradient(45deg,transparent 50%,var(--text-muted) 50%),linear-gradient(135deg,var(--text-muted) 50%,transparent 50%);background-position:calc(100% - 18px) 20px,calc(100% - 13px) 20px;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
 ` + TA_PHONE_CSS;
 
 // ---- markup ----
@@ -292,7 +294,7 @@ export default class ReportsAlertsScreen extends Component {
                       <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Send alerts to</div>
                       <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Who hears about it</div>
                     </div>
-                    <select className="inp" aria-label="Alert to" style={{ width: "230px" }}>
+                    <select className="inp gc-select" aria-label="Alert to" style={{ width: "230px" }}>
                       <option>WhatsApp + app · owner</option>
                       <option>SMS · owner and marketer</option>
                       <option>Email only</option>
@@ -374,7 +376,7 @@ export default class ReportsAlertsScreen extends Component {
                 <div className="ra-build" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
                   <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                     <span className="lbl">Split by</span>
-                    <select className="inp" value={v.dim} onChange={v.setDim} aria-label="Split by">
+                    <select className="inp gc-select" value={v.dim} onChange={v.setDim} aria-label="Split by">
                       <option value="platform">Platform</option>
                       <option value="city">City</option>
                       <option value="week">Week</option>
@@ -382,7 +384,7 @@ export default class ReportsAlertsScreen extends Component {
                   </label>
                   <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                     <span className="lbl">Period</span>
-                    <select className="inp" aria-label="Period" style={{ width: "100%" }}>
+                    <select className="inp gc-select" aria-label="Period" style={{ width: "100%" }}>
                       <option>Last 30 days</option>
                       <option>This month</option>
                       <option>Last 90 days</option>
@@ -391,7 +393,7 @@ export default class ReportsAlertsScreen extends Component {
                   </label>
                   <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                     <span className="lbl">Compare with</span>
-                    <select className="inp" aria-label="Compare" style={{ width: "100%" }}>
+                    <select className="inp gc-select" aria-label="Compare" style={{ width: "100%" }}>
                       <option>Previous period</option>
                       <option>Same period last year</option>
                       <option>No comparison</option>

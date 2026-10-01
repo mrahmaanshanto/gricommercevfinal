@@ -121,6 +121,8 @@ const CSS = `
    become a plain row at the end of the form so the two bars don't stack */
 @media (max-width:640px){
   .no-foot{display:none}
+  .no-row .no-search{flex:1 1 100%}
+  .no-row>.gc-btn{flex:1 1 0;min-width:0}
   .no-bar{position:static;margin:0 0 var(--space-12);padding:0;border-top:0;background:none;backdrop-filter:none}
 }
 `;
@@ -344,7 +346,7 @@ export default function NewOrder() {
                   <div className="no-row">
                     <div className="no-search">
                       <Icon name="search" width="18" height="18" aria-hidden="true" />
-                      <input ref={productRef} className="gc-input" type="search" placeholder="Search products by name or SKU" aria-label="Search products" aria-invalid={errors.lines ? 'true' : undefined} aria-describedby={errors.lines ? 'no-lines-err' : undefined} value={query} onChange={(e) => setQuery(e.target.value)} />
+                      <input ref={productRef} className="gc-input" type="search" placeholder="Product name or SKU" aria-label="Search products" aria-invalid={errors.lines ? 'true' : undefined} aria-describedby={errors.lines ? 'no-lines-err' : undefined} value={query} onChange={(e) => setQuery(e.target.value)} />
                       {matches.length > 0 && (
                         <div className="no-pop" role="listbox" aria-label="Matching products">
                           {matches.map((p) => (

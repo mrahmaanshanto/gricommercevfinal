@@ -142,7 +142,8 @@ const CSS = `body{margin:0;background:#eef2f7;font-family:var(--font-sans);color
 /* phones: the editor toolbar wraps inside the screen (view switch full width, then Open on my phone + Publish);
    icon buttons and the page-part rows get touch-sized targets */
 @media (max-width:640px){
-  .lpb-ib{width:40px!important;height:40px!important}
+  .lpb-ib{width:44px!important;height:44px!important}
+  .lpb-ib svg{width:20px;height:20px}
   .lpb-tools{flex:1 1 100%!important;flex-wrap:wrap;margin-left:0!important}
   .lpb-tools>span:first-child{flex:1 1 100%!important}
   .lpb-tools>span:first-child>button{flex:1 1 0!important;justify-content:center;height:36px!important}
@@ -150,7 +151,8 @@ const CSS = `body{margin:0;background:#eef2f7;font-family:var(--font-sans);color
   .lpb-cbar{flex-wrap:wrap;row-gap:6px!important}
   .lpb-cbar>span:last-child{flex:1 1 100%!important;margin-left:0!important;white-space:normal!important}
   .lpb-parts button{min-height:44px}
-  .lpb-parts button>span:last-child:not([style*="flex: 1"]){display:grid;place-items:center;width:36px;height:36px;margin:-8px -6px -8px 0;flex:none}
+  .lpb-parts button>span:last-child:not([style*="flex: 1"]){display:grid;place-items:center;width:40px;height:40px;margin:-8px -6px -8px 0;flex:none}
+  .lpb-parts button>span svg{width:16px;height:16px}
 }`;
 
 // ---- markup ----

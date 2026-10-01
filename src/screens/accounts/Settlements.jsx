@@ -49,7 +49,17 @@ const CSS = `
 .st-empty{padding:var(--space-6) var(--space-5);text-align:center;font-size:var(--text-sm);color:var(--text-muted)}
 @media (max-width:900px){.st-row{grid-template-columns:minmax(0,1fr) auto;row-gap:var(--space-2)}.st-into{grid-column:1}.st-acts{grid-column:1 / -1;justify-content:flex-start}}
 .st-nw{white-space:nowrap}
-@media (max-width:640px){.st-into > span:first-child{width:32px!important;height:32px!important}}
+@media (max-width:640px){
+  /* bank and partner logos are mostly wide wordmarks: a wider tile keeps them readable */
+  .st-name > span:first-child,.st-pcard .ac-logo-line > span:first-child{width:60px!important;height:40px!important}
+  .st-into > span:first-child,[data-screen="Settlements"] .ac-who > span:first-child{width:48px!important;height:30px!important}
+}
+@media (max-width:640px){
+  /* page title + "More" + main button share one row: the title keeps whole words (never split mid-word),
+     the main button is a little narrower; if they still do not fit, the row wraps */
+  [data-screen="Settlements"] .gc-shell__content .gc-pagehead>.gc-pagehead__text{flex-basis:0!important;min-width:min-content!important}
+  [data-screen="Settlements"] .gc-pagehead__actions .gc-btn--solid{padding:0 var(--space-3)}
+}
 `;
 
 function statusBadges(p, now) {

@@ -241,7 +241,7 @@ export default class PurchaseOrdersScreen extends Component {
                         <path d="m21 21-4.3-4.3" />
                       </svg>
                     </span>
-                    <input className="inp" type="search" placeholder="Scan PO barcode or type PO no. / supplier" aria-label="Find a purchase order" style={{ paddingLeft: "44px" }} value={v.q} onChange={v.setQ} />
+                    <input className="inp" type="search" placeholder="PO no., supplier or scan" aria-label="Find a purchase order" style={{ paddingLeft: "44px" }} value={v.q} onChange={v.setQ} />
                   </label>
                   <button type="button" className="chip" onClick={v.supplierHint}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

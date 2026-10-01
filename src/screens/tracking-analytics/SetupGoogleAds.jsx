@@ -220,6 +220,11 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .chk:last-child{border-bottom:0}
 
 .pgc>*{flex-shrink:0}.tb th{white-space:normal}.stp2{flex-shrink:0}.pgc>.fill{flex-shrink:1;min-height:0}
+/* below 1024px the two columns stack: the sections join one list so the steps read 1 to 6, the summary last */
+@media (max-width:1023px){
+  .gad-col{display:contents!important}
+  .gad-s3{order:1}.gad-s4{order:2}.gad-s5{order:3}.gad-snip{order:4}.gad-s6{order:5}.gad-sum{order:6}
+}
 ` + TA_PHONE_CSS;
 
 // ---- markup ----
@@ -290,7 +295,7 @@ export default class SetupGoogleAdsScreen extends Component {
                 </div>
               </nav>
               <div className="gc-split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 380px", gap: "16px", alignItems: "start" }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
+                <div className="gad-col" style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                   <section className="tc sec" style={__sx(`padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; border-color: ${v.bd_s1 ?? ""}; box-shadow: ${v.sh_s1 ?? ""};`)}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
                       <span style={{ display: "flex", gap: "4px" }}>
@@ -345,7 +350,7 @@ export default class SetupGoogleAdsScreen extends Component {
                       </div>
                     </div>
                   </section>
-                  <section className="tc sec" style={__sx(`padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; border-color: ${v.bd_s4 ?? ""}; box-shadow: ${v.sh_s4 ?? ""};`)}>
+                  <section className="tc sec gad-s4" style={__sx(`padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; border-color: ${v.bd_s4 ?? ""}; box-shadow: ${v.sh_s4 ?? ""};`)}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
                       <span style={{ display: "flex", gap: "4px" }}>
                         <span className="secn" style={__sx(`background: ${v.nb4 ?? ""}; color: ${v.nf4 ?? ""};`)}>4</span>
@@ -406,8 +411,8 @@ export default class SetupGoogleAdsScreen extends Component {
                     </div>
                   </section>
                 </div>
-                <aside style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
-                  <section className="tc" style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                <aside className="gad-col" style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
+                  <section className="tc gad-sum" style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
                       <svg width="80" height="80" viewBox="0 0 80 80" aria-hidden="true">
                         <circle cx="40" cy="40" r="32" fill="none" stroke="#eef1f6" strokeWidth="8" />
@@ -428,7 +433,7 @@ export default class SetupGoogleAdsScreen extends Component {
                         </React.Fragment>))}
                     </div>
                   </section>
-                  <section className="tc sec" style={__sx(`padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; border-color: ${v.bd_s3 ?? ""}; box-shadow: ${v.sh_s3 ?? ""};`)}>
+                  <section className="tc sec gad-s3" style={__sx(`padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; border-color: ${v.bd_s3 ?? ""}; box-shadow: ${v.sh_s3 ?? ""};`)}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
                       <span style={{ display: "flex", gap: "4px" }}>
                         <span className="secn" style={__sx(`background: ${v.nb3 ?? ""}; color: ${v.nf3 ?? ""};`)}>3</span>
@@ -455,7 +460,7 @@ export default class SetupGoogleAdsScreen extends Component {
                       </div>
                     </div>
                   </section>
-                  <section className="tc sec" style={__sx(`padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; border-color: ${v.bd_s5 ?? ""}; box-shadow: ${v.sh_s5 ?? ""};`)}>
+                  <section className="tc sec gad-s5" style={__sx(`padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; border-color: ${v.bd_s5 ?? ""}; box-shadow: ${v.sh_s5 ?? ""};`)}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
                       <span style={{ display: "flex", gap: "4px" }}>
                         <span className="secn" style={__sx(`background: ${v.nb5 ?? ""}; color: ${v.nf5 ?? ""};`)}>5</span>
@@ -476,7 +481,7 @@ export default class SetupGoogleAdsScreen extends Component {
                     </div>
                     <span className="bn" style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>ডেলিভারি হওয়া অর্ডারই আসল বিক্রি — সেগুলো প্রতি রাতে গুগল অ্যাডসে যায়।</span>
                   </section>
-                  <section className="tc" style={{ overflow: "hidden" }}>
+                  <section className="tc gad-snip" style={{ overflow: "hidden" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 14px 12px 18px", borderBottom: "1px solid #eef1f6" }}>
                       <h2 style={{ margin: "0", flexGrow: "1", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Conversion snippet</h2>
                       <button type="button" className="abtn" onClick={v.copy_snip}>Copy</button>
@@ -485,7 +490,7 @@ export default class SetupGoogleAdsScreen extends Component {
                       <pre className="code mono"><span className="k">gtag</span>{"("}<span className="s">'event'</span>{", "}<span className="s">'conversion'</span>{", {\n  send_to: "}<span className="s">'{v.show_cid}/{v.show_clabel}'</span>{",\n  value: "}<span className="s">2450</span>{", currency: "}<span className="s">'BDT'</span>{",\n  transaction_id: "}<span className="s">'GS-10482'</span>{"\n});"}</pre>
                     </div>
                   </section>
-                  <section className="tc sec" style={__sx(`padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; border-color: ${v.bd_s6 ?? ""}; box-shadow: ${v.sh_s6 ?? ""};`)}>
+                  <section className="tc sec gad-s6" style={__sx(`padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; border-color: ${v.bd_s6 ?? ""}; box-shadow: ${v.sh_s6 ?? ""};`)}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
                       <span style={{ display: "flex", gap: "4px" }}>
                         <span className="secn" style={__sx(`background: ${v.nb6 ?? ""}; color: ${v.nf6 ?? ""};`)}>6</span>

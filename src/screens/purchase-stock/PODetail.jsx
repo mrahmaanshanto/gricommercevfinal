@@ -44,6 +44,10 @@ const SCSS = `
 .pd-dot{flex:none;width:8px;height:8px;margin-top:6px;border-radius:var(--radius-full);background:var(--primary)}
 .pd-dot--ok{background:var(--text-success)}
 .pd-empty{margin:0;padding:0 var(--space-5) var(--space-5);font-size:var(--text-sm);color:var(--text-muted)}
+.pd-back{display:none}
+@media (max-width:640px){
+  .pd-back{display:inline-flex;align-items:center;gap:var(--space-1-5);align-self:flex-start;min-height:40px;margin-bottom:calc(-1 * var(--space-2));font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--primary);text-decoration:none}
+}
 `;
 
 function StoredPO({ po, onChange }) {
@@ -64,10 +68,11 @@ function StoredPO({ po, onChange }) {
       <div className="gc-shell">
         <__Sidebar sticky="" active="po-orders" />
         <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
-          <__Topbar crumb="Purchase › Purchase orders" page="Order details" placeholder="Search or scan any barcode" />
+          <__Topbar crumb="Purchase › Purchase orders" page="Purchase order" placeholder="Search or scan any barcode" />
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+            <__Link href="/purchase-orders" className="pd-back"><__Icon name="arrow-left" width="18" height="18" aria-hidden="true" /> All orders</__Link>
             <__PageHeader
-              title="Order details"
+              title="Purchase order"
               description={po.status === 'Draft' ? 'A draft. Check it, then send it to the supplier.' : 'Receive the goods when the delivery arrives.'}
               actions={<>
                 <__Link href="/purchase-orders" className="gc-btn gc-btn--neutral"><__Icon name="arrow-left" width="18" height="18" aria-hidden="true" /> All orders</__Link>
@@ -228,6 +233,10 @@ a{color:#003087}a:hover{color:#002a77}
   .pod-steps>li>span:first-child:nth-last-child(4){left:17px!important;right:auto!important;top:40px!important;bottom:2px;width:2px;height:auto!important}
   .pod-sechead{flex-wrap:wrap;gap:4px 12px;padding:16px!important}
 }
+.pd-back{display:none}
+@media (max-width:640px){
+  .pd-back{display:inline-flex;align-items:center;gap:var(--space-1-5);align-self:flex-start;min-height:40px;margin-bottom:calc(-1 * var(--space-2));font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--primary);text-decoration:none}
+}
 `;
 
 // ---- markup ----
@@ -242,9 +251,10 @@ export default class PODetailScreen extends Component {
         <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
           <__Sidebar sticky="" active="po-orders" />
           <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
-            <__Topbar crumb="Purchase › Purchase orders" page="Order details" placeholder="Search or scan any barcode" />
+            <__Topbar crumb="Purchase › Purchase orders" page="Purchase order" placeholder="Search or scan any barcode" />
             <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <__PageHeader title="Order details" />
+              <__Link href="/purchase-orders" className="pd-back"><__Icon name="arrow-left" width="18" height="18" aria-hidden="true" /> All orders</__Link>
+              <__PageHeader title="Purchase order" />
               <section className="card pod-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "28px" }}>
                 <div className="pod-head" style={{ display: "flex", alignItems: "flex-start", gap: "24px" }}>
                   <div style={{ flexGrow: "1", minWidth: "0" }}>

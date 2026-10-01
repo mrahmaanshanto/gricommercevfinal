@@ -666,7 +666,7 @@ export default class StaffRolesScreen extends Component {
                   <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>What each role can do</h2>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }}>Approve = can be the second person on money and entitlements</div>
                 </div>
-                <div className="cs-scrollx" style={{ "--cs-matrix-min": "760px" }}>
+                <div className="cs-scrollx" style={{ "--cs-matrix-min": "1000px" }}>
                   <div style={{ display: "grid", gridTemplateColumns: "120px repeat(8,minmax(0,1fr))", gap: "4px" }}>
                     <span />
                     <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--muted)", textAlign: "center", lineHeight: "1.4" }}>Merchants</span>

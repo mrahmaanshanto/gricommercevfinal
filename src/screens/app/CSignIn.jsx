@@ -167,8 +167,8 @@ export default class CSignInScreen extends Component {
             </div>
             <__Link href="/c-home" className="btn btnp" style={{ width: "100%" }}>Sign in</__Link>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-xs-plus)" }}>
-              <a href="#" style={{ color: "var(--brand)", fontWeight: "var(--weight-medium)" }}>Use Face ID</a>
-              <a href="#" style={{ color: "var(--muted)" }}>Lost your device?</a>
+              <a href="#" className="tap" style={{ color: "var(--brand)", fontWeight: "var(--weight-medium)" }}>Use Face ID</a>
+              <a href="#" className="tap" style={{ color: "var(--muted)" }}>Lost your device?</a>
             </div>
           </div>
           <div data-pin-bottom="" style={{ position: "absolute", left: "24px", right: "24px", bottom: "48px", display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--muted)" }}>

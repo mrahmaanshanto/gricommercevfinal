@@ -492,7 +492,7 @@ export default class PlatformHealthScreen extends Component {
 </svg>Status page</button>
                 </div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 18px", borderRadius: "var(--radius-xl)", background: "#ffece5", border: "1px solid #ffc4ae" }}>
+              <div className="cs-alert" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 18px", borderRadius: "var(--radius-xl)", background: "#ffece5", border: "1px solid #ffc4ae" }}>
                 <span className="shp shp-err" style={{ width: "12px", height: "12px" }} />
                 <div>
                   <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", color: "#7c2d12" }}>INC-114 · Steadfast webhook delays · 4 h 12 min</div>
@@ -560,7 +560,7 @@ export default class PlatformHealthScreen extends Component {
                     <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Uptime, 90 days</h2>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }} />
                   </div>
-                  <svg className="cs-chart-s" viewBox="0 0 360 150" width="100%" role="img" style={{ "--cs-fs": "13px", display: "block", overflow: "visible" }}>
+                  <svg className="cs-chart-s cs-trim-b" viewBox="0 0 360 150" width="100%" role="img" style={{ "--cs-fs": "13px", display: "block", overflow: "visible" }}>
                     <text x="0" y="20" fontSize="22" fill="#0f172a" textAnchor="start" fontWeight="700" fontFamily="Poppins, system-ui, sans-serif">99.96%</text>
                     <text x="86" y="20" fontSize="11" fill="#64748b" textAnchor="start" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">uptime · last 90 days</text>
                     <rect x="0" y="36" width="3" height="46" rx="1" fill="#10b981" />
@@ -656,7 +656,7 @@ export default class PlatformHealthScreen extends Component {
                     <path d="M245,92 l4,-6 l4,6 z" fill="#b45309" />
                     <text className="cs-tend" x="258" y="100" fontSize="10" fill="#b45309" textAnchor="start" fontWeight="600" fontFamily="Poppins, system-ui, sans-serif">26 min degraded · 12 Aug</text>
                     <text x="0" y="100" fontSize="10" fill="#64748b" textAnchor="start" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">90 days ago</text>
-                    <text x="360" y="118" fontSize="10" fill="#64748b" textAnchor="end" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">Today</text>
+                    <text className="cs-tup" x="360" y="118" fontSize="10" fill="#64748b" textAnchor="end" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">Today</text>
                     <circle className="cs-svg-legend" cx="6" cy="138" r="5" fill="#10b981" />
                     <text className="cs-svg-legend" x="16" y="142" fontSize="10" fill="#475569" textAnchor="start" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">Operational</text>
                     <path className="cs-svg-legend" d="M96,132 L102,143 L90,143 Z" fill="#ff9800" />
@@ -666,7 +666,7 @@ export default class PlatformHealthScreen extends Component {
                   </svg>
                   <div className="cs-chart-legend" aria-hidden="true">
                     <span><span className="shp shp-ok" />Operational</span>
-                    <span><span className="shp shp-warn" />Degraded</span>
+                    <span><span className="shp shp-warn" />Degraded · 26 min on 12 Aug</span>
                     <span><span className="shp shp-err" />Down</span>
                   </div>
                 </section>
@@ -731,30 +731,30 @@ export default class PlatformHealthScreen extends Component {
                     <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Page load from Bangladeshi networks, p75 seconds</h2>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }}>real users</div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "flex-end", gap: "8px", height: "158px" }}>
+                  <div className="cs-vbars" style={{ display: "flex", alignItems: "flex-end", gap: "8px", height: "158px" }}>
                     <div style={{ flex: "1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", gap: "6px", minWidth: "0" }}>
                       <span className="num" style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>2.1</span>
-                      <span style={{ width: "70%", maxWidth: "44px", height: "50px", borderRadius: "var(--radius-md) var(--radius-md) 2px 2px", background: "#003087" }} />
+                      <span style={{ width: "70%", maxWidth: "44px", height: "50px", "--v": "45.5%", borderRadius: "var(--radius-md) var(--radius-md) 2px 2px", background: "#003087" }} />
                       <span style={{ fontSize: "var(--text-xs)", color: "var(--body)", textAlign: "center" }}>Grameenphone 4G</span>
                     </div>
                     <div style={{ flex: "1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", gap: "6px", minWidth: "0" }}>
                       <span className="num" style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>2.4</span>
-                      <span style={{ width: "70%", maxWidth: "44px", height: "57px", borderRadius: "var(--radius-md) var(--radius-md) 2px 2px", background: "#2e559d" }} />
+                      <span style={{ width: "70%", maxWidth: "44px", height: "57px", "--v": "51.8%", borderRadius: "var(--radius-md) var(--radius-md) 2px 2px", background: "#2e559d" }} />
                       <span style={{ fontSize: "var(--text-xs)", color: "var(--body)", textAlign: "center" }}>Robi 4G</span>
                     </div>
                     <div style={{ flex: "1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", gap: "6px", minWidth: "0" }}>
                       <span className="num" style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>2.7</span>
-                      <span style={{ width: "70%", maxWidth: "44px", height: "65px", borderRadius: "var(--radius-md) var(--radius-md) 2px 2px", background: "#ff9800" }} />
+                      <span style={{ width: "70%", maxWidth: "44px", height: "65px", "--v": "59.1%", borderRadius: "var(--radius-md) var(--radius-md) 2px 2px", background: "#ff9800" }} />
                       <span style={{ fontSize: "var(--text-xs)", color: "var(--body)", textAlign: "center" }}>Banglalink 4G</span>
                     </div>
                     <div style={{ flex: "1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", gap: "6px", minWidth: "0" }}>
                       <span className="num" style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>1.3</span>
-                      <span style={{ width: "70%", maxWidth: "44px", height: "31px", borderRadius: "var(--radius-md) var(--radius-md) 2px 2px", background: "#0070a0" }} />
+                      <span style={{ width: "70%", maxWidth: "44px", height: "31px", "--v": "28.2%", borderRadius: "var(--radius-md) var(--radius-md) 2px 2px", background: "#0070a0" }} />
                       <span style={{ fontSize: "var(--text-xs)", color: "var(--body)", textAlign: "center" }}>Broadband</span>
                     </div>
                     <div style={{ flex: "1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", gap: "6px", minWidth: "0" }}>
                       <span className="num" style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>4.6</span>
-                      <span style={{ width: "70%", maxWidth: "44px", height: "110px", borderRadius: "var(--radius-md) var(--radius-md) 2px 2px", background: "#ff5724" }} />
+                      <span style={{ width: "70%", maxWidth: "44px", height: "110px", "--v": "100%", borderRadius: "var(--radius-md) var(--radius-md) 2px 2px", background: "#ff5724" }} />
                       <span style={{ fontSize: "var(--text-xs)", color: "var(--body)", textAlign: "center" }}>3G</span>
                     </div>
                   </div>
@@ -764,19 +764,19 @@ export default class PlatformHealthScreen extends Component {
                     <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Error classes</h2>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }}>alerts on new classes</div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "44px", borderTop: "1px solid var(--line)" }}>
+                  <div className="cs-2l" style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "44px", borderTop: "1px solid var(--line)" }}>
                     <span className="shp shp-err" />
                     <span className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--ink)" }}>CourierWebhookTimeout · Steadfast</span>
                     <span className="num" style={{ marginLeft: "auto", fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>1,204 in 4 h</span>
                     <span className="pill p-err">New today</span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "44px", borderTop: "1px solid var(--line)" }}>
+                  <div className="cs-2l" style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "44px", borderTop: "1px solid var(--line)" }}>
                     <span className="shp shp-warn" />
                     <span className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--ink)" }}>BkashCallbackLate</span>
                     <span className="num" style={{ marginLeft: "auto", fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>37 in 24 h</span>
                     <span className="pill p-grey">Known</span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "44px", borderTop: "1px solid var(--line)" }}>
+                  <div className="cs-2l" style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "44px", borderTop: "1px solid var(--line)" }}>
                     <span className="shp shp-ok" />
                     <span className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--ink)" }}>ImageResizeFailed</span>
                     <span className="num" style={{ marginLeft: "auto", fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>4 in 24 h</span>

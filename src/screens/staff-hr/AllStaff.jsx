@@ -28,7 +28,7 @@ const CSS = `
 .as-card b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 .as-chips{display:flex;flex-wrap:wrap;gap:6px}
 .as-sec{margin:0;font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
-@media (max-width:640px){.as-search{max-width:none}.as-place{width:100%}}
+@media (max-width:640px){.as-search{max-width:none}.as-place{width:100%}.as-view{display:none}}
 `;
 const FILTERS = [['all', 'All'], ['active', 'Active'], ['probation', 'Probation'], ['leave', 'On leave'], ['suspended', 'Suspended']];
 const TODAY = { P: ['Present · on time', 'hr-in'], L: ['Late', 'hr-warn'], A: ['Absent', 'hr-out'], HD: ['Half day', 'hr-warn'], V: ['On leave', ''], U: ['Unpaid leave', ''], W: ['Weekly off', ''], H: ['Holiday', ''], S: ['—', ''], wait: ['Not in yet', ''], '?': ['Not marked', 'hr-warn'], '·': ['—', ''] };
@@ -104,7 +104,7 @@ export default function AllStaff() {
           <div className="hr-bar__group">
             <select className="gc-input gc-select as-place" aria-label="Location" value={place} onChange={(e) => setPlace(e.target.value)}><option value="">All locations</option>{places.map((p) => <option key={p}>{p}</option>)}</select>
             <label className="as-search"><Icon name="search" width="16" height="16" aria-hidden="true" /><input className="gc-input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, phone or EMP code" aria-label="Search staff" /></label>
-            <div className="hr-seg" role="group" aria-label="View"><button type="button" aria-pressed={view === 'table'} onClick={() => setView('table')}>Table</button><button type="button" aria-pressed={view === 'cards'} onClick={() => setView('cards')}>Cards</button></div>
+            <div className="hr-seg as-view" role="group" aria-label="View"><button type="button" aria-pressed={view === 'table'} onClick={() => setView('table')}>Table</button><button type="button" aria-pressed={view === 'cards'} onClick={() => setView('cards')}>Cards</button></div>
           </div>
         </div>
         {sel.length ? (

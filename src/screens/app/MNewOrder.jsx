@@ -149,8 +149,8 @@ export default class MNewOrderScreen extends Component {
                 <div className="row">
                   <span className="av" style={{ background: "#e0f3fb", color: "#003087" }}>D</span>
                   <span className="m">
-                    <span className="t no-name" style={{ fontWeight: "var(--weight-medium)" }}>Denim Jeans · Blue · 32</span>
-                    <span className="s num">৳1,290 each</span>
+                    <span className="t no-name" style={{ fontWeight: "var(--weight-medium)" }}>Denim Jeans</span>
+                    <span className="s num ell" style={{ display: "block" }}>Blue · 32 · ৳1,290</span>
                   </span>
                   <span className="step" role="group" aria-label="Quantity">
                     <span>
@@ -169,8 +169,8 @@ export default class MNewOrderScreen extends Component {
                 <div className="row">
                   <span className="av" style={{ background: "#e0f3fb", color: "#003087" }}>M</span>
                   <span className="m">
-                    <span className="t no-name" style={{ fontWeight: "var(--weight-medium)" }}>Men’s Polo · Navy · M</span>
-                    <span className="s num">৳990 each</span>
+                    <span className="t no-name" style={{ fontWeight: "var(--weight-medium)" }}>Men’s Polo</span>
+                    <span className="s num ell" style={{ display: "block" }}>Navy · M · ৳990</span>
                   </span>
                   <span className="step" role="group" aria-label="Quantity">
                     <span>

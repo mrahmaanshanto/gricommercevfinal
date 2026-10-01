@@ -127,6 +127,8 @@ const CSS = `
 @media (max-width:599px){.be-bar{position:static}.be-card{padding:var(--space-4)}.be-slug{flex-direction:column}.be-slug span{border-right:1px solid var(--border-field);border-bottom:0;border-radius:var(--radius-lg) var(--radius-lg) 0 0;height:32px}.be-slug input{border-radius:0 0 var(--radius-lg) var(--radius-lg)}.be-bbody{padding:var(--space-3)}}
 /* phones: the character count stays on one line; checklist tips use the helper-text size */
 @media (max-width:640px){.be-count>span:last-child{flex:none;white-space:nowrap}}
+/* phones: Save draft / Publish already sit in the bar at the top, so the Publish panel does not repeat them */
+@media (max-width:640px){.be-btns{display:none}}
 `;
 
 // ---- collapsible side panel -------------------------------------------------------------------

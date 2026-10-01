@@ -218,6 +218,9 @@ button{font:inherit;color:inherit}
 .sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms}
 .sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
 .tabl{display:flex;gap:4px;border-bottom:1px solid #e2e8f0}
+@media (max-width:767px){.tabl{overflow-x:auto;scrollbar-width:none}.tabl::-webkit-scrollbar{display:none}.tabl>.tl{flex:none}}
+/* phones: no decorative page icon above the title; the title matches the other pages' headers */
+@media (max-width:640px){.ed-hicon{display:none!important}.ed-hicon+div .h1{font-size:var(--text-xl);line-height:var(--text-xl-lh)}}
 .tl{position:relative;height:44px;padding:0 14px;border:0;background:transparent;font-size:var(--text-sm-plus);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;white-space:nowrap}
 .tl.on{color:#003087;font-weight:var(--weight-semibold)}.tl.on::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:#003087}
 .row{display:flex;align-items:center;gap:12px;padding:14px 16px}
@@ -279,7 +282,7 @@ export default class ExpiryDisposalScreen extends Component {
             <__Topbar crumb={"Stocks & inventory"} page={"Damaged & expired"} placeholder="Search products, customers or memo no." />
             <div className="gc-shell__content" style={{ flexGrow: "1", minHeight: "0", padding: "22px 28px 28px", display: "flex", flexDirection: "column", gap: "18px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <span style={{ width: "52px", height: "52px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e6eaf0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span className="ed-hicon" style={{ width: "52px", height: "52px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e6eaf0", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <svg width="40" height="40" viewBox="0 0 48 48" aria-hidden="true">
                     <path d="M9 14H38A2 2 0 0 1 40 16V39A2 2 0 0 1 38 41H9A2 2 0 0 1 7 39V16A2 2 0 0 1 9 14Z" fill="#0ea5e9" />
                     <path d="M20 14h7v27h-7Z" fill="#7dd3fc" />

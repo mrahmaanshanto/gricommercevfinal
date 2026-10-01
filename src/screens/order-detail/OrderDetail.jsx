@@ -124,6 +124,9 @@ const CSS = `
 /* totals: the line above Total runs across both columns */
 .od-sum{column-gap:0}
 .od-sum dt{padding-right:var(--space-5)}
+/* held stock: the place is a plain heading over its item cards (no box around the cards) */
+.od-place{border:0;border-radius:0;overflow:visible}
+.od-place__head{flex-wrap:wrap;padding:0 0 var(--space-2);background:none}
 }
 `;
 

@@ -6,6 +6,20 @@
 import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import { getLocale } from '@/runtime/ui';
+
+// The promo bar follows the shopper's language (Bangla only when it is chosen).
+var PROMO = { en: 'Weekend Mega Sale — up to 40% off! Code: EID300', bn: 'উইকেন্ড মেগা সেল — ৪০% পর্যন্ত ছাড়! কোড: EID300' };
+function PromoText() {
+  var st = React.useState('en'), loc = st[0], setLoc = st[1];
+  React.useEffect(function () {
+    var on = function () { setLoc(getLocale()); };
+    on();
+    window.addEventListener('gc:locale', on);
+    return function () { window.removeEventListener('gc:locale', on); };
+  }, []);
+  return <span className={loc === 'bn' ? 'bn' : undefined} lang={loc}>{PROMO[loc]}</span>;
+}
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -167,6 +181,8 @@ a{color:#003087}a:hover{color:#002a77}
 .post{transition:box-shadow 200ms,transform 200ms}.post:hover{box-shadow:0 12px 28px -10px rgba(15,23,42,.25);transform:translateY(-2px)}
 .copyb{height:36px;padding:0 12px;border-radius:var(--radius-lg);border:0;background:#003087;color:#fff;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .copyb:hover{background:#002a77}
+/* phone: sale products sit two to a row with a shorter picture (the grid is set in design-system.css .sf-products) */
+@media (max-width:600px){.sf-pimg{height:120px!important}}
 `;
 
 // ---- markup ----
@@ -178,11 +194,11 @@ export default class OffersScreen extends Component {
       <div className="dc-screen ds" data-screen="Offers">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div className="sf-root" style={{ width: "100%", maxWidth: "1440px", margin: "0 auto", minHeight: "100vh", background: "#f8fafc", display: "flex", flexDirection: "column" }}>
-          <div className="bn" style={{ minHeight: "36px", padding: "6px 16px", textAlign: "center", background: "#b83210", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>
+          <div style={{ minHeight: "36px", padding: "6px 16px", textAlign: "center", background: "#b83210", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
             </svg>
-            <span>উইকেন্ড মেগা সেল — ৪০% পর্যন্ত ছাড়! কোড: EID300</span>
+            <PromoText />
           </div>
           <header className="sf-header sf-pad" style={{ minHeight: "76px", background: "#ffffff", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "32px", padding: "0 64px" }}>
             <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
@@ -300,10 +316,10 @@ export default class OffersScreen extends Component {
                       </>) : null}
                     </div>
                     <div style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "16px", justifyContent: "center" }}>
-                      <div className="sf-products gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "16px" }}>
+                      <div className="sf-products gc-cols-3 gc-cols--keep" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "16px" }}>
                         {__list(o?.items).map((p, $index) => (<React.Fragment key={$index}>
                             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                              <div style={__sx(`height: 180px; border-radius: var(--radius-xl); background: ${p?.bg ?? ""}; position: relative; display: flex; align-items: center; justify-content: center; font-size: var(--text-4xl); font-weight: var(--weight-semibold); color: #003087;`)}>{p?.initial}<span style={__sx(`position: absolute; top: 10px; left: 10px; padding: 3px 8px; border-radius: var(--radius-md); background: ${p?.tagBg ?? ""}; color: #fff; font-size: var(--text-xs); font-weight: var(--weight-medium);`)}>{p?.off}</span></div>
+                              <div className="sf-pimg" style={__sx(`height: 180px; border-radius: var(--radius-xl); background: ${p?.bg ?? ""}; position: relative; display: flex; align-items: center; justify-content: center; font-size: var(--text-4xl); font-weight: var(--weight-semibold); color: #003087;`)}>{p?.initial}<span style={__sx(`position: absolute; top: 10px; left: 10px; padding: 3px 8px; border-radius: var(--radius-md); background: ${p?.tagBg ?? ""}; color: #fff; font-size: var(--text-xs); font-weight: var(--weight-medium);`)}>{p?.off}</span></div>
                               <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", lineHeight: "20px" }}>{p?.name}</div>
                               <div>
                                 <span style={__sx(`font-size: var(--text-lg); font-weight: var(--weight-semibold); color: ${p?.priceFg ?? ""};`)}>{p?.price}</span>

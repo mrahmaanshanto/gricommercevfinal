@@ -350,7 +350,13 @@ body{margin:0;background:#eef2f7;font-family:var(--font-sans);color:#475569}a{co
 .mo-short{color:var(--text-danger);font-weight:var(--weight-medium)}
 @media (max-width:640px){.mo-bulk{min-width:0;width:100%;justify-content:flex-start !important}}
 /* phones: a wholesale invoice with the same number as its order isn't listed twice on the card */
-@media (max-width:640px){.mo-inv--same{display:none}}`;
+@media (max-width:640px){.mo-inv--same{display:none}}
+/* phones: Open and More on an order card are 40px round buttons with an outline, not bare glyphs */
+@media (max-width:640px){
+  .gc-shell__content .mo-ic{width:40px!important;height:40px!important;border:1px solid var(--border-field)!important;border-radius:var(--radius-full)!important;color:var(--text-body)!important}
+  .mo-ic svg{width:18px;height:18px}
+  .mo-ic+.mo-ic{margin-left:var(--space-1-5)}
+}`;
 
 const TH = { background: "#e2e8f0", padding: "10px 12px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "#1e293b", whiteSpace: "nowrap" };
 const TD = { padding: "14px 12px", borderBottom: "1px solid #e2e8f0" };
@@ -444,7 +450,7 @@ export default class MerchantOrdersScreen extends Component {
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px", padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>
                   <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px", flex: "1 1 320px", minWidth: "0" }}>
                     <span className="mo-search" style={{ position: "relative", display: "inline-block", flex: "1 1 220px", minWidth: "0", maxWidth: "320px" }}>
-                      <input aria-label="Search orders by ID, phone or customer" type="search" value={v.q} onChange={v.onSearch} placeholder="Search order ID, phone, customer…" style={{ width: "100%", boxSizing: "border-box", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 12px 0 36px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", color: "#1e293b" }} />
+                      <input aria-label="Search orders by ID, phone or customer" type="search" value={v.q} onChange={v.onSearch} placeholder="Order ID, phone or name" style={{ width: "100%", boxSizing: "border-box", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 12px 0 36px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", color: "#1e293b" }} />
                       <span aria-hidden="true" style={{ position: "absolute", left: "0", top: "0", display: "flex", width: "36px", height: "100%", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", pointerEvents: "none" }}>
                         <__Icon name="search" strokeWidth="1.75" width="16" height="16" />
                       </span>
@@ -550,10 +556,10 @@ export default class MerchantOrdersScreen extends Component {
                               <td style={{ ...TD, textAlign: "right", fontWeight: "var(--weight-medium)", color: "#334155", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{o.total}</td>
                               <td style={{ ...TD, textAlign: "right" }}>
                                 <span style={{ display: "inline-flex", gap: "2px" }}>
-                                  <__Link className="dc-h219" href={o.href} style={{ width: "28px", height: "28px", display: "grid", placeItems: "center", borderRadius: "var(--radius-lg)", color: "var(--text-muted)" }} aria-label={"Open order " + o.id}>
+                                  <__Link className="dc-h219 mo-ic" href={o.href} style={{ width: "28px", height: "28px", display: "grid", placeItems: "center", borderRadius: "var(--radius-lg)", color: "var(--text-muted)" }} aria-label={"Open order " + o.id}>
                                     <__Icon name="eye" strokeWidth="1.75" width="16" height="16" aria-hidden="true" />
                                   </__Link>
-                                  <button type="button" className="dc-h220" onClick={o.onMore} style={{ width: "28px", height: "28px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-lg)", background: "none", color: "var(--text-muted)", cursor: "pointer" }} aria-label={"More actions for order " + o.id}>
+                                  <button type="button" className="dc-h220 mo-ic" onClick={o.onMore} style={{ width: "28px", height: "28px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-lg)", background: "none", color: "var(--text-muted)", cursor: "pointer" }} aria-label={"More actions for order " + o.id}>
                                     <__Icon name="more-vertical" strokeWidth="1.75" width="16" height="16" aria-hidden="true" />
                                   </button>
                                 </span>

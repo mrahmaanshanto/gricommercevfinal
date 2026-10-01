@@ -125,6 +125,11 @@ a{color:#003087}a:hover{color:#002a77}
 .cp-tabs::-webkit-scrollbar{display:none}
 .cp-tabs>button{flex:none}
 }
+/* phones: in the activity timeline the time sits under the title instead of squeezing it */
+@media (max-width:640px){
+.gc-shell__content .cp-tl__row{flex-direction:column;align-items:flex-start!important;gap:0!important}
+.cp-tl__row>span:last-child{margin-left:0!important}
+}
 `;
 
 // ---- markup ----
@@ -313,7 +318,7 @@ export default class CustomerProfileScreen extends Component {
                                 <span style={{ flexGrow: "1", width: "2px", background: "#eef2f6", minHeight: "18px" }} />
                               </div>
                               <div style={{ padding: "6px 0 16px", flexGrow: "1" }}>
-                                <div style={{ display: "flex", gap: "10px", alignItems: "baseline" }}>
+                                <div className="cp-tl__row" style={{ display: "flex", gap: "10px", alignItems: "baseline" }}>
                                   <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>{e?.what}</span>
                                   <span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--text-muted)", whiteSpace: "nowrap" }}>{e?.when}</span>
                                 </div>

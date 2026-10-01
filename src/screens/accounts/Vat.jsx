@@ -237,6 +237,7 @@ body{font-family:var(--font-sans)}
   .vat-inv{width:auto!important;max-width:100%;min-width:0}
 }
 @media (max-width:640px){
+  .vat-icon{display:none!important} /* the page icon would sit alone above the title */
   .vat-inv{padding:var(--space-3) var(--space-3) var(--space-4)!important}
   .vat-inv__head{flex-wrap:wrap}
   .vat-inv__head > svg{flex:none}
@@ -264,7 +265,7 @@ export default class VatScreen extends Component {
             <__Topbar crumb="Accounts" page="VAT" placeholder="Search products, customers or memo no." />
             <div className="gc-shell__content" style={{ flexGrow: "1", minHeight: "0", padding: "22px 28px 28px", display: "flex", flexDirection: "column", gap: "18px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                <span style={{ width: "52px", height: "52px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e6eaf0", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
+                <span className="vat-icon" style={{ width: "52px", height: "52px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e6eaf0", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
                   <svg width="38" height="38" viewBox="0 0 48 48" aria-hidden="true">
                     <path d="M10 5L38 5L38 42L34 39L30 42L26 39L22 42L18 39L14 42L10 39Z" fill="#e0f2fe" />
                     <path d="M14.7 16a3.8 3.8 0 1 0 7.6 0a3.8 3.8 0 1 0 -7.6 0Z" fill="#0ea5e9" />

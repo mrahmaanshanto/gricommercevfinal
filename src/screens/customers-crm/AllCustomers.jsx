@@ -432,6 +432,17 @@ a{color:#003087}a:hover{color:#002a77}
 @container (max-width:879px){.ac-c4{display:none}.ac-m4{display:flex}}
 @container (max-width:709px){.ac-c3{display:none}.ac-m3{display:flex}}
 @container (max-width:519px){.ac-c2{display:none}.ac-m2{display:flex}}
+/* phones: every view chip sits in one swipe strip (More views last); the menu hangs from the strip's box so the
+   scrolling row does not clip it */
+@media (max-width:640px){
+  .ac-views{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-14px;padding:0 14px 2px;scroll-padding-inline:14px}
+  .ac-views::-webkit-scrollbar{display:none}
+  .ac-views>*{flex:none}
+  .ac-views>.chip{display:inline-flex}
+  .ac-morewrap{position:static}
+  .ac-menu{left:auto;right:0}
+  .ac-menu .ac-m{display:none}
+}
 /* Table: the customer cell is two single lines, never wrapped. */
 .ac-th-cust{min-width:220px}
 .ac-cust{display:flex;align-items:center;gap:12px;min-width:196px;max-width:300px;text-decoration:none;color:inherit}

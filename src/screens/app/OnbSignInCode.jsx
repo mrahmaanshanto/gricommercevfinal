@@ -142,14 +142,14 @@ export default class OnbSignInCodeScreen extends Component {
             </__Link>
             <span style={{ width: "44px" }} />
           </header>
-          <div className="content" style={{ top: "103px", bottom: "0", padding: "8px 24px 0" }}>
+          <div className="content" style={{ top: "103px", bottom: "98px", padding: "8px 24px 0" }}>
             <span className="ico" style={{ width: "56px", height: "56px", borderRadius: "var(--radius-xl)" }}>
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z" />
               </svg>
             </span>
             <h1 style={{ margin: "18px 0 0", fontSize: "var(--text-3xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>Enter the code</h1>
-            <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm-plus)", color: "var(--body)" }}>Sent by SMS to <b className="num" style={{ color: "var(--ink)" }}>+880 1712-345678</b>. <__Link href="/onb-sign-in" style={{ color: "var(--brand)", fontWeight: "var(--weight-medium)" }}>Change</__Link></p>
+            <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm-plus)", color: "var(--body)" }}>Sent by SMS to <b className="num" style={{ color: "var(--ink)" }}>+880 1712-345678</b>. <__Link href="/onb-sign-in" className="tap" style={{ color: "var(--brand)", fontWeight: "var(--weight-medium)" }}>Change</__Link></p>
             <div role="group" aria-label="6-digit code" style={{ display: "flex", gap: "8px", marginTop: "28px" }}>
               <span className="num" style={{ flex: "1", height: "60px", borderRadius: "var(--radius-xl)", border: "1.5px solid #94a3b8", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)" }}>4</span>
               <span className="num" style={{ flex: "1", height: "60px", borderRadius: "var(--radius-xl)", border: "1.5px solid #94a3b8", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)" }}>8</span>
@@ -167,7 +167,9 @@ export default class OnbSignInCodeScreen extends Component {
               </span>
               <span>The code fills in by itself when the SMS arrives. Never share it, even with GridCommerce staff.</span>
             </div>
-            <__Link href="/m-home" className="btn btnp" style={{ width: "100%", marginTop: "24px" }}>Verify</__Link>
+          </div>
+          <div className="actbar">
+            <__Link href="/m-home" className="btn btnp">Verify</__Link>
           </div>
           <div className="hi" aria-hidden="true" />
         </div>

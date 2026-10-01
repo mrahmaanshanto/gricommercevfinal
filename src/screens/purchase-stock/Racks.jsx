@@ -63,7 +63,7 @@ const CSS = PICKER_CSS + PLACE_CSS + `
 /* phones: the shelf name sits above its bins so a whole shelf fits the width; bin codes never break */
 @media (max-width:640px){
   .rk-rack{padding:var(--space-4) var(--space-3-5)}
-  .rk-shelf{grid-template-columns:repeat(var(--bins),minmax(50px,1fr));row-gap:2px;margin-bottom:var(--space-2)}
+  .rk-shelf{grid-template-columns:repeat(auto-fill,minmax(72px,1fr));row-gap:var(--space-1);margin-bottom:var(--space-2)}
   .rk-shelf__label{grid-column:1/-1}
   .rk-bin{padding:var(--space-1) 5px var(--space-2)}
   .rk-bin__code{white-space:nowrap}

@@ -151,12 +151,12 @@ export default class OnbDoneScreen extends Component {
               </span>
               <span style={{ flex: "1", minWidth: "0" }}>
                 <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--muted)" }}>Your shop link</span>
-                <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", overflowWrap: "anywhere" }}>nusratscloset<wbr />.gridcommerce.com.bd</span>
+                <span className="num" style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", lineHeight: "20px", overflowWrap: "normal" }}>nusratscloset<wbr />.gridcommerce.com.bd</span>
               </span>
-              <span className="pill p-nav">Copy</span>
+              <span className="pill p-nav" style={{ flex: "none", height: "36px", padding: "0 14px" }}>Copy</span>
             </a>
             <div className="card" style={{ marginTop: "14px" }}>
-              <__Link href="/m-home" className="lrow" style={{ alignItems: "flex-start" }}>
+              <__Link href="/onb-product" className="lrow" style={{ alignItems: "flex-start" }}>
                 <span className="ico">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z" />

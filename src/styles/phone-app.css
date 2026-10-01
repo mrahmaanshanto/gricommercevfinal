@@ -104,4 +104,20 @@
   }
   [data-screen] > .ph:not([data-board]) .chips::-webkit-scrollbar { display: none; }
   [data-screen] > .ph:not([data-board]) .chips > * { flex: none; }
+  /* the chip cut at the right edge fades out (over the strip's own end padding) instead of ending
+     in a hard sliver, so the row reads as "scroll for more" */
+  [data-screen] > .ph:not([data-board]) .chips {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent);
+    scroll-padding-inline: var(--space-5, 20px);
+  }
+
+  /* small text links ("Read all", "Edit", "Use demo code" …) keep their look and get a 44px tap area */
+  [data-screen] > .ph:not([data-board]) .tap { position: relative; }
+  [data-screen] > .ph:not([data-board]) .tap::after {
+    content: ""; position: absolute; left: -8px; right: -8px; top: 50%; height: 44px; transform: translateY(-50%);
+  }
+
+  /* the app design-system board is a reference page: the GridAI button would sit on its cards */
+  body:has([data-screen="AppSystem"]) .gc-ai { display: none; }
 }

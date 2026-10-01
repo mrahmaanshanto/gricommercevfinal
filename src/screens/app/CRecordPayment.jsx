@@ -123,8 +123,33 @@ export default class CRecordPaymentScreen extends Component {
             </span>
           </div>
           <div className="content" style={{ top: "47px", bottom: "0", filter: "saturate(.9)" }}>
-            <div style={{ padding: "6px 20px 0" }}>
-              <h1 style={{ margin: "0", fontSize: "var(--text-3xl)", fontWeight: "var(--weight-semibold)" }}>Collections</h1>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 16px 0 20px" }}>
+              <h1 style={{ flex: "1", margin: "0", fontSize: "var(--text-3xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>Collections</h1>
+              <span className="ib soft" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3 6h18M7 12h10M10 18h4" />
+                </svg>
+              </span>
+            </div>
+            <div className="card" style={{ margin: "14px 20px 0", padding: "16px", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
+              <div>
+                <div className="k">Due this week</div>
+                <div className="num" style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>৳10,500</div>
+              </div>
+              <div>
+                <div className="k">Overdue</div>
+                <div className="num" style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "var(--err)" }}>৳7,000</div>
+              </div>
+              <div>
+                <div className="k">Collected</div>
+                <div className="num" style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "var(--ok)" }}>৳41,500</div>
+              </div>
+            </div>
+            <div className="chips" style={{ marginTop: "14px" }}>
+              <span className="chip on">To call <span className="n">4</span></span>
+              <span className="chip">Due soon</span>
+              <span className="chip">Grace</span>
+              <span className="chip">Paid</span>
             </div>
             <div className="card" style={{ margin: "14px 20px 0" }}>
               <div className="row" style={{ alignItems: "flex-start", padding: "14px 16px" }}>

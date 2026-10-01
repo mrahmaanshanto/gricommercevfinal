@@ -499,7 +499,7 @@ export default class LimitsScreen extends Component {
                   </div>
                   <span className="num ell" style={{ fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }} title="11">11</span>
                   <div>
-                    <span className="dpill d-bad">80% or more on any limit</span>
+                    <span className="dpill d-bad cs-pill-line">80% or more on any limit</span>
                   </div>
                 </div>
                 <div className="kpi">

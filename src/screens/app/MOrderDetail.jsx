@@ -137,7 +137,7 @@ export default class MOrderDetailScreen extends Component {
             <div className="card" style={{ margin: "4px 20px 0", padding: "14px 16px 10px" }}>
               <div style={{ display: "flex" }}>
                 <div style={{ flex: "1", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", position: "relative" }}>
-                  <span style={{ position: "relative", width: "24px", height: "24px", borderRadius: "var(--radius-full)", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--brand)", color: "#fff" }}>
+                  <span style={{ position: "relative", zIndex: 1, width: "24px", height: "24px", borderRadius: "var(--radius-full)", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--brand)", color: "#fff" }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M20 6 9 17l-5-5" />
                     </svg>
@@ -145,18 +145,18 @@ export default class MOrderDetailScreen extends Component {
                   <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Placed</span>
                 </div>
                 <div style={{ flex: "1", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", position: "relative" }}>
-                  <span style={{ position: "absolute", top: "11px", right: "50%", width: "100%", height: "2px", background: "#e2e8f0" }} />
-                  <span style={{ position: "relative", width: "24px", height: "24px", borderRadius: "var(--radius-full)", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff", border: "2px solid #cbd5e1" }} />
+                  <span style={{ position: "absolute", top: "11px", right: "50%", width: "100%", height: "2px", background: "#e2e8f0", zIndex: 0 }} />
+                  <span style={{ position: "relative", zIndex: 1, width: "24px", height: "24px", borderRadius: "var(--radius-full)", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff", border: "2px solid #cbd5e1" }} />
                   <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--muted)" }}>Confirmed</span>
                 </div>
                 <div style={{ flex: "1", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", position: "relative" }}>
-                  <span style={{ position: "absolute", top: "11px", right: "50%", width: "100%", height: "2px", background: "#e2e8f0" }} />
-                  <span style={{ position: "relative", width: "24px", height: "24px", borderRadius: "var(--radius-full)", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff", border: "2px solid #cbd5e1" }} />
+                  <span style={{ position: "absolute", top: "11px", right: "50%", width: "100%", height: "2px", background: "#e2e8f0", zIndex: 0 }} />
+                  <span style={{ position: "relative", zIndex: 1, width: "24px", height: "24px", borderRadius: "var(--radius-full)", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff", border: "2px solid #cbd5e1" }} />
                   <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--muted)" }}>Packed</span>
                 </div>
                 <div style={{ flex: "1", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", position: "relative" }}>
-                  <span style={{ position: "absolute", top: "11px", right: "50%", width: "100%", height: "2px", background: "#e2e8f0" }} />
-                  <span style={{ position: "relative", width: "24px", height: "24px", borderRadius: "var(--radius-full)", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff", border: "2px solid #cbd5e1" }} />
+                  <span style={{ position: "absolute", top: "11px", right: "50%", width: "100%", height: "2px", background: "#e2e8f0", zIndex: 0 }} />
+                  <span style={{ position: "relative", zIndex: 1, width: "24px", height: "24px", borderRadius: "var(--radius-full)", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff", border: "2px solid #cbd5e1" }} />
                   <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--muted)" }}>Shipped</span>
                 </div>
               </div>

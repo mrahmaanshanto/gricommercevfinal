@@ -115,6 +115,7 @@ export default class MCallActiveScreen extends Component {
     const v = this.renderVals() || {};
     return (
       <div className="dc-screen" data-screen="MCallActive">
+        <h1 style={{ position: "absolute", width: "1px", height: "1px", margin: "-1px", overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" }}>Call with Nusrat Jahan</h1>
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div className="ph">
           <div className="sb" style={{ color: "#fff" }}>
@@ -166,7 +167,7 @@ export default class MCallActiveScreen extends Component {
               </span>
               <span className="pill p-nav">New</span>
             </div>
-            <div className="lrow" style={{ padding: "12px 14px" }}>
+            <div className="lrow" style={{ padding: "12px 14px", borderTopColor: "rgba(255,255,255,.12)" }}>
               <span style={{ flex: "1" }}>
                 <span className="mono" style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "#cbd8ee" }}>#136440</span>
                 <span className="num" style={{ display: "block", fontSize: "var(--text-sm)", color: "#fff" }}>1 item · ৳940</span>

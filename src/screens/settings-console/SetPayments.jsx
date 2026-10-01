@@ -137,21 +137,25 @@ class Component extends __SettingsLogic {
     paypal_id: {l: "PayPal client ID", d: "", req: (f) => !!f.get("paypal", false)},
     paypal_secret: {l: "PayPal client secret", d: "", req: (f) => !!f.get("paypal", false)},
   };
+  /** A gateway's state as its row badge shows it: not set up, off, live or sandbox. */
+  renderBadge(id) {
+    const f = this.f;
+    const on = f.get(id, false);
+    const ready = id === "bkash" || (String(f.get(id + "_id", "")).trim() && String(f.get(id + "_secret", "")).trim());
+    if (!ready) return { text: "Not set up", tone: { background: "#f1f5f9", color: "var(--text-muted)" } };
+    if (!on) return { text: "Off", tone: { background: "#f1f5f9", color: "var(--text-muted)" } };
+    return f.get(id + "_mode", "Live") === "Live"
+      ? { text: "LIVE", tone: { background: "rgba(255,87,36,.12)", color: "var(--text-danger)" } }
+      : { text: "SANDBOX", tone: { background: "rgba(255,152,0,.16)", color: "var(--text-warning)" } };
+  }
   renderVals() {
     const f = this.f;
     return {
       f,
-      badge: (id) => {
-        const on = f.get(id, false);
-        const ready = id === "bkash" || (String(f.get(id + "_id", "")).trim() && String(f.get(id + "_secret", "")).trim());
-        if (!ready) return { text: "Not set up", tone: { background: "#f1f5f9", color: "var(--text-muted)" } };
-        if (!on) return { text: "Off", tone: { background: "#f1f5f9", color: "var(--text-muted)" } };
-        return f.get(id + "_mode", "Live") === "Live"
-          ? { text: "LIVE", tone: { background: "rgba(255,87,36,.12)", color: "var(--text-danger)" } }
-          : { text: "SANDBOX", tone: { background: "rgba(255,152,0,.16)", color: "var(--text-warning)" } };
-      },
-      live: 1 + ONLINE.filter((id) => f.get(id, false) && f.get(id + "_mode", "Live") === "Live").length,
-      sandbox: ONLINE.filter((id) => f.get(id, false) && f.get(id + "_mode", "Live") !== "Live").length,
+      badge: (id) => this.renderBadge(id),
+      // the header counts come from the same state as each gateway's badge: on, set up, and in that mode
+      live: ONLINE.filter((id) => this.renderBadge(id).text === "LIVE").length,
+      sandbox: ONLINE.filter((id) => this.renderBadge(id).text === "SANDBOX").length,
       offline: ["bkash_send_money", "rocket_send_money", "bank_transfer"].filter((id) => f.get(id, false)).length,
       modes: ["mode_full_payment", "mode_delivery_charge_only", "mode_fixed_advance", "mode_percentage_advance", "mode_required_prepay"].filter((id) => f.get(id, false)).length,
       advance: Math.round(1240 * (Math.min(99, Math.max(0, parseFloat(f.get("advance_percentage", "20")) || 0)) / 100)),

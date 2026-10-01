@@ -163,8 +163,10 @@ a{color:#003087}a:hover{color:#002a77}
   .wc-look>.btn svg{display:none}
   .wc-hit{flex-wrap:wrap;gap:12px 14px!important;padding:14px!important}
   .wc-hit>.thumb{display:none}
-  .wc-hit>div:first-of-type{flex:1 1 100%!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px 14px!important}
-  .wc-hit>div:first-of-type>div:first-child{grid-column:1/-1}
+  .wc-hit>div:first-of-type{flex:1 1 100%!important;grid-template-columns:minmax(0,1fr)!important;gap:var(--space-2)!important}
+  .wc-hit>div:first-of-type>div:not(:first-child){display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3)}
+  .wc-hit>div:first-of-type>div:not(:first-child)>div:first-child{flex:none}
+  .wc-hit>div:first-of-type>div:not(:first-child)>div:last-child{min-width:0;text-align:right}
   .wc-hit>div:nth-of-type(2){flex:1 1 auto;text-align:left!important}
   .ptabs{overflow-x:auto;scrollbar-width:none;padding:0 8px}
   .ptabs::-webkit-scrollbar{display:none}

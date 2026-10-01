@@ -761,7 +761,7 @@ export default class QueuesJobsScreen extends Component {
                   <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Dead letters</h2>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }}>kept 14 days</div>
                 </div>
-                <div style={{ margin: "0 -20px -16px" }}>
+                <div className="cs-tnw" style={{ margin: "0 -20px -16px", "--cs-row-min": "820px" }}>
                   <div className="th" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr) minmax(0,1.4fr) 60px 170px", gap: "12px", padding: "10px 18px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
                     <span>Job</span>
                     <span>Store</span>

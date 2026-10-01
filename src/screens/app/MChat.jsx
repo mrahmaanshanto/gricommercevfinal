@@ -127,6 +127,7 @@ export default class MChatScreen extends Component {
     const v = this.renderVals() || {};
     return (
       <div className="dc-screen" data-screen="MChat">
+        <h1 style={{ position: "absolute", width: "1px", height: "1px", margin: "-1px", overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" }}>Chat with Nusrat Jahan</h1>
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div className="ph">
           <div className="sb" style={{ color: "#0f172a" }}>
@@ -197,7 +198,14 @@ export default class MChatScreen extends Component {
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <div className="card" style={{ width: "76%", overflow: "hidden", borderRadius: "var(--radius-xl) var(--radius-xl) var(--radius-md) var(--radius-xl)" }}>
-                <div style={{ height: "76px", background: "linear-gradient(135deg,#fff4e0,#ffe0b8)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-4xl)", fontWeight: "var(--weight-semibold)", color: "#003087" }}>S</div>
+                <div role="img" aria-label="Sunscreen SPF 50 tube" style={{ height: "76px", background: "linear-gradient(135deg,#fff4e0,#ffe0b8)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="72" height="60" viewBox="0 0 72 60" aria-hidden="true">
+                    <rect x="20" y="13" width="40" height="34" rx="9" transform="rotate(-18 40 30)" fill="#fff" stroke="#f3b562" strokeWidth="1.5" />
+                    <rect x="8" y="30" width="14" height="16" rx="3" transform="rotate(-18 40 30)" fill="#f59e0b" />
+                    <rect x="27" y="22" width="22" height="6" rx="3" transform="rotate(-18 40 30)" fill="#f59e0b" />
+                    <rect x="27" y="32" width="15" height="4" rx="2" transform="rotate(-18 40 30)" fill="#fcd9a4" />
+                  </svg>
+                </div>
                 <div style={{ padding: "10px 14px 12px" }}>
                   <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>Sunscreen SPF 50 · 50ml</div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>

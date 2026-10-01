@@ -125,7 +125,7 @@ export default class MNotificationsScreen extends Component {
               </svg>
             </__Link>
             <h1>Notifications</h1>
-            <a href="#" style={{ padding: "0 12px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--brand)" }}>Read all</a>
+            <a href="#" className="tap" style={{ padding: "0 12px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--brand)" }}>Read all</a>
           </header>
           <div className="content" style={{ top: "103px", bottom: "0" }}>
             <div className="chips" style={{ marginTop: "4px" }}>

@@ -397,6 +397,10 @@ a{color:#003087}a:hover{color:#002a77}
   .savebar>.savebar__note+.btn{flex:0 0 auto;background:none;border-color:transparent;padding:0 8px}
   .savebar>.btn svg{display:none}
   body:has(.savebar) .gc-ai{bottom:84px}
+  .gc-shell__content .ap-ai-opts{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2)!important}
+  .ap-ai-opts>select{width:auto!important;min-width:0}
+  .ap-ai-opts>span{display:none}
+  .ap-ai-opts>.btn{grid-column:1/-1}
 }
 `;
 
@@ -530,7 +534,7 @@ export default class AddProductScreen extends Component {
 </>) : null}{c?.label}</button>
                             </React.Fragment>))}
                         </div>
-                        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                        <div className="ap-ai-opts" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                           <select className="inp" aria-label="Language" style={{ width: "180px" }}>
                             <option>English</option>
                             <option>বাংলা</option>

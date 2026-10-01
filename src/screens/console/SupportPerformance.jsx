@@ -759,7 +759,7 @@ export default class SupportPerformanceScreen extends Component {
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1.15fr) minmax(0,1.3fr)", gap: "16px" }}>
                 <section className="panel" style={{ padding: "16px 20px" }}>
                   <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>Open tickets by age</h2>
-                  <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", height: "210px", paddingTop: "12px" }}>
+                  <div className="cs-lab-1line" style={{ display: "flex", alignItems: "flex-end", gap: "10px", height: "210px", paddingTop: "12px" }}>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", flex: "1" }}>
                       <span className="num" style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>19</span>
                       <span style={{ width: "44px", height: "133px", borderRadius: "var(--radius-md) var(--radius-md) 2px 2px", background: "#003087" }} />
@@ -773,12 +773,12 @@ export default class SupportPerformanceScreen extends Component {
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", flex: "1" }}>
                       <span className="num" style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>6</span>
                       <span style={{ width: "44px", height: "42px", borderRadius: "var(--radius-md) var(--radius-md) 2px 2px", background: "#ff9800" }} />
-                      <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs)", color: "var(--body)", textAlign: "center" }}><span className="shp shp-warn" aria-hidden="true" />1 to 3 days</span>
+                      <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs)", color: "var(--body)", textAlign: "center" }}><span className="shp shp-warn" aria-hidden="true" /><span className="cs-desk-only">1 to 3 days</span><span className="cs-ph-only">1–3 days</span></span>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", flex: "1" }}>
                       <span className="num" style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>2</span>
                       <span style={{ width: "44px", height: "14px", borderRadius: "var(--radius-md) var(--radius-md) 2px 2px", background: "#ff5724" }} />
-                      <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs)", color: "var(--body)", textAlign: "center" }}><span className="shp shp-err" aria-hidden="true" />Over 3 days</span>
+                      <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs)", color: "var(--body)", textAlign: "center" }}><span className="shp shp-err" aria-hidden="true" /><span className="cs-desk-only">Over 3 days</span><span className="cs-ph-only">3+ days</span></span>
                     </div>
                   </div>
                 </section>

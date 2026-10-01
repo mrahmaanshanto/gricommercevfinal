@@ -193,8 +193,25 @@ export default class OnbLinkScreen extends Component {
                   </span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginTop: "14px" }}>
-                  <span style={{ display: "block", height: "84px", borderRadius: "var(--radius-xl)", background: "linear-gradient(135deg,#e0f3fb,#c7e6f7)" }} />
-                  <span style={{ display: "block", height: "84px", borderRadius: "var(--radius-xl)", background: "linear-gradient(135deg,#fde7ef,#f9cfe0)" }} />
+                  <span style={{ display: "block", minWidth: "0" }}>
+                    <span role="img" aria-label="Sample product: cotton shirt" style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "84px", borderRadius: "var(--radius-xl)", background: "linear-gradient(135deg,#e0f3fb,#c7e6f7)", color: "#0a4bb5" }}>
+                      <svg width="44" height="44" viewBox="0 0 24 24" fill="#fff" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
+                      </svg>
+                    </span>
+                    <span className="ell" style={{ display: "block", marginTop: "6px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Cotton shirt</span>
+                    <span className="num" style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--muted)" }}>৳1,250</span>
+                  </span>
+                  <span style={{ display: "block", minWidth: "0" }}>
+                    <span role="img" aria-label="Sample product: tote bag" style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "84px", borderRadius: "var(--radius-xl)", background: "linear-gradient(135deg,#fde7ef,#f9cfe0)", color: "#be185d" }}>
+                      <svg width="42" height="42" viewBox="0 0 24 24" fill="#fff" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+                        <path d="M3 6h18M16 10a4 4 0 0 1-8 0" fill="none" />
+                      </svg>
+                    </span>
+                    <span className="ell" style={{ display: "block", marginTop: "6px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>Tote bag</span>
+                    <span className="num" style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--muted)" }}>৳890</span>
+                  </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "14px" }}>
                   <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}>Cash on delivery · bKash</span>

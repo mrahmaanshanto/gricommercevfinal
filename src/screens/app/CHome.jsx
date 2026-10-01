@@ -48,6 +48,8 @@ button{font:inherit;color:inherit}
 .row .s{font-size:var(--text-xs-plus);color:var(--muted);line-height:18px}
 .row .m{min-width:0;flex:1}
 .ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* "Needs attention" reasons run to two lines instead of being cut */
+.clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .av{flex:none;width:44px;height:44px;border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);font-size:var(--text-sm-plus)}
 .ico{flex:none;width:44px;height:44px;border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;background:var(--soft);color:var(--brand)}
 .pill{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
@@ -189,7 +191,7 @@ export default class CHomeScreen extends Component {
                 <span className="av" style={{ background: "#003087", color: "#fff", fontSize: "var(--text-xs-plus)" }}>DG</span>
                 <span className="m">
                   <span className="t ell" style={{ display: "block" }}>Dhaka Gadget Hub</span>
-                  <span className="s ell" style={{ display: "block" }}>Invoice unpaid · courier failing</span>
+                  <span className="s clamp2">Invoice unpaid · courier failing</span>
                 </span>
                 <span className="pill p-err"><span className="sh err" aria-hidden="true" />At risk</span>
               </__Link>
@@ -197,7 +199,7 @@ export default class CHomeScreen extends Component {
                 <span className="av" style={{ background: "#003087", color: "#fff", fontSize: "var(--text-xs-plus)" }}>BB</span>
                 <span className="m">
                   <span className="t ell" style={{ display: "block" }}>Bindu Beauty</span>
-                  <span className="s ell" style={{ display: "block" }}>Read-only · no login 9 days</span>
+                  <span className="s clamp2">Read-only · no login 9 days</span>
                 </span>
                 <span className="pill p-err"><span className="sh err" aria-hidden="true" />At risk</span>
               </__Link>
@@ -205,7 +207,7 @@ export default class CHomeScreen extends Component {
                 <span className="av" style={{ background: "#003087", color: "#fff", fontSize: "var(--text-xs-plus)" }}>NO</span>
                 <span className="m">
                   <span className="t ell" style={{ display: "block" }}>Nodi Organic</span>
-                  <span className="s ell" style={{ display: "block" }}>Setup stalled · no orders 6 days</span>
+                  <span className="s clamp2">Setup stalled · no orders 6 days</span>
                 </span>
                 <span className="pill p-warn"><span className="sh warn" aria-hidden="true" />Watch</span>
               </__Link>

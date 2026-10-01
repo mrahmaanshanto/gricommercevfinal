@@ -99,6 +99,7 @@ export default class MScanScreen extends Component {
     const v = this.renderVals() || {};
     return (
       <div className="dc-screen" data-screen="MScan">
+        <h1 style={{ position: "absolute", width: "1px", height: "1px", margin: "-1px", overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" }}>Scan a barcode</h1>
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div className="ph">
           <div className="sb" style={{ color: "#fff" }}>

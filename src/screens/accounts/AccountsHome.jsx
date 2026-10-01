@@ -62,6 +62,18 @@ const CSS = `
 .ov-kinds li{display:flex;justify-content:space-between;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-body)}
 .ov-kinds li span:last-child{font-family:var(--font-data)}
 @media (max-width:1100px){.ov-bals{grid-template-columns:repeat(2,minmax(0,1fr))}.ov-grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){
+  /* a card's link sits in its header row as a text link, not a lone grey button on its own row */
+  .ov-grid .ac-head:has(> .gc-btn){flex-wrap:nowrap;align-items:flex-start}
+  .ov-grid .ac-head:has(> .gc-btn) > div{flex:1 1 auto;min-width:0}
+  .ov-grid .ac-head > .gc-btn{flex:none;height:auto;min-height:36px;margin:calc(var(--space-2) * -1) 0;padding:0;border:0;background:none;box-shadow:none;color:var(--text-link)}
+  .ov-grid .ac-head > .gc-btn:hover{text-decoration:underline}
+}
+@media (max-width:480px){
+  /* "Needs you": the button goes under the text so the explanation keeps the width */
+  .ov-task{grid-template-columns:36px minmax(0,1fr);align-items:start}
+  .ov-task > .gc-btn{grid-column:2;justify-self:start}
+}
 @media (max-width:520px){.ov-bals{gap:var(--space-2)}.ov-bal{padding:var(--space-3);gap:var(--space-1)}.ov-bal__fig{font-size:var(--text-lg)}.ov-bal__logos{flex-wrap:wrap;row-gap:4px}.ov-flow{grid-template-columns:1fr}}
 `;
 const RANGES = [['today', 'Today'], ['7', '7 days'], ['30', '30 days']];

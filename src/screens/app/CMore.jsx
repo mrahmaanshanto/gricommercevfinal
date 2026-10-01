@@ -214,9 +214,8 @@ export default class CMoreScreen extends Component {
             <div className="card" style={{ margin: "0 20px", padding: "16px 8px", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "8px" }}>
               <a className="tile" href="#"><span className="ico">
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M5 15c-1.5 1.5-2 5-2 5s3.5-.5 5-2" />
-    <path d="M9 15 6 12c1-4 4-9 12-9 0 8-5 11-9 12Z" />
-    <circle cx="14.5" cy="9.5" r="1.5" />
+    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+    <path d="m3.3 7 8.7 5 8.7-5M12 22V12M7.5 4.27l9 5.15" />
   </svg>
 </span>Releases</a>
               <a className="tile" href="#"><span className="ico">

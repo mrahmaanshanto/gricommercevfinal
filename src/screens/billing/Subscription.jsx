@@ -83,6 +83,7 @@ class Component extends DCLogic {
           left: left == null ? '' : trialOnly ? left + ' trial days left' : left + ' days left', lc: trialOnly && left <= 7 ? '#b45309' : '#64748b',
           p: m[6] ? bdt(m[6]) : 'Included',
           btn: st === 'off' ? 'Start trial' : st === 'trial' ? 'Activate' : st === 'cancel' ? 'Keep' : m[6] ? 'Cancel' : '—',
+          noAct: !(st === 'off' || st === 'trial' || st === 'cancel' || m[6]),
           bcls: st === 'off' || st === 'trial' ? 'btn solid sm' : 'abtn',
           act2: function () {
             var n = assign({}, over);
@@ -236,6 +237,8 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 /* phones: the Modules title and note take the full width, the status filter sits under them on one scrolling row;
    the payment card keeps its logo and button inside the card */
 @media (max-width:640px){
+  /* an included module has nothing to do: no empty action line on its card */
+  .dc-screen table tr>td:has(>.sub-none){display:none!important}
   .sub-mhead{flex-wrap:wrap;padding:16px 16px 12px!important}
   .sub-mhead>div:first-child{flex:1 1 100%!important;min-width:0}
   .sub-mhead>.lseg{max-width:100%;overflow-x:auto;scrollbar-width:none}
@@ -341,7 +344,7 @@ export default class SubscriptionScreen extends Component {
                             </td>
                             <td className="r tn">{m?.p}</td>
                             <td className="r">
-                              <button type="button" className={m?.bcls} onClick={m?.act2}>{m?.btn}</button>
+                              {m?.noAct ? (<span className="sub-none" style={{ color: "var(--text-muted)" }}>—<span className="sr-only">No action, included in the plan</span></span>) : (<button type="button" className={m?.bcls} onClick={m?.act2}>{m?.btn}</button>)}
                             </td>
                           </tr>
                         </React.Fragment>))}

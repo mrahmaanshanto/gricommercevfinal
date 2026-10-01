@@ -165,7 +165,7 @@ a{color:#003087}a:hover{color:#002a77}
 .inp[aria-invalid="true"],.stepbox[aria-invalid="true"]{border-color:var(--text-danger)!important}
 .inp[aria-invalid="true"]:focus{border-color:var(--text-danger)}
 @media (max-width:1023px){.gc-shell__content :has(> .gc-side){align-items:stretch!important}}
-.locsel{width:100%;height:44px;margin-top:4px;padding:0 12px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-lg);font-weight:var(--weight-semibold);color:#0f172a;cursor:pointer}
+.locsel{width:100%;height:44px;margin-top:4px;padding:0 var(--space-8) 0 12px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background-color:#fff;font:inherit;font-size:var(--text-lg);font-weight:var(--weight-semibold);color:#0f172a;cursor:pointer}
 .locsel:hover{border-color:#94a3b8}.locsel:focus{outline:none;border-color:#003087}
 .locsel[aria-invalid="true"]{border-color:var(--text-danger)}
 @media (max-width:767px){.tr-route{flex-direction:column;align-items:stretch!important}.tr-route>div{flex-basis:auto!important}.tr-route>.ib{align-self:center}.tr-scanrow{flex-direction:column}}
@@ -213,7 +213,7 @@ export default class NewTransferScreen extends Component {
                   </span>
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <label htmlFor="tr-from" style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", color: "var(--text-muted)" }}>SEND FROM<__Req /></label>
-                    <select id="tr-from" className="locsel" value={v.from} onChange={v.fromIn} aria-required="true" {...__inv(v.errs?.from, "tr-from-err")}>
+                    <select id="tr-from" className="gc-input gc-select locsel" value={v.from} onChange={v.fromIn} aria-required="true" {...__inv(v.errs?.from, "tr-from-err")}>
                       <option value="">Choose a place</option>
                       {__list(v.locs).map((l) => (<option key={l} value={l}>{l}</option>))}
                     </select>
@@ -240,7 +240,7 @@ export default class NewTransferScreen extends Component {
                   </span>
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <label htmlFor="tr-to" style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", color: "var(--text-muted)" }}>SEND TO<__Req /></label>
-                    <select id="tr-to" className="locsel" value={v.to} onChange={v.toIn} aria-required="true" {...__inv(v.errs?.to, "tr-to-err")}>
+                    <select id="tr-to" className="gc-input gc-select locsel" value={v.to} onChange={v.toIn} aria-required="true" {...__inv(v.errs?.to, "tr-to-err")}>
                       <option value="">Choose a place</option>
                       {__list(v.locs).map((l) => (<option key={l} value={l}>{l}</option>))}
                     </select>

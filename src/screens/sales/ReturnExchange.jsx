@@ -469,7 +469,7 @@ export default function ReturnExchange() {
                 <section className="gc-card re-card">
                   <div className="re-head"><span className="re-step">1</span><h2>Find the sale</h2></div>
                   <form className="re-find" onSubmit={find}>
-                    <label className="re-search"><Icon name="search" width="18" height="18" aria-hidden="true" /><input className="gc-input" value={q} disabled={lock} onChange={(e) => { setQ(e.target.value); if (sel) setSelKey(''); }} placeholder="Memo, invoice or order number, or mobile number" aria-label="Memo, invoice or order number, or customer’s mobile number" /></label>
+                    <label className="re-search"><Icon name="search" width="18" height="18" aria-hidden="true" /><input className="gc-input" value={q} disabled={lock} onChange={(e) => { setQ(e.target.value); if (sel) setSelKey(''); }} placeholder="Memo, invoice or mobile" aria-label="Memo, invoice or order number, or customer’s mobile number" /></label>
                     <button type="submit" className="gc-btn gc-btn--solid" disabled={lock}><Icon name="search" width="18" height="18" aria-hidden="true" /> Find</button>
                   </form>
                   {sel ? (

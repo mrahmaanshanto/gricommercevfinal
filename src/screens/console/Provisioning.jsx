@@ -558,10 +558,10 @@ export default class ProvisioningScreen extends Component {
                     <div style={{ marginTop: "4px", fontSize: "var(--text-xs-plus)", lineHeight: "1.55", color: "#7c2d12" }}>The subdomain <span className="mono">ruposhi.gridcommerce.com.bd</span> is reserved by an archived store. Pick a new name with the owner, then retry; the first four stages are kept.</div>
                   </div>
                 </div>
-                <div className="panel" style={{ marginTop: "12px", overflow: "hidden", boxShadow: "none", border: "1px solid var(--line)", "--cs-row-min": "900px" }}>
+                <div className="panel" style={{ marginTop: "12px", overflow: "hidden", boxShadow: "none", border: "1px solid var(--line)", "--cs-row-min": "1000px" }}>
                   <div className="th" style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) minmax(0,2fr) 160px 110px 190px", gap: "12px", padding: "10px 18px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
                     <span>New store</span>
-                    <span>Store · Owner · Theme · Search · Domain · Billing · Wizard</span>
+                    <span><span className="cs-ticks-full">Store · Owner · Theme · Search · Domain · Billing · Wizard</span><span className="cs-ticks"><span style={{ "--i": "0" }}>Store</span><span style={{ "--i": "1" }}>Owner</span><span style={{ "--i": "2" }}>Theme</span><span style={{ "--i": "3" }}>Search</span><span style={{ "--i": "4" }}>Domain</span><span style={{ "--i": "5" }}>Billing</span><span style={{ "--i": "6" }}>Wizard</span></span></span>
                     <span style={{ textAlign: "right" }}>Time to live</span>
                     <span>Status</span>
                     <span>Action</span>

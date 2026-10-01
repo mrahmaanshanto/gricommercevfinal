@@ -130,7 +130,34 @@ const CSS = `body{margin:0;background:#eef2f7;font-family:var(--font-sans);color
 .tk-card:has(.tk-open[aria-current="true"]){box-shadow:0 0 0 2px #003087 !important;opacity:1 !important}
 .tk-row:has(.tk-open[aria-current="true"]){background:rgba(0,48,135,.06) !important;box-shadow:inset 3px 0 0 #003087}
 .tk-back{display:none}
-@media (max-width:1023px){.tk-panes[data-m="0"] .tk-side{display:none}.tk-panes[data-m="1"] .tk-main{display:none}.tk-side{width:100%!important;border-left:0!important}.tk-back{display:inline-flex}}`;
+@media (max-width:1023px){.tk-panes[data-m="0"] .tk-side{display:none}.tk-panes[data-m="1"] .tk-main{display:none}.tk-side{width:100%!important;border-left:0!important}.tk-back{display:inline-flex}}
+@media (max-width:640px){
+.mg-head .tk-seg{order:1}
+.mg-head .tk-seg button{height:38px!important}
+.mg-head .tk-search{order:3;width:100%!important;flex:1 1 100%}
+.mg-head .tk-search input{height:44px!important;font-size:var(--text-sm)!important;border-radius:var(--radius-lg)!important}
+.mg-head .tk-acts{order:2;margin-left:0!important;width:100%}
+.mg-head .tk-acts>.dc-h768{flex:1;justify-content:center}
+.mg-head .tk-acts>button{height:44px!important}
+.mg-head .tk-acts>button[aria-label]{width:44px!important}
+.mg-head .tk-more{display:none!important}
+.tk-stats{padding:12px 16px!important;gap:8px!important}
+.tk-stats>span:last-child{margin-left:0!important;width:100%;overflow-x:auto}
+.tk-stats>span:last-child button{height:36px!important;white-space:nowrap}
+.tk-lscroll{padding:12px 16px 20px!important}
+.tk-list{min-width:0!important;background:none!important;box-shadow:none!important;overflow:visible!important;display:grid;gap:10px}
+.tk-lhead{display:none!important}
+.tk-row{grid-template-columns:minmax(0,1fr) auto!important;grid-template-areas:"id pri" "sub sub" "cus sla" "st asg";row-gap:8px!important;column-gap:12px!important;padding:12px 14px!important;background:#fff;border:1px solid #e2e8f0!important;border-radius:var(--radius-xl)}
+.tk-row>:nth-child(1){grid-area:id}
+.tk-row>:nth-child(2){grid-area:sub;white-space:normal!important;font-weight:var(--weight-medium)}
+.tk-row>:nth-child(3){grid-area:cus}
+.tk-row>:nth-child(4){grid-area:st;justify-self:start}
+.tk-row>:nth-child(5){grid-area:pri;justify-self:end}
+.tk-row>:nth-child(6){grid-area:sla;justify-self:end}
+.tk-row>:nth-child(7){grid-area:asg;justify-self:end}
+.tk-row>button:nth-child(7){height:36px!important}
+.tk-open::after{border-radius:var(--radius-xl)}
+}`;
 
 // ---- markup ----
 
@@ -146,7 +173,7 @@ export default class SupportTicketsScreen extends Component {
             <__Topbar crumb="Customers" page="Support tickets" />
             <header className="mg-head" style={{ zIndex: "90", display: "flex", minHeight: "72px", flex: "none", alignItems: "center", gap: "16px", padding: "14px 24px", background: "#fff", borderBottom: "1px solid #e2e8f0" }}>
               <h1 style={{ margin: "0", fontSize: "var(--text-xl)", lineHeight: "var(--text-xl-lh)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>Support tickets</h1>
-              <span style={{ display: "inline-flex", borderRadius: "var(--radius-full)", background: "#e9eef5", padding: "3px" }}>
+              <span className="tk-seg" style={{ display: "inline-flex", borderRadius: "var(--radius-full)", background: "#e9eef5", padding: "3px" }}>
                 {v.isBoard ? (<>
                   <button onClick={v.openBoard} style={{ height: "28px", display: "inline-flex", alignItems: "center", gap: "8px", border: "none", borderRadius: "var(--radius-full)", padding: "0 14px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer", background: "#fff", color: "#003087", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)" }}><__Icon name="columns-3" strokeWidth="1.75" width="15" height="15" />Board</button>
                   {" "}
@@ -158,14 +185,14 @@ export default class SupportTicketsScreen extends Component {
                   <button onClick={v.openList} style={{ height: "28px", display: "inline-flex", alignItems: "center", gap: "8px", border: "none", borderRadius: "var(--radius-full)", padding: "0 14px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer", background: "#fff", color: "#003087", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)" }}><__Icon name="list" strokeWidth="1.75" width="15" height="15" />List</button>
                 </>) : null}
               </span>
-              <span style={{ position: "relative", display: "inline-block", width: "230px" }}>
+              <span className="tk-search" style={{ position: "relative", display: "inline-block", width: "230px" }}>
                 <input aria-label="Search tickets, orders, people" type="search" placeholder="Search tickets, orders, people…" style={{ width: "100%", boxSizing: "border-box", height: "32px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", padding: "0 16px 0 36px", fontSize: "var(--text-xs-plus)", color: "#1e293b" }} />
                 <span style={{ position: "absolute", left: "0", top: "0", display: "flex", width: "36px", height: "100%", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", pointerEvents: "none" }}>
                   <__Icon name="search" strokeWidth="1.75" width="16" height="16" />
                 </span>
               </span>
-              <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ display: "flex", alignItems: "center", gap: "-6px" }}>
+              <div className="tk-acts" style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px" }}>
+                <span className="tk-more" style={{ display: "flex", alignItems: "center", gap: "-6px" }}>
                   <span style={{ width: "28px", height: "28px", marginLeft: "-8px", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", border: "2px solid #fff" }} title="3 more agents online"><span aria-hidden="true">+3</span><span className="sr-only">3 more agents online</span></span>
                 </span>
                 <button className="dc-h767" style={{ height: "32px", display: "inline-flex", alignItems: "center", gap: "6px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#334155", cursor: "pointer" }}><__Icon name="filter" strokeWidth="1.75" width="15" height="15" />Filters<span style={{ display: "inline-grid", placeItems: "center", minWidth: "16px", height: "16px", borderRadius: "var(--radius-full)", background: "rgba(0,48,135,.1)", color: "#003087", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>2</span></button>
@@ -177,7 +204,7 @@ export default class SupportTicketsScreen extends Component {
             </header>
             <div className="tk-panes" data-m={v.mobileDetail ? "1" : "0"} style={{ flex: "1", minHeight: "0", display: "flex" }}>
               <div className="tk-main" style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column" }}>
-                <div style={{ flex: "none", display: "flex", alignItems: "center", gap: "12px", padding: "16px 24px", background: "#fff", borderBottom: "1px solid #e2e8f0", flexWrap: "wrap" }}>
+                <div className="tk-stats" style={{ flex: "none", display: "flex", alignItems: "center", gap: "12px", padding: "16px 24px", background: "#fff", borderBottom: "1px solid #e2e8f0", flexWrap: "wrap" }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "28px", borderRadius: "var(--radius-full)", background: "rgba(255,87,36,.12)", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#c23a12" }}><__Icon name="alert-triangle" strokeWidth="1.75" width="14" height="14" />2 breaching SLA</span>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "28px", borderRadius: "var(--radius-full)", background: "#e9eef5", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#334155" }}>5 unassigned</span>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "28px", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.1)", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#0f7a5a" }}>14 solved today</span>
@@ -456,9 +483,9 @@ export default class SupportTicketsScreen extends Component {
                   </div>
                 </>) : null}
                 {v.isList ? (<>
-                  <div style={{ flex: "1", minHeight: "0", overflow: "auto", padding: "18px 20px 24px" }}>
-                    <div style={{ borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", overflow: "hidden", minWidth: "1080px" }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "96px 1fr 150px 140px 116px 128px 132px", gap: "12px", padding: "10px 16px", background: "#f1f5f9", borderBottom: "1px solid #e2e8f0" }}>
+                  <div className="tk-lscroll" style={{ flex: "1", minHeight: "0", overflow: "auto", padding: "18px 20px 24px" }}>
+                    <div className="tk-list" style={{ borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", overflow: "hidden", minWidth: "1080px" }}>
+                      <div className="tk-lhead" style={{ display: "grid", gridTemplateColumns: "96px 1fr 150px 140px 116px 128px 132px", gap: "12px", padding: "10px 16px", background: "#f1f5f9", borderBottom: "1px solid #e2e8f0" }}>
                         <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>Ticket</span>
                         <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>Subject</span>
                         <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>Customer</span>

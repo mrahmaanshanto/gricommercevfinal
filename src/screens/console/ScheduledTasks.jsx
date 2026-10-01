@@ -544,7 +544,7 @@ export default class ScheduledTasksScreen extends Component {
                   </div>
                 </div>
               </div>
-              <div className="panel" style={{ overflow: "hidden" }}>
+              <div className="panel cs-tnw" style={{ overflow: "hidden", "--cs-row-min": "1140px" }}>
                 <div className="th" style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) 150px minmax(0,1.2fr) 120px 130px 80px 100px", gap: "12px", padding: "10px 18px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
                   <span>Task</span>
                   <span>Schedule</span>

@@ -594,7 +594,7 @@ export default class BackupsScreen extends Component {
                       <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Recent restores</h2>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }} />
                     </div>
-                    <div style={{ margin: "0 -20px -16px" }}>
+                    <div className="cs-tnw" style={{ margin: "0 -20px -16px", "--cs-row-min": "980px" }}>
                       <div className="th" style={{ display: "grid", gridTemplateColumns: "140px minmax(0,1.3fr) minmax(0,1.3fr) 110px 120px 40px", gap: "12px", padding: "10px 18px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
                         <span>When</span>
                         <span>Store</span>

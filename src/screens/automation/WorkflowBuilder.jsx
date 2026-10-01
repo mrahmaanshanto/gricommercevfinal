@@ -58,14 +58,15 @@ var OUT = { n1: '{ "order": "#ORD-0929-007", "total": 12400,\n  "payment": "COD"
 var NW = 76;
 class Component extends DCLogic {
   componentWillUnmount() { clearTimeout(this.t); }
-  // phones: open the canvas zoomed to fit its width (the + button zooms back in; the canvas scrolls inside its box)
+  // phones: open the canvas at 100% so labels stay readable; it pans inside a box about 70% of the screen tall.
+  // The % button still zooms to fit the whole drawing.
   componentDidMount() {
     if (typeof window === 'undefined' || !window.matchMedia || !window.matchMedia('(max-width:640px)').matches) return;
     var nodes = (this.state && this.state.nodes) || START;
     var w = Math.max(960, Math.max.apply(null, nodes.map(function (n) { return n.x; })) + 116);
     var cw = this.canvasEl ? this.canvasEl.clientWidth : window.innerWidth - 32;
     var fit = Math.min(1, Math.max(.3, Math.floor((cw - 8) / w * 100) / 100));
-    this.setState({ z: fit, fitZ: fit });
+    this.setState({ z: 1, fitZ: fit });
   }
   renderVals() {
     var self = this, s = this.state || {};
@@ -294,17 +295,19 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .cond .inp{height:36px;font-size:var(--text-xs-plus);padding:0 10px}
 .badge.sb::before{display:none}
 .wtab{color:var(--slate-600)}
-/* phones: toolbars wrap (name on its own line; tabs, note, buttons each a row); the canvas opens zoomed to fit
-   and is only as tall as the drawing; the node panel sits under the canvas instead of over it */
+/* phones: toolbars wrap (name on its own line; tabs, note, buttons each a row); the canvas opens at 100% and pans
+   inside a box at most 70% of the screen tall (never taller than the drawing); the node panel sits under the canvas */
+.wf-pan{display:none}
 @media (max-width:640px){
   .wf-top{flex-wrap:wrap;gap:8px 10px!important}
-  .wf-top>.wf-name{order:-1;flex:1 1 100%;max-width:none!important}
+  .wf-top>.wf-name{order:-1;flex:1 1 100%;max-width:none!important;font-size:var(--text-sm)!important;padding:0 12px}
   .wfbar{flex-wrap:wrap;gap:8px;padding:10px 12px}
   .wfbar>.wf-gap{display:none}
   .wfbar>.wf-tabs,.wfbar>.wf-note{flex:1 1 100%}
   .wfbar>button{flex:1 1 0;min-width:0}
-  .canvas{height:var(--wf-ch,640px)}
-  .zoom{bottom:auto;top:calc(var(--wf-ch,640px) - 50px)}
+  .canvas{height:min(70vh,var(--wf-ch,640px));overflow:auto;-webkit-overflow-scrolling:touch}
+  .zoom{bottom:auto;top:calc(min(70vh,var(--wf-ch,640px)) - 50px)}
+  .wf-pan{display:block;position:absolute;right:12px;top:12px;padding:6px 10px;border-radius:var(--radius-full);background:var(--surface-card);border:1px solid var(--slate-200);font-size:var(--text-xs);color:var(--text-muted);pointer-events:none}
   .drawer{position:relative;top:auto;right:auto;bottom:auto;width:auto;max-height:75vh;margin:0 12px 12px}
 }
 `;
@@ -459,6 +462,7 @@ export default class WorkflowBuilderScreen extends Component {
                           </React.Fragment>))}
                       </div>
                     </div>
+                    <span className="wf-pan" aria-hidden="true">Swipe to move around</span>
                     <div className="zoom">
                       <button type="button" onClick={v.zOut} aria-label="Zoom out"><__Icon name="minus" width="16" height="16" aria-hidden="true" /></button>
                       <button type="button" onClick={v.zFit} aria-label="Fit to view" style={{ width: "52px", fontSize: "var(--text-xs)" }}>{v.zoomL}</button>

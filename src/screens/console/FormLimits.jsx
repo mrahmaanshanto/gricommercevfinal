@@ -491,7 +491,7 @@ export default class FormLimitsScreen extends Component {
                       <h2 className="fsh">Limit rules</h2>
                       <p className="fsd">Applies to every plan version. Plans set the numbers; these rules set what happens at them.</p>
                     </div>
-                    <div className="cs-fit cs-cards" style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0", "--cs-cols": "repeat(2,minmax(0,1fr))" }}>
+                    <div className="cs-fit cs-cards cs-1col-xs" style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0", "--cs-cols": "repeat(2,minmax(0,1fr))" }}>
                       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.3fr) 130px 110px minmax(0,1.3fr) minmax(0,1.3fr)", gap: "12px", padding: "0 0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
                         <span>Limit</span>
                         <span>Resets</span>

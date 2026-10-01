@@ -242,6 +242,15 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .lrow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 16px;border:0;border-bottom:1px solid #f1f4f8;background:transparent;font:inherit;text-align:left;cursor:pointer}
 .lrow:hover{background:#f7f9fd}.lrow.on{background:rgba(0,48,135,.05)}
 .lrow:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:-3px}
+@media (max-width:640px){
+  /* the search takes the whole row under the group chips */
+  .coa-bar > input.inp{flex:1 1 100%;max-width:none!important}
+  /* phone table-cards: a group row ("Assets · 13 accounts  ৳…") is a section label, not a card */
+  table.gc-cards-on>tbody>tr.coa-grp{flex-wrap:nowrap;align-items:baseline;margin-top:var(--space-2);padding:var(--space-2) var(--space-1) 0!important;border:0!important;background:none!important}
+  table.gc-cards-on>tbody>tr.coa-grp>td{flex:1 1 auto;padding:0!important;text-align:left!important;font-size:var(--text-xs);text-transform:uppercase;letter-spacing:var(--tracking-label);color:var(--text-muted)}
+  table.gc-cards-on>tbody>tr.coa-grp>td::before{display:none!important}
+  table.gc-cards-on>tbody>tr.coa-grp>td:last-child{flex:none;text-align:right!important;text-transform:none;letter-spacing:0;font-size:var(--text-sm)}
+}
 .jt td{padding:9px 14px;font-size:var(--text-xs-plus);border-bottom:1px solid #f1f4f8}.jt th{padding:9px 14px;font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted);text-align:left;border-bottom:1px solid #eef1f6;background:#fbfcfe}.jt{width:100%;border-collapse:collapse}.jt .r{text-align:right}.fch{height:32px;font-size:var(--text-xs-plus);padding:0 11px}`;
 
 // ---- markup ----
@@ -290,7 +299,7 @@ export default class ChartOfAccountsScreen extends Component {
               </>) : null}
               <div className="gc-split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 380px", gap: "16px", alignItems: "start" }}>
                 <section className="tc" style={{ overflow: "hidden" }}>
-                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px", padding: "14px 16px", borderBottom: "1px solid #eef1f6" }}>
+                  <div className="coa-bar" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px", padding: "14px 16px", borderBottom: "1px solid #eef1f6" }}>
                     <div role="group" aria-label="Account group" style={{ display: "contents" }}>
                       {__list(v.chips).map((ch, $index) => (<React.Fragment key={$index}>
                           <button type="button" className={ch?.cls} aria-pressed={ch?.on} onClick={ch?.pick} style={{ height: "36px" }}>{ch?.label}</button>
@@ -312,7 +321,7 @@ export default class ChartOfAccountsScreen extends Component {
                       </thead>
                       <tbody>
                         {__list(v.groups).map((g, $index) => (<React.Fragment key={$index}>
-                            <tr style={{ background: "#f7f9fc" }}>
+                            <tr className="coa-grp" style={{ background: "#f7f9fc" }}>
                               <td colSpan="4" style={{ fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{g?.n} <span style={{ fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>· {g?.cnt} accounts</span></td>
                               <td className="r tn" style={{ fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{g?.total}</td>
                             </tr>

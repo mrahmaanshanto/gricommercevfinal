@@ -300,6 +300,10 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 @media (max-width:640px){
   .cmp-media{flex-wrap:wrap}
   .cmp-media>.cmp-link{flex:1 1 100%}
+  /* header: back link, then the title on its own line, then the three actions in one row */
+  .cmp-head{flex-wrap:wrap;gap:10px 8px!important}
+  .cmp-head>.cmp-title{flex:1 1 100%;min-width:0}
+  .cmp-head>.btn{flex:1 1 0;min-width:0;height:44px;padding:0 8px;white-space:nowrap}
 }
 `;
 
@@ -316,9 +320,9 @@ export default class ComposerScreen extends Component {
           <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
             <__Topbar crumb="Communication" page="Create post" placeholder="Search" />
             <div className="pgc gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "22px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div className="cmp-head" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <__Link href="/calendar" className="abtn" style={{ textDecoration: "none" }}>Calendar</__Link>
-                <div style={{ flexGrow: "1" }}>
+                <div className="cmp-title" style={{ flexGrow: "1" }}>
                   <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "var(--tracking-tight)" }}>Create post</h1>
                   <p className="sub">{v.status}</p>
                 </div>

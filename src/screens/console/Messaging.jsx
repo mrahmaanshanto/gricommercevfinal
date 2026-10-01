@@ -585,7 +585,7 @@ export default class MessagingScreen extends Component {
                       <span className="ell" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Email</span>
                     </div>
                     <span className="num" style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>21,480</span>
-                    <span className="ell" style={{ fontSize: "var(--text-xs)", color: "var(--warnt)" }}>97.1% delivered · — each</span>
+                    <span className="ell" style={{ fontSize: "var(--text-xs)", color: "var(--warnt)" }}>97.1% delivered · free</span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px", padding: "12px 14px", borderRadius: "var(--radius-xl)", border: "1px solid var(--line)", background: "var(--surface)", minWidth: "0" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: "0" }}>
@@ -593,7 +593,7 @@ export default class MessagingScreen extends Component {
                       <span className="ell" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Push</span>
                     </div>
                     <span className="num" style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>8,020</span>
-                    <span className="ell" style={{ fontSize: "var(--text-xs)", color: "var(--muted)" }}>95.4% delivered · — each</span>
+                    <span className="ell" style={{ fontSize: "var(--text-xs)", color: "var(--muted)" }}>95.4% delivered · free</span>
                   </div>
                 </div>
               </section>

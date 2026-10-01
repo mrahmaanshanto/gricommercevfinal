@@ -628,6 +628,7 @@ const CSS = PARTS_CSS + DIALER_CSS + `
   .cl-toolbar__row .ib-search{flex:1 1 100%}
   .cl-toolbar__row .cl-fit{flex:1 1 0}
   .cl-toolbar__row .cl-icononly{flex:none}
-  .cl-c-act .gc-iconbtn{min-width:36px;min-height:36px}
+  .cl-c-act{gap:var(--space-1)}
+  .cl-c-act .gc-iconbtn{width:40px;height:40px;min-width:40px;min-height:40px}
 }
 `;

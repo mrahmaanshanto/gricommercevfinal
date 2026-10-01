@@ -557,7 +557,7 @@ export default class CollectionsScreen extends Component {
                   <div className="panel" style={{ overflow: "hidden" }}>
                     <div style={{ display: "flex", alignItems: "center", padding: "14px 18px 4px" }}>
                       <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>Who to call</h2>
-                      <span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--muted)" }}>Due today and overdue first · Dhaka working hours</span>
+                      <span className="cs-sub" style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--muted)" }}>Due today and overdue first · Dhaka working hours</span>
                     </div>
                     <div className="th" style={{ display: "grid", gridTemplateColumns: "minmax(0,1.5fr) 80px 130px minmax(0,1.2fr) 110px 34px 90px", gap: "12px", padding: "10px 18px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
                       <span>Store and invoice</span>
@@ -707,10 +707,11 @@ export default class CollectionsScreen extends Component {
                         <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>How September was paid</h2>
                         <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }} />
                       </div>
-                      <div style={{ display: "flex", height: "30px", borderRadius: "var(--radius-lg)", overflow: "hidden", gap: "2px" }}>
+                      <div className="cs-seg-nolab" style={{ display: "flex", height: "30px", borderRadius: "var(--radius-lg)", overflow: "hidden", gap: "2px" }}>
                         <span style={{ width: "68%", background: "#003087", color: "#fff", display: "flex", alignItems: "center", padding: "0 10px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>From the merchant panel · 28</span>
                         <span style={{ width: "32%", background: "#009cde", color: "#04121f", display: "flex", alignItems: "center", padding: "0 10px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>Taken on a call · 13</span>
                       </div>
+                      <div className="cs-chart-legend"><span><span className="cs-chart-dot" style={{ background: "#003087" }} />From the merchant panel · 28</span><span><span className="cs-chart-dot" style={{ background: "#009cde" }} />Taken on a call · 13</span></div>
                       <p style={{ margin: "10px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "1.5", color: "var(--body)" }}>September, 41 paid stores. Stores that paid on a call took a median of 2 calls.</p>
                     </section>
                     <section className="panel" style={{ padding: "16px 20px", minWidth: "0" }}>

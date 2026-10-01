@@ -25,6 +25,8 @@ import { postEntry, accountForMethod, accountBy } from '@/lib/ledger';
 
 const TABS = [['waiting', 'Still with courier'], ['done', 'Received'], ['all', 'All']];
 const STATE = { courier: ['With courier', 'warning'], partial: ['Partly received', 'info'], received: ['Received', 'success'] };
+const pc = (n) => n + (n === 1 ? ' pc' : ' pcs');   // "1 pc", "3 pcs"
+const pcWord = (n) => (n === 1 ? 'pc' : 'pcs');
 const num = (v) => Math.max(0, Math.floor(Number(v) || 0));
 const REFUND_METHODS = [['bKash', 'bKash'], ['Nagad', 'Nagad'], ['Cash', 'Cash'], ['Bank', 'Bank transfer'], ['none', 'No refund (COD not collected)']];
 /** What the customer paid on an order before it came back (0 for cash on delivery). */
@@ -116,7 +118,7 @@ export default function CourierReturns() {
         refundText = 'no refund';
       }
     }
-    toast([good ? `${good} pcs back on sale at ${place}` : '', damaged ? `${damaged} pcs to ${DAMAGED_PLACE}` : '', left ? `${left} pcs still with ${cur.o.courier}` : 'parcel fully received', refundText].filter(Boolean).join(' · '));
+    toast([good ? `${pc(good)} back on sale at ${place}` : '', damaged ? `${pc(damaged)} to ${DAMAGED_PLACE}` : '', left ? `${pc(left)} still with ${cur.o.courier}` : 'parcel fully received', refundText].filter(Boolean).join(' · '));
     setForm(null);
     setAll(getOrders());
   };
@@ -139,9 +141,9 @@ export default function CourierReturns() {
             />
 
             <div className="gc-kpis">
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-warning-soft)', color: 'var(--text-warning)' }}><Icon name="truck" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Still with courier</p><p className="gc-kpi__value">{groups.waiting.length}<small>parcels · {pcs(rows, 'left')} pcs</small></p></div></div>
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="package-check" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Back on sale</p><p className="gc-kpi__value">{pcs(rows, 'good')}<small>pcs received good</small></p></div></div>
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-error-soft)', color: 'var(--text-danger)' }}><Icon name="package-x" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Damaged</p><p className="gc-kpi__value">{pcs(rows, 'damaged')}<small>pcs at {DAMAGED_PLACE}</small></p></div></div>
+              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-warning-soft)', color: 'var(--text-warning)' }}><Icon name="truck" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Still with courier</p><p className="gc-kpi__value">{groups.waiting.length}<small>parcels · {pc(pcs(rows, 'left'))}</small></p></div></div>
+              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="package-check" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Back on sale</p><p className="gc-kpi__value">{pcs(rows, 'good')}<small>{pcWord(pcs(rows, 'good'))} received good</small></p></div></div>
+              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-error-soft)', color: 'var(--text-danger)' }}><Icon name="package-x" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Damaged</p><p className="gc-kpi__value">{pcs(rows, 'damaged')}<small>{pcWord(pcs(rows, 'damaged'))} at {DAMAGED_PLACE}</small></p></div></div>
               <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="undo-2" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Returned orders</p><p className="gc-kpi__value">{rows.length}<small>{groups.done.length} fully received</small></p></div></div>
             </div>
 
@@ -163,7 +165,7 @@ export default function CourierReturns() {
                           <td>{o.courier}<span className="cr-sub">{o.consignment !== '—' ? o.consignment : 'No tracking ID'}{o.rtoReason ? ' · ' + o.rtoReason : ''}</span></td>
                           <td>{s.lines.map((l) => `${l.name} × ${l.qty}`).join(', ')}</td>
                           <td className="cr-num"><span className="cr-strong">{s.good + s.damaged} of {s.sent}</span>{s.good + s.damaged ? <span className="cr-sub">{s.good} good · {s.damaged} damaged</span> : null}</td>
-                          <td><span className={'gc-badge gc-badge--' + STATE[s.status][1]}>{STATE[s.status][0]}</span>{s.left ? <span className="cr-sub">{s.left} pcs still with courier</span> : null}</td>
+                          <td><span className={'gc-badge gc-badge--' + STATE[s.status][1]}>{STATE[s.status][0]}</span>{s.left ? <span className="cr-sub">{pc(s.left)} still with courier</span> : null}</td>
                           <td><div className="cr-actions"><button type="button" className={'gc-btn gc-btn--sm ' + (s.left ? 'gc-btn--solid' : 'gc-btn--neutral')} onClick={() => openFor(o)} aria-label={(s.left ? 'Receive the parcel for ' : 'See what came back for ') + o.id}>{s.left ? 'Receive' : 'View'}</button></div></td>
                         </tr>
                       ))}
@@ -211,7 +213,7 @@ export default function CourierReturns() {
                     <p id="cr-amount-help" className={'gc-help' + (refundErr ? ' gc-help--error' : '')} style={{ margin: 0 }}>{refundErr || (noRefund ? 'Nothing is paid back. Use this when the cash on delivery was never collected.' : `Paid from ${(accountBy(accountForMethod(form.method, false)) || {}).name}. Suggested: ${formatBDT(Math.min(backValue, canRefund))}, the value of the items being booked in.`)}</p>
                   </fieldset>
                 ) : null}
-                <p className="gc-help" style={{ margin: 0 }}>{taking ? `Booking in ${taking} of ${cur.s.left} pcs. ${cur.s.left - taking > 0 ? `${cur.s.left - taking} stay with the courier.` : 'The parcel is then fully received.'}` : 'Enter how many pieces arrived. Leave the rest at 0 if they are still with the courier.'}</p>
+                <p className="gc-help" style={{ margin: 0 }}>{taking ? `Booking in ${taking} of ${pc(cur.s.left)}. ${cur.s.left - taking > 0 ? `${cur.s.left - taking} stay with the courier.` : 'The parcel is then fully received.'}` : 'Enter how many pieces arrived. Leave the rest at 0 if they are still with the courier.'}</p>
               </>
             ) : <p className="gc-help" style={{ margin: 0 }}>Everything the courier had has been received.{refundedBefore ? ` ${formatBDT(refundedBefore)} was refunded to ${cur.o.customer}.` : ''}</p>}
             {cur.s.receipts.length ? (
@@ -225,7 +227,7 @@ export default function CourierReturns() {
             <div className="gc-modal__foot" style={{ marginTop: 0 }}>
               <Link href={orderHref(cur.o.id)} className="gc-btn gc-btn--neutral" style={{ marginRight: 'auto' }}>Open order</Link>
               <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setForm(null)}>{cur.s.left ? 'Cancel' : 'Close'}</button>
-              {cur.s.left ? <button type="submit" className="gc-btn gc-btn--solid" disabled={!taking || bad || !!refundErr}>Book in {taking || ''} pcs{refundAmt ? ` · refund ${formatBDT(refundAmt)}` : ''}</button> : null}
+              {cur.s.left ? <button type="submit" className="gc-btn gc-btn--solid" disabled={!taking || bad || !!refundErr}>Book in {taking ? pc(taking) : 'pcs'}{refundAmt ? ` · refund ${formatBDT(refundAmt)}` : ''}</button> : null}
             </div>
           </form>
         ) : null}

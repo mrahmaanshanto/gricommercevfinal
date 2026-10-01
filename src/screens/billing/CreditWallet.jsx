@@ -222,6 +222,9 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
   .cw-pay{flex-wrap:wrap;gap:var(--space-2) var(--space-3)!important}
   .cw-pay>.btn{flex:1 1 100%}
   .cw-pay>span{flex-wrap:wrap;min-width:0}
+  /* payment logos: readable chips sized to each wordmark instead of 22px squares */
+  .cw-pay>span>span[role="img"]{width:auto!important;height:36px!important;padding:3px 6px!important;border-radius:var(--radius-lg)!important}
+  .cw-pay>span>span[role="img"]>img{height:28px!important;width:auto!important;max-width:none!important;max-height:none!important}
   .cw-chips{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;padding:0 16px 12px!important}
   .cw-chips::-webkit-scrollbar{display:none}
   .cw-chips>*{flex:none}
@@ -316,7 +319,7 @@ export default class CreditWalletScreen extends Component {
                       <PaymentLogo provider="bkash" size={22} radius={6} />
                       <PaymentLogo provider="nagad" size={22} radius={6} />
                       <PaymentLogo provider="rocket" size={22} radius={6} />
-                      <span style={{ marginLeft: "2px" }}>Visa · Mastercard · Amex · net banking</span>
+                      <span style={{ marginLeft: "2px" }}>+ Visa, Mastercard, Amex, net banking</span>
                     </span>
                   </div>
                 </section>

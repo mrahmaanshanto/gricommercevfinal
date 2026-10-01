@@ -638,17 +638,17 @@ export default class FlagsNoticesScreen extends Component {
                       <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Recent notices</h2>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }} />
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "42px", borderTop: "1px solid var(--line)" }}>
+                    <div className="cs-tri" style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "42px", borderTop: "1px solid var(--line)" }}>
                       <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Price change for yearly plans</span>
                       <span style={{ fontSize: "var(--text-xs)", color: "var(--muted)" }}>All stores · 12 Sep</span>
                       <span className="num" style={{ marginLeft: "auto", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>92% read</span>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "42px", borderTop: "1px solid var(--line)" }}>
+                    <div className="cs-tri" style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "42px", borderTop: "1px solid var(--line)" }}>
                       <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Maintenance 02:00–02:30</span>
                       <span style={{ fontSize: "var(--text-xs)", color: "var(--muted)" }}>All stores · 05 Sep</span>
                       <span className="num" style={{ marginLeft: "auto", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>81% read</span>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "42px", borderTop: "1px solid var(--line)" }}>
+                    <div className="cs-tri" style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "42px", borderTop: "1px solid var(--line)" }}>
                       <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>New: COD risk score</span>
                       <span style={{ fontSize: "var(--text-xs)", color: "var(--muted)" }}>All stores · 01 Sep</span>
                       <span className="num" style={{ marginLeft: "auto", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>88% read</span>
@@ -672,7 +672,7 @@ export default class FlagsNoticesScreen extends Component {
   <label className="fchip" style={{ cursor: "pointer" }}><input type="checkbox" style={{ position: "absolute", opacity: "0", width: "1px", height: "1px" }} />WhatsApp</label>
   <label className="fchip" style={{ cursor: "pointer" }}><input type="checkbox" style={{ position: "absolute", opacity: "0", width: "1px", height: "1px" }} />Email</label>
 </div></div>
-                    <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Message<textarea style={{ height: "84px", padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--radius-lg)", font: "inherit", fontSize: "var(--text-sm)", resize: "none" }} defaultValue={"Steadfast tracking numbers are delayed because of an outage on their side. Your bookings are safe; tracking will appear automatically. No need to rebook."} /></label>
+                    <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Message<textarea className="cs-ta" rows={5} style={{ height: "84px", padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--radius-lg)", font: "inherit", fontSize: "var(--text-sm)", resize: "none" }} defaultValue={"Steadfast tracking numbers are delayed because of an outage on their side. Your bookings are safe; tracking will appear automatically. No need to rebook."} /></label>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                       <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Bangla version added · expires when INC-114 closes</span>
                       <span style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>

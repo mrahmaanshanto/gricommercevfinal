@@ -84,9 +84,18 @@ const CSS = `
 .du-net-pos{color:var(--text-success)}
 .du-net-neg{color:var(--text-danger)}
 @media (max-width:760px){.du-ages{grid-template-columns:1fr 1fr}}
+.du-exp-word{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.du-more{display:none}
 @media (max-width:640px){
-  /* partner / wallet card: logos on their own row, then text · amount · chevron on one row */
-  .du-partner .du-logos{flex-basis:100%}
+  /* partner / wallet card: logos on their own row, side by side (+N for the rest), then text · amount · chevron */
+  .du-partner .du-logos{flex-basis:100%;gap:var(--space-1-5)}
+  .du-partner .du-logos > *{margin-left:0;box-shadow:none}
+  .du-more{display:inline-grid;place-items:center;min-width:32px;height:32px;padding:0 var(--space-2);border-radius:var(--radius-lg);background:var(--surface-card);border:1px solid var(--border-subtle);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body)}
+  /* customer cards: "1 invoice ⌄" opens the list; the age chips sit on the right like the other values */
+  .du-exp-word{position:static;width:auto;height:auto;overflow:visible;clip:auto;margin-left:3px}
+  .du-exp svg{order:2;margin-left:2px;transform:rotate(90deg)}
+  .du-exp[aria-expanded="true"] svg{transform:rotate(-90deg)}
+  .gc-cards-on .du-chips{justify-content:flex-end}
   .du-partner .du-text{flex:1 1 0;min-width:0}
   .du-partner .du-amt{white-space:nowrap}
   .du-partner > svg{flex:none;margin-left:calc(var(--space-2) * -1)}
@@ -220,7 +229,7 @@ export default function Dues() {
       <div className="ac-head"><div><h2>Ageing of what customers owe</h2><p>Counted from the invoice date. Payment terms are not stored, so an invoice from today is not due yet.</p></div></div>
       {ages(GET_AGES, data.getAges)}
       <Link href="/settlements" className="du-partner">
-        <span className="du-logos" aria-hidden="true">{data.partners.slice(0, 4).map((x) => <BrandLogo key={x.p.id} brand={x.p.brand} size={32} decorative />)}</span>
+        <span className="du-logos" aria-hidden="true">{data.partners.slice(0, 4).map((x) => <BrandLogo key={x.p.id} brand={x.p.brand} size={32} decorative />)}{data.partners.length > 4 ? <span className="du-more">+{data.partners.length - 4}</span> : null}</span>
         <span className="du-text"><b>With payment partners</b><small>{data.partners.length ? `${data.partners.map((x) => x.p.short).join(', ')} · gateways and couriers will pay this out` : 'Nothing waiting with gateways or couriers'}</small></span>
         <span className="du-amt">{money(data.held)}</span>
         <Icon name="chevron-right" width="18" height="18" aria-hidden="true" />
@@ -244,7 +253,7 @@ export default function Dues() {
                       </td>
                       <td className="ac-num">
                         <button type="button" className="gc-btn gc-btn--xs gc-btn--neutral du-exp" aria-expanded={open} aria-controls={subId} onClick={() => setOpenRow(open ? '' : g.key)}>
-                          <Icon name="chevron-right" width="14" height="14" aria-hidden="true" />{g.invoices.length}<span className="sr-only"> invoices of {g.name}</span>
+                          <Icon name="chevron-right" width="14" height="14" aria-hidden="true" />{g.invoices.length}<span className="du-exp-word"> {g.invoices.length === 1 ? 'invoice' : 'invoices'}</span><span className="sr-only"> of {g.name}</span>
                         </button>
                       </td>
                       <td>{formatDate(g.oldest)}<span className="ac-sub">{plural(-daysFrom(g.oldest, data.today), 'day')} ago</span></td>

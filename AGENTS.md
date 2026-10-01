@@ -48,6 +48,13 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   must scroll sideways gets `gc-table--keep`), and statistic rows (`gc-kpis`, `gc-cardrow`) become a swipe strip.
   Never show statistic cards that repeat the tabs under them: make the tabs summary tabs (`gc-stattabs` /
   `gc-stattab`: label, count and amount, tap to filter — see Invoices). On phones the title and main button share a row.
+- Phone (checked page by page at 390 px, Oct 2026): `.gc-shell__content` clips sideways overflow on phones, so anything
+  wider than the screen must scroll inside its own box (`gc-table-wrap`, a bordered `overflow-x:auto` strip) or be made to
+  fit — never rely on the page scrolling sideways. Tap targets are ≥36px (the shared rules cover switches, `.ib`, small
+  square icon buttons and card-row actions). Grids marked `gc-cols-2/3` stack on phones unless they also have
+  `gc-cols--keep`. A title shares its row with the page's main button; long titles wrap between words. Put phone rules in
+  the screen's own CSS inside `@media (max-width:640px)`; app screens (`src/screens/app`) use `src/styles/phone-app.css`,
+  the platform console uses `src/styles/console-responsive.css` (its header comment lists the table/form/chart hooks).
 - Menu: `src/shell/navigation.js` (9 groups, at most two levels). Old menu ids still used by a screen's `active`
   map to the new item through `NAV_ALIAS` (sidebar highlight and role access both read it).
 - Language: the switch in the account menu, on sign-in and in Help calls `setLocale`. The shell translates itself

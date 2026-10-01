@@ -220,6 +220,12 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .chk:last-child{border-bottom:0}
 
 .pgc>*{flex-shrink:0}.tb th{white-space:normal}.stp2{flex-shrink:0}.pgc>.fill{flex-shrink:1;min-height:0}
+/* phones: the Open Clarity button goes under the field, full width, so the field and its hint get the whole row */
+@media (max-width:640px){
+  .cl-idrow{grid-template-columns:minmax(0,1fr)!important}
+  .cl-idrow>div:last-child{padding-top:0!important}
+  .cl-idrow .btn{width:100%}
+}
 ` + TA_PHONE_CSS;
 
 // ---- markup ----
@@ -299,7 +305,7 @@ export default class SetupClarityScreen extends Component {
                         <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Create a free project in Microsoft Clarity for the store domain, then paste its ID.</p>
                       </div>
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "12px", alignItems: "start" }}>
+                    <div className="cl-idrow" style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "12px", alignItems: "start" }}>
                       <div style={{ display: "flex", flexDirection: "column", gap: "8px", minWidth: "0" }}>
                         <label className="lbl" htmlFor="proj">Project ID</label>
                         <div style={{ position: "relative" }}>

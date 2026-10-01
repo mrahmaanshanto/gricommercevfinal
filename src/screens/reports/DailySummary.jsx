@@ -52,6 +52,13 @@ const CSS = `
 .ds-cash th:last-child,.ds-cash td:last-child{padding-right:var(--space-5)}
 .ds-cash td:last-child,.ds-cash tfoot td{font-weight:var(--weight-semibold);color:var(--text-heading)}
 .ds-cash-wrap{padding-bottom:var(--space-3)}
+@media (max-width:640px){
+  /* five figures: two to a row, the first (sales) across the top */
+  .ds-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2)}
+  .ds-kpi:first-child{grid-column:1 / -1}
+  .ds-kpi{padding:var(--space-2-5) var(--space-3)}
+  .ds-kpi b{font-size:var(--text-lg)}
+}
 @media print{section[aria-label="Day"],.ds-day{display:none!important}.ds-grid{display:block}.ds-grid > *{margin-bottom:var(--space-4)}}
 `;
 

@@ -134,7 +134,7 @@ a{color:#003087}a:hover{color:#002a77}
 @media (max-width:640px){
   .cs-body>section{padding:16px!important}
   .cs-head{flex-wrap:wrap;align-items:flex-start!important}
-  .cs-head>div:first-child{flex:1 1 200px!important;min-width:0}
+  .cs-head>div:first-child{flex:1 1 100%!important;min-width:0}
   .cs-checks{flex-wrap:wrap;gap:12px 20px!important}
   .cs-attr{flex-wrap:wrap;gap:8px 12px!important}
   .cs-attr__name{width:auto!important;flex:1 1 auto}

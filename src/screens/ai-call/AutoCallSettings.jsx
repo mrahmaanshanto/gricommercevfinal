@@ -312,7 +312,7 @@ export default class AutoCallSettingsScreen extends Component {
                       <div className="gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "16px" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                           <span className="lbl">Wait after the order</span>
-                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px" }}>
                             <div className="stp2">
                               <button type="button" aria-label="Decrease wait after the order" onClick={v.delay?.dec}><__Icon name="minus" width="16" height="16" aria-hidden="true" /></button>
                               <span>{v.delay?.v}</span>
@@ -354,7 +354,7 @@ export default class AutoCallSettingsScreen extends Component {
                     <div className="gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "16px" }}>
                       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                         <span className="lbl">Start calling</span>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px" }}>
                           <div className="stp2">
                             <button type="button" aria-label="Decrease calling hours start" onClick={v.from?.dec}><__Icon name="minus" width="16" height="16" aria-hidden="true" /></button>
                             <span>{v.from?.v}</span>
@@ -364,7 +364,7 @@ export default class AutoCallSettingsScreen extends Component {
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                         <span className="lbl">Stop calling</span>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px" }}>
                           <div className="stp2">
                             <button type="button" aria-label="Decrease calling hours end" onClick={v.to?.dec}><__Icon name="minus" width="16" height="16" aria-hidden="true" /></button>
                             <span>{v.to?.v}</span>
@@ -374,7 +374,7 @@ export default class AutoCallSettingsScreen extends Component {
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                         <span className="lbl">Tries if no answer</span>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px" }}>
                           <div className="stp2">
                             <button type="button" aria-label="Decrease number of tries" onClick={v.tries?.dec}><__Icon name="minus" width="16" height="16" aria-hidden="true" /></button>
                             <span>{v.tries?.v}</span>
@@ -385,7 +385,7 @@ export default class AutoCallSettingsScreen extends Component {
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                         <span className="lbl">Time between tries</span>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px" }}>
                           <div className="stp2">
                             <button type="button" aria-label="Decrease gap between tries" onClick={v.gap?.dec}><__Icon name="minus" width="16" height="16" aria-hidden="true" /></button>
                             <span>{v.gap?.v}</span>
@@ -426,7 +426,7 @@ export default class AutoCallSettingsScreen extends Component {
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                         <span className="lbl">Speaking speed</span>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px" }}>
                           <div className="stp2">
                             <button type="button" aria-label="Decrease speaking speed" onClick={v.speed?.dec}><__Icon name="minus" width="16" height="16" aria-hidden="true" /></button>
                             <span>{v.speed?.v}</span>

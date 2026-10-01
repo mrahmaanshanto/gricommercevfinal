@@ -48,6 +48,8 @@ const CSS = `
 .bp-foot{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);margin-top:auto;font-size:var(--text-xs);color:var(--text-muted)}
 .bp-note{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle);font-size:var(--text-xs);color:var(--text-muted)}
 @media (max-width:599px){.bp-filter{flex:1 1 140px}.bp-bulk .gc-input{flex:1 1 100%}}
+/* phones: the table already shows as cards, so the Table / Cards switch is hidden */
+@media (max-width:640px){.bp-layout{display:none!important}}
 `;
 
 export default function BlogPosts() {
@@ -187,7 +189,7 @@ export default function BlogPosts() {
           <div className="gc-tabs" role="tablist" aria-label="Post status" style={{ borderBottom: 0, flexWrap: 'wrap', overflow: 'visible' }}>
             {TABS.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={tab === id} className={'gc-tab bp-tab' + (tab === id ? ' gc-tab--active' : '')} onClick={() => setTab(id)}>{label}<b>{db.ready ? counts[id] : ''}</b></button>)}
           </div>
-          <div className="gc-seg" role="group" aria-label="Layout">
+          <div className="gc-seg bp-layout" role="group" aria-label="Layout">
             <button type="button" className={'gc-seg__btn' + (view === 'table' ? ' gc-seg__btn--active' : '')} aria-pressed={view === 'table'} onClick={() => pickView('table')}><Icon name="list" width="16" height="16" aria-hidden="true" style={{ verticalAlign: 'middle' }} /> Table</button>
             <button type="button" className={'gc-seg__btn' + (view === 'cards' ? ' gc-seg__btn--active' : '')} aria-pressed={view === 'cards'} onClick={() => pickView('cards')}><Icon name="layout-grid" width="16" height="16" aria-hidden="true" style={{ verticalAlign: 'middle' }} /> Cards</button>
           </div>

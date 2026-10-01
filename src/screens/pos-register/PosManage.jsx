@@ -66,6 +66,12 @@ const CSS = `
 .pm-rowbtn:hover .pm-strong{color:var(--primary)}
 @media (max-width:1023px){.pm-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.pm-settings{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:599px){.pm-two,.pm-checks{grid-template-columns:1fr}}
+@media (max-width:640px){
+  /* page title + "More" + main button share one row: the title keeps whole words (never split mid-word),
+     the main button is a little narrower; if they still do not fit, the row wraps */
+  [data-screen="PosManage"] .gc-shell__content .gc-pagehead>.gc-pagehead__text{flex-basis:0!important;min-width:min-content!important}
+  [data-screen="PosManage"] .gc-pagehead__actions .gc-btn--solid{padding:0 var(--space-3)}
+}
 `;
 
 const initials = (name) => name.split(' ').map((w) => w[0]).join('').slice(0, 2);

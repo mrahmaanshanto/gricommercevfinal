@@ -20,7 +20,15 @@
      cs-cards    with cs-fit: the header row hides and the first cell is a heading over its row
      cs-cell / cs-cell-lab   a table cell with a label that only shows on phones
      cs-nowrap   a flex row that never wraps (stacked bars)
-     cs-strip    tabs or steps that scroll sideways on phones instead of wrapping */
+     cs-strip    tabs or steps that scroll sideways on phones instead of wrapping
+     cs-tnw      a scrolling table whose first column, IDs (.mono) and avatar names never wrap; size it with --cs-row-min
+     cs-ticks    (inside a header cell, with cs-ticks-full) stage names placed over a row of stage dots, --i = 0…6
+     cs-ph-only / cs-desk-only   words shown only on a phone / only on a wider screen
+     cs-chart-list, cs-chart-dot a phone-only list of a chart's points; cs-chart-dot is a legend dot
+     cs-seg-nolab a split bar whose labels move to a cs-chart-legend under it on phones
+     cs-tri, cs-2l, cs-alert, cs-vbars, cs-ba, cs-tl, cs-ta, cs-sub, cs-pill-line, cs-lab-1line, cs-1col-xs,
+     cs-dn / cs-pad-b, cs-tup / cs-trim-b   single-screen phone layouts, described where they are defined below
+   Tables that bleed to their card's edges (margin 0 -20px -16px) keep the bleed on both sides; header labels never wrap. */
 
 .cs { display: flow-root; width: 100% !important; height: auto !important; min-height: 100vh; overflow: visible !important; }
 .cs .mainarea { position: relative !important; left: auto !important; top: auto !important; right: auto !important; bottom: auto !important; margin: 64px 0 0 272px; overflow: visible !important; min-width: 0; }
@@ -63,7 +71,7 @@
 
 /* tablets: grids reflow, except tables, bar rows and grids that keep their columns */
 @media (min-width: 641px) and (max-width: 1023px) {
-  .cs:not([data-board], [data-board] *) .mainarea [style*="grid-template-columns"]:not(:has(> [style*="grid-template-columns"][style*="uppercase"]) > *, :has(> :nth-child(2):nth-last-child(2)[style*="var(--track)"]), .cs-keep, .cs-matrix, .cs-scrollx > *) { grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)) !important; }
+  .cs:not([data-board], [data-board] *) .mainarea [style*="grid-template-columns"]:not(:has(> [style*="grid-template-columns"][style*="uppercase"]) > *, :has(> :nth-child(2):nth-last-child(2)[style*="var(--track)"]), .cs-keep, .cs-matrix, .cs-scrollx > *, .cs-ba) { grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)) !important; }
 }
 
 @media (max-width: 1023px) {
@@ -79,6 +87,23 @@
   .cs:not([data-board], [data-board] *) .mainarea :has(> [style*="grid-template-columns"][style*="uppercase"] > :nth-child(9)) { --cs-row-min: 1040px; }
   /* inside a table row nothing wraps, as on a wide screen */
   .cs:not([data-board], [data-board] *) .mainarea :has(> [style*="grid-template-columns"][style*="uppercase"]):not(.cs-fit) > :is([style*="grid-template-columns"], .mrow) :is([style*="display:flex"], [style*="display: flex"]) { flex-wrap: nowrap !important; }
+  /* header labels stay on one line (a wrapped label made the whole header row taller); centred ones stay centred over their column */
+  .cs:not([data-board], [data-board] *) .mainarea :has(> [style*="grid-template-columns"][style*="uppercase"]):not(.cs-fit) > [style*="uppercase"] > * { white-space: nowrap; overflow-wrap: normal; }
+  .cs:not([data-board], [data-board] *) .mainarea :has(> [style*="grid-template-columns"][style*="uppercase"]):not(.cs-fit) > [style*="uppercase"] > :is([style*="text-align:center"], [style*="text-align: center"]) { justify-self: center; }
+  /* a table that bleeds to its card's edges (margin 0 -20px) keeps the bleed on both sides */
+  .cs:not([data-board], [data-board] *) .mainarea :has(> [style*="grid-template-columns"][style*="uppercase"])[style*="margin"][style*="-20px -16px"] { max-width: none !important; }
+  /* cs-tnw: IDs, codes and the first column (names) never wrap or split a word; the row is made wide enough with --cs-row-min */
+  .cs:not([data-board], [data-board] *) .mainarea .cs-tnw > [style*="grid-template-columns"] > * { overflow-wrap: normal; }
+  .cs:not([data-board], [data-board] *) .mainarea .cs-tnw > [style*="grid-template-columns"] > :is(:first-child, .mono, :has(> .av)) { white-space: nowrap; }
+  /* an empty header-actions wrapper takes no row (it left a gap under the page title) */
+  .cs:not([data-board], [data-board] *) .mainarea div:empty:is([style*="flex:none"], [style*="flex: none"]) { display: none !important; }
+  /* a header cell over a row of stage dots names each stage above its dot (cs-ticks; --i is the stage, 0 to 6) */
+  .cs:not([data-board], [data-board] *) .cs-ticks-full { display: none; }
+  .cs:not([data-board], [data-board] *) .cs-ticks { display: block; position: relative; height: 36px; } /* two staggered rows, so neighbours never touch */
+  .cs:not([data-board], [data-board] *) .cs-ticks > span:nth-child(even) { top: 18px; }
+  .cs:not([data-board], [data-board] *) .cs-ticks > span { position: absolute; top: 0; left: calc(7px + (100% - 14px) * var(--i) / 6); transform: translateX(-50%); }
+  .cs:not([data-board], [data-board] *) .cs-ticks > span:first-child { left: 0; transform: none; }
+  .cs:not([data-board], [data-board] *) .cs-ticks > span:last-child { left: auto; right: 0; transform: none; }
   /* a matrix drawn as one grid (heatmaps, permission and plan comparisons) */
   .cs:not([data-board], [data-board] *) .mainarea .cs-matrix,
   .cs:not([data-board], [data-board] *) .mainarea .cs-scrollx > [style*="grid-template-columns"] { min-width: var(--cs-matrix-min, 640px) !important; }
@@ -100,7 +125,8 @@
   .cs:not([data-board], [data-board] *) .side { display: none !important; }
   .cs:not([data-board], [data-board] *) .topbar { position: sticky !important; top: 0 !important; left: 0 !important; right: auto !important; width: 100%; padding: 0 12px !important; gap: 8px; overflow: hidden; }
   .cs:not([data-board], [data-board] *) .mainarea { margin: 0; flex-wrap: nowrap !important; }
-  .cs:not([data-board], [data-board] *) .mainarea:not([style*="padding"]) > div:not(.formbar) { padding: 16px 12px !important; min-width: 0; }
+  .cs:not([data-board], [data-board] *) .mainarea:not([style*="padding"]) > div:not(.formbar, [role="tablist"]) { padding: 16px 12px !important; min-width: 0; }
+  .cs:not([data-board], [data-board] *) .mainarea:not([style*="padding"]) > [role="tablist"] { padding: 0 12px !important; }
   .cs:not([data-board], [data-board] *) .mainarea[style*="padding"] { padding: 16px 12px 24px !important; gap: 14px !important; }
 
   /* top bar: breadcrumb takes the free space and ends in an ellipsis; the rest keeps its size */
@@ -138,6 +164,8 @@
 @media (max-width: 640px) {
   /* buttons that must be easy to tap */
   .cs:not([data-board], [data-board] *) .cs-tap { min-height: 44px !important; min-width: 44px; }
+  /* a matrix that scrolls sideways sits in its own bordered box, so a cut column reads as "more to the right" */
+  .cs:not([data-board], [data-board] *) .mainarea .cs-scrollx:has(> .cs-matrix, > [style*="grid-template-columns"]) { border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 8px; }
   .cs:not([data-board], [data-board] *) .mainarea :has(> [style*="grid-template-columns"][style*="uppercase"]) > [style*="grid-template-columns"] .tb { flex: none; width: 44px; height: 44px; background: var(--surface2); border: 1px solid var(--line); }
   .cs:not([data-board], [data-board] *) .cs-top { align-self: flex-start; }
   /* header actions as a two-column grid */
@@ -169,12 +197,17 @@
 }
 /* charts on phones: labels drawn in the SVG would shrink with the drawing, so small drawings get a
    larger label size (--cs-fs, in drawing units) and wide ones show their labels as HTML under the plot */
-.cs .cs-axis, .cs .cs-chart-note, .cs .cs-chart-legend { display: none; }
+.cs .cs-axis, .cs .cs-chart-note, .cs .cs-chart-legend, .cs .cs-chart-list, .cs .cs-ticks, .cs .cs-ph-only { display: none; }
+.cs .cs-chart-dot { display: inline-block; flex: none; width: 10px; height: 10px; border-radius: var(--radius-full); }
 @media (max-width: 640px) {
   .cs:not([data-board], [data-board] *) .cs-chart-s { overflow: visible; }
   .cs:not([data-board], [data-board] *) .cs-chart-s text:is([font-size="9"], [font-size="10"], [font-size="11"], [font-size="12"]) { font-size: var(--cs-fs, 13px) !important; }
   .cs:not([data-board], [data-board] *) .cs-chart-s .cs-svg-legend { display: none; }
-  .cs:not([data-board], [data-board] *) .cs-chart-s .cs-tend { text-anchor: end; transform: translate(102px, 4px); }
+  .cs:not([data-board], [data-board] *) .cs-chart-s .cs-tend { display: none; } /* a marker label: the HTML legend carries it */
+  .cs:not([data-board], [data-board] *) .cs-chart-s .cs-tup { transform: translateY(-18px); } /* an end label moves up to the first label row */
+  .cs:not([data-board], [data-board] *) .cs-trim-b { margin-bottom: -36px; } /* the drawing's own legend rows are hidden: drop their blank space */
+  .cs:not([data-board], [data-board] *) .cs-chart-s .cs-dn { transform: translateY(16px); } /* every other axis label one row lower, so neighbours never run together */
+  .cs:not([data-board], [data-board] *) .cs-pad-b { margin-bottom: 16px; } /* room for that lower row */
   .cs:not([data-board], [data-board] *) .cs-chart-l text { display: none; }
   .cs:not([data-board], [data-board] *) .cs-chart-fit { height: auto !important; }
   .cs:not([data-board], [data-board] *) .cs-chart-stretch { height: 140px; }
@@ -201,8 +234,8 @@
 /* phones: fill the width (a 390px window gives .27) and centre the board */
 @media (max-width: 479px)  { [data-board] { zoom: .3; margin-inline: auto; } }
 @media (max-width: 431px)  { [data-board] { zoom: .28; } }
-@media (max-width: 402px)  { [data-board] { zoom: .27; } }
-@media (max-width: 388px)  { [data-board] { zoom: .26; } }
+@media (max-width: 402px)  { [data-board] { zoom: .26; } } /* leaves room for a desktop scrollbar */
+@media (max-width: 388px)  { [data-board] { zoom: .25; } }
 @media (max-width: 374px)  { [data-board] { zoom: .25; } }
 @media (max-width: 359px)  { [data-board] { zoom: .22; } }
 /* boards that look like a live screen: half size, scrolling sideways in their own box */
@@ -245,3 +278,71 @@
 }
 /* a console page drawn with its own inner layout (no .mainarea): keep the drawing and zoom it */
 .cs[data-board] { width: 1440px !important; min-height: 1000px; }
+
+/* second phone pass: single-screen hooks (set in the screen markup) and a few shared patterns */
+@media (max-width: 900px) {
+  /* form sections: an empty description takes no room, the heading sits close to its fields */
+  .cs:not([data-board], [data-board] *) .fsec { gap: 14px; }
+  .cs:not([data-board], [data-board] *) .fsd:empty { display: none; }
+}
+@media (max-width: 640px) {
+  /* words that only show on a phone, or only on a wide screen */
+  .cs:not([data-board], [data-board] *) .cs-ph-only { display: inline; }
+  .cs:not([data-board], [data-board] *) .cs-desk-only { display: none !important; }
+  /* a chart whose labels are too small on a phone also lists its points (dot, name, value) */
+  .cs:not([data-board], [data-board] *) .cs-chart-list { display: block; margin: 8px 0 0; padding: 0; list-style: none; }
+  .cs:not([data-board], [data-board] *) .cs-chart-list > li { display: flex; align-items: center; gap: 10px; min-height: 40px; border-top: 1px solid var(--line); font-size: var(--text-sm); color: var(--ink); }
+  .cs:not([data-board], [data-board] *) .cs-chart-list > li > .num { margin-left: auto; color: var(--body); white-space: nowrap; }
+  /* a split bar whose segment labels move to the legend under it */
+  .cs:not([data-board], [data-board] *) .cs-seg-nolab { height: 14px !important; }
+  .cs:not([data-board], [data-board] *) .cs-seg-nolab > * { font-size: 0 !important; padding: 0 !important; }
+  /* a subtitle beside a panel title goes under it, left-aligned */
+  .cs:not([data-board], [data-board] *) .cs-sub { margin-left: 0 !important; flex-basis: 100%; }
+  /* title, meta and value: title and meta stacked, the value at the right */
+  .cs:not([data-board], [data-board] *) .mainarea .cs-tri { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; row-gap: 2px; align-items: center; padding: 8px 0; }
+  .cs:not([data-board], [data-board] *) .cs-tri > :nth-child(1) { grid-area: 1 / 1; }
+  .cs:not([data-board], [data-board] *) .cs-tri > :nth-child(2) { grid-area: 2 / 1; }
+  .cs:not([data-board], [data-board] *) .cs-tri > :nth-child(3) { grid-area: 1 / 2 / 3 / 3; margin-left: 0 !important; white-space: nowrap; }
+  /* icon and name on one line, the count and badge on a second line under the name */
+  .cs:not([data-board], [data-board] *) .mainarea .cs-2l { display: grid !important; grid-template-columns: auto auto minmax(0, 1fr); column-gap: 10px; row-gap: 4px; align-items: center; padding: 8px 0; }
+  .cs:not([data-board], [data-board] *) .cs-2l > :nth-child(1) { grid-area: 1 / 1; }
+  .cs:not([data-board], [data-board] *) .cs-2l > :nth-child(2) { grid-area: 1 / 2 / 2 / 4; min-width: 0; overflow-wrap: normal; }
+  .cs:not([data-board], [data-board] *) .cs-2l > :nth-child(3) { grid-area: 2 / 2; margin-left: 0 !important; white-space: nowrap; }
+  .cs:not([data-board], [data-board] *) .cs-2l > :nth-child(4) { grid-area: 2 / 3; justify-self: start; }
+  /* an alert banner: its button goes under the text */
+  .cs:not([data-board], [data-board] *) .mainarea [style*="display"].cs-alert:not([style*="column"]):has(> .shp) { flex-wrap: wrap !important; align-items: flex-start !important; row-gap: 12px !important; }
+  .cs:not([data-board], [data-board] *) .cs-alert > .shp { margin-top: 4px; }
+  .cs:not([data-board], [data-board] *) .cs-alert > :nth-child(2) { flex: 1 1 0% !important; min-width: 0; }
+  .cs:not([data-board], [data-board] *) .cs-alert > :last-child { flex: 1 1 100% !important; margin-left: 0 !important; }
+  /* a message box shows its whole text */
+  .cs:not([data-board], [data-board] *) .cs-ta { height: auto !important; }
+  /* before and after cards stacked: the arrow points down */
+  .cs:not([data-board], [data-board] *) .cs-ba-arrow { justify-self: center; transform: rotate(90deg); }
+  /* vertical bars become bar rows (label and value on one line, the bar under them); --v on a bar is its length */
+  .cs:not([data-board], [data-board] *) .mainarea .cs-vbars { flex-direction: column !important; flex-wrap: nowrap !important; align-items: stretch !important; height: auto !important; gap: 10px !important; }
+  .cs:not([data-board], [data-board] *) .cs-vbars > * { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; row-gap: 4px; align-items: center; }
+  .cs:not([data-board], [data-board] *) .cs-vbars > * > :nth-child(1) { grid-area: 1 / 2; }
+  .cs:not([data-board], [data-board] *) .cs-vbars > * > :nth-child(2) { grid-area: 2 / 1 / 3 / 3; width: var(--v) !important; max-width: none !important; height: 10px !important; border-radius: var(--radius-sm) !important; }
+  .cs:not([data-board], [data-board] *) .cs-vbars > * > :nth-child(3) { grid-area: 1 / 1; text-align: left !important; font-size: var(--text-sm) !important; }
+  /* column chart labels stay on one line (icon and text together) */
+  .cs:not([data-board], [data-board] *) .mainarea .cs-lab-1line { flex-wrap: nowrap !important; }
+  .cs:not([data-board], [data-board] *) .cs-lab-1line > * { min-width: 0; }
+  .cs:not([data-board], [data-board] *) .cs-lab-1line > * > :last-child { white-space: nowrap; }
+  /* a timeline: the same gap after every entry, short or long */
+  .cs:not([data-board], [data-board] *) .cs-tl { min-height: 0 !important; padding-bottom: 12px; }
+  /* a long status pill in a KPI card reads as a coloured helper line */
+  .cs:not([data-board], [data-board] *) .cs-pill-line { background: none !important; padding: 0 !important; border-radius: 0; }
+  /* a label and an amount: the amount stays at the right, the label wraps beside it */
+  .cs:not([data-board], [data-board] *) .mainarea :is([style*="display:flex"], [style*="display: flex"])[style*="space-between"]:has(> :nth-child(2):last-child.num) { flex-wrap: nowrap !important; }
+  .cs:not([data-board], [data-board] *) .mainarea :is([style*="display:flex"], [style*="display: flex"])[style*="space-between"]:has(> :nth-child(2):last-child.num) > :first-child { flex: 1 1 auto; min-width: 0; }
+  .cs:not([data-board], [data-board] *) .mainarea :is([style*="display:flex"], [style*="display: flex"])[style*="space-between"]:has(> :nth-child(2):last-child.num) > .num { flex: none; white-space: nowrap; }
+  /* an icon followed by plain text (legends, status labels): the icon stays beside its text */
+  .cs:not([data-board], [data-board] *) .mainarea :is([style*="display:flex"], [style*="display: flex"]):not([style*="column"]):has(> :is(.shp, .dot):only-child) { flex-wrap: nowrap !important; }
+  /* small drawn checkboxes get a 40px tap area */
+  .cs:not([data-board], [data-board] *) .cb[role="checkbox"] { position: relative; }
+  .cs:not([data-board], [data-board] *) .cb[role="checkbox"]::after { content: ""; position: absolute; inset: -13px; } /* inset is from the padding box: 14px + 2 × 13px = 40px */
+}
+/* very narrow phones: a table that fits the screen can drop to one column (cs-1col-xs) */
+@media (max-width: 479px) {
+  .cs:not([data-board], [data-board] *) .cs-fit.cs-1col-xs { --cs-cols: minmax(0, 1fr) !important; }
+}

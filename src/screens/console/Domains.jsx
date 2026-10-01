@@ -679,7 +679,7 @@ export default class DomainsScreen extends Component {
                   <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Certificate expiry, next 90 days</h2>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }}>renewal starts 30 days before</div>
                 </div>
-                <svg viewBox="0 0 640 110" width="100%" aria-hidden="true">
+                <svg className="cs-chart-l" viewBox="0 0 640 110" width="100%" aria-hidden="true">
                   <line x1="10" x2="630" y1="50" y2="50" stroke="#e2e8f0" strokeWidth="6" strokeLinecap="round" />
                   <circle cx="499" cy="50" r="8" fill="#003087" stroke="#fff" strokeWidth="2" />
                   <text x="499" y="30" fontSize="11" fill="#475569" textAnchor="middle" fontFamily="Poppins">Rongdhonu · 71 d</text>
@@ -695,6 +695,14 @@ export default class DomainsScreen extends Component {
                   <text x="10" y="104" fontSize="11" fill="#64748b" fontFamily="Poppins">Today</text>
                   <text x="630" y="104" fontSize="11" fill="#64748b" textAnchor="end" fontFamily="Poppins">90 days</text>
                 </svg>
+                <div className="cs-axis" aria-hidden="true"><span style={{ left: "0%" }}>Today</span><span style={{ left: "100%" }}>90 days</span></div>
+                <ul className="cs-chart-list" aria-label="Certificates by days left">
+                  <li><span className="cs-chart-dot" style={{ background: "#ff5724" }} />Bindu Beauty<span className="num">6 days</span></li>
+                  <li><span className="cs-chart-dot" style={{ background: "#ff9800" }} />Dhaka Gadget Hub<span className="num">12 days</span></li>
+                  <li><span className="cs-chart-dot" style={{ background: "#003087" }} />Mohona Traders<span className="num">58 days</span></li>
+                  <li><span className="cs-chart-dot" style={{ background: "#003087" }} />Rongdhonu Fashion<span className="num">71 days</span></li>
+                  <li><span className="cs-chart-dot" style={{ background: "#003087" }} />Shonali Crafts<span className="num">84 days</span></li>
+                </ul>
               </section>
             </div>
           </main>

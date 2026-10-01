@@ -591,7 +591,8 @@ export default class IntegrationsScreen extends Component {
                     <circle cx="307" cy="62" r="5.5" fill="#10b981" />
                     <circle cx="330" cy="62" r="5.5" fill="#10b981" />
                     <circle cx="353" cy="62" r="5.5" fill="#10b981" />
-                    <text x="0" y="90" fontSize="11" fill="#475569" textAnchor="start" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">SMS gateway</text>
+                    <text className="cs-desk-only" x="0" y="90" fontSize="11" fill="#475569" textAnchor="start" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">SMS gateway</text>
+                    <text className="cs-ph-only" x="0" y="90" fontSize="11" fill="#475569" textAnchor="start" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">SMS</text>
                     <circle cx="100" cy="86" r="5.5" fill="#10b981" />
                     <circle cx="123" cy="86" r="5.5" fill="#10b981" />
                     <circle cx="146" cy="86" r="5.5" fill="#10b981" />

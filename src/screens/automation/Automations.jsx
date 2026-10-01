@@ -197,14 +197,16 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .lrow:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:-3px}
 .pgc>*{flex-shrink:0}.tb th{white-space:normal}.stp2{flex-shrink:0}.pgc>.fill{flex-shrink:1;min-height:0}
 .au-chips{display:contents}
-/* narrow screens: the category chips are one swipe row; Workflow settings moves under them */
+.dc-screen .au-set2{display:none}
+/* narrow screens: the category chips are one swipe row; Workflow settings moves up into the hero beside New workflow */
 @media (max-width:1023px){
   .au-filters{flex-wrap:wrap}
   .au-chips{display:flex;gap:8px;flex:1 1 100%;min-width:0;overflow-x:auto;scrollbar-width:none}
   .au-chips::-webkit-scrollbar{display:none}
   .au-chips>.chip{flex:none}
   .au-filters>.au-gap{display:none}
-  .au-filters>.au-set{margin-left:auto}
+  .au-filters>.au-set{display:none}
+  .dc-screen .au-set2{display:inline-flex}
 }
 @media (max-width:640px){
   .au-chips{margin-inline:-14px;padding:0 14px 2px;scroll-padding-inline:14px}
@@ -232,6 +234,7 @@ export default class AutomationsScreen extends Component {
                     <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "680px" }}>Ready-made rules for everyday work, switched on or off in one tap, plus custom workflows built with When and Then.</p>
                   </div>
                   <__Link href="/workflow-builder" className="btn sm" style={{ background: "#fff", color: "#0b1733", height: "38px", flexShrink: "0" }}>New workflow</__Link>
+                  <__Link href="/workflow-settings" className="btn sm au-set2" style={{ background: "transparent", color: "var(--text-on-dark)", border: "1px solid var(--text-on-dark-muted)", height: "38px", flexShrink: "0" }}>Workflow settings</__Link>
                 </div>
                 <div className="st gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px", marginTop: "20px" }}>
                   {__list(v.tiles).map((ht, $index) => (<React.Fragment key={$index}>

@@ -5,7 +5,7 @@
 // src/lib/settlements.js), roles, and payroll settings (pay day, rounding, bonus, advance limit,
 // default pay accounts).
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
@@ -57,6 +57,14 @@ export default function HrSetup() {
   const [hol, setHol] = useState(null);
   const [cfg, setCfg] = useState(null);
   useEffect(() => { const s = new URLSearchParams(window.location.search).get('sec'); if (SECS.some((x) => x[0] === s)) setSec(s); setCfg(getConfig()); }, []);
+  // below 1024px the section list is one row that scrolls sideways: keep the open section in view
+  const navRef = useRef(null);
+  useEffect(() => {
+    const nav = navRef.current;
+    const btn = nav && nav.querySelector('[aria-current="true"]');
+    if (!btn || nav.scrollWidth <= nav.clientWidth) return;
+    nav.scrollLeft += btn.getBoundingClientRect().left - nav.getBoundingClientRect().left - (nav.clientWidth - btn.offsetWidth) / 2;
+  }, [sec]);
   const holidays = [...HOLIDAYS_2026.filter(([k]) => !((cfg || {}).holidaysRemoved || []).includes(k)), ...((cfg || {}).holidaysAdded || [])].sort((a, b) => a[0].localeCompare(b[0]));
   const sp = split || set.split.map(([id, l, p]) => [id, l, String(p)]);
   const spTotal = sp.reduce((a, x) => a + (Number(x[2]) || 0), 0);
@@ -115,7 +123,7 @@ export default function HrSetup() {
     <HrPage screen="HrSetup" active="hr-setup" page="HR setup" title="HR setup" css={CSS}
       description="The rules attendance, the roster, leave and payroll use. Changes apply from the next payroll — approved months stay as they were.">
       <div className="su-wrap">
-        <nav className="gc-card su-nav" aria-label="HR setup sections">
+        <nav ref={navRef} className="gc-card su-nav" aria-label="HR setup sections">
           {SECS.map(([k, l]) => <button key={k} type="button" aria-current={sec === k} onClick={() => setSec(k)}>{l}{count(k) != null ? <small>{count(k)}</small> : null}</button>)}
         </nav>
         <section className="gc-card hr-card">

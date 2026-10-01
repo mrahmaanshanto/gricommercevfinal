@@ -555,11 +555,11 @@ export default class HealthRiskScreen extends Component {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px", padding: "10px 12px", borderRadius: "var(--radius-lg)", background: "var(--surface)", border: "1px solid var(--line)" }}>
                     <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Bindu Beauty</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--body)" }}>9 days<span className="num" style={{ marginLeft: "auto", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>33</span></span>
+                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--body)" }}>9 days<span className="num" style={{ marginLeft: "auto", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}><span className="cs-ph-only" style={{ fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Score </span>33</span></span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px", padding: "10px 12px", borderRadius: "var(--radius-lg)", background: "var(--surface)", border: "1px solid var(--line)" }}>
                     <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Rupsha Sports</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--body)" }}>19 days<span className="num" style={{ marginLeft: "auto", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>18</span></span>
+                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--body)" }}>19 days<span className="num" style={{ marginLeft: "auto", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}><span className="cs-ph-only" style={{ fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Score </span>18</span></span>
                   </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px", borderRadius: "var(--radius-xl)", background: "var(--surface2)", border: "1px solid var(--line)" }}>
@@ -570,11 +570,11 @@ export default class HealthRiskScreen extends Component {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px", padding: "10px 12px", borderRadius: "var(--radius-lg)", background: "var(--surface)", border: "1px solid var(--line)" }}>
                     <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Nodi Organic</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--body)" }}>6 days<span className="num" style={{ marginLeft: "auto", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>41</span></span>
+                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--body)" }}>6 days<span className="num" style={{ marginLeft: "auto", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}><span className="cs-ph-only" style={{ fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Score </span>41</span></span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px", padding: "10px 12px", borderRadius: "var(--radius-lg)", background: "var(--surface)", border: "1px solid var(--line)" }}>
                     <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Pabna Dairy Hub</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--body)" }}>4 days<span className="num" style={{ marginLeft: "auto", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>58</span></span>
+                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--body)" }}>4 days<span className="num" style={{ marginLeft: "auto", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}><span className="cs-ph-only" style={{ fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Score </span>58</span></span>
                   </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px", borderRadius: "var(--radius-xl)", background: "var(--surface2)", border: "1px solid var(--line)" }}>
@@ -585,11 +585,11 @@ export default class HealthRiskScreen extends Component {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px", padding: "10px 12px", borderRadius: "var(--radius-lg)", background: "var(--surface)", border: "1px solid var(--line)" }}>
                     <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Dhaka Gadget Hub</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--body)" }}>3 days overdue<span className="num" style={{ marginLeft: "auto", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>54</span></span>
+                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--body)" }}>3 days overdue<span className="num" style={{ marginLeft: "auto", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}><span className="cs-ph-only" style={{ fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Score </span>54</span></span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px", padding: "10px 12px", borderRadius: "var(--radius-lg)", background: "var(--surface)", border: "1px solid var(--line)" }}>
                     <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Bindu Beauty</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--body)" }}>9 days overdue<span className="num" style={{ marginLeft: "auto", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>33</span></span>
+                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--body)" }}>9 days overdue<span className="num" style={{ marginLeft: "auto", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}><span className="cs-ph-only" style={{ fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Score </span>33</span></span>
                   </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px", borderRadius: "var(--radius-xl)", background: "var(--surface2)", border: "1px solid var(--line)" }}>
@@ -600,11 +600,11 @@ export default class HealthRiskScreen extends Component {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px", padding: "10px 12px", borderRadius: "var(--radius-lg)", background: "var(--surface)", border: "1px solid var(--line)" }}>
                     <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Dhaka Gadget Hub</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--body)" }}>Steadfast<span className="num" style={{ marginLeft: "auto", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>54</span></span>
+                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--body)" }}>Steadfast<span className="num" style={{ marginLeft: "auto", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}><span className="cs-ph-only" style={{ fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Score </span>54</span></span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px", padding: "10px 12px", borderRadius: "var(--radius-lg)", background: "var(--surface)", border: "1px solid var(--line)" }}>
                     <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Rongdhonu Fashion</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--body)" }}>bKash callbacks<span className="num" style={{ marginLeft: "auto", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>86</span></span>
+                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--body)" }}>bKash callbacks<span className="num" style={{ marginLeft: "auto", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}><span className="cs-ph-only" style={{ fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Score </span>86</span></span>
                   </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px", borderRadius: "var(--radius-xl)", background: "var(--surface2)", border: "1px solid var(--line)" }}>
@@ -615,11 +615,11 @@ export default class HealthRiskScreen extends Component {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px", padding: "10px 12px", borderRadius: "var(--radius-lg)", background: "var(--surface)", border: "1px solid var(--line)" }}>
                     <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Nodi Organic</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--body)" }}>1 of 5 steps<span className="num" style={{ marginLeft: "auto", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>41</span></span>
+                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--body)" }}>1 of 5 steps<span className="num" style={{ marginLeft: "auto", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}><span className="cs-ph-only" style={{ fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Score </span>41</span></span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px", padding: "10px 12px", borderRadius: "var(--radius-lg)", background: "var(--surface)", border: "1px solid var(--line)" }}>
                     <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>Kolpo Books</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--body)" }}>domain<span className="num" style={{ marginLeft: "auto", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}>72</span></span>
+                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--body)" }}>domain<span className="num" style={{ marginLeft: "auto", fontWeight: "var(--weight-medium)", color: "var(--ink)" }}><span className="cs-ph-only" style={{ fontWeight: "var(--weight-regular)", color: "var(--body)" }}>Score </span>72</span></span>
                   </div>
                 </div>
               </div>

@@ -34,6 +34,14 @@ const CSS = `
   .ic-bar > select{flex:1 1 0;min-width:0}
   .ic-bar > .gc-btn{flex:none}
   .ic-list{max-height:none;overflow:visible}
+  /* the Check button stays to the right of the code box */
+  .ic-scan{flex-wrap:nowrap}
+  .ic-scan > div:first-child{flex:1 1 0;min-width:0}
+  .ic-scan > .gc-btn{flex:none}
+  /* card settings: each choice takes the full width, its options share it equally */
+  .ic-opts > div{flex:1 1 100%;min-width:0}
+  .ic-opts .sf-seg{display:flex;flex-wrap:nowrap;width:100%}
+  .ic-opts .sf-seg button{flex:1 1 0;min-width:0;padding:var(--space-1) var(--space-2);line-height:1.25}
 }
 `;
 

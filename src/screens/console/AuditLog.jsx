@@ -564,7 +564,7 @@ export default class AuditLogScreen extends Component {
                 </span>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 280px", gap: "14px", alignItems: "stretch" }}>
-                <div className="panel" style={{ overflow: "hidden" }}>
+                <div className="panel cs-tnw" style={{ overflow: "hidden", "--cs-row-min": "960px" }}>
                   <div className="th" style={{ display: "grid", gridTemplateColumns: "90px minmax(0,1.2fr) 100px minmax(0,1fr) minmax(0,1.7fr) minmax(0,1.5fr)", gap: "12px", padding: "10px 18px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
                     <span>Time</span>
                     <span>Who</span>

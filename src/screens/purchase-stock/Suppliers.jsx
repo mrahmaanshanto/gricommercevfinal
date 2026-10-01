@@ -63,6 +63,7 @@ const CSS = `
 .sp-total{display:flex;align-items:baseline;justify-content:space-between;padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary)}
 .sp-total b{font-size:var(--text-xl);font-weight:var(--weight-semibold);font-variant-numeric:tabular-nums}
 @media (max-width:599px){.sp-two{grid-template-columns:1fr}.sp-methods{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.sp-search{flex:1 1 100%}}
 `;
 
 export default function Suppliers() {

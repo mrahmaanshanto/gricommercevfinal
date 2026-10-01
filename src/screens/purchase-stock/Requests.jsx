@@ -92,6 +92,7 @@ const CSS = `
 .rq-low{color:var(--text-danger);font-weight:var(--weight-medium)}
 .rq-qty{width:84px;text-align:right}
 .rq-actions{display:flex;justify-content:flex-end;gap:var(--space-2)}
+.rq-reject__lbl{display:none}
 .rq-pick{position:sticky;bottom:0;display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4);padding:var(--space-3) var(--space-5);background:var(--primary);color:#fff;font-size:var(--text-sm)}
 .rq-pick span:first-child{font-weight:var(--weight-medium)}
 .rq-pick__sups{flex:1;min-width:0;opacity:.85;font-size:var(--text-xs)}
@@ -122,6 +123,11 @@ const CSS = `
   .rq-flow span{margin-left:24px}
   .rq-bar{padding:0 var(--space-3-5)}
   .rq-search{flex:1 1 100%;margin-bottom:var(--space-3)}
+  /* a request's actions: Approve and a labelled Reject share the row, both full height */
+  .rq-card .gc-table .rq-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2);width:100%}
+  .rq-actions>.gc-btn{min-height:44px}
+  .rq-actions>.rq-reject{width:auto;height:44px;gap:var(--space-1-5);border:1px solid var(--border-field);border-radius:var(--radius-lg);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-danger)}
+  .rq-reject .rq-reject__lbl{display:inline}
 }
 `;
 
@@ -279,7 +285,7 @@ export default function Requests() {
                           <td>{formatDate(r.need)}</td>
                           <td>{r.supplier}</td>
                           <td>
-                            {tab === 'waiting' ? <div className="rq-actions"><button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={() => openApprove(r)}><Icon name="check" width="16" height="16" aria-hidden="true" /> Approve</button><button type="button" className="gc-iconbtn" aria-label={`Reject the request for ${r.name}`} onClick={() => setReject({ id: r.id, name: r.name, reason: '' })}><Icon name="x" width="18" height="18" /></button></div> : null}
+                            {tab === 'waiting' ? <div className="rq-actions"><button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={() => openApprove(r)}><Icon name="check" width="16" height="16" aria-hidden="true" /> Approve</button><button type="button" className="gc-iconbtn rq-reject" aria-label={`Reject the request for ${r.name}`} onClick={() => setReject({ id: r.id, name: r.name, reason: '' })}><Icon name="x" width="18" height="18" aria-hidden="true" /><span className="rq-reject__lbl" aria-hidden="true">Reject</span></button></div> : null}
                             {tab === 'approved' ? <div className="rq-actions"><button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => patch([r.id], { status: 'waiting' })}>Back to waiting</button></div> : null}
                             {tab === 'ordered' ? <Link href={`/po-detail?no=${r.po}`} className="rq-code rq-strong">{r.po}</Link> : null}
                             {tab === 'rejected' ? <><span className="rq-sub" style={{ color: 'var(--text-body)' }}>{r.reason}</span><button type="button" className="gc-btn gc-btn--sm gc-btn--flat" style={{ padding: 0, height: 'auto' }} onClick={() => patch([r.id], { status: 'waiting', reason: undefined })}>Bring back</button></> : null}

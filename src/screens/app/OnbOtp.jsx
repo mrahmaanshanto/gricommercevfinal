@@ -174,9 +174,9 @@ export default class OnbOtpScreen extends Component {
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: "16px", fontSize: "var(--text-sm)" }}>
               <span className="num" style={{ color: "var(--muted)" }}>Resend code in <b style={{ color: "var(--ink)" }}>0:24</b></span>
-              <__Link href="/onb-phone" style={{ color: "var(--brand)", fontWeight: "var(--weight-medium)" }}>Change number</__Link>
+              <__Link href="/onb-phone" className="tap" style={{ color: "var(--brand)", fontWeight: "var(--weight-medium)" }}>Change number</__Link>
             </div>
-            <a href="#" style={{ display: "inline-flex", marginTop: "22px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--brand)" }}>Use demo code</a>
+            <a href="#" className="tap" style={{ display: "inline-flex", marginTop: "22px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "var(--brand)" }}>Use demo code</a>
           </div>
           <div className="actbar">
             <__Link href="/onb-store" className="btn btnp" style={{ flex: "2" }}>Verify</__Link>

@@ -9,6 +9,7 @@ import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 import { PageHeader as __PageHeader, EmptyState as __EmptyState } from '@/components/ui';
 import { toast as __toast } from '@/runtime/ui';
+import { clockNow } from '@/lib/settlements';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -18,30 +19,44 @@ function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.
 function mkTabs(self, list, cur, key, counts) { return list.map(function (x) { var on = x.k === cur; var c = counts ? counts[x.k] : null; return { label: x.label, on: on, cls: on ? 'tab on' : 'tab', hasCount: c != null, count: c, countBg: on ? 'rgba(255,255,255,0.2)' : '#e9eef5', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
 function mkChips(self, list, cur, key) { return list.map(function (x) { var on = x.k === cur; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
 var C = [
-  { id: 1, code: 'EID300', gets: '৳300 off', rule: 'On bills of ৳2,000 or more', where: 'Website + POS', who: 'Everyone', dates: '5 – 20 Sep', left: '2 days left', used: 318, limit: 500, sales: 96400, st: 'live', on: true },
-  { id: 2, code: 'FIRST20', gets: '20% off', rule: 'Up to ৳400 off', where: 'Website', who: 'First order only', dates: '1 – 30 Sep', left: '12 days left', used: 140, limit: 0, sales: 73700, st: 'live', on: true },
-  { id: 3, code: 'SKIN15', gets: '15% off', rule: 'Skin care products only', where: 'Website + POS', who: 'Everyone', dates: '10 – 25 Sep', left: '7 days left', used: 96, limit: 300, sales: 31200, st: 'live', on: true },
-  { id: 4, code: 'GOLD500', gets: '৳500 off', rule: 'On bills of ৳5,000 or more', where: 'Website + POS', who: 'Gold and Platinum members', dates: '1 – 30 Sep', left: '12 days left', used: 22, limit: 150, sales: 13500, st: 'live', on: true },
-  { id: 5, code: 'PUJA10', gets: '10% off', rule: 'Up to ৳250 off', where: 'Website + POS', who: 'Everyone', dates: '25 Sep – 5 Oct', left: 'Starts in 7 days', used: 0, limit: 1000, sales: 0, st: 'soon', on: true },
-  { id: 6, code: 'FREESHIP', gets: 'Free delivery', rule: 'On bills of ৳1,500 or more', where: 'Website', who: 'Everyone', dates: '8 – 14 Sep', left: 'Ended', used: 211, limit: 0, sales: 58900, st: 'ended', on: false },
+  { id: 1, code: 'EID300', gets: '৳300 off', rule: 'On bills of ৳2,000 or more', where: 'Website + POS', who: 'Everyone', from: -13, to: 2, used: 318, limit: 500, sales: 96400, st: 'live', on: true },
+  { id: 2, code: 'FIRST20', gets: '20% off', rule: 'Up to ৳400 off', where: 'Website', who: 'First order only', from: -17, to: 12, used: 140, limit: 0, sales: 73700, st: 'live', on: true },
+  { id: 3, code: 'SKIN15', gets: '15% off', rule: 'Skin care products only', where: 'Website + POS', who: 'Everyone', from: -8, to: 7, used: 96, limit: 300, sales: 31200, st: 'live', on: true },
+  { id: 4, code: 'GOLD500', gets: '৳500 off', rule: 'On bills of ৳5,000 or more', where: 'Website + POS', who: 'Gold and Platinum members', from: -17, to: 12, used: 22, limit: 150, sales: 13500, st: 'live', on: true },
+  { id: 5, code: 'PUJA10', gets: '10% off', rule: 'Up to ৳250 off', where: 'Website + POS', who: 'Everyone', from: 7, to: 17, used: 0, limit: 1000, sales: 0, st: 'soon', on: true },
+  { id: 6, code: 'FREESHIP', gets: 'Free delivery', rule: 'On bills of ৳1,500 or more', where: 'Website', who: 'Everyone', from: -10, to: -4, used: 211, limit: 0, sales: 58900, st: 'ended', on: false },
   { id: 7, code: 'SORRY100', gets: '৳100 off', rule: 'Any bill', where: 'Website + POS', who: 'One customer per code', dates: 'No end date', left: 'Always on', used: 4, limit: 20, sales: 5200, st: 'off', on: false }
 ];
+// Coupon dates are kept as days from today (from / to), so the running codes stay current. The first render uses the
+// design's day (18 Sep 2026); after mount the app clock (clockNow, moved by gc.clock.offset) takes over.
+var FIRST_DAY = new Date(2026, 8, 18).getTime();
+var DAY = 864e5;
+var plural = function (n, one) { return n + ' ' + one + (n === 1 ? '' : 's'); };
+function couponDates(c, today) {
+  if (c.from == null) return { dates: 'No end date', left: 'Always on', soon: false };
+  var a = new Date(today + c.from * DAY), b = new Date(today + c.to * DAY);
+  var dates = a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear()
+    ? a.getDate() + ' – ' + b.getDate() + ' ' + MONTHS[b.getMonth()]
+    : a.getDate() + ' ' + MONTHS[a.getMonth()] + ' – ' + b.getDate() + ' ' + MONTHS[b.getMonth()];
+  var left = c.to < 0 ? 'Ended' : c.from > 0 ? (c.from === 1 ? 'Starts tomorrow' : 'Starts in ' + plural(c.from, 'day')) : c.to === 0 ? 'Ends today' : plural(c.to, 'day') + ' left';
+  return { dates: dates, left: left, urgent: c.to < 0 || (c.from <= 0 && c.to <= 2) };
+}
 function setQuery(key, value) { if (typeof window === 'undefined') return; var u = new URL(window.location.href); if (value) u.searchParams.set(key, value); else u.searchParams.delete(key); window.history.replaceState(window.history.state, '', u.pathname + u.search + u.hash); }
 function getQuery(key) { if (typeof window === 'undefined') return ''; return new URLSearchParams(window.location.search).get(key) || ''; }
 function tabKeys(e) { var k = e.key; if (k !== 'ArrowRight' && k !== 'ArrowLeft' && k !== 'Home' && k !== 'End') return; var tabs = Array.prototype.slice.call(e.currentTarget.querySelectorAll('[role="tab"]')); var i = tabs.indexOf(document.activeElement); if (i < 0) return; e.preventDefault(); var n = k === 'Home' ? 0 : k === 'End' ? tabs.length - 1 : (i + (k === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length; tabs[n].focus(); tabs[n].click(); }
 var TABS = [{ k: 'live', label: 'Running' }, { k: 'soon', label: 'Coming soon' }, { k: 'ended', label: 'Ended' }, { k: 'off', label: 'Turned off' }];
 class Component extends DCLogic {
-  componentDidMount() { var t = getQuery('status'); if (TABS.some(function (x) { return x.k === t; })) this.setState({ tab: t }); }
+  componentDidMount() { var d = new Date(clockNow()); d.setHours(0, 0, 0, 0); var p = { today: d.getTime() }; var t = getQuery('status'); if (TABS.some(function (x) { return x.k === t; })) p.tab = t; this.setState(p); }
   componentWillUnmount() { clearTimeout(this.t); }
   renderVals() {
-    var self = this, s = this.state || {}, tab = s.tab || 'live', sw = s.sw || {};
+    var self = this, s = this.state || {}, tab = s.tab || 'live', sw = s.sw || {}, today = s.today || FIRST_DAY;
     var isOn = function (c) { return sw[c.id] == null ? c.on : sw[c.id]; };
     var flash = function (m, o) { __toast(m, o || {}); };
     // A running code that is switched off moves to "Turned off"; switching it back on returns it to "Running".
     var eff = function (c) { var on = isOn(c); if (c.st === 'live' && !on) return 'off'; if (c.st === 'off' && on) return 'live'; return c.st; };
     var rows = C.filter(function (c) { return eff(c) === tab; }).map(function (c) {
-      var on = isOn(c), pct = c.limit ? Math.round(c.used / c.limit * 100) : Math.min(100, Math.round(c.used / 3));
-      return { code: c.code, gets: c.gets, rule: c.rule, where: c.where, who: c.who, dates: c.dates, left: c.left, leftColor: /2 days|Ended/.test(c.left) ? '#b83210' : '#64748b',
+      var on = isOn(c), pct = c.limit ? Math.round(c.used / c.limit * 100) : Math.min(100, Math.round(c.used / 3)), cd = couponDates(c, today);
+      return { code: c.code, gets: c.gets, rule: c.rule, where: c.where, who: c.who, dates: cd.dates, left: cd.left, leftColor: cd.urgent ? '#b83210' : '#64748b',
         used: c.limit ? c.used + ' of ' + c.limit : c.used + ' times', pct: pct + '%', sales: c.sales ? bdt(c.sales) : '—', on: on, swCls: on ? 'sw on' : 'sw',
         copy: function () { try { if (navigator.clipboard) navigator.clipboard.writeText(c.code); } catch (e) { /* clipboard blocked: the toast still tells the code */ } flash(c.code + ' copied. Paste it in your Facebook post or SMS.'); },
         toggle: function () { var q = assign({}, sw); q[c.id] = !on; self.setState({ sw: q });

@@ -657,7 +657,7 @@ export default class WebhooksScreen extends Component {
 </svg>Replay all Steadfast</button>
                   </div>
                 </div>
-                <div style={{ margin: "0 -20px -16px" }}>
+                <div className="cs-tnw" style={{ margin: "0 -20px -16px", "--cs-row-min": "900px" }}>
                   <div className="th" style={{ display: "grid", gridTemplateColumns: "90px 110px minmax(0,1fr) minmax(0,1.2fr) 80px 170px", gap: "12px", padding: "10px 18px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
                     <span>Time</span>
                     <span>Source</span>

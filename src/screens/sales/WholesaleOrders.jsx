@@ -27,7 +27,7 @@ const CSS = PAPER_CSS + DELIVERY_CSS + `
 .wo-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border-subtle)}
 .wo-count{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .wo-search{position:relative;flex:0 1 300px}
-@media (max-width:640px){.wo-bar{padding:var(--space-3)}.wo-count{display:none}.wo-search{flex:1 1 100%}}
+@media (max-width:640px){.wo-bar{padding:var(--space-3)}.wo-count{display:none}.wo-search{flex:1 1 100%}.wo-card .wo-prog{clear:both;width:auto;margin-top:var(--space-2)}}
 .wo-search svg{position:absolute;left:12px;top:13px;color:var(--text-muted);pointer-events:none}
 .wo-search input{padding-left:38px}
 .wo-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}

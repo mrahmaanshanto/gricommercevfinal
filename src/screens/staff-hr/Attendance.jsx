@@ -41,6 +41,12 @@ const CSS = `
 .at-pick{max-height:260px;overflow:auto;display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-2);border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
 @media (max-width:1023px){.at-day{grid-template-columns:minmax(0,1fr)}.at-side{border-left:0;border-top:1px solid var(--border-subtle)}}
 @media (max-width:640px){.at-place{margin-left:0;width:100%}.at-nav span{min-width:0}}
+@media (max-width:640px){
+  /* page title + "More" + main button share one row: the title keeps whole words (never split mid-word),
+     the main button is a little narrower; if they still do not fit, the row wraps */
+  [data-screen="Attendance"] .gc-shell__content .gc-pagehead>.gc-pagehead__text{flex-basis:0!important;min-width:min-content!important}
+  [data-screen="Attendance"] .gc-pagehead__actions .gc-btn--solid{padding:0 var(--space-3)}
+}
 @media print{
   body *{visibility:hidden}
   .at-print,.at-print *{visibility:visible}

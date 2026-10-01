@@ -9,6 +9,7 @@ import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 import { PageHeader as __PageHeader } from '@/components/ui';
 import { toast as __toast, confirmDialog as __confirm } from '@/runtime/ui';
+import { clockNow } from '@/lib/settlements';
 
 // ---- form helpers: required marker, field error text, invalid attributes, focus the first error ----
 function __Req() { return <span aria-hidden="true" style={{ color: 'var(--text-danger)' }}> *</span>; }
@@ -33,15 +34,23 @@ var P = [
   { id: 4, name: 'Cotton T-shirt · Black · M', code: '8941200300311', mrp: 590, cost: 290, price: 399, qty: 80 }
 ];
 var EXTRA = { id: 5, name: 'Rice Water Cleanser 150ml', code: '8941100500341', mrp: 890, cost: 426, price: 690, qty: 25 };
-var WHENS = [{ k: 'tonight', label: 'Tonight 6:00 PM – 12:00 AM', s: '18 Sep 2026, 6:00 PM', e: '18 Sep 2026, 11:59 PM', c: ['00', '05', '48', '10'] }, { k: 'weekend', label: 'This weekend', s: '18 Sep 2026, 6:00 PM', e: '20 Sep 2026, 11:59 PM', c: ['02', '06', '14', '22'] }, { k: 'three', label: '3 days', s: '19 Sep 2026, 12:00 AM', e: '21 Sep 2026, 11:59 PM', c: ['03', '00', '00', '00'] }, { k: 'own', label: 'Pick dates', s: '22 Sep 2026, 12:00 AM', e: '28 Sep 2026, 11:59 PM', c: ['--', '--', '--', '--'] }];
+var WHENS = [{ k: 'tonight', label: 'Tonight 6:00 PM – 12:00 AM' }, { k: 'weekend', label: 'This weekend' }, { k: 'three', label: '3 days' }, { k: 'own', label: 'Pick dates' }];
 
+// The demo clock is 12:14 PM (Dhaka) on today's date. The first render (server and hydration) uses this fixed
+// day; after mount the screen moves to today (clockNow), so the presets and the poster never show stale dates.
 var NOW0 = Date.UTC(2026, 8, 18, 6, 14, 0); // 18 Sep 2026, 12:14 PM Dhaka
-function TT(d, m, h, mi) { return Date.UTC(2026, m - 1, d, h - 6, mi || 0, 0); }
+function demoNow() { var DAY = 86400000, H6 = 6 * 3600000, mid = Math.floor((clockNow() + H6) / DAY) * DAY - H6; return mid + (12 * 60 + 14) * 60000; }
 function pad2(n) { return (n < 10 ? '0' : '') + n; }
 function partsOf(ms) { if (ms < 0) ms = 0; var x = Math.floor(ms / 1000); return { d: Math.floor(x / 86400), h: Math.floor(x % 86400 / 3600), m: Math.floor(x % 3600 / 60), s: x % 60 }; }
 var WDAY = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function whenOf(t) { var d = new Date(t + 6 * 3600000), h = d.getUTCHours(), ap = h < 12 ? 'am' : 'pm'; return WDAY[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] + ', ' + ((h % 12) || 12) + ':' + pad2(d.getUTCMinutes()) + ' ' + ap; }
-var TIMES = { tonight: [TT(18, 9, 18), TT(18, 9, 23, 59)], weekend: [TT(18, 9, 18), TT(20, 9, 23, 59)], three: [TT(19, 9, 0), TT(21, 9, 23, 59)], own: [TT(22, 9, 0), TT(28, 9, 23, 59)] };
+function txtOf(t) { var d = new Date(t + 6 * 3600000), h = d.getUTCHours(); return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] + ' ' + d.getUTCFullYear() + ', ' + ((h % 12) || 12) + ':' + pad2(d.getUTCMinutes()) + ' ' + (h < 12 ? 'AM' : 'PM'); }
+// preset start / end times from the demo "now": tonight, the coming Friday to Sunday, 3 days from tomorrow, a week from day 4
+function timesAt(now) {
+  var DAY = 86400000, H = 3600000, mid = now - (now + 6 * H) % DAY, fri = mid + ((5 - new Date(mid + 6 * H).getUTCDay() + 7) % 7) * DAY;
+  var at = function (d0, days, h, mi) { return d0 + days * DAY + h * H + (mi || 0) * 60000; };
+  return { tonight: [at(mid, 0, 18), at(mid, 0, 23, 59)], weekend: [at(fri, 0, 18), at(fri, 2, 23, 59)], three: [at(mid, 1, 0), at(mid, 3, 23, 59)], own: [at(mid, 4, 0), at(mid, 10, 23, 59)] };
+}
 var LEADS = [{ k: 'at', label: 'At the start', ms: 0 }, { k: 'h6', label: '6 hours before', ms: 6 * 3600000 }, { k: 'd1', label: '1 day before', ms: 86400000 }, { k: 'd3', label: '3 days before', ms: 3 * 86400000 }];
 // catalogue the finder searches · exp = days to expiry, noSale = days since last sale, sold30 = pieces in 30 days, age = days since it arrived, other = in another running sale
 var CAT = [
@@ -78,8 +87,8 @@ function suggestPct(p, k) {
   if (k === 'slow') return p.noSale >= 60 ? 35 : 25;
   if (k === 'over') return 25; if (k === 'margin') return 25; if (k === 'value') return 15; if (k === 'best' || k === 'new') return 10; return 20;
 }
-function whyOf(p, k) {
-  var ed = new Date(NOW0 + 6 * 3600000 + (p.exp || 0) * 86400000);
+function whyOf(p, k, now0) {
+  var ed = new Date((now0 || NOW0) + 6 * 3600000 + (p.exp || 0) * 86400000);
   var map = {
     expiring: [p.exp != null ? 'Expires in ' + p.exp + ' days' : 'No expiry', p.exp != null ? 'Best before ' + ed.getUTCDate() + ' ' + MONTHS[ed.getUTCMonth()] + ' ' + ed.getUTCFullYear() : '', p.exp != null && p.exp <= 14 ? ['#ffece6', '#b83210'] : ['#fff4e0', '#a14f06']],
     value: ['৳' + p.mrp.toLocaleString('en-IN') + ' each', 'Stock worth ' + bdt(p.mrp * p.stock), ['rgba(0,48,135,.08)', '#003087']],
@@ -93,13 +102,14 @@ function whyOf(p, k) {
   return map[k];
 }
 class Component extends DCLogic {
-  componentDidMount() { var self = this; this.iv = setInterval(function () { self.setState({ tick: ((self.state && self.state.tick) || 0) + 1 }); }, 1000); }
+  componentDidMount() { var self = this; this.setState({ now0: demoNow() }); this.iv = setInterval(function () { self.setState({ tick: ((self.state && self.state.tick) || 0) + 1 }); }, 1000); }
   componentWillUnmount() { clearInterval(this.iv); }
   renderVals() {
     var self = this, s = this.state || {};
     var list = s.list || P.map(function (p) { return assign({}, p); });
     var upd = function (id, f) { self.setState({ list: list.map(function (p) { return p.id === id ? f(assign({}, p)) : p; }) }); };
-    var wk = s.when || 'weekend', W = WHENS.filter(function (w) { return w.k === wk; })[0];
+    var now0 = s.now0 || NOW0, TIMES = timesAt(now0);
+    var wk = s.when || 'weekend', W = { s: txtOf(TIMES[wk][0]), e: txtOf(TIMES[wk][1]) };
     var errs = s.errs || {};
     var title = s.title != null ? s.title : 'Weekend Mega Sale';
     // Start and end follow the chosen preset until the user types their own.
@@ -116,7 +126,7 @@ class Component extends DCLogic {
     var setPct = function (n) { return function () { self.setState({ list: list.map(function (p) { var x = assign({}, p); x.price = Math.round(x.mrp * (1 - n / 100) / 10) * 10; return x; }) }); }; };
 
     // ---- poster preview: counts down to the start, then shows when it ends
-    var now = NOW0 + (s.tick || 0) * 1000, TW = TIMES[wk], pvk = s.pv || 'before', before = pvk === 'before';
+    var now = now0 + (s.tick || 0) * 1000, TW = TIMES[wk], pvk = s.pv || 'before', before = pvk === 'before';
     var cp = partsOf(before ? TW[0] - now : TW[1] - TW[0]), fg = '#b83210';
     var sp = mkSw(this, 'showPrices', true), rmd = mkSw(this, 'remind', true), soonP = mkSw(this, 'soonPoster', true);
     var lk = s.lead || 'd1', L = LEADS.filter(function (x) { return x.k === lk; })[0];
@@ -153,7 +163,7 @@ class Component extends DCLogic {
       crits: CRITS.map(function (c) { var on = c.k === crit, n = base.filter(c.test).length; return { label: c.label, note: c.note, dot: c.dot, count: n, on: on ? 'true' : 'false', cls: on ? 'crit on' : 'crit', pick: function () { self.setState({ crit: c.k, sel: {} }); } }; }),
       cats: ['All', 'Skin care', 'Clothing', 'Grocery', 'Electronics'].map(function (c) { var on = c === cat; return { label: c === 'All' ? 'All categories' : c, on: on ? 'true' : 'false', cls: on ? 'chip on' : 'chip', pick: function () { self.setState({ cat: c, sel: {} }); } }; }),
       hideOther: hideO, critHint: cands.length + ' match · sorted by ' + { expiring: 'soonest expiry', value: 'stock value', slow: 'longest without a sale', over: 'most days of stock', best: 'most sold', margin: 'biggest margin', 'new': 'newest', all: 'name' }[crit],
-      cands: cands.map(function (p) { var w = whyOf(p, crit), g = sugOf(p), had = !!inSale[p.code], on = !!sel[p.id] || had, pr = g.pr - p.cost;
+      cands: cands.map(function (p) { var w = whyOf(p, crit, now0), g = sugOf(p), had = !!inSale[p.code], on = !!sel[p.id] || had, pr = g.pr - p.cost;
         return { name: p.name, initial: p.name.charAt(0), bg: p.bg, meta: p.cat + ' · ' + p.stock + ' in stock' + (p.other ? ' · in ' + p.other : ''), why: w[0], whySub: had ? 'Already in this sale' : w[1], whyBg: w[2][0], whyFg: w[2][1],
           stock: p.stock, mrp: bdt(p.mrp), sug: bdt(g.pr), sugOff: '−' + g.pc + '%', sugNote: g.capped ? 'Kept above buying price' : 'Bought at ' + bdt(p.cost), profit: bdt(pr), pFg: pr < 0 ? '#b83210' : '#047857',
           on: on ? 'true' : 'false', inSale: had ? 'true' : 'false', cbx: had ? 'cbx on dis' : on ? 'cbx on' : 'cbx', op: had ? 0.6 : 1,

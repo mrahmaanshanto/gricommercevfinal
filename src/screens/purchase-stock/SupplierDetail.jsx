@@ -310,6 +310,9 @@ body{font-family:var(--font-sans)}
   .sd-amt>div{width:100%!important}
   .sd-methods{flex-wrap:wrap}
   .sd-methods>button{flex:1 1 40%!important}
+  .kpi{padding:var(--space-4);min-width:0}
+  .kpi .k{flex-direction:column;align-items:flex-start!important;gap:var(--space-2)!important}
+  .kpi .v{font-size:var(--text-xl)!important;line-height:var(--text-xl-lh);overflow-wrap:anywhere}
 }
 `;
 

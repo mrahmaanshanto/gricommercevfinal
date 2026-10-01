@@ -176,7 +176,7 @@ export default class MPurchaseDetailScreen extends Component {
             </div>
             <div className="sec">
               <h2>180 of 300 received</h2>
-              <a href="#">Edit</a>
+              <a href="#" className="tap">Edit</a>
             </div>
             <div className="card" style={{ margin: "0 20px" }}>
               <div className="lrow">

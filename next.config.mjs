@@ -14,6 +14,8 @@ const MOVED = {
   '/staff-docs': '/staff-profile?tab=docs',
   // the platform console's payment checks were folded into Collections
   '/payment-checks': '/collections',
+  // wholesale invoices are part of Invoices (config redirects keep the query string; the old page redirects didn't)
+  '/wholesale-invoices': '/sales-invoices', '/wholesale-invoice-edit': '/sales-invoices',
 };
 
 const nextConfig = {

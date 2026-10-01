@@ -24,6 +24,7 @@ body:has([data-screen="Pos"]) .gc-toasts{left:24px;right:auto;bottom:24px;align-
 .pos-open .pos-h1{font-size:var(--text-xl)}
 .pos-open__icon{display:grid;place-items:center;width:48px;height:48px;border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary)}
 .pos-open .gc-input,.pos-form .gc-input{border-radius:var(--radius-lg)}
+.pos-open .gc-help{margin:var(--space-2) 0 0}
 
 /* header */
 .pos-top{flex:none;display:flex;align-items:center;gap:14px;height:61px;padding:0 20px;background:var(--surface-card);border-bottom:1px solid var(--border-subtle)}

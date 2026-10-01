@@ -116,10 +116,22 @@ const CSS = `
   .eb-chips::-webkit-scrollbar{display:none}
   .eb-chips > .gc-seg__btn{flex:none}
   .eb-tools{flex:1 1 100%;flex-wrap:nowrap;justify-content:stretch}
-  .eb-tools .gc-select{flex:0 0 136px;min-width:0}
+  .eb-tools .gc-select{flex:0 0 132px;min-width:0}
   .eb-tools .gc-field__wrap{flex:1 1 0;max-width:none}
   /* table-cards: the account sits on the right like the other values */
   .gc-cards-on .eb-acc{justify-content:flex-end;white-space:normal;text-align:right}
+}
+@media (max-width:640px){
+  /* page title + "More" + main button share one row: the title keeps whole words (never split mid-word),
+     the main button is a little narrower; if they still do not fit, the row wraps */
+  [data-screen="ExpensesBills"] .gc-shell__content .gc-pagehead>.gc-pagehead__text{flex-basis:0!important;min-width:min-content!important}
+  [data-screen="ExpensesBills"] .gc-pagehead__actions .gc-btn--solid{padding:0 var(--space-3)}
+}
+@media (max-width:420px){
+  /* the long title gets its own line; More and Record expense fill the row under it */
+  [data-screen="ExpensesBills"] .gc-shell__content .gc-pagehead>.gc-pagehead__text{flex-basis:100%!important}
+  [data-screen="ExpensesBills"] .gc-shell__content .gc-pagehead>.gc-pagehead__actions{flex:1 1 100%!important;margin-left:0}
+  [data-screen="ExpensesBills"] .gc-pagehead__actions>.gc-btn--solid{flex:1 1 auto}
 }
 `;
 
@@ -254,7 +266,7 @@ export default function ExpensesBills() {
               </select>
               <div className="gc-field__wrap">
                 <span className="gc-field__icon"><Icon name="search" width="18" height="18" aria-hidden="true" /></span>
-                <input type="search" className="gc-input gc-input--with-icon" placeholder="Search who, what or note" aria-label="Search income and expenses" value={query} onChange={(e) => setQuery(e.target.value)} />
+                <input type="search" className="gc-input gc-input--with-icon" placeholder="Search entries" aria-label="Search income and expenses by who, what or note" value={query} onChange={(e) => setQuery(e.target.value)} />
               </div>
             </div>
           </div>

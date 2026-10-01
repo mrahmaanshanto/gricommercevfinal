@@ -15,6 +15,15 @@ import { formatBDT } from '@/lib/format';
 import { placeBinStats } from '@/lib/racks';
 import { usePlaceData, stockOf, PLACE_CSS, PlaceCard, PlaceStockDialog, usePlaceForm, usePlaceToggle } from './placeShared';
 
+const WH_CSS = `
+@media (max-width:640px){
+  /* page title + "More" + main button share one row: the title keeps whole words (never split mid-word),
+     the main button is a little narrower; if they still do not fit, the row wraps */
+  [data-screen="Warehouses"] .gc-shell__content .gc-pagehead>.gc-pagehead__text{flex-basis:0!important;min-width:min-content!important}
+  [data-screen="Warehouses"] .gc-pagehead__actions .gc-btn--solid{padding:0 var(--space-3)}
+}
+`;
+
 export default function Warehouses() {
   const [d, reload] = usePlaceData();
   const [view, setView] = useState(null);
@@ -33,7 +42,7 @@ export default function Warehouses() {
 
   return (
     <div className="dc-screen ds" data-screen="Warehouses">
-      <style dangerouslySetInnerHTML={{ __html: PLACE_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: PLACE_CSS + WH_CSS }} />
       <div className="gc-shell">
         <Sidebar sticky="" active="stock-wh" />
         <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>

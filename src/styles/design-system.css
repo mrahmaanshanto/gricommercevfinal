@@ -448,6 +448,8 @@ textarea.gc-input{height:auto;padding:var(--space-3) var(--space-4);line-height:
 .gc-help{margin-top:var(--space-2);font-size:var(--text-xs);color:var(--text-muted)}
 .gc-help--error{color:var(--text-danger)}
 .gc-select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--text-muted) 50%),linear-gradient(135deg,var(--text-muted) 50%,transparent 50%);background-position:calc(100% - 18px) 20px,calc(100% - 13px) 20px;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:var(--space-8)}
+/* the chevron survives a screen's own `background:#fff` input rule (the shorthand would wipe it) */
+select.gc-select.gc-select{background-image:linear-gradient(45deg,transparent 50%,var(--text-muted) 50%),linear-gradient(135deg,var(--text-muted) 50%,transparent 50%);background-position:calc(100% - 18px) calc(50% + 1px),calc(100% - 13px) calc(50% + 1px);background-size:5px 5px,5px 5px;background-repeat:no-repeat}
 .gc-check{width:20px;height:20px;margin:0;border-radius:var(--radius-md);border:1px solid color-mix(in srgb,var(--slate-400) 70%,transparent);accent-color:var(--primary);cursor:pointer}
 .gc-check--radio{border-radius:var(--radius-full)}
 html.dark .gc-check{border-color:var(--navy-400)}
@@ -858,7 +860,8 @@ body{font-family:var(--font-sans)}
      anything that really needs more room scrolls inside its own box (tables, boards, canvases) */
   .gc-shell__content{overflow-x:clip!important}
   /* long words, IDs and links wrap instead of pushing the layout wider */
-  .gc-shell__content :is(p,li,dd,td,h1,h2,h3,h4,label,small){overflow-wrap:anywhere}
+  .gc-shell__content :is(p,li,dd,td,label,small){overflow-wrap:anywhere}
+  .gc-shell__content :is(h1,h2,h3,h4){overflow-wrap:break-word} /* a title never splits a word to make room for buttons */
   .gc-shell__content :is(img,video,canvas,svg:not([width])){max-width:100%}
   /* swipe strips line up with the page gutter */
   .gc-kpis,.gc-cardrow,.mo-kpis,.hm-glance{padding-inline:14px!important;scroll-padding-inline:14px}
@@ -927,7 +930,8 @@ body{font-family:var(--font-sans)}
 /* ---- phones: the title and the page's main button share one row; tab rows stay on one line ---- */
 @media (max-width:767px){
   .gc-pagehead{align-items:center!important}
-  .gc-shell__content .gc-pagehead>.gc-pagehead__text{flex:1 1 120px!important;min-width:0}
+  /* the title takes the free space but never gets narrower than its longest word; actions wrap below only then */
+  .gc-shell__content .gc-pagehead>.gc-pagehead__text{flex:1 1 0!important;min-width:min-content}
   .gc-shell__content .gc-pagehead>.gc-pagehead__actions{flex:0 0 auto!important;width:auto!important;margin-left:auto}
   .gc-tabs{flex-wrap:nowrap!important;overflow-x:auto!important;scrollbar-width:none}
   .gc-tabs::-webkit-scrollbar{display:none}
@@ -989,7 +993,7 @@ body:has(.gc-phonebar) .gc-shell__content{padding-bottom:96px!important}
   .gc-ai{right:14px;bottom:16px}
   .gc-ai__fab{width:48px;height:48px;padding:0;justify-content:center}
   .gc-ai__label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-  body:has(.gc-phonebar, .gc-sticky-actions, .savebar, .no-bar) .gc-ai{bottom:84px}
+  body:has(.gc-phonebar, .gc-sticky-actions, .savebar, .no-bar, .cs .formbar) .gc-ai{bottom:calc(84px + env(safe-area-inset-bottom))}
 }
 
 /* ---- sticky save bar on phones (forms) ---- */

@@ -136,12 +136,12 @@ export default class OnbProductScreen extends Component {
           </div>
           <header style={{ position: "absolute", top: "47px", left: "0", right: "0", padding: "6px 20px 0 8px", zIndex: "5" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <__Link href="/onb-channels" className="ib" aria-label="Back">
+              <__Link href="/onb-done" className="ib" aria-label="Back">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="m15 18-6-6 6-6" />
                 </svg>
               </__Link>
-              <span style={{ flex: "1", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}><b className="num" style={{ color: "var(--ink)" }}>Step 5 of 5</b> · First products</span>
+              <span style={{ flex: "1", fontSize: "var(--text-xs-plus)", color: "var(--muted)" }}><b style={{ color: "var(--ink)" }}>After setup</b> · First products · optional</span>
             </div>
             <div style={{ display: "flex", gap: "6px", paddingLeft: "12px", marginTop: "4px" }}>
               <span style={{ flex: "1", height: "5px", borderRadius: "var(--radius-full)", background: "#dde4ee", overflow: "hidden" }}>
@@ -157,7 +157,7 @@ export default class OnbProductScreen extends Component {
                 <span style={{ display: "block", height: "100%", width: "100%", background: "#003087", borderRadius: "var(--radius-full)" }} />
               </span>
               <span style={{ flex: "1", height: "5px", borderRadius: "var(--radius-full)", background: "#dde4ee", overflow: "hidden" }}>
-                <span style={{ display: "block", height: "100%", width: "50%", background: "#003087", borderRadius: "var(--radius-full)" }} />
+                <span style={{ display: "block", height: "100%", width: "100%", background: "#003087", borderRadius: "var(--radius-full)" }} />
               </span>
             </div>
           </header>
@@ -217,8 +217,8 @@ export default class OnbProductScreen extends Component {
             <p style={{ margin: "16px 0 0", fontSize: "var(--text-sm)", color: "var(--muted)", textAlign: "center" }}>Need help? Our team can add your first 50 products for free. <a href="#" style={{ color: "var(--brand)", fontWeight: "var(--weight-medium)" }}>Ask us</a></p>
           </div>
           <div className="actbar">
-            <__Link href="/onb-done" className="btn btnl">Skip</__Link>
-            <__Link href="/onb-done" className="btn btnp" style={{ flex: "2" }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <__Link href="/m-home" className="btn btnl">Later</__Link>
+            <__Link href="/m-scan" className="btn btnp" style={{ flex: "2" }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z" />
   <circle cx="12" cy="13" r="3" />
 </svg>Open camera</__Link>

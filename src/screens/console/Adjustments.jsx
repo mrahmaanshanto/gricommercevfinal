@@ -542,7 +542,7 @@ export default class AdjustmentsScreen extends Component {
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 400px", gap: "14px", alignItems: "stretch" }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                  <div className="panel" style={{ overflow: "hidden" }}>
+                  <div className="panel" style={{ overflow: "hidden", "--cs-row-min": "860px" }}>
                     <div className="th" style={{ display: "grid", gridTemplateColumns: "100px minmax(0,1fr) minmax(0,1.8fr) 90px minmax(0,1fr) 170px", gap: "12px", padding: "10px 18px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
                       <span>Request</span>
                       <span>Store</span>
@@ -632,13 +632,13 @@ export default class AdjustmentsScreen extends Component {
                         <span className="mono ell" style={{ fontSize: "var(--text-xs)", color: "var(--muted)" }}>ADJ-0042 · credit</span>
                       </span>
                     </span>
-                    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 30px minmax(0,1fr)", gap: "10px", alignItems: "center" }}>
+                    <div className="cs-ba" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 30px minmax(0,1fr)", gap: "10px", alignItems: "center" }}>
                       <div style={{ padding: "14px", borderRadius: "var(--radius-xl)", background: "var(--surface2)" }}>
                         <div style={{ fontSize: "var(--text-xs)", color: "var(--muted)" }}>Before · INV-2026-0912</div>
                         <div className="num" style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "var(--ink)" }}>৳2,500</div>
                         <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--body)" }}>Retail · Business, September</div>
                       </div>
-                      <span style={{ textAlign: "center", color: "var(--muted)" }}>→</span>
+                      <span className="cs-ba-arrow" aria-hidden="true" style={{ textAlign: "center", color: "var(--muted)" }}>→</span>
                       <div style={{ padding: "14px", borderRadius: "var(--radius-xl)", background: "#e0f3fb" }}>
                         <div style={{ fontSize: "var(--text-xs)", color: "#00567a" }}>After · with CN-2026-0015</div>
                         <div className="num" style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#00567a" }}>৳1,667</div>

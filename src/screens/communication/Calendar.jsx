@@ -7,6 +7,7 @@ import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { ChannelIcon as __ChannelIcon } from '@/components/ui';
+import { clockNow } from '@/lib/settlements';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
@@ -63,16 +64,20 @@ var POSTS = [
 var DRAFTS = [['g', 'New MagSafe cases', ['ig', 'pin', 'fb'], 'Photo ready · no date', 12, 21], ['i', 'Last days of PUJA10', ['fb', 'ig', 'wa', 'x'], 'Needs X connected', 18, 11], ['l', 'Customer reviews roundup', ['fb', 'ig'], 'Text only', 25, 20]];
 var ST = { sched: ['Scheduled', '#e0f2fe', '#075985', '#0ea5e9'], remind: ['Reminder', 'rgba(0,48,135,.08)', '#003087', '#6366f1'], done: ['Posted', '#e7f8f1', '#047857', '#10b981'], draft: ['Draft', '#f1f5f9', '#475569', '#94a3b8'] };
 var WD = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'], MON = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-var TODAY = [2026, 8, 29];
+// Today comes from the app clock (clockNow) after mount; the first render (server and hydration) uses 1 Oct 2026.
+var TODAY0 = [2026, 9, 1];
+function todayNow() { var d = new Date(clockNow()); return [d.getFullYear(), d.getMonth(), d.getDate()]; }
 var HM = [[1, 1, 1, 1, 1, 2, 2], [2, 2, 2, 2, 2, 3, 3], [2, 2, 2, 2, 3, 3, 4], [3, 3, 3, 3, 3, 4, 4], [4, 3, 3, 3, 4, 4, 3]];
-var HML = ['9:00 AM', '12:00 PM', '3:00 PM', '8:00 PM', '10:00 PM'], HMC = ['#eef2f7', '#c7d4ea', '#8fa6d2', '#4c6fb3', '#003087'];
+var HML = ['9:00 AM', '12:00 PM', '3:00 PM', '8:00 PM', '10:00 PM'], HMS = ['9 AM', '12 PM', '3 PM', '8 PM', '10 PM'], HMC = ['#eef2f7', '#c7d4ea', '#8fa6d2', '#4c6fb3', '#003087'];
 function h12(h) { return ((h % 12) || 12) + (h >= 12 ? ' pm' : ' am'); }
 class Component extends DCLogic {
+  componentDidMount() { this.setState({ today: todayNow() }); }
   componentWillUnmount() { clearTimeout(this.t); }
   renderVals() {
     var self = this, s = this.state || {};
-    var ym = s.ym || [2026, 9], f = s.f || 'all', view = s.view || 'month';
-    var sel = s.sel || [2026, 9, 1];
+    var TODAY = s.today || TODAY0;
+    var ym = s.ym || [TODAY[0], TODAY[1]], f = s.f || 'all', view = s.view || 'month';
+    var sel = s.sel || TODAY.slice();
     var moved = s.moved || {}, placed = s.placed || {}, dups = s.dups || [];
     var all = POSTS.map(function (p) { var q = p.slice(); if (moved[p[0]]) { q[1] = moved[p[0]][0]; q[2] = moved[p[0]][1]; q[3] = moved[p[0]][2]; } return q; })
       .concat(DRAFTS.filter(function (d) { return placed[d[0]]; }).map(function (d) { return [d[0], 2026, 9, d[4], d[5], d[1], d[2], 'draft']; })).concat(dups);
@@ -119,7 +124,7 @@ class Component extends DCLogic {
       drafts: DRAFTS.filter(function (d) { return !placed[d[0]]; }).map(function (d) { return { t: d[1], m: d[3] + ' · ' + d[2].length + ' places', day: d[4] + ' Oct', place: function () { var n = assign({}, placed); n[d[0]] = 1; self.setState({ placed: n, sel: [2026, 9, d[4]], ym: [2026, 9] }); toast(self, '“' + d[1] + '” added to ' + d[4] + ' October as a draft.'); } }; }),
       noDrafts: DRAFTS.every(function (d) { return placed[d[0]]; }),
       hmHead: WD.map(function (w) { return w.slice(0, 2); }),
-      hm: HM.map(function (r, i) { return { l: HML[i], c: r.map(function (x, j) { return { bg: HMC[x], t: WD[j] + ' ' + HML[i] }; }) }; }),
+      hm: HM.map(function (r, i) { return { l: HMS[i], c: r.map(function (x, j) { return { bg: HMC[x], t: WD[j] + ' ' + HML[i] }; }) }; }),
       bestNote: 'Best: Thursday and Friday at 8:00 PM. Quietest: mornings before 10:00 AM.'
     };
     return assign(v, msgV(s));
@@ -478,7 +483,7 @@ export default class CalendarScreen extends Component {
                         <span style={{ fontSize: "var(--text-2xs)", textAlign: "center", color: "var(--text-muted)" }}>{h}</span>
                       </React.Fragment>))}
                     {__list(v.hm).map((r, $index) => (<React.Fragment key={$index}>
-                        <span style={{ fontSize: "var(--text-2xs)", color: "var(--text-muted)" }}>{r?.l}</span>
+                        <span style={{ fontSize: "var(--text-2xs)", color: "var(--text-muted)", whiteSpace: "nowrap" }}>{r?.l}</span>
                         {__list(r?.c).map((c, $index) => (<React.Fragment key={$index}>
                             <span className="hm" title={c?.t} style={__sx(`background: ${c?.bg ?? ""};`)} />
                           </React.Fragment>))}

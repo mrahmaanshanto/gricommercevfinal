@@ -578,7 +578,7 @@ export default class MerchantDetailScreen extends Component {
                   <span style={{ fontSize: "var(--text-xs)", color: "var(--muted)" }}>Elephant Road campaign</span>
                 </div>
               </div>
-              <div style={{ height: "14px" }} />
+              <div className="cs-desk-only" style={{ height: "14px" }} />
             </div>
             <div role="tablist" aria-label="Merchant sections" className="cs-strip" style={{ display: "flex", gap: "26px", padding: "0 24px", borderBottom: "1px solid var(--line)", background: "var(--surface)" }}>
               {__list(v.tabs).map((t, $index) => (<React.Fragment key={$index}>
@@ -627,7 +627,7 @@ export default class MerchantDetailScreen extends Component {
                       </div>
                       <span className="num ell" style={{ fontSize: "var(--text-2xl)", lineHeight: "1.2", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "var(--ink)" }} title="৳3,84,200">৳3,84,200</span>
                       <div>
-                        <span className="dpill d-bad">960 orders · ▼ 2% vs August</span>
+                        <span className="dpill d-bad cs-pill-line">960 orders · ▼ 2% vs August</span>
                       </div>
                     </div>
                     <div className="kpi">

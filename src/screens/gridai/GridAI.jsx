@@ -222,6 +222,13 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 .wave span:nth-child(2){animation-delay:120ms}.wave span:nth-child(3){animation-delay:240ms}.wave span:nth-child(4){animation-delay:360ms}.wave span:nth-child(5){animation-delay:480ms}
 @keyframes gw{from{height:6px}to{height:26px}}
 @media (prefers-reduced-motion:reduce){.wave span{animation:none;height:14px}}
+/* phones: each answer row is a card that reads left to right: order number and amount on top, the summary under them */
+@media (max-width:640px){
+  .gai-res>tbody>tr>td{text-align:left!important}
+  .gai-res>tbody>tr>td:nth-child(1){flex:1 1 auto!important}
+  .gai-res>tbody>tr>td:nth-child(3){flex:none!important;text-align:right!important}
+  .gai-res>tbody>tr>td:nth-child(2){order:1}
+}
 .sugg{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #d6dff0;background:#fff;font:inherit;font-size:var(--text-xs-plus);color:#003087;cursor:pointer;white-space:nowrap}
 .sugg:hover{background:rgba(0,48,135,.05)}.sugg:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .fab{position:absolute;right:28px;bottom:28px;width:60px;height:60px;border-radius:var(--radius-full);border:0;background:#003087;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 28px -8px rgba(0,48,135,.55);cursor:pointer}
@@ -282,7 +289,7 @@ export default class GridAIScreen extends Component {
                               <div style={{ width: "min(640px, 92%)", border: "1px solid #e7ebf2", borderRadius: "var(--radius-xl)", overflow: "hidden", background: "#fff" }}>
                                 <div style={{ padding: "12px 14px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a", borderBottom: "1px solid #eef1f6" }}>{m?.title}</div>
                                 <div className="gc-table-wrap">
-                                  <table className="tb">
+                                  <table className="tb gai-res">
                                     <tbody>
                                       {__list(m?.rows).map((r, $index) => (<React.Fragment key={$index}>
                                           <tr>
@@ -341,7 +348,7 @@ export default class GridAIScreen extends Component {
                           <path d="M12 17v4" />
                         </svg>
                       </button>
-                      <input className="inp" aria-label="Ask GridAI" placeholder="Ask anything, in Bangla or English" value={v.q} onChange={v.onQ} />
+                      <input className="inp" aria-label="Ask GridAI" placeholder="Ask in Bangla or English" value={v.q} onChange={v.onQ} />
                       <button type="button" className="btn solid sm" style={{ height: "44px" }} onClick={v.send}>Ask</button>
                     </div>
                   </section>

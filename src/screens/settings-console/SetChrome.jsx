@@ -427,6 +427,8 @@ input[type="time"].set-in{min-width:96px}
   /* pills stay one line; button labels do not break inside the button */
   .set-main [style*="--radius-full"][style*="inline-flex"]{white-space:nowrap}
   .set-main button:not(.set-disc):not([role="switch"]){white-space:nowrap}
+  /* reveal / copy / replace buttons inside a key field are 36px to tap (the field itself is 44px) */
+  .set-box>button{min-width:36px;min-height:36px}
 }
 `;
 

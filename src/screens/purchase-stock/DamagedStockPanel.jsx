@@ -45,6 +45,13 @@ const CSS = `
 .dsp-id{font-family:var(--font-data)}
 .dsp-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:var(--space-2)}
 .dsp-form{display:flex;flex-direction:column;gap:var(--space-4)}
+/* phones: the four totals sit 2 x 2; a held item's three actions share one row */
+@media (max-width:640px){
+  .dsp-totals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3);padding:0 var(--space-4) var(--space-4)}
+  .dsp .gc-table .dsp-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2);width:100%}
+  .dsp .gc-table .dsp-actions>.gc-btn{min-width:0;padding:0 var(--space-2);justify-content:center}
+  .dsp .gc-table .dsp-actions>.gc-btn svg{display:none}
+}
 `;
 
 export default function DamagedStockPanel() {

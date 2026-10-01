@@ -152,6 +152,7 @@ a{color:#003087}a:hover{color:#002a77}
 .st-wh:focus-within{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
 .st-wh__sel{appearance:none;-webkit-appearance:none;border:0;background:transparent;font:inherit;color:inherit;height:34px;padding:0 22px 0 0;margin-right:-22px;cursor:pointer;outline:none;position:relative;z-index:1}
 .st-wh__chev{pointer-events:none}
+.st-act__lbl{display:none}
 .st-num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .st-held{display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:24px;padding:0 8px;border-radius:var(--radius-full);background:var(--fill-warning-soft);color:var(--text-warning);font-weight:var(--weight-medium);text-decoration:none}
 .st-held:hover{color:var(--text-warning);text-decoration:underline}
@@ -165,6 +166,9 @@ section.card .td .badge{white-space:nowrap}
   .st-filters>label{max-width:none!important}
   .st-filters>div[style*="flex-grow"]{flex:1 1 100%!important;height:1px;margin:4px 0;background:var(--border-subtle)}
   .st-filters>a.btn{flex:1 1 0}
+  .st-acts{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-2)!important;width:100%}
+  .st-acts .ib{flex-direction:column;width:auto;height:52px;gap:2px;padding:0 var(--space-1);border:1px solid var(--border-field);border-radius:var(--radius-lg);color:var(--text-heading);font-size:var(--text-xs);font-weight:var(--weight-medium);text-decoration:none}
+  .st-acts .st-act__lbl{display:inline}
 }
 `;
 
@@ -351,7 +355,7 @@ export default class StockScreen extends Component {
                             <td className="td st-num" style={{ color: "#475569" }}>{r?.reorder}</td>
                             <td className="td st-num" style={{ fontWeight: "var(--weight-medium)" }}>{r?.value}<div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>{r?.cost}</div></td>
                             <td className="td" style={{ textAlign: "right" }}>
-                              <div style={{ display: "inline-flex", gap: "2px" }}>
+                              <div className="st-acts" style={{ display: "inline-flex", gap: "2px" }}>
                                 <__Link href={r?.adjustHref} className="ib" aria-label={`Adjust stock of ${r?.name ?? ""}`}>
                                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                     <path d="M21 4h-7" />
@@ -364,6 +368,7 @@ export default class StockScreen extends Component {
                                     <path d="M8 10v4" />
                                     <path d="M16 18v4" />
                                   </svg>
+                                  <span className="st-act__lbl" aria-hidden="true">Adjust</span>
                                 </__Link>
                                 <__Link href={r?.transferHref} className="ib" aria-label={`Move ${r?.name ?? ""} to another warehouse`}>
                                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -372,6 +377,7 @@ export default class StockScreen extends Component {
                                     <path d="m16 21 4-4-4-4" />
                                     <path d="M20 17H4" />
                                   </svg>
+                                  <span className="st-act__lbl" aria-hidden="true">Move</span>
                                 </__Link>
                                 <__Link href="/barcode-labels" className="ib" aria-label={`Print barcode label for ${r?.name ?? ""}`}>
                                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -383,12 +389,14 @@ export default class StockScreen extends Component {
                                     <path d="M12 7v10" />
                                     <path d="M17 7v10" />
                                   </svg>
+                                  <span className="st-act__lbl" aria-hidden="true">Label</span>
                                 </__Link>
                                 <button type="button" className="ib" aria-label={`Stock history of ${r?.name ?? ""}`} onClick={r?.history}>
                                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                     <circle cx="12" cy="12" r="10" />
                                     <path d="M12 6v6l4 2" />
                                   </svg>
+                                  <span className="st-act__lbl" aria-hidden="true">History</span>
                                 </button>
                               </div>
                             </td>

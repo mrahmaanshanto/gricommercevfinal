@@ -67,6 +67,10 @@ const CSS = `.dc-h439:hover{background:#e9eef5 !important;color:#1e293b !importa
   .set-drop{flex-wrap:wrap}
   .set-drop>span:nth-child(2){flex:1 1 200px!important}
   .set-drop>button{flex:1 1 100%;justify-content:center}
+  /* tile buttons (Replace, Add image, Cancel, Try another file) are a comfortable 36px to tap;
+     Remove gets the same height and a light outline so it reads as a button, not a bare word */
+  .set-tiles>div>div:last-child>span:last-child>button{height:36px!important;padding:0 12px!important;border-radius:var(--radius-lg)!important}
+  .set-tiles>div>div:last-child>span:last-child>button[aria-label^="Remove"]{border:1px solid rgba(194,65,12,.3)!important;background:#fff!important}
 }
 @media (max-width:480px){
   .set-shell .gc-cols-4.set-tiles{grid-template-columns:minmax(0,1fr)!important;gap:10px!important}

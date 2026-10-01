@@ -8,6 +8,7 @@ import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 import { PageHeader as __PageHeader } from '@/components/ui';
+import { clockNow } from '@/lib/settlements';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -16,11 +17,27 @@ var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov',
 function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
 function mkTabs(self, list, cur, key, counts) { return list.map(function (x) { var on = x.k === cur; var c = counts ? counts[x.k] : null; return { label: x.label, on: on, cls: on ? 'tab on' : 'tab', hasCount: c != null, count: c, countBg: on ? 'rgba(255,255,255,0.2)' : '#e9eef5', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
 function mkChips(self, list, cur, key) { return list.map(function (x) { var on = x.k === cur; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-var F = [
-  { name: 'Weekend Mega Sale', sub: '12 products · up to 40% off', dates: '18 Sep, 6:00 PM – 20 Sep, 11:59 PM', left: '2d 06:14:22', sold: 184, stock: 300, sales: 142300, st: 'live', featured: true, bg: 'linear-gradient(135deg, #b83210, #f59e0b)' },
-  { name: 'Night Deals', sub: '6 products · 25% off', dates: '18 Sep, 9:00 PM – 11:59 PM', left: '05:48:10', sold: 38, stock: 120, sales: 44600, st: 'live', featured: false, bg: 'linear-gradient(135deg, #012169, #0a5bd0)' },
-  { name: 'Skin care week', sub: '8 products · 25% off', dates: '22 Sep – 28 Sep', left: 'Starts in 3d 14h', sold: 0, stock: 200, sales: 0, st: 'soon', featured: true, bg: 'linear-gradient(135deg, #047857, #10b981)' },
-  { name: 'Puja Special', sub: '15 products · up to 30% off', dates: '8 Oct – 13 Oct', left: 'Starts in 19 days', sold: 0, stock: 450, sales: 0, st: 'soon', featured: false, bg: 'linear-gradient(135deg, #7c2d12, #db2777)' },
+// Demo dates follow today (clockNow): two sales are running now, two start later; the ended ones stay as they were.
+var DAY = 864e5;
+function dayAt(n, h, m) { var d = new Date(clockNow() + n * DAY); d.setHours(h, m || 0, 0, 0); return d; }
+function dm(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()]; }
+function hm(d) { var h = d.getHours(), m = d.getMinutes(); return (h % 12 || 12) + ':' + (m < 10 ? '0' : '') + m + ' ' + (h < 12 ? 'AM' : 'PM'); }
+function span(a, b, time) { return time ? dm(a) + ', ' + hm(a) + ' – ' + (dm(a) === dm(b) ? '' : dm(b) + ', ') + hm(b) : dm(a) + ' – ' + dm(b); }
+function p2(n) { return (n < 10 ? '0' : '') + n; }
+function countdown(end) { var t = Math.max(0, Math.floor((end - clockNow()) / 1000)), d = Math.floor(t / 86400), h = Math.floor(t % 86400 / 3600), m = Math.floor(t % 3600 / 60), sec = t % 60; return (d ? d + 'd ' : '') + p2(h) + ':' + p2(m) + ':' + p2(sec); }
+function startsIn(start) { var t = Math.max(0, start - clockNow()), d = Math.floor(t / DAY), h = Math.floor(t % DAY / 36e5); return d >= 7 ? 'Starts in ' + d + ' days' : 'Starts in ' + (d ? d + 'd ' : '') + h + 'h'; }
+function salesNow() {
+  var hr = new Date(clockNow()); hr.setMinutes(0, 0, 0);
+  var megaA = dayAt(-1, 18), megaB = dayAt(2, 23, 59), nightA = new Date(hr.getTime() - 2 * 36e5), nightB = new Date(nightA.getTime() + 6 * 36e5);
+  var skinA = dayAt(3, 10), skinB = dayAt(9, 23, 59), pujaA = dayAt(19, 0), pujaB = dayAt(24, 23, 59);
+  return [
+  { name: 'Weekend Mega Sale', sub: '12 products · up to 40% off', dates: span(megaA, megaB, true), left: countdown(megaB), sold: 184, stock: 300, sales: 142300, st: 'live', featured: true, bg: 'linear-gradient(135deg, #b83210, #f59e0b)' },
+  { name: 'Night Deals', sub: '6 products · 25% off', dates: span(nightA, nightB, true), left: countdown(nightB), sold: 38, stock: 120, sales: 44600, st: 'live', featured: false, bg: 'linear-gradient(135deg, #012169, #0a5bd0)' },
+  { name: 'Skin care week', sub: '8 products · 25% off', dates: span(skinA, skinB), left: startsIn(skinA), sold: 0, stock: 200, sales: 0, st: 'soon', featured: true, bg: 'linear-gradient(135deg, #047857, #10b981)' },
+  { name: 'Puja Special', sub: '15 products · up to 30% off', dates: span(pujaA, pujaB), left: startsIn(pujaA), sold: 0, stock: 450, sales: 0, st: 'soon', featured: false, bg: 'linear-gradient(135deg, #7c2d12, #db2777)' }
+  ].concat(ENDED);
+}
+var ENDED = [
   { name: 'Month-end Clearance', sub: '20 products · up to 50% off', dates: '28 Aug – 31 Aug', left: 'Ended', sold: 402, stock: 450, sales: 198400, st: 'ended', featured: false, bg: 'linear-gradient(135deg, #334155, #64748b)' },
   { name: 'Independence Day Deals', sub: '10 products · 16% off', dates: '15 Aug – 17 Aug', left: 'Ended', sold: 215, stock: 250, sales: 87100, st: 'ended', featured: false, bg: 'linear-gradient(135deg, #065f46, #b83210)' }
 ];
@@ -28,7 +45,7 @@ var TABS = [{ k: 'live', label: 'Running' }, { k: 'soon', label: 'Coming soon' }
 var SN = { live: ['Running', 'badge b-live'], soon: ['Coming soon', 'badge b-sched'], ended: ['Ended', 'badge b-ended'] };
 class Component extends DCLogic {
   renderVals() {
-    var s = this.state || {}, tab = s.tab || 'live';
+    var s = this.state || {}, tab = s.tab || 'live', F = salesNow();
     var cnt = {}; TABS.forEach(function (t) { cnt[t.k] = F.filter(function (f) { return f.st === t.k; }).length; });
     return { tabs: mkTabs(this, TABS, tab, 'tab', cnt),
       cards: F.filter(function (f) { return f.st === tab; }).map(function (f) { var p = Math.round(f.sold / f.stock * 100); return { name: f.name, sub: f.sub, dates: f.dates, left: f.left, tColor: f.st === 'live' ? '#b83210' : f.st === 'soon' ? '#075985' : '#64748b', sold: f.sold + ' of ' + f.stock + ' pieces sold', pct: p + '%', pctLabel: p + '%', sales: f.sales ? bdt(f.sales) : '—', status: SN[f.st][0], sCls: SN[f.st][1], featured: f.featured, bg: f.bg }; }) };
@@ -200,7 +217,7 @@ export default class FlashSalesScreen extends Component {
                               <path d="M8 2v4" />
                               <path d="M3 10h18" />
                             </svg>
-                            <span>{c?.dates}</span>
+                            <span suppressHydrationWarning>{c?.dates}</span>
                           </div>
                           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                             <span style={__sx(`color: ${c?.tColor ?? ""};`)}>
@@ -209,7 +226,7 @@ export default class FlashSalesScreen extends Component {
                                 <path d="M12 6v6l4 2" />
                               </svg>
                             </span>
-                            <span className="mono" style={__sx(`font-size: var(--text-base); font-weight: var(--weight-semibold); color: ${c?.tColor ?? ""};`)}>{c?.left}</span>
+                            <span suppressHydrationWarning className="mono" style={__sx(`font-size: var(--text-base); font-weight: var(--weight-semibold); color: ${c?.tColor ?? ""};`)}>{c?.left}</span>
                           </div>
                           <div>
                             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-xs-plus)" }}>

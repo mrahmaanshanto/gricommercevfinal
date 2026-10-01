@@ -40,6 +40,8 @@ const CSS = `
 .rf-rank.is-top{background:var(--fill-warning-soft);color:var(--text-warning)}
 .rf-code{font-family:var(--font-data);font-size:var(--text-xs);padding:2px 8px;border-radius:var(--radius-full);background:var(--fill-primary-soft);color:var(--primary)}
 @media (max-width:760px){.rf-steps{grid-template-columns:minmax(0,1fr)}.rf-gets{grid-template-columns:minmax(0,1fr)}}
+/* phones (table as cards): the customer sits on the right like every other value */
+@media (max-width:640px){.rf-table .ly-who{justify-content:flex-end;text-align:right}}
 `;
 
 export default function Referrals() {
@@ -118,7 +120,7 @@ export default function Referrals() {
         <div className="ac-head"><div><h2 id="rf-top">Top sharers</h2><p>Customers who brought the most new buyers</p></div></div>
         {!data ? <EmptyState icon="loader" title="Reading invites" /> : (
           <div className="gc-table-wrap">
-            <table className="gc-table gc-table--compact gc-table--hoverable">
+            <table className="gc-table gc-table--compact gc-table--hoverable rf-table">
               <thead><tr><th scope="col">#</th><th scope="col">Customer</th><th scope="col">Invite code</th><th scope="col" className="ac-num">Friends joined</th><th scope="col" className="ac-num">Bought</th><th scope="col" className="ac-num">Friends’ sales</th><th scope="col" className="ac-num">Earned</th><th scope="col" className="ac-num">Due</th><th scope="col"><span className="sr-only">Pay</span></th></tr></thead>
               <tbody>
                 {data.referrers.map((r, i) => (

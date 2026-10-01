@@ -6,6 +6,20 @@
 import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import { getLocale } from '@/runtime/ui';
+
+// The promo bar follows the shopper's language (Bangla only when it is chosen).
+var PROMO = { en: 'Weekend Mega Sale — up to 40% off! Code: EID300', bn: 'উইকেন্ড মেগা সেল — ৪০% পর্যন্ত ছাড়! কোড: EID300' };
+function PromoText() {
+  var st = React.useState('en'), loc = st[0], setLoc = st[1];
+  React.useEffect(function () {
+    var on = function () { setLoc(getLocale()); };
+    on();
+    window.addEventListener('gc:locale', on);
+    return function () { window.removeEventListener('gc:locale', on); };
+  }, []);
+  return <span className={loc === 'bn' ? 'bn' : undefined} lang={loc}>{PROMO[loc]}</span>;
+}
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -118,11 +132,11 @@ export default class OfferDetailScreen extends Component {
       <div className="dc-screen ds" data-screen="OfferDetail">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div className="sf-root" style={{ width: "100%", maxWidth: "1440px", margin: "0 auto", minHeight: "100vh", background: "#f8fafc", display: "flex", flexDirection: "column" }}>
-          <div className="bn" style={{ minHeight: "36px", padding: "6px 16px", textAlign: "center", background: "#b83210", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>
+          <div style={{ minHeight: "36px", padding: "6px 16px", textAlign: "center", background: "#b83210", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
             </svg>
-            <span>উইকেন্ড মেগা সেল — ৪০% পর্যন্ত ছাড়! কোড: EID300</span>
+            <PromoText />
           </div>
           <header className="sf-header sf-pad" style={{ minHeight: "76px", background: "#ffffff", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "32px", padding: "0 64px" }}>
             <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>

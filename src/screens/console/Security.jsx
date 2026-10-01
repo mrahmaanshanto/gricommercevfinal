@@ -645,7 +645,7 @@ export default class SecurityScreen extends Component {
 </svg>Rotate now</button>
                   </div>
                 </div>
-                <div style={{ margin: "0 -20px -16px" }}>
+                <div className="cs-tnw" style={{ margin: "0 -20px -16px", "--cs-row-min": "700px" }}>
                   <div className="th" style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) 140px", gap: "12px", padding: "10px 18px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
                     <span>Secret</span>
                     <span>Last rotated</span>

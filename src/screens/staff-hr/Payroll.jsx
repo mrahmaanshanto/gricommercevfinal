@@ -70,6 +70,14 @@ const CSS = `
   /* half-width month cards: the title gets the whole line, the status badge sits under it */
   .pr-run__top{flex-direction:column;align-items:flex-start;gap:4px}
   .pr-run__top b{max-width:100%;white-space:normal}
+  /* an odd last run card takes the whole row instead of half */
+  .pr-run:last-child:nth-child(odd){grid-column:1 / -1}
+}
+@media (max-width:640px){
+  /* page title + "More" + main button share one row: the title keeps whole words (never split mid-word),
+     the main button is a little narrower; if they still do not fit, the row wraps */
+  [data-screen="Payroll"] .gc-shell__content .gc-pagehead>.gc-pagehead__text{flex-basis:0!important;min-width:min-content!important}
+  [data-screen="Payroll"] .gc-pagehead__actions .gc-btn--solid{padding:0 var(--space-3)}
 }
 @media print{
   body > *:not(.hr-print){display:none!important}
@@ -232,7 +240,7 @@ export default function Payroll() {
             <button key={r.id} type="button" className="pr-run" aria-pressed={r.id === run.id} onClick={() => { setPick(r.id); setPk(null); }}>
               <span className="pr-run__top"><b>{r.kind === 'bonus' ? r.title : monthLabel(r.month)}</b><span className={'gc-badge gc-badge--' + (st === 'Paid' ? 'success' : st === 'Approved' ? 'info' : 'warning')}>{st}</span></span>
               <span className="pr-run__amt">{money(runTotal(S, r))}</span>
-              <span className="hr-sub">{r.status === 'paid' ? `Paid ${formatDate(r.paidAt)}` : r.kind === 'bonus' ? 'Festival bonus' : `Pay day ${formatDate(payDateOf(r.month, S.settings))}`} · {r.lines ? r.lines.length : r.count || lines.length} staff</span>
+              <span className="hr-sub">{r.status === 'paid' ? `Paid ${formatDate(r.paidAt)}` : r.kind === 'bonus' ? 'Festival bonus' : `Pay day ${formatDate(payDateOf(r.month, S.settings))}`} · {r.lines ? r.lines.length : r.count || lines.length}{'\u00a0'}staff</span>
             </button>
           );
         })}

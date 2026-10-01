@@ -295,7 +295,7 @@ export function GatewayList({ title = 'Settlement & accounts', intro = 'For each
   const list = tick ? getAllPartners() : [];
   return (
     <section className="gc-card ac-card" aria-labelledby="gs-list-title">
-      <style dangerouslySetInnerHTML={{ __html: ACC_CSS + CSS + `.gs-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) auto auto;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle)}@media (max-width:760px){.gs-row{grid-template-columns:minmax(0,1fr) auto}.gs-row > :nth-child(2){grid-column:1 / -1;order:3}}` }} />
+      <style dangerouslySetInnerHTML={{ __html: ACC_CSS + CSS + `.gs-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) auto auto;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle)}@media (max-width:760px){.gs-row{grid-template-columns:minmax(0,1fr) auto}.gs-row > :nth-child(2){grid-column:1 / -1;order:3}.gs-row > :nth-child(4){grid-column:1 / -1;order:4;justify-self:start}}` }} />
       <div className="ac-head">
         <div><h2 id="gs-list-title">{title}</h2><p>{intro}</p></div>
         <button type="button" className="gc-btn gc-btn--solid" onClick={() => setOpen({ add: true })}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Add gateway or courier</button>

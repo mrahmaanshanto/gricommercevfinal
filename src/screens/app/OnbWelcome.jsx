@@ -115,6 +115,7 @@ export default class OnbWelcomeScreen extends Component {
     const v = this.renderVals() || {};
     return (
       <div className="dc-screen" data-screen="OnbWelcome">
+        <h1 style={{ position: "absolute", width: "1px", height: "1px", margin: "-1px", overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" }}>Welcome to GridCommerce</h1>
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div className="ph">
           <div className="sb" style={{ color: "#fff" }}>

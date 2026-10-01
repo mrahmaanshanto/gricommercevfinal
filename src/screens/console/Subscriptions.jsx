@@ -571,14 +571,14 @@ export default class SubscriptionsScreen extends Component {
                     <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Movement this month</h2>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }}>September</div>
                   </div>
-                  <svg className="cs-chart-s" viewBox="0 0 360 150" width="100%" role="img" style={{ "--cs-fs": "13px", display: "block", overflow: "visible" }}>
+                  <svg className="cs-chart-s cs-pad-b" viewBox="0 0 360 150" width="100%" role="img" style={{ "--cs-fs": "13px", display: "block", overflow: "visible" }}>
                     <rect x="12" y="51.0" width="42" height="75.0" rx="4" fill="#003087" />
                     <text x="33" y="46.0" fontSize="10" fill="#0f172a" textAnchor="middle" fontWeight="600" fontFamily="Poppins, system-ui, sans-serif">৳60k</text>
                     <text x="33" y="144" fontSize="10" fill="#475569" textAnchor="middle" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">Start</text>
                     <line x1="54" x2="70" y1="51.0" y2="51.0" stroke="#94a3b8" strokeDasharray="3 3" />
                     <rect x="70" y="33.5" width="42" height="17.5" rx="4" fill="#10b981" />
                     <text x="91" y="28.5" fontSize="10" fill="#047857" textAnchor="middle" fontWeight="600" fontFamily="Poppins, system-ui, sans-serif">+14k</text>
-                    <text x="91" y="144" fontSize="10" fill="#475569" textAnchor="middle" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">New</text>
+                    <text className="cs-dn" x="91" y="144" fontSize="10" fill="#475569" textAnchor="middle" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">New</text>
                     <line x1="112" x2="128" y1="33.5" y2="33.5" stroke="#94a3b8" strokeDasharray="3 3" />
                     <rect x="128" y="23.5" width="42" height="10.0" rx="4" fill="#10b981" />
                     <text x="149" y="18.5" fontSize="10" fill="#047857" textAnchor="middle" fontWeight="600" fontFamily="Poppins, system-ui, sans-serif">+8k</text>
@@ -586,7 +586,7 @@ export default class SubscriptionsScreen extends Component {
                     <line x1="170" x2="186" y1="23.5" y2="23.5" stroke="#94a3b8" strokeDasharray="3 3" />
                     <rect x="186" y="23.5" width="42" height="5.0" rx="4" fill="#ff9800" />
                     <text x="207" y="18.5" fontSize="10" fill="#b45309" textAnchor="middle" fontWeight="600" fontFamily="Poppins, system-ui, sans-serif">−4k</text>
-                    <text x="207" y="144" fontSize="10" fill="#475569" textAnchor="middle" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">Contract</text>
+                    <text className="cs-dn" x="207" y="144" fontSize="10" fill="#475569" textAnchor="middle" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">Contract</text>
                     <line x1="228" x2="244" y1="28.5" y2="28.5" stroke="#94a3b8" strokeDasharray="3 3" />
                     <rect x="244" y="28.5" width="42" height="7.5" rx="4" fill="#ff5724" />
                     <text x="265" y="23.5" fontSize="10" fill="#c2410c" textAnchor="middle" fontWeight="600" fontFamily="Poppins, system-ui, sans-serif">−6k</text>
@@ -594,7 +594,7 @@ export default class SubscriptionsScreen extends Component {
                     <line x1="286" x2="302" y1="36.0" y2="36.0" stroke="#94a3b8" strokeDasharray="3 3" />
                     <rect x="302" y="36.0" width="42" height="90.0" rx="4" fill="#003087" />
                     <text x="323" y="31.0" fontSize="10" fill="#0f172a" textAnchor="middle" fontWeight="600" fontFamily="Poppins, system-ui, sans-serif">৳72k</text>
-                    <text x="323" y="144" fontSize="10" fill="#475569" textAnchor="middle" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">End</text>
+                    <text className="cs-dn" x="323" y="144" fontSize="10" fill="#475569" textAnchor="middle" fontWeight="400" fontFamily="Poppins, system-ui, sans-serif">End</text>
                     <line x1="0" x2="360" y1="126" y2="126" stroke="#cbd5e1" />
                   </svg>
                 </section>
@@ -657,7 +657,7 @@ export default class SubscriptionsScreen extends Component {
                     <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: "0", color: "var(--ink)" }}>Unpaid, being called</h2>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs)", color: "var(--muted)" }}>no auto-charge · never deleted for a missed payment</div>
                   </div>
-                  <div style={{ margin: "0 -20px -16px" }}>
+                  <div className="cs-tnw" style={{ margin: "0 -20px -16px", "--cs-row-min": "860px" }}>
                     <div className="th" style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) 180px 90px minmax(0,1.2fr) minmax(0,1.1fr)", gap: "12px", padding: "10px 18px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--muted)" }}>
                       <span>Store</span>
                       <span>Stage</span>

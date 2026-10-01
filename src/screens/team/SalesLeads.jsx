@@ -38,6 +38,13 @@ const CSS = `
 .ld-src i{display:block;height:6px;border-radius:var(--radius-full);background:var(--primary)}
 .ld-split{display:grid;grid-template-columns:minmax(0,2fr) minmax(280px,1fr);gap:var(--space-4);align-items:start}
 @media (max-width:1100px){.ld-split{grid-template-columns:minmax(0,1fr)}}
+/* phones: the view switch and Mine / Everyone are two separate rows, each across the width */
+@media (max-width:640px){
+  .tm-bar__g.ld-segs{width:100%;flex-direction:column;align-items:stretch;gap:var(--space-2)}
+  .ld-segs>.gc-seg{width:100%}
+  .ld-segs>.gc-seg>.gc-seg__btn{flex:1 1 auto}
+  .ld-segs>.gc-seg+.gc-seg{padding-top:var(--space-2);border-top:1px solid var(--border-subtle)}
+}
 `;
 const DAY = 864e5;
 const toLocal = (t) => { const d = new Date(t); const p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
@@ -104,7 +111,7 @@ export default function SalesLeads() {
 
       <section className="gc-card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="tm-bar">
-          <div className="tm-bar__g">
+          <div className="tm-bar__g ld-segs">
             <div className="gc-seg" role="group" aria-label="View">
               {[['follow', `Follow-ups · ${due.length}`], ['board', 'Pipeline'], ['list', 'List']].map(([k, l]) => <button key={k} type="button" className={'gc-seg__btn' + (view === k ? ' gc-seg__btn--active' : '')} aria-pressed={view === k} onClick={() => setView(k)}>{l}</button>)}
             </div>

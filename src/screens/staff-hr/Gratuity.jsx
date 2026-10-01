@@ -21,6 +21,12 @@ const CSS = `
 .gr-rule b{font-size:var(--text-md);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .gr-rule span{font-size:var(--text-xs);color:var(--text-muted)}
 .gr-prog{display:block;width:120px;margin-top:6px}
+@media (max-width:640px){
+  /* the rule reads as a plain two-column list of facts; the lone icon goes */
+  .gr-rule{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3) var(--space-4)}
+  .gr-rule > .rp-tile{display:none}
+  .gr-rule > .hr-sub{grid-column:1 / -1;margin-left:0!important;max-width:none!important}
+}
 `;
 
 export default function Gratuity() {

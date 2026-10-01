@@ -159,6 +159,7 @@ export default class MobileSignUpScreen extends Component {
       <div className="dc-screen" data-screen="MobileSignUp">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         {v.s0 ? (<>
+          <h1 style={{ position: "absolute", width: "1px", height: "1px", margin: "-1px", overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" }}>Start selling with GridCommerce</h1>
           <div className={(v.carCls || "") + " msu-hero"} role="region" aria-roledescription="carousel" aria-label="Merchant stories" style={{ position: "relative", width: "min(390px, 100%)", height: "844px", overflow: "hidden", background: "#012169" }}>
             {__list(v.slides).map((sl, $index) => (<React.Fragment key={$index}>
                 <div className={sl?.cls} aria-hidden={sl?.hidden}>

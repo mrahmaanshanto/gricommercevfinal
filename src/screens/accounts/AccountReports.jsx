@@ -268,6 +268,8 @@ const CSS = `
 @media (max-width:640px){
   /* phone table-cards: a group heading row is a plain section heading, not an empty card */
   table.gc-cards-on>tbody>tr.is-head,table.gc-cards-on>tbody>tr.ar-grouprow{border:0!important;background:none!important;padding:var(--space-3) var(--space-1) 0!important}
+  /* a line with nothing in the period before shows only this period (no "Before ৳0 · New" on every card) */
+  table.gc-cards-on>tbody>tr>td.ar-noprev{display:none!important}
   table.gc-cards-on>tbody>tr.is-head>th,table.gc-cards-on>tbody>tr.ar-grouprow>th{text-align:left!important;padding:0!important;font-size:var(--text-xs)!important;text-transform:uppercase;letter-spacing:var(--tracking-wide);font-weight:var(--weight-semibold);color:var(--text-muted)}
 }
 @media print{
@@ -439,14 +441,14 @@ function ProfitPanel({ rows, cur, prev, periodText, prevText }) {
                   <tr key={r.key} className={'is-' + r.type}>
                     <th scope="row">{r.label}{r.help ? <span className="ac-sub">{r.help}</span> : null}</th>
                     <td className={'ac-num ac-fig' + (r.type === 'total' ? (r.cur < 0 ? ' ar-neg' : ' ar-pos') : '')}>{fig(r.cur)}</td>
-                    {cmp ? <><td className="ac-num ac-fig" style={{ color: 'var(--text-muted)' }}>{fig(r.prev)}</td>
-                    <td className="ac-num"><Delta cur={r.cur} prev={r.prev} good={r.good} /></td></> : null}
+                    {cmp ? <><td className={'ac-num ac-fig' + (r.prev ? '' : ' ar-noprev')} style={{ color: 'var(--text-muted)' }}>{fig(r.prev)}</td>
+                    <td className={'ac-num' + (r.prev ? '' : ' ar-noprev')}><Delta cur={r.cur} prev={r.prev} good={r.good} /></td></> : null}
                   </tr>
                 )))}
                 <tr className="is-head"><th scope="colgroup" colSpan={cmp ? 4 : 2}>Not part of the profit</th></tr>
-                <tr className="is-line is-below"><th scope="row">Taken by the owner</th><td className="ac-num ac-fig">{fig(-cur.ownerOut)}</td>{cmp ? <><td className="ac-num ac-fig">{fig(-prev.ownerOut)}</td><td className="ac-num"><Delta cur={-cur.ownerOut} prev={-prev.ownerOut} good="flat" /></td></> : null}</tr>
-                {cur.ownerIn || prev.ownerIn ? <tr className="is-line is-below"><th scope="row">Put in by the owner</th><td className="ac-num ac-fig">{fig(cur.ownerIn)}</td>{cmp ? <><td className="ac-num ac-fig">{fig(prev.ownerIn)}</td><td className="ac-num"><Delta cur={cur.ownerIn} prev={prev.ownerIn} good="flat" /></td></> : null}</tr> : null}
-                <tr className="is-sub"><th scope="row">Left in the business</th><td className={'ac-num ac-fig ' + (kept < 0 ? 'ar-neg' : '')}>{fig(kept)}</td>{cmp ? <><td className="ac-num ac-fig" style={{ color: 'var(--text-muted)' }}>{fig(r2(prev.profit - prev.ownerOut + prev.ownerIn))}</td><td /></> : null}</tr>
+                <tr className="is-line is-below"><th scope="row">Taken by the owner</th><td className="ac-num ac-fig">{fig(-cur.ownerOut)}</td>{cmp ? <><td className={'ac-num ac-fig' + (prev.ownerOut ? '' : ' ar-noprev')}>{fig(-prev.ownerOut)}</td><td className={'ac-num' + (prev.ownerOut ? '' : ' ar-noprev')}><Delta cur={-cur.ownerOut} prev={-prev.ownerOut} good="flat" /></td></> : null}</tr>
+                {cur.ownerIn || prev.ownerIn ? <tr className="is-line is-below"><th scope="row">Put in by the owner</th><td className="ac-num ac-fig">{fig(cur.ownerIn)}</td>{cmp ? <><td className={'ac-num ac-fig' + (prev.ownerIn ? '' : ' ar-noprev')}>{fig(prev.ownerIn)}</td><td className={'ac-num' + (prev.ownerIn ? '' : ' ar-noprev')}><Delta cur={cur.ownerIn} prev={prev.ownerIn} good="flat" /></td></> : null}</tr> : null}
+                <tr className="is-sub"><th scope="row">Left in the business</th><td className={'ac-num ac-fig ' + (kept < 0 ? 'ar-neg' : '')}>{fig(kept)}</td>{cmp ? <><td className={'ac-num ac-fig' + (r2(prev.profit - prev.ownerOut + prev.ownerIn) ? '' : ' ar-noprev')} style={{ color: 'var(--text-muted)' }}>{fig(r2(prev.profit - prev.ownerOut + prev.ownerIn))}</td><td /></> : null}</tr>
               </tbody>
             </table>
           </div>
