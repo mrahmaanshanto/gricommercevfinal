@@ -1,7 +1,7 @@
 // systems — the three GridCommerce systems a merchant signs in to (one section on the sign-in page). Each is its own
 // site, locked to its edition (src/lib/edition.js); on the full product site, choosing one previews that edition.
-//   enterSystem(ed)  after signing in: this site's own system → its dashboard; another system → that site's sign-in
-//                    (with the system chosen); on the full site → preview it here.
+//   enterSystem(ed)  after signing in: this site's own system → its dashboard; another system → that site's
+//                    dashboard (demo: signed in there too); on the full site → preview it here.
 
 import { LOCKED, currentEditionId, previewEdition } from './edition';
 
@@ -12,9 +12,9 @@ export const SYSTEMS = [
 ];
 export const systemBy = (ed) => SYSTEMS.find((s) => s.ed === ed) || null;
 
-/** The system to show as chosen: the site's own, else ?system=, else Retail + Wholesale + Online. */
+/** The system email / phone sign-in opens: the site's own (or the previewed edition), else ?system=, else Retail + Wholesale + Online. */
 export function defaultSystem() {
-  if (LOCKED && systemBy(currentEditionId())) return currentEditionId();
+  if (systemBy(currentEditionId())) return currentEditionId();
   try { const q = new URLSearchParams(window.location.search).get('system'); if (systemBy(q)) return q; } catch { /* ignore */ }
   return LOCKED ? currentEditionId() : 'retail-online';
 }
@@ -23,5 +23,5 @@ export function defaultSystem() {
 export function enterSystem(ed, go) {
   if (!LOCKED) { previewEdition(ed); go('/merchant-overview?edition=' + ed); return; }
   if (ed === currentEditionId() || !systemBy(ed)) { go('/merchant-overview'); return; }
-  window.location.href = systemBy(ed).url + '/merchant-sign-in?system=' + ed;
+  window.location.href = systemBy(ed).url + '/merchant-overview';
 }

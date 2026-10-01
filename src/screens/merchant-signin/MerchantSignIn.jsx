@@ -113,7 +113,7 @@ class Component extends DCLogic {
   componentWillUnmount() { clearTimeout(this.timer); clearInterval(this.tick); }
   go(mode) {
     clearTimeout(this.timer); clearInterval(this.tick);
-    this.setState({ mode: mode, status: 'idle', pw: '', showPw: false, phone: '', otpSent: false, code: '', codeError: false, resendIn: 0, errs: {} });
+    this.setState({ mode: mode, status: 'idle', systemBusy: '', pw: '', showPw: false, phone: '', otpSent: false, code: '', codeError: false, resendIn: 0, errs: {} });
   }
   startCountdown() {
     var self = this;
@@ -229,7 +229,17 @@ class Component extends DCLogic {
       eyeLabel: showPw ? t.hidePw : t.showPw,
       segs: segs,
       strengthLabel: pw.length === 0 ? t.strength0 : t.strength[score - 1],
-      system: s.system || '', pickSystem: function (ed) { self.setState({ system: ed }); },
+      system: s.system || '', systemBusy: s.systemBusy || '',
+      // demo: tapping a system signs in straight away (no email or password) and opens it (src/lib/systems.js)
+      pickSystem: function (ed) {
+        if (s.systemBusy || status !== 'idle') return;
+        clearTimeout(self.timer);
+        self.setState({ system: ed, systemBusy: ed });
+        self.timer = setTimeout(function () {
+          self.setState({ status: 'done' });
+          self.timer = setTimeout(function () { enterSystem(ed, navigate); }, 600);
+        }, 500);
+      },
       toSignup: function () { self.go('signup'); },
       toSignin: function () { self.go('signin'); },
       reset: function () { self.go(mode); },
@@ -380,7 +390,7 @@ export default class MerchantSignInScreen extends Component {
                     <h1 style={__sx(`margin: 0; font-size: var(--text-3xl); line-height: 40px; font-weight: var(--weight-semibold); letter-spacing: ${v.track ?? ""}; color: #0f172a;`)}>{v.t?.welcome}</h1>
                     <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", lineHeight: "22px", color: "var(--text-muted)" }}>{v.t?.welcomeSub}</p>
                   </div>
-                  {v.system ? <SystemPicker value={v.system} onChange={v.pickSystem} /> : null}
+                  {v.system ? <SystemPicker busy={v.systemBusy} onPick={v.pickSystem} /> : null}
                   <button type="button" className="gc-btn gc-outline" style={{ marginTop: "28px", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}><span style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>G</span>{v.t?.google}</button>
                   <div style={{ marginTop: "20px", display: "flex", alignItems: "center", gap: "14px" }}>
                     <div style={{ flexGrow: "1", height: "1px", background: "#e2e8f0" }} />

@@ -73,6 +73,7 @@ export const BN = {
   'Set up stock': 'Stock সেটআপ করুন', 'Shops, counters and wholesale': 'দোকান, Counter আর Wholesale',
   'Online orders and couriers': 'Online Order আর Courier', 'Shops, wholesale and online together': 'দোকান, Wholesale আর Online একসাথে',
   'Spent this month': 'এ মাসে খরচ', 'Spent in September': 'সেপ্টেম্বরে খরচ', 'Top-ups': 'Top-up', 'Credits top-up': 'Credit Top-up',
+  'Tap one to sign in.': 'সাইন ইন করতে একটি বাছুন।', 'Signing in': 'সাইন ইন হচ্ছে',
   'Choose your system': 'আপনার সিস্টেম বাছুন', 'Profile type': 'প্রোফাইলের ধরন', 'Team profiles': 'টিমের প্রোফাইল', 'Stock setup': 'Stock সেটআপ', 'New purchase': 'নতুন কেনাকাটা', 'Save purchase': 'কেনাকাটা Save', 'Expiry': 'মেয়াদ', 'Write off': 'বাদ দিন',
   'Paid in full': 'পুরো Paid', 'Part paid': 'আংশিক Paid', 'Pay later': 'পরে Pay', 'Buying price': 'কেনা দাম', 'Expires': 'মেয়াদ শেষ', 'Transport & other': 'পরিবহন ও অন্যান্য', 'Your stock place': 'আপনার Stock-এর জায়গা', 'How do you buy?': 'কীভাবে কেনেন?', 'Direct purchase': 'সরাসরি কেনা',
   // ---- order flow (orderStatus.js, orderFlow.js, Order notifications) ----

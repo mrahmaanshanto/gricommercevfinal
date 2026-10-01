@@ -62,6 +62,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   only `catalog`.
 - Sign-in: `/` opens `/merchant-sign-in`, which asks "Choose your system" (`components/SystemPicker.jsx`, `lib/systems.js`:
   Retail + Wholesale, Online, Retail + Wholesale + Online — each its own site; on the full site it previews the edition).
+  For now (demo) tapping a system signs in at once and opens its dashboard; email / phone sign-in still works below it.
   Team profiles (owner/CEO, HR, warehouse, shop …) are switched in Settings › Profile type (`/set-profile`) and the account menu.
 - One inventory, two shapes (`src/lib/stockSetup.js`, Settings › Stock setup `/stock-setup`): `mode` one place (Online
   edition: `locations.getPlaces()` shows only that place and the damaged bay; `stockAt` without a place = that place) or
