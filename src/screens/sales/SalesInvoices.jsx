@@ -19,7 +19,8 @@ import { getHolds } from '@/lib/stockHolds';
 import { HoldStockDialog, HOLD_CSS, canHold } from './HoldStockDialog';
 
 const METHODS = ['Cash', 'bKash', 'Nagad', 'Card', 'Bank'];
-const TABS = [['all', 'Invoices'], ['paid', 'Paid'], ['partial', 'Partly paid'], ['unpaid', 'Unpaid']];
+const TABS = [['all', 'All invoices'], ['unpaid', 'Unpaid'], ['partial', 'Partly paid'], ['paid', 'Paid']];
+const TAB_DOT = { all: 'var(--primary)', unpaid: 'var(--fill-warning)', partial: 'var(--fill-info)', paid: 'var(--fill-success)' };
 const STATUS = { paid: ['Paid', 'success'], partial: ['Partly paid', 'info'], unpaid: ['Unpaid', 'warning'] };
 const money = (n) => formatBDT(n, { decimals: Number.isInteger(n) ? 0 : 2 });
 const num = (v) => Math.max(0, Number(v) || 0);
@@ -30,10 +31,10 @@ const CSS = HOLD_CSS + `
 .iv-card .gc-table th:last-child,.iv-card .gc-table td:last-child{padding-right:var(--space-4)}
 .iv-card td:nth-child(6) .iv-sub{min-width:150px}
 .iv-card .gc-table th:first-child,.iv-card .gc-table td:first-child{padding-left:var(--space-5)}
-.iv-bar{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--space-3);padding:0 var(--space-4)}
-.iv-tab{display:inline-flex;align-items:center;gap:8px}
-.iv-tab b{font-weight:var(--weight-medium);color:var(--text-muted);font-variant-numeric:tabular-nums}
-.iv-search{position:relative;flex:0 1 300px;margin-bottom:var(--space-2)}
+.iv-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border-subtle)}
+.iv-count{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.iv-search{position:relative;flex:0 1 300px}
+@media (max-width:640px){.iv-bar{padding:var(--space-3)}.iv-count{display:none}.iv-search{flex:1 1 100%}}
 .iv-search svg{position:absolute;left:12px;top:13px;color:var(--text-muted);pointer-events:none}
 .iv-search input{padding-left:38px}
 .iv-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}
@@ -155,24 +156,28 @@ export default function SalesInvoices() {
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
             <PageHeader
               title="Invoices"
-              description="Every sale made out to a customer: paid, partially paid or unpaid."
+              description="Every sale made out to a customer: paid, partly paid or unpaid."
               actions={<Link href="/pos" className="gc-btn gc-btn--solid"><Icon name="plus" width="18" height="18" aria-hidden="true" /> New sale</Link>}
             />
 
-            <div className="gc-kpis">
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="files" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Invoices</p><p className="gc-kpi__value">{counts.all}<small>{money(sum(rows, (r) => r.totals.total))}</small></p></div></div>
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="file-check" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Paid</p><p className="gc-kpi__value">{counts.paid}<small>{money(sum(paid, (r) => r.totals.total))}</small></p></div></div>
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-info-soft)', color: 'var(--text-info)' }}><Icon name="file-clock" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Partly paid</p><p className="gc-kpi__value">{counts.partial}<small>{money(sum(partial, (r) => r.due))} left</small></p></div></div>
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-error-soft)', color: 'var(--text-danger)' }}><Icon name="file-x" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Unpaid</p><p className="gc-kpi__value">{counts.unpaid}<small>{money(sum(unpaid, (r) => r.due))}</small></p></div></div>
+            <div className="gc-stattabs" role="tablist" aria-label="Invoices by payment">
+              {TABS.map(([id, label]) => {
+                const sub = id === 'all' ? money(sum(rows, (r) => r.totals.total)) + ' total'
+                  : id === 'paid' ? money(sum(paid, (r) => r.totals.total))
+                  : id === 'partial' ? money(sum(partial, (r) => r.due)) + ' left'
+                  : money(sum(unpaid, (r) => r.due)) + ' due';
+                return (
+                  <button key={id} type="button" role="tab" aria-selected={tab === id} className="gc-stattab" onClick={() => setTab(id)}>
+                    <span className="gc-stattab__label"><i className="gc-stattab__dot" style={{ background: TAB_DOT[id] }} />{label}</span>
+                    <span className="gc-stattab__nums"><b>{counts[id]}</b><small>{sub}</small></span>
+                  </button>
+                );
+              })}
             </div>
 
             <section className="gc-card iv-card">
               <div className="iv-bar">
-                <div className="gc-tabs" role="tablist" aria-label="Invoices by payment" style={{ borderBottom: 0, overflow: 'visible', flexWrap: 'wrap' }}>
-                  {TABS.map(([id, label]) => (
-                    <button key={id} type="button" role="tab" aria-selected={tab === id} className={'gc-tab iv-tab' + (tab === id ? ' gc-tab--active' : '')} onClick={() => setTab(id)}>{label} <b>{counts[id]}</b></button>
-                  ))}
-                </div>
+                <p className="iv-count">{TABS.find((x) => x[0] === tab)[1]} · {shown.length}</p>
                 <label className="iv-search"><Icon name="search" width="18" height="18" aria-hidden="true" /><input className="gc-input" type="search" placeholder="Search customer or invoice no." aria-label="Search customer or invoice number" value={q} onChange={(e) => setQ(e.target.value)} /></label>
               </div>
               {shown.length === 0 ? (

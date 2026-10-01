@@ -14,7 +14,8 @@ import { getInvoices, deliveryOf, statusOf, isPaid } from '@/lib/invoices';
 import { INVOICE_STATUS as PAY, PAPER_CSS } from './InvoicePaper';
 import { DeliveryDialog, DELIVERY, DELIVERY_CSS } from './DeliveryDialog';
 
-const TABS = [['all', 'All'], ['none', 'Not delivered'], ['partial', 'Partly delivered'], ['full', 'Delivered']];
+const TABS = [['all', 'All wholesale orders'], ['none', 'Not delivered'], ['partial', 'Partly delivered'], ['full', 'Delivered in full']];
+const TAB_DOT = { all: 'var(--primary)', none: 'var(--fill-warning)', partial: 'var(--fill-info)', full: 'var(--fill-success)' };
 const money = (n) => formatBDT(n, { decimals: Number.isInteger(n) ? 0 : 2 });
 
 const CSS = PAPER_CSS + DELIVERY_CSS + `
@@ -23,9 +24,10 @@ const CSS = PAPER_CSS + DELIVERY_CSS + `
 .wo-card .gc-table th:first-child,.wo-card .gc-table td:first-child{padding-left:var(--space-5)}
 .wo-card .gc-table th:last-child,.wo-card .gc-table td:last-child{padding-right:var(--space-4)}
 .wo-card .gc-badge,.wo-card .gc-btn,.wo-num,.wo-id{white-space:nowrap}
-.wo-bar{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--space-3);padding:0 var(--space-4)}
-.wo-tab b{margin-left:6px;font-weight:var(--weight-medium);color:var(--text-muted);font-variant-numeric:tabular-nums}
-.wo-search{position:relative;flex:0 1 300px;margin-bottom:var(--space-2)}
+.wo-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border-subtle)}
+.wo-count{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.wo-search{position:relative;flex:0 1 300px}
+@media (max-width:640px){.wo-bar{padding:var(--space-3)}.wo-count{display:none}.wo-search{flex:1 1 100%}}
 .wo-search svg{position:absolute;left:12px;top:13px;color:var(--text-muted);pointer-events:none}
 .wo-search input{padding-left:38px}
 .wo-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}
@@ -54,7 +56,6 @@ export default function WholesaleOrders() {
     return (tab === 'all' ? rows : of(tab)).filter((r) => !text || (r.id + ' ' + r.customer.name + ' ' + r.customer.phone).toLowerCase().includes(text));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, tab, q]);
-  const pcsLeft = rows.reduce((a, r) => a + deliveryOf(r).left, 0);
 
   return (
     <div className="dc-screen ds" data-screen="WholesaleOrders">
@@ -69,22 +70,27 @@ export default function WholesaleOrders() {
               description="Follow each wholesale order: whether the customer has taken delivery, how many pieces went out, and what is still to pay."
               actions={<>
                 <Link href="/merchant-orders" className="gc-btn gc-btn--neutral"><Icon name="inbox" width="18" height="18" aria-hidden="true" /> All orders</Link>
-                <Link href="/pos" className="gc-btn gc-btn--solid"><Icon name="plus" width="18" height="18" aria-hidden="true" /> New wholesale sale</Link>
+                <Link href="/pos" className="gc-btn gc-btn--solid"><Icon name="plus" width="18" height="18" aria-hidden="true" /> New sale</Link>
               </>}
             />
 
-            <div className="gc-kpis">
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="clipboard-list" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Wholesale orders</p><p className="gc-kpi__value">{counts.all}<small>{money(rows.reduce((a, r) => a + r.totals.total, 0))}</small></p></div></div>
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-warning-soft)', color: 'var(--text-warning)' }}><Icon name="package" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Not delivered</p><p className="gc-kpi__value">{counts.none}<small>{pcsLeft} pcs to send in all</small></p></div></div>
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-info-soft)', color: 'var(--text-info)' }}><Icon name="package-open" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Partly delivered</p><p className="gc-kpi__value">{counts.partial}</p></div></div>
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="package-check" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Delivered in full</p><p className="gc-kpi__value">{counts.full}</p></div></div>
+            <div className="gc-stattabs" role="tablist" aria-label="Wholesale orders by delivery">
+              {TABS.map(([id, label]) => {
+                const list = id === 'all' ? rows : of(id);
+                const left = list.reduce((a, r) => a + deliveryOf(r).left, 0);
+                const sub = id === 'all' ? money(rows.reduce((a, r) => a + r.totals.total, 0)) : id === 'full' ? money(list.reduce((a, r) => a + r.totals.total, 0)) : `${left} pcs to send`;
+                return (
+                  <button key={id} type="button" role="tab" aria-selected={tab === id} className="gc-stattab" onClick={() => setTab(id)}>
+                    <span className="gc-stattab__label"><i className="gc-stattab__dot" style={{ background: TAB_DOT[id] }} />{label}</span>
+                    <span className="gc-stattab__nums"><b>{counts[id]}</b><small>{sub}</small></span>
+                  </button>
+                );
+              })}
             </div>
 
             <section className="gc-card wo-card">
               <div className="wo-bar">
-                <div className="gc-tabs" role="tablist" aria-label="Wholesale orders by delivery" style={{ borderBottom: 0, overflow: 'visible', flexWrap: 'wrap' }}>
-                  {TABS.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={tab === id} className={'gc-tab wo-tab' + (tab === id ? ' gc-tab--active' : '')} onClick={() => setTab(id)}>{label}<b>{counts[id]}</b></button>)}
-                </div>
+                <p className="wo-count">{TABS.find((x) => x[0] === tab)[1]} · {shown.length}</p>
                 <label className="wo-search"><Icon name="search" width="18" height="18" aria-hidden="true" /><input className="gc-input" type="search" placeholder="Search customer or order no." aria-label="Search customer or order number" value={q} onChange={(e) => setQ(e.target.value)} /></label>
               </div>
               {shown.length === 0 ? <EmptyState icon="truck" title={q ? 'No order matches that search' : 'No order in this group'} body={q ? 'Try the customer’s name, mobile number or the order number.' : 'Wholesale orders appear here when a sale is made to a wholesale customer in New sale.'} /> : (

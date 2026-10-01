@@ -46,6 +46,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   a "Filter (n)" bottom sheet). `Sheet` is the side panel / bottom sheet; `PhoneActionBar` pins a form's main action
   to the bottom on phones. On phones list tables become cards on their own (`src/runtime/mobileTables.js`; a grid that
   must scroll sideways gets `gc-table--keep`), and statistic rows (`gc-kpis`, `gc-cardrow`) become a swipe strip.
+  Never show statistic cards that repeat the tabs under them: make the tabs summary tabs (`gc-stattabs` /
+  `gc-stattab`: label, count and amount, tap to filter — see Invoices). On phones the title and main button share a row.
 - Menu: `src/shell/navigation.js` (9 groups, at most two levels). Old menu ids still used by a screen's `active`
   map to the new item through `NAV_ALIAS` (sidebar highlight and role access both read it).
 - Language: the switch in the account menu, on sign-in and in Help calls `setLocale`. The shell translates itself

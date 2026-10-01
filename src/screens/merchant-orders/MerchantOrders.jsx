@@ -9,6 +9,7 @@ import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { navigate } from '@/runtime/routes';
+import { formatBDT } from '@/lib/format';
 import { Dialog as __Dialog, EmptyState as __EmptyState, StatusBadge as __StatusBadge, PhoneMore as __PhoneMore } from '@/components/ui';
 import { MobileFilters as __MobileFilters } from '@/components/ui/FilterBar';
 import { ORDER_STATUSES, ORDER_TOTAL, orderStatus } from '@/lib/orderStatus';
@@ -223,9 +224,10 @@ class Component extends DCLogic {
       pageTitle: { pos: 'Retail orders', online: 'Online orders', wholesale: 'Wholesale orders' }[st.extra.channel] || 'All orders',
       newOrderHref: st.extra.channel === 'pos' || st.extra.channel === 'wholesale' ? '/pos' : '/new-order',
       kpiToday: inView.filter(o => (o.at || 0) >= dayFrom.getTime()).length,
-      kpiApproved: counts.approved,
-      kpiDispatched: counts.ready,
-      kpiShipped: counts.shipped,
+      kpiTodayValue: formatBDT(inView.filter(o => (o.at || 0) >= dayFrom.getTime()).reduce((a, o) => a + (o.amount || 0), 0)),
+      kpiCod: formatBDT(inView.filter(o => o.payment === 'COD' && ['approved', 'ready', 'shipped'].includes(o.statusKey)).reduce((a, o) => a + (o.amount || 0), 0)),
+      kpiCodCount: inView.filter(o => o.payment === 'COD' && ['approved', 'ready', 'shipped'].includes(o.statusKey)).length,
+      kpiReturnRate: (counts.delivered + counts.returned) ? Math.round((counts.returned / (counts.delivered + counts.returned)) * 100) + '%' : '—',
       kpiCourier: counts.ready + counts.shipped,
       total: counts.all,
       q: st.q, courier: st.courier, payment: st.payment, zone: st.zone,
@@ -405,29 +407,29 @@ export default class MerchantOrdersScreen extends Component {
                 </div>
                 <div className="mo-kpi">
                   <span className="mo-kpi__icon" style={{ background: "var(--fill-success-soft)", color: "var(--text-success)" }}>
-                    <__Icon name="circle-check" strokeWidth="1.75" width="24" height="24" aria-hidden="true" />
+                    <__Icon name="banknote" strokeWidth="1.75" width="24" height="24" aria-hidden="true" />
                   </span>
                   <div className="mo-kpi__text">
-                    <p className="mo-kpi__label">Approved orders</p>
-                    <p className="mo-kpi__value">{v.kpiApproved}</p>
+                    <p className="mo-kpi__label">Order value today</p>
+                    <p className="mo-kpi__value">{v.kpiTodayValue}</p>
                   </div>
                 </div>
                 <div className="mo-kpi">
                   <span className="mo-kpi__icon" style={{ background: "var(--fill-accent-soft)", color: "var(--accent-text)" }}>
-                    <__Icon name="truck" strokeWidth="1.75" width="24" height="24" aria-hidden="true" />
+                    <__Icon name="hand-coins" strokeWidth="1.75" width="24" height="24" aria-hidden="true" />
                   </span>
                   <div className="mo-kpi__text">
-                    <p className="mo-kpi__label">Ready to ship</p>
-                    <p className="mo-kpi__value">{v.kpiDispatched}</p>
+                    <p className="mo-kpi__label">Cash on delivery to collect · {v.kpiCodCount}</p>
+                    <p className="mo-kpi__value">{v.kpiCod}</p>
                   </div>
                 </div>
                 <div className="mo-kpi">
                   <span className="mo-kpi__icon" style={{ background: "var(--fill-warning-soft)", color: "var(--text-warning)" }}>
-                    <__Icon name="send" strokeWidth="1.75" width="24" height="24" aria-hidden="true" />
+                    <__Icon name="undo-2" strokeWidth="1.75" width="24" height="24" aria-hidden="true" />
                   </span>
                   <div className="mo-kpi__text">
-                    <p className="mo-kpi__label">Shipped</p>
-                    <p className="mo-kpi__value">{v.kpiShipped}</p>
+                    <p className="mo-kpi__label">Return rate</p>
+                    <p className="mo-kpi__value">{v.kpiReturnRate}</p>
                   </div>
                 </div>
               </div>

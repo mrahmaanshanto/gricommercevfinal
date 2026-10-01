@@ -60,9 +60,10 @@ const CSS = PICKER_CSS + `
 .sa-note.is-ok{background:var(--fill-success-soft);color:var(--text-success)}
 .sa-note.is-bad{background:var(--fill-error-soft);color:var(--text-danger)}
 .sa-note svg{flex:none;margin-top:1px}
-.sa-bar{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--space-3);padding:0 var(--space-4)}
-.sa-tab b{margin-left:6px;font-weight:var(--weight-medium);color:var(--text-muted);font-variant-numeric:tabular-nums}
-.sa-place{width:auto;min-width:200px;margin-bottom:var(--space-2)}
+.sa-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-4);border-bottom:1px solid var(--border-subtle)}
+.sa-stats{flex:1 1 420px}
+@media (max-width:640px){.sa-bar{padding:var(--space-3)}.sa-place{flex:1 1 100%;min-width:0!important}}
+.sa-place{width:auto;min-width:200px}
 .sa-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .sa-strong{font-weight:var(--weight-medium);color:var(--text-heading)}
 .sa-id{font-family:var(--font-data);font-size:var(--text-xs);color:var(--text-muted)}
@@ -173,12 +174,6 @@ export default function StockAdjustments() {
               </>}
             />
 
-            <div className="gc-kpis">
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-warning-soft)', color: 'var(--text-warning)' }}><Icon name="hourglass" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Waiting for approval</p><p className="gc-kpi__value">{groups.waiting.length}<small>{signed(pcs(groups.waiting))} pieces</small></p></div></div>
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="circle-check" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Approved</p><p className="gc-kpi__value">{groups.approved.length}<small>net {signed(pcs(groups.approved))} pieces</small></p></div></div>
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-error-soft)', color: 'var(--text-danger)' }}><Icon name="circle-x" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Rejected</p><p className="gc-kpi__value">{groups.rejected.length}<small>stock not changed</small></p></div></div>
-            </div>
-
             <form className="sa-grid" onSubmit={save} noValidate aria-label="New stock adjustment">
               <section className="gc-card sa-card">
                 <div className="sa-head"><div><h2>Adjust stock</h2><p>Pick the product and place, then say how many pieces and why.</p></div></div>
@@ -243,8 +238,13 @@ export default function StockAdjustments() {
 
             <section className="gc-card sa-card">
               <div className="sa-bar">
-                <div className="gc-tabs" role="tablist" aria-label="Adjustments" style={{ borderBottom: 0, overflow: 'visible', flexWrap: 'wrap' }}>
-                  {TABS.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={tab === id} className={'gc-tab sa-tab' + (tab === id ? ' gc-tab--active' : '')} onClick={() => setTab(id)}>{label}<b>{groups[id].length}</b></button>)}
+                <div className="gc-stattabs gc-stattabs--row sa-stats" role="tablist" aria-label="Adjustments">
+                  {TABS.map(([id, label]) => (
+                    <button key={id} type="button" role="tab" aria-selected={tab === id} className="gc-stattab" onClick={() => setTab(id)}>
+                      <span className="gc-stattab__label"><i className="gc-stattab__dot" style={{ background: id === 'waiting' ? 'var(--fill-warning)' : id === 'approved' ? 'var(--fill-success)' : 'var(--fill-danger)' }} />{label}</span>
+                      <span className="gc-stattab__nums"><b>{groups[id].length}</b><small>{id === 'rejected' ? 'stock not changed' : `${id === 'approved' ? 'net ' : ''}${signed(pcs(groups[id]))} pcs`}</small></span>
+                    </button>
+                  ))}
                 </div>
                 <select className="gc-input gc-select sa-place" aria-label="Warehouse or branch" value={place} onChange={(e) => setPlace(e.target.value)}><option value="">All warehouses and branches</option>{filterPlaces.map((x) => <option key={x}>{x}</option>)}</select>
               </div>
