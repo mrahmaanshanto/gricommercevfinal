@@ -2994,6 +2994,39 @@ export const SCREENS = [
     "interactive": true
   },
   {
+    "name": "MyDashboard",
+    "route": "/my-dashboard",
+    "folder": "team",
+    "title": "My dashboard",
+    "description": "The signed-in person's day: tasks, follow-ups, their numbers and team, by role.",
+    "canvasPage": "Team",
+    "width": 1440,
+    "height": 1480,
+    "interactive": true
+  },
+  {
+    "name": "Tasks",
+    "route": "/tasks",
+    "folder": "team",
+    "title": "Tasks",
+    "description": "The team's to-do list: list by due date or board by status, checklist and comments.",
+    "canvasPage": "Team",
+    "width": 1440,
+    "height": 1480,
+    "interactive": true
+  },
+  {
+    "name": "SalesLeads",
+    "route": "/sales-leads",
+    "folder": "team",
+    "title": "Leads & follow-ups",
+    "description": "Leads by stage, follow-ups due, history, won and lost.",
+    "canvasPage": "Team",
+    "width": 1440,
+    "height": 1480,
+    "interactive": true
+  },
+  {
     "name": "PayChanges",
     "route": "/pay-changes",
     "folder": "staff-hr",

@@ -9,6 +9,7 @@ import { defineGcSidebar } from './gc-sidebar';
 import { defineGcTopbar } from './gc-topbar';
 import { routeOf } from '../runtime/routes';
 import '../runtime/dc';
+import { RoleGuard } from '../components/RoleGuard';
 
 if (typeof window !== 'undefined') {
   defineGcSidebar();
@@ -17,7 +18,7 @@ if (typeof window !== 'undefined') {
 
 /** The shared left menu. `active` is a menu item id from navigation.js. */
 export function Sidebar(props) {
-  return <gc-sidebar {...props} />;
+  return <><gc-sidebar {...props} /><RoleGuard /></>;
 }
 
 /** The shared top bar: crumb, page title, search, quick actions and the profile menu. */

@@ -7,6 +7,7 @@
 import { routeOf, navigate } from '../runtime/routes';
 import { getLocale, setLocale, toast } from '../runtime/ui';
 import { t } from './i18n';
+import { USERS, currentUser, roleOf, signInAs, signOut, SESSION_EVENT } from '../lib/team';
 
 export function defineGcTopbar() {
   if (typeof window === 'undefined' || customElements.get('gc-topbar')) return;
@@ -130,6 +131,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       this._loc = () => this.render();
       window.addEventListener('gc:locale', this._loc);
       window.addEventListener('gc:settle', this._loc);
+      window.addEventListener(SESSION_EVENT, this._loc);
       this._key = (e) => {
         if (e.key === 'Escape' && this._open) { this.close(true); }
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); const i = this.root.querySelector('input'); if (i) i.focus(); }
@@ -137,7 +139,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       if (!this._navBound) { this._navBound = true; this.root.addEventListener('click', (e) => { const a = e.composedPath().find((el) => el.matches && el.matches('a[href^="/"]')); if (a && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) { e.preventDefault(); this._open = ''; navigate(a.getAttribute('href')); } }); }
       document.addEventListener('pointerdown', this._doc); document.addEventListener('keydown', this._key);
     }
-    disconnectedCallback() { document.removeEventListener('pointerdown', this._doc); document.removeEventListener('keydown', this._key); window.removeEventListener('gc:locale', this._loc); window.removeEventListener('gc:settle', this._loc); }
+    disconnectedCallback() { document.removeEventListener('pointerdown', this._doc); document.removeEventListener('keydown', this._key); window.removeEventListener('gc:locale', this._loc); window.removeEventListener('gc:settle', this._loc); window.removeEventListener(SESSION_EVENT, this._loc); }
     /** Closes the open popover; from the keyboard, focus goes back to the button that opened it. */
     close(refocus) { const k = this._open; this._open = ''; this.render(); if (refocus && k) { const el = this.root.querySelector(k === 'search' ? 'input' : `[data-act="${k}"]`); if (el) el.focus(); } }
     attributeChangedCallback() { if (this.isConnected) this.render(); }
@@ -174,8 +176,12 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       const notePop = `<div class="ph">${L('Notifications')} <button data-act="readall">${L('Mark all read')}</button></div>
         ${settleNote}${NOTES.map((n, i) => { const un = n.u && i < this._unread; return `<a class="it note${un ? ' unread' : ''}" href="${routeOf('merchant-orders/MerchantOrders.dc.html')}"><span class="ico">${ic(n.i, 16)}</span><span><b>${n.t}</b><small>${n.d}</small></span><span class="t">${n.w}</span><i class="dot"${un ? ' role="img" aria-label="Unread"' : ' aria-hidden="true"'}></i></a>`; }).join('')}
         <a class="foot" href="${routeOf('merchant-inbox/MerchantInbox.dc.html')}">${L('View all notifications')}</a>`;
-      const mePop = `<div style="display:flex;align-items:center;gap:10px;padding:8px"><span class="av">MR<i></i></span><span><span class="mn" style="display:block">Mehedi Rahman</span><span class="mr">mehedi@gridshop.com.bd</span></span></div>
+      const me = currentUser(), myRole = roleOf(me);
+      const others = USERS.filter((u) => u.id !== me.id);
+      const mePop = `<div style="display:flex;align-items:center;gap:10px;padding:8px"><span class="av">${esc(me.initials)}<i></i></span><span><span class="mn" style="display:block">${esc(me.name)}</span><span class="mr">${esc(myRole.title)} · ${esc(me.email)}</span></span></div>
         <div class="hr"></div>
+        <a class="it" href="/my-dashboard"><span class="ico">${ic('user', 16)}</span><span><b>${L('My dashboard')}</b><small>${L('Your tasks, numbers and team for today')}</small></span></a>
+        <a class="it" href="/tasks"><span class="ico">${ic('check', 16)}</span><span><b>${L('My tasks')}</b></span></a>
         <a class="it" href="${routeOf('settings-console/SetSecurity.dc.html')}"><span class="ico">${ic('user', 16)}</span><span><b>${L('My profile')}</b><small>${L('Details, password and two-factor sign-in')}</small></span></a>
         <a class="it" href="${routeOf('settings-console/SetGeneral.dc.html')}"><span class="ico">${ic('gear', 16)}</span><span><b>${L('Store settings')}</b></span></a>
         <a class="it only-narrow" href="${routeOf('storefront/Offers.dc.html')}"><span class="ico">${ic('store', 16)}</span><span><b>${L('View store')}</b></span></a>
@@ -184,7 +190,10 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
         <div class="it" style="cursor:default"><span class="ico">${ic('store', 16)}</span><span><b>GridShop</b><small>${L('Business plan · 3 branches')}</small></span><span class="t" style="color:#047857">${ic('check', 14, 2.5)}</span></div>
         <div class="it" style="cursor:default;align-items:center"><span class="ico">${ic('kb', 16)}</span><b>${L('Language')}</b><span class="seg" role="group" aria-label="${L('Language')}"><button data-lang="en" class="${locale === 'en' ? 'on' : ''}" aria-pressed="${locale === 'en'}">EN</button><button data-lang="bn" lang="bn" class="${locale === 'bn' ? 'on' : ''}" aria-pressed="${locale === 'bn'}">বাংলা</button></span></div>
         <div class="hr"></div>
-        <a class="it" href="${routeOf('merchant-signin/MerchantSignIn.dc.html')}"><span class="ico" style="color:#c2410c">${ic('out', 16)}</span><span><b>${L('Sign out')}</b></span></a>`;
+        <div class="ph">${L('Switch account (demo)')}</div>
+        <div style="max-height:220px;overflow:auto">${others.map((u) => `<button class="it" data-switch="${u.id}" style="width:100%;text-align:left"><span class="ico">${ic('user', 16)}</span><span><b>${esc(u.name)}</b><small>${esc(roleOf(u).title)}</small></span></button>`).join('')}</div>
+        <div class="hr"></div>
+        <button class="it" data-act="signout" style="width:100%;text-align:left"><span class="ico" style="color:#c2410c">${ic('out', 16)}</span><span><b>${L('Sign out')}</b></span></button>`;
       this.root.innerHTML = `<style>${CSS}</style>
 <div class="bar${dark ? ' dark' : ''}" role="banner" style="--h:${esc(a('height', '64'))}px">
   <button class="ib menu" data-act="nav" aria-label="${L('Open menu')}" aria-controls="gc-nav">${ic('menu', 20)}</button>
@@ -203,7 +212,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
   <span class="sep" aria-hidden="true"></span>
   <a class="store" href="${routeOf('storefront/Offers.dc.html')}" aria-label="View store (opens the storefront)">${ic('store', 16)}<span>${L('View store')}</span>${ic('ext', 13)}</a>
   <span class="wrap"><button class="ib" data-act="notes" ${exp('notes')} aria-label="${L('Notifications')}${unread ? ', ' + unread + ' unread' : ''}">${ic('bell')}${unread ? `<span class="badge">${unread}</span>` : ''}<span class="tip">${L('Notifications')}</span></button>${pop('notes', notePop, 'right:-8px;width:360px')}</span>
-  <span class="wrap" style="margin-left:auto"><button class="me" data-act="me" ${exp('me')} aria-label="${L('Account menu')}, Mehedi Rahman"><span class="av">MR<i></i></span><span class="mnm"><span class="mn" style="display:block">Mehedi Rahman</span><span class="mr">${L('Store owner')}</span></span><span class="chev">${ic('chev', 16)}</span></button>${pop('me', mePop, 'right:0;width:300px')}</span>
+  <span class="wrap" style="margin-left:auto"><button class="me" data-act="me" ${exp('me')} aria-label="${L('Account menu')}, ${esc(me.name)}"><span class="av">${esc(me.initials)}<i></i></span><span class="mnm"><span class="mn" style="display:block">${esc(me.name)}</span><span class="mr">${esc(L(myRole.title))}</span></span><span class="chev">${ic('chev', 16)}</span></button>${pop('me', mePop, 'right:0;width:300px')}</span>
 </div>`;
       const on = (sel, ev, fn) => this.root.querySelectorAll(sel).forEach((el) => el.addEventListener(ev, fn));
       on('[data-act="nav"]', 'click', () => window.dispatchEvent(new CustomEvent('gc:nav-toggle')));
@@ -216,6 +225,13 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       on('[data-act="readall"]', 'click', () => { this._unread = 0; this.render(); });
       on('[data-act="upload"]', 'click', () => { this.close(true); toast('Choose a file to upload', { tone: 'info' }); });
       on('[data-act="cam"]', 'click', () => { this._scanHit = true; this.render(); });
+      on('[data-switch]', 'click', (e) => {
+        const u = signInAs(e.currentTarget.getAttribute('data-switch'));
+        this._open = '';
+        toast(`Signed in as ${u.name} · ${roleOf(u).title}`, { tone: 'info' });
+        navigate('/my-dashboard');
+      });
+      on('[data-act="signout"]', 'click', () => { this._open = ''; signOut(); navigate(routeOf('merchant-signin/MerchantSignIn.dc.html')); });
       on('[data-lang]', 'click', (e) => {
         const next = e.currentTarget.getAttribute('data-lang');
         if (next === getLocale()) return;

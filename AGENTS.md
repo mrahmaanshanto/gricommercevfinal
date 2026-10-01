@@ -85,6 +85,13 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   before (Sales & profit, Account reports, Sales book …) are listed in the catalogue as `kind: 'page'`. Sale lines with
   cost/place/staff/source come from `salesBook.getSaleLines()`; demo online orders from `getOnlineOrders()`; the
   manager PIN log from `lib/auditLog.js`; ad spend from `lib/adSpend.js`. Add a report = add a definition object.
+- Team (demo sign-in): `src/lib/team.js` has the 13 staff roles (CEO, CTO, content, order management, communications,
+  ads, warehouse manager / supervisor, shop manager / supervisor / seller, HR, online sales), the demo users and what each
+  role can open. The sign-in page lists them (`components/DemoAccounts.jsx`); `?as=<user id>` on any page signs in too.
+  The side menu shows only the role's items (`navFor`), `components/RoleGuard.jsx` covers menu pages outside the role,
+  and the top bar shows the user with Switch account. `/my-dashboard` (`screens/team/MyDashboard.jsx`) is each role's
+  day, built from the report definitions plus role widgets; `/tasks` is the task manager (`lib/tasks.js`) and
+  `/sales-leads` leads & follow-ups (`lib/leads.js`; `/leads` is taken by the platform console).
 - Responsive rules for the platform console frame (`.cs`) and fixed design boards (`data-board`, zoomed to fit) are in
   `src/styles/console-responsive.css`. `?quiet=1` stops the evening payout check from opening by itself (tests, screenshots).
 - Reference pages (UI kit, flows, site map, storyboards) are under `/dev/…`. They and the POS /

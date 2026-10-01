@@ -8,6 +8,7 @@ import { NAV } from './navigation';
 import { routeOf, assetUrl, navigate } from '../runtime/routes';
 import { getLocale, readFlag, writeFlag } from '../runtime/ui';
 import { t } from './i18n';
+import { navFor, currentUser, SESSION_EVENT } from '../lib/team';
 
 export function defineGcSidebar() {
   if (typeof window === 'undefined' || customElements.get('gc-sidebar')) return;
@@ -136,6 +137,7 @@ nav{display:block}
       window.addEventListener('gc:nav-toggle', this._toggle);
       window.addEventListener('gc:locale', this._route);
       window.addEventListener('gc:route', this._route);
+      window.addEventListener(SESSION_EVENT, this._route);
       window.addEventListener('popstate', this._route);
       document.addEventListener('keydown', this._key);
       this.drill = this.drillFor(this.activeId());
@@ -149,6 +151,7 @@ nav{display:block}
       window.removeEventListener('gc:nav-toggle', this._toggle);
       window.removeEventListener('gc:locale', this._route);
       window.removeEventListener('gc:route', this._route);
+      window.removeEventListener(SESSION_EVENT, this._route);
       window.removeEventListener('popstate', this._route);
       document.removeEventListener('keydown', this._key);
     }
@@ -292,14 +295,15 @@ nav{display:block}
       const mode = this.mode;
       const c = this.isCollapsed;
       const isOn = (it) => it.id === active || (it.children || []).some((x) => x.id === active);
+      const MENU = navFor(currentUser());   // only what the signed-in role can open
       let body;
       if (c) {
         body = '<div class="gc-sidebar__items">'
           + `<button type="button" class="gc-navitem" data-toggle aria-label="${esc(L('Expand sidebar'))}"><span class="gc-navitem__icon" aria-hidden="true">${glyph('panel-left-open', 20)}</span></button>`
-          + NAV.map((g, i) => (i ? '<hr class="gc-sidebar__rule">' : '') + g.items.map((it) => this.row(it, isOn(it), true, L)).join('')).join('')
+          + MENU.map((g, i) => (i ? '<hr class="gc-sidebar__rule">' : '') + g.items.map((it) => this.row(it, isOn(it), true, L)).join('')).join('')
           + '</div>';
       } else {
-        body = NAV.map((g) => {
+        body = MENU.map((g) => {
           const shut = !!this.closed[g.label];
           return `<div class="gc-sidebar__group"><button type="button" class="gc-sidebar__grouphead" data-group="${esc(g.label)}" aria-expanded="${!shut}"><span>${esc(L(g.label))}</span><span class="gc-navitem__chev" aria-hidden="true" style="transform:${shut ? 'rotate(-90deg)' : 'none'}">${glyph('chevron-down', 16)}</span></button>`
             + (shut ? '' : `<div class="gc-sidebar__items">${g.items.map((it) => this.row(it, it.children ? it.id === active : isOn(it), false, L) + this.sub(it, active, L)).join('')}</div>`)

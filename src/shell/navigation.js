@@ -8,6 +8,8 @@ import { ORDER_TOTAL } from '../lib/orderStatus';
 export const NAV = [
   { label: 'General', items: [
     { id: 'home', icon: 'layout-dashboard', label: 'Home', to: 'merchant-overview/MerchantOverview.dc.html' },
+    { id: 'my-dash', icon: 'user-round', label: 'My dashboard', to: 'team/MyDashboard.dc.html' },
+    { id: 'tasks', icon: 'list-checks', label: 'Tasks', to: 'team/Tasks.dc.html' },
     { id: 'orders', icon: 'shopping-cart', label: 'Orders', to: 'merchant-orders/MerchantOrders.dc.html', children: [
       { id: 'orders-all', icon: 'inbox', label: 'All orders', count: ORDER_TOTAL, to: 'merchant-orders/MerchantOrders.dc.html' },
       { id: 'orders-online', icon: 'globe', label: 'Online orders', to: 'merchant-orders/MerchantOrders.dc.html', q: 'channel=online' },
@@ -33,6 +35,7 @@ export const NAV = [
       { id: 'products-media', icon: 'image', label: 'Media library', to: 'settings-console/SetMedia.dc.html' },
     ] },
     { id: 'customers', icon: 'users', label: 'Customers', to: 'customers-crm/AllCustomers.dc.html' },
+    { id: 'leads', icon: 'target', label: 'Leads & follow-ups', to: 'team/SalesLeads.dc.html' },
     { id: 'pos', icon: 'scan-line', label: 'POS register', to: 'pos-register/Pos.dc.html', children: [
       { id: 'pos-register', icon: 'scan-line', label: 'Open register', to: 'pos-register/Pos.dc.html' },
       { id: 'pos-counters', icon: 'store', label: 'Counters', to: 'pos-register/PosManage.dc.html' },

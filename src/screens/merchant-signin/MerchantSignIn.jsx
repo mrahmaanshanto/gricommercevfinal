@@ -3,6 +3,7 @@
 // Sign in / sign up · desktop
 // Edit freely: this file is now the source for the screen.
 
+import { DemoAccounts } from '@/components/DemoAccounts';
 import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
@@ -477,6 +478,7 @@ export default class MerchantSignInScreen extends Component {
                   </button>
                   <p style={{ margin: "28px 0 0", textAlign: "center", fontSize: "var(--text-sm)", lineHeight: "22px", color: "var(--text-muted)" }}>{v.t?.newHere} <__Link href="/merchant-onboarding" className="gc-link">{v.t?.createAccount}</__Link></p>
                 </form>
+                <DemoAccounts />
               </>) : null}
               {v.showSignup ? (<>
                 <form noValidate onSubmit={v.submit} style={{ display: "flex", flexDirection: "column" }}>
