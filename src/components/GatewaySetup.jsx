@@ -80,12 +80,13 @@ function fresh(pr) {
   return fromPartner({ ...pr, provider: pr.id, name: pr.id === 'other' ? '' : pr.name, rule: pr.how === 'manual' ? { type: 'withdraw' } : pr.how === 'dates' ? { type: 'weekday', days: [0, 3] } : { type: 'auto', days: pr.days || 1 }, to: pr.kind === 'Courier' ? 'citybank' : 'brac' });
 }
 
-/** open with `partner` (an existing one, to change it) or nothing (to add a new one). */
-export function GatewaySetup({ partner, onClose }) {
+/** open with `partner` (an existing one, to change it), `provider` (a new one of that kind, from Connections) or nothing. */
+export function GatewaySetup({ partner, provider, onClose }) {
   const editing = !!partner;
+  const start = !editing && provider ? PROVIDERS.find((x) => x.id === provider) : null;
   const taken = useMemo(() => new Set(getAllPartners().map((p) => p.id)), []);
-  const [step, setStep] = useState(editing ? 1 : 0);
-  const [f, setF] = useState(() => (editing ? fromPartner(partner) : null));
+  const [step, setStep] = useState(editing || start ? 1 : 0);
+  const [f, setF] = useState(() => (editing ? fromPartner(partner) : start ? fresh(start) : null));
   const [keys, setKeys] = useState(() => (editing ? { mode: 'Sandbox', ...getKeys(partner.id) } : { mode: 'Sandbox' }));
   const [later, setLater] = useState(false);
   const [show, setShow] = useState({});
@@ -289,7 +290,7 @@ export function GatewaySetup({ partner, onClose }) {
  * settlement rule, the account and whether its keys are in. Settings › Payment Gateway and
  * Accounts › Setup show it; every row opens the wizard.
  */
-export function GatewayList({ title = 'Settlement & accounts', intro = 'For each gateway and courier: does the money come straight to you, or is it settled later, and how. Set up a new one here and its accounts are made for you.' }) {
+export function GatewayList({ title = 'Settlement & accounts', intro = 'For each gateway and courier: does the money come straight to you, or is it settled later, and how. New ones are connected in Connections; their accounts are made for you.' }) {
   const tick = useBooks();
   const [open, setOpen] = useState(null);   // { partner } | { add: true }
   const list = tick ? getAllPartners() : [];
@@ -298,7 +299,7 @@ export function GatewayList({ title = 'Settlement & accounts', intro = 'For each
       <style dangerouslySetInnerHTML={{ __html: ACC_CSS + CSS + `.gs-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) auto auto;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle)}@media (max-width:760px){.gs-row{grid-template-columns:minmax(0,1fr) auto}.gs-row > :nth-child(2){grid-column:1 / -1;order:3}.gs-row > :nth-child(4){grid-column:1 / -1;order:4;justify-self:start}}` }} />
       <div className="ac-head">
         <div><h2 id="gs-list-title">{title}</h2><p>{intro}</p></div>
-        <button type="button" className="gc-btn gc-btn--solid" onClick={() => setOpen({ add: true })}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Add gateway or courier</button>
+        <a href="/connections?group=payments" className="gc-btn gc-btn--solid"><Icon name="plug" width="18" height="18" aria-hidden="true" /> Connect in Connections</a>
       </div>
       {list.map((p) => {
         const k = getKeys(p.id);

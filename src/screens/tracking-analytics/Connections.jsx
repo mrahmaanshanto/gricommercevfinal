@@ -1,6 +1,7 @@
 'use client';
 // Generated from design/templates/tracking-analytics/Connections.dc.html by scripts/convert-design.mjs.
-// G2 · Connections — Tracking & analytics — Connections.
+// G2 · Ad accounts (/ad-accounts) — Tracking & analytics — how the connected Google, Meta and TikTok accounts are syncing.
+// New accounts are connected in Connections (/connections?group=ads).
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
@@ -206,13 +207,14 @@ export default class ConnectionsScreen extends Component {
                     <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "640px" }}>Google, Meta and TikTok accounts sync every hour. You are warned a week before any token expires.</p>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: "0" }}>
-                    <button type="button" className="btn sm" onClick={v.addAcc} style={{ background: "#fff", color: "#0b1733", height: "36px" }}>
+                    {/* accounts are connected in Connections (one place for every connection) */}
+                    <__Link href="/connections?group=ads" className="btn sm" style={{ background: "#fff", color: "#0b1733", height: "36px", textDecoration: "none" }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M5 12h14" />
                         <path d="M12 5v14" />
                       </svg>
                       <span>Connect account</span>
-                    </button>
+                    </__Link>
                   </div>
                 </div>
                 <div className="st gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px", marginTop: "20px" }}>

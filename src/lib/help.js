@@ -210,9 +210,9 @@ export const HELP = {
     related: ['/set-payments', '/set-delivery'],
   },
   '/channels': {
-    en: E('Every sales channel at a glance: Meta (Facebook & Instagram), Google Merchant Center and Google Business.', ['Check each card: connected, last sync and problems.', 'Press Sync now to send the latest products, prices and stock.', 'Fix the problems in Recent issues — each row says what to do.'], ['Green means fine. Orange needs you. Red failed.', 'Connect channel adds a new one in a few steps.'], ['Sales channels', '2:00']),
-    bn: E('সব Sales channel এক নজরে: Meta (Facebook ও Instagram), Google Merchant Center আর Google Business।', ['প্রতিটি Card দেখুন: Connected কি না, শেষ Sync আর সমস্যা।', 'সর্বশেষ Product, দাম আর Stock পাঠাতে Sync now চাপুন।', 'Recent issues-এর সমস্যাগুলো ঠিক করুন — প্রতিটি সারিতে কী করতে হবে লেখা আছে।'], ['সবুজ মানে ঠিক আছে। কমলা মানে আপনাকে দেখতে হবে। লাল মানে Failed।', 'Connect channel দিয়ে কয়েক ধাপে নতুন Channel যোগ করুন।'], ['Sales channels', '2:00']),
-    related: ['/meta-commerce', '/google-merchant', '/google-business', '/sync-issues'],
+    en: E('Product sync at a glance: Meta (Facebook & Instagram), Google Merchant Center, WooCommerce and Shopify.', ['Check each card: connected, last sync and problems.', 'Press Sync now to send the latest products, prices and stock.', 'Fix the problems in Recent issues — each row says what to do.'], ['Green means fine. Orange needs you. Red failed.', 'Connect channel adds a new one in a few steps.'], ['Sales channels', '2:00']),
+    bn: E('Product sync এক নজরে: Meta (Facebook ও Instagram), Google Merchant Center, WooCommerce আর Shopify।', ['প্রতিটি Card দেখুন: Connected কি না, শেষ Sync আর সমস্যা।', 'সর্বশেষ Product, দাম আর Stock পাঠাতে Sync now চাপুন।', 'Recent issues-এর সমস্যাগুলো ঠিক করুন — প্রতিটি সারিতে কী করতে হবে লেখা আছে।'], ['সবুজ মানে ঠিক আছে। কমলা মানে আপনাকে দেখতে হবে। লাল মানে Failed।', 'Connect channel দিয়ে কয়েক ধাপে নতুন Channel যোগ করুন।'], ['Sales channels', '2:00']),
+    related: ['/meta-commerce', '/google-merchant', '/woocommerce', '/shopify', '/sync-issues', '/connections'],
   },
   '/meta-commerce': {
     en: E('Your products on Facebook and Instagram shops, and whether each one is synced.', ['Tap a tab to see Synced, Needs attention, Failed or Not published.', 'Press Fix or Retry on a product with a problem.', 'Select products to publish, remove or retry them together.'], ['Draft products are not sent.', 'Auto sync sends changes by itself.'], ['Meta Commerce', '1:50']),
@@ -227,7 +227,7 @@ export const HELP = {
   '/google-business': {
     en: E('Your shop on Google Search and Maps: locations, reviews, hours, posts, photos and services.', ['Check Locations for anything that needs attention.', 'Reply to reviews. Generate AI reply gives a draft; read it before you publish.', 'Keep opening hours right, including holidays (Special hours).'], ['Copy Monday to all sets the whole week at once.', 'Changes can take up to 3 days to show on Google.'], ['Google Business', '2:30']),
     bn: E('Google Search আর Maps-এ আপনার Shop: Location, Review, সময়, Post, ছবি আর সেবা।', ['কোনো Location-এ নজর দরকার কি না দেখুন।', 'Review-এর Reply দিন। Generate AI reply একটি খসড়া দেয়; Publish-এর আগে পড়ে নিন।', 'খোলার সময় ঠিক রাখুন, ছুটির দিনসহ (Special hours)।'], ['Copy Monday to all দিয়ে পুরো সপ্তাহ একবারে ঠিক করুন।', 'Google-এ পরিবর্তন দেখাতে ৩ দিন পর্যন্ত লাগতে পারে।'], ['Google Business', '2:30']),
-    related: ['/channels', '/sync-issues'],
+    related: ['/merchant-inbox', '/connections'],
   },
   '/sync-issues': {
     en: E('Every channel problem in one place, with the fix in plain words.', ['Start with Needs attention: these need you to change something.', 'Failed ones often work on a retry — select them and press Retry selected.', 'Resolved shows what was fixed recently.'], ['Filter by channel to work on one at a time.'], ['Sync issues', '1:40']),
@@ -238,6 +238,26 @@ export const HELP = {
     en: E('What GridCommerce keeps in sync on your channels, and who hears about problems.', ['Turn Auto sync, products, stock, prices and images on or off.', 'Choose how you hear about sync problems.'], ['Advanced settings are for special cases; most shops never need them.'], ['Channel settings', '1:10']),
     bn: E('আপনার Channel-এ GridCommerce কী Sync রাখে, আর সমস্যার খবর কে পায়।', ['Auto sync, Product, Stock, দাম আর ছবি চালু বা বন্ধ করুন।', 'Sync-এর সমস্যার খবর কীভাবে পাবেন বাছুন।'], ['Advanced settings বিশেষ ক্ষেত্রের জন্য; বেশিরভাগ Shop-এর লাগে না।'], ['Channel settings', '1:10']),
     related: ['/channels'],
+  },
+  '/connections': {
+    en: E('Every outside app and service your shop uses, connected from one place: stores, social and inbox channels, ads, payments, couriers, SMS and email, devices.', ['Pick a group, or search for the app.', 'Press Connect and follow the short steps.', 'Orange means it needs you: press Reconnect or Review.'], ['Connected channels bring their messages, comments and reviews into the Inbox.', 'Payment gateways and couriers also get their accounts in Money.'], ['Connections', '2:00']),
+    bn: E('আপনার Shop যত বাইরের App আর সেবা ব্যবহার করে, সব এক জায়গা থেকে যুক্ত করুন: Store, Social ও Inbox channel, Ads, Payment, Courier, SMS ও Email, Device।', ['একটি Group বাছুন, বা App খুঁজুন।', 'Connect চাপুন আর ছোট ধাপগুলো অনুসরণ করুন।', 'কমলা মানে আপনাকে দেখতে হবে: Reconnect বা Review চাপুন।'], ['যুক্ত Channel-এর Message, Comment আর Review Inbox-এ আসে।', 'Payment gateway আর Courier-এর Account Money-তেও তৈরি হয়।'], ['Connections', '2:00']),
+    related: ['/channels', '/merchant-inbox', '/set-payments'],
+  },
+  '/connect': {
+    en: E('Connect one app in a few short steps.', ['Sign in with the app, or paste its store address and keys.', 'Choose the page, account or catalog.', 'Choose what to use it for, check the summary and connect.'], ['GridCommerce never sees your passwords.'], ['Connect an app', '1:30']),
+    bn: E('কয়েকটি ছোট ধাপে একটি App যুক্ত করুন।', ['App দিয়ে Sign in করুন, বা Store-এর ঠিকানা আর Key দিন।', 'Page, Account বা Catalog বাছুন।', 'কী কাজে লাগবে বাছুন, সারাংশ দেখে Connect করুন।'], ['GridCommerce কখনো আপনার Password দেখে না।'], ['Connect an app', '1:30']),
+    related: ['/connections'],
+  },
+  '/woocommerce': {
+    en: E('Your products on your WordPress store, and its orders here.', ['Tap a tab to see Synced, Needs attention, Failed or Not published.', 'Press Fix or Retry on a product with a problem.', 'Settings opens the store connection: keys, what syncs and the change log.'], ['Draft products are not sent.'], ['WooCommerce', '1:40']),
+    bn: E('আপনার WordPress Store-এ Product, আর সেখানের Order এখানে।', ['Synced, Needs attention, Failed বা Not published দেখতে Tab-এ চাপুন।', 'সমস্যা থাকা Product-এ Fix বা Retry চাপুন।', 'Settings-এ Store-এর সংযোগ: Key, কী Sync হয় আর পরিবর্তনের Log।'], ['Draft Product পাঠানো হয় না।'], ['WooCommerce', '1:40']),
+    related: ['/channels', '/sync-issues', '/woo-sync'],
+  },
+  '/shopify': {
+    en: E('Your products on your Shopify store, and its orders here.', ['Connect Shopify from Connections if it is not connected yet.', 'Fix or retry products with a problem.'], ['Shopify needs each product’s weight for delivery charges.'], ['Shopify', '1:30']),
+    bn: E('আপনার Shopify Store-এ Product, আর সেখানের Order এখানে।', ['যুক্ত না থাকলে Connections থেকে Shopify যুক্ত করুন।', 'সমস্যা থাকা Product ঠিক করুন বা Retry করুন।'], ['Delivery charge-এর জন্য Shopify-র প্রতিটি Product-এর ওজন লাগে।'], ['Shopify', '1:30']),
+    related: ['/channels', '/sync-issues', '/connections'],
   },
   '/connect-channel': {
     en: E('Connect Meta, Google Merchant Center or Google Business in six short steps.', ['Choose the channel and sign in with Meta or Google.', 'Pick the business, catalog or locations.', 'Choose what to sync, check the summary and connect.'], ['GridCommerce never sees your password.', 'The first sync starts as soon as you connect.'], ['Connect a channel', '1:30']),

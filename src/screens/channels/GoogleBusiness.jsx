@@ -1,5 +1,5 @@
 'use client';
-// Channels › Google Business (/google-business?tab=) — the shop on Google Search and Maps. A summary (locations,
+// Marketing › Google Business (/google-business?tab=) — connected from Connections; its reviews also come into the Inbox — the shop on Google Search and Maps. A summary (locations,
 // verified, needing attention, new reviews) and six tabs:
 //   Locations      one card per place: verified or needs attention (with the reason and Review), address, phone,
 //                  open now, rating; Manage (business info) and View on Google
@@ -22,7 +22,7 @@ import { MobileFilters } from '@/components/ui/FilterBar';
 import {
   channelBy, gbpLocations, gbpLocation, openNow, time12, confirmHours, getInfo, saveInfo, CATEGORIES, ATTRIBUTES, WEEK,
   getReviews, saveReply, aiReply, getPosts, savePost, deletePost, CTAS, getMedia, addMedia, removeMedia, MEDIA_KINDS,
-  getServices, saveService, removeService, startSync, disconnect, ago, agoLow, inTime, syncJob,
+  getServices, saveService, removeService, startSync, disconnect, ago, agoLow, inTime, syncJob, connectHref,
 } from '@/lib/channels';
 import { ChannelFrame, ChannelLogo, ConnBadge, StatusTag, SyncState, useChannels, readImage } from './chShared';
 
@@ -31,7 +31,8 @@ const TIMES = Array.from({ length: 48 }, (_, i) => `${String(Math.floor(i / 2)).
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const dayLabel = (iso) => { const d = new Date(iso + 'T00:00:00'); return isNaN(d) ? iso : `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`; };
 
-const CSS = `
+// shared with the Inbox's Reviews view (screens/merchant-inbox)
+export const GB_CSS = `
 .gb-tabs{position:relative}
 .gb-locs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:var(--space-4)}
 .gb-lines{display:flex;flex-direction:column;gap:var(--space-2);margin:0;padding:0;list-style:none;font-size:var(--text-sm);color:var(--text-body)}
@@ -161,14 +162,14 @@ export default function GoogleBusiness() {
     setTimeout(() => { const el = document.getElementById('gb-tab-' + TABS[n][0]); if (el) el.focus(); }, 0);
   };
 
-  const frame = (body) => <ChannelFrame screen="GoogleBusiness" active="ch-gbp" page="Google Business" css={CSS}>{body}</ChannelFrame>;
+  const frame = (body) => <ChannelFrame screen="GoogleBusiness" active="ch-gbp" page="Google Business" crumb="Marketing" css={GB_CSS}>{body}</ChannelFrame>;
   if (!ready) return frame(<PageHeader title="Google Business" description="Your shop on Google Search and Maps." />);
   const conn = c.conn.gbp;
   if (!conn) {
     return frame(<>
       <PageHeader title="Google Business" description="Your shop on Google Search and Maps." />
       <section className="gc-card" style={{ padding: 'var(--space-6) var(--space-5)' }}>
-        <EmptyState icon="map-pin" title={meta.empty.title} body={meta.empty.body} actionLabel={meta.empty.action} onAction={() => router.push('/connect-channel?channel=gbp')} />
+        <EmptyState icon="map-pin" title={meta.empty.title} body={meta.empty.body} actionLabel={meta.empty.action} onAction={() => router.push(connectHref('gbp'))} />
       </section>
     </>);
   }
@@ -285,7 +286,8 @@ function HoursReview({ id, onClose, onEdit }) {
 
 // ---- Reviews ------------------------------------------------------------------------------------------------
 const RV_FILTERS = [['all', 'All'], ['open', 'Unanswered'], ['5', '5 star'], ['4', '4 star'], ['low', '3 star or below']];
-function Reviews({ reviews, locs, now }) {
+/** The review list with replies and AI drafts. Also the Inbox's Reviews view. */
+export function Reviews({ reviews, locs, now }) {
   const [f, setF] = useState('all');
   const [where, setWhere] = useState('');
   const list = reviews.filter((r) => (f === 'all' || (f === 'open' ? !r.reply : f === 'low' ? r.stars <= 3 : r.stars === Number(f))) && (!where || r.loc === where));

@@ -11,7 +11,7 @@ import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { PageHeader, EmptyState } from '@/components/ui';
 import { MobileFilters } from '@/components/ui/FilterBar';
-import { CHANNELS, ISSUES, channelBy, getIssues, channelProducts, retryItem, retryMany, ago, agoLow } from '@/lib/channels';
+import { PRODUCT_CHANNELS as CHANNELS, ISSUES, channelBy, getIssues, channelProducts, retryItem, retryMany, ago, agoLow } from '@/lib/channels';
 import { ChannelFrame, ChannelLogo, StatusTag, FixSheet, ItemSheet, RowMenu, useChannels } from './chShared';
 
 const TABS = [['open', 'All open', 'var(--primary)'], ['attention', 'Needs attention', 'var(--warning)'], ['failed', 'Failed', 'var(--error)'], ['processing', 'Processing', 'var(--info)'], ['resolved', 'Resolved', 'var(--success)']];
@@ -52,7 +52,6 @@ export default function SyncIssues() {
 
   const rowOf = (i) => channelProducts(i.ch).find((x) => x.key === i.key);
   const act = (i) => {
-    if (i.ch === 'gbp') { router.push('/google-business?tab=locations&review=' + i.key); return; }
     const r = rowOf(i);
     if (!r) return;
     if (i.st === 'failed') { retryItem(i.ch, i.key); toast('Trying again…'); } else setFix(r);

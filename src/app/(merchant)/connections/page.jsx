@@ -1,6 +1,6 @@
-import Screen from '@/screens/tracking-analytics/Connections';
+import Screen from '@/screens/connections/Connections';
 
-export const metadata = { title: "G2 · Connections" };
+export const metadata = { title: "Connections" };
 
 export default function Page() {
   return <Screen />;

@@ -13,8 +13,8 @@ import { routeOf } from '../runtime/routes';
 export const MODULES = {
   core: {
     label: 'Core', desc: 'Dashboard, team tasks and chat, customers and leads, settings',
-    nav: ['home', 'my-dash', 'tasks', 'team-chat', 'customers', 'leads', 'settings', 'set-store', 'set-billing', 'set-help'],
-    routes: ['/grid-ai', '/set-profile', '/customer-crm', '/customer-statement', '/sales-leads', '/set-general', '/set-preference', '/set-security', '/set-storage', '/set-media', '/set-chrome', '/set-rail', '/set-topbar', '/merchant-sign-in', '/mobile-sign-in', '/mobile-sign-up', '/merchant-onboarding'],
+    nav: ['home', 'my-dash', 'tasks', 'team-chat', 'customers', 'leads', 'connections', 'settings', 'set-store', 'set-billing', 'set-help'],
+    routes: ['/connect', '/grid-ai', '/set-profile', '/customer-crm', '/customer-statement', '/sales-leads', '/set-general', '/set-preference', '/set-security', '/set-storage', '/set-media', '/set-chrome', '/set-rail', '/set-topbar', '/merchant-sign-in', '/mobile-sign-in', '/mobile-sign-up', '/merchant-onboarding'],
   },
   catalog: {
     label: 'Products, stock & purchases', desc: 'Products, stock, direct purchases, suppliers and their dues, damaged and expired stock, warranty',
@@ -68,18 +68,18 @@ export const MODULES = {
   },
   online: {
     label: 'Online', desc: 'Online orders and couriers, the online store, blog, flash sales, cart recovery and ads tracking',
-    nav: ['orders-rto', 'promo-flash', 'promo-page', 'rec-carts', 'rec-auto', 'tracking', 'ta-track', 'ta-health', 'ta-conn', 'ta-setup', 'storefront', 'storefront-pages', 'storefront-wp', 'blog', 'blog-posts', 'blog-new', 'blog-cats', 'blog-authors'],
-    routes: ['/new-order', '/new-flash-sale', '/customer-profile', '/analytics-hub', '/attribution', '/campaigns', '/products-traffic', '/reports-alerts', '/setup-clarity', '/setup-ga4', '/setup-google-ads', '/setup-gtm', '/setup-meta-pixel', '/setup-tik-tok', '/author-profile', '/set-delivery', '/set-seo', '/checkout', '/offer-detail', '/offers', '/order-link'],
+    nav: ['orders-rto', 'promo-flash', 'promo-page', 'rec-carts', 'rec-auto', 'tracking', 'ta-track', 'ta-health', 'ta-setup', 'storefront', 'blog', 'blog-posts', 'blog-new', 'blog-cats', 'blog-authors'],
+    routes: ['/ad-accounts', '/new-order', '/new-flash-sale', '/customer-profile', '/analytics-hub', '/attribution', '/campaigns', '/products-traffic', '/reports-alerts', '/setup-clarity', '/setup-ga4', '/setup-google-ads', '/setup-gtm', '/setup-meta-pixel', '/setup-tik-tok', '/author-profile', '/set-delivery', '/set-seo', '/checkout', '/offer-detail', '/offers', '/order-link'],
   },
   channels: {
-    label: 'Sales channels', desc: 'Meta catalog for Facebook and Instagram, Google Merchant Center, Google Business Profile',
-    nav: ['ch-home', 'ch-meta', 'ch-gmc', 'ch-gbp', 'ch-issues', 'ch-settings'],
-    routes: ['/connect-channel'],
+    label: 'Sales channels', desc: 'Product sync to the Meta catalog, Google Merchant Center, WooCommerce and Shopify; Google Business Profile',
+    nav: ['ch-home', 'ch-meta', 'ch-gmc', 'ch-woo', 'ch-shopify', 'ch-gbp', 'ch-issues', 'ch-settings'],
+    routes: ['/connect-channel', '/woo-sync'],
   },
   comms: {
     label: 'Communication', desc: 'Inbox for Facebook, Instagram, WhatsApp and more, calls, AI calls, support tickets, social posts',
-    nav: ['inbox', 'calls', 'comm-ai', 'tickets', 'social', 'comm-cal', 'comm-new', 'comm-conn', 'set-wallet'],
-    routes: ['/auto-call-settings', '/team-report', '/set-ai', '/set-rules', '/set-usage'],
+    nav: ['inbox', 'calls', 'comm-ai', 'tickets', 'social', 'comm-cal', 'comm-new', 'set-wallet'],
+    routes: ['/social-connections', '/auto-call-settings', '/team-report', '/set-ai', '/set-rules', '/set-usage'],
   },
   automation: {
     label: 'Automation', desc: 'Rules, the workflow builder and workflow settings',

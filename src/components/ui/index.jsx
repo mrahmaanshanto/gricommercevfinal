@@ -193,13 +193,26 @@ const CHANNELS = {
   youtube: ['youtube', 'YouTube', '#c4302b'], yt: ['youtube', 'YouTube', '#c4302b'],
   x: ['twitter', 'X', '#0f172a'], tw: ['twitter', 'X', '#0f172a'],
   pinterest: ['pin', 'Pinterest', '#bd081c'], pi: ['pin', 'Pinterest', '#bd081c'],
+  threads: ['at-sign', 'Threads', '#101010'], th: ['at-sign', 'Threads', '#101010'],
+  google: ['star', 'Google reviews', '#1a73e8'], gbp: ['star', 'Google reviews', '#1a73e8'],
   email: ['mail', 'Email', '#475569'], em: ['mail', 'Email', '#475569'],
   sms: ['message-square-text', 'SMS', '#475569'],
   phone: ['phone', 'Phone', '#475569'], call: ['phone', 'Phone', '#475569'],
   web: ['globe', 'Website', '#003087'], site: ['globe', 'Website', '#003087'],
 };
 
-/** A channel mark: white glyph on the channel colour. `size` is the tile, the glyph is 60% of it. */
+// channels with a supplied logo (public/assets/brands): shown as the logo itself instead of a glyph tile
+const LOGOS = {
+  instagram: '/assets/brands/instagram.png', ig: '/assets/brands/instagram.png',
+  linkedin: '/assets/brands/linkedin.png', li: '/assets/brands/linkedin.png',
+  youtube: '/assets/brands/youtube.png', yt: '/assets/brands/youtube.png',
+  x: '/assets/brands/x.png', tw: '/assets/brands/x.png',
+  pinterest: '/assets/brands/pinterest.png', pi: '/assets/brands/pinterest.png',
+  threads: '/assets/brands/threads.png', th: '/assets/brands/threads.png',
+  google: '/assets/brands/google-business.png', gbp: '/assets/brands/google-business.png',
+};
+
+/** A channel mark: the channel's logo, or a white glyph on the channel colour. `size` is the tile, the glyph is 60% of it. */
 export function ChannelIcon({ channel, size = 20, label, plain, decorative }) {
   const key = String(channel || '').trim().toLowerCase();
   const [icon, name, color] = CHANNELS[key] || ['message-square', channel || 'Channel', '#475569'];
@@ -207,6 +220,13 @@ export function ChannelIcon({ channel, size = 20, label, plain, decorative }) {
   // `decorative` (or label="") is for a mark that sits next to its visible name
   const hidden = decorative || label === '';
   const a11y = hidden ? { 'aria-hidden': 'true' } : { role: 'img', 'aria-label': label || name };
+  if (LOGOS[key]) {
+    return (
+      <span {...a11y} title={hidden ? undefined : label || name} className="gc-channel gc-channel--logo" style={{ width: size, height: size }}>
+        <img src={LOGOS[key]} alt="" width={size} height={size} />
+      </span>
+    );
+  }
   if (plain) return <Icon name={icon} width={size} height={size} {...a11y} style={{ color, flex: 'none' }} />;
   return (
     <span {...a11y} title={hidden ? undefined : label || name} className="gc-channel" style={{ width: size, height: size, background: color }}>

@@ -10,6 +10,7 @@ import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { StatusBadge, Sheet } from '@/components/ui';
+import { BrandLogo } from '@/components/BrandLogo';
 import { formatBDT } from '@/lib/format';
 import {
   CHANNELS_EVENT, channelBy, STATUS, ISSUES, FIX_FIELDS, getChannels, syncJob, lastResult, dismissResult, startSync,
@@ -160,14 +161,14 @@ export function useChannels() {
 }
 
 /** The page frame: side menu, top bar, content. */
-export function ChannelFrame({ screen, active, page, children, css = '' }) {
+export function ChannelFrame({ screen, active, page, children, css = '', crumb = 'Sales channels' }) {
   return (
     <div className="dc-screen ds" data-screen={screen}>
       <style dangerouslySetInnerHTML={{ __html: CH_CSS + css }} />
       <div className="gc-shell">
         <Sidebar sticky="" active={active} />
         <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
-          <Topbar crumb="Channels" page={page} />
+          <Topbar crumb={crumb} page={page} />
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
             {children}
           </div>
@@ -181,11 +182,13 @@ export function ChannelFrame({ screen, active, page, children, css = '' }) {
 export function ChannelLogo({ ch, size = 40 }) {
   const c = channelBy(ch);
   if (!c) return null;
+  // channels without a supplied logo (WooCommerce, Shopify) use the shared brand tiles
+  if (!c.logo) return <BrandLogo brand={c.brand} size={size} decorative />;
   const img = Math.round(size * 0.6);
   return (
     <span className="ch-logo" style={{ width: size, height: size }} aria-hidden="true">
       <img src={c.logo} alt="" width={img} height={img} />
-      {ch !== 'meta' && size >= 32 ? <span className="ch-logo__mark"><Icon name={c.mark} width="11" height="11" /></span> : null}
+      {ch === 'gmc' && size >= 32 ? <span className="ch-logo__mark"><Icon name={c.mark} width="11" height="11" /></span> : null}
     </span>
   );
 }
@@ -401,7 +404,7 @@ export function FixSheet({ item, onClose }) {
         ) : (
           <div>
             <label className="gc-label" htmlFor="ch-fix-val">{f.label}</label>
-            <input id="ch-fix-val" className={'gc-input' + (err ? ' gc-input--error' : '')} inputMode={issue.field === 'barcode' ? 'numeric' : 'text'} placeholder={f.placeholder} value={val} onChange={(e) => { setVal(e.target.value); setErr(''); }} aria-invalid={!!err} aria-describedby="ch-fix-help" autoFocus />
+            <input id="ch-fix-val" className={'gc-input' + (err ? ' gc-input--error' : '')} inputMode={issue.field === 'barcode' ? 'numeric' : issue.field === 'weight' ? 'decimal' : 'text'} placeholder={f.placeholder} value={val} onChange={(e) => { setVal(e.target.value); setErr(''); }} aria-invalid={!!err} aria-describedby="ch-fix-help" autoFocus />
             <p id="ch-fix-help" className={'gc-help' + (err ? ' gc-help--error' : '')}>{err || f.help}</p>
           </div>
         )}

@@ -28,6 +28,14 @@ import { Thread, THREAD_CSS } from '@/components/inbox/Thread';
 import { CustomerPanel, TagMenu, PANEL_CSS } from '@/components/inbox/CustomerPanel';
 import { SavedRepliesDialog, MergeDialog, NewConversationDialog, SnoozeDialog, DIALOGS_CSS } from '@/components/inbox/Dialogs';
 import { CommentsView, COMMENTS_CSS } from '@/components/inbox/Comments';
+import { useLiveChannels } from '@/components/inbox/useLiveChannels';
+import { Sheet as SidePanel, StatusBadge } from '@/components/ui';
+import { BrandLogo } from '@/components/BrandLogo';
+import { inboxApps, CONNECTIONS_EVENT } from '@/lib/connections';
+import { CHANNELS_EVENT, getReviews, gbpLocations } from '@/lib/channels';
+import { Reviews as GbReviews, GB_CSS } from '@/screens/channels/GoogleBusiness';
+import { CH_CSS } from '@/screens/channels/chShared';
+import Link from 'next/link';
 
 const TABS = [['open', 'Open'], ['pending', 'Pending'], ['snoozed', 'Snoozed'], ['closed', 'Closed']];
 const SORTS = [['recent', 'Newest message'], ['waiting', 'Waiting longest'], ['unread', 'Unread first'], ['oldest', 'Oldest message']];
@@ -49,6 +57,20 @@ export default function MerchantInbox() {
   const [orders, setOrders] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [view, setView] = useState('chats');
+  // channels connected in Connections: chats and the Reviews view follow them; the Channels panel lists them all
+  const liveChats = useLiveChannels('Messages');
+  const liveReviews = useLiveChannels('Reviews');
+  const [chOpen, setChOpen] = useState(false);
+  const [apps, setApps] = useState([]);
+  const [revTick, setRevTick] = useState(0);
+  useEffect(() => {
+    const on = () => { setApps(inboxApps()); setRevTick((x) => x + 1); };
+    on();
+    window.addEventListener(CONNECTIONS_EVENT, on); window.addEventListener(CHANNELS_EVENT, on);
+    return () => { window.removeEventListener(CONNECTIONS_EVENT, on); window.removeEventListener(CHANNELS_EVENT, on); };
+  }, []);
+  const reviewsOn = !!(liveReviews && liveReviews.includes('gbp'));
+  const openReviews = reviewsOn && revTick >= 0 ? getReviews().filter((r) => !r.reply).length : 0;
   const [sel, setSel] = useState('');
   const [pane, setPane] = useState('list');
   const [tab, setTab] = useState('open');
@@ -88,7 +110,7 @@ export default function MerchantInbox() {
     if (!data || booted.current) return;
     booted.current = true;
     const p = new URLSearchParams(window.location.search);
-    if (p.get('view') === 'comments') { setView('comments'); return; }
+    if (p.get('view') === 'comments' || p.get('view') === 'reviews') { setView(p.get('view')); return; }
     const byId = p.get('c') && data.convs.find((c) => c.id === p.get('c'));
     const byPhone = p.get('phone') && data.convs.find((c) => samePhone(c.phone, p.get('phone')));
     const hit = byId || byPhone;
@@ -231,7 +253,7 @@ export default function MerchantInbox() {
   };
   const setUrlView = (v) => {
     const url = new URL(window.location.href);
-    if (v === 'comments') url.searchParams.set('view', 'comments'); else url.searchParams.delete('view');
+    if (v === 'comments' || v === 'reviews') url.searchParams.set('view', v); else url.searchParams.delete('view');
     window.history.replaceState(window.history.state, '', url.pathname + url.search);
   };
   const switchView = (v) => { setView(v); setPane('list'); setPanelSheet(false); setUrlView(v); };
@@ -261,15 +283,18 @@ export default function MerchantInbox() {
             <PageHeader
               compact
               title="Inbox"
-              description="Chats from Facebook, Instagram, WhatsApp, TikTok, LinkedIn and Telegram, and comments on your posts, in one place."
+              description="Chats, comments and reviews from every connected channel, in one place."
               actions={<>
-                <Seg size="lg" label="Show" value={view} onChange={switchView} items={[['chats', 'Chats', data ? unreadAll : null, 'messages-square'], ['comments', 'Comments', data ? data.openComments : null, 'at-sign']]} />
+                <Seg size="lg" label="Show" value={view} onChange={switchView} items={[['chats', 'Chats', data ? unreadAll : null, 'messages-square'], ['comments', 'Comments', data ? data.openComments : null, 'at-sign'], ...(reviewsOn ? [['reviews', 'Reviews', openReviews, 'star']] : [])]} />
+                <button type="button" className="gc-btn gc-btn--neutral ibx-iconish" onClick={() => setChOpen(true)} aria-label="Channels" title="Channels"><Icon name="plug" width="18" height="18" aria-hidden="true" /><span className="ibx-lbl">Channels</span></button>
                 <button type="button" className="gc-btn gc-btn--neutral ibx-iconish" onClick={() => setDlg('replies')} aria-label="Saved replies" title="Saved replies"><Icon name="zap" width="18" height="18" aria-hidden="true" /><span className="ibx-lbl">Saved replies</span></button>
                 {view === 'chats' ? <button type="button" className="gc-btn gc-btn--solid ibx-iconish" onClick={() => setDlg('new')} aria-label="New conversation" title="New conversation"><Icon name="square-pen" width="18" height="18" aria-hidden="true" /><span className="ibx-lbl">New conversation</span></button> : null}
               </>}
             />
 
-            {view === 'comments' ? <CommentsView now={t} onOpenConv={openFromComment} wide={wide} /> : (
+            {view === 'reviews' && reviewsOn ? (
+              <div className="ibx-reviews"><style dangerouslySetInnerHTML={{ __html: CH_CSS + GB_CSS }} /><GbReviews reviews={getReviews()} locs={gbpLocations()} now={t} /></div>
+            ) : view === 'comments' ? <CommentsView now={t} onOpenConv={openFromComment} wide={wide} /> : (
               <div className="ibx-app" data-pane={pane} data-panel={wide && panelWide && conv ? 'open' : 'closed'}>
                 {/* ---- conversation list ---- */}
                 <section className="ibx-list" aria-label="Conversations">
@@ -286,7 +311,7 @@ export default function MerchantInbox() {
                     </div>
                     <div className="ib-scroll-x" role="group" aria-label="Filter by channel">
                       <button type="button" className="ib-chip" aria-pressed={chan === 'all'} onClick={() => setChan('all')}>All{chanUnread('all') ? <span className="ib-count">{chanUnread('all')}</span> : null}</button>
-                      {CHANNEL_IDS.map((ch) => {
+                      {CHANNEL_IDS.filter((ch) => !liveChats || liveChats.includes(ch)).map((ch) => {
                         const n = chanUnread(ch);
                         return <button key={ch} type="button" className="ib-chip ibx-chan" aria-pressed={chan === ch} onClick={() => setChan(chan === ch ? 'all' : ch)} aria-label={channelName(ch) + (n ? `, ${n} unread` : '')} title={channelName(ch)}><ChannelIcon channel={ch} size={20} decorative />{n ? <span className="ib-count">{n}</span> : null}</button>;
                       })}
@@ -361,6 +386,20 @@ export default function MerchantInbox() {
       </div>
 
       <Sheet open={view === 'chats' && !wide && panelSheet && !!conv} onClose={() => setPanelSheet(false)} title="Customer details">{panel}</Sheet>
+      <SidePanel open={chOpen} title="Inbox channels" onClose={() => setChOpen(false)} footer={<Link href="/connections?group=social" className="gc-btn gc-btn--neutral">Open Connections</Link>}>
+        <div className="ibx-chans">
+          <p className="gc-help" style={{ margin: 0 }}>Connect a channel to bring its chats, comments or reviews into the Inbox. Connections are made in one place: Connections.</p>
+          {apps.map((a) => (
+            <div key={a.id} className="ibx-chan">
+              <BrandLogo brand={a.brand} size={36} decorative />
+              <span className="ibx-chan__text"><b>{a.name}</b><small>{a.uses.filter((u) => u !== 'Posts' && u !== 'Broadcasts').join(' · ')}</small>{a.status.note ? <small style={{ color: 'var(--text-warning)' }}>{a.status.note}</small> : null}</span>
+              {a.status.state === 'off' ? <Link href={'/connect?app=' + a.id} className="gc-btn gc-btn--sm gc-btn--soft">Connect</Link>
+                : a.status.state === 'attention' ? <Link href={'/connections?group=social'} className="gc-btn gc-btn--sm gc-btn--soft">Reconnect</Link>
+                  : <StatusBadge tone="success" icon="check">Connected</StatusBadge>}
+            </div>
+          ))}
+        </div>
+      </SidePanel>
       <SavedRepliesDialog open={dlg === 'replies'} onClose={() => setDlg('')} />
       <NewConversationDialog open={dlg === 'new'} onClose={() => setDlg('')} onCreate={createConv} />
       <MergeDialog open={dlg === 'merge'} onClose={() => setDlg('')} conv={conv} convs={convs} onMerge={doMerge} now={t} />
@@ -370,6 +409,12 @@ export default function MerchantInbox() {
 }
 
 const CSS = PARTS_CSS + DIALOGS_CSS + PANEL_CSS + THREAD_CSS + COMMENTS_CSS + `
+.ibx-chans{display:flex;flex-direction:column;gap:var(--space-2)}
+.ibx-chan{display:flex;align-items:center;gap:var(--space-3);min-height:60px;padding:var(--space-2) 0;border-top:1px solid var(--border-subtle)}
+.ibx-chan__text{display:flex;flex-direction:column;min-width:0;flex:1}
+.ibx-chan__text b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.ibx-chan__text small{font-size:var(--text-xs);color:var(--text-muted)}
+.ibx-reviews{display:flex;flex-direction:column;gap:var(--space-4);min-width:0}
 /* the inbox fills the window and each pane scrolls on its own; the floating assistant would cover the composer */
 body:has(.ibx) .gc-ai{display:none}
 .ibx .gc-shell__main.ibx-main{height:calc(100dvh - var(--shell-inset) * 2);min-height:600px;background:var(--surface-page)}

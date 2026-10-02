@@ -1,5 +1,6 @@
-// channels — Sales channels: Meta Commerce (the Facebook & Instagram catalog), Google Merchant Center (Google Shopping)
-// and Google Business Profile (Search & Maps). Front end only: there are no APIs here. Connections, syncs, statuses and
+// channels — Sales channels (product sync): Meta Commerce (the Facebook & Instagram catalog), Google Merchant Center
+// (Google Shopping), WooCommerce and Shopify; and Google Business Profile (Search & Maps; its page is under Marketing).
+// Every connection is made from Connections (src/lib/connections.js, /connections); this file keeps the product side. Front end only: there are no APIs here. Connections, syncs, statuses and
 // problems are simulated in this browser (localStorage 'gc.channels') from the real product list (products.js + the
 // stock catalogue), so names, SKUs, prices and stock match Products.
 //
@@ -38,10 +39,22 @@ export const CHANNELS = [
     empty: { title: 'Sell across Facebook and Instagram', body: 'Connect your Meta account to keep your products, prices and inventory synced.', action: 'Connect Meta' } },
   { key: 'gmc', name: 'Google Merchant Center', short: 'Google Merchant', sub: 'Google Shopping', logo: GOOGLE_LOGO, mark: 'shopping-bag', page: '/google-merchant', company: 'Google', icon: 'shopping-bag',
     empty: { title: 'Show your products on Google', body: 'Connect Google Merchant Center so your products appear in Google Search and the Shopping tab.', action: 'Connect Google Merchant' } },
-  { key: 'gbp', name: 'Google Business', short: 'Google Business', sub: 'Google Search & Maps', logo: GOOGLE_LOGO, mark: 'map-pin', page: '/google-business', company: 'Google', icon: 'map-pin',
+  { key: 'woo', name: 'WooCommerce', short: 'WooCommerce', sub: 'Your WordPress store', brand: 'woocommerce', mark: 'shopping-cart', page: '/woocommerce', company: 'WooCommerce', icon: 'shopping-cart', settings: '/woo-sync',
+    empty: { title: 'Sell on your WordPress store', body: 'Connect WooCommerce to send your products, prices and stock to your WordPress shop, and bring its orders here.', action: 'Connect WooCommerce' } },
+  { key: 'shopify', name: 'Shopify', short: 'Shopify', sub: 'Your Shopify store', brand: 'shopify', mark: 'shopping-bag', page: '/shopify', company: 'Shopify', icon: 'shopping-bag',
+    empty: { title: 'Sell on your Shopify store', body: 'Connect Shopify to keep its products, prices and stock the same as here, and bring its orders into Orders.', action: 'Connect Shopify' } },
+  { key: 'gbp', name: 'Google Business', short: 'Google Business', sub: 'Google Search & Maps', logo: '/assets/brands/google-business.png', mark: 'map-pin', page: '/google-business', company: 'Google', icon: 'map-pin',
     empty: { title: 'Manage your Google Business Profile', body: 'Connect Google Business to keep your shop’s hours, photos and reviews up to date on Search and Maps.', action: 'Connect Google Business' } },
 ];
 export const channelBy = (k) => CHANNELS.find((c) => c.key === k) || null;
+/** The Connections app of each channel, and the address that connects it (the one connect flow). */
+export const APP_OF = { meta: 'meta-catalog', gmc: 'gmc', woo: 'woocommerce', shopify: 'shopify', gbp: 'gbp' };
+export const connectHref = (ch) => '/connect?app=' + (APP_OF[ch] || ch);
+/** The channels that carry products (Sales channels › product sync). */
+export const PRODUCT_CHS = ['meta', 'gmc', 'woo', 'shopify'];
+export const PRODUCT_CHANNELS = CHANNELS.filter((c) => PRODUCT_CHS.includes(c.key));
+/** The word for a product that is fine on a channel. */
+const okOf = (ch) => (ch === 'gmc' ? 'approved' : 'synced');
 
 /** Status words and badge tones (StatusBadge). One list, used by every Channels page and the product page. */
 export const STATUS = {
@@ -71,6 +84,10 @@ export const ISSUES = {
   'gmc-small': { ch: 'gmc', st: 'disapproved', kind: 'fix', field: 'photo', title: 'Image too small', hint: 'Google needs a photo at least 100 × 100 pixels.', fix: 'Upload a bigger photo (800 × 800 is best).', tech: { code: 'image_too_small', field: 'image_link', msg: 'Image too small [image_link]: 64 × 64 px.' } },
   'gmc-price': { ch: 'gmc', st: 'disapproved', kind: 'retry', title: 'Price doesn’t match your website', hint: 'Google saw a different price on your product page.', fix: 'Retry to send the latest price.', tech: { code: 'price_mismatch', field: 'price', msg: 'Mismatched value (page crawl) [price]: 2,750.00 BDT on landing page.' } },
   'gmc-shipping': { ch: 'gmc', st: 'disapproved', kind: 'fix', field: 'shipping', title: 'Delivery charge missing', hint: 'Google needs a delivery charge for this weight.', fix: 'Set delivery charges for items over 2 kg.', tech: { code: 'missing_shipping', field: 'shipping', msg: 'Missing value [shipping] for country BD, weight 2.1 kg.' } },
+  'woo-sku': { ch: 'woo', st: 'attention', kind: 'fix', field: 'sku', title: 'SKU already used on your website', hint: 'Another product on your WordPress store has this SKU.', fix: 'Give this product its own SKU.', tech: { code: 'product_invalid_sku', field: 'sku', msg: 'Invalid or duplicated SKU (WooCommerce REST API, 400).' } },
+  'woo-image': { ch: 'woo', st: 'failed', kind: 'retry', title: 'Image could not sync', hint: 'Your WordPress store could not download the photo.', fix: 'Retry. If it fails again, check the store is online.', tech: { code: 'woocommerce_product_image_upload_error', field: 'images', msg: 'Error getting remote image (timeout after 15 s).' } },
+  'shopify-weight': { ch: 'shopify', st: 'attention', kind: 'fix', field: 'weight', title: 'Weight missing', hint: 'Shopify needs the weight to work out delivery charges.', fix: 'Add the weight of one piece.', tech: { code: 'INVALID_WEIGHT', field: 'variants.weight', msg: 'Weight must be greater than 0 for shippable variants.' } },
+  'shopify-image': { ch: 'shopify', st: 'failed', kind: 'retry', title: 'Image could not sync', hint: 'Shopify could not download the photo.', fix: 'Retry. If it fails again, upload the photo again.', tech: { code: 'IMAGE_DOWNLOAD_FAILURE', field: 'images.src', msg: 'Image download failed (HTTP 503).' } },
   'gbp-hours': { ch: 'gbp', st: 'attention', kind: 'fix', field: 'hours', title: 'Opening hours need confirmation', hint: 'Google asked you to check your hours.', fix: 'Confirm the hours, or change them.', tech: { code: 'HOURS_CONFIRMATION_REQUESTED', field: 'regularHours', msg: 'Location has pending hours verification.' } },
 };
 /** What the Fix panel asks for. */
@@ -78,6 +95,7 @@ export const FIX_FIELDS = {
   barcode: { label: 'Barcode (GTIN)', help: '8 to 14 digits, from the pack.', placeholder: 'e.g. 8941100100073', test: (v) => /^\d{8,14}$/.test(String(v).trim()), err: 'Enter 8 to 14 digits.' },
   sku: { label: 'SKU', help: 'Your own code for this product. Letters, numbers and dashes.', placeholder: 'e.g. CL-GMC-01', test: (v) => /^[A-Za-z0-9-]{3,24}$/.test(String(v).trim()), err: 'Use 3 to 24 letters, numbers or dashes.' },
   photo: { label: 'Photo', help: 'JPG or PNG, at least 800 × 800 for the best result.' },
+  weight: { label: 'Weight of one piece (kg)', help: 'For example 0.5 for half a kilo.', placeholder: 'e.g. 1.2', test: (v) => Number(v) > 0 && Number(v) < 1000, err: 'Enter the weight in kg, more than 0.' },
 };
 
 // ---- stored state ----------------------------------------------------------------------------------------
@@ -98,14 +116,16 @@ export const DEFAULT_SETTINGS = {
 
 function seed(now) {
   return {
-    v: 1,
+    v: 2,
     seededAt: now,
     conn: {
       meta: { business: 'GridShop BD', catalog: 'GridShop · Main catalog', catalogId: '1048227199340', account: 'Mehedi Hasan', at: now - 52 * DAY, lastSync: now - 12 * MIN, auto: true, what: { products: true, inventory: true, prices: true, images: true } },
       gmc: { account: 'GridShop BD', merchantId: '5123498722', website: 'gridshop.com.bd', at: now - 40 * DAY, lastSync: now - 35 * MIN, auto: true, what: { products: true, inventory: true, prices: true, images: true } },
+      woo: { store: 'gridshop-bd.com', account: 'GridShop BD', version: 'WooCommerce 9.3', at: now - 75 * DAY, lastSync: now - 20 * MIN, auto: true, what: { products: true, inventory: true, prices: true, images: true, orders: true } },
+      shopify: null,
       gbp: { account: 'GridShop BD', at: now - 120 * DAY, lastSync: now - 2 * HOUR, auto: true, what: { info: true, hours: true, reviews: true, posts: true } },
     },
-    items: { meta: {}, gmc: {} },
+    items: { meta: {}, gmc: {}, woo: {}, shopify: {} },
     fixes: {},
     jobs: {},
     results: {},
@@ -113,7 +133,6 @@ function seed(now) {
     resolved: [
       { id: 'r1', ch: 'gmc', key: 'GR-DAL-1', name: 'Chickpeas Boot Dal 1kg', issue: 'gmc-gtin', at: now - 26 * HOUR, how: 'Barcode added' },
       { id: 'r2', ch: 'meta', key: 'HM-BTL-750', name: 'Steel Water Bottle 750ml', issue: 'meta-image', at: now - 2 * DAY, how: 'Retried' },
-      { id: 'r3', ch: 'gbp', key: 'mp', name: 'GridShop Mirpur', issue: 'gbp-hours', at: now - 5 * DAY, how: 'Hours confirmed' },
     ],
     gbp: { replies: {}, info: {}, confirmed: {}, posts: null, media: {}, services: null },
   };
@@ -124,7 +143,13 @@ let mem = null;
 function state() {
   const now = nowMs();
   let s = read();
-  if (!s || s.v !== 1) { s = seed(now); write(s, true); }
+  if (s && s.v === 1) {
+    // v2 adds WooCommerce (connected) and Shopify (not yet) as product channels
+    const fresh = seed(now);
+    s = { ...s, v: 2, conn: { ...s.conn, woo: fresh.conn.woo, shopify: null }, items: { ...s.items, woo: {}, shopify: {} } };
+    write(s, true);
+  }
+  if (!s || s.v !== 2) { s = seed(now); write(s, true); }
   mem = s;
   return s;
 }
@@ -135,9 +160,11 @@ function save(mut) { const s = state(); mut(s); write(s); return s; }
 const BASE = {
   meta: { 'EL-EAR-PRO': 'meta-image', 'CL-SNK-42': 'meta-image', 'CL-KRT-01': 'meta-nophoto', 'GR-ATTA-2': 'unpublished', 'GR-MUS-1': 'unpublished' },
   gmc: { 'GR-MSR-1': 'gmc-gtin', 'CL-KRT-01': 'gmc-nophoto', 'CL-LEG-CL': 'gmc-small', 'HM-RCK-18': 'gmc-price', 'GR-SOY-2': 'gmc-shipping', 'GR-ATTA-2': 'unpublished' },
+  woo: { 'CL-TEE-BM': 'woo-sku', 'HM-BTL-750': 'woo-image', 'GR-ATTA-2': 'unpublished', 'GR-MUS-1': 'unpublished' },
+  shopify: { 'GR-RICE-5': 'shopify-weight', 'EL-PHN-128': 'shopify-image' },
 };
 // products that were just changed: shown as Processing for a while after the first visit
-const BASE_PROCESSING = { meta: { 'CL-JNS-32': 40 * MIN }, gmc: { 'CL-TEE-BM': 3 * HOUR } };
+const BASE_PROCESSING = { meta: { 'CL-JNS-32': 40 * MIN }, gmc: { 'CL-TEE-BM': 3 * HOUR }, woo: {}, shopify: {} };
 
 const keyOf = (p) => p.sku || p.id;
 const sumOn = (on) => Object.values(on || {}).reduce((a, x) => a + (Number(x) || 0), 0);
@@ -154,12 +181,12 @@ export function channelUniverse() {
 /** Land everything whose time has come: processing items, finished syncs. Called by every reader. */
 function settle(s, now) {
   let changed = false;
-  ['meta', 'gmc'].forEach((ch) => {
+  PRODUCT_CHS.forEach((ch) => {
     const items = s.items[ch] || {};
     Object.keys(items).forEach((k) => {
       const it = items[k];
       if (it.st === 'processing' && it.until && it.until <= now) {
-        it.st = it.then || (ch === 'meta' ? 'synced' : 'approved');
+        it.st = it.then || okOf(ch);
         it.at = it.until;
         if (isOk(it.st) && it.was) s.resolved.unshift({ id: 'r' + now.toString(36) + k, ch, key: k, name: it.name || k, issue: it.was, at: it.until, how: it.how || 'Retried' });
         delete it.until; delete it.then; delete it.was; delete it.how;
@@ -203,7 +230,7 @@ function productsOn(s, ch, now) {
       const added = it.added;                                 // published by the merchant after being off
       if (base === 'unpublished' && !added) st = 'unpublished';
       else if (base && base !== 'unpublished' && !fixedBy && !it.cleared) { issue = base; st = ISSUES[base].st; }
-      else st = ch === 'meta' ? 'synced' : 'approved';
+      else st = okOf(ch);
       // a product changed recently is still being processed on the first visit
       const bp = BASE_PROCESSING[ch][p.key];
       if (bp && !it.seen && conn && (s.seededAt || 0) + bp > now) st = 'processing';
@@ -225,12 +252,13 @@ export function channelProducts(ch) {
 
 /** One product's status on both product channels (product page, product list). */
 export function productChannels(key) {
-  return { meta: channelProducts('meta').find((r) => r.key === key) || null, gmc: channelProducts('gmc').find((r) => r.key === key) || null };
+  return Object.fromEntries(PRODUCT_CHS.map((ch) => [ch, channelProducts(ch).find((r) => r.key === key) || null]));
 }
 /** Status of every product on both channels, by key (one pass, for the product list). */
 export function channelMap() {
   const out = {};
-  ['meta', 'gmc'].forEach((ch) => channelProducts(ch).forEach((r) => { (out[r.key] = out[r.key] || {})[ch] = r; }));
+  const conn = state().conn;
+  PRODUCT_CHS.filter((ch) => conn[ch]).forEach((ch) => channelProducts(ch).forEach((r) => { (out[r.key] = out[r.key] || {})[ch] = r; }));
   return out;
 }
 
@@ -306,7 +334,7 @@ export function retryItem(ch, key) {
   save((s) => {
     const it = (s.items[ch] = s.items[ch] || {})[key] = { ...(s.items[ch] || {})[key], seen: true };
     it.st = 'processing'; it.until = now + 3500 + Math.round(Math.random() * 1500); it.name = row.name;
-    if (solves) { it.then = ch === 'meta' ? 'synced' : 'approved'; it.cleared = true; it.was = row.issue || null; it.how = 'Retried'; it.final = true; }
+    if (solves) { it.then = okOf(ch); it.cleared = true; it.was = row.issue || null; it.how = 'Retried'; it.final = true; }
     else { it.then = issue.st; it.final = false; }
   });
 }
@@ -320,16 +348,16 @@ export function fixItem(key, field, value) {
     const prod = allProducts(getSavedProducts()).find((x) => x.id === p.id);
     if (prod) saveProduct({ ...prod, [field]: String(value).trim() });
   }
-  const before = { meta: channelProducts('meta').find((r) => r.key === key), gmc: channelProducts('gmc').find((r) => r.key === key) };
+  const before = Object.fromEntries(PRODUCT_CHS.map((ch) => [ch, channelProducts(ch).find((r) => r.key === key)]));
   save((s) => {
     s.fixes[key] = { ...(s.fixes[key] || {}), [field]: field === 'photo' ? true : String(value).trim() };
     if (field === 'photo' && value) s.fixes[key].photoUrl = value;
-    ['meta', 'gmc'].forEach((ch) => {
+    PRODUCT_CHS.forEach((ch) => {
       const r = before[ch];
       if (!r || !r.issue || ISSUES[r.issue].field !== field) return;
       const it = (s.items[ch] = s.items[ch] || {})[key] = { ...(s.items[ch] || {})[key], seen: true };
-      it.st = 'processing'; it.until = now + 4000 + Math.round(Math.random() * 2000); it.then = ch === 'meta' ? 'synced' : 'approved'; it.final = true;
-      it.cleared = true; it.was = r.issue; it.name = r.name; it.how = field === 'photo' ? 'Photo added' : field === 'barcode' ? 'Barcode added' : 'SKU added';
+      it.st = 'processing'; it.until = now + 4000 + Math.round(Math.random() * 2000); it.then = okOf(ch); it.final = true;
+      it.cleared = true; it.was = r.issue; it.name = r.name; it.how = field === 'photo' ? 'Photo added' : field === 'barcode' ? 'Barcode added' : field === 'weight' ? 'Weight added' : 'SKU added';
     });
   });
   // a product that only lived in the catalogue keeps its new key under the old one (the SKU did not change there)
@@ -370,16 +398,15 @@ export function setPublished(ch, keys, on) {
 export function getIssues() {
   const c = getChannels();
   const out = [];
-  ['meta', 'gmc'].forEach((ch) => {
+  PRODUCT_CHS.forEach((ch) => {
     if (!c.conn[ch]) return;
     channelProducts(ch).forEach((r) => {
       if (r.st === 'processing' && r.until) out.push({ id: ch + ':' + r.key, ch, key: r.key, name: r.name, sku: r.sku, issue: null, st: 'processing', at: r.until - 4000 });
       else if (r.issue) out.push({ id: ch + ':' + r.key, ch, key: r.key, name: r.name, sku: r.sku, issue: r.issue, st: ISSUES[r.issue].kind === 'retry' ? 'failed' : 'attention', at: (r.at || c.now) - attemptAge(r.key) });
     });
   });
-  if (c.conn.gbp) gbpLocations().filter((l) => l.st === 'attention').forEach((l) => out.push({ id: 'gbp:' + l.id, ch: 'gbp', key: l.id, name: l.name, sku: '', issue: 'gbp-hours', st: 'attention', at: c.now - 3 * HOUR - 20 * MIN, loc: true }));
   const s = state();
-  s.resolved.forEach((r) => out.push({ id: 'res:' + r.id, ch: r.ch, key: r.key, name: r.name, sku: '', issue: r.issue, st: 'resolved', at: r.at, how: r.how }));
+  s.resolved.filter((r) => PRODUCT_CHS.includes(r.ch)).forEach((r) => out.push({ id: 'res:' + r.id, ch: r.ch, key: r.key, name: r.name, sku: '', issue: r.issue, st: 'resolved', at: r.at, how: r.how }));
   return out.sort((a, b) => (a.st === 'resolved') - (b.st === 'resolved') || b.at - a.at);
 }
 // spread the "last attempt" times a little so the list reads naturally

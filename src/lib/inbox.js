@@ -1,4 +1,5 @@
-// inbox — the shared inbox (chats from six channels), public comments on posts and reels, and calls.
+// inbox — the shared inbox (chats, public comments on posts and reels, Google reviews) and calls. Which channels come in
+// is set in Connections (src/lib/connections.js › connectedInbox): the Inbox shows only connected ones.
 // Front end only: everything is kept in this browser (localStorage) and starts from demo rows.
 //   gc.inbox.convs     conversations with their messages, status, assignee, tags
 //   gc.inbox.tags      the tag list (name -> tone)
@@ -27,9 +28,14 @@ export const CHANNELS = {
   tiktok: { name: 'TikTok', window: 'TikTok allows replies for 48 hours after their last message' },
   linkedin: { name: 'LinkedIn', window: 'LinkedIn messages have no reply window' },
   telegram: { name: 'Telegram', window: 'Telegram messages have no reply window' },
+  x: { name: 'X', window: 'X allows replies to direct messages at any time' },
+};
+/** Channels that only bring public comments, replies or reviews (no chats). */
+export const COMMENT_ONLY = {
+  youtube: { name: 'YouTube' }, pinterest: { name: 'Pinterest' }, threads: { name: 'Threads' }, gbp: { name: 'Google reviews' },
 };
 export const CHANNEL_IDS = Object.keys(CHANNELS);
-export const channelName = (ch) => (CHANNELS[ch] || { name: ch }).name;
+export const channelName = (ch) => (CHANNELS[ch] || COMMENT_ONLY[ch] || { name: ch }).name;
 
 export const ME = 'rina';
 export const STAFF = [
@@ -352,6 +358,10 @@ export const POSTS = [
   { id: 'p-delivery', ch: 'facebook', kind: 'Post', title: 'Free delivery inside Dhaka this week', caption: 'Order anything above ৳999 until Friday and delivery inside Dhaka is free. Outside Dhaka ৳150.', date: '22 Sep 2026', reactions: 940, shares: 38, views: 0, sales: 22100 },
   { id: 'p-live', ch: 'facebook', kind: 'Live', title: 'Friday live sale replay — 9 PM', caption: 'Replay of Friday’s live sale. Comment the product code to order.', date: '19 Sep 2026', reactions: 1310, shares: 44, views: 9600, sales: 114800 },
   { id: 'p-hiring', ch: 'linkedin', kind: 'Post', title: 'We are hiring two fulfilment leads', caption: 'Join our Tejgaon warehouse team. Experience with courier handover and stock counts preferred.', date: '17 Sep 2026', reactions: 210, shares: 12, views: 0, sales: 0 },
+  { id: 'p-yt-phone', ch: 'youtube', kind: 'Video', title: '5G Smartphone Pro — 7-day review', caption: 'A week with the 5G Smartphone Pro: camera at night, battery on a full day of Dhaka traffic, and gaming. Links in the description.', date: '26 Sep 2026', reactions: 640, shares: 22, views: 12400, sales: 389940 },
+  { id: 'p-threads', ch: 'threads', kind: 'Post', title: 'Which colour for the new polo?', caption: 'Navy, white or maroon? The most-asked colour gets restocked first.', date: '24 Sep 2026', reactions: 310, shares: 12, views: 0, sales: 0 },
+  { id: 'p-pin', ch: 'pinterest', kind: 'Pin', title: 'Everyday kurti — 8 prints', caption: 'Cotton kurtis for daily wear in eight prints, sizes S to XL.', date: '20 Sep 2026', reactions: 190, shares: 64, views: 5400, sales: 7740 },
+  { id: 'p-x', ch: 'x', kind: 'Post', title: 'Flash sale tonight 9 PM', caption: 'Flash sale tonight at 9 PM: earbuds, sunscreen and rice cookers. Set a reminder.', date: '18 Sep 2026', reactions: 120, shares: 35, views: 8100, sales: 0 },
 ];
 export const postBy = (id) => POSTS.find((p) => p.id === id) || null;
 function seedComments(now) {
@@ -387,7 +397,30 @@ function seedComments(now) {
     cm('p-hiring', 1300, 'Tahmina Rahman', 'Applied! Looking forward.', 'praise', 'positive', { status: 'answered', replies: [pr(1250, 'rina', 'Thanks Tahmina, we will be in touch this week.')] }),
   ];
 }
-export const getComments = () => load(K.comments, seedComments);
+// comments on the posts added later (YouTube, Threads, Pinterest, X); browsers that saved comments before get them once
+function seedMoreComments(now) {
+  const a = (min) => now - min * MIN;
+  let n = 500;
+  const cm = (post, min, author, text, intent, sentiment, more) => ({ id: 'cm' + (++n), post, at: a(min), author, initials: initialsOf(author), text, intent, sentiment, status: 'open', liked: false, assignee: '', replies: [], dm: '', hiddenBy: '', ...(more || {}) });
+  return [
+    cm('p-yt-phone', 34, 'Tech with Rafi', 'Camera at night is impressive. Is the 512 GB in stock in Chattogram?', 'question', 'positive'),
+    cm('p-yt-phone', 95, 'Sumon Ahmed', 'Price koto? EMI ache?', 'price', 'neutral'),
+    cm('p-yt-phone', 240, 'Nafisa Haque', 'Ordered after this video, came in 2 days 👍', 'praise', 'positive'),
+    cm('p-threads', 55, '@mehjabin.r', 'Maroon please! XL size', 'order', 'positive'),
+    cm('p-threads', 130, '@arif.k', 'Navy all the way', 'praise', 'positive'),
+    cm('p-pin', 400, 'Lamia Chowdhury', 'Do you ship to Sylhet?', 'question', 'neutral'),
+    cm('p-x', 700, '@deal_hunter_bd', 'Will the earbuds be in the sale?', 'question', 'neutral'),
+  ];
+}
+export const getComments = () => {
+  const list = load(K.comments, (now) => [...seedComments(now), ...seedMoreComments(now)]);
+  if (isBrowser && !readRaw('gc.inbox.more') && !list.some((c) => c.post === 'p-yt-phone')) {
+    const more = [...list, ...seedMoreComments(Date.now())];
+    writeRaw(K.comments, more); writeRaw('gc.inbox.more', 1);
+    return more;
+  }
+  return list;
+};
 export const saveComments = (list) => put(K.comments, list);
 export const patchComment = (id, patch) => saveComments(getComments().map((c) => (c.id === id ? { ...c, ...(typeof patch === 'function' ? patch(c) : patch) } : c)));
 export const deleteComment = (id) => saveComments(getComments().filter((c) => c.id !== id));

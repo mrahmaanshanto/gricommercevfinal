@@ -342,7 +342,7 @@ export default class CalendarScreen extends Component {
                       <button type="button" role="radio" aria-checked={m?.on} onClick={m?.pick} style={__sx(`background: ${m?.bg ?? ""}; color: ${m?.fg ?? ""}; box-shadow: ${m?.sh ?? ""};`)}>{m?.l}</button>
                     </React.Fragment>))}
                 </div>
-                <__Link href="/social-connections" className="abtn" style={{ textDecoration: "none" }}>Connections</__Link>
+                <__Link href="/connections?group=social" className="abtn" style={{ textDecoration: "none" }}>Connections</__Link>
                 <__Link href="/composer" className="btn solid sm">Create post</__Link>
               </div>
               {v.hasMsg ? (<>

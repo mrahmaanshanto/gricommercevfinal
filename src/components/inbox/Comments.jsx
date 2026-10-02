@@ -4,6 +4,7 @@
 // spam) and insights (sentiment, what people ask, auto-moderation rules, saved replies).
 // Three panes on desktop, two on tablets (insights slide over), one on phones.
 
+import { useLiveChannels } from './useLiveChannels';
 import React, { useMemo, useState } from 'react';
 import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
@@ -36,7 +37,11 @@ const QUICK = [
 const PHONE_RE = /01[0-9x]{9}/i;
 
 export function CommentsView({ now, onOpenConv, wide }) {
-  const comments = useInbox(getComments) || [];
+  // only channels connected in Connections bring comments in
+  const live = useLiveChannels('Comments');
+  const seen = (ch) => !live || live.includes(ch);
+  const SHOWN = POSTS.filter((p) => seen(p.ch));
+  const comments = (useInbox(getComments) || []).filter((c) => SHOWN.some((p) => p.id === c.post));
   const rules = useInbox(getRules) || [true, true, true, false];
   const replies = useInbox(getReplies) || [];
   const [post, setPost] = useState('p-eid');
@@ -51,9 +56,9 @@ export function CommentsView({ now, onOpenConv, wide }) {
   const [manage, setManage] = useState(false);
 
   const openOf = (pid) => comments.filter((c) => c.post === pid && c.status === 'open').length;
-  const posts = useMemo(() => POSTS.filter((p) => chan === 'all' || p.ch === chan).map((p) => ({ ...p, open: openOf(p.id), count: comments.filter((c) => c.post === p.id).length }))
-    .sort((a, b) => (sort === 'open' ? b.open - a.open : sort === 'count' ? b.count - a.count : sort === 'sales' ? b.sales - a.sales : 0)), [comments, chan, sort]); // eslint-disable-line react-hooks/exhaustive-deps
-  const cur = POSTS.find((p) => p.id === post) || POSTS[0];
+  const posts = useMemo(() => SHOWN.filter((p) => chan === 'all' || p.ch === chan).map((p) => ({ ...p, open: openOf(p.id), count: comments.filter((c) => c.post === p.id).length }))
+    .sort((a, b) => (sort === 'open' ? b.open - a.open : sort === 'count' ? b.count - a.count : sort === 'sales' ? b.sales - a.sales : 0)), [comments, chan, sort, live]); // eslint-disable-line react-hooks/exhaustive-deps
+  const cur = SHOWN.find((p) => p.id === post) || SHOWN[0] || POSTS[0];
   const here = comments.filter((c) => c.post === cur.id);
   const shown = here.filter((c) => matchFilter(c, filter) && (!q || (c.author + ' ' + c.text).toLowerCase().includes(q.toLowerCase()))).sort((a, b) => (a.status === 'open') === (b.status === 'open') ? b.at - a.at : a.status === 'open' ? -1 : 1);
   const spam = here.filter((c) => c.intent === 'spam' && c.status !== 'hidden');
@@ -115,11 +120,11 @@ export function CommentsView({ now, onOpenConv, wide }) {
           <div className="ibx-listhead__row">
             <h2 className="ib-h2">Posts and reels</h2>
             <span className="ib-sub">{totalOpen} unanswered</span>
-            <button type="button" className="gc-btn gc-btn--xs gc-btn--flat cm-sync" onClick={() => toast('Synced 6 channels · no new comments')}><Icon name="refresh-cw" width="14" height="14" aria-hidden="true" />Sync</button>
+            <button type="button" className="gc-btn gc-btn--xs gc-btn--flat cm-sync" onClick={() => toast(`Synced ${new Set(SHOWN.map((p) => p.ch)).size} channels · no new comments`)}><Icon name="refresh-cw" width="14" height="14" aria-hidden="true" />Sync</button>
           </div>
           <div className="ib-scroll-x" role="group" aria-label="Filter by channel">
             <button type="button" className="ib-chip" aria-pressed={chan === 'all'} onClick={() => setChan('all')}>All<b>{totalOpen}</b></button>
-            {CHANNEL_IDS.filter((ch) => POSTS.some((p) => p.ch === ch)).map((ch) => (
+            {[...new Set(SHOWN.map((p) => p.ch))].map((ch) => (
               <button key={ch} type="button" className="ib-chip" aria-pressed={chan === ch} onClick={() => setChan(ch)} aria-label={channelName(ch)} title={channelName(ch)}>
                 <ChannelIcon channel={ch} size={20} decorative /><b>{comments.filter((c) => c.status === 'open' && (POSTS.find((p) => p.id === c.post) || {}).ch === ch).length}</b>
               </button>
@@ -288,7 +293,7 @@ function Insights({ here, comments, cur, rules, replies, onToggleRule, onUse, on
   const senti = ['positive', 'neutral', 'negative'].map((s) => [s, Math.round((visible.filter((c) => c.sentiment === s).length / n) * 100)]);
   const asks = ['price', 'question', 'order', 'complaint', 'praise'].map((k) => [k, here.filter((c) => c.intent === k).length]).filter(([, v]) => v);
   const max = Math.max(1, ...asks.map(([, v]) => v));
-  const byCh = CHANNEL_IDS.map((ch) => [ch, comments.filter((c) => c.status === 'open' && (POSTS.find((p) => p.id === c.post) || {}).ch === ch).length]).filter(([, v]) => v);
+  const byCh = [...new Set(POSTS.map((p) => p.ch))].map((ch) => [ch, comments.filter((c) => c.status === 'open' && (POSTS.find((p) => p.id === c.post) || {}).ch === ch).length]).filter(([, v]) => v);
   const stats = [
     ['Unanswered', comments.filter((c) => c.status === 'open').length, 'message-circle-question'],
     ['Negative, open', comments.filter((c) => c.status === 'open' && c.sentiment === 'negative').length, 'frown'],

@@ -801,6 +801,8 @@ body{font-family:var(--font-sans)}
 .gc-empty__icon{display:grid;place-items:center;width:48px;height:48px;border-radius:var(--radius-full);background:var(--surface-subtle);color:var(--text-muted)}
 .gc-empty__title{margin:0}
 .gc-channel{display:inline-grid;place-items:center;flex:none;border-radius:var(--radius-full);color:#fff}
+.gc-channel--logo{overflow:hidden;border-radius:var(--radius-sm);background:#fff}
+.gc-channel--logo img{display:block;width:100%;height:100%;object-fit:contain}
 
 @media (max-width:1023px){
   .gc-cols-4{grid-template-columns:repeat(2,minmax(0,1fr))!important}

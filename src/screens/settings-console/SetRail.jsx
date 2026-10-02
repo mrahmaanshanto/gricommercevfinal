@@ -18,10 +18,12 @@ const ROUTES = {
   general: '/set-general', preference: '/set-preference', payment: '/set-payments', delivery: '/set-delivery',
   ai: '/set-ai', rules: '/set-rules', notifications: '/set-notifications', stocksetup: '/stock-setup', profile: '/set-profile', usage: '/set-usage', seo: '/set-seo', storage: '/set-storage',
   apisec: '/set-security', dbbackup: '/set-security#s1', filebackup: '/set-security#s2',
+  // every outside connection is made in Connections
+  connections: '/connections', social: '/connections?group=social', courier: '/connections?group=delivery', mail: '/connections?group=messages', sms: '/connections?group=messages',
 };
 
 const GROUPS = [
-  ['Store', [['general', 'General', 'ok'], ['profile', 'Profile type', 'ok'], ['stocksetup', 'Stock setup', 'ok'], ['preference', 'Preference', 'ok'], ['pos', 'POS', 'ok'], ['report', 'Report Settings', 'none']]],
+  ['Store', [['connections', 'Connections', 'ok'], ['general', 'General', 'ok'], ['profile', 'Profile type', 'ok'], ['stocksetup', 'Stock setup', 'ok'], ['preference', 'Preference', 'ok'], ['pos', 'POS', 'ok'], ['report', 'Report Settings', 'none']]],
   ['Commerce', [['payment', 'Payment Gateway', 'ok'], ['delivery', 'Delivery Settings', 'ok'], ['courier', 'Courier Settings', 'warn', '1']]],
   ['Notifications', [['notifications', 'Order notifications', 'ok']]],
   ['Communication', [['mail', 'Mail', 'ok'], ['sms', 'SMS', 'warn', '1'], ['push', 'Push Notifications', 'off'], ['social', 'Social Integrations', 'ok'], ['ai', 'AI Auto-Reply', 'ok'], ['rules', 'Auto-Reply Rules', 'ok'], ['usage', 'AI Usage', 'none']]],

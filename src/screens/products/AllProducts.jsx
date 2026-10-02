@@ -15,7 +15,8 @@ import { formatBDT } from '@/lib/format';
 import { allProducts, getSavedProducts, DEMO_PRODUCTS, sellLabel } from '@/lib/products';
 import { getStockSetup } from '@/lib/stockSetup';
 import { hasModule } from '@/lib/edition';
-import { CHANNELS_EVENT, channelMap, getChannels, setPublished, retryMany, STATUS, ISSUES, channelBy } from '@/lib/channels';
+import { CHANNELS_EVENT, channelMap, getChannels, setPublished, retryMany, STATUS, ISSUES, channelBy, PRODUCT_CHS } from '@/lib/channels';
+import { BrandLogo as __BrandLogo } from '@/components/BrandLogo';
 
 // Sales channels on the product list (src/lib/channels.js): a filter, a small Meta / Google mark per row and the
 // channel actions for the selected products. Shown when the edition sells on channels.
@@ -95,11 +96,11 @@ class Component extends DCLogic {
     var msg;
     if (ch === 'retry') {
       var m = channelMap(), list = [];
-      keys.forEach(function (k) { ['meta', 'gmc'].forEach(function (c) { var r = (m[k] || {})[c]; if (r && r.issue && ISSUES[r.issue].kind === 'retry') list.push([c, k]); }); });
+      keys.forEach(function (k) { PRODUCT_CHS.forEach(function (c) { var r = (m[k] || {})[c]; if (r && r.issue && ISSUES[r.issue].kind === 'retry') list.push([c, k]); }); });
       retryMany(list);
       msg = list.length ? 'Retrying ' + list.length + (list.length === 1 ? ' failed sync' : ' failed syncs') : 'Nothing failed. Problems that need a fix are in Sync issues.';
     } else {
-      var n = setPublished(ch, keys, on), name = ch === 'meta' ? 'Meta' : 'Google';
+      var n = setPublished(ch, keys, on), name = ch === 'gmc' ? 'Google' : channelBy(ch).short;
       msg = n ? (on ? 'Publishing ' + n + ' to ' + name + '…' : 'Removed ' + n + ' from ' + name) : (on ? 'Already on ' + name + ' (drafts are not sent)' : 'None of these are on ' + name);
     }
     this.setState({ chMenu: false, sel: {}, chm: channelMap() });
@@ -117,7 +118,7 @@ class Component extends DCLogic {
       'meta-off': function (p) { var r = chOf(p).meta; return !r || r.st === 'unpublished'; },
       'gmc-ok': function (p) { var r = chOf(p).gmc; return !!r && r.st === 'approved'; },
       'gmc-bad': function (p) { var r = chOf(p).gmc; return !!r && r.st === 'disapproved'; },
-      attention: function (p) { var x = chOf(p); return ['meta', 'gmc'].some(function (k) { return conn[k] && x[k] && !!x[k].issue; }); },
+      attention: function (p) { var x = chOf(p); return PRODUCT_CHS.some(function (k) { return conn[k] && x[k] && !!x[k].issue; }); },
     };
     var filtered = !!(fCat || fBrand || fTag || fSell || fCh);
     var tabLabel = TABS.filter(function (t) { return t.k === tab; })[0].label;
@@ -146,13 +147,10 @@ class Component extends DCLogic {
       wsOn: wsOn, sellOpts: SELLS.map(function (x) { return { v: x[0], l: x[1] }; }), fSell: fSell, setSell: function (e) { self.setState({ fSell: e.target.value, sel: {} }); },
       chOn: chOn, chOpts: CH_FILTERS.filter(function (x) { return !x[0] || (x[0].indexOf('meta') === 0 ? conn.meta : x[0].indexOf('gmc') === 0 ? conn.gmc : conn.meta || conn.gmc); }).map(function (x) { return { v: x[0], l: x[1] }; }), fCh: fCh, setCh: function (e) { self.setState({ fCh: e.target.value, sel: {} }); },
       chMenu: !!s.chMenu && n > 0, toggleChMenu: function () { self.setState({ chMenu: !s.chMenu }); },
-      chActs: [
-        conn.meta ? { l: 'Publish to Meta', run: function () { self.bulkCh('meta', true); } } : null,
-        conn.meta ? { l: 'Remove from Meta', run: function () { self.bulkCh('meta', false); } } : null,
-        conn.gmc ? { l: 'Publish to Google', run: function () { self.bulkCh('gmc', true); } } : null,
-        conn.gmc ? { l: 'Remove from Google', run: function () { self.bulkCh('gmc', false); } } : null,
-        conn.meta || conn.gmc ? { l: 'Retry sync', run: function () { self.bulkCh('retry'); } } : null,
-      ].filter(Boolean),
+      chActs: PRODUCT_CHS.filter(function (k) { return conn[k]; }).reduce(function (out, k) {
+        var nm = k === 'gmc' ? 'Google' : channelBy(k).short;
+        return out.concat([{ l: 'Publish to ' + nm, run: function () { self.bulkCh(k, true); } }, { l: 'Remove from ' + nm, run: function () { self.bulkCh(k, false); } }]);
+      }, []).concat(PRODUCT_CHS.some(function (k) { return conn[k]; }) ? [{ l: 'Retry sync', run: function () { self.bulkCh('retry'); } }] : []),
       filtered: filtered, filterCount: [fCat, fBrand, fTag, fSell, fCh].filter(Boolean).length, clearFilters: function () { self.setState({ fCat: '', fBrand: '', fTag: '', fSell: '', fCh: '' }); },
       emptyTitle: q ? 'No products match “' + (s.q || '').trim() + '”' : filtered ? 'No products match these filters' : 'No ' + (tab === 'all' ? '' : tabLabel.toLowerCase() + ' ') + 'products',
       emptyBody: q ? 'Check the spelling, or clear the search to see every product in this tab.' : filtered ? 'Clear the filters to see every product in this tab.' : 'Nothing has this status yet. Show all products instead.',
@@ -166,9 +164,9 @@ class Component extends DCLogic {
           flags: p.flags.filter(function (f) { return FL[f]; }).map(function (f) { return { l: f, bg: FL[f][0], fg: FL[f][1], t: FL[f][2] }; }),
           href: href,
           // Meta and Google marks: the channel logo with a status dot (title and screen-reader text say the status)
-          chMarks: !chOn ? [] : ['meta', 'gmc'].filter(function (k) { return conn[k]; }).map(function (k) {
+          chMarks: !chOn ? [] : PRODUCT_CHS.filter(function (k) { return conn[k]; }).map(function (k) {
             var r = chOf(p)[k], st = r ? r.st : null, issue = r && r.issue ? ISSUES[r.issue].title : '';
-            return { k: k, logo: channelBy(k).logo, tone: st ? CH_TONE[st] : 'off', label: (k === 'meta' ? 'Meta' : 'Google') + ': ' + (st ? STATUS[st].label : 'Not sold online') + (issue ? ' · ' + issue : '') };
+            return { k: k, logo: channelBy(k).logo, brand: channelBy(k).brand, tone: st ? CH_TONE[st] : 'off', label: (k === 'gmc' ? 'Google' : channelBy(k).short) + ': ' + (st ? STATUS[st].label : 'Not sold online') + (issue ? ' · ' + issue : '') };
           }),
           // A click anywhere on the row opens the product, except on its own controls.
           open: function (e) { if (e.target.closest && e.target.closest('a,button,input,select,label')) return; if (self.props.router) self.props.router.push(href); else window.location.href = href; },
@@ -563,7 +561,7 @@ class AllProductsView extends Component {
                             {v.chOn ? <td className="td">
                               {r?.chMarks.length ? (
                                 <span className="ap-chs">
-                                  {r.chMarks.map((m) => (<span key={m.k} className="ap-ch" title={m.label}><img src={m.logo} alt="" width="14" height="14" /><i className={'ap-chdot ap-chdot--' + m.tone} /><span className="sr-only">{m.label}</span></span>))}
+                                  {r.chMarks.map((m) => (<span key={m.k} className="ap-ch" title={m.label}>{m.logo ? <img src={m.logo} alt="" width="14" height="14" /> : <__BrandLogo brand={m.brand} size={20} decorative style={{ border: 0, borderRadius: 'var(--radius-sm)' }} />}<i className={'ap-chdot ap-chdot--' + m.tone} /><span className="sr-only">{m.label}</span></span>))}
                                 </span>
                               ) : <span style={{ color: "var(--text-muted)" }}>—</span>}
                             </td> : null}

@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { PageHeader } from '@/components/ui';
-import { CHANNELS, saveSettings, setAuto, ago, agoLow } from '@/lib/channels';
+import { PRODUCT_CHANNELS as CHANNELS, saveSettings, setAuto, ago, agoLow, connectHref } from '@/lib/channels';
 import { ChannelFrame, ChannelLogo, ConnBadge, useChannels } from './chShared';
 
 const SYNC = [
@@ -100,7 +100,7 @@ export default function ChannelSettings() {
     </section>
 
     <section className="gc-card cs-ch" aria-labelledby="cs-chans">
-      <div className="cs-head"><h2 id="cs-chans">Channels</h2></div>
+      <div className="cs-head"><h2 id="cs-chans">Channels</h2><p>Connect or disconnect them in <Link href="/connections?group=sell">Connections</Link>.</p></div>
       <div className="cs-list" style={{ marginTop: 'var(--space-2)' }}>
         {CHANNELS.map((ch) => {
           const conn = c.conn[ch.key];
@@ -116,7 +116,7 @@ export default function ChannelSettings() {
                 </span>
               ) : null}
               <span className="cs-row__acts">
-                {conn ? <Link href={ch.page} className="gc-btn gc-btn--sm gc-btn--neutral">Manage</Link> : <Link href={'/connect-channel?channel=' + ch.key} className="gc-btn gc-btn--sm gc-btn--solid">Connect</Link>}
+                {conn ? <Link href={ch.page} className="gc-btn gc-btn--sm gc-btn--neutral">Manage</Link> : <Link href={connectHref(ch.key)} className="gc-btn gc-btn--sm gc-btn--solid">Connect</Link>}
               </span>
             </div>
           );

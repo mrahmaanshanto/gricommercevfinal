@@ -8,7 +8,7 @@ const BN = {
   'Staff & HR': 'কর্মী ও এইচআর', 'Loyalty': 'লয়্যালটি', 'Promo': 'প্রোমো', 'Recovery': 'রিকভারি', 'Accounts': 'হিসাব',
   'Communication': 'যোগাযোগ', 'Automation': 'অটোমেশন', 'Management': 'ব্যবস্থাপনা',
   // sales channels
-  'Channels': 'চ্যানেল', 'Overview': 'সারসংক্ষেপ', 'Meta Commerce': 'মেটা কমার্স', 'Google Merchant Center': 'গুগল মার্চেন্ট সেন্টার', 'Google Business': 'গুগল বিজনেস', 'Sync issues': 'সিঙ্কের সমস্যা',
+  'Sales channels': 'সেলস চ্যানেল', 'WooCommerce': 'উকমার্স', 'Shopify': 'শপিফাই', 'Online store': 'অনলাইন স্টোর', 'Channels': 'চ্যানেল', 'Overview': 'সারসংক্ষেপ', 'Meta Commerce': 'মেটা কমার্স', 'Google Merchant Center': 'গুগল মার্চেন্ট সেন্টার', 'Google Business': 'গুগল বিজনেস', 'Sync issues': 'সিঙ্কের সমস্যা',
   // general
   'Home': 'হোম', 'GridAI': 'গ্রিডএআই', 'Orders': 'অর্ডার', 'All orders': 'সব অর্ডার', 'Pending': 'অপেক্ষমাণ', 'Approved': 'অনুমোদিত',
   'Ready to ship': 'পাঠানোর জন্য প্রস্তুত', 'Shipped': 'পাঠানো হয়েছে', 'On hold': 'হোল্ডে', 'Processing': 'প্রসেসিং', 'Ready for courier': 'কুরিয়ারের জন্য প্রস্তুত', 'In transit': 'পথে আছে', 'Delivered': 'ডেলিভারি হয়েছে', 'Returned': 'ফেরত', 'Cancelled': 'বাতিল',

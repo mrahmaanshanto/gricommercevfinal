@@ -12,7 +12,7 @@ import { toast } from '@/runtime/ui';
 import { StatusBadge } from '@/components/ui';
 import { hasModule } from '@/lib/edition';
 import { findProduct } from '@/lib/products';
-import { CHANNELS_EVENT, getChannels, productChannels, setPublished, retryItem, ISSUES } from '@/lib/channels';
+import { CHANNELS_EVENT, getChannels, productChannels, setPublished, retryItem, ISSUES, channelBy, connectHref } from '@/lib/channels';
 import { ChannelLogo, StatusTag, FixSheet, CH_CSS } from '@/screens/channels/chShared';
 
 const CSS = `
@@ -60,7 +60,7 @@ export default function ProductChannels({ draft }) {
       return (
         <div className="pc-row" key={ch}>
           <ChannelLogo ch={ch} size={32} />{name}
-          <Link href={'/connect-channel?channel=' + ch} className="gc-btn gc-btn--xs gc-btn--flat">Connect</Link>
+          <Link href={connectHref(ch)} className="gc-btn gc-btn--xs gc-btn--flat">Connect</Link>
           <span className="pc-row__status"><StatusBadge tone="neutral" icon="unplug">Not connected</StatusBadge></span>
         </div>
       );
@@ -78,12 +78,12 @@ export default function ProductChannels({ draft }) {
     const toggle = () => {
       if (r.draft) { toast('Draft products are not sent. Make the product active first.'); return; }
       setPublished(ch, [key], !on);
-      toast(on ? `Removed from ${ch === 'meta' ? 'Meta' : 'Google'}` : `Publishing to ${ch === 'meta' ? 'Meta' : 'Google'}…`);
+      toast(on ? `Removed from ${channelBy(ch).short}` : `Publishing to ${channelBy(ch).short}…`);
     };
     let act = null;
     if (issue && issue.kind === 'fix') act = <button type="button" className="gc-btn gc-btn--xs gc-btn--soft" onClick={() => setFix(r)}>Fix</button>;
     else if (issue) act = <button type="button" className="gc-btn gc-btn--xs gc-btn--soft" onClick={() => { retryItem(ch, key); toast('Trying again…'); }}>Retry</button>;
-    else if (on && r.st !== 'processing') act = <Link href={(ch === 'meta' ? '/meta-commerce' : '/google-merchant') + '?q=' + encodeURIComponent(r.sku || r.name)} className="gc-btn gc-btn--xs gc-btn--flat">View</Link>;
+    else if (on && r.st !== 'processing') act = <Link href={channelBy(ch).page + '?q=' + encodeURIComponent(r.sku || r.name)} className="gc-btn gc-btn--xs gc-btn--flat">View</Link>;
     return (
       <div className="pc-row" key={ch}>
         <ChannelLogo ch={ch} size={32} />{name}{sw(on, label, toggle, r.draft)}
@@ -122,6 +122,8 @@ export default function ProductChannels({ draft }) {
         ) : null}
         {hasModule('channels') ? channelRow('meta', 'Facebook & Instagram', 'Meta catalog') : null}
         {hasModule('channels') ? channelRow('gmc', 'Google Shopping', 'Merchant Center') : null}
+        {hasModule('channels') ? channelRow('woo', 'WooCommerce', 'Your WordPress store') : null}
+        {hasModule('channels') ? channelRow('shopify', 'Shopify', 'Your Shopify store') : null}
       </div>
       {fix ? createPortal(<FixSheet item={fix} onClose={() => setFix(null)} />, document.body) : null}
     </section>

@@ -20,9 +20,13 @@ const TABS = {
   meta: [['all', 'All products', 'var(--primary)'], ['synced', 'Synced', 'var(--success)'], ['attention', 'Needs attention', 'var(--warning)'], ['failed', 'Failed', 'var(--error)'], ['processing', 'Processing', 'var(--info)'], ['unpublished', 'Not published', 'var(--slate-400)']],
   gmc: [['all', 'All products', 'var(--primary)'], ['approved', 'Approved', 'var(--success)'], ['limited', 'Limited', 'var(--warning)'], ['disapproved', 'Disapproved', 'var(--error)'], ['processing', 'Processing', 'var(--info)'], ['unpublished', 'Not published', 'var(--slate-400)']],
 };
+TABS.woo = TABS.meta;
+TABS.shopify = TABS.meta;
 const DESC = {
   meta: 'Your products on Facebook and Instagram shops.',
   gmc: 'Your products on Google Search and the Shopping tab.',
+  woo: 'Your products on your WordPress store, and its orders here.',
+  shopify: 'Your products on your Shopify store, and its orders here.',
 };
 
 export default function ProductChannel({ ch, active, screen }) {
@@ -49,7 +53,7 @@ export default function ProductChannel({ ch, active, screen }) {
     return frame(<>
       <PageHeader title={meta.name} description={DESC[ch]} />
       <section className="gc-card" style={{ padding: 'var(--space-6) var(--space-5)' }}>
-        <EmptyState icon={meta.icon} title={meta.empty.title} body={meta.empty.body} actionLabel={meta.empty.action} onAction={() => router.push('/connect-channel?channel=' + ch)} />
+        <EmptyState icon={meta.icon} title={meta.empty.title} body={meta.empty.body} actionLabel={meta.empty.action} onAction={() => router.push('/connect?app=' + ({ meta: 'meta-catalog', gmc: 'gmc', woo: 'woocommerce', shopify: 'shopify' })[ch])} />
       </section>
     </>);
   }
@@ -72,7 +76,7 @@ export default function ProductChannel({ ch, active, screen }) {
 
   return frame(<>
     <PageHeader title={meta.name} description={DESC[ch]} actions={<>
-      <Link href={'/channel-settings#' + ch} className="gc-btn gc-btn--neutral"><Icon name="settings" width="18" height="18" aria-hidden="true" /> Settings</Link>
+      <Link href={meta.settings || '/channel-settings'} className="gc-btn gc-btn--neutral"><Icon name="settings" width="18" height="18" aria-hidden="true" /> Settings</Link>
       <button type="button" className="gc-btn gc-btn--neutral" onClick={doDisconnect}><Icon name="unplug" width="18" height="18" aria-hidden="true" /> Disconnect</button>
       <button type="button" className="gc-btn gc-btn--solid" onClick={syncNow} disabled={!!job}><Icon name="refresh-cw" width="18" height="18" aria-hidden="true" /> Sync now</button>
     </>} />
@@ -87,6 +91,9 @@ export default function ProductChannel({ ch, active, screen }) {
         {ch === 'meta' ? (<>
           <div><dt>Business account</dt><dd>{conn.business}</dd></div>
           <div><dt>Connected catalog</dt><dd title={conn.catalog}>{conn.catalog}</dd></div>
+        </>) : ch === 'woo' || ch === 'shopify' ? (<>
+          <div><dt>Store</dt><dd title={conn.store}>{conn.store}</dd></div>
+          <div><dt>{ch === 'woo' ? 'Version' : 'Orders'}</dt><dd>{ch === 'woo' ? conn.version || 'WooCommerce' : conn.what && conn.what.orders === false ? 'Not brought in' : 'Come into Orders'}</dd></div>
         </>) : (<>
           <div><dt>Merchant Center account</dt><dd>{conn.account}</dd></div>
           <div><dt>Merchant ID</dt><dd className="ch-data">{String(conn.merchantId).replace(/(\d{3})(\d{3})(\d+)/, '$1 $2 $3')}</dd></div>
@@ -137,7 +144,7 @@ export default function ProductChannel({ ch, active, screen }) {
               <tr>
                 <th style={{ width: 44 }}><input type="checkbox" className="gc-check" aria-label="Select all" checked={allOn} onChange={() => setSel(allOn ? {} : Object.fromEntries(shown.map((r) => [r.key, true])))} /></th>
                 <th>Product</th>
-                <th>{ch === 'meta' ? 'Meta status' : 'Google status'}</th>
+                <th>{ch === 'gmc' ? 'Google status' : `${meta.short} status`}</th>
                 {ch === 'gmc' ? <th>Issue</th> : null}
                 {ch === 'gmc' ? <th style={{ textAlign: 'right' }}>Price</th> : <th>Stock</th>}
                 {ch === 'gmc' ? <th>Stock</th> : <th style={{ textAlign: 'right' }}>Price</th>}
@@ -157,7 +164,7 @@ export default function ProductChannel({ ch, active, screen }) {
                     <td>
                       <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
                         <StatusTag st={r.st} />
-                        {ch === 'meta' && r.issue ? <small className="ch-muted" style={{ fontSize: 'var(--text-xs)', whiteSpace: 'normal' }}>{ISSUES[r.issue].title}</small> : null}
+                        {ch !== 'gmc' && r.issue ? <small className="ch-muted" style={{ fontSize: 'var(--text-xs)', whiteSpace: 'normal' }}>{ISSUES[r.issue].title}</small> : null}
                         {r.st === 'unpublished' && r.why ? <small className="ch-muted" style={{ fontSize: 'var(--text-xs)', whiteSpace: 'normal' }}>{r.why}</small> : null}
                         {r.st !== 'unpublished' && r.st !== 'processing' ? <small className="ch-muted ch-narrow-only" style={{ fontSize: 'var(--text-xs)' }}>Synced {agoLow(r.at, c.now)}</small> : null}
                       </span>

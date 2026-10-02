@@ -76,17 +76,29 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   the prepaid "GridCommerce credits" account once a month (one expense row per service when the month closes); the
   subscription (by edition) and server & storage are charged to the card's bank on the 12th. They are generated ledger rows
   (`ledger.getEntries`), so Income & expenses, profit and reports show them; report "Platform & messaging costs".
-- Sales channels (menu group Channels; module `channels` in retail-wholesale, online, retail-online): Meta Commerce
-  (Facebook & Instagram catalog), Google Merchant Center and Google Business Profile. UI only — no APIs: `src/lib/channels.js`
-  simulates connections, syncs (progress follows the clock: connecting → syncing → success / partly synced / processing /
-  failed; `?sync=failed` makes the next one fail), product statuses built from the real product list (`channelProducts`),
-  problems in plain words with the fix (`ISSUES`; channel codes only under Technical details), retry, fix (barcode, SKU,
-  photo), publish / remove, and Google Business data (locations, reviews + AI reply drafts, business info and hours, posts,
-  media, services). Pages in `src/screens/channels/` share `chShared.jsx` (frame, logos, StatusTag, SyncState, ItemSheet,
-  FixSheet, RowMenu): `/channels` (overview, sync health, recent issues), `/meta-commerce` and `/google-merchant` (one page,
-  `ProductChannel.jsx`), `/google-business?tab=`, `/sync-issues`, `/channel-settings`, `/connect-channel?channel=` (6-step
-  wizard). The product page has a Sales channels card (`components/ProductChannels.jsx`, in AddProduct's side column) and
-  All products has a Channels filter, Meta / Google marks per row and channel bulk actions. Words: docs/terminology.md.
+- Connections (`/connections`, Online store & settings › Connections; `src/lib/connections.js`): the one place where every
+  outside app and service is connected — Sell online (Meta catalog, Google Merchant, WooCommerce, Shopify), Inbox & social
+  (Facebook, Instagram, WhatsApp, TikTok, YouTube, Google Business, LinkedIn, X, Pinterest, Threads, Telegram), Ads &
+  tracking, Payments, Delivery, SMS & email, Devices & tools. `APPS` lists them (group, brand for `components/BrandLogo`,
+  kind, module, page); `statusOf` reads the lib that owns each (channels.js, settlements.js gateways, hr.js devices, or
+  `gc.connections`). One connect flow, `/connect?app=` (`screens/connections/ConnectApp.jsx`: sign in · choose · what to
+  use · review · done; stores take an address and keys; SMS / email take a provider); gateways and couriers open
+  `GatewaySetup` (prop `provider`) on the Connections page; devices and tools go to their page. Every other "Connect"
+  button points here (old Social accounts, Ad accounts and WordPress sync menu items are aliases of it / the WooCommerce
+  channel; `/social-connections` redirects; the ad-accounts screen is `/ad-accounts`). New outside service → add it to `APPS`.
+- Sales channels (menu group; module `channels` in retail-wholesale, online, retail-online): product sync to Meta
+  Commerce, Google Merchant Center, WooCommerce and Shopify. UI only — `src/lib/channels.js` simulates syncs (progress
+  follows the clock: connecting → syncing → success / partly synced / processing / failed; `?sync=failed` makes the next one
+  fail), product statuses from the real product list (`channelProducts`, `PRODUCT_CHS`), plain-word problems with the fix
+  (`ISSUES`; channel codes only under Technical details), retry, fix (barcode, SKU, photo, weight), publish / remove. Pages
+  in `src/screens/channels/` share `chShared.jsx`: `/channels`, `/meta-commerce`, `/google-merchant`, `/woocommerce`,
+  `/shopify` (one page, `ProductChannel.jsx`; WooCommerce's store settings are `/woo-sync`), `/sync-issues`,
+  `/channel-settings`. Google Business (`/google-business?tab=`: locations, reviews + AI reply drafts, business info and
+  hours, posts, media, services) is under Marketing. The product page has a Sales channels card
+  (`components/ProductChannels.jsx`); All products has a Channels filter, a mark per connected channel and bulk actions.
+- Inbox channels follow Connections (`connectedInbox(use)`, `components/inbox/useLiveChannels.js`): chat chips show the
+  connected chat channels, Comments only connected channels' posts, and a Reviews view shows Google reviews (the Google
+  Business review list); the header's Channels button lists every inbox channel with Connect / Reconnect.
 - Phone (checked page by page at 390 px, Oct 2026): `.gc-shell__content` clips sideways overflow on phones, so anything
   wider than the screen must scroll inside its own box (`gc-table-wrap`, a bordered `overflow-x:auto` strip) or be made to
   fit — never rely on the page scrolling sideways. Tap targets are ≥36px (the shared rules cover switches, `.ib`, small
@@ -94,7 +106,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `gc-cols--keep`. A title shares its row with the page's main button; long titles wrap between words. Put phone rules in
   the screen's own CSS inside `@media (max-width:640px)`; app screens (`src/screens/app`) use `src/styles/phone-app.css`,
   the platform console uses `src/styles/console-responsive.css` (its header comment lists the table/form/chart hooks).
-- Menu: `src/shell/navigation.js` (10 groups, at most two levels). Old menu ids still used by a screen's `active`
+- Menu: `src/shell/navigation.js` (10 groups, at most two levels; Sales channels after Products & stock, Connections in
+  Online store & settings). Old menu ids still used by a screen's `active`
   map to the new item through `NAV_ALIAS` (sidebar highlight and role access both read it).
 - Language: the switch in the account menu, on sign-in and in Help calls `setLocale`. The shell translates itself
   (`src/shell/i18n.js`); every page is translated by `src/runtime/translateDom.js`, which swaps whole strings

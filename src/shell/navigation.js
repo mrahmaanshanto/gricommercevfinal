@@ -56,12 +56,14 @@ export const NAV = [
       { id: 'stock-racks', icon: 'layout-grid', label: 'Racks & bins', to: 'purchase-stock/Racks.dc.html' },
     ] },
   ] },
-  // Sales channels: Meta catalog, Google Merchant Center, Google Business Profile (src/lib/channels.js)
-  { label: 'Channels', items: [
+  // Sales channels: product sync to Meta, Google Merchant Center, WooCommerce and Shopify (src/lib/channels.js).
+  // Every connection is made in Online store & settings › Connections.
+  { label: 'Sales channels', items: [
     { id: 'ch-home', icon: 'radio-tower', label: 'Overview', to: 'channels/Channels.dc.html' },
     { id: 'ch-meta', icon: 'store', label: 'Meta Commerce', to: 'channels/MetaCommerce.dc.html' },
     { id: 'ch-gmc', icon: 'shopping-bag', label: 'Google Merchant Center', to: 'channels/GoogleMerchant.dc.html' },
-    { id: 'ch-gbp', icon: 'map-pin', label: 'Google Business', to: 'channels/GoogleBusiness.dc.html' },
+    { id: 'ch-woo', icon: 'shopping-cart', label: 'WooCommerce', to: 'channels/WooCommerce.dc.html' },
+    { id: 'ch-shopify', icon: 'shopping-bag', label: 'Shopify', to: 'channels/Shopify.dc.html' },
     { id: 'ch-issues', icon: 'triangle-alert', label: 'Sync issues', to: 'channels/SyncIssues.dc.html' },
     { id: 'ch-settings', icon: 'sliders-horizontal', label: 'Settings', to: 'channels/ChannelSettings.dc.html' },
   ] },
@@ -121,12 +123,11 @@ export const NAV = [
     { id: 'social', icon: 'calendar-days', label: 'Social posts', to: 'communication/Calendar.dc.html', children: [
       { id: 'comm-cal', icon: 'calendar-days', label: 'Post calendar', to: 'communication/Calendar.dc.html' },
       { id: 'comm-new', icon: 'square-pen', label: 'Create post', to: 'communication/Composer.dc.html' },
-      { id: 'comm-conn', icon: 'share-2', label: 'Social accounts', count: 1, to: 'communication/SocialConnections.dc.html' },
     ] },
+    { id: 'ch-gbp', icon: 'map-pin', label: 'Google Business', to: 'channels/GoogleBusiness.dc.html' },
     { id: 'tracking', icon: 'radar', label: 'Ads tracking', to: 'tracking-analytics/PixelsEvents.dc.html', children: [
       { id: 'ta-track', icon: 'radar', label: 'Pixels & events', to: 'tracking-analytics/PixelsEvents.dc.html' },
       { id: 'ta-health', icon: 'activity', label: 'Event health', count: 3, to: 'tracking-analytics/EventHealth.dc.html' },
-      { id: 'ta-conn', icon: 'plug', label: 'Ad accounts', count: 2, to: 'tracking-analytics/Connections.dc.html' },
       { id: 'ta-setup', icon: 'list-checks', label: 'Setup guides', to: 'tracking-analytics/SetupGuide.dc.html' },
     ] },
   ] },
@@ -137,10 +138,7 @@ export const NAV = [
     { id: 'tickets', icon: 'life-buoy', label: 'Support tickets', count: 5, to: 'support-tickets/SupportTickets.dc.html' },
   ] },
   { label: 'Online store & settings', items: [
-    { id: 'storefront', icon: 'store', label: 'Online store', children: [
-      { id: 'storefront-pages', icon: 'layout-template', label: 'Pages & theme', to: 'landing-page-builder/LandingPageBuilder.dc.html' },
-      { id: 'storefront-wp', icon: 'refresh-cw', label: 'WordPress sync', to: 'integrations/WooSync.dc.html' },
-    ] },
+    { id: 'storefront', icon: 'store', label: 'Online store', to: 'landing-page-builder/LandingPageBuilder.dc.html' },
     { id: 'blog', icon: 'newspaper', label: 'Blog', to: 'integrations/BlogPosts.dc.html', children: [
       { id: 'blog-posts', icon: 'newspaper', label: 'Posts', to: 'integrations/BlogPosts.dc.html' },
       { id: 'blog-new', icon: 'square-pen', label: 'New post', to: 'integrations/BlogEditor.dc.html' },
@@ -153,6 +151,8 @@ export const NAV = [
       { id: 'auto-settings', icon: 'settings-2', label: 'Workflow settings', to: 'automation/WorkflowSettings.dc.html' },
       { id: 'auto-reports', icon: 'calendar-clock', label: 'Scheduled reports', to: 'reports/ScheduledReports.dc.html' },
     ] },
+    // every outside app and service, connected from one place (src/lib/connections.js)
+    { id: 'connections', icon: 'plug', label: 'Connections', to: 'connections/Connections.dc.html' },
     { id: 'settings', icon: 'settings', label: 'Settings', to: 'settings-console/SetGeneral.dc.html', children: [
       { id: 'set-store', icon: 'sliders-horizontal', label: 'Store settings', to: 'settings-console/SetGeneral.dc.html' },
       { id: 'set-wallet', icon: 'wallet', label: 'Wallet & credits', to: 'billing/CreditWallet.dc.html' },
@@ -164,6 +164,8 @@ export const NAV = [
 
 /** Menu items that were merged into another one: screens may still pass these ids as `active`. */
 export const NAV_ALIAS = {
+  // connections now live in Connections; WordPress sync is the WooCommerce channel's settings
+  'comm-conn': 'connections', 'ta-conn': 'connections', 'storefront-wp': 'ch-woo', 'storefront-pages': 'storefront',
   'orders-online': 'orders-all', 'orders-pos': 'orders-all', sales: 'sales-invoices', 'sales-new': 'pos-register', pos: 'pos-register',
   'pos-shifts': 'pos-counters', 'pos-cash': 'pos-counters', 'pos-settings': 'pos-counters',
   'products-collections': 'products-cats', 'products-inventory': 'stock-list', 'products-low': 'stock-list', 'products-barcodes': 'stock-labels',
