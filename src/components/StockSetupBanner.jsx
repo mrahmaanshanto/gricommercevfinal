@@ -19,10 +19,11 @@ export function StockSetupBanner() {
   }, []);
   if (!show) return null;
   return (
-    <div className="gc-alert gc-alert--soft gc-alert--warning" role="status" style={{ alignItems: 'center' }}>
-      <Icon name="refresh-cw" width="18" height="18" aria-hidden="true" />
-      <span style={{ flex: 1 }}>Your shop is now {show}. Check your stock setup.</span>
-      <Link href="/stock-setup" className="gc-btn gc-btn--sm gc-btn--solid">Set up stock</Link>
+    // one line (UI/UX audit): the key numbers stay the first thing on the page
+    <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minHeight: 40, padding: '0 var(--space-2) 0 var(--space-3)', borderRadius: 'var(--radius-lg)', background: 'var(--fill-warning-soft)', color: 'var(--text-warning)', fontSize: 'var(--text-sm)' }}>
+      <Icon name="refresh-cw" width="16" height="16" aria-hidden="true" style={{ flex: 'none' }} />
+      <span style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Now {show} — check stock setup</span>
+      <Link href="/stock-setup" className="gc-btn gc-btn--xs gc-btn--flat">Set up stock</Link>
     </div>
   );
 }

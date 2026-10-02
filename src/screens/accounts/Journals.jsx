@@ -268,7 +268,6 @@ export default class JournalsScreen extends Component {
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <div className="ey ey-d">Accounts · Journals</div>
                     <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.headline}</h1>
-                    <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "680px" }}>Every journal in the books. Most are posted automatically by orders, couriers, payroll and the entry pages; manual journals are for corrections and month-end adjustments.</p>
                   </div>
                   <button type="button" className="btn sm" onClick={v.newJ} style={{ background: "#fff", color: "#0b1733", height: "36px", flexShrink: "0" }}>New journal</button>
                 </div>

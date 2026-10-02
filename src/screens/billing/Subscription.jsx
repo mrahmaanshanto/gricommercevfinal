@@ -269,7 +269,6 @@ export default class SubscriptionScreen extends Component {
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <div className="ey ey-d">{"Settings · Subscription & billing"}</div>
                     <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.headline}</h1>
-                    <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "680px" }}>The plan, every module with its trial and validity, and all invoices. Renewals are charged through SSLCOMMERZ.</p>
                   </div>
                   <__Link href="/credit-wallet" className="btn sm" style={{ background: "#fff", color: "#0b1733", height: "38px", flexShrink: "0" }}>{"Wallet & credits"}</__Link>
                 </div>
@@ -300,7 +299,6 @@ export default class SubscriptionScreen extends Component {
                 <div className="sub-mhead" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "18px 20px 12px" }}>
                   <div style={{ flexGrow: "1" }}>
                     <h2 className="h2">Modules</h2>
-                    <p className="sub">Each module shows when it started, how much of the 14-day trial was used and how long it stays valid.</p>
                   </div>
                   <div className="lseg" role="tablist">
                     {__list(v.segs).map((m, $index) => (<React.Fragment key={$index}>

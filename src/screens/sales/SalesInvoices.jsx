@@ -156,7 +156,7 @@ export default function SalesInvoices() {
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
             <PageHeader
               title="Invoices"
-              description="Every sale made out to a customer: paid, partly paid or unpaid."
+              about="Every sale made out to a customer: paid, partly paid or unpaid."
               actions={<Link href="/pos" className="gc-btn gc-btn--solid"><Icon name="plus" width="18" height="18" aria-hidden="true" /> New sale</Link>}
             />
 

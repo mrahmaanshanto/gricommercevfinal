@@ -4,7 +4,7 @@
 // and the form kit (fields, switches, save bar) the settings screens share.
 // Edit freely: this file is now the source for the screen.
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon } from '@/runtime/dc';
 import { Sidebar as __Sidebar } from '@/shell/Shell';
@@ -233,6 +233,23 @@ export function SetPick({ f, n, val, children, style }) {
 }
 
 /** The save bar. It is a quiet status line until something changes; then it sticks to the bottom. */
+/**
+ * Field tips: help under each field is hidden until asked for (UI/UX audit: descriptions only where they prevent an
+ * error). Help that prevents a mistake (`set-help--keep`: formats, limits, keys, backups, what customers see) always
+ * shows. The choice is kept in this browser and marked on <html data-set-tips>.
+ */
+export function SetTips() {
+  const [on, setOn] = useState(false);
+  useEffect(() => { try { setOn(window.localStorage.getItem('gc.set.tips') === '1'); } catch { /* ignore */ } }, []);
+  useEffect(() => { document.documentElement.toggleAttribute('data-set-tips', on); }, [on]);
+  const flip = () => { const n = !on; setOn(n); try { window.localStorage.setItem('gc.set.tips', n ? '1' : '0'); } catch { /* ignore */ } };
+  return (
+    <button type="button" className="set-tips" aria-pressed={on} onClick={flip}>
+      <__Icon name="info" width="14" height="14" aria-hidden="true" />{on ? 'Hide field tips' : 'Show field tips'}
+    </button>
+  );
+}
+
 export function SetSaveBar({ f, note }) {
   const dirty = f.dirty();
   const changed = f.count();
@@ -302,6 +319,9 @@ const CSS = `
 .set-shell__col{flex:1;min-width:0;margin:0;display:flex;flex-direction:column;container-type:inline-size;container-name:setcol}
 .set-content{flex:1;min-width:0;display:flex;align-items:flex-start;gap:26px;padding:22px 24px 26px}
 .set-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:16px}
+html:not([data-set-tips]) .set-main .set-help:not(.set-help--keep){display:none}
+.set-tips{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0;border:0;background:none;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-link);cursor:pointer}
+.set-tips:hover{text-decoration:underline}
 .set-main>header{flex-wrap:wrap}
 .set-main>section{min-width:0;max-width:100%}
 .set-main section[id]{scroll-margin-top:calc(var(--header-height,64px) + 16px)}

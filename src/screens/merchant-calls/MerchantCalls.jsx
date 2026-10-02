@@ -190,7 +190,7 @@ export default function MerchantCalls() {
           <div className="gc-shell__content cl-content">
             <PageHeader
               title="Calls"
-              description="Calls in and out of the shop’s numbers: answer, call back, log what happened and listen again."
+              about="Calls in and out of the shop’s numbers: answer, call back, log what happened and listen again."
               actions={<>
                 <Menu label="My status" button={({ toggle, open: o }) => (
                   <button type="button" className="gc-btn gc-btn--neutral" aria-expanded={o} onClick={toggle}><span className={'ib-dot ib-dot--' + AGENT_STATUS[statusNow][1]} />{AGENT_STATUS[statusNow][0]}<Icon name="chevron-down" width="16" height="16" aria-hidden="true" /></button>

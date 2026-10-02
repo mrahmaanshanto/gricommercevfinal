@@ -232,7 +232,7 @@ export default class LandingPageBuilderScreen extends Component {
                         <span style={{ flex: "none", display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-sm)", background: "rgba(255,152,0,.12)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#a15f00" }}>Low stock</span>
                       </button>
                     </div>
-                    <p style={{ margin: "16px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>A landing page always sells a product from your catalogue, so price, stock and variants stay correct by themselves. <a href="#">Add a new product</a></p>
+                    <p style={{ margin: "16px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}><a href="/add-product">Add a new product</a></p>
                   </section>
                   <aside style={{ display: "grid", gap: "16px", alignContent: "start" }}>
                     <div style={{ background: "#fff", borderRadius: "var(--radius-lg)", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", padding: "26px" }}>

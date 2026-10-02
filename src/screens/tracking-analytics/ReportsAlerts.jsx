@@ -223,7 +223,6 @@ export default class ReportsAlertsScreen extends Component {
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <div className="ey ey-d">{"G2 · Reports & alerts"}</div>
                     <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>Know first. Get the numbers sent to you.</h1>
-                    <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "640px" }}>Alerts reach you on WhatsApp the moment something breaks. Reports arrive on schedule — or build your own in a minute.</p>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: "0" }} />
                 </div>

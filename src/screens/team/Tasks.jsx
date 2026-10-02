@@ -162,7 +162,6 @@ export default function Tasks() {
     && (!f.type || t.type === f.type) && (!f.pri || t.priority === f.pri) && (!needle || `${t.title} ${t.notes} ${t.id}`.toLowerCase().includes(needle))), [tasks, scope, f, needle, me.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const open = list.filter((t) => t.status !== 'done');
   const count = (k) => tasks.filter((t) => t.status !== 'done' && scopeTest(k, t)).length;
-  const kpi = { open: open.length, overdue: open.filter((t) => dueState(t, today) === 'overdue').length, today: open.filter((t) => dueState(t, today) === 'today').length, blocked: open.filter((t) => t.status === 'blocked' || openBlockers(t, tasks).length).length, done: list.filter((t) => t.doneAt && t.doneAt > Date.now() - 7 * 864e5).length };
   const filtered = Object.entries(f).some(([k, v]) => v && k !== 'q') || !!f.q;
   const task = tasks.find((t) => t.id === openId) || null;
 
@@ -256,18 +255,12 @@ export default function Tasks() {
 
   return (
     <TeamPage screen="Tasks" active="tasks" crumb="General" page="Tasks" title="Tasks" css={CSS}
-      description="The team’s work: who does what, by when, with which team — and what is waiting on what."
+      about="The team’s work: who does what, by when, with which team — and what is waiting on what."
       actions={<>
         <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setManage('teams')}><Icon name="users" width="18" height="18" aria-hidden="true" /> Teams & tags</button>
         <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setAsk({ title: '', itCat: 'Hardware', notes: '', priority: 'normal', place: me.place })}><Icon name="monitor-cog" width="18" height="18" aria-hidden="true" /> Ask IT</button>
         <button type="button" className="gc-btn gc-btn--solid" onClick={() => setDraft(blank(me, today))}><Icon name="plus" width="18" height="18" aria-hidden="true" /> New task</button>
       </>}>
-      <div className="gc-kpis">
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="list-todo" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Open</p><p className="gc-kpi__value">{kpi.open}<small>{kpi.done} done this week</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-error-soft)', color: 'var(--text-danger)' }}><Icon name="alarm-clock" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Overdue</p><p className="gc-kpi__value">{kpi.overdue}</p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-warning-soft)', color: 'var(--text-warning)' }}><Icon name="calendar-check" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Due today</p><p className="gc-kpi__value">{kpi.today}</p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-info-soft)', color: 'var(--text-info)' }}><Icon name="lock" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Blocked</p><p className="gc-kpi__value">{kpi.blocked}<small>waiting on other work</small></p></div></div>
-      </div>
 
       <section className="gc-card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="tk-views" role="tablist" aria-label="Whose tasks">
@@ -343,7 +336,7 @@ export default function Tasks() {
             </div>
           ) : view === 'calendar' ? (
             <>
-              <div className="tm-head" style={{ paddingBottom: 0 }}><div><h2>{first.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</h2><p>Tasks on their due day. Drag is off here — open a task to change its date.</p></div><div className="tm-bar__g"><button type="button" className="gc-iconbtn" aria-label="Previous month" onClick={() => shiftMonth(-1)}><Icon name="chevron-left" width="18" height="18" aria-hidden="true" /></button><button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setMonth(today.slice(0, 7))}>Today</button><button type="button" className="gc-iconbtn" aria-label="Next month" onClick={() => shiftMonth(1)}><Icon name="chevron-right" width="18" height="18" aria-hidden="true" /></button></div></div>
+              <div className="tm-head" style={{ paddingBottom: 0 }}><div><h2>{first.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</h2></div><div className="tm-bar__g"><button type="button" className="gc-iconbtn" aria-label="Previous month" onClick={() => shiftMonth(-1)}><Icon name="chevron-left" width="18" height="18" aria-hidden="true" /></button><button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setMonth(today.slice(0, 7))}>Today</button><button type="button" className="gc-iconbtn" aria-label="Next month" onClick={() => shiftMonth(1)}><Icon name="chevron-right" width="18" height="18" aria-hidden="true" /></button></div></div>
               <div className="tk-cal">
                 {WD.map((d) => <span key={d} className="tk-cal__h">{d}</span>)}
                 {cells.map((k) => {

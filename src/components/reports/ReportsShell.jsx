@@ -36,7 +36,7 @@ export function useDataTick() {
   return tick;
 }
 
-export function ReportsShell({ screen, active, page, title, description, actions, children, css = '', crumb = 'Reports' }) {
+export function ReportsShell({ screen, active, page, title, description, about, actions, children, css = '', crumb = 'Reports' }) {
   return (
     <div className="dc-screen ds" data-screen={screen}>
       <style dangerouslySetInnerHTML={{ __html: SHELL_CSS + css }} />
@@ -45,7 +45,7 @@ export function ReportsShell({ screen, active, page, title, description, actions
         <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
           <Topbar crumb={crumb} page={page} />
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-            <PageHeader title={title} description={description} actions={actions} />
+            <PageHeader title={title} description={description} about={about} actions={actions} />
             {children}
           </div>
         </main>

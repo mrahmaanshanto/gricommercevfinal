@@ -64,7 +64,7 @@ export const LOY_CSS = `
 `;
 
 /** The shell around a loyalty page: menu, top bar and page header. */
-export function LoyPage({ screen, active, crumb = 'Loyalty & rewards', page, title, description, actions, children, css = '' }) {
+export function LoyPage({ screen, active, crumb = 'Loyalty & rewards', page, title, description, about, actions, children, css = '' }) {
   return (
     <div className="dc-screen ds" data-screen={screen}>
       <style dangerouslySetInnerHTML={{ __html: ACC_CSS + LOY_CSS + css }} />
@@ -73,7 +73,7 @@ export function LoyPage({ screen, active, crumb = 'Loyalty & rewards', page, tit
         <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
           <Topbar crumb={crumb} page={page || title} placeholder="Search customer by name or phone" />
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-            <PageHeader title={title} description={description} actions={actions} />
+            <PageHeader title={title} description={description} about={about} actions={actions} />
             {children}
           </div>
         </main>

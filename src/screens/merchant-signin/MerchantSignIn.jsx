@@ -388,7 +388,6 @@ export default class MerchantSignInScreen extends Component {
                 <form noValidate onSubmit={v.submit} style={{ display: "flex", flexDirection: "column" }}>
                   <div>
                     <h1 style={__sx(`margin: 0; font-size: var(--text-3xl); line-height: 40px; font-weight: var(--weight-semibold); letter-spacing: ${v.track ?? ""}; color: #0f172a;`)}>{v.t?.welcome}</h1>
-                    <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", lineHeight: "22px", color: "var(--text-muted)" }}>{v.t?.welcomeSub}</p>
                   </div>
                   {v.system ? <SystemPicker busy={v.systemBusy} onPick={v.pickSystem} /> : null}
                   <button type="button" className="gc-btn gc-outline" style={{ marginTop: "28px", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}><span style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>G</span>{v.t?.google}</button>

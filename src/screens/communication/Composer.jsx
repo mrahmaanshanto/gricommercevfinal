@@ -259,6 +259,12 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 
 .pgc>*{flex-shrink:0}.tb th{white-space:normal}.stp2{flex-shrink:0}.pgc>.fill{flex-shrink:1;min-height:0}
 .sec{display:flex;flex-direction:column;gap:14px;padding:20px 22px}
+details.cmp-ai{display:block}
+.cmp-ai>summary{list-style:none;cursor:pointer}
+.cmp-ai>summary::-webkit-details-marker{display:none}
+.cmp-ai>summary>div::after{content:'';flex:none;width:8px;height:8px;margin-right:4px;border-right:2px solid var(--text-muted);border-bottom:2px solid var(--text-muted);transform:rotate(45deg);transition:transform .15s ease-out}
+.cmp-ai[open]>summary>div::after{transform:rotate(-135deg)}
+.cmp-ai__body{display:flex;flex-direction:column;gap:14px;margin-top:14px}
 .h2{margin:0;font-size:var(--text-base);line-height:22px;font-weight:var(--weight-semibold);color:#0f172a;letter-spacing:0}
 .sub{margin:2px 0 0;font-size:var(--text-xs-plus);line-height:18px;color:var(--text-muted)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -449,8 +455,8 @@ export default class ComposerScreen extends Component {
                   </section>
                 </div>
                 <aside style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
-                  <section className="tc sec" style={{ background: "linear-gradient(180deg, #f5f8ff, #fff 140px)" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <details className="tc sec cmp-ai" style={{ background: "linear-gradient(180deg, #f5f8ff, #fff 140px)" }}>
+                    <summary className="cmp-ai__sum"><div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                       <span style={{ width: "32px", height: "32px", borderRadius: "var(--radius-lg)", background: "#0b1733", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />
@@ -460,7 +466,8 @@ export default class ComposerScreen extends Component {
                         <h2 className="h2">GridAI writer</h2>
                         <p className="sub" style={{ margin: "0" }}>Free during the GridAI trial.</p>
                       </div>
-                    </div>
+                    </div></summary>
+                    <div className="cmp-ai__body">
                     <div role="tablist" aria-label="GridAI writer mode" style={{ display: "flex", gap: "4px", padding: "3px", borderRadius: "var(--radius-xl)", background: "#eef2f7" }}>
                       {__list(v.aiTabs).map((t, $index) => (<React.Fragment key={$index}>
                           <button type="button" className="aitab" role="tab" aria-selected={t?.on} onClick={t?.pick} style={__sx(`background: ${t?.bg ?? ""}; color: ${t?.fg ?? ""};`)}>{t?.l}</button>
@@ -526,7 +533,7 @@ export default class ComposerScreen extends Component {
                         </>) : null}
                       </div>
                     </>) : null}
-                  </section>
+                  </div></details>
                   <section className="tc sec">
                     <div>
                       <h2 className="h2">When</h2>

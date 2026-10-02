@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
-import { Dialog, EmptyState } from '@/components/ui';
+import { Dialog, EmptyState, InfoTip } from '@/components/ui';
 import { formatDate } from '@/lib/format';
 import { fromKey } from '@/lib/settlements';
 import { gratuityOf, serviceOf, todayKey, saveSettings, addDays } from '@/lib/hr';
@@ -53,7 +53,7 @@ export default function Gratuity() {
 
   return (
     <HrPage screen="Gratuity" active="hr-gratuity" page="Gratuity & leaving" title="Gratuity & leaving" css={FORM_CSS + CSS}
-      description="What each person has built up, who can take it, and the final settlement when someone leaves."
+      about="What each person has built up, who can take it, and the final settlement when someone leaves."
       actions={<button type="button" className="gc-btn gc-btn--neutral" onClick={() => setRule({ ...g })}><Icon name="settings-2" width="18" height="18" aria-hidden="true" /> Gratuity rule</button>}>
       <section className="gc-card">
         <div className="gr-rule">
@@ -64,7 +64,7 @@ export default function Gratuity() {
             <div><b>After {g.after} years</b><span>before that nothing is paid</span></div>
             <div><b>{g.encashEarned ? 'Yes' : 'No'}</b><span>earned leave cashed in on leaving</span></div>
           </> : <div><b>Gratuity is off</b><span>Only salary to the last day is paid when someone leaves.</span></div>}
-          <span className="hr-sub" style={{ marginLeft: 'auto', maxWidth: 360 }}>Bangladesh Labour Act 2006, s.2(10): at least 30 days’ wages for each completed year, 45 days after 10 years.</span>
+          <span style={{ marginLeft: 'auto' }}><InfoTip text="Bangladesh Labour Act 2006, s.2(10): at least 30 days’ wages for each completed year, 45 days after 10 years." /></span>
         </div>
       </section>
 
@@ -76,7 +76,7 @@ export default function Gratuity() {
       </div>
 
       <section className="gc-card hr-card">
-        <div className="hr-head"><div><h2>Everyone</h2><p>Longest service first. Built up counts part years; payable counts full years once eligible.</p></div></div>
+        <div className="hr-head"><div><h2>Everyone <InfoTip text="Longest service first. Built up counts part years; payable counts full years once eligible." /></h2></div></div>
         {rows.length ? (
           <div className="gc-table-wrap">
             <table className="gc-table gc-table--compact">

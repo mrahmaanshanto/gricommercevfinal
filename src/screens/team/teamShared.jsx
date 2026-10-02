@@ -60,7 +60,7 @@ export const TEAM_CSS = `
 @media (max-width:640px){.tm-two,.tm-three{grid-template-columns:1fr}}
 `;
 
-export function TeamPage({ screen, active, crumb, page, title, description, actions, children, css = '' }) {
+export function TeamPage({ screen, active, crumb, page, title, description, about, actions, children, css = '' }) {
   return (
     <div className="dc-screen ds" data-screen={screen}>
       <style dangerouslySetInnerHTML={{ __html: TEAM_CSS + css }} />
@@ -69,7 +69,7 @@ export function TeamPage({ screen, active, crumb, page, title, description, acti
         <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
           <Topbar crumb={crumb} page={page} />
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-            {title ? <PageHeader title={title} description={description} actions={actions} /> : null}
+            {title ? <PageHeader title={title} description={description} about={about} actions={actions} /> : null}
             {children}
           </div>
         </main>

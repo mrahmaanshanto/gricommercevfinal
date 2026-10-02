@@ -164,7 +164,7 @@ export default function TeamChat() {
 
   return (
     <TeamPage screen="TeamChat" active="team-chat" crumb="General" page="Team chat" title="Team chat" css={CSS}
-      description="Talk with your team and the other teams. Mention @someone, link a task with #TK-…, or turn a message into a task."
+      about="Talk with your team and the other teams. Mention @someone, link a task with #TK-…, or turn a message into a task."
       actions={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setAskTeam({ team: (otherTeams(me, teams)[0] || teams[0]).id, title: '', notes: '', due: '' })}><Icon name="send" width="18" height="18" aria-hidden="true" /> Ask another team</button><button type="button" className="gc-btn gc-btn--solid" onClick={() => setNewDm(true)}><Icon name="message-square-plus" width="18" height="18" aria-hidden="true" /> New message</button></>}>
       <section className={'gc-card ch' + (open ? ' is-open' : '')}>
         <nav className="ch-list" aria-label="Channels">

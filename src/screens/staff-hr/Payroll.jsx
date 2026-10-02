@@ -226,7 +226,7 @@ export default function Payroll() {
 
   return (
     <HrPage screen="Payroll" active="hr-payroll" page="Payroll" title="Payroll" css={CSS}
-      description="Attendance, leave, overtime, incentive, advances and loans flow in by themselves. Check the sheet, approve, pay, send payslips."
+      about="Attendance, leave, overtime, incentive, advances and loans flow in by themselves. Check the sheet, approve, pay, send payslips."
       actions={<>
         <Link href="/hr-setup?sec=pay" className="gc-btn gc-btn--neutral"><Icon name="sliders-horizontal" width="18" height="18" aria-hidden="true" /> Salary components</Link>
         <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setBonus({ title: 'Durga Puja bonus', pct: String(S.settings.bonusPct) })}><Icon name="gift" width="18" height="18" aria-hidden="true" /> Festival bonus run</button>

@@ -85,7 +85,7 @@ export default function Positions() {
 
   return (
     <HrPage screen="Positions" active="hr-positions" page="Positions & grades" title="Positions & grades" css={CSS}
-      description="The jobs in the shop: grade, salary band, who holds each one and what is still to hire."
+      about="The jobs in the shop: grade, salary band, who holds each one and what is still to hire."
       actions={<>
         <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setDept({ name: '', head: 'Owner', was: '' })}><Icon name="building-2" width="18" height="18" aria-hidden="true" /> New department</button>
         <button type="button" className="gc-btn gc-btn--solid" onClick={() => setEdit({ title: '', department: S.settings.departments[0].name, grade: 'G1', min: '', max: '', reportsTo: '', openings: 0 })}><Icon name="plus" width="18" height="18" aria-hidden="true" /> New position</button>

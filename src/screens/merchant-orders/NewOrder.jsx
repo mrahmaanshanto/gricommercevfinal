@@ -444,7 +444,6 @@ export default function NewOrder() {
                     <button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={makeLink}><Icon name="link" width="16" height="16" aria-hidden="true" />Create order link</button>
                     <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={createOrder}>Create order</button>
                   </div>
-                  <p className="no-meta" style={{ marginTop: 'var(--space-2)' }}>No customer details yet? Create an order link: the customer fills in name, phone, address and payment, and it arrives in Orders as Pending.</p>
                 </section>
               </div>
 

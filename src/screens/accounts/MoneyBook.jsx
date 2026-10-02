@@ -88,7 +88,7 @@ export default function MoneyBook() {
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
             <PageHeader
               title="Money book"
-              description="Every account the shop keeps money in, and every taka that came in or went out: sales, payments, refunds, expenses and transfers."
+              about="Every account the shop keeps money in, and every taka that came in or went out: sales, payments, refunds, expenses and transfers."
               actions={<>
                 <Link href="/cash-book" className="gc-btn gc-btn--neutral"><Icon name="notebook" width="18" height="18" aria-hidden="true" /> Cash book</Link>
                 <Link href="/bank-accounts" className="gc-btn gc-btn--neutral"><Icon name="landmark" width="18" height="18" aria-hidden="true" /> Bank accounts</Link>

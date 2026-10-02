@@ -231,7 +231,6 @@ export default class AutomationsScreen extends Component {
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <div className="ey ey-d">Automation · Rules</div>
                     <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.headline}</h1>
-                    <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "680px" }}>Ready-made rules for everyday work, switched on or off in one tap, plus custom workflows built with When and Then.</p>
                   </div>
                   <__Link href="/workflow-builder" className="btn sm" style={{ background: "#fff", color: "#0b1733", height: "38px", flexShrink: "0" }}>New workflow</__Link>
                   <__Link href="/workflow-settings" className="btn sm au-set2" style={{ background: "transparent", color: "var(--text-on-dark)", border: "1px solid var(--text-on-dark-muted)", height: "38px", flexShrink: "0" }}>Workflow settings</__Link>

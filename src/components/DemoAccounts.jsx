@@ -33,7 +33,7 @@ export function DemoAccounts({ title = 'Profile type', sub = 'Switch to a team m
     <section className={'da' + (plain ? ' da--plain' : '')} aria-labelledby="da-title">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <h2 id="da-title">{title}</h2>
-      <p>{sub}</p>
+      {sub ? <p>{sub}</p> : null}
       <div className="da__grid">
         {list.map((u) => (
           <button key={u.id} type="button" className="da__btn" aria-current={me === u.id} onClick={() => go(u.id)}>

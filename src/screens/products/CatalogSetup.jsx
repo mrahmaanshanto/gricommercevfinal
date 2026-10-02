@@ -163,7 +163,7 @@ export default class CatalogSetupScreen extends Component {
             <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
               <__PageHeader title="Catalog setup" />
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ flexGrow: "1", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#475569" }}>Everything products are built from. Set it once, reuse it on every product.</div>
+                <div style={{ flexGrow: "1", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#475569" }}></div>
               </div>
               {v.hasMsg ? (<>
                 <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-lg); background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: var(--text-sm); font-weight: var(--weight-medium);`)}>
@@ -189,7 +189,7 @@ export default class CatalogSetupScreen extends Component {
                       <div className="cs-head" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                         <div style={{ flexGrow: "1" }}>
                           <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>Custom fields</h2>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Extra details products can have — like RAM for phones or skin type for creams. Each field belongs to categories.</div>
+                          
                         </div>
                         <button type="button" className="btn solid sm" onClick={v.openCf}>
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

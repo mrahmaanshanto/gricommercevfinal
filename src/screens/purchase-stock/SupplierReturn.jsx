@@ -168,7 +168,7 @@ export default function SupplierReturn() {
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
             <PageHeader
               title="Return goods to supplier"
-              description="Damaged or wrong items from deliveries wait here. Sending them back takes them off stock and lowers what you owe."
+              about="Damaged or wrong items from deliveries wait here. Sending them back takes them off stock and lowers what you owe."
               actions={<>
                 <Link href="/receive-goods" className="gc-btn gc-btn--neutral"><Icon name="package-check" width="18" height="18" aria-hidden="true" /> Receive goods</Link>
                 <Link href="/suppliers" className="gc-btn gc-btn--neutral"><Icon name="wallet" width="18" height="18" aria-hidden="true" /> Suppliers & payables</Link>
@@ -185,7 +185,7 @@ export default function SupplierReturn() {
             <h2 className="sr-section">Waiting to go back</h2>
             {groups.length === 0 ? (
               <section className="gc-card">
-                <EmptyState icon="package-check" title="Nothing is waiting to go back" body={`When you report damaged or wrong items in Receive goods, they are kept at ${DAMAGED_PLACE} and show here, by supplier.`} />
+                <EmptyState icon="package-check" title="Nothing is waiting to go back" body="Damaged or wrong items from Receive goods show here." />
               </section>
             ) : groups.map((g) => (
               <section key={g.name} className="gc-card sr-card" aria-label={`Waiting to go back to ${g.name}`}>

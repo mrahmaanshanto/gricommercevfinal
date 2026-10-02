@@ -3,6 +3,7 @@
 // SetPayments
 // Edit freely: this file is now the source for the screen.
 
+import { SetTips as __SetTips } from './SetChrome';
 import React from 'react';
 import { PaymentLogo } from '@/components/PaymentLogo';
 import { Icon as __Icon } from '@/runtime/dc';
@@ -221,7 +222,7 @@ export default class SetPaymentsScreen extends Component {
                     <header style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
                       <span style={{ display: "block", minWidth: "0" }}>
                         <h1 style={{ margin: "0 0 4px", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>Payment Gateway</h1>
-                        <p style={{ margin: "0", maxWidth: "640px", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "var(--text-muted)", textWrap: "pretty" }}>Ten payment routes on one screen. The list carries the state that matters — on, off, live or sandbox — and only the gateway you open shows its credential form.</p>
+                        <__SetTips />
                       </span>
                       <span style={{ marginLeft: "auto", flex: "none", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>{v.live} live · {v.sandbox} sandbox · {v.offline} offline</span>
@@ -233,7 +234,6 @@ export default class SetPaymentsScreen extends Component {
                       <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Online gateways</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Enable a gateway here, then open it to enter credentials. Order of the list is the order customers see at checkout.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
                           <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(255,87,36,.12)", color: "var(--text-danger)" }}>{v.live} live</span>
@@ -322,7 +322,7 @@ export default class SetPaymentsScreen extends Component {
                               <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                                 <label htmlFor={v.f.id("bkash_app_key")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>App key <span className="set-req" aria-hidden="true">*</span></label>
                               </span>
-                              <span id={v.f.id("bkash_app_key") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>bKash Merchant Portal → Developer → API Keys. Same value as “app_key” in the checkout SDK.</span>
+                              <span id={v.f.id("bkash_app_key") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>bKash Merchant Portal → Developer → API Keys. Same value as “app_key” in the checkout SDK.</span>
                               <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 4px 0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)" }}>
                                 <__In f={v.f} n="bkash_app_key" labelled desc />
                                 <button type="button" onClick={v.f.say("Revealing a saved key is recorded in the audit log. It is switched off in this demo.")} className="dc-h446" aria-label="Reveal" title="Reveal" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
@@ -349,7 +349,7 @@ export default class SetPaymentsScreen extends Component {
                               <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                                 <label htmlFor={v.f.id("bkash_username")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Username <span className="set-req" aria-hidden="true">*</span></label>
                               </span>
-                              <span id={v.f.id("bkash_username") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>The merchant username issued with your bKash tokenised checkout account.</span>
+                              <span id={v.f.id("bkash_username") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>The merchant username issued with your bKash tokenised checkout account.</span>
                               <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
                                 <__In f={v.f} n="bkash_username" labelled desc />
                               </span>
@@ -359,7 +359,7 @@ export default class SetPaymentsScreen extends Component {
                               <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                                 <label htmlFor={v.f.id("bkash_password")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Password <span className="set-req" aria-hidden="true">*</span></label>
                               </span>
-                              <span id={v.f.id("bkash_password") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Rotates every 90 days in the bKash portal. Reveal is logged in the audit trail.</span>
+                              <span id={v.f.id("bkash_password") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Rotates every 90 days in the bKash portal. Reveal is logged in the audit trail.</span>
                               <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 4px 0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)" }}>
                                 <__In f={v.f} n="bkash_password" labelled desc />
                                 <button type="button" onClick={v.f.say("Revealing a saved key is recorded in the audit log. It is switched off in this demo.")} className="dc-h448" aria-label="Reveal" title="Reveal" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
@@ -375,7 +375,7 @@ export default class SetPaymentsScreen extends Component {
                               <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                                 <label htmlFor={v.f.id("bkash_merchant_number")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Merchant number</label>
                               </span>
-                              <span id={v.f.id("bkash_merchant_number") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Printed on customer receipts and used for offline send-money reconciliation.</span>
+                              <span id={v.f.id("bkash_merchant_number") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Printed on customer receipts and used for offline send-money reconciliation.</span>
                               <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", width: "220px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                 <__In f={v.f} n="bkash_merchant_number" labelled desc />
                               </span>
@@ -385,7 +385,7 @@ export default class SetPaymentsScreen extends Component {
                               <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                                 <label htmlFor={v.f.id("bkash_checkout_label")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Checkout label</label>
                               </span>
-                              <span id={v.f.id("bkash_checkout_label") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>What customers see at checkout. Bangla label falls back to this if unset.</span>
+                              <span id={v.f.id("bkash_checkout_label") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>What customers see at checkout. Bangla label falls back to this if unset.</span>
                               <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
                                 <__In f={v.f} n="bkash_checkout_label" labelled desc />
                               </span>
@@ -485,7 +485,7 @@ export default class SetPaymentsScreen extends Component {
                                   <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                                     <label htmlFor={v.f.id("priority")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Priority</label>
                                   </span>
-                                  <span id={v.f.id("priority") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Lower shows first at checkout. Ties fall back to alphabetical.</span>
+                                  <span id={v.f.id("priority") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Lower shows first at checkout. Ties fall back to alphabetical.</span>
                                   <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                     <__In f={v.f} n="priority" labelled desc />
                                   </span>
@@ -495,7 +495,7 @@ export default class SetPaymentsScreen extends Component {
                                   <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                                     <label htmlFor={v.f.id("min_order_amount")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Min order amount</label>
                                   </span>
-                                  <span id={v.f.id("min_order_amount") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Gateway is hidden below this subtotal. Leave empty for no floor.</span>
+                                  <span id={v.f.id("min_order_amount") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Gateway is hidden below this subtotal. Leave empty for no floor.</span>
                                   <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
                                     <__In f={v.f} n="min_order_amount" labelled desc placeholder="No minimum" />
                                   </span>
@@ -505,7 +505,7 @@ export default class SetPaymentsScreen extends Component {
                                   <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                                     <label htmlFor={v.f.id("max_order_amount")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Max order amount</label>
                                   </span>
-                                  <span id={v.f.id("max_order_amount") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Useful where the wallet itself caps a single transaction — bKash allows ৳25,000.</span>
+                                  <span id={v.f.id("max_order_amount") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Useful where the wallet itself caps a single transaction — bKash allows ৳25,000.</span>
                                   <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                     <__In f={v.f} n="max_order_amount" labelled desc />
                                   </span>
@@ -534,7 +534,7 @@ export default class SetPaymentsScreen extends Component {
                                     <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                                       <label htmlFor={v.f.id("fixed_advance_amount")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Fixed advance amount</label>
                                     </span>
-                                    <span id={v.f.id("fixed_advance_amount") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Tick “Fixed advance” above to set it.</span>
+                                    <span id={v.f.id("fixed_advance_amount") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Tick “Fixed advance” above to set it.</span>
                                     <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
                                       <__In f={v.f} n="fixed_advance_amount" labelled desc dis={!v.f.get("mode_fixed_advance", false)} />
                                     </span>
@@ -544,7 +544,7 @@ export default class SetPaymentsScreen extends Component {
                                     <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                                       <label htmlFor={v.f.id("advance_percentage")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Advance percentage</label>
                                     </span>
-                                    <span id={v.f.id("advance_percentage") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Applied to the order subtotal, before delivery charge.</span>
+                                    <span id={v.f.id("advance_percentage") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Applied to the order subtotal, before delivery charge.</span>
                                     <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", width: "132px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                       <__In f={v.f} n="advance_percentage" labelled desc />
                                     </span>
@@ -589,7 +589,7 @@ export default class SetPaymentsScreen extends Component {
                                   <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                                     <label htmlFor={v.f.id("discount_type")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Discount type</label>
                                   </span>
-                                  <span id={v.f.id("discount_type") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Percentage or a flat amount off.</span>
+                                  <span id={v.f.id("discount_type") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Percentage or a flat amount off.</span>
                                   <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
                                     <__In f={v.f} n="discount_type" labelled desc opts={["Percentage","Flat amount"]} dis={!v.f.get("payment_discount", false)} />
                                     <__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ color: "var(--text-muted)" }} />
@@ -600,7 +600,7 @@ export default class SetPaymentsScreen extends Component {
                                   <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                                     <label htmlFor={v.f.id("discount_value")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Value</label>
                                   </span>
-                                  <span id={v.f.id("discount_value") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>bKash merchant cashback is commonly 1–2%.</span>
+                                  <span id={v.f.id("discount_value") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>bKash merchant cashback is commonly 1–2%.</span>
                                   <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
                                     <__In f={v.f} n="discount_value" labelled desc dis={!v.f.get("payment_discount", false)} />
                                   </span>
@@ -610,7 +610,7 @@ export default class SetPaymentsScreen extends Component {
                                   <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                                     <label htmlFor={v.f.id("maximum_discount")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Maximum discount</label>
                                   </span>
-                                  <span id={v.f.id("maximum_discount") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Caps the reward on large orders.</span>
+                                  <span id={v.f.id("maximum_discount") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Caps the reward on large orders.</span>
                                   <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
                                     <__In f={v.f} n="maximum_discount" labelled desc dis={!v.f.get("payment_discount", false)} />
                                   </span>
@@ -620,7 +620,7 @@ export default class SetPaymentsScreen extends Component {
                                   <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                                     <label htmlFor={v.f.id("minimum_order")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Minimum order</label>
                                   </span>
-                                  <span id={v.f.id("minimum_order") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Below this subtotal no discount is given.</span>
+                                  <span id={v.f.id("minimum_order") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Below this subtotal no discount is given.</span>
                                   <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
                                     <__In f={v.f} n="minimum_order" labelled desc dis={!v.f.get("payment_discount", false)} />
                                   </span>
@@ -644,7 +644,6 @@ export default class SetPaymentsScreen extends Component {
                               <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
                                 <span style={{ display: "block" }}>
                                   <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Delivery area rules</span>
-                                  <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Restrict the allowed modes by where the buyer wants delivery. Empty means the gateway rules above apply unchanged.</span>
                                 </span>
                                 <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
                                   <div style={{ display: "flex", flexDirection: "column", gap: "8px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "11px 12px" }}>
@@ -678,7 +677,6 @@ export default class SetPaymentsScreen extends Component {
                               <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
                                 <span style={{ display: "block" }}>
                                   <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Customer type rules</span>
-                                  <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Applies to logged-in buyers only — guest checkout skips these and uses the gateway rules.</span>
                                 </span>
                                 <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
                                   <div style={{ display: "flex", flexDirection: "column", gap: "8px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "11px 12px" }}>
@@ -739,7 +737,6 @@ export default class SetPaymentsScreen extends Component {
                                 <span style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                                   <span style={{ display: "block", flex: "1", minWidth: "0" }}>
                                     <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Category rules</span>
-                                    <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Force different modes when specific product categories are in the cart. First matching rule wins.</span>
                                   </span>
                                   <button type="button" onClick={v.f.say("“Add rule” is not available in the demo yet.")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "1px solid #cbd5e1", background: "#fff", color: "#1e293b" }}><__Icon name="plus" strokeWidth="1.75" width="15" height="15" />Add rule</button>
                                 </span>
@@ -814,7 +811,6 @@ export default class SetPaymentsScreen extends Component {
                       <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Currency exchange rates</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Base currency is Bangladeshi Taka (৳, ISO code BDT). Used for the AI spend cap, Stripe settlements and export-order pricing.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
                           <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Fetched 7 Sep, 6:00 AM</span>
@@ -887,7 +883,6 @@ export default class SetPaymentsScreen extends Component {
                       <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Offline gateways</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Customer pays outside the platform, then submits the transaction ID. Orders wait in “payment review”.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
                           <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(16,185,129,.14)", color: "var(--text-success)" }}>{v.offline} on</span>

@@ -214,7 +214,6 @@ export default class CampaignsScreen extends Component {
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <div className="ey ey-d">{"G2 · Campaigns & creatives · last 30 days"}</div>
                     <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.headline}</h1>
-                    <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "640px" }}>Judged by delivered orders after courier and return cost — not by what the platform reports.</p>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: "0" }}>
                     <__Link href="/attribution" className="btn sm" style={{ background: "rgba(255,255,255,.1)", color: "#fff", height: "38px" }}>

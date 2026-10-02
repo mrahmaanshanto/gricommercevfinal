@@ -131,7 +131,7 @@ export default function DailySummary() {
   );
 
   return (
-    <ReportsShell screen="DailySummary" active="rep-daily" page="Daily summary" title="Daily summary" description="The day in one page: sales, orders, money at closing, payouts, stock, dues and expenses." actions={actions} css={CSS + LETTERHEAD_CSS}>
+    <ReportsShell screen="DailySummary" active="rep-daily" page="Daily summary" title="Daily summary" about="The day in one page: sales, orders, money at closing, payouts, stock, dues and expenses." actions={actions} css={CSS + LETTERHEAD_CSS}>
       {day != null ? <PrintLetterhead kind="Daily report" title="Daily summary" meta={[['Day', longDay(day)], ['Prepared', fmt(clockNow(), 'datetime')], ['Prepared by', 'Mehedi Rahman · Owner']]} /> : null}
       <section className="gc-card" aria-label="Day">
         <div className="ds-day">

@@ -154,17 +154,15 @@ export default function MyDashboard() {
   const myLeads = leads.filter((l) => l.owner === me.id && OPEN_STAGES.includes(l.stage));
   const follow = myLeads.filter((l) => ['overdue', 'today'].includes(followState(l, now)));
   const st = me.staff ? staffBy(S, me.staff) : null;
-  const hour = new Date(now).getHours();
 
   return (
     <TeamPage screen="MyDashboard" active="my-dash" crumb="General" page="My dashboard" css={CSS}>
       <section className="md-hero gc-on-dark" aria-label="You">
         <span className="md-hero__av" aria-hidden="true">{me.initials}</span>
         <div className="md-hero__txt">
-          <p>{formatDate(now)} · {formatTime(now)} · {me.place}</p>
-          <h1>{hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'}, {me.name.split(' ')[0]}</h1>
+          <h1>My dashboard</h1>
+          <p>{me.name} · {me.place}</p>
           <span className="md-role"><Icon name={role.icon} width="14" height="14" aria-hidden="true" />{role.title}</span>
-          <p>{role.blurb}</p>
           <div className="md-links" style={{ marginTop: 'var(--space-2)' }}>{cfg.links.map(([l, href, ic]) => <Link key={href} href={href} className="gc-btn gc-btn--sm"><Icon name={ic} width="16" height="16" aria-hidden="true" /> {l}</Link>)}</div>
         </div>
         <div className="md-nums">
@@ -181,10 +179,11 @@ export default function MyDashboard() {
           {ready ? cfg.blocks.map((b, i) => <ReportBlock key={b.id + i} b={b} me={me} />) : <section className="gc-card md-card" style={{ minHeight: 200 }} aria-busy="true" />}
         </div>
         <div className="md-col">
+          {cfg.side.includes('approvals') ? <Approvals S={S} tasks={tasks} me={me} /> : null}
           <ChatPeek me={me} ready={ready} />
           {st ? <MeAtWork S={S} st={st} /> : null}
-          {cfg.side.map((w) => {
-            if (w === 'approvals') return <Approvals key={w} S={S} tasks={tasks} me={me} />;
+          {/* team-wide summaries go last: the person's own work comes first */}
+          {[...cfg.side.filter((w) => w !== 'approvals' && w !== 'pipeline' && w !== 'teamTasks'), ...cfg.side.filter((w) => w === 'pipeline' || w === 'teamTasks')].map((w) => {
             if (w === 'pipeline') return <Pipeline key={w} leads={leads} me={me} />;
             if (w === 'teamTasks') return <TeamTasks key={w} tasks={tasks} team={cfg.team || USERS.filter((u) => u.id !== me.id).map((u) => u.id)} today={today} />;
             if (w === 'orders') return <OrderPipe key={w} />;
@@ -194,10 +193,6 @@ export default function MyDashboard() {
             if (w.startsWith('duty:')) return <OnDuty key={w} S={S} place={w.slice(5)} />;
             return null;
           })}
-          <section className="gc-card md-card">
-            <header><div><h2>Signed in as {me.name}</h2><p>Demo account · {role.title}</p></div></header>
-            <div className="md-body"><span className="tm-sub">Use the account menu (top right) to switch to another team member, or sign out to pick from all 13 roles.</span><Link href="/merchant-sign-in" className="gc-btn gc-btn--neutral gc-btn--sm" style={{ alignSelf: 'flex-start' }}><Icon name="users" width="14" height="14" aria-hidden="true" /> All demo accounts</Link></div>
-          </section>
         </div>
       </div>
     </TeamPage>

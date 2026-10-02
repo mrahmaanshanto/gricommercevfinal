@@ -82,7 +82,7 @@ export default function SalaryStatements() {
   const added = (r) => r.ot + r.incentive + r.extras;
   return (
     <HrPage screen="SalaryStatements" active="hr-statements" page="Salary statements" title="Salary statements" css={SHELL_CSS + LETTERHEAD_CSS + CSS}
-      description="What each person was paid over a tax year or any months — for bank loans, visas and the income tax return."
+      about="What each person was paid over a tax year or any months — for bank loans, visas and the income tax return."
       actions={<>
         <button type="button" className="gc-btn gc-btn--neutral" onClick={csv} disabled={!ready || (st ? !one.rows.length : !all.length)}><Icon name="sheet" width="18" height="18" aria-hidden="true" /> Download CSV</button>
         <button type="button" className="gc-btn gc-btn--solid" onClick={() => savePdf(`Salary statement - ${st ? st.name : 'all staff'} - ${y ? y.label : from + ' to ' + to}`)} disabled={!ready || (st ? !one.rows.length : !all.length)}><Icon name="file-down" width="18" height="18" aria-hidden="true" /> Download PDF</button>

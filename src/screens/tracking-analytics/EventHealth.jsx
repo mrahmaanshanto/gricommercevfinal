@@ -224,7 +224,6 @@ export default class EventHealthScreen extends Component {
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <div className="ey ey-d">{"G1 · Event health & privacy"}</div>
                     <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.headline}</h1>
-                    <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "640px" }}>Is every event arriving, matched and counted once? Problems show here before they cost you money.</p>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: "0" }}>
                     <__Link href="/pixels-events" className="btn sm" style={{ background: "rgba(255,255,255,.1)", color: "#fff", height: "38px" }}>
@@ -338,7 +337,6 @@ export default class EventHealthScreen extends Component {
                     <div className="eh-bvs" style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                       <div style={{ flexGrow: "1", minWidth: "0" }}>
                         <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "0" }}>Browser vs server · last 24 hours</h2>
-                        <p style={{ margin: "3px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Server keeps counting when ad blockers stop the browser pixel — the gap is sales you would have missed.</p>
                       </div>
                       <div style={{ display: "flex", gap: "14px", fontSize: "var(--text-xs)", color: "#475569" }}>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><span aria-hidden="true" style={{ width: "18px", height: "3px", borderRadius: "3px", background: "#2563eb" }} />Server (solid)</span>
@@ -553,7 +551,7 @@ export default class EventHealthScreen extends Component {
               {v.is_log ? (<>
                 <section className="tc fade" style={{ overflow: "hidden" }}>
                   <div style={{ padding: "14px 16px", borderBottom: "1px solid #eef2f6", display: "flex", alignItems: "center" }}>
-                    <span style={{ flexGrow: "1", fontSize: "var(--text-sm)", color: "#475569" }}>A record of what was sent where. Customer details are shown hashed, the way the platform received them.</span>
+                    <span style={{ flexGrow: "1", fontSize: "var(--text-sm)", color: "#475569" }}>Customer details are shown hashed.</span>
                     <button type="button" className="abtn" onClick={v.csv}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
   <path d="m7 10 5 5 5-5" />

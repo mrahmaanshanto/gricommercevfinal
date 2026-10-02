@@ -115,7 +115,7 @@ export default function SetNotifications() {
                   </header>
 
                   <section className="sn-card" aria-labelledby="sn-sender">
-                    <header><div><h2 id="sn-sender">Sender</h2><p>Used on every message.</p></div></header>
+                    <header><div><h2 id="sn-sender">Sender</h2></div></header>
                     <div className="sn-fields">
                       <div><label className="gc-label" htmlFor="sn-name">SMS sender name</label><input id="sn-name" className="gc-input" maxLength={11} value={s.senderName} onChange={setTop('senderName')} /></div>
                       <div><label className="gc-label" htmlFor="sn-from">Email from</label><input id="sn-from" className="gc-input" value={s.emailFrom} onChange={setTop('emailFrom')} /></div>

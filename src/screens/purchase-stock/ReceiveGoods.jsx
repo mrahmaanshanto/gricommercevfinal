@@ -17,7 +17,7 @@ import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { Dialog, PageHeader, PhoneActionBar, useIsPhone } from '@/components/ui';
+import { Dialog, PageHeader, PhoneActionBar, useIsPhone, InfoTip } from '@/components/ui';
 import { formatBDT, formatDate } from '@/lib/format';
 import { DAMAGED_PLACE, getReceivingPlaces, placeName } from '@/lib/locations';
 import { usePlaceList } from '@/lib/usePlaces';
@@ -368,7 +368,7 @@ export default function ReceiveGoods() {
         <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
           <Topbar crumb="Purchase" page="Receive goods" placeholder="Search or scan any barcode" />
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-            <PageHeader title="Receive goods" description="Scan what the supplier delivered. Saving adds it to stock where you receive it." />
+            <PageHeader title="Receive goods" about="Scan what the supplier delivered. Saving adds it to stock where you receive it." />
 
             <div className="rg-steps" aria-label="Steps">
               <span className="rg-step rg-step--done"><i><Icon name="check" width="16" height="16" aria-hidden="true" /></i>Order chosen</span>
@@ -392,7 +392,7 @@ export default function ReceiveGoods() {
                 <section className="gc-card rg-pad rg-scan">
                   <div className="rg-scan__body">
                     <h2 className="rg-h2">Scan each item as you unpack it</h2>
-                    <p>Every beep adds one piece. No typing needed. If a box has many of the same item, scan once and use + and − to set the number.</p>
+                    <p>Each scan adds one piece. Use + and − for more.</p>
                     <div className="rg-scan__row">
                       <label className="rg-scan__field">
                         <Icon name="scan-barcode" width="20" height="20" aria-hidden="true" />
@@ -490,7 +490,7 @@ export default function ReceiveGoods() {
 
                 <section className="gc-card rg-card">
                   <div className="rg-head">
-                    <div><h2 className="rg-h2">Extra costs for this delivery</h2><p>Transport, labour or anything you paid to bring these goods in. It is added to the real cost of each piece.</p></div>
+                    <div><h2 className="rg-h2">Extra costs for this delivery <InfoTip text="Transport, labour or anything you paid to bring these goods in. It is added to the real cost of each piece." /></h2></div>
                     <div className="rg-total"><b>{formatBDT(ctot)}</b><span className="rg-sub">{kept ? `+৳${(ctot / kept).toFixed(2)} per piece` : 'Scan items first'}</span></div>
                   </div>
                   <div className="rg-costs">

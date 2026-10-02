@@ -52,7 +52,7 @@ export default function ProductPoints() {
 
   return (
     <LoyPage screen="ProductPoints" active="loy-products" title="Product points" css={CSS}
-      description="Every product gives points by default. Give double points to push a product, or turn points off for low-profit items."
+      about="Every product gives points by default. Give double points to push a product, or turn points off for low-profit items."
       actions={<Link href="/loyalty" className="gc-btn gc-btn--neutral"><Icon name="sliders-horizontal" width="18" height="18" aria-hidden="true" /> Point rules</Link>}>
       <div className="gc-kpis gc-kpis--tight">
         <Kpi icon="star" label="Give normal points" value={data ? pts(count('normal')) : '—'} sub="products" />

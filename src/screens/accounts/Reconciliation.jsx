@@ -266,7 +266,6 @@ export default class ReconciliationScreen extends Component {
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <div className="ey ey-d">Accounts · Reconciliation</div>
                     <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.headline}</h1>
-                    <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "680px" }}>Match the books against the bank or courier statement. Anything that differs gets a proper adjusting entry, so the difference ends at exactly ৳0.</p>
                   </div>
                   <button type="button" className="btn sm" onClick={v.importSt} style={{ background: "#fff", color: "#0b1733", height: "36px", flexShrink: "0" }}>Import statement</button>
                 </div>

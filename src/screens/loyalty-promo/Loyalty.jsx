@@ -17,6 +17,7 @@ import {
 } from '@/lib/loyalty';
 import { clockNow } from '@/lib/settlements';
 import { LoyPage, Kpi, Stepper, useLoyalty, money, pts, plural } from './loyShared';
+import { InfoTip } from '@/components/ui';
 
 const AMTS = [500, 2500, 10000];
 const MONTH = (t) => new Date(t).toLocaleString('en', { month: 'long' });
@@ -117,7 +118,7 @@ export default function Loyalty() {
 
   return (
     <LoyPage screen="Loyalty" active="loy-home" title="Loyalty & rewards" css={CSS}
-      description="Reward loyal customers. They collect points when they buy and use them as money off next time; points they hold are a promise you keep until they are used."
+      about="Reward loyal customers. They collect points when they buy and use them as money off next time; points they hold are a promise you keep until they are used."
       actions={<>
         <Link href="/members" className="gc-btn gc-btn--neutral"><Icon name="users" width="18" height="18" aria-hidden="true" /> See members</Link>
         <button type="submit" form="lo-form" className="gc-btn gc-btn--solid"><Icon name="check" width="18" height="18" aria-hidden="true" /> Save rules</button>
@@ -131,7 +132,7 @@ export default function Loyalty() {
 
       <section className="gc-card ac-card" aria-labelledby="lo-books">
         <div className="ac-head">
-          <div><h2 id="lo-books">In your books</h2><p>Points and wallet money are held for customers (Accounts › Liabilities). Points used and rewards given are costs of the channel (Accounts › Sales &amp; profit).</p></div>
+          <div><h2 id="lo-books">In your books <InfoTip text="Points and wallet money are held for customers (Accounts › Liabilities). Points used and rewards given are costs of the channel (Accounts › Sales & profit)." /></h2></div>
           <div className="ac-row-actions">
             <Link href="/liabilities" className="gc-btn gc-btn--sm gc-btn--neutral">Bills to pay</Link>
             <Link href="/sales-profit" className="gc-btn gc-btn--sm gc-btn--neutral">Sales &amp; profit</Link>
@@ -148,7 +149,7 @@ export default function Loyalty() {
       <div className="lo-split">
         <form id="lo-form" className="lo-main" onSubmit={save} noValidate>
           <section className="gc-card lo-sec" aria-labelledby="lo-s1">
-            <div className="lo-sechead"><span className="lo-num">1</span><div><h2 id="lo-s1">How customers earn points</h2><p>Points are added when the order is delivered, or at the counter when the sale is paid. A returned order takes its points back.</p></div></div>
+            <div className="lo-sechead"><span className="lo-num">1</span><div><h2 id="lo-s1">How customers earn points <InfoTip text="Points are added when the order is delivered, or at the counter when the sale is paid. A returned order takes its points back." /></h2></div></div>
             <div className="lo-rule"><div><b>For every ৳100 they spend, give</b><small>Example: a ৳2,500 bill gives {25 * draft.earnPer100} points before the level</small></div><Stepper label="points per ৳100" value={draft.earnPer100} min={1} max={20} onChange={(v) => set({ earnPer100: v })} /><span className="lo-unit">points</span></div>
             <div className="lo-rule"><div><b>Welcome gift on the first order</b><small>Given once, when the first order is delivered</small></div><Stepper label="welcome points" value={draft.welcome} step={10} max={1000} onChange={(v) => set({ welcome: v })} /><span className="lo-unit">points</span></div>
             <div className="lo-rule"><div><b>Birthday gift</b><small>Sent by SMS on the customer’s birthday</small></div><Stepper label="birthday points" value={draft.birthday} step={10} max={1000} onChange={(v) => set({ birthday: v })} /><span className="lo-unit">points</span></div>

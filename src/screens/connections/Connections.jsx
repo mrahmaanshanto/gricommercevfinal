@@ -21,6 +21,7 @@ import { GROUPS, appBy, allStatuses, disconnectApp, reconnectApp, CONNECTIONS_EV
 import { ChannelFrame, RowMenu } from '@/screens/channels/chShared';
 import { formatDate } from '@/lib/format';
 
+const RANK = { attention: 0, connected: 1, off: 2 };
 const STATES = [['all', 'All apps', 'var(--primary)'], ['connected', 'Connected', 'var(--success)'], ['attention', 'Needs attention', 'var(--warning)'], ['off', 'Not connected', 'var(--slate-400)']];
 const BADGE = {
   connected: <StatusBadge tone="success" icon="plug">Connected</StatusBadge>,
@@ -167,7 +168,8 @@ export default function Connections() {
     </div>
 
     {groups.length ? groups.map((g) => {
-      const list = shown.filter((a) => a.group === g.id);
+      // what needs fixing first, then what works, then what is not set up
+      const list = shown.filter((a) => a.group === g.id).sort((x, y) => RANK[x.status.state] - RANK[y.status.state]);
       const all = apps.filter((a) => a.group === g.id);
       return (
         <section key={g.id} className="cn-group" aria-labelledby={'cn-' + g.id}>

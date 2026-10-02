@@ -260,7 +260,6 @@ export default class TransactionsScreen extends Component {
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <div className="ey ey-d">Accounts · Transactions</div>
                     <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.headline}</h1>
-                    <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "680px" }}>The general ledger: every line posted to every account, from orders, couriers, sessions and the entry pages. Pick an account to see its running balance.</p>
                   </div>
                   <button type="button" className="btn sm" onClick={v.export} style={{ background: "#fff", color: "#0b1733", height: "36px", flexShrink: "0" }}>Export CSV</button>
                 </div>

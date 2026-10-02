@@ -24,7 +24,7 @@ const CSS = `
 .rc-sec h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading);display:flex;align-items:center;gap:var(--space-2)}
 .rc-sec header p{margin:0;font-size:var(--text-xs);color:var(--text-muted)}
 .rc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr));gap:var(--space-3)}
-.rc-card{position:relative;display:flex;gap:var(--space-3);align-items:flex-start;padding:var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card);text-decoration:none;color:inherit;transition:border-color .15s ease, box-shadow .15s ease}
+.rc-card{position:relative;display:flex;gap:var(--space-3);align-items:center;height:100%;box-sizing:border-box;padding:var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card);text-decoration:none;color:inherit;transition:border-color .15s ease, box-shadow .15s ease}
 .rc-card:hover{border-color:var(--primary);box-shadow:0 2px 10px rgba(15,23,42,.06)}
 .rc-card:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 .rc-card b{display:block;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
@@ -67,11 +67,10 @@ export default function ReportsCentre() {
     const g = GROUP_BY_ID[r.group] || {};
     return (
       <div key={r.id} style={{ position: 'relative' }}>
-        <Link href={r.href} className="rc-card">
+        <Link href={r.href} className="rc-card" title={r.description}>
           <span className="rp-tile"><Icon name={r.icon || g.icon || 'file-bar-chart'} width="18" height="18" aria-hidden="true" /></span>
           <span style={{ minWidth: 0 }}>
             <b>{r.title}</b>
-            <small>{r.description}</small>
             {r.kind === 'page' ? <span className="gc-badge gc-badge--slate">Opens its page</span> : null}
           </span>
         </Link>
@@ -87,7 +86,7 @@ export default function ReportsCentre() {
 
   return (
     <ReportsShell screen="ReportsCentre" active={group ? 'rep-' + group : 'rep-all'} page={group ? GROUP_BY_ID[group].label : 'All reports'} title="Reports"
-      description={`Every report for the shop in one place: ${REPORTS.length} reports across ${GROUPS.map((g) => g.label.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' and $1')}.`} actions={actions} css={CSS}>
+      about={`Every report for the shop in one place: ${REPORTS.length} reports across ${GROUPS.map((g) => g.label.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' and $1')}.`} actions={actions} css={CSS}>
       <div className="rc-top">
         <input type="search" className="gc-input" placeholder="Search reports, e.g. courier, slow stock, VAT" aria-label="Search reports" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
@@ -102,7 +101,7 @@ export default function ReportsCentre() {
 
       {GROUPS.filter((g) => shown.some((r) => r.group === g.id)).map((g) => (
         <section key={g.id} className="rc-sec" aria-labelledby={'rc-g-' + g.id}>
-          <header><h2 id={'rc-g-' + g.id}><Icon name={g.icon} width="16" height="16" aria-hidden="true" /> {g.label}</h2><p>{g.help}</p></header>
+          <header><h2 id={'rc-g-' + g.id}><Icon name={g.icon} width="16" height="16" aria-hidden="true" /> {g.label}</h2></header>
           <div className="rc-grid">{shown.filter((r) => r.group === g.id).map(card)}</div>
         </section>
       ))}

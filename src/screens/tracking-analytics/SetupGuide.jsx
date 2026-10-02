@@ -253,7 +253,6 @@ export default class SetupGuideScreen extends Component {
                     <div className="ey ey-d">G3 · Setup guides</div>
                     <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-3xl)", lineHeight: "38px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>Set up tracking in 6 steps</h1>
                     <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "640px" }}>{v.sub}</p>
-                    <p className="bn" style={{ margin: "4px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(203,216,238,.7)" }}>প্রতিটি ধাপ ৫ থেকে ১৫ মিনিটের — কোড লেখার দরকার নেই।</p>
                   </div>
                   <__Link href="/connections" className="btn sm" style={{ background: "#fff", color: "#0b1733", height: "38px", flexShrink: "0" }}>Account connections</__Link>
                 </div>
@@ -374,11 +373,8 @@ export default class SetupGuideScreen extends Component {
                       </button>
                     </React.Fragment>))}
                 </section>
-                <section className="tc" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                  <div>
-                    <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Why server-side tracking matters for COD stores</h2>
-                    <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#475569" }}>A browser pixel alone misses a large share of orders. Server events are sent from the store after checkout, so ads still learn from them.</p>
-                  </div>
+                <details className="tc gc-disclose">
+                  <summary>Why server-side tracking matters for COD stores</summary>
                   {__list(v.why).map((w, $index) => (<React.Fragment key={$index}>
                       <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
                         <span className="tn" style={__sx(`min-width: 58px; height: 32px; padding: 0 8px; border-radius: var(--radius-lg); background: ${w?.bg ?? ""}; color: ${w?.fg ?? ""}; font-size: var(--text-sm); font-weight: var(--weight-semibold); display: flex; align-items: center; justify-content: center;`)}>{w?.v}</span>
@@ -388,9 +384,8 @@ export default class SetupGuideScreen extends Component {
                         </div>
                       </div>
                     </React.Fragment>))}
-                  <div className="bn" style={{ padding: "12px 14px", borderRadius: "var(--radius-lg)", background: "#f4f6fa", fontSize: "var(--text-xs-plus)", lineHeight: "20px", color: "#334155" }}>ক্যাশ অন ডেলিভারিতে অর্ডার কনফার্ম হয় পরে — সার্ভার ইভেন্ট সেই কনফার্ম অর্ডারও বিজ্ঞাপনে পাঠায়।</div>
                   <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Estimates for Bangladeshi mobile traffic. Actual loss varies by store.</div>
-                </section>
+                </details>
               </div>
             </div>
           </main>

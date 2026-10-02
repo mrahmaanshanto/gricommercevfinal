@@ -298,8 +298,8 @@ export default function OnlineHome() {
           <Topbar crumb="General" page="Dashboard" />
           <div className="gc-shell__content od" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
             <PageHeader
-              title={!d ? 'Dashboard' : locale === 'bn' ? `${helloBn}${first ? ', ' + first : ''}` : `${hello}${first ? ', ' + first : ''}`}
-              description={d ? `${new Date(d.now).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} · online store · updated ${formatTime(d.now)}` : 'Loading today’s figures…'}
+              title="Dashboard"
+              description={d ? new Date(d.now).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }) : '\u00a0'}
               actions={<>
                 <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setCustom(true)}><Icon name="layout-grid" width="18" height="18" aria-hidden="true" /> Customise</button>
                 <Link href="/new-order" className="gc-btn gc-btn--solid"><Icon name="file-plus" width="18" height="18" aria-hidden="true" /> New order</Link>
@@ -311,37 +311,21 @@ export default function OnlineHome() {
               <div className="od-grid" aria-busy="true">{[5, 7, 8, 4].map((s, k) => <div key={k} className={'od-skel od-span-' + s} />)}</div>
             ) : (
               <div className="od-grid">
-                {shown('wallet') ? (
-                  <section className="od-card od-wallet od-span-5" style={{ '--i': next() }} aria-label="Wallet">
-                    <header>
-                      <div><h2><Icon name="wallet" width="16" height="16" aria-hidden="true" />Wallet</h2><p>Cash, banks and mobile wallets</p></div>
-                      <Link href="/money" className="od-link">Accounts<Icon name="arrow-right" width="14" height="14" aria-hidden="true" /></Link>
-                    </header>
-                    <div className="od-body">
-                      <div className="od-wallet__hero">
-                        <span>Total balance</span>
-                        <strong>{money(d.wallet.total)}</strong>
+                {shown('attention') ? (
+                  <Card icon="bell-ring" title="Needs your attention" sub={d.att.length ? plural(d.att.length, 'thing') + ' waiting' : 'Nothing waiting'} span={5} i={next()}>
+                    {d.att.length ? (
+                      <div className="od-att">
+                        {(allAtt ? d.att : d.att.slice(0, 5)).map((a) => (
+                          <Link key={a.title} href={a.href}>
+                            <span className={'od-att__icon is-' + a.tone}><Icon name={a.icon} width="18" height="18" aria-hidden="true" /></span>
+                            <span className="od-att__text"><b>{a.title}</b><span>{a.sub}</span></span>
+                            <Icon name="chevron-right" width="18" height="18" aria-hidden="true" className="od-att__go" />
+                          </Link>
+                        ))}
+                        {d.att.length > 5 ? <button type="button" className="gc-btn gc-btn--flat gc-btn--sm od-more" aria-expanded={allAtt} onClick={() => setAllAtt((v) => !v)}>{allAtt ? 'Show fewer' : `Show ${d.att.length - 5} more`}<Icon name={allAtt ? 'chevron-up' : 'chevron-down'} width="16" height="16" aria-hidden="true" /></button> : null}
                       </div>
-                      <StackBar parts={d.wallet.parts} fmt={money} label="Balance by account" delay={200} />
-                      <ul className="od-wallet__parts">
-                        {d.wallet.parts.map((p) => <li key={p.name}><i style={{ background: p.color }} aria-hidden="true" /><span>{p.name}</span><b>{short(p.value)}</b></li>)}
-                      </ul>
-                      <div className="od-wallet__more">
-                        <Link href="/settlements"><span>COD with couriers</span><b>{short(d.wallet.cod)}</b></Link>
-                        <Link href="/settlements"><span>Gateway payouts</span><b>{short(d.wallet.gateways)}</b></Link>
-                      </div>
-                      <div className="od-split">
-                        <div className="od-split__head"><span>Arriving in the next 7 days</span><b>{short(d.wallet.week)}</b></div>
-                        <ColumnChart data={d.wallet.days} series={[{ name: 'Payouts due', color: 'var(--od-bar)' }, { name: 'Overdue', color: 'var(--warning)' }]}
-                          height={124} fmt={money} tickFmt={tick} label="Payouts arriving in the next 7 days" now={0} delay={320} />
-                        <Legend items={[{ name: 'Payouts due', color: 'var(--od-bar)' }, ...(d.wallet.late ? [{ name: `Overdue · ${d.wallet.late}`, color: 'var(--warning)' }] : [])]} />
-                      </div>
-                      <div className="od-wallet__acts">
-                        <Link href="/money" className="gc-btn gc-btn--sm"><Icon name="arrow-left-right" width="16" height="16" aria-hidden="true" /> Transfer</Link>
-                        <Link href="/settlements" className="gc-btn gc-btn--sm"><Icon name="hand-coins" width="16" height="16" aria-hidden="true" /> Payouts</Link>
-                      </div>
-                    </div>
-                  </section>
+                    ) : <div className="od-clear"><Icon name="circle-check" width="20" height="20" aria-hidden="true" />All clear — nothing is waiting for you.</div>}
+                  </Card>
                 ) : null}
 
                 {shown('summary') ? (
@@ -361,37 +345,6 @@ export default function OnlineHome() {
                       {d.todayCount ? <StackBar parts={d.summary.sources} fmt={(v) => plural(v, 'order')} label="Today's orders by source" delay={420} /> : <p className="od-empty">No orders yet today.</p>}
                       <Legend items={d.summary.sources.map((s) => ({ name: s.name, color: s.color, value: s.value }))} />
                     </div>
-                  </Card>
-                ) : null}
-
-                {shown('revenue') ? (
-                  <Card icon="chart-column-stacked" title="Revenue overview" sub="Last 30 days of online sales, by where the order came from" link={['/reports-centre', 'Reports']} span={8} i={next()}>
-                    <div className="od-kpis">
-                      <div><span>30 days</span><strong>{short(d.revenue.total)}</strong><small>{plural(d.revenue.orders, 'order')}</small></div>
-                      <div><span>Past 7 days</span><strong>{short(d.revenue.week)}</strong><Delta d={pct(d.revenue.week, d.revenue.weekBefore)} label="vs the 7 days before" /></div>
-                      <div><span>Average order</span><strong>{money(d.revenue.orders ? d.revenue.total / d.revenue.orders : 0)}</strong><small>30 days</small></div>
-                      <div><span>Best day</span><strong>{short(d.revenue.best.revenue)}</strong><small>{dayLabel(d.revenue.best.from)}</small></div>
-                    </div>
-                    <ColumnChart data={d.revenue.points} series={ORDER_SOURCES.map((s) => ({ name: s, color: SOURCE_COLOR[s] }))} line={{ name: '7-day average', color: 'var(--text-heading)' }}
-                      height={240} fmt={money} tickFmt={tick} label="Online revenue per day for the last 30 days, by order source, with the 7-day average" now={d.revenue.points.length - 1} delay={200} />
-                    <Legend items={[...d.revenue.bySource.map((s) => ({ name: s.name, color: s.color, value: short(s.value) })), { name: '7-day average', color: 'var(--text-heading)', kind: 'line' }]} />
-                  </Card>
-                ) : null}
-
-                {shown('attention') ? (
-                  <Card icon="bell-ring" title="Needs your attention" sub={d.att.length ? plural(d.att.length, 'thing') + ' waiting' : 'Nothing waiting'} span={4} i={next()}>
-                    {d.att.length ? (
-                      <div className="od-att">
-                        {(allAtt ? d.att : d.att.slice(0, 5)).map((a) => (
-                          <Link key={a.title} href={a.href}>
-                            <span className={'od-att__icon is-' + a.tone}><Icon name={a.icon} width="18" height="18" aria-hidden="true" /></span>
-                            <span className="od-att__text"><b>{a.title}</b><span>{a.sub}</span></span>
-                            <Icon name="chevron-right" width="18" height="18" aria-hidden="true" className="od-att__go" />
-                          </Link>
-                        ))}
-                        {d.att.length > 5 ? <button type="button" className="gc-btn gc-btn--flat gc-btn--sm od-more" aria-expanded={allAtt} onClick={() => setAllAtt((v) => !v)}>{allAtt ? 'Show fewer' : `Show ${d.att.length - 5} more`}<Icon name={allAtt ? 'chevron-up' : 'chevron-down'} width="16" height="16" aria-hidden="true" /></button> : null}
-                      </div>
-                    ) : <div className="od-clear"><Icon name="circle-check" width="20" height="20" aria-hidden="true" />All clear — nothing is waiting for you.</div>}
                   </Card>
                 ) : null}
 
@@ -429,27 +382,8 @@ export default function OnlineHome() {
                   </Card>
                 ) : null}
 
-                {shown('visitors') ? (
-                  <Card icon="users-round" title="Website visitors today" sub="By hour, with yesterday for comparison" link={['/analytics-hub', 'Analytics']} span={8} i={next()}>
-                    <div className="od-kpis">
-                      <div><span>Visitors so far</span><strong>{d.visitors.total.toLocaleString('en-IN')}</strong><Delta d={d.visitors.d} label="vs yesterday by now" /></div>
-                      <div><span>Conversion</span><strong>{d.visitors.conv.toFixed(1)}%</strong><small>visitors who ordered</small></div>
-                      <div><span>Busiest hour</span><strong>{hourName(d.visitors.busiest).split(' – ')[0]}</strong><small>{(d.visitors.points[d.visitors.busiest].values[0] || 0).toLocaleString('en-IN')} visitors</small></div>
-                      <div><span>On mobile</span><strong>{d.visitors.mobile}%</strong><small>of visitors</small></div>
-                    </div>
-                    <ColumnChart data={d.visitors.points} series={[{ name: 'Today', color: SOURCE_COLOR.Website }]} line={{ name: 'Yesterday', color: 'var(--viz-quiet)', dash: true }}
-                      height={210} fmt={(v) => Number(v).toLocaleString('en-IN')} tickFmt={(v) => String(v)} label="Website visitors per hour today, with yesterday" now={d.visitors.now} delay={200} />
-                    <Legend items={[{ name: 'Today', color: SOURCE_COLOR.Website }, { name: 'Yesterday', color: 'var(--viz-quiet)', kind: 'dash' }]} />
-                    <div className="od-split">
-                      <div className="od-split__head"><span>Where visitors came from</span><b>{d.visitors.total.toLocaleString('en-IN')}</b></div>
-                      <StackBar parts={d.visitors.sources} fmt={(v) => `${Number(v).toLocaleString('en-IN')} visitors`} label="Visitors by source" delay={380} />
-                      <Legend items={d.visitors.sources.map((s) => ({ name: s.name, color: s.color, value: d.visitors.total ? Math.round((s.value / d.visitors.total) * 100) + '%' : '0%' }))} />
-                    </div>
-                  </Card>
-                ) : null}
-
                 {shown('low') ? (
-                  <Card icon="triangle-alert" title="Low stock alert" sub={d.low.count ? `${plural(d.low.count, 'product')} at or under ${LOW_AT} left` : 'Everything is in stock'} link={['/stock', 'Stock']} span={4} i={next()}>
+                  <Card icon="triangle-alert" title="Low stock alert" sub={d.low.count ? `${plural(d.low.count, 'product')} at or under ${LOW_AT} left` : 'Everything is in stock'} link={['/stock', 'Stock']} span={6} i={next()}>
                     {d.low.items.length ? (<>
                       <div className="od-low">
                         {d.low.items.map((x, k) => {
@@ -465,6 +399,57 @@ export default function OnlineHome() {
                       </div>
                       <Link href="/new-po" className="gc-btn gc-btn--neutral gc-btn--sm od-cta"><Icon name="shopping-bag" width="16" height="16" aria-hidden="true" /> Reorder</Link>
                     </>) : <div className="od-clear"><Icon name="circle-check" width="20" height="20" aria-hidden="true" />Nothing is running low.</div>}
+                  </Card>
+                ) : null}
+
+                {shown('wallet') ? (
+                  <section className="od-card od-wallet od-span-6" style={{ '--i': next() }} aria-label="Wallet">
+                    <header>
+                      <div><h2><Icon name="wallet" width="16" height="16" aria-hidden="true" />Wallet</h2></div>
+                      <Link href="/money" className="od-link">Accounts<Icon name="arrow-right" width="14" height="14" aria-hidden="true" /></Link>
+                    </header>
+                    <div className="od-body">
+                      <div className="od-wallet__hero">
+                        <span>Total balance</span>
+                        <strong>{money(d.wallet.total)}</strong>
+                      </div>
+                      <div className="od-wallet__more">
+                        <Link href="/settlements"><span>Arriving in 7 days</span><b>{short(d.wallet.week)}</b></Link>
+                        {d.wallet.late ? <Link href="/settlements"><span>Overdue payouts · {d.wallet.late}</span><b style={{ color: 'var(--warning)' }}>{short(d.wallet.lateTotal)}</b></Link> : <Link href="/settlements"><span>COD with couriers</span><b>{short(d.wallet.cod)}</b></Link>}
+                      </div>
+                    </div>
+                  </section>
+                ) : null}
+                {shown('revenue') ? (
+                  <Card icon="chart-column-stacked" title="Revenue overview" sub="Last 30 days" link={['/reports-centre', 'Reports']} span={6} i={next()}>
+                    <div className="od-kpis">
+                      <div><span>30 days</span><strong>{short(d.revenue.total)}</strong><small>{plural(d.revenue.orders, 'order')}</small></div>
+                      <div><span>Past 7 days</span><strong>{short(d.revenue.week)}</strong><Delta d={pct(d.revenue.week, d.revenue.weekBefore)} label="vs the 7 days before" /></div>
+                      <div><span>Average order</span><strong>{money(d.revenue.orders ? d.revenue.total / d.revenue.orders : 0)}</strong><small>30 days</small></div>
+                      <div><span>Best day</span><strong>{short(d.revenue.best.revenue)}</strong><small>{dayLabel(d.revenue.best.from)}</small></div>
+                    </div>
+                    <ColumnChart data={d.revenue.points} series={ORDER_SOURCES.map((s) => ({ name: s, color: SOURCE_COLOR[s] }))} line={{ name: '7-day average', color: 'var(--text-heading)' }}
+                      height={240} fmt={money} tickFmt={tick} label="Online revenue per day for the last 30 days, by order source, with the 7-day average" now={d.revenue.points.length - 1} delay={200} />
+                    <Legend items={[...d.revenue.bySource.map((s) => ({ name: s.name, color: s.color, value: short(s.value) })), { name: '7-day average', color: 'var(--text-heading)', kind: 'line' }]} />
+                  </Card>
+                ) : null}
+
+                {shown('visitors') ? (
+                  <Card icon="users-round" title="Website visitors today" sub="By hour, against yesterday" link={['/analytics-hub', 'Analytics']} span={6} i={next()}>
+                    <div className="od-kpis">
+                      <div><span>Visitors so far</span><strong>{d.visitors.total.toLocaleString('en-IN')}</strong><Delta d={d.visitors.d} label="vs yesterday by now" /></div>
+                      <div><span>Conversion</span><strong>{d.visitors.conv.toFixed(1)}%</strong><small>visitors who ordered</small></div>
+                      <div><span>Busiest hour</span><strong>{hourName(d.visitors.busiest).split(' – ')[0]}</strong><small>{(d.visitors.points[d.visitors.busiest].values[0] || 0).toLocaleString('en-IN')} visitors</small></div>
+                      <div><span>On mobile</span><strong>{d.visitors.mobile}%</strong><small>of visitors</small></div>
+                    </div>
+                    <ColumnChart data={d.visitors.points} series={[{ name: 'Today', color: SOURCE_COLOR.Website }]} line={{ name: 'Yesterday', color: 'var(--viz-quiet)', dash: true }}
+                      height={210} fmt={(v) => Number(v).toLocaleString('en-IN')} tickFmt={(v) => String(v)} label="Website visitors per hour today, with yesterday" now={d.visitors.now} delay={200} />
+                    <Legend items={[{ name: 'Today', color: SOURCE_COLOR.Website }, { name: 'Yesterday', color: 'var(--viz-quiet)', kind: 'dash' }]} />
+                    <div className="od-split">
+                      <div className="od-split__head"><span>Where visitors came from</span><b>{d.visitors.total.toLocaleString('en-IN')}</b></div>
+                      <StackBar parts={d.visitors.sources} fmt={(v) => `${Number(v).toLocaleString('en-IN')} visitors`} label="Visitors by source" delay={380} />
+                      <Legend items={d.visitors.sources.map((s) => ({ name: s.name, color: s.color, value: d.visitors.total ? Math.round((s.value / d.visitors.total) * 100) + '%' : '0%' }))} />
+                    </div>
                   </Card>
                 ) : null}
 
@@ -497,6 +482,7 @@ export default function OnlineHome() {
                     </div>
                   </Card>
                 ) : null}
+
               </div>
             )}
           </div>

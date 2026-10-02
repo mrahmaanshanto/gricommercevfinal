@@ -131,7 +131,7 @@ export default function Shifts() {
 
   return (
     <HrPage screen="Shifts" active="hr-shifts" page="Shifts & roster" title="Shifts & roster" css={CSS}
-      description="Set your shifts once, then plan the week. Staff get the roster by SMS when you publish it."
+      about="Set your shifts once, then plan the week. Staff get the roster by SMS when you publish it."
       actions={<>
         <button type="button" className="gc-btn gc-btn--neutral" onClick={doCopy}><Icon name="copy" width="18" height="18" aria-hidden="true" /> Copy last week</button>
         <button type="button" className="gc-btn gc-btn--solid" onClick={doPublish}><Icon name="send" width="18" height="18" aria-hidden="true" /> Publish roster</button>

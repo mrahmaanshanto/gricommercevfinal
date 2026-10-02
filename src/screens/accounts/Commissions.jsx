@@ -274,7 +274,6 @@ export default class CommissionsScreen extends Component {
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <div className="ey ey-d">Accounts · Commissions</div>
                     <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.headline}</h1>
-                    <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "680px" }}>Commissions the business pays to staff and resellers, and fees taken by payment providers and couriers.</p>
                   </div>
                   <button type="button" className="btn sm" onClick={v.focusForm} style={{ background: "#fff", color: "#0b1733", height: "36px", flexShrink: "0" }}>Record commission</button>
                 </div>

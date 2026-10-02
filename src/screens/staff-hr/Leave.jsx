@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { Dialog, EmptyState } from '@/components/ui';
+import { HrReview } from './HrReview';
 import { formatDate } from '@/lib/format';
 import {
   todayKey, staffBy, leaveType, leaveDaysOf, leaveBalance, leaveWarnings, applyLeave, decideLeave, dayLabel, dowOf, WEEKDAYS,
@@ -17,7 +18,7 @@ import { HrPage, useHr, Person } from './hrShared';
 
 const CSS = `
 .lv-list{display:flex;flex-direction:column}
-.lv-row{display:grid;grid-template-columns:minmax(180px,1.3fr) minmax(120px,.8fr) minmax(150px,1fr) minmax(180px,1.6fr) auto;align-items:center;gap:var(--space-4);padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle)}
+.lv-row{display:grid;grid-template-columns:minmax(180px,1.4fr) minmax(110px,.7fr) minmax(150px,1fr) auto;align-items:center;gap:var(--space-4);padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle)}
 .lv-row:last-child{border-bottom:0}
 .lv-why{font-size:var(--text-xs);color:var(--text-body);min-width:0}
 .lv-warn{display:flex;gap:6px;align-items:flex-start;margin-top:4px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-warning)}
@@ -34,8 +35,8 @@ const CSS = `
 .lv-legend{display:flex;flex-wrap:wrap;gap:var(--space-3);font-size:var(--text-xs);color:var(--text-body)}
 .lv-legend span{display:inline-flex;align-items:center;gap:6px}
 .lv-legend i{width:12px;height:12px;border-radius:var(--radius-sm)}
-@media (max-width:1100px){.lv-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--space-2) var(--space-4)}.lv-row > :last-child{grid-column:1/-1;justify-content:flex-start}}
-@media (max-width:640px){.lv-row{grid-template-columns:minmax(0,1fr)}.lv-day{min-height:64px}.lv-ev{font-size:var(--text-2xs)}}
+@media (max-width:900px){.lv-row{grid-template-columns:minmax(0,1fr) auto;gap:var(--space-2) var(--space-4)}.lv-row > :nth-child(2){grid-row:2}.lv-row > :nth-child(3){grid-row:2;grid-column:2;text-align:right}.lv-row > :last-child{grid-row:1;grid-column:2}}
+@media (max-width:640px){.lv-day{min-height:64px}.lv-ev{font-size:var(--text-2xs)}}
 `;
 const TONE = { casual: ['var(--fill-info-soft)', 'var(--text-info)'], sick: ['var(--fill-error-soft)', 'var(--text-danger)'], earned: ['var(--fill-success-soft)', 'var(--text-success)'], festival: ['var(--fill-secondary-soft)', 'var(--secondary)'], maternity: ['var(--fill-primary-soft)', 'var(--primary)'], paternity: ['var(--fill-primary-soft)', 'var(--primary)'], unpaid: ['var(--surface-subtle)', 'var(--text-body)'] };
 const toneOf = (t) => TONE[t] || TONE.unpaid;
@@ -50,6 +51,7 @@ export default function Leave() {
   const [month, setMonth] = useState(null);
   const [apply, setApply] = useState(null);
   const [reject, setReject] = useState(null);
+  const [review, setReview] = useState(null);
   useEffect(() => { const t = new URLSearchParams(window.location.search).get('tab'); if (['req', 'cal', 'bal'].includes(t)) setTab(t); }, []);
   const mon = month || monthOf(today);
   const reqs = [...S.leave.requests].sort((a, b) => (b.status === 'wait') - (a.status === 'wait') || (a.status === 'wait' ? a.from.localeCompare(b.from) : b.from.localeCompare(a.from)));
@@ -78,7 +80,7 @@ export default function Leave() {
 
   return (
     <HrPage screen="Leave" active="hr-leave" page="Leave" title="Leave" css={CSS}
-      description={<>Approve leave, see who is off, and keep balances right. Leave types follow the Bangladesh Labour Act by default. <Link href="/hr-setup?sec=leave" className="hr-link">Change in HR setup</Link></>}
+      description="Requests, who is off, and balances."
       actions={<button type="button" className="gc-btn gc-btn--solid" onClick={() => setApply({ code: S.staff[0].code, type: 'casual', from: addDays(today, 1), to: addDays(today, 1), reason: '', approve: true })}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Apply on behalf</button>}>
 
       <div className="gc-kpis">
@@ -113,20 +115,13 @@ export default function Leave() {
                   const warns = r.status === 'wait' ? leaveWarnings(S, r) : [];
                   return (
                     <div key={r.id} className="lv-row">
-                      <Person st={st} sub={`${st.designation || ''} · ${st.branch || ''}`} />
-                      <div><span className="hr-chip" style={{ background: bg, color: fg }}>{t.name} leave</span>{!t.paid ? <span className="hr-sub">Unpaid · cut in payroll</span> : null}</div>
-                      <div><span className="hr-strong">{range(r.from, r.to)}</span><span className="hr-sub">{days} day{days === 1 ? '' : 's'}{after != null ? ` · ${after} ${t.name.toLowerCase()} left after` : ''}</span></div>
-                      <div className="lv-why">{r.reason || <span className="hr-sub">No reason given</span>}
-                        {warns.map((w) => <div key={w} className="lv-warn"><Icon name="triangle-alert" width="14" height="14" aria-hidden="true" /><span>{w}</span></div>)}
-                        {r.status !== 'wait' ? <span className="hr-sub">{STATUS[r.status][0]} by {r.by || 'Owner'}{r.decidedAt ? ` · ${formatDate(r.decidedAt)}` : ''}{r.why ? ` · “${r.why}”` : ''}</span> : <span className="hr-sub">Asked {formatDate(r.at)}</span>}
-                      </div>
+                      <Person st={st} sub={st.branch || ''} />
+                      <div><span className="hr-chip" style={{ background: bg, color: fg }}>{t.name}</span></div>
+                      <div><span className="hr-strong">{range(r.from, r.to)}</span><span className="hr-sub">{days} day{days === 1 ? '' : 's'}{warns.length ? <span className="hr-warn"> · check cover</span> : null}</span></div>
                       <div className="hr-actions">
-                        {r.status === 'wait' ? <>
-                          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setReject({ r, why: '' })} aria-label={`Reject ${st.name}’s ${t.name.toLowerCase()} leave, ${range(r.from, r.to)}`}>Reject</button>
-                          <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => approve(r)} aria-label={`Approve ${st.name}’s ${t.name.toLowerCase()} leave, ${range(r.from, r.to)}`}>Approve</button>
-                        </> : <>
+                        {r.status === 'wait' ? <button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={() => setReview({ kind: 'leave', id: r.id })} aria-label={`Review ${st.name}’s ${t.name.toLowerCase()} leave, ${range(r.from, r.to)}`}>Review</button> : <>
                           <span className={'gc-badge gc-badge--' + STATUS[r.status][1]}>{STATUS[r.status][0]}</span>
-                          {r.status === 'ok' && r.to >= today ? <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => { decideLeave(r.id, 'no', { why: 'Cancelled' }); toast(`${st.name}’s leave cancelled. Back on the roster.`, { tone: 'info', undo: () => decideLeave(r.id, 'ok') }); }}>Cancel leave</button> : null}
+                          <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => setReview({ kind: 'leave', id: r.id })}>Details</button>
                         </>}
                       </div>
                     </div>
@@ -197,6 +192,7 @@ export default function Leave() {
         ) : null}
       </section>
 
+      <HrReview S={S} req={review} onClose={() => setReview(null)} />
       <Dialog open={!!apply} title="Apply for leave" onClose={() => setApply(null)} width={600}
         footer={apply ? <><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setApply(null)}>Cancel</button><button type="submit" form="lv-apply" className="gc-btn gc-btn--solid">{apply.approve ? 'Save and approve' : 'Save as request'}</button></> : null}>
         {apply ? (() => {

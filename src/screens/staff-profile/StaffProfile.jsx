@@ -695,7 +695,7 @@ function LeaveTab({ S, st }) {
               })}</tbody>
             </table>
           </div>
-        ) : <EmptyState icon="plane" title="No leave this year" body="Requests from the staff app and leave you add here show up in this list." />}
+        ) : <EmptyState icon="plane" title="No leave this year"  />}
       </section>
       <Dialog open={!!form} title={`Leave · ${st.name}`} onClose={() => setForm(null)} width={520}
         footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setForm(null)}>Cancel</button><button type="submit" form="sp-leave" className="gc-btn gc-btn--solid">{form && form.approve ? 'Add approved leave' : 'Add request'}</button></>}>

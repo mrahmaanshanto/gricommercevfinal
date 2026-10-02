@@ -176,7 +176,7 @@ export default function Wallet() {
 
   return (
     <LoyPage screen="Wallet" active="loy-wallet" title="Customer wallet" css={CSS}
-      description="Customers can keep money with you and pay from it. It stays theirs until they spend it or take it back. Check each request in your bKash, Nagad or bank app before you approve."
+      description="Check each request in your bKash, Nagad or bank app before you approve." about="Customers can keep money with you and pay from it. It stays theirs until they spend it or take it back. Check each request in your bKash, Nagad or bank app before you approve."
       actions={<>
         <Link href="/loyalty" className="gc-btn gc-btn--neutral"><Icon name="settings" width="18" height="18" aria-hidden="true" /> Wallet settings</Link>
         <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setDialog({ mode: 'reward' })}><Icon name="gift" width="18" height="18" aria-hidden="true" /> Give credit</button>

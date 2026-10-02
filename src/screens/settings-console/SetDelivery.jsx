@@ -3,6 +3,7 @@
 // SetDelivery
 // Edit freely: this file is now the source for the screen.
 
+import { SetTips as __SetTips } from './SetChrome';
 import React from 'react';
 import { Icon as __Icon } from '@/runtime/dc';
 import { SettingsSwitcher as __SettingsSwitcher } from '@/shell/Shell';
@@ -111,7 +112,7 @@ export default class SetDeliveryScreen extends Component {
                     <header style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
                       <span style={{ display: "block", minWidth: "0" }}>
                         <h1 style={{ margin: "0 0 4px", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>Delivery Settings</h1>
-                        <p style={{ margin: "0", maxWidth: "640px", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "var(--text-muted)", textWrap: "pretty" }}>Delivery charge, courier cost and promised delivery time for each of the three zones. Each zone has the same five values, so they are easy to compare.</p>
+                        <__SetTips />
                       </span>
                       <span style={{ marginLeft: "auto", flex: "none", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>3 zones · 15 values</span>
@@ -122,7 +123,6 @@ export default class SetDeliveryScreen extends Component {
                       <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>{"Origin & partner"}</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Where shipments leave from and who carries them by default.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
                           <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>3 settings</span>
@@ -133,7 +133,7 @@ export default class SetDeliveryScreen extends Component {
                           <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                             <label htmlFor={v.f.id("online_orders_ship_from")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Online orders ship from <span className="set-req" aria-hidden="true">*</span></label>
                           </span>
-                          <span id={v.f.id("online_orders_ship_from") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Default pickup address given to couriers for online orders, and the base for zone matching.</span>
+                          <span id={v.f.id("online_orders_ship_from") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Default pickup address given to couriers for online orders, and the base for zone matching.</span>
                           <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
                             <__Icon name="warehouse" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />
                             <__In f={v.f} n="online_orders_ship_from" labelled desc opts={["Central Warehouse — Plot 12, Tejgaon I/A, Dhaka","Feni branch — 4th floor, Feni Center, Feni","Gulshan branch — Gulshan Avenue, Dhaka","Chattogram hub — Agrabad C/A, Chattogram"]} />
@@ -146,7 +146,7 @@ export default class SetDeliveryScreen extends Component {
                           <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                             <label htmlFor={v.f.id("default_shipping_partner")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Default shipping partner <span className="set-req" aria-hidden="true">*</span></label>
                           </span>
-                          <span id={v.f.id("default_shipping_partner") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Pre-selected when a shipment is created. Staff can change it per order.</span>
+                          <span id={v.f.id("default_shipping_partner") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Pre-selected when a shipment is created. Staff can change it per order.</span>
                           <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
                             <__Icon name="truck" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />
                             <__In f={v.f} n="default_shipping_partner" labelled desc opts={["Pathao","Steadfast","RedX"]} />
@@ -170,7 +170,6 @@ export default class SetDeliveryScreen extends Component {
                       <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Charges by zone</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>One row per zone, one column per charge. Values are per order unless the column says per unit.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
                           <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>All amounts in ৳</span>
@@ -361,7 +360,6 @@ export default class SetDeliveryScreen extends Component {
                       <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>What the customer sees</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Rendered from the values above — check the wording before saving.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }} />
                       </div>

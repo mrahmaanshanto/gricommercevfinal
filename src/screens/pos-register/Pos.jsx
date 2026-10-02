@@ -623,7 +623,7 @@ export default function Pos() {
           <form className="pos-open" onSubmit={openShift}>
             <span className="pos-open__icon" aria-hidden="true"><Icon name="scan-line" width="24" height="24" /></span>
             <h1 className="pos-h1">Open the register</h1>
-            <p className="pos-muted">Choose your counter, then count the cash in the drawer before the first sale. It is compared with the drawer when the shift ends.</p>
+            <p className="pos-muted">Choose a counter and count the opening cash.</p>
             {counters.length === 0 ? <p className="pos-banner" role="alert">No counter is registered yet. Register one in POS management first.</p> : null}
             <div><label className="gc-label" htmlFor="pos-counter">Counter</label><select id="pos-counter" className="gc-input gc-select" value={openForm.counter} onChange={(e) => { const c = counters.find((x) => x.name === e.target.value); setOpenForm({ counter: c.name, cashier: c.staff[0] || '', float: String(c.float ?? cfg.float) }); }}>{counters.map((c) => <option key={c.id} value={c.name}>{c.id} · {c.name}</option>)}</select>{at ? <p className="gc-help">At {at.location}{at.stock && at.stock !== at.location ? ` · sells from ${at.stock}` : ''}</p> : null}</div>
             <div><label className="gc-label" htmlFor="pos-cashier">Employee on this counter</label><select id="pos-cashier" className="gc-input gc-select" value={openForm.cashier} onChange={(e) => setOpenForm({ ...openForm, cashier: e.target.value })}>{(at ? at.staff : []).map((c) => <option key={c} value={c}>{c}{roleOf(c) ? ' · ' + roleOf(c) : ''}</option>)}</select></div>
@@ -1045,7 +1045,7 @@ export default function Pos() {
 
       {/* recent sales */}
       <Dialog open={panel === 'recent'} title="Recent sales" onClose={() => setPanel('')} width={640}>
-        {sales.length === 0 ? <p className="pos-empty"><Icon name="receipt-text" width="28" height="28" aria-hidden="true" />No sales yet on this device. Completed sales appear here for reprints. Exchanges and returns are done on the <button type="button" className="pos-link" onClick={() => openReturns()}>Return & exchange</button> page.</p> : (
+        {sales.length === 0 ? <p className="pos-empty"><Icon name="receipt-text" width="28" height="28" aria-hidden="true" />No sales yet on this device. <button type="button" className="pos-link" onClick={() => openReturns()}>Return & exchange</button></p> : (
           <ul className="pos-list">
             {sales.slice(0, 12).map((s) => {
               const refunded = (s.refunds || []).reduce((a, r) => a + r.amount, 0);

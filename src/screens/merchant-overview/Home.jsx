@@ -222,22 +222,19 @@ function build({ dayOffset, place, ed = 'full' }) {
   // activity
   const activity = safe(() => getEntries(), [])
     .filter((e) => e.at <= now && e.amount)
-    .sort((a, b) => b.at - a.at).slice(0, 7)
+    .sort((a, b) => b.at - a.at).slice(0, 3)
     .map((e) => ({ id: e.id || `${e.at}-${e.account}`, at: e.at, what: KIND_LABEL[e.kind] || e.kind, who: e.party || e.ref || '', account: (safe(() => accountBy(e.account), null) || {}).name || '', amount: e.amount }));
 
   // what needs attention, most urgent first
   const att = [];
   const add = (show, item) => { if (show) att.push(item); };
-  add(has('online') && (byStatus.onhold + byStatus.processing + byStatus.pending) > 0, { icon: 'clock', tone: 'warning', title: `${(byStatus.onhold + byStatus.processing + byStatus.pending)} order${(byStatus.onhold + byStatus.processing + byStatus.pending) === 1 ? '' : 's'} to verify`, sub: 'Call, then approve', href: '/merchant-orders?status=onhold' });
-  add(has('money') && m.late.length > 0, { icon: 'clock-alert', tone: 'error', title: `${m.late.length} payout${m.late.length === 1 ? '' : 's'} overdue · ${money(m.lateTotal)}`, sub: 'Payment partners should have paid already', href: '/settlements' });
+  add(has('online') && (byStatus.onhold + byStatus.processing + byStatus.pending) > 0, { icon: 'clock', tone: 'warning', title: `${(byStatus.onhold + byStatus.processing + byStatus.pending)} order${(byStatus.onhold + byStatus.processing + byStatus.pending) === 1 ? '' : 's'} to verify`, sub: '', href: '/merchant-orders?status=onhold' });
+  add(has('money') && m.late.length > 0, { icon: 'clock-alert', tone: 'error', title: `${m.late.length} payout${m.late.length === 1 ? '' : 's'} overdue · ${money(m.lateTotal)}`, sub: '', href: '/settlements' });
   add(has('money') && m.supplierOverdue.length > 0, { icon: 'receipt', tone: 'error', title: `${m.supplierOverdue.length} supplier bill${m.supplierOverdue.length === 1 ? '' : 's'} overdue`, sub: `${money(m.supplierOverdue.reduce((a, b) => a + billLeft(b), 0))} past the due date`, href: '/dues?tab=owe' });
-  add(has('money') && m.toPayOverdue.length > 0, { icon: 'file-clock', tone: 'error', title: `${m.toPayOverdue.length} bill${m.toPayOverdue.length === 1 ? '' : 's'} to pay overdue`, sub: 'Salaries, commission or promotions', href: '/liabilities' });
-  add(has('catalog') && stock.lowCount > 0, { icon: 'triangle-alert', tone: 'warning', title: `${stock.lowCount} product${stock.lowCount === 1 ? '' : 's'} low on stock`, sub: place ? `At ${place}` : 'Reorder or move stock from another place', href: '/stock' });
-  add(has('catalog') && adjustments.length > 0, { icon: 'clipboard-check', tone: 'warning', title: `${adjustments.length} stock adjustment${adjustments.length === 1 ? '' : 's'} to approve`, sub: 'A manager approves every decrease', href: '/stock-adjustments' });
+  add(has('money') && m.toPayOverdue.length > 0, { icon: 'file-clock', tone: 'error', title: `${m.toPayOverdue.length} bill${m.toPayOverdue.length === 1 ? '' : 's'} to pay overdue`, sub: '', href: '/liabilities' });
+  add(has('catalog') && adjustments.length > 0, { icon: 'clipboard-check', tone: 'warning', title: `${adjustments.length} stock adjustment${adjustments.length === 1 ? '' : 's'} to approve`, sub: '', href: '/stock-adjustments' });
   add(has('catalog') && poApproval.length > 0, { icon: 'shopping-bag', tone: 'info', title: `${poApproval.length} purchase order${poApproval.length === 1 ? '' : 's'} to approve`, sub: money(poApproval.reduce((a, p) => a + (Number(p.total) || 0), 0)), href: '/purchase-orders' });
-  add(has('online') && returnsToReceive.length > 0, { icon: 'package-x', tone: 'info', title: `${returnsToReceive.length} courier return${returnsToReceive.length === 1 ? '' : 's'} to receive`, sub: 'Check the parcels back into stock', href: '/courier-returns' });
-  add(has('catalog') && transfers.length > 0, { icon: 'truck', tone: 'info', title: `${transfers.length} transfer${transfers.length === 1 ? '' : 's'} on the way`, sub: 'Receive them when they arrive', href: '/transfers' });
-  add(has('wholesale') && m.invoiceCount > 0, { icon: 'file-text', tone: 'info', title: `${m.invoiceCount} invoice${m.invoiceCount === 1 ? '' : 's'} not fully paid`, sub: `${money(m.invoices)} due from customers`, href: '/sales-invoices' });
+  add(has('online') && returnsToReceive.length > 0, { icon: 'package-x', tone: 'info', title: `${returnsToReceive.length} courier return${returnsToReceive.length === 1 ? '' : 's'} to receive`, sub: '', href: '/courier-returns' });
 
   return { chans: CH, now, day, d, prev, sales, byStatus, total: orders.length, latest, money: m, stock, trend, month, activity, att };
 }
@@ -272,6 +269,7 @@ export default function Home() {
   const [place, setPlace] = useState('');
   const [layout, setLayout] = useState({});
   const [custom, setCustom] = useState(false);
+  const [attAll, setAttAll] = useState(false);
   const [locale, setLoc] = useState('en');
 
   useEffect(() => {
@@ -323,8 +321,8 @@ export default function Home() {
           <Topbar crumb="General" page="Dashboard" />
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
             <PageHeader
-              title={!data ? 'Dashboard' : locale === 'bn' ? `${helloBn}${first ? ', ' + first : ''}` : `${hello}${first ? ', ' + first : ''}`}
-              description={data ? `${formatDate(data.day)} · ${place || 'All places'} · updated ${formatTime(data.now)}` : 'Loading today’s figures…'}
+              title="Dashboard"
+              description={data ? `${formatDate(data.day)} · ${place || 'All places'}` : '\u00a0'}
               actions={actions}
             />
 
@@ -350,7 +348,7 @@ export default function Home() {
                   sub={!data.sales.today ? `Day before ${money(data.sales.prev)}` : change == null ? `${data.sales.bills} bill${data.sales.bills === 1 ? '' : 's'}` : `${change >= 0 ? '▲' : '▼'} ${Math.abs(change)}% vs day before`} tone={!data.sales.today || change == null ? '' : change >= 0 ? 'up' : 'down'} />
                 {has('online') ? <Stat icon="shopping-cart" label={`Online orders ${dayName}`} value={String(data.d.orders.placed)} href="/merchant-orders" sub={`${data.d.orders.delivered} delivered · ${data.d.orders.returned} returned`} /> : has('wholesale') ? <Stat icon="file-text" label="Customer invoices due" value={short(data.money.invoices)} href="/sales-invoices" sub={`${data.money.invoiceCount} invoice${data.money.invoiceCount === 1 ? '' : 's'} not fully paid`} /> : null}
                 {has('money') ? <Stat icon="wallet" label="Money in hand" value={short(data.money.cashTotal)} href="/money" sub={data.money.cash.map((c) => `${c.label.replace('Mobile wallets', 'Wallets')} ${short(c.closing)}`).join(' · ')} /> : null}
-                {has('money') ? <Stat icon="hourglass" label="Payouts this week" value={short(data.money.thisWeek)} href="/settlements" sub={data.money.late.length ? `${data.money.late.length} overdue` : 'None overdue'} tone={data.money.late.length ? 'down' : ''} /> : null}
+                {has('money') ? <Stat icon="hourglass" label="Payouts this week" value={short(data.money.thisWeek)} href="/settlements" sub={data.d.payouts.dueToday.length ? `${data.d.payouts.dueToday.length} due today` : 'to arrive in 7 days'} tone={data.money.late.length ? 'down' : ''} /> : null}
                 {has('money') ? <Stat icon="receipt" label={`Expenses ${dayName}`} value={money(data.d.expenses.total)} href="/expenses-bills" sub={data.d.expenses.byCat[0] ? `Most: ${data.d.expenses.byCat[0].cat}` : 'Nothing spent'} /> : null}
               </div>
 
@@ -360,7 +358,7 @@ export default function Home() {
                     <Card icon="bell-ring" title="Needs your attention">
                       {data.att.length ? (
                         <div className="hm-att">
-                          {data.att.map((a) => (
+                          {(attAll ? data.att : data.att.slice(0, 5)).map((a) => (
                             <Link key={a.title} href={a.href}>
                               <span className={'hm-att__icon hm-tone-' + a.tone}><Icon name={a.icon} width="18" height="18" aria-hidden="true" /></span>
                               <span className="hm-att__text"><b>{a.title}</b><span>{a.sub}</span></span>
@@ -368,7 +366,8 @@ export default function Home() {
                             </Link>
                           ))}
                         </div>
-                      ) : <div className="hm-clear"><Icon name="circle-check" width="20" height="20" aria-hidden="true" />All clear — nothing is waiting for you.</div>}
+                      ) : <div className="hm-clear"><Icon name="circle-check" width="20" height="20" aria-hidden="true" />Nothing is waiting for you.</div>}
+                      {data.att.length > 5 ? <button type="button" className="gc-btn gc-btn--flat gc-btn--sm" style={{ alignSelf: 'flex-start' }} onClick={() => setAttAll(!attAll)}>{attAll ? 'Show fewer' : `View all ${data.att.length}`}</button> : null}
                     </Card>
                   ) : null}
 
@@ -428,22 +427,6 @@ export default function Home() {
                 </div>
 
                 <div className="hm-col">
-                  {shown('money') ? (
-                    <Card icon="hand-coins" title="Money to collect" link={['/dues', 'Dues']}>
-                      <div className="hm-split">
-                        {has('online') ? <Link href="/settlements" className="hm-box"><span>Cash on delivery with couriers</span><b>{short(data.money.cod)}</b><small>{data.money.codCount} payout{data.money.codCount === 1 ? '' : 's'} to come</small></Link> : null}
-                        <Link href="/settlements" className="hm-box"><span>bKash, Nagad & card payouts</span><b>{short(data.money.gateways)}</b><small>{data.money.gateCount} payout{data.money.gateCount === 1 ? '' : 's'} to come</small></Link>
-                        {has('wholesale') ? <Link href="/sales-invoices" className="hm-box"><span>Customer invoices due</span><b>{short(data.money.invoices)}</b><small>{data.money.invoiceCount} invoice{data.money.invoiceCount === 1 ? '' : 's'}</small></Link> : null}
-                        <Link href="/settlements" className="hm-box"><span>Arriving in 7 days</span><b>{short(data.money.thisWeek)}</b><small>{data.d.payouts.dueToday.length ? `${data.d.payouts.dueToday.length} due today` : 'Nothing due today'}</small></Link>
-                      </div>
-                      <h3 className="hm-h3">Money you owe</h3>
-                      <div className="hm-split">
-                        <Link href="/dues?tab=owe" className="hm-box"><span>Supplier bills</span><b>{short(data.money.supplier)}</b><small>{data.money.supplierOverdue.length ? `${data.money.supplierOverdue.length} overdue` : 'None overdue'}</small></Link>
-                        <Link href="/liabilities" className="hm-box"><span>Bills to pay</span><b>{short(data.money.toPay)}</b><small>Salaries, commission, promotions</small></Link>
-                      </div>
-                    </Card>
-                  ) : null}
-
                   {shown('stock') ? (
                     <Card icon="boxes" title="Stock" link={['/stock', 'Stock']}>
                       <div className="hm-split">
@@ -462,6 +445,21 @@ export default function Home() {
                           <Link href="/new-po" className="gc-btn gc-btn--neutral gc-btn--sm" style={{ alignSelf: 'flex-start', marginTop: 'var(--space-2)' }}><Icon name="shopping-bag" width="16" height="16" aria-hidden="true" /> Reorder</Link>
                         </div>
                       ) : <p className="hm-sub" style={{ margin: 0 }}>Nothing is low{place ? ` at ${place}` : ''}.</p>}
+                    </Card>
+                  ) : null}
+
+                  {shown('money') ? (
+                    <Card icon="hand-coins" title="Money to collect" link={['/dues', 'Dues']}>
+                      <div className="hm-split">
+                        {has('online') ? <Link href="/settlements" className="hm-box"><span>Cash on delivery with couriers</span><b>{short(data.money.cod)}</b><small>{data.money.codCount} payout{data.money.codCount === 1 ? '' : 's'} to come</small></Link> : null}
+                        <Link href="/settlements" className="hm-box"><span>bKash, Nagad & card payouts</span><b>{short(data.money.gateways)}</b><small>{data.money.gateCount} payout{data.money.gateCount === 1 ? '' : 's'} to come</small></Link>
+                        {has('wholesale') ? <Link href="/sales-invoices" className="hm-box"><span>Customer invoices due</span><b>{short(data.money.invoices)}</b><small>{data.money.invoiceCount} invoice{data.money.invoiceCount === 1 ? '' : 's'}</small></Link> : null}
+                      </div>
+                      <h3 className="hm-h3">Money you owe</h3>
+                      <div className="hm-split">
+                        <Link href="/dues?tab=owe" className="hm-box"><span>Supplier bills</span><b>{short(data.money.supplier)}</b><small>{data.money.supplierOverdue.length ? `${data.money.supplierOverdue.length} overdue` : 'None overdue'}</small></Link>
+                        <Link href="/liabilities" className="hm-box"><span>Bills to pay</span><b>{short(data.money.toPay)}</b><small>Salaries, commission, promotions</small></Link>
+                      </div>
                     </Card>
                   ) : null}
 

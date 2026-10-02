@@ -4,6 +4,7 @@
 // The repayment plan (monthly instalment, first month) is cut from payroll by itself; a cash
 // repayment asks which account receives it ('loan repayment'). Data: src/lib/hr.js.
 
+import { HrReview } from './HrReview';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
@@ -31,6 +32,7 @@ export default function LoansAdvances() {
   const [reject, setReject] = useState(null);   // { loan, why }
   const [repay, setRepay] = useState(null);     // { loan, amount, account, note }
   const [openId, setOpenId] = useState(null);
+  const [reviewId, setReviewId] = useState(null); // a request in the review drawer
 
   useEffect(() => { const id = new URLSearchParams(window.location.search).get('id'); if (id) setOpenId(id); }, []);
 
@@ -74,7 +76,7 @@ export default function LoansAdvances() {
             return (
               <tr key={l.id}>
                 <td><Person st={st} sub={`${l.id} · ${st.designation || ''}`} /></td>
-                <td>{TYPE[l.type]}{l.reason ? <span className="hr-sub" style={{ whiteSpace: 'normal', minWidth: 120 }}>{l.reason}</span> : null}</td>
+                <td>{TYPE[l.type]}</td>
                 <td>{formatDate(l.at)}{l.account ? <span className="hr-sub">from {accName(l.account)}</span> : null}</td>
                 <td className="hr-num hr-strong">{money(l.amount)}</td>
                 <td style={{ minWidth: 140 }}>
@@ -85,12 +87,9 @@ export default function LoansAdvances() {
                 <td>{tab === 'closed' ? <span className={'gc-badge gc-badge--' + STATUS[l.status][1]}>{STATUS[l.status][0]}</span> : nc ? <>{monthLabel(nc.month, true)}<span className="hr-sub">{money(nc.amount)}{nc.pending ? ' · in the approved run' : ''}</span></> : '—'}</td>
                 <td>
                   <div className="hr-actions">
-                    {l.status === 'req' ? <>
-                      <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setReject({ loan: l, why: '' })} aria-label={`Reject ${st.name}’s ${TYPE[l.type].toLowerCase()} of ${money(l.amount)}`}>Reject</button>
-                      <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => setApprove({ loan: l, account: S.settings.payAccounts[st.payMethod] || 'cash-shop', months: String(l.months), start: l.start < firstStart ? firstStart : l.start })} aria-label={`Approve ${st.name}’s ${TYPE[l.type].toLowerCase()} of ${money(l.amount)}`}>Approve</button>
-                    </> : null}
+                    {l.status === 'req' ? <button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={() => setReviewId(l.id)} aria-label={`Review ${st.name}’s ${TYPE[l.type].toLowerCase()} of ${money(l.amount)}`}>Review</button> : null}
                     {l.status === 'run' ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setRepay({ loan: l, amount: String(loanLeft(l)), account: 'cash-shop', note: '' })}>Cash repayment</button> : null}
-                    <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => setOpenId(l.id)} aria-label={`Open ${l.id}`}>Open</button>
+                    {l.status !== 'req' ? <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => setOpenId(l.id)} aria-label={`Open ${l.id}`}>Open</button> : null}
                   </div>
                 </td>
               </tr>
@@ -103,7 +102,7 @@ export default function LoansAdvances() {
 
   return (
     <HrPage screen="LoansAdvances" active="hr-loans" page="Loans & advances" title="Loans & advances"
-      description="Money given to staff ahead of salary. Instalments are cut from payroll by themselves until it is paid back."
+      about="Money given to staff ahead of salary. Instalments are cut from payroll by themselves until it is paid back."
       actions={<button type="button" className="gc-btn gc-btn--solid" onClick={newForm}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Give advance or loan</button>}>
 
       <div className="gc-kpis">
@@ -141,6 +140,7 @@ export default function LoansAdvances() {
       </section>
 
       {give ? <GiveDialog S={S} give={give} setGive={setGive} /> : null}
+      <HrReview S={S} req={reviewId ? { kind: 'loan', id: reviewId } : null} onClose={() => setReviewId(null)} />
 
       <Dialog open={!!approve} title={approve ? `Approve ${staffBy(S, approve.loan.code).name}’s ${TYPE[approve.loan.type].toLowerCase()}` : 'Approve'} onClose={() => setApprove(null)} width={560}
         footer={approve ? <><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setApprove(null)}>Cancel</button><button type="submit" form="ln-approve" className="gc-btn gc-btn--solid">Approve and pay {money(approve.loan.amount)}</button></> : null}>

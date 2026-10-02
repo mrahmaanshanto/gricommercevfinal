@@ -74,7 +74,7 @@ export default function AttendanceDevices() {
 
   return (
     <HrPage screen="AttendanceDevices" active="hr-devices" page="Attendance devices" title="Attendance devices" css={FORM_CSS + CSS}
-      description="Fingerprint and face machines at each place, who is enrolled on them, and today’s punches."
+      about="Fingerprint and face machines at each place, who is enrolled on them, and today’s punches."
       actions={<button type="button" className="gc-btn gc-btn--solid" onClick={() => setEdit({ name: '', place: HR_PLACES[1] || HR_PLACES[0], kind: 'finger', brand: 'ZKTeco', model: '', serial: '', ip: '192.168.', port: 4370 })}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Add machine</button>}>
       <div className="gc-kpis">
         <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: off.length ? 'var(--fill-error-soft)' : 'var(--fill-success-soft)', color: off.length ? 'var(--text-danger)' : 'var(--text-success)' }}><Icon name="fingerprint" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Machines</p><p className="gc-kpi__value">{devs.length}<small>{off.length ? `${off.length} offline` : 'all online'}</small></p></div></div>
@@ -161,15 +161,15 @@ export default function AttendanceDevices() {
         </section>
       </div>
 
-      <section className="gc-card hr-card">
-        <div className="hr-head"><div><h2>Connecting a new machine</h2><p>ZKTeco and most others send punches with their cloud setting (ADMS).</p></div></div>
+      <details className="gc-card hr-card gc-disclose">
+        <summary>How to connect a new machine</summary>
         <ol className="ad-steps">
           <li>On the machine: Menu › Comm. › Cloud Server Setting. Server address <b className="hr-fig">push.gridcommerce.com.bd</b>, port <b className="hr-fig">8081</b>, HTTPS on.</li>
           <li>Add it here with its serial number (Menu › System Info › Device Info) so its punches are matched to the place.</li>
           <li>Enrol each person with their user number — it is the number in their employee number (EMP-0142 → 142).</li>
           <li>Punches show in Attendance within 5 minutes. If a machine stops answering for 30 minutes, the HR dashboard says so.</li>
         </ol>
-      </section>
+      </details>
 
       <Dialog open={!!edit} title={edit && edit.id ? `Edit · ${edit.name}` : 'Add a machine'} onClose={() => setEdit(null)} width={620}
         footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setEdit(null)}>Cancel</button><button type="submit" form="ad-form" className="gc-btn gc-btn--solid">{edit && edit.id ? 'Save' : 'Add machine'}</button></>}>

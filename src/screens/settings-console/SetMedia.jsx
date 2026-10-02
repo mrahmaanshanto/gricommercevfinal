@@ -3,6 +3,7 @@
 // SetMedia
 // Edit freely: this file is now the source for the screen.
 
+import { SetTips as __SetTips } from './SetChrome';
 import React from 'react';
 import { Icon as __Icon } from '@/runtime/dc';
 import { SettingsSwitcher as __SettingsSwitcher } from '@/shell/Shell';
@@ -101,7 +102,7 @@ export default class SetMediaScreen extends Component {
                     <header style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
                       <span style={{ display: "block", minWidth: "0" }}>
                         <h1 style={{ margin: "0 0 4px", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>Brand assets</h1>
-                        <p style={{ margin: "0", maxWidth: "640px", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "var(--text-muted)", textWrap: "pretty" }}>Eight images used across the storefront, invoices and receipts. Previews are set to <b style={{ fontWeight: "var(--weight-medium)", color: "#475569" }}>dark</b>, so you are checking each asset against the background it will actually sit on.</p>
+                        <__SetTips />
                       </span>
                       <span style={{ marginLeft: "auto", flex: "none", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><span style={{ width: "7px", height: "7px", borderRadius: "var(--radius-full)", background: "#ff9800" }} />6 of 8 set · 1 uploading · 1 rejected</span>
@@ -112,7 +113,6 @@ export default class SetMediaScreen extends Component {
                       <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Manage logos</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Eight assets. Every tile states the format and size it needs, and previews against the theme you pick.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
                           <__Seg f={v.themeF} n="preview_theme" opts={[{ v: "Light", icon: "sun" }, { v: "Dark", icon: "moon" }]} />
@@ -282,7 +282,6 @@ export default class SetMediaScreen extends Component {
                       <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Where each asset appears</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>So you can tell which upload changes what.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }} />
                       </div>

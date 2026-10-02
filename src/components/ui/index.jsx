@@ -4,9 +4,11 @@
 //
 //   <Overlays />        mounted once in the root layout: toasts, confirm dialog, skip link,
 //                       keyboard support for role="button", feedback for unwired controls
-//   <PageHeader />      the one page header: h1 + description + actions (phones: primary + More)
+//   <PageHeader />      the one page header: h1 + description + actions (phones: primary + More);
+//                       `about` = the longer explanation, shown only in Help
 //   <Sheet />           side panel on desktop, bottom sheet on phones (Help, phone filters)
 //   <EmptyState />      what a list shows when it has nothing to show
+//   <InfoTip />         a small (i) button that shows an explanation on tap (keeps pages short)
 //   <Dialog />          modal with focus trap, Esc to close, focus returned to the trigger
 //   <ChannelIcon />     social / messaging channel mark (never text initials)
 //   <StatusBadge />     soft pill with an icon, so status is never colour alone
@@ -145,7 +147,7 @@ function MoreMenu({ items, on }) {
     </div>
   );
 }
-export function PageHeader({ title, description, actions, compact }) {
+export function PageHeader({ title, description, about, actions, compact }) {
   const list = actions ? flat(actions) : [];
   const primary = list.filter(isPrimary);
   const others = list.filter((x) => !isPrimary(x));
@@ -155,6 +157,7 @@ export function PageHeader({ title, description, actions, compact }) {
       <div className="gc-pagehead__text">
         <h1 className="gc-pagehead__title">{title}</h1>
         {description ? <p className="gc-pagehead__desc">{description}</p> : null}
+        {about ? <span className="gc-pagehead__about" hidden>{about}</span> : null}
       </div>
       {list.length ? (
         split ? (
@@ -166,6 +169,27 @@ export function PageHeader({ title, description, actions, compact }) {
         ) : <div className="gc-pagehead__actions">{actions}</div>
       ) : null}
     </header>
+  );
+}
+
+// ---- InfoTip ---------------------------------------------------------------------------------
+// The explanation behind a figure or setting, one tap away instead of a paragraph on the page.
+export function InfoTip({ text, label = 'More info' }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const off = (e) => { if (box.current && !box.current.contains(e.target)) setOpen(false); };
+    const key = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('pointerdown', off);
+    document.addEventListener('keydown', key);
+    return () => { document.removeEventListener('pointerdown', off); document.removeEventListener('keydown', key); };
+  }, [open]);
+  return (
+    <span className="gc-infotip" ref={box}>
+      <button type="button" className="gc-infotip__btn" aria-label={label} aria-expanded={open} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(!open); }}><Icon name="info" width="15" height="15" aria-hidden="true" /></button>
+      {open ? <span className="gc-infotip__pop" role="note">{text}</span> : null}
+    </span>
   );
 }
 

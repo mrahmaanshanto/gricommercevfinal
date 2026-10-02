@@ -215,7 +215,7 @@ export default function StaffCreate() {
   const [, label, , title, help] = STEPS[step];
   return (
     <HrPage screen="StaffCreate" active="hr-add" page="Add staff" title="Add staff" css={FORM_CSS + CSS}
-      description={`Step ${step + 1} of ${STEPS.length} · ${label}. Everything can be changed later on their profile.`}
+      description={`Step ${step + 1} of ${STEPS.length} · ${label}`}
       actions={<button type="button" className="gc-btn gc-btn--neutral" onClick={saveDraft} disabled={!ready}><Icon name="save" width="18" height="18" aria-hidden="true" /> Save as draft</button>}>
       <div className="sc">
         <nav className="gc-card sc-steps" aria-label="Steps">

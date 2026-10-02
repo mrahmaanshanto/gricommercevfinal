@@ -44,7 +44,6 @@ export function SystemPicker({ onPick, busy }) {
     <div className="sp">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <span id="sp-label">Choose your system</span>
-      <small className="sp__hint">Tap one to sign in.</small>
       <div className="sp__list" role="group" aria-labelledby="sp-label">
         {list.map((s, i) => (
           <button key={s.ed} type="button" aria-current={here === s.ed ? 'true' : undefined} data-busy={busy === s.ed ? 'true' : undefined} disabled={!!busy} className="sp__opt" onClick={() => onPick(s.ed)} onKeyDown={(e) => keys(e, i)}>

@@ -256,7 +256,6 @@ export default class CreditWalletScreen extends Component {
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <div className="ey ey-d">{"Settings · Wallet & credits"}</div>
                     <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.headline}</h1>
-                    <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "680px" }}>One balance pays for AI calls, SMS and WhatsApp messages. Top up through SSLCOMMERZ with bKash, Nagad, Rocket, cards or net banking.</p>
                   </div>
                   <__Link href="/subscription" className="btn sm" style={{ background: "#fff", color: "#0b1733", height: "38px", flexShrink: "0" }}>{"Subscription & billing"}</__Link>
                 </div>

@@ -324,7 +324,7 @@ class Component extends DCLogic {
       toggleMore: self.toggleMore, onMoreKey: self.onMoreKey, moreWrap: self.moreWrap, moreBtn: self.moreBtn, moreList: self.moreList,
       q: q, typeQ: self.typeQ, clearQ: self.clearQ, showAll: self.showAll, hasQ: !!qShown,
       emptyTitle: qShown ? 'No customers match “' + qShown + '”' : isDupes ? 'No possible duplicates' : 'No customers in this view',
-      emptyBody: qShown ? (view === 'all' ? 'Check the spelling, or search by name or mobile number.' : 'Nothing in “' + V.label + '” matches. Check the spelling or clear the search.') : isDupes ? 'No two customers share a mobile number or a near-identical name.' : 'Try another view to see more customers.',
+      emptyBody: '',
       emptyAction: qShown ? 'Clear search' : 'Show all customers', emptyDo: qShown ? self.clearQ : self.showAll,
       addOpen: !!s.addOpen, openAdd: self.openAdd, closeAdd: self.closeAdd, submitAdd: self.submitAdd, typeField: self.typeField, form: form, toggleType: self.toggleType, errTypes: (s.errs || {}).types,
       errName: errs.name || '', errPhone: errs.phone || '', errCredit: errs.credit || '',

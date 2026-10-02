@@ -166,7 +166,7 @@ class Component extends DCLogic {
     var seg = function (opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#0b1733' : 'transparent', fg: on ? '#fff' : '#475569', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); };
     var snLabel = sn === 'imei' ? 'IMEI numbers' : 'Serial numbers';
     var v = {
-      assistOpen: s.assistOpen == null ? true : s.assistOpen, assistBtn: (s.assistOpen == null || s.assistOpen) ? 'Hide' : 'Show', toggleAssist: function () { self.setState({ assistOpen: !(s.assistOpen == null || s.assistOpen) }); },
+      assistOpen: !!s.assistOpen, assistBtn: s.assistOpen ? 'Hide' : 'Show', toggleAssist: function () { self.setState({ assistOpen: !s.assistOpen }); },
       facts: f('facts', '6.7 inch AMOLED, 5000 mAh, 50 MP camera, 1 year official warranty, PTA approved'), typeFacts: function (e) { self.setState({ facts: e.target.value }); },
       aiFields: AIF.map(function (x) { var on = !!aiSel[x[0]]; return { label: x[1], on: on, cls: on ? 'chip on' : 'chip', pick: function () { var o = assign({}, aiSel); o[x[0]] = !on; self.setState({ aiSel: o }); } }; }),
       aiCount: AIF.filter(function (x) { return aiSel[x[0]]; }).length,
@@ -518,7 +518,7 @@ export default class AddProductScreen extends Component {
                       </span>
                       <div style={{ flexGrow: "1" }}>
                         <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>AI writing assistant</h2>
-                        <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Tell it a few facts. Pick the fields you want filled. You check every word before saving.</div>
+                        <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>You check every word before saving.</div>
                       </div>
                       <button type="button" className="abtn" onClick={v.toggleAssist} aria-expanded={v.assistOpen} aria-controls={v.assistOpen ? "ai-assist-panel" : undefined} aria-label={`${v.assistBtn ?? ""} the AI writing assistant`}><__Icon name={v.assistOpen ? "chevron-up" : "chevron-down"} width="14" height="14" aria-hidden="true" />{v.assistBtn}</button>
                     </div>

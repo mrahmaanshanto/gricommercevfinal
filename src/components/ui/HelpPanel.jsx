@@ -38,7 +38,7 @@ export function HelpPanel() {
   useEffect(() => {
     const on = () => {
       const title = (document.querySelector('.gc-shell__content h1, main h1, h1') || {}).innerText || '';
-      const description = (document.querySelector('.gc-pagehead__desc') || {}).innerText || '';
+      const description = (document.querySelector('.gc-pagehead__about') || {}).textContent || (document.querySelector('.gc-pagehead__desc') || {}).innerText || '';
       setPage(helpFor(window.location.pathname.replace(/\/$/, '') || '/', { title: title.trim(), description: description.trim() }));
       setLoc(getLocale());
       setOpen(true);

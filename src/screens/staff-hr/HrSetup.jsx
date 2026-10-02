@@ -121,7 +121,7 @@ export default function HrSetup() {
 
   return (
     <HrPage screen="HrSetup" active="hr-setup" page="HR setup" title="HR setup" css={CSS}
-      description="The rules attendance, the roster, leave and payroll use. Changes apply from the next payroll — approved months stay as they were.">
+      description="Changes apply from the next payroll." about="The rules attendance, the roster, leave and payroll use. Changes apply from the next payroll — approved months stay as they were.">
       <div className="su-wrap">
         <nav ref={navRef} className="gc-card su-nav" aria-label="HR setup sections">
           {SECS.map(([k, l]) => <button key={k} type="button" aria-current={sec === k} onClick={() => setSec(k)}>{l}{count(k) != null ? <small>{count(k)}</small> : null}</button>)}
@@ -247,7 +247,6 @@ export default function HrSetup() {
             <div className="hr-three">
               {[['bank', 'Bank staff are paid from'], ['bkash', 'bKash staff are paid from'], ['cash', 'Cash staff are paid from']].map(([m, l]) => <AccountSelect key={m} id={'su-acc-' + m} label={l} value={set.payAccounts[m]} onChange={(v) => put({ payAccounts: { ...set.payAccounts, [m]: v } }, 'Default pay account saved. It is used for new staff; each person can have their own on All staff.')} />)}
             </div>
-            <p className="gc-help" style={{ margin: 0 }}>Salary payments always post to Accounts › Money book, one line per person, when payroll is paid.</p>
             </div>
           </> : null}
         </section>

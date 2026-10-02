@@ -3,6 +3,7 @@
 // SetGeneral
 // Edit freely: this file is now the source for the screen.
 
+import { SetTips as __SetTips } from './SetChrome';
 import React from 'react';
 import __Link from 'next/link';
 import { Icon as __Icon } from '@/runtime/dc';
@@ -74,7 +75,7 @@ export default class SetGeneralScreen extends Component {
                     <header style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
                       <span style={{ display: "block", minWidth: "0" }}>
                         <h1 style={{ margin: "0 0 4px", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>General</h1>
-                        <p style={{ margin: "0", maxWidth: "620px", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "var(--text-muted)", textWrap: "pretty" }}>Store identity, formats and contact details. These values appear on the storefront, on invoices, on POS receipts and in every outgoing message. Fields marked <span style={{ color: "var(--text-danger)" }}>*</span> are required.</p>
+                        <__SetTips />
                       </span>
                       <span style={{ marginLeft: "auto", flex: "none", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><span style={{ width: "7px", height: "7px", borderRadius: "var(--radius-full)", background: "#10b981" }} />Configured · 26 settings</span>
@@ -85,20 +86,19 @@ export default class SetGeneralScreen extends Component {
                       <div className="set-head" style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Store identity</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>The name and legal text shown to customers.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>3 settings</span>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "18px" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                           <label htmlFor={v.f.id("store_name")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Store name <span className="set-req" aria-hidden="true">*</span></label>
-                          <span id={v.f.id("store_name") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Used in the browser title, invoice header, receipt header and the sender name on emails.</span>
+                          <span id={v.f.id("store_name") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Used in the browser title, invoice header, receipt header and the sender name on emails.</span>
                           <div className="set-box" style={{ display: "flex", alignItems: "center", height: "44px", maxWidth: "420px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}><__In f={v.f} n="store_name" labelled desc /></div>
                           <__Err f={v.f} n="store_name" />
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                           <label htmlFor={v.f.id("copyright_line")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Copyright line <span className="set-req" aria-hidden="true">*</span></label>
-                          <span id={v.f.id("copyright_line") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Sits in the storefront footer. Plain text — no HTML.</span>
+                          <span id={v.f.id("copyright_line") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Sits in the storefront footer. Plain text — no HTML.</span>
                           <div className="set-box" style={{ border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "9px 11px", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#1e293b" }}><__In f={v.f} n="copyright_line" labelled desc rows={2} /></div>
                           <__Err f={v.f} n="copyright_line" />
                         </div>
@@ -107,7 +107,7 @@ export default class SetGeneralScreen extends Component {
                             <label htmlFor={v.f.id("footer_about")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Footer about</label>
                             <span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>{String(v.f.get("footer_about", "")).length} / 400</span>
                           </span>
-                          <span id={v.f.id("footer_about") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Short description under the logo in the storefront footer. Two or three sentences reads best.</span>
+                          <span id={v.f.id("footer_about") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Short description under the logo in the storefront footer. Two or three sentences reads best.</span>
                           <div className="set-box" style={{ border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "9px 11px", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#1e293b" }}><__In f={v.f} n="footer_about" labelled desc rows={3} /></div>
                           <__Err f={v.f} n="footer_about" />
                         </div>
@@ -117,7 +117,6 @@ export default class SetGeneralScreen extends Component {
                       <div className="set-head" style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>{"Formats & locale"}</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Every format shows a live sample of what it produces.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>6 settings</span>
                       </div>
@@ -127,7 +126,7 @@ export default class SetGeneralScreen extends Component {
                             <label htmlFor={v.f.id("currency")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Currency <span className="set-req" aria-hidden="true">*</span></label>
                             <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", background: "rgba(255,152,0,.14)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", color: "var(--text-warning)" }}><__Icon name="shield-alert" strokeWidth="1.75" width="12" height="12" />Confirm to change</span>
                           </span>
-                          <span id={v.f.id("currency") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Sets the symbol and decimal rule everywhere. Prices already stored are <b style={{ fontWeight: "var(--weight-medium)", color: "#475569" }}>not</b> converted.</span>
+                          <span id={v.f.id("currency") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Sets the symbol and decimal rule everywhere. Prices already stored are <b style={{ fontWeight: "var(--weight-medium)", color: "#475569" }}>not</b> converted.</span>
                           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                             <span className="set-box" style={{ flex: "1", minWidth: "0", display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}><__In f={v.f} n="currency" labelled desc opts={["Bangladeshi Taka — ৳ (BDT)","US Dollar — $ (USD)","Indian Rupee — ₹ (INR)"]} /><__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ marginLeft: "auto", color: "var(--text-muted)" }} /></span>
                             <__Err f={v.f} n="currency" />
@@ -136,7 +135,7 @@ export default class SetGeneralScreen extends Component {
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                           <label htmlFor={v.f.id("default_country")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Default country <span className="set-req" aria-hidden="true">*</span></label>
-                          <span id={v.f.id("default_country") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Pre-selected on checkout, seller onboarding and address forms.</span>
+                          <span id={v.f.id("default_country") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Pre-selected on checkout, seller onboarding and address forms.</span>
                           <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}><__In f={v.f} n="default_country" labelled desc opts={["Bangladesh","India","Nepal","Sri Lanka"]} /><__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ marginLeft: "auto", color: "var(--text-muted)" }} /></span>
                           <__Err f={v.f} n="default_country" />
                         </div>
@@ -145,14 +144,14 @@ export default class SetGeneralScreen extends Component {
                             <label htmlFor={v.f.id("timezone")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Timezone <span className="set-req" aria-hidden="true">*</span></label>
                             <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", background: "rgba(255,152,0,.14)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", color: "var(--text-warning)" }}><__Icon name="shield-alert" strokeWidth="1.75" width="12" height="12" />Confirm to change</span>
                           </span>
-                          <span id={v.f.id("timezone") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Stamps orders, reports and register shifts. Changing it re-labels historical timestamps.</span>
+                          <span id={v.f.id("timezone") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Stamps orders, reports and register shifts. Changing it re-labels historical timestamps.</span>
                           <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}><__In f={v.f} n="timezone" labelled desc opts={["(UTC+06:00) Asia/Dhaka","(UTC+05:30) Asia/Kolkata","(UTC+00:00) UTC"]} /><__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ marginLeft: "auto", color: "var(--text-muted)" }} /></span>
                           <__Err f={v.f} n="timezone" />
                           <span style={{ display: "inline-flex", alignSelf: "flex-start", alignItems: "center", gap: "7px", height: "26px", borderRadius: "var(--radius-md)", background: "#f1f5f9", padding: "0 9px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Now<b style={{ fontWeight: "var(--weight-medium)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>4:14 PM · 7 Sep 2026</b></span>
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                           <label htmlFor={v.f.id("date_format")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Date format <span className="set-req" aria-hidden="true">*</span></label>
-                          <span id={v.f.id("date_format") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Applies to admin tables, invoices and customer-facing dates.</span>
+                          <span id={v.f.id("date_format") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Applies to admin tables, invoices and customer-facing dates.</span>
                           <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}><__In f={v.f} n="date_format" labelled desc opts={["Mon D, YYYY","D Mon YYYY","DD/MM/YYYY","YYYY-MM-DD"]} /><__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ marginLeft: "auto", color: "var(--text-muted)" }} /></span>
                           <__Err f={v.f} n="date_format" />
                           <span style={{ display: "inline-flex", alignSelf: "flex-start", alignItems: "center", gap: "7px", height: "26px", borderRadius: "var(--radius-md)", background: "#f1f5f9", padding: "0 9px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Preview<b style={{ fontWeight: "var(--weight-medium)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>Sep 7, 2026</b></span>
@@ -165,7 +164,7 @@ export default class SetGeneralScreen extends Component {
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                           <label htmlFor={v.f.id("rows_per_page")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Rows per page <span className="set-req" aria-hidden="true">*</span></label>
-                          <span id={v.f.id("rows_per_page") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>How many records every admin table loads at once. Above 100 slows reports on large catalogues.</span>
+                          <span id={v.f.id("rows_per_page") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>How many records every admin table loads at once. Above 100 slows reports on large catalogues.</span>
                           <span className="set-box" style={{ display: "inline-flex", alignSelf: "flex-start", alignItems: "center", height: "48px", width: "132px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", overflow: "hidden", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                             <__In f={v.f} n="rows_per_page" labelled desc style={{ padding: "0 11px" }} />
                             <span style={{ display: "flex", flexDirection: "column", flex: "none", width: "32px", height: "100%", borderLeft: "1px solid #e2e8f0" }}>
@@ -185,7 +184,6 @@ export default class SetGeneralScreen extends Component {
                       <div className="set-head" style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Brand assets</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Eight images used across storefront, invoices and receipts. Each tile states its own size and format.</span>
                         </span>
                         <__Link href="/set-media" className="dc-h434" style={{ marginLeft: "auto", flex: "none", display: "inline-flex", alignItems: "center", gap: "6px", height: "32px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b", cursor: "pointer", height: "36px", textDecoration: "none" }}>Manage all 8<__Icon name="arrow-up-right" strokeWidth="1.75" width="15" height="15" /></__Link>
                       </div>
@@ -225,38 +223,37 @@ export default class SetGeneralScreen extends Component {
                       <div className="set-head" style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Support information</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Published in the footer, on invoices and in the storefront help widget.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>8 settings</span>
                       </div>
                       <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 20px", padding: "18px" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                           <label htmlFor={v.f.id("support_phone")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Support phone <span className="set-req" aria-hidden="true">*</span></label>
-                          <span id={v.f.id("support_phone") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Shown as a tap-to-call link on mobile. Include the country code.</span>
+                          <span id={v.f.id("support_phone") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Shown as a tap-to-call link on mobile. Include the country code.</span>
                           <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}><__Icon name="phone" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} /><__In f={v.f} n="support_phone" labelled desc /></span>
                           <__Err f={v.f} n="support_phone" />
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                           <label htmlFor={v.f.id("support_email")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Support email <span className="set-req" aria-hidden="true">*</span></label>
-                          <span id={v.f.id("support_email") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Receives contact-form messages and appears as the reply-to on order mail.</span>
+                          <span id={v.f.id("support_email") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Receives contact-form messages and appears as the reply-to on order mail.</span>
                           <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}><__Icon name="mail" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} /><__In f={v.f} n="support_email" labelled desc /></span>
                           <__Err f={v.f} n="support_email" />
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                           <label htmlFor={v.f.id("working_hours_text")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Working hours text</label>
-                          <span id={v.f.id("working_hours_text") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Free text shown to customers — write it the way you would say it.</span>
+                          <span id={v.f.id("working_hours_text") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Free text shown to customers — write it the way you would say it.</span>
                           <span className="set-box" style={{ display: "flex", alignItems: "center", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}><__In f={v.f} n="working_hours_text" labelled desc /></span>
                           <__Err f={v.f} n="working_hours_text" />
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                           <label htmlFor={v.f.id("store_address")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Store address <span className="set-req" aria-hidden="true">*</span></label>
-                          <span id={v.f.id("store_address") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Printed on invoices and used as the return address for courier pickups.</span>
+                          <span id={v.f.id("store_address") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Printed on invoices and used as the return address for courier pickups.</span>
                           <div className="set-box" style={{ display: "flex", alignItems: "center", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", lineHeight: "19px", color: "#1e293b" }}><__In f={v.f} n="store_address" labelled desc /></div>
                           <__Err f={v.f} n="store_address" />
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                           <label htmlFor={v.f.id("support_line_hours")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Support line hours</label>
-                          <span id={v.f.id("support_line_hours") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>When the phone line is staffed. Outside these hours the widget offers the AI reply instead.</span>
+                          <span id={v.f.id("support_line_hours") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>When the phone line is staffed. Outside these hours the widget offers the AI reply instead.</span>
                           <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                             <span className="set-box" style={{ flex: "1", display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}><__Icon name="clock" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} /><__In f={v.f} n="support_line_hours" labelled desc /></span>
                             <__Err f={v.f} n="support_line_hours" />
@@ -267,7 +264,7 @@ export default class SetGeneralScreen extends Component {
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                           <label htmlFor={v.f.id("service_window")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Service window</label>
-                          <span id={v.f.id("service_window") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Hours in which delivery slots can be booked by customers.</span>
+                          <span id={v.f.id("service_window") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Hours in which delivery slots can be booked by customers.</span>
                           <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                             <span className="set-box" style={{ flex: "1", display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}><__Icon name="clock" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} /><__In f={v.f} n="service_window" labelled desc /></span>
                             <__Err f={v.f} n="service_window" />
@@ -282,14 +279,13 @@ export default class SetGeneralScreen extends Component {
                       <div className="set-head" style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Store location</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>The map embedded on the contact page.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>1 setting</span>
                       </div>
                       <div className="set-split" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: "20px", padding: "18px" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                           <label htmlFor={v.f.id("map_embed")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Google Maps embed code</label>
-                          <span id={v.f.id("map_embed") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Google Maps → Share → <b style={{ fontWeight: "var(--weight-medium)", color: "#475569" }}>Embed a map</b> → copy the whole <span style={{ fontFamily: "var(--font-data)" }}>{"<iframe>"}</span>. Pasted code is sanitised before it is stored.</span>
+                          <span id={v.f.id("map_embed") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Google Maps → Share → <b style={{ fontWeight: "var(--weight-medium)", color: "#475569" }}>Embed a map</b> → copy the whole <span style={{ fontFamily: "var(--font-data)" }}>{"<iframe>"}</span>. Pasted code is sanitised before it is stored.</span>
                           <div className="set-box" style={{ border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "9px 11px", fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", lineHeight: "18px", color: "#334155", wordBreak: "break-all" }}><__In f={v.f} n="map_embed" labelled desc rows={5} spellCheck={false} /></div>
                           <__Err f={v.f} n="map_embed" />
                           {v.mapOk ? (<span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs)", color: "var(--text-success)" }}><__Icon name="circle-check" strokeWidth="1.75" width="13" height="13" />Valid embed · resolves to Feni Center, Feni</span>) : null}

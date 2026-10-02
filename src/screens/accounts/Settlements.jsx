@@ -13,7 +13,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
-import { EmptyState } from '@/components/ui';
+import { EmptyState, InfoTip } from '@/components/ui';
 import { BrandLogo } from '@/components/BrandLogo';
 import { getPartners, getPayouts, getWallets, heldBy, clockNow, startOfDay, closedBetween, ruleText, feeText, weekendText } from '@/lib/settlements';
 import { AccPage, PayoutDialog, WithdrawDialog, useBooks, money, dayLabel, dayWords, shortDate, daysText, accName, accBrand } from './accShared';
@@ -142,7 +142,7 @@ export default function Settlements() {
 
   return (
     <AccPage screen="Settlements" active="acc-settle" page="Payouts" title="Payouts" css={CSS}
-      description="Money that payment gateways, the card machine and couriers collected for you and pay out later. See what arrives when, and tick it off when it lands."
+      about="Money that payment gateways, the card machine and couriers collected for you and pay out later. See what arrives when, and tick it off when it lands."
       actions={<>
         <Link href="/account-setup?tab=partners" className="gc-btn gc-btn--neutral"><Icon name="sliders-horizontal" width="18" height="18" aria-hidden="true" /> Payout rules</Link>
         <button type="button" className="gc-btn gc-btn--solid" onClick={() => window.dispatchEvent(new CustomEvent('gc:check'))}><Icon name="list-checks" width="18" height="18" aria-hidden="true" /> Check today’s payouts</button>
@@ -155,8 +155,8 @@ export default function Settlements() {
       </div>
 
       <section className="gc-card ac-card" aria-labelledby="st-coming">
-        <div className="ac-head"><div><h2 id="st-coming">Coming in</h2><p>By the day it should reach your account. Friday, Saturday and holidays are skipped, so their money arrives on the next working day.</p></div></div>
-        {groups.length === 0 && !data.wallets.some((w) => w.net > 0) ? <EmptyState icon="circle-check" title="Nothing on the way" body="Every payout has arrived. New online payments and delivered COD parcels show here." /> : null}
+        <div className="ac-head"><div><h2 id="st-coming">Coming in <InfoTip text="By the day it should reach your account. Friday, Saturday and holidays are skipped, so their money arrives on the next working day." /></h2></div></div>
+        {groups.length === 0 && !data.wallets.some((w) => w.net > 0) ? <EmptyState icon="circle-check" title="Nothing on the way" body="Every payout has arrived." /> : null}
         {groups.map((g) => (
           <div key={g.key} className="st-group">
             <div className={'st-ghead' + (g.key === 'late' ? ' is-late' : '')}><h3>{g.label}</h3><span>{g.sub}{g.note ? ' · ' + g.note : ''}</span><span className="st-gsum">{money(sum(g.list))}</span></div>

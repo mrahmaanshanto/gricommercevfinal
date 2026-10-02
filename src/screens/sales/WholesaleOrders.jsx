@@ -67,7 +67,7 @@ export default function WholesaleOrders() {
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
             <PageHeader
               title="Wholesale orders"
-              description="Follow each wholesale order: whether the customer has taken delivery, how many pieces went out, and what is still to pay."
+              about="Follow each wholesale order: whether the customer has taken delivery, how many pieces went out, and what is still to pay."
               actions={<>
                 <Link href="/merchant-orders" className="gc-btn gc-btn--neutral"><Icon name="inbox" width="18" height="18" aria-hidden="true" /> All orders</Link>
                 <Link href="/pos" className="gc-btn gc-btn--solid"><Icon name="plus" width="18" height="18" aria-hidden="true" /> New sale</Link>
@@ -93,7 +93,7 @@ export default function WholesaleOrders() {
                 <p className="wo-count">{TABS.find((x) => x[0] === tab)[1]} · {shown.length}</p>
                 <label className="wo-search"><Icon name="search" width="18" height="18" aria-hidden="true" /><input className="gc-input" type="search" placeholder="Search customer or order no." aria-label="Search customer or order number" value={q} onChange={(e) => setQ(e.target.value)} /></label>
               </div>
-              {shown.length === 0 ? <EmptyState icon="truck" title={q ? 'No order matches that search' : 'No order in this group'} body={q ? 'Try the customer’s name, mobile number or the order number.' : 'Wholesale orders appear here when a sale is made to a wholesale customer in New sale.'} /> : (
+              {shown.length === 0 ? <EmptyState icon="truck" title={q ? 'No order matches that search' : rows.length ? 'No order in this group' : 'No wholesale orders yet'} actionLabel={q || rows.length ? undefined : 'New sale'} onAction={() => window.location.assign('/pos')} /> : (
                 <div className="gc-table-wrap">
                   <table className="gc-table gc-table--compact gc-table--hoverable">
                     <thead><tr><th scope="col">Order</th><th scope="col">Customer</th><th scope="col">Date</th><th scope="col" className="wo-num">Total</th><th scope="col">Payment</th><th scope="col">Delivery</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>

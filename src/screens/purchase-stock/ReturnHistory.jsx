@@ -63,7 +63,7 @@ export default function ReturnHistory() {
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
             <PageHeader
               title="Returns & exchanges"
-              description="Everything that came back, from online, retail and wholesale orders, and where the stock went."
+              about="Everything that came back, from online, retail and wholesale orders, and where the stock went."
               actions={<>
                 <Link href="/stock-holds" className="gc-btn gc-btn--neutral"><Icon name="lock" width="18" height="18" aria-hidden="true" /> Stock holds</Link>
                 <Link href="/return-exchange" className="gc-btn gc-btn--solid"><Icon name="undo-2" width="18" height="18" aria-hidden="true" /> New return or exchange</Link>

@@ -218,7 +218,6 @@ export default class PixelsEventsScreen extends Component {
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <div className="ey ey-d">G1 · Server-side tracking</div>
                     <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>Delivered is the conversion that counts</h1>
-                    <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "640px" }}>Events go from our server to Meta, Google and TikTok — hashed, deduplicated, and confirmed when the courier delivers. No code, no tag manager.</p>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: "0" }}>
                     <button type="button" className="btn sm" onClick={v.openWiz} style={{ background: "#fff", color: "#0b1733", height: "36px" }}>
@@ -336,7 +335,6 @@ export default class PixelsEventsScreen extends Component {
                 <div className="pe-ehead" style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "0" }}>Which events go where</h2>
-                    <p style={{ margin: "3px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Purchase fires when the order is placed; Delivered fires when the courier confirms. Returned tells the platforms to stop chasing people who return.</p>
                   </div>
                   <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Click a box to turn it on or off</span>
                 </div>
@@ -466,7 +464,6 @@ export default class PixelsEventsScreen extends Component {
                   <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
                       <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "0" }}>Per-product and per-page pixels</h2>
-                      <p style={{ margin: "3px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>A partner brand or a landing page can use its own pixel. Everything else uses the store pixel.</p>
                     </div>
                     <button type="button" className="abtn" onClick={v.addOvr}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M5 12h14" />

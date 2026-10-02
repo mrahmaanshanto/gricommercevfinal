@@ -117,7 +117,7 @@ export const ACC_CSS = `
 `;
 
 /** The shell around an Accounts page: menu, top bar and page header. */
-export function AccPage({ screen, active, page, title, description, actions, children, css = '' }) {
+export function AccPage({ screen, active, page, title, description, about, actions, children, css = '' }) {
   return (
     <div className="dc-screen ds" data-screen={screen}>
       <style dangerouslySetInnerHTML={{ __html: ACC_CSS + css }} />
@@ -126,7 +126,7 @@ export function AccPage({ screen, active, page, title, description, actions, chi
         <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
           <Topbar crumb="Accounts" page={page} />
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-            <PageHeader title={title} description={description} actions={actions} />
+            <PageHeader title={title} description={description} about={about} actions={actions} />
             {children}
           </div>
         </main>

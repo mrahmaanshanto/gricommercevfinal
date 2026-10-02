@@ -232,7 +232,6 @@ export default class AnalyticsHubScreen extends Component {
                   <div style={{ flex: "1 1 320px", minWidth: "0" }}>
                     <div className="ey ey-d">G2 · Analytics hub · {v.perL}</div>
                     <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.headline}</h1>
-                    <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "640px" }}>Every taka spent on Meta, Google and TikTok, joined to orders that were actually delivered. Platform numbers are shown beside ours — never mixed.</p>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", maxWidth: "100%" }}>
                     <div className="dseg" role="group" aria-label="Platform">

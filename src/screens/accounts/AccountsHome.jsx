@@ -155,7 +155,7 @@ export default function AccountsHome() {
           <Link href="/settlements" className="gc-btn gc-btn--solid"><Icon name="hourglass" width="18" height="18" aria-hidden="true" /> Payouts</Link>
         </>
   );
-  if (!tick) return <AccPage screen="AccountsHome" active="acc-home" page="Money overview" title="Money overview" css={CSS} description="Where your money is, what needs you today, and what is on the way." actions={actions} />;
+  if (!tick) return <AccPage screen="AccountsHome" active="acc-home" page="Money overview" title="Money overview" css={CSS} about="Where your money is, what needs you today, and what is on the way." actions={actions} />;
 
   const bal = (href, label, g, extra) => (
     <Link href={href} className="ov-bal">
@@ -167,7 +167,7 @@ export default function AccountsHome() {
 
   return (
     <AccPage screen="AccountsHome" active="acc-home" page="Money overview" title="Money overview" css={CSS}
-      description="Where your money is, what needs you today, and what is on the way."
+      about="Where your money is, what needs you today, and what is on the way."
       actions={actions}>
       <div className="ov-bals">
         {bal('/money?type=Cash', 'Cash', d.cash)}
@@ -188,7 +188,7 @@ export default function AccountsHome() {
           </div>
         </section>
         <section className="gc-card ac-card" aria-labelledby="ov-dues">
-          <div className="ac-head"><div><h2 id="ov-dues">Dues</h2><p>Customers and partners owe you; you owe suppliers, staff and others</p></div><Link href="/dues" className="gc-btn gc-btn--sm gc-btn--neutral">Dues</Link></div>
+          <div className="ac-head"><div><h2 id="ov-dues">Dues</h2></div><Link href="/dues" className="gc-btn gc-btn--sm gc-btn--neutral">Dues</Link></div>
           <div className="ov-dues">
             <div><span>You will get</span><b className="ac-in">{money(d.get)}</b></div>
             <div><span>You owe</span><b className="ac-out">{money(d.owe)}</b></div>
@@ -199,7 +199,7 @@ export default function AccountsHome() {
 
       <div className="ov-grid gc-split">
         <section className="gc-card ac-card" aria-labelledby="ov-tasks">
-          <div className="ac-head"><div><h2 id="ov-tasks">Needs you</h2><p>{d.tasks.length ? `${d.tasks.length} thing${d.tasks.length === 1 ? '' : 's'} to sort out. Each has its button.` : 'Payouts, wallets and bills that need an answer show here.'}</p></div></div>
+          <div className="ac-head"><div><h2 id="ov-tasks">Needs you{d.tasks.length ? ` (${d.tasks.length})` : ''}</h2></div></div>
           {d.tasks.length ? d.tasks.map((t) => (
             <div key={t.key} className="ov-task">
               {t.logo ? <BrandLogo brand={t.logo} size={36} decorative /> : <span className={'ov-ico ov-ico--' + t.tone}><Icon name={t.icon} width="18" height="18" aria-hidden="true" /></span>}
@@ -210,7 +210,7 @@ export default function AccountsHome() {
         </section>
 
         <section className="gc-card ac-card" aria-labelledby="ov-coming">
-          <div className="ac-head"><div><h2 id="ov-coming">Coming in</h2><p>Payouts by the day they should reach your account</p></div></div>
+          <div className="ac-head"><div><h2 id="ov-coming">Coming in</h2></div></div>
           {d.days.length ? d.days.map((g) => (
             <div key={g.due} className="ov-day">
               <div className="ov-day__head"><b>{dayLabel(g.due, d.now)} <span className="ac-sub" style={{ display: 'inline', fontFamily: 'var(--font-sans)', fontWeight: 'var(--weight-regular)' }}>· {shortDate(g.due)}</span></b><span>{money(g.list.reduce((s, p) => s + p.net, 0))}</span></div>
@@ -224,7 +224,7 @@ export default function AccountsHome() {
 
       <div className="ov-grid gc-split">
         <section className="gc-card ac-card" aria-labelledby="ov-recent">
-          <div className="ac-head"><div><h2 id="ov-recent">Latest money movements</h2><p>Sales, payments, expenses and transfers in your own accounts</p></div><Link href="/money" className="gc-btn gc-btn--sm gc-btn--neutral">Open money</Link></div>
+          <div className="ac-head"><div><h2 id="ov-recent">Latest money movements</h2></div><Link href="/money" className="gc-btn gc-btn--sm gc-btn--neutral">Open money</Link></div>
           <div className="gc-table-wrap">
             <table className="gc-table gc-table--compact">
               <thead><tr><th scope="col">When</th><th scope="col">What</th><th scope="col">Account</th><th scope="col" className="ac-num">Amount</th></tr></thead>
@@ -240,7 +240,7 @@ export default function AccountsHome() {
           </div>
         </section>
         <section className="gc-card ac-card" aria-labelledby="ov-flow">
-          <div className="ac-head"><div><h2 id="ov-flow">In and out</h2><p>Transfers between your own accounts are left out</p></div>
+          <div className="ac-head"><div><h2 id="ov-flow">In and out</h2></div>
             <div className="ac-seg" role="group" aria-label="Period">{RANGES.map(([id, label]) => <button key={id} type="button" aria-pressed={range === id} onClick={() => setRange(id)}>{label}</button>)}</div>
           </div>
           <dl className="ov-flow" style={{ margin: 0 }}>

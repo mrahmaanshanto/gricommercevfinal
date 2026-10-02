@@ -14,7 +14,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
-import { Dialog, EmptyState } from '@/components/ui';
+import { Dialog, EmptyState, InfoTip } from '@/components/ui';
 import { BrandLogo } from '@/components/BrandLogo';
 import { formatDate } from '@/lib/format';
 import { OWN_ACCOUNTS, balanceOf } from '@/lib/ledger';
@@ -184,7 +184,7 @@ export default function Liabilities() {
 
   return (
     <AccPage screen="Liabilities" active="acc-liab" page="Bills to pay" title="Bills to pay" css={CSS}
-      description="Money the shop owes that is not a supplier bill: salaries, sales commission, affiliate payouts and promotions."
+      about="Money the shop owes that is not a supplier bill: salaries, sales commission, affiliate payouts and promotions."
       actions={<>
         <Link href="/dues?tab=owe" className="gc-btn gc-btn--neutral"><Icon name="scale" width="18" height="18" aria-hidden="true" /> All dues</Link>
         <button type="button" className="gc-btn gc-btn--solid" onClick={() => setAdding(true)}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Add bill</button>
@@ -240,7 +240,7 @@ function HeldForCustomers() {
   return (
     <section className="gc-card ac-card" aria-labelledby="lb-held">
       <div className="ac-head">
-        <div><h2 id="lb-held">Held for customers</h2><p>Loyalty points (a promise of a discount) and money customers keep in their wallet. It is theirs until they use it or take it back, so there is nothing to pay today.</p></div>
+        <div><h2 id="lb-held">Held for customers <InfoTip text="Loyalty points (a promise of a discount) and money customers keep in their wallet. It is theirs until they use it or take it back, so there is nothing to pay today." /></h2></div>
         <div className="ac-row-actions">
           <Link href="/loyalty" className="gc-btn gc-btn--sm gc-btn--neutral">Loyalty</Link>
           <Link href="/wallet?tab=wallets" className="gc-btn gc-btn--sm gc-btn--neutral">Customer wallets</Link>

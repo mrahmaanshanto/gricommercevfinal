@@ -78,7 +78,7 @@ export default function Referrals() {
 
   return (
     <LoyPage screen="Referrals" active="loy-referrals" title="Invite a friend" css={CSS}
-      description="Customers share their code. When a friend’s first order is delivered, the customer gets a reward. Rewards are a cost of your online sales.">
+      about="Customers share their code. When a friend’s first order is delivered, the customer gets a reward. Rewards are a cost of your online sales.">
       <div className="gc-kpis gc-kpis--tight">
         <Kpi icon="share-2" label="Customers sharing" value={data ? pts(data.referrers.length) : '—'} sub="have an invite code" />
         <Kpi icon="user-plus" tone="success" label="Friends who joined" value={data ? pts(data.joined) : '—'} sub={data ? `${pts(data.bought)} bought · ${money(data.sales)} sales` : ''} />
@@ -86,17 +86,17 @@ export default function Referrals() {
         <Kpi icon="receipt" tone="warning" label="Invite cost this month" value={data ? money(data.month) : '—'} sub={data ? `${data.lastLabel}: ${money(data.last)}` : ''} />
       </div>
 
-      <section className="gc-card ac-card" aria-labelledby="rf-how">
-        <div className="ac-head"><div><h2 id="rf-how">How “Invite a friend” works</h2><p>The reward is given when the friend’s first order is delivered.</p></div></div>
+      <details className="gc-card ac-card gc-disclose">
+        <summary>How “Invite a friend” works</summary>
         <div className="rf-steps">
           <div className="rf-step"><span>Step 1</span><b>Customer shares the code</b><small>From the app, website or SMS, for example RAKIB250</small></div>
           <div className="rf-step"><span>Step 2</span><b>Friend buys for the first time</b><small>{rule.kind === 'comm' ? `and gets ${rule.friendPoints} welcome points` : `and gets ${rule.points} welcome points`}</small></div>
           <div className="rf-step"><span>Step 3</span><b>Customer gets a reward</b><small>{rule.kind === 'comm' ? `${rule.pct}% of the friend’s first order, in the wallet or paid out` : `${rule.points} points (${money(rule.points * (data ? data.pv : DEFAULT_SETTINGS.pointValue))})`}</small></div>
         </div>
-      </section>
+      </details>
 
       <section className="gc-card rf-rule" aria-labelledby="rf-rule">
-        <div className="ac-head" style={{ padding: 0 }}><div><h2 id="rf-rule">Reward</h2><p>What the customer who invited gets for each friend’s first order.</p></div></div>
+        <div className="ac-head" style={{ padding: 0 }}><div><h2 id="rf-rule">Reward</h2></div></div>
         <div className="ac-seg" role="group" aria-label="Reward type" style={{ alignSelf: 'flex-start' }}>
           <button type="button" aria-pressed={rule.kind === 'comm'} onClick={() => setR({ kind: 'comm' })}>Share of the first order</button>
           <button type="button" aria-pressed={rule.kind === 'points'} onClick={() => setR({ kind: 'points' })}>Points each</button>
@@ -117,7 +117,7 @@ export default function Referrals() {
       </section>
 
       <section className="gc-card ac-card" aria-labelledby="rf-top">
-        <div className="ac-head"><div><h2 id="rf-top">Top sharers</h2><p>Customers who brought the most new buyers</p></div></div>
+        <div className="ac-head"><div><h2 id="rf-top">Top sharers</h2></div></div>
         {!data ? <EmptyState icon="loader" title="Reading invites" /> : (
           <div className="gc-table-wrap">
             <table className="gc-table gc-table--compact gc-table--hoverable rf-table">

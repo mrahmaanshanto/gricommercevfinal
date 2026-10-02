@@ -227,7 +227,6 @@ export default class AttributionScreen extends Component {
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <div className="ey ey-d">{"G2 · Attribution & UTM"}</div>
                     <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>Who really brought the sale</h1>
-                    <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "640px" }}>Every order keeps the first and last place the buyer came from, any creator code, and what they told you at checkout.</p>
                   </div>
                   <div className="at-hctl" style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: "0" }}>
                     <div className="dseg at-win" style={{ padding: "3px 3px 3px 12px", alignItems: "center", gap: "8px" }}>

@@ -290,7 +290,7 @@ export default class TransfersScreen extends Component {
                 </div>
               </div>
               <div className="tf-intro" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ flexGrow: "1", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#475569" }}>Move stock between your warehouses and shops. Scan out when it leaves, scan in when it arrives.</div>
+                <div style={{ flexGrow: "1", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#475569" }}></div>
                 <__Link href="/new-transfer" className="btn solid">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M8 3 4 7l4 4" />

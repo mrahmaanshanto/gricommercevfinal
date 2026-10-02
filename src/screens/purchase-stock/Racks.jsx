@@ -201,7 +201,7 @@ export default function Racks() {
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
             <PageHeader
               title="Racks & bins"
-              description="Where stock sits inside each warehouse and branch. Bin A-2-05 is rack A, shelf 2, bin 5."
+              about="Where stock sits inside each warehouse and branch. Bin A-2-05 is rack A, shelf 2, bin 5."
               actions={<>
                 <button type="button" className="gc-btn gc-btn--neutral" onClick={() => startPut('', '', false)} disabled={!binOptions.length}><Icon name="package-plus" width="18" height="18" aria-hidden="true" /> Put away</button>
                 <button type="button" className="gc-btn gc-btn--solid" onClick={newRack}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Add rack</button>
@@ -281,7 +281,7 @@ export default function Racks() {
 
             <section className="gc-card rk-card">
               <div className="rk-head" style={{ padding: 'var(--space-4) var(--space-5)' }}>
-                <div><h2>Not in a bin yet · {place.name}</h2><p>On hand in the stock list minus what is in bins. Put these away so staff can find them.</p></div>
+                <div><h2>Not in a bin yet · {place.name}</h2></div>
                 <Link className="gc-btn gc-btn--sm gc-btn--neutral" href="/stock">Stock list</Link>
               </div>
               {loose.length === 0 ? <EmptyState icon="package-check" title="Everything is in a bin" body={racks.length ? 'Every piece on hand here has a bin.' : 'Add racks first, then put stock away.'} /> : (

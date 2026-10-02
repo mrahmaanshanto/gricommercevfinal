@@ -164,7 +164,7 @@ export default function Money() {
           <button type="button" className="gc-btn gc-btn--solid" onClick={() => openForm('transfer')}><Icon name="arrow-left-right" width="18" height="18" aria-hidden="true" /> Move money</button>
         </>
   );
-  if (!tick) return <AccPage screen="Money" active="acc-money" page="Money" title="Money" css={CSS} description="Every account the shop keeps money in, and every taka in or out: sales, payments, payouts, expenses and transfers." actions={actions} />;
+  if (!tick) return <AccPage screen="Money" active="acc-money" page="Money" title="Money" css={CSS} about="Every account the shop keeps money in, and every taka in or out: sales, payments, payouts, expenses and transfers." actions={actions} />;
 
   const accRow = (a) => (
     <button key={a.id} type="button" className={'mo-acc' + (account === a.id ? ' is-on' : '')} aria-pressed={account === a.id} onClick={() => pick(a.id)}>
@@ -176,7 +176,7 @@ export default function Money() {
 
   return (
     <AccPage screen="Money" active="acc-money" page="Money" title="Money" css={CSS}
-      description="Every account the shop keeps money in, and every taka in or out: sales, payments, payouts, expenses and transfers."
+      about="Every account the shop keeps money in, and every taka in or out: sales, payments, payouts, expenses and transfers."
       actions={actions}>
       <div className="mo-grid gc-split">
         <nav className="gc-card ac-card mo-list" aria-label="Accounts">

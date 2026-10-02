@@ -18,7 +18,7 @@ import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { PageHeader, EmptyState } from '@/components/ui';
+import { PageHeader } from '@/components/ui';
 import { ManagerPin } from '@/components/ManagerPin';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
 import { addReturn, getReturns, returnedFromHistory, cutFromHistory, storeCreditFor } from '@/lib/returns';
@@ -451,7 +451,7 @@ export default function ReturnExchange() {
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
             <PageHeader
               title="Return & exchange"
-              description="Counter sales, wholesale invoices and online orders. Find the sale, tick what is coming back; money and stock are updated for you."
+              about="Counter sales, wholesale invoices and online orders. Find the sale, tick what is coming back; money and stock are updated for you."
               actions={<>
                 <Link href="/return-history" className="gc-btn gc-btn--neutral"><Icon name="history" width="18" height="18" aria-hidden="true" /> Return history</Link>
                 <Link href="/sales-book" className="gc-btn gc-btn--neutral"><Icon name="book-open" width="18" height="18" aria-hidden="true" /> Sales book</Link>
@@ -459,9 +459,9 @@ export default function ReturnExchange() {
             />
 
             <div className="gc-kpis gc-kpis--tight">
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-warning-soft)', color: 'var(--text-warning)' }}><Icon name="undo-2" width="20" height="20" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Returns today</p><p className="gc-kpi__value">{todays.filter((r) => r.type === 'return').length}</p></div></div>
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-error-soft)', color: 'var(--text-danger)' }}><Icon name="hand-coins" width="20" height="20" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Given back today</p><p className="gc-kpi__value">{money(refundedToday)}</p></div></div>
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="arrow-left-right" width="20" height="20" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Exchanges today</p><p className="gc-kpi__value">{todays.filter((r) => r.type === 'exchange').length}</p></div></div>
+              {todays.some((r) => r.type === 'return') ? <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-warning-soft)', color: 'var(--text-warning)' }}><Icon name="undo-2" width="20" height="20" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Returns today</p><p className="gc-kpi__value">{todays.filter((r) => r.type === 'return').length}</p></div></div> : null}
+              {refundedToday ? <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-error-soft)', color: 'var(--text-danger)' }}><Icon name="hand-coins" width="20" height="20" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Given back today</p><p className="gc-kpi__value">{money(refundedToday)}</p></div></div> : null}
+              {todays.some((r) => r.type === 'exchange') ? <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="arrow-left-right" width="20" height="20" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Exchanges today</p><p className="gc-kpi__value">{todays.filter((r) => r.type === 'exchange').length}</p></div></div> : null}
               <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-info-soft)', color: 'var(--text-info)' }}><Icon name="calendar-clock" width="20" height="20" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Return window</p><p className="gc-kpi__value">{returnDays} days<small>Older sales need a manager</small></p></div></div>
             </div>
 
@@ -512,9 +512,9 @@ export default function ReturnExchange() {
                 </section>
 
                 {/* step 2 */}
-                <section className="gc-card re-card">
-                  <div className="re-head"><span className={'re-step' + (sel ? '' : ' is-off')}>2</span><h2>What is coming back?</h2><p>Tick the items, then set how many</p></div>
-                  {!sel ? <EmptyState icon="receipt-text" title="Find the sale first" body="The items on the memo, invoice or order appear here." /> : (
+                {sel ? (<section className="gc-card re-card">
+                  <div className="re-head"><span className={'re-step' + (sel ? '' : ' is-off')}>2</span><h2>What is coming back?</h2></div>
+                  {!sel ? null : (
                     <fieldset className="re-lock" disabled={lock}>
                       <legend className="sr-only">Items and how they are settled</legend>
                       <ul className="re-items">
@@ -606,7 +606,7 @@ export default function ReturnExchange() {
                       </div>
                     </fieldset>
                   )}
-                </section>
+                </section>) : null}
               </div>
 
               <aside className="re-col">

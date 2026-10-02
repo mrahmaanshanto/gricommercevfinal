@@ -230,7 +230,6 @@ export default class AutoCallSettingsScreen extends Component {
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <div className="ey ey-d">Orders · AI auto-call settings</div>
                     <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.headline}</h1>
-                    <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "680px" }}>The AI calls customers to confirm orders in Bangla or English, then moves each order to the right status. Calls are charged from the wallet.</p>
                   </div>
                   <__Link href="/ai-calls" className="btn sm" style={{ background: "#fff", color: "#0b1733", height: "38px", flexShrink: "0" }}>Call results</__Link>
                 </div>

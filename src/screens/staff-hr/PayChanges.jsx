@@ -67,7 +67,7 @@ export default function PayChanges() {
 
   return (
     <HrPage screen="PayChanges" active="hr-changes" page="Increments & promotions" title="Increments & promotions" css={FORM_CSS + LETTER_CSS + CSS}
-      description="Raises, promotions, confirmations and transfers — with who is due a review, planned changes and a letter for each."
+      about="Raises, promotions, confirmations and transfers — with who is due a review, planned changes and a letter for each."
       actions={<>
         <button type="button" className="gc-btn gc-btn--neutral" onClick={openBulk}><Icon name="users" width="18" height="18" aria-hidden="true" /> Yearly increment</button>
         <button type="button" className="gc-btn gc-btn--solid" onClick={() => setAdd('increment')}><Icon name="plus" width="18" height="18" aria-hidden="true" /> New change</button>

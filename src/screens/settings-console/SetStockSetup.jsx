@@ -144,7 +144,7 @@ export default function SetStockSetup() {
 
                   {hasModule('purchasing') ? (
                     <section className="ss-card" aria-labelledby="ss-buy">
-                      <header><h2 id="ss-buy">How do you buy?</h2><p>You can change this later.</p></header>
+                      <header><h2 id="ss-buy">How do you buy?</h2></header>
                       <div className="ss-body">
                         <div className="ss-pick" role="group" aria-label="How you buy">
                           {BUYING.map(([k, l, d]) => <button key={k} type="button" className="ss-opt" aria-pressed={s.buying === k} onClick={() => set({ buying: k })}><b>{l}</b><span>{d}</span></button>)}
@@ -184,7 +184,7 @@ export default function SetStockSetup() {
                   ) : null}
                 </main>
               </div>
-              <div className="ss-bar"><button type="button" className="gc-btn gc-btn--solid" onClick={save}>Save</button></div>
+              <div className="ss-bar"><span className="gc-help" style={{ margin: '0 auto 0 0', alignSelf: 'center' }}>You can change this later.</span><button type="button" className="gc-btn gc-btn--solid" onClick={save}>Save</button></div>
             </div>
           </div>
         </div>

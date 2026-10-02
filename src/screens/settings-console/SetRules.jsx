@@ -3,6 +3,7 @@
 // SetRules
 // Edit freely: this file is now the source for the screen.
 
+import { SetTips as __SetTips } from './SetChrome';
 import React from 'react';
 import { Icon as __Icon } from '@/runtime/dc';
 import { SettingsSwitcher as __SettingsSwitcher } from '@/shell/Shell';
@@ -92,7 +93,7 @@ export default class SetRulesScreen extends Component {
                     <header style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
                       <span style={{ display: "block", minWidth: "0" }}>
                         <h1 style={{ margin: "0 0 4px", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>Auto-Reply Rules</h1>
-                        <p style={{ margin: "0", maxWidth: "640px", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "var(--text-muted)", textWrap: "pretty" }}>Deterministic answers that run before the AI does — for the questions where an exact reply matters more than a clever one.</p>
+                        <__SetTips />
                       </span>
                       <span style={{ marginLeft: "auto", flex: "none", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>5 rules · {v.onCount} on</span>
@@ -103,7 +104,6 @@ export default class SetRulesScreen extends Component {
                       <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Rules</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Checked top to bottom; the first match wins. Anything unmatched goes to the AI reply, or to the inbox if AI is off.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
                           <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>5 rules · {v.onCount} on</span>
@@ -294,7 +294,7 @@ export default class SetRulesScreen extends Component {
                         <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                           <label htmlFor={v.f.id("rule_type")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Rule type</label>
                         </span>
-                        <span id={v.f.id("rule_type") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Keyword matches text; intent uses the model’s classification; schedule fires on time of day.</span>
+                        <span id={v.f.id("rule_type") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Keyword matches text; intent uses the model’s classification; schedule fires on time of day.</span>
                         <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
                           <__In f={v.f} n="rule_type" labelled desc opts={["Keyword","Intent","Schedule"]} />
                           <__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ color: "var(--text-muted)" }} />
@@ -305,7 +305,7 @@ export default class SetRulesScreen extends Component {
                         <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                           <label htmlFor={v.f.id("intent")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Intent</label>
                         </span>
-                        <span id={v.f.id("intent") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Trained intents from your last 90 days of conversations.</span>
+                        <span id={v.f.id("intent") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Trained intents from your last 90 days of conversations.</span>
                         <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)" }}>
                           <__In f={v.f} n="intent" labelled desc opts={["return_or_exchange","order_status","payment_help","wholesale_enquiry"]} />
                           <__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ color: "var(--text-muted)" }} />
@@ -327,7 +327,7 @@ export default class SetRulesScreen extends Component {
                         <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                           <label htmlFor={v.f.id("response")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Response</label>
                         </span>
-                        <span id={v.f.id("response") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>{"Supports {order_code}, {customer_name} and {policy_days}. Bangla version is generated on send."}</span>
+                        <span id={v.f.id("response") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>{"Supports {order_code}, {customer_name} and {policy_days}. Bangla version is generated on send."}</span>
                         <div className="set-box" style={{ border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "9px 11px", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "#1e293b" }}><__In f={v.f} n="response" labelled desc rows={4} /></div>
                         <__Err f={v.f} n="response" />
                         <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><__Icon name="languages" strokeWidth="1.75" width="13" height="13" />Bangla preview available after saving</span>
@@ -337,7 +337,7 @@ export default class SetRulesScreen extends Component {
                           <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                             <label htmlFor={v.f.id("priority")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Priority</label>
                           </span>
-                          <span id={v.f.id("priority") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Lower runs first.</span>
+                          <span id={v.f.id("priority") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Lower runs first.</span>
                           <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", width: "80px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                             <__In f={v.f} n="priority" labelled desc />
                           </span>
@@ -347,7 +347,7 @@ export default class SetRulesScreen extends Component {
                           <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                             <label htmlFor={v.f.id("then")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Then</label>
                           </span>
-                          <span id={v.f.id("then") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>What happens after the reply.</span>
+                          <span id={v.f.id("then") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>What happens after the reply.</span>
                           <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
                             <__In f={v.f} n="then" labelled desc opts={["Offer return form","Hand the thread to a human","Close the thread"]} />
                             <__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ color: "var(--text-muted)" }} />

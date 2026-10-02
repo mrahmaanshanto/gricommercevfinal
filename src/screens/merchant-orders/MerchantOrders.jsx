@@ -338,8 +338,10 @@ const CSS = `/* order KPI strip: icon tile + label over value, two lines, compac
   .mo-kpi__value{font-size:var(--text-lg);line-height:24px}
   .mo-search{flex:1 1 0!important;max-width:none!important}
   .mo-bulk:not(:has(button)){display:none!important}
-  .mo-tabs{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none}
+  .mo-tabs{display:none!important}
+  .mo-statussel{display:block!important;padding:12px 16px 0}
 }
+.mo-statussel{display:none}
 body{margin:0;background:#eef2f7;font-family:var(--font-sans);color:#475569}a{color:#003087;text-decoration:none}a:hover{color:#002a77}table{border-collapse:collapse}
 .dc-h213:hover{background:#002a77 !important}
 .dc-h214:hover{border-color:#94a3b8 !important}
@@ -456,6 +458,11 @@ export default class MerchantOrdersScreen extends Component {
                 </div>
               </div>
               <div style={{ borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
+                <div className="mo-statussel">
+                  <select className="gc-input gc-select" aria-label="Order status" value={(__list(v.tabs).find((t) => t.on) || {}).key || ''} onChange={(e) => { const t = __list(v.tabs).find((x) => x.key === e.target.value); if (t) t.onClick(); }}>
+                    {__list(v.tabs).map((t) => <option key={t.key} value={t.key}>{t.label} ({t.count})</option>)}
+                  </select>
+                </div>
                 <div className="mo-tabs" role="tablist" aria-label="Order status" onKeyDown={v.onTabKey} style={{ display: "flex", flexWrap: "wrap", gap: "4px", padding: "10px 16px", borderBottom: "1px solid #e2e8f0" }}>
                   {__list(v.tabs).map((t) => (
                     <button key={t.key} id={t.id} type="button" role="tab" aria-selected={t.on ? "true" : "false"} aria-controls="orders-panel" tabIndex={t.on ? 0 : -1} className={t.on ? undefined : "dc-h216"} onClick={t.onClick} style={{ display: "inline-flex", height: "36px", alignItems: "center", gap: "8px", border: "none", borderRadius: "var(--radius-full)", background: t.on ? "rgba(0,48,135,.1)" : "none", boxShadow: t.on ? "inset 0 0 0 1.5px #003087" : "none", padding: "0 14px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: t.on ? "var(--weight-semibold)" : "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: t.on ? "#003087" : "#475569", cursor: "pointer", whiteSpace: "nowrap" }}>{t.on ? <__Icon name="check" strokeWidth="2" width="14" height="14" aria-hidden="true" /> : null}{t.label}<span style={{ fontVariantNumeric: "tabular-nums", color: t.on ? "#003087" : "var(--text-muted)" }}>{t.count}</span></button>

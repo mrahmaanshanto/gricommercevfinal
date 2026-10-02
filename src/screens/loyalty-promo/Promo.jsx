@@ -164,7 +164,11 @@ export default class PromoScreen extends Component {
           <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
             <__Topbar crumb="Promo" page={"Offers & promo"} placeholder="Search customer by name or phone" />
             <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <__PageHeader title={"Offers & promo"} />
+              <__PageHeader title={"Offers & promo"} actions={<>
+                <__Link href="/offers" className="gc-btn gc-btn--neutral"><__Icon name="eye" width="18" height="18" aria-hidden="true" /> Offers page</__Link>
+                <__Link href="/new-flash-sale" className="gc-btn gc-btn--neutral"><__Icon name="zap" width="18" height="18" aria-hidden="true" /> Flash sale</__Link>
+                <__Link href="/new-coupon" className="gc-btn gc-btn--solid"><__Icon name="plus" width="18" height="18" aria-hidden="true" /> Create offer</__Link>
+              </>} />
               <div className="gc-cardrow" style={{ display: "flex", gap: "16px" }}>
                 <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
                   <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#e7f8f1", color: "#047857", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -221,72 +225,63 @@ export default class PromoScreen extends Component {
                   </div>
                 </div>
               </div>
-              <div>
-                <div style={{ marginBottom: "12px" }}>
+              <section className="card" style={{ overflow: "hidden" }}>
+                <div style={{ padding: "16px", borderBottom: "1px solid #e2e8f0" }}>
                   <div>
-                    <h2 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>What do you want to do?</h2>
+                    <h2 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Running and coming soon</h2>
                   </div>
                 </div>
-                <div className="pr-acts" style={{ display: "flex", gap: "16px" }}>
-                  <__Link href="/new-coupon" className="card actc" style={{ flex: "1 1 0", padding: "20px", display: "flex", flexDirection: "column", gap: "12px", textDecoration: "none", color: "#0f172a" }}>
-                    <span style={{ width: "52px", height: "52px", borderRadius: "var(--radius-xl)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
-                        <path d="M9 9h.01" />
-                        <path d="m15 9-6 6" />
-                        <path d="M15 15h.01" />
-                      </svg>
-                    </span>
-                    <div style={{ fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)" }}>Give a discount code</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Like EID300 or FIRST20. Works online and at the POS.</div>
-                    <div style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087" }}>Start <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M5 12h14" />
-  <path d="m12 5 7 7-7 7" />
-</svg></div>
-                  </__Link>
-                  <__Link href="/new-flash-sale" className="card actc" style={{ flex: "1 1 0", padding: "20px", display: "flex", flexDirection: "column", gap: "12px", textDecoration: "none", color: "#0f172a" }}>
-                    <span style={{ width: "52px", height: "52px", borderRadius: "var(--radius-xl)", background: "#fff4e0", color: "#a14f06", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
-                      </svg>
-                    </span>
-                    <div style={{ fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)" }}>Start a flash sale</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Low price on some products for a short time, with a countdown.</div>
-                    <div style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087" }}>Start <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M5 12h14" />
-  <path d="m12 5 7 7-7 7" />
-</svg></div>
-                  </__Link>
-                  <__Link href="/offers" className="card actc" style={{ flex: "1 1 0", padding: "20px", display: "flex", flexDirection: "column", gap: "12px", textDecoration: "none", color: "#0f172a" }}>
-                    <span style={{ width: "52px", height: "52px", borderRadius: "var(--radius-xl)", background: "#e7f8f1", color: "#047857", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                    </span>
-                    <div style={{ fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)" }}>See your Offers page</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Every running offer shows here for customers, with a day counter.</div>
-                    <div style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087" }}>Open <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M5 12h14" />
-  <path d="m12 5 7 7-7 7" />
-</svg></div>
-                  </__Link>
-                  <a href="#strip" className="card actc" style={{ flex: "1 1 0", padding: "20px", display: "flex", flexDirection: "column", gap: "12px", textDecoration: "none", color: "#0f172a" }}>
-                    <span style={{ width: "52px", height: "52px", borderRadius: "var(--radius-xl)", background: "#fde7f1", color: "#b0145a", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="m3 11 18-5v12L3 14v-3z" />
-                        <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
-                      </svg>
-                    </span>
-                    <div style={{ fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)" }}>Show a top banner</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>A thin line on top of your website and app.</div>
-                    <div style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087" }}>Start <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M5 12h14" />
-  <path d="m12 5 7 7-7 7" />
-</svg></div>
-                  </a>
+                <div className="gc-table-wrap">
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr>
+                        <th className="th">Offer</th>
+                        <th className="th">Type</th>
+                        <th className="th">Time left</th>
+                        <th className="th" style={{ textAlign: "right" }}>Used</th>
+                        <th className="th" style={{ textAlign: "right" }}>Sales</th>
+                        <th className="th">Status</th>
+                        <th className="th" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {__list(v.live).map((r, $index) => (<React.Fragment key={$index}>
+                          <tr className="row">
+                            <td className="td">
+                              <div style={{ fontWeight: "var(--weight-medium)" }}>{r?.name}</div>
+                              <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>{r?.sub}</div>
+                            </td>
+                            <td className="td">{r?.type}</td>
+                            <td className="td">
+                              <span style={__sx(`font-weight: var(--weight-medium); color: ${r?.tColor ?? ""};`)}>{r?.left}</span>
+                            </td>
+                            <td className="td" style={{ textAlign: "right" }}>{r?.used}</td>
+                            <td className="td" style={{ textAlign: "right", fontWeight: "var(--weight-medium)" }}>{r?.sales}</td>
+                            <td className="td">
+                              <span className={r?.sCls}>{r?.status}</span>
+                            </td>
+                            <td className="td" style={{ textAlign: "right" }}>
+                              <button type="button" className="btn line sm" onClick={r?.toggle}>
+                                {r?.running ? (<>
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <rect x="14" y="4" width="4" height="16" rx="1" />
+                                    <rect x="6" y="4" width="4" height="16" rx="1" />
+                                  </svg>
+                                </>) : null}
+                                {r?.stopped ? (<>
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <polygon points="6 3 20 12 6 21 6 3" />
+                                  </svg>
+                                </>) : null}
+                                <span>{r?.btn}</span>
+                              </button>
+                            </td>
+                          </tr>
+                        </React.Fragment>))}
+                    </tbody>
+                  </table>
                 </div>
-              </div>
+              </section>
               <section className="card pr-glance" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
                 <div className="pr-ghead" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                   <div style={{ flexGrow: "1" }}>
@@ -375,63 +370,6 @@ export default class PromoScreen extends Component {
                   <div style={{ position: "absolute", top: "0", bottom: "0", left: "calc(220px + (100% - 220px) * 17 / 30)", width: "2px", background: "#b83210" }}>
                     <span style={{ position: "absolute", top: "-2px", left: "-18px", padding: "1px 6px", borderRadius: "var(--radius-sm)", background: "#b83210", color: "#fff", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>Today</span>
                   </div>
-                </div>
-              </section>
-              <section className="card" style={{ overflow: "hidden" }}>
-                <div style={{ padding: "16px", borderBottom: "1px solid #e2e8f0" }}>
-                  <div>
-                    <h2 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Running and coming soon</h2>
-                  </div>
-                </div>
-                <div className="gc-table-wrap">
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr>
-                        <th className="th">Offer</th>
-                        <th className="th">Type</th>
-                        <th className="th">Time left</th>
-                        <th className="th" style={{ textAlign: "right" }}>Used</th>
-                        <th className="th" style={{ textAlign: "right" }}>Sales</th>
-                        <th className="th">Status</th>
-                        <th className="th" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {__list(v.live).map((r, $index) => (<React.Fragment key={$index}>
-                          <tr className="row">
-                            <td className="td">
-                              <div style={{ fontWeight: "var(--weight-medium)" }}>{r?.name}</div>
-                              <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>{r?.sub}</div>
-                            </td>
-                            <td className="td">{r?.type}</td>
-                            <td className="td">
-                              <span style={__sx(`font-weight: var(--weight-medium); color: ${r?.tColor ?? ""};`)}>{r?.left}</span>
-                            </td>
-                            <td className="td" style={{ textAlign: "right" }}>{r?.used}</td>
-                            <td className="td" style={{ textAlign: "right", fontWeight: "var(--weight-medium)" }}>{r?.sales}</td>
-                            <td className="td">
-                              <span className={r?.sCls}>{r?.status}</span>
-                            </td>
-                            <td className="td" style={{ textAlign: "right" }}>
-                              <button type="button" className="btn line sm" onClick={r?.toggle}>
-                                {r?.running ? (<>
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                    <rect x="14" y="4" width="4" height="16" rx="1" />
-                                    <rect x="6" y="4" width="4" height="16" rx="1" />
-                                  </svg>
-                                </>) : null}
-                                {r?.stopped ? (<>
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                    <polygon points="6 3 20 12 6 21 6 3" />
-                                  </svg>
-                                </>) : null}
-                                <span>{r?.btn}</span>
-                              </button>
-                            </td>
-                          </tr>
-                        </React.Fragment>))}
-                    </tbody>
-                  </table>
                 </div>
               </section>
               <section id="strip" className="card" style={{ padding: "24px", display: "flex", flexWrap: "wrap", gap: "28px", alignItems: "flex-start" }}>

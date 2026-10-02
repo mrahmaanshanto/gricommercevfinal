@@ -133,7 +133,7 @@ export default function CourierReturns() {
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
             <PageHeader
               title="Courier returns"
-              description="Parcels the courier brings back. Count what arrived, good or damaged. Good items go back on sale, damaged ones are set aside."
+              about="Parcels the courier brings back. Count what arrived, good or damaged. Good items go back on sale, damaged ones are set aside."
               actions={<>
                 <Link href="/merchant-orders?status=returned" className="gc-btn gc-btn--neutral"><Icon name="inbox" width="18" height="18" aria-hidden="true" /> Returned orders</Link>
                 <Link href="/return-history" className="gc-btn gc-btn--neutral"><Icon name="history" width="18" height="18" aria-hidden="true" /> Returns history</Link>
@@ -153,7 +153,7 @@ export default function CourierReturns() {
                   {TABS.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={tab === id} className={'gc-tab cr-tab' + (tab === id ? ' gc-tab--active' : '')} onClick={() => setTab(id)}>{label}<b>{groups[id].length}</b></button>)}
                 </div>
               </div>
-              {shown.length === 0 ? <EmptyState icon="package-check" title={tab === 'waiting' ? 'Nothing is with the courier' : 'Nothing here yet'} body={tab === 'waiting' ? 'Every returned parcel has been received. Mark an order as returned from its order page.' : 'Received parcels show here.'} /> : (
+              {shown.length === 0 ? <EmptyState icon="package-check" title={tab === 'waiting' ? 'No parcels with couriers' : 'Nothing here yet'} /> : (
                 <div className="gc-table-wrap">
                   <table className="gc-table gc-table--compact gc-table--hoverable">
                     <thead><tr><th scope="col">Order</th><th scope="col">Customer</th><th scope="col">Courier</th><th scope="col">Items</th><th scope="col" className="cr-num">Back</th><th scope="col">Status</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>

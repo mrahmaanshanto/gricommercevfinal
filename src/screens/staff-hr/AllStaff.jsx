@@ -82,7 +82,7 @@ export default function AllStaff() {
 
   return (
     <HrPage screen="AllStaff" active="hr-staff" page="All staff" title="All staff" css={CSS}
-      description="Everyone who works for the shop: where, which shift, what they earn and how they are paid."
+      about="Everyone who works for the shop: where, which shift, what they earn and how they are paid."
       actions={<>
         <button type="button" className="gc-btn gc-btn--neutral" onClick={() => toast('Staff import from a spreadsheet is not in the demo yet. Add people one by one with Add staff.', { tone: 'info' })}><Icon name="upload" width="18" height="18" aria-hidden="true" /> Import</button>
         <button type="button" className="gc-btn gc-btn--neutral" onClick={() => exportRows(list)}><Icon name="download" width="18" height="18" aria-hidden="true" /> Export</button>
@@ -90,8 +90,6 @@ export default function AllStaff() {
       </>}>
 
       <div className="gc-kpis">
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="users" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Total staff</p><p className="gc-kpi__value">{all.length}<small>across {places.length} places</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="user-check" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Present today</p><p className="gc-kpi__value">{present}<small>{todays.filter((t) => t.code === 'L').length} late · {todays.filter((t) => t.code === 'V' || t.code === 'U').length} on leave</small></p></div></div>
         <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-warning-soft)', color: 'var(--text-warning)' }}><Icon name="banknote" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Monthly salary</p><p className="gc-kpi__value">{money(payroll)}<small>gross, suspended left out</small></p></div></div>
         <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-info-soft)', color: 'var(--text-info)' }}><Icon name="key-round" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">With admin login</p><p className="gc-kpi__value">{all.filter((s) => s.role !== 'No login').length}<small>{all.filter((s) => s.role === 'No login').length} without</small></p></div></div>
       </div>
@@ -184,7 +182,7 @@ export default function AllStaff() {
                 {form.status === 'probation' ? <div><label className="gc-label" htmlFor="as-prob">Probation ends</label><input id="as-prob" type="date" className="gc-input" value={form.probationEnd || ''} onChange={(e) => setForm({ ...form, probationEnd: e.target.value })} /></div>
                   : form.type === 'Contract' ? <div><label className="gc-label" htmlFor="as-contract">Contract ends</label><input id="as-contract" type="date" className="gc-input" value={form.contractEnd || ''} onChange={(e) => setForm({ ...form, contractEnd: e.target.value })} /></div> : <div />}
               </div>
-              <div className="hr-note hr-note--info"><Icon name="info" width="16" height="16" aria-hidden="true" /><span>Salary, increments and the bank / bKash account it goes to are on the profile: <Link href={profileHref(form.code, 'salary')} className="hr-link">Salary & payroll</Link>.</span></div>
+              <div className="hr-note hr-note--info"><Icon name="info" width="16" height="16" aria-hidden="true" /><span><Link href={profileHref(form.code, 'salary')} className="hr-link">Salary & payroll</Link>.</span></div>
             </form>
           );
         })() : null}

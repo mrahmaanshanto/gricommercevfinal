@@ -157,7 +157,7 @@ export default function Suppliers() {
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
             <PageHeader
               title="Suppliers & payables"
-              description="Who you owe, how much, and when it is due."
+              about="Who you owe, how much, and when it is due."
               actions={<>
                 <Link href="/supplier-return" className="gc-btn gc-btn--neutral"><Icon name="undo-2" width="18" height="18" aria-hidden="true" /> Return goods</Link>
                 <Link href="/new-po" className="gc-btn gc-btn--neutral"><Icon name="file-plus" width="18" height="18" aria-hidden="true" /> New purchase order</Link>

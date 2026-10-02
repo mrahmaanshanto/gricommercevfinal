@@ -300,7 +300,7 @@ class AllProductsView extends Component {
           <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
             <__Topbar crumb="Products" page="All products" placeholder="Search products, SKU or barcode" />
             <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <__PageHeader title="All products" description="Every product you sell, with price, stock and photos." actions={<>
+              <__PageHeader title="All products" about="Every product you sell, with price, stock and photos." actions={<>
                 <__Link href="/catalog-setup" className="gc-btn gc-btn--neutral"><__Icon name="sliders-horizontal" width="18" height="18" aria-hidden="true" /> Catalog setup</__Link>
                 <button type="button" className="gc-btn gc-btn--neutral" onClick={v.importCsv}><__Icon name="upload" width="18" height="18" aria-hidden="true" /> Import CSV</button>
                 <__Link href="/add-product" className="gc-btn gc-btn--solid"><__Icon name="plus" width="18" height="18" aria-hidden="true" /> Add product</__Link>

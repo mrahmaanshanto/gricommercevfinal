@@ -231,7 +231,7 @@ export default function ExpensesBills() {
 
   return (
     <AccPage screen="ExpensesBills" active="acc-spend" page="Income & expenses" title="Income & expenses" css={CSS}
-      description="Every taka that went out and every taka that came in that isn't a sale: expenses, salaries, commission, affiliates, promotions, supplier payments, owner, and other income."
+      about="Every taka that went out and every taka that came in that isn't a sale: expenses, salaries, commission, affiliates, promotions, supplier payments, owner, and other income."
       actions={actions}>
 
       <div className="gc-kpis gc-kpis--tight">
@@ -248,7 +248,7 @@ export default function ExpensesBills() {
           <div className="ac-head">
             <div>
               <h2 id="eb-out-title">Money out and other income</h2>
-              <p>{data ? `${periodText} · ${plural(rows.length, 'entry', 'entries')} · ${rowsTotal < 0 ? '−' : ''}${money(rowsTotal)} net · sales and moves between your own accounts are not here` : 'Loading'}</p>
+              <p>{data ? `${periodText} · ${plural(rows.length, 'entry', 'entries')} · ${rowsTotal < 0 ? '−' : ''}${money(rowsTotal)} net` : 'Loading'}</p>
             </div>
           </div>
           <div className="eb-bar">
@@ -335,7 +335,6 @@ export default function ExpensesBills() {
             <div className="ac-head">
               <div>
                 <h2 id="eb-dues-title">Bills and dues</h2>
-                <p>What you owe and what you are owed are on their own pages.</p>
               </div>
             </div>
             <ul className="eb-dues">

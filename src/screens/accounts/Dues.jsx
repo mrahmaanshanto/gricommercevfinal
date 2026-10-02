@@ -15,7 +15,7 @@ import React, { Fragment, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
-import { EmptyState } from '@/components/ui';
+import { EmptyState, InfoTip } from '@/components/ui';
 import { BrandLogo } from '@/components/BrandLogo';
 import { formatDate } from '@/lib/format';
 import { MERCHANT } from '@/lib/merchant';
@@ -226,7 +226,7 @@ export default function Dues() {
 
   const getPanel = data ? (
     <>
-      <div className="ac-head"><div><h2>Ageing of what customers owe</h2><p>Counted from the invoice date. Payment terms are not stored, so an invoice from today is not due yet.</p></div></div>
+      <div className="ac-head"><div><h2>Ageing of what customers owe <InfoTip text="Counted from the invoice date. Payment terms are not stored, so an invoice from today is not due yet." /></h2></div></div>
       {ages(GET_AGES, data.getAges)}
       <Link href="/settlements" className="du-partner">
         <span className="du-logos" aria-hidden="true">{data.partners.slice(0, 4).map((x) => <BrandLogo key={x.p.id} brand={x.p.brand} size={32} decorative />)}{data.partners.length > 4 ? <span className="du-more">+{data.partners.length - 4}</span> : null}</span>
@@ -353,7 +353,7 @@ export default function Dues() {
 
   return (
     <AccPage screen="Dues" active="acc-dues" page="Dues" title="Dues" css={CSS}
-      description="What the shop will get from customers and payment partners, and what it must pay suppliers, staff and others.">
+      about="What the shop will get from customers and payment partners, and what it must pay suppliers, staff and others.">
       <div className="gc-kpis gc-kpis--tight">
         <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="arrow-down-left" width="22" height="22" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">You will get</p><p className="gc-kpi__value">{fig(data?.get)}<small>{data ? `${money(data.customerDue)} customers · ${money(data.held)} partners` : ''}</small></p></div></div>
         <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-error-soft)', color: 'var(--text-danger)' }}><Icon name="arrow-up-right" width="22" height="22" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">You owe</p><p className="gc-kpi__value">{fig(data?.owe)}<small>{data ? `${money(data.supplierLeft)} suppliers · ${money(data.liabLeft)} other` : ''}</small></p></div></div>

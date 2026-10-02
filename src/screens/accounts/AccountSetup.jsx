@@ -18,7 +18,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
-import { Dialog, EmptyState } from '@/components/ui';
+import { Dialog, EmptyState, InfoTip } from '@/components/ui';
 import { BrandLogo } from '@/components/BrandLogo';
 import { GatewaySetup } from '@/components/GatewaySetup';
 import { OWN_ACCOUNTS, HOLDING_ACCOUNTS, balanceOf, getEntries, addAccount } from '@/lib/ledger';
@@ -336,7 +336,7 @@ export default function AccountSetup() {
   const ep = edit && edit.p;
   return (
     <AccPage screen="AccountSetup" active="acc-setup" page="Setup" title="Accounts setup" css={CSS}
-      description="Payment partners, expense and income categories, your banks and wallets, holidays and the evening payout check.">
+      about="Payment partners, expense and income categories, your banks and wallets, holidays and the evening payout check.">
       <div className="gc-kpis gc-kpis--tight">
         <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="handshake" width="22" height="22" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Payment partners</p><p className="gc-kpi__value">{data.partners.length}<small>{changed.length ? `${changed.length} changed by you` : 'default rates'}</small></p></div></div>
         <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="landmark" width="22" height="22" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Banks & wallets</p><p className="gc-kpi__value">{data.own.length}<small>{tick ? money(ownTotal) + ' in total' : ''}</small></p></div></div>
@@ -354,7 +354,7 @@ export default function AccountSetup() {
         <div id="as-panel" role="tabpanel" aria-labelledby={'as-tab-' + tab}>
           {tab === 'partners' ? (
             <div className="as-body">
-              <div className="ac-head"><div><h2>Payment partners</h2><p>Gateways, the card machine and couriers: how their money reaches you, how it is settled, and their keys.</p></div><button type="button" className="gc-btn gc-btn--solid" onClick={() => setWizard({ add: true })}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Add gateway or courier</button></div>
+              <div className="ac-head"><div><h2>Payment partners <InfoTip text="Gateways, the card machine and couriers: how their money reaches you, how it is settled, and their keys." /></h2></div><button type="button" className="gc-btn gc-btn--solid" onClick={() => setWizard({ add: true })}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Add gateway or courier</button></div>
               <div className="ac-note ac-note--info"><Icon name="info" width="16" height="16" aria-hidden="true" /><span>These are common rates in Bangladesh. Check them against your own agreement.</span></div>
               <div className="as-grid gc-cols-2">
                 {data.partners.map((p) => {
@@ -400,7 +400,7 @@ export default function AccountSetup() {
           {tab === 'accounts' ? (
             <div className="as-body">
               <div className="ac-head">
-                <div><h2>Your banks and wallets</h2><p>Where the shop’s own money sits. Balances are the opening balance plus every payment in and out.</p></div>
+                <div><h2>Your banks and wallets <InfoTip text="Where the shop’s own money sits. Balances are the opening balance plus every payment in and out." /></h2></div>
                 <button type="button" className="gc-btn gc-btn--solid" onClick={() => setAcc({ type: 'Bank', name: '', brand: BRAND_FOR_TYPE.Bank, opening: '' })}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Add account</button>
               </div>
               {!tick ? null : (
@@ -429,7 +429,7 @@ export default function AccountSetup() {
               )}
 
               <div className="ac-head" style={{ marginTop: 'var(--space-2)' }}>
-                <div><h2>Held by partners</h2><p>Money gateways and couriers collected for you and have not paid out yet. It changes by itself as payouts arrive.</p></div>
+                <div><h2>Held by partners <InfoTip text="Money gateways and couriers collected for you and have not paid out yet. It changes by itself as payouts arrive." /></h2></div>
                 <Link href="/settlements" className="gc-btn gc-btn--neutral"><Icon name="arrow-up-right" width="18" height="18" aria-hidden="true" /> Settlements</Link>
               </div>
               {!tick ? null : (
@@ -454,7 +454,7 @@ export default function AccountSetup() {
           {tab === 'holidays' ? (
             <div className="as-body">
               <div className="ac-head">
-                <div><h2>Public holidays</h2><p>Payouts skip each partner’s days off and these holidays; the expected date moves to the next working day.</p></div>
+                <div><h2>Public holidays <InfoTip text="Payouts skip each partner’s days off and these holidays; the expected date moves to the next working day." /></h2></div>
                 <button type="button" className="gc-btn gc-btn--neutral" onClick={restoreHolidays} disabled={!holidaysChanged}><Icon name="rotate-ccw" width="18" height="18" aria-hidden="true" /> Restore defaults</button>
               </div>
               <form className="as-add" onSubmit={addHoliday}>
@@ -490,7 +490,7 @@ export default function AccountSetup() {
           {tab === 'check' ? (
             <div className="as-body">
               <div className="ac-head">
-                <div><h2>Evening payout check</h2><p>Every evening the app asks whether the payouts expected that day arrived. Next check: {nextCheck}.</p></div>
+                <div><h2>Evening payout check <InfoTip text="Every evening the app asks whether the payouts expected that day arrived." /></h2><p>Next check: {nextCheck}</p></div>
                 <button type="button" className="gc-btn gc-btn--solid" onClick={() => window.dispatchEvent(new CustomEvent('gc:check'))}><Icon name="list-checks" width="18" height="18" aria-hidden="true" /> Try it now</button>
               </div>
               <div className="ac-two">
@@ -524,7 +524,7 @@ export default function AccountSetup() {
 
           {tab === 'advanced' ? (
             <div className="as-body">
-              <div className="ac-head"><div><h2>For your accountant</h2><p>The books behind the simple pages. You don’t need these to run the shop.</p></div></div>
+              <div className="ac-head"><div><h2>For your accountant <InfoTip text="The books behind the simple pages. You don’t need these to run the shop." /></h2></div></div>
               <div className="as-grid3 gc-cols-3">
                 {[['/chart-of-accounts', 'book-open-text', 'Chart of accounts', 'Every account the books use, grouped as assets, liabilities, income and costs.'],
                   ['/journals', 'notebook-pen', 'Journals', 'Manual journal entries for corrections and year-end adjustments.'],

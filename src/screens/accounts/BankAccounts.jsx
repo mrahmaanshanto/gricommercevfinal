@@ -315,7 +315,6 @@ export default class BankAccountsScreen extends Component {
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <div className="ey ey-d">Accounts · Bank accounts</div>
                     <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.headline}</h1>
-                    <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "680px" }}>Every bank account has its own ledger account, so deposits, transfers and payments post to it directly.</p>
                   </div>
                   <__Link href="/money-book" className="btn sm" style={{ background: "rgba(255,255,255,.1)", color: "#fff", height: "36px", flexShrink: "0" }}><__Icon name="book-open" width="16" height="16" aria-hidden="true" />Money book</__Link>
                   <button type="button" className="btn sm" onClick={v.focusForm} style={{ background: "#fff", color: "#0b1733", height: "36px", flexShrink: "0" }}>Add account</button>

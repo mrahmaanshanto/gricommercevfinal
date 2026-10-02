@@ -3,6 +3,7 @@
 // SetStorage
 // Edit freely: this file is now the source for the screen.
 
+import { SetTips as __SetTips } from './SetChrome';
 import React from 'react';
 import { Icon as __Icon } from '@/runtime/dc';
 import { SettingsSwitcher as __SettingsSwitcher } from '@/shell/Shell';
@@ -78,7 +79,7 @@ export default class SetStorageScreen extends Component {
                     <header style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
                       <span style={{ display: "block", minWidth: "0" }}>
                         <h1 style={{ margin: "0 0 4px", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>Storage</h1>
-                        <p style={{ margin: "0", maxWidth: "640px", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "var(--text-muted)", textWrap: "pretty" }}>One driver choice decides which credentials matter. Only the fields that apply are shown; the rest are named, not hidden silently.</p>
+                        <__SetTips />
                       </span>
                       <span style={{ marginLeft: "auto", flex: "none", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: v.testOk ? "rgba(16,185,129,.14)" : "rgba(255,87,36,.12)", color: v.testOk ? "var(--text-success)" : "var(--text-danger)" }}>{v.testOk ? "Connection tested" : "Test failed · not saved"}</span>
@@ -89,7 +90,6 @@ export default class SetStorageScreen extends Component {
                       <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Storage driver</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Where product images, invoices and backups are written. The fields below change with this choice.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
                           <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(0,156,222,.14)", color: "var(--accent-text)" }}>{v.f.get("driver", "S3-compatible")}</span>
@@ -140,7 +140,6 @@ export default class SetStorageScreen extends Component {
                       <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>S3-compatible credentials</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>DigitalOcean → Spaces → <b style={{ fontWeight: "var(--weight-medium)", color: "#475569" }}>API → Spaces keys</b>. The key pair is shown once at creation.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
                           <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: v.testOk ? "rgba(16,185,129,.14)" : "rgba(255,87,36,.12)", color: v.testOk ? "var(--text-success)" : "var(--text-danger)" }}>{v.testOk ? "Connected" : "Test failed"}</span>
@@ -151,7 +150,7 @@ export default class SetStorageScreen extends Component {
                           <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                             <label htmlFor={v.f.id("access_key_id")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Access key ID <span className="set-req" aria-hidden="true">*</span></label>
                           </span>
-                          <span id={v.f.id("access_key_id") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Public half of the pair. Safe to copy into a support ticket.</span>
+                          <span id={v.f.id("access_key_id") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Public half of the pair. Safe to copy into a support ticket.</span>
                           <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 4px 0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)" }}>
                             <__In f={v.f} n="access_key_id" labelled desc />
                             <button type="button" onClick={v.f.say("Revealing a saved key is recorded in the audit log. It is switched off in this demo.")} className="dc-h512" aria-label="Reveal" title="Reveal" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
@@ -178,7 +177,7 @@ export default class SetStorageScreen extends Component {
                           <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                             <label htmlFor={v.f.id("bucket")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Bucket <span className="set-req" aria-hidden="true">*</span></label>
                           </span>
-                          <span id={v.f.id("bucket") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Must already exist. GridCommerce will not create it for you.</span>
+                          <span id={v.f.id("bucket") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Must already exist. GridCommerce will not create it for you.</span>
                           <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)" }}>
                             <__In f={v.f} n="bucket" labelled desc />
                           </span>
@@ -188,7 +187,7 @@ export default class SetStorageScreen extends Component {
                           <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                             <label htmlFor={v.f.id("region")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Region <span className="set-req" aria-hidden="true">*</span></label>
                           </span>
-                          <span id={v.f.id("region") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>The datacentre slug, not the display name.</span>
+                          <span id={v.f.id("region") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>The datacentre slug, not the display name.</span>
                           <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", width: "200px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)" }}>
                             <__In f={v.f} n="region" labelled desc opts={["blr1","sgp1","fra1","nyc3"]} />
                             <__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ color: "var(--text-muted)" }} />
@@ -200,7 +199,7 @@ export default class SetStorageScreen extends Component {
                             <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                               <label htmlFor={v.f.id("endpoint")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Endpoint <span className="set-req" aria-hidden="true">*</span></label>
                             </span>
-                            <span id={v.f.id("endpoint") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Full origin for the S3 API. Scheme required, no bucket, no trailing slash.</span>
+                            <span id={v.f.id("endpoint") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Full origin for the S3 API. Scheme required, no bucket, no trailing slash.</span>
                             <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #ff5724", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)", boxShadow: "0 0 0 3px rgba(255,87,36,.12)" }}>
                               <__In f={v.f} n="endpoint" labelled desc />
                             </span>
@@ -212,7 +211,7 @@ export default class SetStorageScreen extends Component {
                             <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                               <label htmlFor={v.f.id("public_url_cdn_base")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Public URL / CDN base <span className="set-req" aria-hidden="true">*</span></label>
                             </span>
-                            <span id={v.f.id("public_url_cdn_base") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>What the storefront links to. Use the CDN hostname so images are cached at the edge.</span>
+                            <span id={v.f.id("public_url_cdn_base") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>What the storefront links to. Use the CDN hostname so images are cached at the edge.</span>
                             <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)" }}>
                               <__In f={v.f} n="public_url_cdn_base" labelled desc />
                             </span>

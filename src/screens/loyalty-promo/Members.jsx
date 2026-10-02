@@ -60,7 +60,7 @@ export default function Members() {
 
   return (
     <LoyPage screen="Members" active="loy-members" title="Members"
-      description="Every customer who buys becomes a member. Find a customer by name or phone to see or change their points and wallet."
+      about="Every customer who buys becomes a member. Find a customer by name or phone to see or change their points and wallet."
       actions={<>
         <button type="button" className="gc-btn gc-btn--neutral" onClick={download} disabled={!data}><Icon name="download" width="18" height="18" aria-hidden="true" /> Download list</button>
         <button type="button" className="gc-btn gc-btn--solid" onClick={() => setAdding(true)}><Icon name="user-plus" width="18" height="18" aria-hidden="true" /> Add member</button>

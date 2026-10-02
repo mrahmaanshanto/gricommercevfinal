@@ -137,7 +137,7 @@ export default function BlogCategories() {
     >
       <PageHeader
         title="Blog categories"
-        description="Sections of the blog. A post can sit in more than one; sub-categories show under their parent in the blog menu."
+        about="Sections of the blog. A post can sit in more than one; sub-categories show under their parent in the blog menu."
         actions={<>
           <Link href="/blog-posts" className="gc-btn gc-btn--neutral"><Icon name="newspaper" width="18" height="18" aria-hidden="true" /> All posts</Link>
           <button type="button" className="gc-btn gc-btn--solid" onClick={openAdd}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Add category</button>

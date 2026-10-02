@@ -170,7 +170,7 @@ export default function PosManage() {
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
             <PageHeader
               title="POS management"
-              description="Counters, the employees who work them, their shifts and the cash taken out of each drawer."
+              about="Counters, the employees who work them, their shifts and the cash taken out of each drawer."
               actions={<>
                 <button type="button" className="gc-btn gc-btn--neutral" onClick={() => startPickup()}><Icon name="hand-coins" width="18" height="18" aria-hidden="true" /> Cash pickup</button>
                 <Link href="/pos" className="gc-btn gc-btn--solid"><Icon name="scan-line" width="18" height="18" aria-hidden="true" /> {open ? 'Go to register' : 'Open register'}</Link>
@@ -189,7 +189,7 @@ export default function PosManage() {
               {tab === 'counters' ? (
                 <section className="gc-card pm-card">
                   <div className="pm-head">
-                    <div><h2>Counters</h2><p>{counters.filter((c) => c.active).length} in use · each counter belongs to one branch or warehouse and sells from its stock.</p></div>
+                    <div><h2>Counters</h2><p>{counters.filter((c) => c.active).length} in use</p></div>
                     <button type="button" className="gc-btn gc-btn--solid" onClick={() => { setErr(''); setForm({ ...BLANK, float: String(cfg.float) }); }}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Register a counter</button>
                   </div>
                   <div className="gc-table-wrap">
@@ -238,7 +238,7 @@ export default function PosManage() {
                   ) : null}
 
                   <section className="gc-card pm-card">
-                    <div className="pm-head"><div><h2>Counter employees</h2><p>From the staff list. Select an employee to see only their shifts.</p></div>{who ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setWho('')}>Show everyone</button> : null}</div>
+                    <div className="pm-head"><div><h2>Counter employees</h2></div>{who ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setWho('')}>Show everyone</button> : null}</div>
                     <div className="gc-table-wrap">
                       <table className="gc-table gc-table--compact gc-table--hoverable">
                         <thead><tr><th scope="col">Employee</th><th scope="col">Branch</th><th scope="col">Counters</th><th scope="col" className="pm-num">Shifts</th><th scope="col" className="pm-num">Sales</th><th scope="col" className="pm-num">Sold</th><th scope="col">Cash difference</th><th scope="col">Now</th></tr></thead>
@@ -261,7 +261,7 @@ export default function PosManage() {
                   </section>
 
                   <section className="gc-card pm-card">
-                    <div className="pm-head"><div><h2>Closed shifts{who ? ' · ' + who : ''}</h2><p>What was sold, the cash the drawer should have held and what was counted.</p></div></div>
+                    <div className="pm-head"><div><h2>Closed shifts{who ? ' · ' + who : ''}</h2></div></div>
                     {history.length === 0 ? <EmptyState icon="clock" title="No closed shift yet" body={who ? `${who} has not closed a shift.` : 'Shifts appear here when a register is closed.'} /> : (
                       <div className="gc-table-wrap">
                         <table className="gc-table gc-table--compact gc-table--hoverable">
@@ -300,7 +300,7 @@ export default function PosManage() {
                   </div>
                   <section className="gc-card pm-card">
                     <div className="pm-head">
-                      <div><h2>Cash movements</h2><p>Every time cash left or entered a drawer outside a sale.</p></div>
+                      <div><h2>Cash movements</h2></div>
                       <button type="button" className="gc-btn gc-btn--solid" onClick={() => startPickup()}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Record a cash pickup</button>
                     </div>
                     <div className="gc-table-wrap">

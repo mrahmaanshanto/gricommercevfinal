@@ -3,6 +3,7 @@
 // SetAi
 // Edit freely: this file is now the source for the screen.
 
+import { SetTips as __SetTips } from './SetChrome';
 import React from 'react';
 import __Link from 'next/link';
 import { Icon as __Icon } from '@/runtime/dc';
@@ -79,7 +80,7 @@ export default class SetAiScreen extends Component {
                     <header style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
                       <span style={{ display: "block", minWidth: "0" }}>
                         <h1 style={{ margin: "0 0 4px", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>AI Auto-Reply</h1>
-                        <p style={{ margin: "0", maxWidth: "640px", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "var(--text-muted)", textWrap: "pretty" }}>One provider, one model, three channels and a hard spending cap. Prices shown are the provider’s list prices per million tokens, so the cost of a choice is visible before it is made.</p>
+                        <__SetTips />
                       </span>
                       <span style={{ marginLeft: "auto", flex: "none", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(16,185,129,.14)", color: "var(--text-success)" }}>{v.channels === 0 ? "Not live on any channel" : "Live on " + v.channels + (v.channels === 1 ? " channel" : " channels")}</span>
@@ -90,7 +91,6 @@ export default class SetAiScreen extends Component {
                       <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Provider</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>The account the replies are billed to. Keys are stored encrypted and never shown again after saving.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
                           <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(16,185,129,.14)", color: "var(--text-success)" }}>Connected</span>
@@ -109,7 +109,7 @@ export default class SetAiScreen extends Component {
                             <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                               <label htmlFor={v.f.id("provider")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Provider <span className="set-req" aria-hidden="true">*</span></label>
                             </span>
-                            <span id={v.f.id("provider") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Anthropic is the default. “Custom” unlocks the OpenAI-compatible block below.</span>
+                            <span id={v.f.id("provider") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Anthropic is the default. “Custom” unlocks the OpenAI-compatible block below.</span>
                             <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
                               <__In f={v.f} n="provider" labelled desc opts={["Anthropic","Custom"]} />
                               <__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ color: "var(--text-muted)" }} />
@@ -121,7 +121,7 @@ export default class SetAiScreen extends Component {
                               <label htmlFor={v.f.id("anthropic_api_key")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Anthropic API key <span className="set-req" aria-hidden="true">*</span></label>
                               <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(16,185,129,.14)", color: "var(--text-success)" }}>Saved</span>
                             </span>
-                            <span id={v.f.id("anthropic_api_key") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>console.anthropic.com → <b style={{ fontWeight: "var(--weight-medium)", color: "#475569" }}>API keys</b> → Create key. Needs the Messages scope only.</span>
+                            <span id={v.f.id("anthropic_api_key") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>console.anthropic.com → <b style={{ fontWeight: "var(--weight-medium)", color: "#475569" }}>API keys</b> → Create key. Needs the Messages scope only.</span>
                             <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 4px 0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)" }}>
                               <__In f={v.f} n="anthropic_api_key" labelled desc />
                               <button type="button" onClick={v.f.say("Revealing a saved key is recorded in the audit log. It is switched off in this demo.")} className="dc-h426" aria-label="Reveal" title="Reveal" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
@@ -144,7 +144,6 @@ export default class SetAiScreen extends Component {
                       <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Model</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Pricing is per million tokens, as billed by the provider. A typical support reply is 1.4K in / 300 out.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
                           <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(0,156,222,.14)", color: "var(--accent-text)" }}>{String(v.f.get("model", "Claude Sonnet 5")).replace("Claude ", "")} selected</span>
@@ -209,7 +208,7 @@ export default class SetAiScreen extends Component {
                             <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                               <label htmlFor={v.f.id("custom_api_key")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>API key</label>
                             </span>
-                            <span id={v.f.id("custom_api_key") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Any OpenAI-compatible endpoint — vLLM, Together, OpenRouter.</span>
+                            <span id={v.f.id("custom_api_key") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Any OpenAI-compatible endpoint — vLLM, Together, OpenRouter.</span>
                             <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
                               <__In f={v.f} n="custom_api_key" labelled desc dis={!v.custom} placeholder="Enter key" />
                             </span>
@@ -219,7 +218,7 @@ export default class SetAiScreen extends Component {
                             <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                               <label htmlFor={v.f.id("custom_base_url")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Base URL</label>
                             </span>
-                            <span id={v.f.id("custom_base_url") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Full path including /v1. Must be reachable from the app server.</span>
+                            <span id={v.f.id("custom_base_url") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Full path including /v1. Must be reachable from the app server.</span>
                             <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)" }}>
                               <__In f={v.f} n="custom_base_url" labelled desc dis={!v.custom} />
                             </span>
@@ -229,7 +228,7 @@ export default class SetAiScreen extends Component {
                             <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                               <label htmlFor={v.f.id("custom_model_name")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Model name</label>
                             </span>
-                            <span id={v.f.id("custom_model_name") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Exactly as the provider spells it.</span>
+                            <span id={v.f.id("custom_model_name") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Exactly as the provider spells it.</span>
                             <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)" }}>
                               <__In f={v.f} n="custom_model_name" labelled desc dis={!v.custom} />
                             </span>
@@ -240,7 +239,7 @@ export default class SetAiScreen extends Component {
                               <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                                 <label htmlFor={v.f.id("custom_price_in")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Price / 1M input</label>
                               </span>
-                              <span id={v.f.id("custom_price_in") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>For the budget calculation.</span>
+                              <span id={v.f.id("custom_price_in") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>For the budget calculation.</span>
                               <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
                                 <__In f={v.f} n="custom_price_in" labelled desc dis={!v.custom} />
                               </span>
@@ -250,7 +249,7 @@ export default class SetAiScreen extends Component {
                               <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                                 <label htmlFor={v.f.id("custom_price_out")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Price / 1M output</label>
                               </span>
-                              <span id={v.f.id("custom_price_out") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>For the budget calculation.</span>
+                              <span id={v.f.id("custom_price_out") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>For the budget calculation.</span>
                               <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
                                 <__In f={v.f} n="custom_price_out" labelled desc dis={!v.custom} />
                               </span>
@@ -264,7 +263,6 @@ export default class SetAiScreen extends Component {
                       <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Channels</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Where the AI is allowed to answer. Each channel keeps its own transcript in the inbox.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
                           <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(0,156,222,.14)", color: "var(--accent-text)" }}>{v.channels} of 3 on</span>
@@ -301,7 +299,6 @@ export default class SetAiScreen extends Component {
                       <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{ display: "block" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>{"Budget & office hours"}</span>
-                          <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>A hard cap protects you from a runaway loop. Hours decide when a human is expected instead.</span>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
                           <__Link href="/set-usage" style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#003087", textDecoration: "none" }}>Open AI Usage</__Link>
@@ -312,7 +309,7 @@ export default class SetAiScreen extends Component {
                           <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                             <label htmlFor={v.f.id("monthly_budget_cap")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Monthly budget cap <span className="set-req" aria-hidden="true">*</span></label>
                           </span>
-                          <span id={v.f.id("monthly_budget_cap") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Billed in USD by the provider; converted at ৳121.40 for your reports.</span>
+                          <span id={v.f.id("monthly_budget_cap") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Billed in USD by the provider; converted at ৳121.40 for your reports.</span>
                           <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", width: "180px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                             <__In f={v.f} n="monthly_budget_cap" labelled desc />
                           </span>
@@ -337,7 +334,7 @@ export default class SetAiScreen extends Component {
                           <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                             <label htmlFor={v.f.id("when_the_cap_is_reached")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>When the cap is reached <span className="set-req" aria-hidden="true">*</span></label>
                           </span>
-                          <span id={v.f.id("when_the_cap_is_reached") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Stopping is safer; notifying keeps replies flowing and can overrun.</span>
+                          <span id={v.f.id("when_the_cap_is_reached") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Stopping is safer; notifying keeps replies flowing and can overrun.</span>
                           <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
                             <__In f={v.f} n="when_the_cap_is_reached" labelled desc opts={["Stop replying and alert admins","Keep replying and alert admins"]} />
                             <__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ color: "var(--text-muted)" }} />
@@ -349,7 +346,7 @@ export default class SetAiScreen extends Component {
                           <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                             <label htmlFor={v.f.id("office_hours")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Office hours</label>
                           </span>
-                          <span id={v.f.id("office_hours") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Inside these hours the AI drafts and a human sends. Outside them it replies directly.</span>
+                          <span id={v.f.id("office_hours") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Inside these hours the AI drafts and a human sends. Outside them it replies directly.</span>
                           <span style={{ display: "flex", alignItems: "center", gap: "8px", maxWidth: "340px" }}>
                             <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                               <__Icon name="clock" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />
@@ -369,7 +366,7 @@ export default class SetAiScreen extends Component {
                           <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                             <label htmlFor={v.f.id("escalation")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Escalation</label>
                           </span>
-                          <span id={v.f.id("escalation") + "-help"} style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Hands the thread to a human when the customer asks twice or mentions a refund.</span>
+                          <span id={v.f.id("escalation") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Hands the thread to a human when the customer asks twice or mentions a refund.</span>
                           <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
                             <__In f={v.f} n="escalation" labelled desc opts={["After 1 unresolved turn","After 2 unresolved turns","After 3 unresolved turns","Never hand over"]} />
                             <__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ color: "var(--text-muted)" }} />

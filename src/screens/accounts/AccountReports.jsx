@@ -16,7 +16,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
-import { EmptyState } from '@/components/ui';
+import { EmptyState, InfoTip } from '@/components/ui';
 import { BrandLogo } from '@/components/BrandLogo';
 import { ACCOUNTS, accountBy, balanceOf, getEntries } from '@/lib/ledger';
 import { clockNow, costsOf, dayKey, fromKey, getItems, getPartners, startOfDay } from '@/lib/settlements';
@@ -362,7 +362,7 @@ export default function AccountReports() {
 
   return (
     <AccPage screen="AccountReports" active="rep-finance" page="Reports" title="Reports" css={CSS}
-      description="How the shop did over a period: profit, where the money went, what partners kept, and VAT."
+      about="How the shop did over a period: profit, where the money went, what partners kept, and VAT."
       actions={actions}>
 
       <div className="ar-bar">
@@ -468,7 +468,7 @@ function CashPanel({ flow, periodText }) {
   const all = flow.groups.reduce((a, g) => ({ opening: a.opening + g.opening, inn: a.inn + g.inn, out: a.out + g.out, closing: a.closing + g.closing }), { opening: 0, inn: 0, out: 0, closing: 0 });
   return (
     <>
-      <div className="ac-head"><div><h2>Cash flow</h2><p>Where the money sat at the start and end of {periodText}, and what came in and went out.</p></div></div>
+      <div className="ac-head"><div><h2>Cash flow <InfoTip text={`Where the money sat at the start and end of ${periodText}, and what came in and went out.`} /></h2></div></div>
       <div className="ar-groups">
         {flow.groups.map((g) => (
           <div key={g.type} className="ar-group">
@@ -541,7 +541,7 @@ function PartnerPanel({ fees, periodText }) {
   ].filter(Boolean).join('; ');
   return (
     <>
-      <div className="ac-head"><div><h2>Partner fees</h2><p>What each gateway and courier collected for you in {periodText} and what it kept.</p></div></div>
+      <div className="ac-head"><div><h2>Partner fees <InfoTip text={`What each gateway and courier collected for you in ${periodText} and what it kept.`} /></h2></div></div>
       {!total.count ? <EmptyState icon="hand-coins" title="No partner payments in this period" body="Payments through gateways and COD parcels show here once they are collected." /> : (
         <>
           {insight ? <div className="ar-pad"><div className="ac-note ac-note--info" role="status"><Icon name="lightbulb" width="16" height="16" aria-hidden="true" /><span><b>{insight}.</b> Partners kept {money(total.cost)} of {money(total.collected)} ({pctText(total.pct)}).</span></div></div> : null}
@@ -576,7 +576,7 @@ function VatPanel({ vat, salesIn, periodText }) {
   return (
     <>
       <div className="ac-head">
-        <div><h2>VAT</h2><p>A quick look at the VAT inside your sales for {periodText}. Set the rates on the VAT page.</p></div>
+        <div><h2>VAT <InfoTip text={`A quick look at the VAT inside your sales for ${periodText}. Set the rates on the VAT page.`} /></h2></div>
         <Link href="/vat" className="gc-btn gc-btn--neutral ar-noprint"><Icon name="percent" width="18" height="18" aria-hidden="true" /> VAT rates by category</Link>
       </div>
       {vat.notReg ? (

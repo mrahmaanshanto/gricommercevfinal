@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
-import { EmptyState } from '@/components/ui';
+import { EmptyState, InfoTip } from '@/components/ui';
 import { formatDate } from '@/lib/format';
 import { fromKey } from '@/lib/settlements';
 import { printNode } from '@/lib/printNode';
@@ -72,7 +72,7 @@ export default function IdCards() {
 
   return (
     <HrPage screen="IdCards" active="hr-idcards" page="ID cards & QR" title="ID cards & QR" css={FORM_CSS + ID_CARD_CSS + CSS}
-      description="Print staff ID cards with a QR code, and check a card by scanning it."
+      about="Print staff ID cards with a QR code, and check a card by scanning it."
       actions={<button type="button" className="gc-btn gc-btn--solid" onClick={print} disabled={!chosen.length}><Icon name="printer" width="18" height="18" aria-hidden="true" /> Print {chosen.length || ''} card{chosen.length === 1 ? '' : 's'}</button>}>
       <section className="gc-card hr-card">
         <div className="hr-head"><div><h2>Check a card</h2><p>Scan the QR with a scanner (it types into the box) or type the employee number.</p></div></div>
@@ -118,7 +118,7 @@ export default function IdCards() {
             <p className="hr-sub" style={{ margin: 0, padding: '0 var(--space-5) var(--space-4)' }}>Cards printed today are valid to {formatDate(fromKey(cardValidTo(S, today)))}. The employee number in the QR also clocks people in where the check-in method is QR card.</p>
           </section>
           <section className="gc-card hr-card">
-            <div className="hr-head"><div><h2>Preview · {chosen.length} card{chosen.length === 1 ? '' : 's'}</h2><p>Front and back at real size. They print 54 × 86 mm with cut lines, four people to an A4 page.</p></div></div>
+            <div className="hr-head"><div><h2>Preview · {chosen.length} card{chosen.length === 1 ? '' : 's'} <InfoTip text="Front and back at real size. They print 54 × 86 mm with cut lines, four people to an A4 page." /></h2></div></div>
             {chosen.length ? <div className="ic-preview ic-print">{chosen.map((s) => <IdCard key={s.code} S={S} st={s} issued={today} />)}</div> : <EmptyState icon="id-card" title="No one chosen" body="Tick people on the left to see and print their cards." />}
           </section>
         </div>

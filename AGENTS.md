@@ -33,7 +33,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `gc-shell__main`, `gc-shell__content`) and the reflow hooks `gc-cols-2…6`, `gc-split`, `gc-side`,
   `gc-cardrow`, `gc-table-wrap`; their rules are at the end of `design-system.css`. The sidebar is a
   rail below 1280px and a drawer below 1024px. One `<h1>` per screen (`<PageHeader>` or the hero title).
-- Shared behaviour lives in `src/components/ui` (`Overlays`, `Dialog`, `PageHeader`, `EmptyState`,
+- Shared behaviour lives in `src/components/ui` (`Overlays`, `Dialog`, `PageHeader`, `EmptyState`, `InfoTip`,
   `ChannelIcon`, `StatusBadge`) and `src/runtime/ui.js` (`toast`, `confirmDialog`, `getLocale`/`setLocale`).
   Success feedback is a `toast`, destructive actions ask with `confirmDialog`, a control without a
   handler says so with a toast. `src/lib/format.js` writes money/dates/times; `src/lib/orderStatus.js`
@@ -48,6 +48,17 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   must scroll sideways gets `gc-table--keep`), and statistic rows (`gc-kpis`, `gc-cardrow`) become a swipe strip.
   Never show statistic cards that repeat the tabs under them: make the tabs summary tabs (`gc-stattabs` /
   `gc-stattab`: label, count and amount, tap to filter — see Invoices). On phones the title and main button share a row.
+- Short pages (UI/UX audit, Oct 2026): title → main action → 3–5 key facts → work list → details on click. No intro
+  paragraphs or card subtitles that repeat what the page shows: a page's longer explanation goes in `PageHeader`'s
+  `about` (hidden, read by Help); an explanation tied to one figure or setting goes behind `InfoTip` (components/ui,
+  an (i) that opens on tap); setup steps and background fold into `<details className="gc-disclose">`. Keep a warning
+  only where it prevents a mistake (payments, payroll, security, irreversible actions), next to the control. Empty
+  states are one line plus one action. Dashboards show at most five urgent rows, grouped (e.g. "10 missing
+  punch-outs"), with View all. Requests are reviewed in a drawer, never decided in the list: HR leave, loan and
+  attendance-fix requests open `screens/staff-hr/HrReview.jsx` (summary, facts, cover by day, Approve / Deny in the
+  footer, Deny asks for a reason). Settings pages hide field help behind "Show field tips" (`SetTips` in
+  `SetChrome.jsx`; `set-help--keep` keeps a line that prevents an error). The Netlify badge (`#nl-badge-frame`) gets
+  space reserved at the bottom (`--host-badge` rules at the end of design-system.css) so it never covers a save bar.
 - Editions (`src/lib/edition.js`): the product is sold as editions, each its own site built with `NEXT_PUBLIC_EDITION`
   = `retail-wholesale` | `online` | `retail-online` (Retail + Wholesale + Online) | `comms` (GridCommerce Connect:
   communication, CRM, POS, automation).
@@ -117,8 +128,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Home (`/merchant-overview`, `screens/merchant-overview/Home.jsx`) is built from the shared books via
   `reports/dailySummary` (no sample numbers); sections can be hidden with Customise (`gc.home.layout`). The old
   design screen `MerchantOverview.jsx` stays as reference. The top bar crumb comes from the menu group.
-  The Online edition has its own Home, `OnlineHome.jsx` (wallet, sales summary, revenue overview, attention, latest
-  orders, in courier, visitors by hour, low stock, top products and customers; Customise = `gc.home.online`), drawn
+  The Online edition has its own Home, `OnlineHome.jsx` (orders to act on first: attention, sales summary, latest
+  orders, in courier, low stock; then a compact wallet (total, arriving in 7 days, overdue), revenue overview,
+  visitors by hour, top products and customers; Customise = `gc.home.online`), drawn
   with `components/charts/DashCharts.jsx` (ColumnChart with an optional line, Sparkline, Donut, StackBar, HBars,
   Legend: hover and arrow-key tooltips, a hidden table per chart, bars rise once on first show). Chart colours are
   the `--viz-1…8` tokens (checked for colour-blind separation; keep the order; a colour follows one thing across the

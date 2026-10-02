@@ -146,7 +146,7 @@ export function PlaceCard({ pl, d, extra, onView, onEdit, onToggle, onDelete }) 
     <article className={'gc-card pl-card' + (off ? ' is-off' : '')} aria-label={pl.name}>
       <div className="pl-top">
         <span className="pl-code" aria-hidden="true">{pl.code}</span>
-        <div className="pl-title"><h2>{pl.name}</h2><p>{[pl.address, pl.area].filter(Boolean).join(' · ') || 'Address not set'}</p></div>
+        <div className="pl-title"><h2>{pl.name}</h2>{pl.area ? <p title={pl.address || undefined}>{pl.area}</p> : null}</div>
         <div className="pl-badges"><StatusOf pl={pl} /></div>
       </div>
       <dl className="pl-stats">

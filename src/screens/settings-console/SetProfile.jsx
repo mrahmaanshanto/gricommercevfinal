@@ -3,14 +3,18 @@
 // order management, warehouse, shop and more — src/lib/team.js). Each opens with that person's dashboard and menu.
 // It used to sit on the sign-in page; sign-in now only asks for the system.
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { SettingsSwitcher } from '@/shell/Shell';
 import SetChrome from '@/screens/settings-console/SetChrome';
 import SetRail from '@/screens/settings-console/SetRail';
 import SetTopbar from '@/screens/settings-console/SetTopbar';
 import { DemoAccounts } from '@/components/DemoAccounts';
+import { currentUser, roleOf, SESSION_EVENT } from '@/lib/team';
 
 export default function SetProfile() {
+  // the active profile first; the list below switches it
+  const [me, setMe] = useState('');
+  useEffect(() => { const on = () => { const u = currentUser(); setMe(`${roleOf(u).title} · ${u.name}`); }; on(); window.addEventListener(SESSION_EVENT, on); return () => window.removeEventListener(SESSION_EVENT, on); }, []);
   return (
     <div className="dc-screen ds" data-screen="SetProfile">
       <SettingsSwitcher />
@@ -25,10 +29,10 @@ export default function SetProfile() {
                 <main className="set-main">
                   <header>
                     <h1 style={{ margin: '0 0 4px', fontSize: 'var(--text-2xl)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-heading)' }}>Profile type</h1>
-                    <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>Who you are using GridCommerce as.</p>
+                    <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{me ? <>Active: <b style={{ fontWeight: 'var(--weight-medium)', color: 'var(--text-heading)' }}>{me}</b></> : '\u00a0'}</p>
                   </header>
                   <section style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)', background: 'var(--surface-card)', padding: 'var(--space-5)' }}>
-                    <DemoAccounts plain title="Team profiles" sub="Each profile opens with its own dashboard and menu." />
+                    <DemoAccounts plain title="Switch profile" sub="" />
                   </section>
                 </main>
               </div>

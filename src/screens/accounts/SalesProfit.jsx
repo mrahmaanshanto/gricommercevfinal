@@ -284,7 +284,7 @@ export default function SalesProfit() {
 
   return (
     <AccPage screen="SalesProfit" active="rep-finance" page="Sales & profit" title="Sales & profit" css={CSS}
-      description="How much each channel sold, and how much profit each one made after its own costs."
+      about="How much each channel sold, and how much profit each one made after its own costs."
       actions={actions}>
 
       <div className="sp-bar">
@@ -311,7 +311,7 @@ export default function SalesProfit() {
 
       {empty ? (
         <section className="gc-card ac-card">
-          <EmptyState icon="chart-no-axes-column" title="No sales in this period" body="Pick another period above. Sales from the counters, online orders and wholesale invoices show here." />
+          <EmptyState icon="chart-no-axes-column" title="No sales in this period" body="Pick another period above." />
         </section>
       ) : (
         <>

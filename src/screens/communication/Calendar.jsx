@@ -6,7 +6,7 @@
 import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { ChannelIcon as __ChannelIcon } from '@/components/ui';
+import { ChannelIcon as __ChannelIcon, InfoTip as __InfoTip } from '@/components/ui';
 import { clockNow } from '@/lib/settlements';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 
@@ -474,8 +474,7 @@ export default class CalendarScreen extends Component {
                 </section>
                 <section className="tc sec">
                   <div>
-                    <h2 className="h2">Best times to post</h2>
-                    <p className="sub">Darker means more engagement in September. Dhaka time.</p>
+                    <h2 className="h2">Best times to post <__InfoTip text="Darker means more engagement in September. Dhaka time." /></h2>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "42px repeat(7, minmax(0, 1fr))", gap: "4px", alignItems: "center" }}>
                     <span />

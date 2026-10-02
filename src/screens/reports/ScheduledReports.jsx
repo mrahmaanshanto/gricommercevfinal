@@ -116,15 +116,15 @@ export default function ScheduledReports() {
   );
 
   return (
-    <ReportsShell screen="ScheduledReports" crumb="Automation" active="auto-reports" page="Scheduled reports" title="Scheduled reports" description="Send any report automatically by WhatsApp or email every day, week or month, for example the daily summary to the manager at 8 PM." actions={actions} css={CSS}>
+    <ReportsShell screen="ScheduledReports" crumb="Automation" active="auto-reports" page="Scheduled reports" title="Scheduled reports" about="Send any report automatically by WhatsApp or email every day, week or month, for example the daily summary to the manager at 8 PM." actions={actions} css={CSS}>
       <div className="sr-note" role="note">
         <Icon name="info" width="18" height="18" aria-hidden="true" />
-        <span>Sending needs the shop’s server, which is not connected yet. Your schedules are kept in this browser and start going out once it is. “Send a test now” shows the exact message that would be sent.</span>
+        <span>Sending starts once the shop’s server is connected.</span>
       </div>
 
       {list && !list.length ? (
         <section className="gc-card">
-          <EmptyState icon="calendar-clock" title="No reports scheduled yet" body="Pick a report and who should get it, how often and at what time. For example the daily summary to the manager every evening at 8 PM." actionLabel="New scheduled report" onAction={() => setEdit({ report: DAILY, choose: true })} />
+          <EmptyState icon="calendar-clock" title="No reports scheduled yet" body="Pick a report, who gets it and when." actionLabel="New scheduled report" onAction={() => setEdit({ report: DAILY, choose: true })} />
         </section>
       ) : null}
 
@@ -184,7 +184,7 @@ export default function ScheduledReports() {
               <dt>Figures for</dt><dd>{preview.when}</dd>
             </dl>
             <pre className={'sr-msg' + (test.to === 'email' ? ' is-email' : '')}>{preview.body}</pre>
-            <p className="gc-help" style={{ margin: 0 }}>Not sent: sending starts once the shop’s server is connected. The real message carries the figures of the period just finished when it goes out.</p>
+            <p className="gc-help" style={{ margin: 0 }}>Not sent: sending starts once the shop’s server is connected.</p>
           </>
         ) : null}
       </Dialog>

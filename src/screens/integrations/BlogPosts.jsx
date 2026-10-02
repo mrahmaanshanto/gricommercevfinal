@@ -169,7 +169,7 @@ export default function BlogPosts() {
     <BlogFrame screen="BlogPosts" active="blog-posts" page="Posts" css={CSS}>
       <PageHeader
         title="Blog posts"
-        description="Write guides, recipes and offers for the storefront blog. Published posts appear on gridshop.com.bd/blog."
+        about="Write guides, recipes and offers for the storefront blog. Published posts appear on gridshop.com.bd/blog."
         actions={<>
           <Link href="/blog-categories" className="gc-btn gc-btn--neutral"><Icon name="folder-tree" width="18" height="18" aria-hidden="true" /> Categories</Link>
           <Link href="/blog-authors" className="gc-btn gc-btn--neutral"><Icon name="users" width="18" height="18" aria-hidden="true" /> Authors</Link>
@@ -178,9 +178,6 @@ export default function BlogPosts() {
       />
 
       <div className="gc-kpis">
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="globe" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Published</p><p className="gc-kpi__value">{published}<small>live on the website</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--surface-subtle)', color: 'var(--text-body)' }}><Icon name="pencil-line" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Drafts</p><p className="gc-kpi__value">{drafts}<small>not visible yet</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-info-soft)', color: 'var(--text-info)' }}><Icon name="calendar-clock" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Scheduled</p><p className="gc-kpi__value">{scheduled.length}<small>{scheduled[0] ? `next ${formatDate(scheduled[0].publishAt)}` : 'nothing queued'}</small></p></div></div>
         <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="eye" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Views this month</p><p className="gc-kpi__value">{n(monthViews)}<small>all posts</small></p></div></div>
       </div>
 

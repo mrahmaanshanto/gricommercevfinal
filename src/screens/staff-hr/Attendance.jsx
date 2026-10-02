@@ -3,6 +3,7 @@
 // person per day (src/lib/hr.js). Fix or add a day by hand, accept staff fix requests, and see the
 // month register. The register feeds Payroll: absences, unpaid leave and lates become cuts, overtime is paid.
 
+import { HrReview } from './HrReview';
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
@@ -65,6 +66,7 @@ export default function Attendance() {
   const [month, setMonth] = useState(null);
   const [place, setPlace] = useState('');
   const [edit, setEdit] = useState(null);   // { code, key, s, in, out, ot }
+  const [fixReview, setFixReview] = useState(null); // a fix request in the review drawer
   const [bulk, setBulk] = useState(null);   // { key, codes, mode }
   useEffect(() => { const v = new URLSearchParams(window.location.search).get('view'); if (v === 'month') setView('month'); }, []);
   const key = day || today;
@@ -130,7 +132,7 @@ export default function Attendance() {
 
   return (
     <HrPage screen="Attendance" active="hr-attendance" page="Attendance" title="Attendance" css={CSS}
-      description="Punches come in from the fingerprint device, POS log-in and the staff app. Fix anything wrong here — every change is logged and flows into payroll."
+      about="Punches come in from the fingerprint device, POS log-in and the staff app. Fix anything wrong here — every change is logged and flows into payroll."
       actions={<>
         <button type="button" className="gc-btn gc-btn--neutral" onClick={openBulk}><Icon name="list-checks" width="18" height="18" aria-hidden="true" /> Bulk entry</button>
         <button type="button" className="gc-btn gc-btn--neutral" onClick={() => toast('The ZKTeco devices sync by themselves every few minutes. A CSV import from the device is not in the demo yet.', { tone: 'info' })}><Icon name="fingerprint" width="18" height="18" aria-hidden="true" /> Import from device</button>
@@ -202,23 +204,13 @@ export default function Attendance() {
               return (
                 <div key={f.id} className="at-fix">
                   <b>{st.name} · {WEEKDAYS[dowOf(f.key)]} {dayLabel(f.key)}</b>
-                  <span>{f.text}</span>
                   <div className="hr-actions" style={{ justifyContent: 'flex-start' }}>
-                    <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => { decideFix(f.id, false); toast(`Rejected — ${st.name} is told by SMS.`, { tone: 'info' }); }}>Reject</button>
-                    <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => { decideFix(f.id, true); toast(`Accepted — ${st.name}’s ${dayLabel(f.key)} is updated.`); }}>Accept</button>
+                    <button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={() => setFixReview(f.id)} aria-label={`Review ${st.name}’s fix for ${dayLabel(f.key)}`}>Review</button>
                   </div>
                 </div>
               );
             }) : <p className="hr-sub" style={{ margin: 0 }}>No fix requests waiting.</p>}
-            <h2 style={{ marginTop: 'var(--space-2)' }}>Rules in use</h2>
-            <ul className="at-rules">
-              <li>Grace time is set per shift ({S.shifts.map((s) => `${s.name} ${s.graceMin} min`).join(', ')})</li>
-              <li>{set.lateRule === 'days' ? `${set.latesPerCut} lates in a month = 1 day’s pay cut` : set.lateRule === 'minutes' ? 'Pay is cut for every minute late' : 'Lates are shown, not cut'}</li>
-              <li>Under {set.halfDayHours} hours worked = half day</li>
-              <li>{set.otRate ? `Overtime paid at ${set.otRate}× the hourly rate` : 'No overtime paid'}</li>
-              <li>Weekly off: {set.weeklyOff.map((d) => WEEKDAYS[d]).join(', ') || 'by roster'}</li>
-            </ul>
-            <Link href="/hr-setup?sec=att" className="hr-link">Change rules in HR setup</Link>
+            <Link href="/hr-setup?sec=att" className="hr-link" style={{ marginTop: 'var(--space-2)' }}>Attendance rules</Link>
           </aside>
         </section>
       ) : (
@@ -304,6 +296,7 @@ export default function Attendance() {
           </form>
         ) : null}
       </Dialog>
+      <HrReview S={S} req={fixReview ? { kind: 'fix', id: fixReview } : null} onClose={() => setFixReview(null)} />
     </HrPage>
   );
 }

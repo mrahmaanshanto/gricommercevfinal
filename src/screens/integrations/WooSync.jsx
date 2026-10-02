@@ -238,7 +238,6 @@ export default class WooSyncScreen extends Component {
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <div className="ey ey-d">Storefront · WordPress sync</div>
                     <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.headline}</h1>
-                    <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)", maxWidth: "680px" }}>Two-way sync with a WooCommerce store over its API. A change on either side appears on the other, and products, orders and blog posts can be edited here as if in WordPress.</p>
                   </div>
                   <__Link href="/blog-posts" className="btn sm" style={{ background: "#fff", color: "#0b1733", height: "38px", flexShrink: "0" }}>Blog posts</__Link>
                 </div>
@@ -347,7 +346,6 @@ export default class WooSyncScreen extends Component {
                   <section className="tc" style={{ overflow: "hidden" }}>
                     <div style={{ padding: "18px 20px 12px" }}>
                       <h2 className="h2">What syncs</h2>
-                      <p className="sub">Both directions for everything that is on. If both sides change the same item, the latest change wins and the older version is kept in history.</p>
                     </div>
                     <div className="gc-table-wrap">
                       <table className="tb">
@@ -382,7 +380,6 @@ export default class WooSyncScreen extends Component {
                   <section className="tc" style={{ overflow: "hidden" }}>
                     <div style={{ padding: "18px 20px 12px" }}>
                       <h2 className="h2">Order status mapping</h2>
-                      <p className="sub">WooCommerce has fewer order statuses. The GridCommerce status is also written as an order note, so nothing is lost.</p>
                     </div>
                     <div className="gc-table-wrap">
                       <table className="tb">

@@ -100,7 +100,7 @@ export default function SalesLeads() {
 
   return (
     <TeamPage screen="SalesLeads" active="leads" crumb="General" page="Leads & follow-ups" title="Leads & follow-ups" css={CSS}
-      description="People and shops who might buy — call them back on time and move them to won."
+      about="People and shops who might buy — call them back on time and move them to won."
       actions={<button type="button" className="gc-btn gc-btn--solid" onClick={newLead}><Icon name="plus" width="18" height="18" aria-hidden="true" /> New lead</button>}>
       <div className="gc-kpis">
         <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="target" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Open leads</p><p className="gc-kpi__value">{open.length}<small>{money(open.reduce((a, l) => a + l.value, 0))} in play</small></p></div></div>
@@ -206,13 +206,13 @@ export default function SalesLeads() {
 
       <div className="ld-split">
         <section className="gc-card" style={{ padding: 0 }}>
-          <div className="tm-head"><div><h2>Where leads come from</h2><p>Value of every lead by source, and how many were won.</p></div></div>
+          <div className="tm-head"><div><h2>Where leads come from</h2></div></div>
           <div style={{ padding: '0 var(--space-5) var(--space-5)' }}>
             {sources.map((x) => <div key={x.s} className="ld-src"><span>{x.s}<span className="tm-sub">{x.n} lead{x.n === 1 ? '' : 's'} · {x.won} won</span></span><span><i style={{ width: `${(x.value / maxSrc) * 100}%` }} /></span><span className="tm-fig" style={{ textAlign: 'right' }}>{money(x.value)}</span></div>)}
           </div>
         </section>
         <section className="gc-card" style={{ padding: 0 }}>
-          <div className="tm-head"><div><h2>Team</h2><p>Open leads and follow-ups due per person.</p></div></div>
+          <div className="tm-head"><div><h2>Team</h2></div></div>
           <div style={{ padding: '0 var(--space-5) var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
             {USERS.filter((u) => leads.some((l) => l.owner === u.id)).map((u) => { const ls = leads.filter((l) => l.owner === u.id && OPEN_STAGES.includes(l.stage)); return <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}><UserAvatar id={u.id} /><span style={{ flex: 1, minWidth: 0 }}><span className="tm-strong">{u.name}</span><span className="tm-sub">{roleOf(u).title}</span></span><span className="tm-sub" style={{ textAlign: 'right' }}>{ls.length} open · <span className={ls.some((l) => followState(l, now) === 'overdue') ? 'tm-out' : ''}>{ls.filter((l) => ['overdue', 'today'].includes(followState(l, now))).length} due</span></span></div>; })}
           </div>

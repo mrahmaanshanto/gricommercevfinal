@@ -70,7 +70,7 @@ export default function Branches() {
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
             <PageHeader
               title="Branches"
-              description="Your shops. Each one keeps its own stock, sells at its POS counters and gets stock from a warehouse by transfer."
+              about="Your shops. Each one keeps its own stock, sells at its POS counters and gets stock from a warehouse by transfer."
               actions={<>
                 <Link href="/pos-manage" className="gc-btn gc-btn--neutral"><Icon name="monitor" width="18" height="18" aria-hidden="true" /> POS counters</Link>
                 <button type="button" className="gc-btn gc-btn--solid" onClick={() => form.open(null, 'Branch')}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Add branch</button>
@@ -102,7 +102,7 @@ export default function Branches() {
                 ))}
               </div>
             )}
-            <p className="gc-help" style={{ margin: 0 }}>Online orders ship from the warehouses and branches that hold the stock; the online store is not a place of its own. A branch can only be deactivated when it is empty and its counters are switched off.</p>
+            <p className="gc-help" style={{ margin: 0 }}>A branch can only be deactivated when it is empty and its counters are switched off.</p>
           </div>
         </main>
       </div>

@@ -118,7 +118,6 @@ export default function DamagedStockPanel() {
       <div className="dsp-head">
         <div>
           <h2 id="dsp-title">Damaged stock in {DAMAGED_PLACE}</h2>
-          <p>Set aside from shelves, customer returns and courier returns. It is never sold from here.</p>
         </div>
         <Link href="/stock-holds?tab=damaged" className="gc-btn gc-btn--neutral gc-btn--sm"><Icon name="lock" width="16" height="16" aria-hidden="true" /> Stock holds</Link>
       </div>

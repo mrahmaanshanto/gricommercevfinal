@@ -125,7 +125,7 @@ export default function StockHolds() {
           <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
             <PageHeader
               title="Stock holds"
-              description="Stock that is in the building but not free to sell: held for online orders, held for retail orders, or damaged."
+              about="Stock that is in the building but not free to sell: held for online orders, held for retail orders, or damaged."
               actions={<>
                 <Link href="/stock" className="gc-btn gc-btn--neutral"><Icon name="boxes" width="18" height="18" aria-hidden="true" /> Stock list</Link>
                 <button type="button" className="gc-btn gc-btn--solid" onClick={() => setForm({ type: 'retail', sku: STOCK[0].sku, qty: '1', place: HOLD_PLACES.includes(place) ? place : HOLD_PLACES[0], ref: '', who: '', note: '' })}><Icon name="lock" width="18" height="18" aria-hidden="true" /> Hold stock</button>

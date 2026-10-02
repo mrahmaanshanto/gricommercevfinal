@@ -253,7 +253,6 @@ export default class SetupClarityScreen extends Component {
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
                     <div className="ey ey-d">G3 · Microsoft Clarity</div>
                     <h1 style={{ margin: "4px 0 0", fontSize: "var(--text-2xl)", lineHeight: "30px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.headline}</h1>
-                    <p style={{ margin: "4px 0 0", fontSize: "var(--text-sm)", lineHeight: "20px", color: "rgba(226,232,240,.78)" }}>Free heatmaps and session recordings to see where shoppers hesitate. Personal details stay masked.</p>
                   </div>
                   <div className="su-prog" style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px", width: "220px", flexShrink: "0" }}>
                     <span style={{ fontSize: "var(--text-xs)", color: "rgba(203,216,238,.8)" }}>{v.progLabel}</span>

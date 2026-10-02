@@ -89,7 +89,7 @@ export default function BlogAuthors() {
     >
       <PageHeader
         title="Blog authors"
-        description="People who write for the blog. Their name, photo colour and bio show under every post they write."
+        about="People who write for the blog. Their name, photo colour and bio show under every post they write."
         actions={<>
           <Link href="/blog-posts" className="gc-btn gc-btn--neutral"><Icon name="newspaper" width="18" height="18" aria-hidden="true" /> All posts</Link>
           <button type="button" className="gc-btn gc-btn--solid" onClick={() => setEdit({})}><Icon name="user-plus" width="18" height="18" aria-hidden="true" /> Add author</button>
