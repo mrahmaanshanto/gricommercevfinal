@@ -8,6 +8,7 @@ import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 import { PageHeader as __PageHeader } from '@/components/ui';
+import ProductChannels from '@/components/ProductChannels';
 import { toast as __toast, confirmDialog as __confirm } from '@/runtime/ui';
 import { findProduct, saveProduct, codeOwner, newProductId, getSavedProducts, SELL_TO } from '@/lib/products';
 import { getStockSetup } from '@/lib/stockSetup';
@@ -1174,11 +1175,9 @@ export default class AddProductScreen extends Component {
                       {v.isArchived ? (<option value="archived">Archived — hidden, kept for records</option>) : null}
                       {v.isDeleted ? (<option value="deleted">Deleted — restore by picking another status</option>) : null}
                     </select>
-                    <div className="lbl" style={{ marginTop: "4px" }}>Sell on</div>
-                    <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-sm)" }}><input type="checkbox" defaultChecked={true} style={{ width: "16px", height: "16px" }} />Online shop</label>
-                    <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-sm)" }}><input type="checkbox" defaultChecked={true} style={{ width: "16px", height: "16px" }} />POS counter</label>
-                    <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-sm)" }}><input type="checkbox" defaultChecked={true} style={{ width: "16px", height: "16px" }} />Facebook shop</label>
                   </section>
+                  {/* where it is sold and how it is doing there (online store, POS, Meta, Google) */}
+                  <ProductChannels draft={v.status !== 'active'} />
                   <section className="pcard" style={{ padding: "18px", display: "flex", flexDirection: "column", gap: "12px" }}>
                     <div className="psec">Organisation</div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>

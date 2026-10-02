@@ -209,6 +209,41 @@ export const HELP = {
     bn: E('Shop-এর মূল Settings: নাম, যোগাযোগ, মুদ্রা, VAT আর Invoice-এর তথ্য।', ['তথ্য বদলে Save চাপুন।'], ['এগুলো Invoice আর Receipt-এ দেখায়।'], ['Store settings', '1:40']),
     related: ['/set-payments', '/set-delivery'],
   },
+  '/channels': {
+    en: E('Every sales channel at a glance: Meta (Facebook & Instagram), Google Merchant Center and Google Business.', ['Check each card: connected, last sync and problems.', 'Press Sync now to send the latest products, prices and stock.', 'Fix the problems in Recent issues — each row says what to do.'], ['Green means fine. Orange needs you. Red failed.', 'Connect channel adds a new one in a few steps.'], ['Sales channels', '2:00']),
+    bn: E('সব Sales channel এক নজরে: Meta (Facebook ও Instagram), Google Merchant Center আর Google Business।', ['প্রতিটি Card দেখুন: Connected কি না, শেষ Sync আর সমস্যা।', 'সর্বশেষ Product, দাম আর Stock পাঠাতে Sync now চাপুন।', 'Recent issues-এর সমস্যাগুলো ঠিক করুন — প্রতিটি সারিতে কী করতে হবে লেখা আছে।'], ['সবুজ মানে ঠিক আছে। কমলা মানে আপনাকে দেখতে হবে। লাল মানে Failed।', 'Connect channel দিয়ে কয়েক ধাপে নতুন Channel যোগ করুন।'], ['Sales channels', '2:00']),
+    related: ['/meta-commerce', '/google-merchant', '/google-business', '/sync-issues'],
+  },
+  '/meta-commerce': {
+    en: E('Your products on Facebook and Instagram shops, and whether each one is synced.', ['Tap a tab to see Synced, Needs attention, Failed or Not published.', 'Press Fix or Retry on a product with a problem.', 'Select products to publish, remove or retry them together.'], ['Draft products are not sent.', 'Auto sync sends changes by itself.'], ['Meta Commerce', '1:50']),
+    bn: E('Facebook আর Instagram Shop-এ আপনার Product, আর প্রতিটি Synced কি না।', ['Synced, Needs attention, Failed বা Not published দেখতে Tab-এ চাপুন।', 'সমস্যা থাকা Product-এ Fix বা Retry চাপুন।', 'একসাথে Publish, Remove বা Retry করতে Product বাছুন।'], ['Draft Product পাঠানো হয় না।', 'Auto sync নিজে থেকেই পরিবর্তন পাঠায়।'], ['Meta Commerce', '1:50']),
+    related: ['/channels', '/sync-issues', '/all-products'],
+  },
+  '/google-merchant': {
+    en: E('Your products on Google Search and the Shopping tab: Approved, Limited or Disapproved.', ['Open Limited and Disapproved to see what Google wants.', 'Press Fix product and add what is missing, such as the barcode.', 'Press Retry when the problem was on the way, such as a price mismatch.'], ['Google checks new and changed products. This can take up to 3 days.', 'Technical details are folded under each problem.'], ['Google Merchant Center', '2:10']),
+    bn: E('Google Search আর Shopping Tab-এ আপনার Product: Approved, Limited বা Disapproved।', ['Google কী চায় দেখতে Limited আর Disapproved খুলুন।', 'Fix product চাপুন আর যা নেই তা দিন, যেমন Barcode।', 'পাঠানোর সময় সমস্যা হলে (যেমন দাম না মেলা) Retry চাপুন।'], ['নতুন বা বদলানো Product Google যাচাই করে, এতে ৩ দিন পর্যন্ত লাগতে পারে।', 'Technical details প্রতিটি সমস্যার নিচে ভাঁজ করা থাকে।'], ['Google Merchant Center', '2:10']),
+    related: ['/channels', '/sync-issues', '/all-products'],
+  },
+  '/google-business': {
+    en: E('Your shop on Google Search and Maps: locations, reviews, hours, posts, photos and services.', ['Check Locations for anything that needs attention.', 'Reply to reviews. Generate AI reply gives a draft; read it before you publish.', 'Keep opening hours right, including holidays (Special hours).'], ['Copy Monday to all sets the whole week at once.', 'Changes can take up to 3 days to show on Google.'], ['Google Business', '2:30']),
+    bn: E('Google Search আর Maps-এ আপনার Shop: Location, Review, সময়, Post, ছবি আর সেবা।', ['কোনো Location-এ নজর দরকার কি না দেখুন।', 'Review-এর Reply দিন। Generate AI reply একটি খসড়া দেয়; Publish-এর আগে পড়ে নিন।', 'খোলার সময় ঠিক রাখুন, ছুটির দিনসহ (Special hours)।'], ['Copy Monday to all দিয়ে পুরো সপ্তাহ একবারে ঠিক করুন।', 'Google-এ পরিবর্তন দেখাতে ৩ দিন পর্যন্ত লাগতে পারে।'], ['Google Business', '2:30']),
+    related: ['/channels', '/sync-issues'],
+  },
+  '/sync-issues': {
+    en: E('Every channel problem in one place, with the fix in plain words.', ['Start with Needs attention: these need you to change something.', 'Failed ones often work on a retry — select them and press Retry selected.', 'Resolved shows what was fixed recently.'], ['Filter by channel to work on one at a time.'], ['Sync issues', '1:40']),
+    bn: E('সব Channel-এর সমস্যা এক জায়গায়, সহজ ভাষায় সমাধানসহ।', ['Needs attention দিয়ে শুরু করুন: এগুলোতে আপনাকে কিছু বদলাতে হবে।', 'Failed গুলো প্রায়ই আবার চেষ্টা করলে ঠিক হয় — বেছে Retry selected চাপুন।', 'সম্প্রতি কী ঠিক হয়েছে Resolved-এ দেখুন।'], ['একবারে একটি Channel নিয়ে কাজ করতে Channel দিয়ে Filter করুন।'], ['Sync issues', '1:40']),
+    related: ['/channels', '/meta-commerce', '/google-merchant'],
+  },
+  '/channel-settings': {
+    en: E('What GridCommerce keeps in sync on your channels, and who hears about problems.', ['Turn Auto sync, products, stock, prices and images on or off.', 'Choose how you hear about sync problems.'], ['Advanced settings are for special cases; most shops never need them.'], ['Channel settings', '1:10']),
+    bn: E('আপনার Channel-এ GridCommerce কী Sync রাখে, আর সমস্যার খবর কে পায়।', ['Auto sync, Product, Stock, দাম আর ছবি চালু বা বন্ধ করুন।', 'Sync-এর সমস্যার খবর কীভাবে পাবেন বাছুন।'], ['Advanced settings বিশেষ ক্ষেত্রের জন্য; বেশিরভাগ Shop-এর লাগে না।'], ['Channel settings', '1:10']),
+    related: ['/channels'],
+  },
+  '/connect-channel': {
+    en: E('Connect Meta, Google Merchant Center or Google Business in six short steps.', ['Choose the channel and sign in with Meta or Google.', 'Pick the business, catalog or locations.', 'Choose what to sync, check the summary and connect.'], ['GridCommerce never sees your password.', 'The first sync starts as soon as you connect.'], ['Connect a channel', '1:30']),
+    bn: E('ছয়টি ছোট ধাপে Meta, Google Merchant Center বা Google Business যুক্ত করুন।', ['Channel বাছুন আর Meta বা Google দিয়ে Sign in করুন।', 'Business, Catalog বা Location বাছুন।', 'কী Sync হবে বাছুন, সারাংশ দেখে Connect করুন।'], ['GridCommerce কখনো আপনার Password দেখে না।', 'Connect করার সঙ্গে সঙ্গে প্রথম Sync শুরু হয়।'], ['Connect a channel', '1:30']),
+    related: ['/channels'],
+  },
 };
 
 // ---- made-up help for pages without an entry ----------------------------------------------------

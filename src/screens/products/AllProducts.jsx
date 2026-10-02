@@ -14,6 +14,13 @@ import { useRouter } from 'next/navigation';
 import { formatBDT } from '@/lib/format';
 import { allProducts, getSavedProducts, DEMO_PRODUCTS, sellLabel } from '@/lib/products';
 import { getStockSetup } from '@/lib/stockSetup';
+import { hasModule } from '@/lib/edition';
+import { CHANNELS_EVENT, channelMap, getChannels, setPublished, retryMany, STATUS, ISSUES, channelBy } from '@/lib/channels';
+
+// Sales channels on the product list (src/lib/channels.js): a filter, a small Meta / Google mark per row and the
+// channel actions for the selected products. Shown when the edition sells on channels.
+var CH_FILTERS = [['', 'All channels'], ['meta-on', 'Published to Meta'], ['meta-off', 'Not published to Meta'], ['gmc-ok', 'Google approved'], ['gmc-bad', 'Google disapproved'], ['attention', 'Needs attention']];
+var CH_TONE = { synced: 'ok', approved: 'ok', attention: 'warn', limited: 'warn', failed: 'bad', disapproved: 'bad', processing: 'info', unpublished: 'off' };
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -57,13 +64,21 @@ function downloadCsv(name, rows) {
   setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
 }
 class Component extends DCLogic {
-  componentWillUnmount() { clearTimeout(this.t); }
+  componentWillUnmount() { clearTimeout(this.t); if (this.onCh) window.removeEventListener(CHANNELS_EVENT, this.onCh); clearInterval(this.chTick); }
   // The status tab lives in the URL (?status=draft), so a reload or Back keeps the same list.
   // Products added or edited in this browser are read after mount (localStorage).
   componentDidMount() {
     var st = new URLSearchParams(window.location.search).get('status');
     // an online-only shop has no wholesale prices: no "sell to", no wholesale column or filter (stockSetup.js)
     var p = { saved: getSavedProducts(), wsOn: getStockSetup().wholesale };
+    // channel status of every product (and again whenever a channel changes, or a retry lands)
+    var self = this;
+    if (hasModule('channels')) {
+      p.chm = channelMap(); p.chConn = getChannels().conn;
+      this.onCh = function () { self.setState({ chm: channelMap(), chConn: getChannels().conn }); };
+      window.addEventListener(CHANNELS_EVENT, this.onCh);
+      this.chTick = setInterval(this.onCh, 4000);
+    }
     if (st && TABS.some(function (t) { return t.k === st; })) p.tab = st;
     this.setState(p);
   }
@@ -73,17 +88,43 @@ class Component extends DCLogic {
     window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
     this.setState({ tab: k, sel: {}, aiOpen: false });
   }
+  // Channel actions for the selected products (publish / remove on Meta or Google, or retry the failed ones).
+  bulkCh(ch, on) {
+    var s = this.state || {}, sel = s.sel || {}, all = s.saved ? allProducts(s.saved) : DEMO_PRODUCTS;
+    var keys = all.filter(function (p) { return sel[p.id]; }).map(function (p) { return p.sku || p.id; });
+    var msg;
+    if (ch === 'retry') {
+      var m = channelMap(), list = [];
+      keys.forEach(function (k) { ['meta', 'gmc'].forEach(function (c) { var r = (m[k] || {})[c]; if (r && r.issue && ISSUES[r.issue].kind === 'retry') list.push([c, k]); }); });
+      retryMany(list);
+      msg = list.length ? 'Retrying ' + list.length + (list.length === 1 ? ' failed sync' : ' failed syncs') : 'Nothing failed. Problems that need a fix are in Sync issues.';
+    } else {
+      var n = setPublished(ch, keys, on), name = ch === 'meta' ? 'Meta' : 'Google';
+      msg = n ? (on ? 'Publishing ' + n + ' to ' + name + '…' : 'Removed ' + n + ' from ' + name) : (on ? 'Already on ' + name + ' (drafts are not sent)' : 'None of these are on ' + name);
+    }
+    this.setState({ chMenu: false, sel: {}, chm: channelMap() });
+    toast(this, msg);
+  }
   renderVals() {
     var self = this, s = this.state || {}, tab = s.tab || 'all', sel = s.sel || {}, aic = s.aic || { 'Short description': true, 'Long description': true };
     var q = (s.q || '').trim().toLowerCase();
     var wsOn = s.wsOn !== false;
     var fCat = s.fCat || '', fBrand = s.fBrand || '', fTag = s.fTag || '', fSell = wsOn ? s.fSell || '' : '';
-    var filtered = !!(fCat || fBrand || fTag || fSell);
+    var chOn = !!s.chm, chm = s.chm || {}, conn = s.chConn || {}, fCh = chOn ? s.fCh || '' : '';
+    var chOf = function (p) { return chm[p.sku || p.id] || {}; };
+    var CH_TEST = {
+      'meta-on': function (p) { var r = chOf(p).meta; return !!r && r.st !== 'unpublished'; },
+      'meta-off': function (p) { var r = chOf(p).meta; return !r || r.st === 'unpublished'; },
+      'gmc-ok': function (p) { var r = chOf(p).gmc; return !!r && r.st === 'approved'; },
+      'gmc-bad': function (p) { var r = chOf(p).gmc; return !!r && r.st === 'disapproved'; },
+      attention: function (p) { var x = chOf(p); return ['meta', 'gmc'].some(function (k) { return conn[k] && x[k] && !!x[k].issue; }); },
+    };
+    var filtered = !!(fCat || fBrand || fTag || fSell || fCh);
     var tabLabel = TABS.filter(function (t) { return t.k === tab; })[0].label;
     var all = s.saved ? allProducts(s.saved) : DEMO_PRODUCTS;
     var list = all.filter(function (p) { return wsOn || p.sell !== 'wholesale'; }).filter(function (p) { return tab === 'all' ? p.st !== 'deleted' : tab === 'missing' ? p.missing : p.st === tab; })
       .filter(function (p) { return !q || (p.name + ' ' + p.sku + ' ' + p.barcode + ' ' + p.brand + ' ' + p.cat).toLowerCase().indexOf(q) >= 0; })
-      .filter(function (p) { return (!fCat || p.cat === fCat || p.cat.indexOf(fCat + ' ›') === 0) && (!fBrand || p.brand === fBrand) && (!fTag || UNTAGGED_TEST[fTag](p)) && (!fSell || p.sell === fSell); });
+      .filter(function (p) { return (!fCat || p.cat === fCat || p.cat.indexOf(fCat + ' ›') === 0) && (!fBrand || p.brand === fBrand) && (!fTag || UNTAGGED_TEST[fTag](p)) && (!fSell || p.sell === fSell) && (!fCh || CH_TEST[fCh](p)); });
     var n = list.filter(function (p) { return sel[p.id]; }).length;
     var cnt = { all: 412, active: 386, draft: 14, archived: 12, missing: 34, deleted: 9 };
     // Products added in this browser come on top of the shop's counts.
@@ -103,11 +144,20 @@ class Component extends DCLogic {
       brandOpts: uniq(all.map(function (p) { return p.brand; })), fBrand: fBrand, setBrand: function (e) { self.setState({ fBrand: e.target.value, sel: {} }); },
       tagOpts: (wsOn ? UNTAGGED : UNTAGGED_RETAIL).map(function (x) { return { v: x[0], l: x[1] }; }), fTag: fTag, setTag: function (e) { self.setState({ fTag: e.target.value, sel: {} }); },
       wsOn: wsOn, sellOpts: SELLS.map(function (x) { return { v: x[0], l: x[1] }; }), fSell: fSell, setSell: function (e) { self.setState({ fSell: e.target.value, sel: {} }); },
-      filtered: filtered, filterCount: [fCat, fBrand, fTag, fSell].filter(Boolean).length, clearFilters: function () { self.setState({ fCat: '', fBrand: '', fTag: '', fSell: '' }); },
+      chOn: chOn, chOpts: CH_FILTERS.filter(function (x) { return !x[0] || (x[0].indexOf('meta') === 0 ? conn.meta : x[0].indexOf('gmc') === 0 ? conn.gmc : conn.meta || conn.gmc); }).map(function (x) { return { v: x[0], l: x[1] }; }), fCh: fCh, setCh: function (e) { self.setState({ fCh: e.target.value, sel: {} }); },
+      chMenu: !!s.chMenu && n > 0, toggleChMenu: function () { self.setState({ chMenu: !s.chMenu }); },
+      chActs: [
+        conn.meta ? { l: 'Publish to Meta', run: function () { self.bulkCh('meta', true); } } : null,
+        conn.meta ? { l: 'Remove from Meta', run: function () { self.bulkCh('meta', false); } } : null,
+        conn.gmc ? { l: 'Publish to Google', run: function () { self.bulkCh('gmc', true); } } : null,
+        conn.gmc ? { l: 'Remove from Google', run: function () { self.bulkCh('gmc', false); } } : null,
+        conn.meta || conn.gmc ? { l: 'Retry sync', run: function () { self.bulkCh('retry'); } } : null,
+      ].filter(Boolean),
+      filtered: filtered, filterCount: [fCat, fBrand, fTag, fSell, fCh].filter(Boolean).length, clearFilters: function () { self.setState({ fCat: '', fBrand: '', fTag: '', fSell: '', fCh: '' }); },
       emptyTitle: q ? 'No products match “' + (s.q || '').trim() + '”' : filtered ? 'No products match these filters' : 'No ' + (tab === 'all' ? '' : tabLabel.toLowerCase() + ' ') + 'products',
       emptyBody: q ? 'Check the spelling, or clear the search to see every product in this tab.' : filtered ? 'Clear the filters to see every product in this tab.' : 'Nothing has this status yet. Show all products instead.',
       emptyAction: q ? 'Clear search' : filtered ? 'Clear filters' : 'Show all products',
-      clearEmpty: function () { if (q) self.setState({ q: '' }); else if (filtered) self.setState({ fCat: '', fBrand: '', fTag: '', fSell: '' }); else self.setTab('all'); },
+      clearEmpty: function () { if (q) self.setState({ q: '' }); else if (filtered) self.setState({ fCat: '', fBrand: '', fTag: '', fSell: '', fCh: '' }); else self.setTab('all'); },
       rows: list.map(function (p) { var on = !!sel[p.id], href = editHref(p);
         return { id: p.id, name: p.name, sku: p.sku || 'No SKU', skuColor: p.sku ? 'var(--text-muted)' : 'var(--text-warning)', vars: p.vars, initial: p.name.charAt(0), tbg: p.tbg, sel: on, bg: on ? '#f2f6fc' : 'transparent', st: ST[p.st][0], stCls: ST[p.st][1],
           inv: p.inv === 0 ? 'Out of stock' : p.inv + ' in stock', invSub: p.loc ? 'at ' + p.loc + (p.loc > 1 ? ' places' : ' place') : 'not tracked', invColor: p.inv === 0 ? '#b83210' : p.low ? '#a14f06' : '#0f172a',
@@ -115,6 +165,11 @@ class Component extends DCLogic {
           sell: sellLabel(p.sell), sellCls: SELL_CLS[p.sell] || SELL_CLS.retail, price: priceText(p), ws: wsText(p), wsColor: p.sell !== 'retail' && (p.wholesale == null || p.wholesale === '') ? 'var(--text-warning)' : 'var(--text-muted)',
           flags: p.flags.filter(function (f) { return FL[f]; }).map(function (f) { return { l: f, bg: FL[f][0], fg: FL[f][1], t: FL[f][2] }; }),
           href: href,
+          // Meta and Google marks: the channel logo with a status dot (title and screen-reader text say the status)
+          chMarks: !chOn ? [] : ['meta', 'gmc'].filter(function (k) { return conn[k]; }).map(function (k) {
+            var r = chOf(p)[k], st = r ? r.st : null, issue = r && r.issue ? ISSUES[r.issue].title : '';
+            return { k: k, logo: channelBy(k).logo, tone: st ? CH_TONE[st] : 'off', label: (k === 'meta' ? 'Meta' : 'Google') + ': ' + (st ? STATUS[st].label : 'Not sold online') + (issue ? ' · ' + issue : '') };
+          }),
           // A click anywhere on the row opens the product, except on its own controls.
           open: function (e) { if (e.target.closest && e.target.closest('a,button,input,select,label')) return; if (self.props.router) self.props.router.push(href); else window.location.href = href; },
           toggle: function () { var o = assign({}, sel); o[p.id] = !on; self.setState({ sel: o }); } }; }),
@@ -143,6 +198,14 @@ class Component extends DCLogic {
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `
+.ap-chs{display:inline-flex;gap:6px}
+.ap-ch{position:relative;display:grid;place-items:center;width:28px;height:28px;border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--surface-card)}
+.ap-ch img{display:block}
+.ap-chdot{position:absolute;right:-3px;bottom:-3px;width:10px;height:10px;border-radius:var(--radius-full);box-shadow:0 0 0 2px var(--surface-card)}
+.ap-chdot--ok{background:var(--success)}.ap-chdot--warn{background:var(--warning)}.ap-chdot--bad{background:var(--error)}.ap-chdot--info{background:var(--info)}.ap-chdot--off{background:var(--slate-300)}
+.ap-chmenu{position:relative;display:inline-flex}
+.ap-chmenu .gc-dropdown{top:100%;right:0;color:var(--text-body)}
+
 body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
 a{color:#003087}a:hover{color:#002a77}
@@ -340,6 +403,9 @@ class AllProductsView extends Component {
                   {v.wsOn ? <select className="inp" aria-label="Sell to" value={v.fSell} onChange={v.setSell} style={{ width: "180px" }}>
                     {__list(v.sellOpts).map((o) => (<option key={o.v} value={o.v}>{o.l}</option>))}
                   </select> : null}
+                  {v.chOn ? <select className="inp" aria-label="Channels" value={v.fCh} onChange={v.setCh} style={{ width: "200px" }}>
+                    {__list(v.chOpts).map((o) => (<option key={o.v} value={o.v}>{o.l}</option>))}
+                  </select> : null}
                   </__MobileFilters>
                   {v.filtered ? (<button type="button" className="abtn" onClick={v.clearFilters}><__Icon name="x" width="14" height="14" aria-hidden="true" />Clear filters</button>) : null}
                   <span style={{ flexGrow: "1" }} />
@@ -356,6 +422,18 @@ class AllProductsView extends Component {
                     <button type="button" className="ai" onClick={v.openAi}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
 </svg>Fill with AI</button>
+                    {v.chOn && v.chActs.length ? (
+                      <span className="ap-chmenu">
+                        <button type="button" className="btn sm" style={{ background: "rgba(255,255,255,.12)", color: "#fff" }} aria-haspopup="menu" aria-expanded={v.chMenu} onClick={v.toggleChMenu}>
+                          <__Icon name="radio-tower" width="15" height="15" aria-hidden="true" /><span>Channels</span><__Icon name="chevron-down" width="14" height="14" aria-hidden="true" />
+                        </button>
+                        {v.chMenu ? (
+                          <div className="gc-dropdown" role="menu">
+                            {__list(v.chActs).map((a) => (<button key={a.l} type="button" role="menuitem" className="gc-dropdown__item" onClick={a.run}>{a.l}</button>))}
+                          </div>
+                        ) : null}
+                      </span>
+                    ) : null}
                     <button type="button" className="btn sm" style={{ background: "rgba(255,255,255,.12)", color: "#fff" }} onClick={v.bulkCat}>
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
@@ -454,6 +532,7 @@ class AllProductsView extends Component {
                         </th>
                         <th className="th">Product</th>
                         <th className="th">Status</th>
+                        {v.chOn ? <th className="th">Channels</th> : null}
                         <th className="th">Stock</th>
                         <th className="th">Category</th>
                         <th className="th">Brand</th>
@@ -481,6 +560,13 @@ class AllProductsView extends Component {
                             <td className="td">
                               <span className={r?.stCls}>{r?.st}</span>
                             </td>
+                            {v.chOn ? <td className="td">
+                              {r?.chMarks.length ? (
+                                <span className="ap-chs">
+                                  {r.chMarks.map((m) => (<span key={m.k} className="ap-ch" title={m.label}><img src={m.logo} alt="" width="14" height="14" /><i className={'ap-chdot ap-chdot--' + m.tone} /><span className="sr-only">{m.label}</span></span>))}
+                                </span>
+                              ) : <span style={{ color: "var(--text-muted)" }}>—</span>}
+                            </td> : null}
                             <td className="td">
                               <span style={__sx(`font-weight: var(--weight-medium); white-space: nowrap; color: ${r?.invColor ?? ""};`)}>{r?.inv}</span>
                               <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", whiteSpace: "nowrap" }}>{r?.invSub}</div>

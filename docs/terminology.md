@@ -43,6 +43,27 @@ New order → Verification (a call, not a status) → Approved → Ready for cou
 Courier scans (picked up, at hub, out for delivery) appear only in the order's Tracking.
 Write order text short and plain, like Shopify: "Order approved", "Sent to Pathao", "Not verified yet".
 
+### Channel statuses (channels.js › STATUS)
+
+Meta, Google Merchant Center and Google Business. One word per state; the channel's own codes stay under "Technical details".
+
+| Use | Not | Bangla | Meaning |
+|---|---|---|---|
+| Connected / Not connected | Linked, Authorized, Integrated | Connected / যুক্ত নয় | The account is joined to GridCommerce |
+| Synced | Uploaded, Live, Pushed | Synced | The channel has the latest product, price and stock |
+| Approved | Eligible, Active (Google) | Approved | Google shows the product |
+| Limited | Partially eligible, Warning | Limited | Google shows it less until something is added |
+| Disapproved | Rejected, Not eligible | Disapproved | Google does not show it until it is fixed |
+| Needs attention | Warning, Action needed, Error | নজর দরকার | You must change something (Fix) |
+| Failed | Error, Sync error | Failed | Sending did not work; Retry usually solves it |
+| Processing | Pending, In review, Queued | Processing | Being sent or checked; nothing to do |
+| Not published | Unlisted, Excluded, Off | Publish হয়নি | Not on that channel (draft, removed or never added) |
+| Resolved | Closed, Done | সমাধান হয়েছে | A problem that was fixed |
+| Verified | Claimed | Verified | Google confirmed the shop location |
+
+Buttons: Sync now, Retry, Fix / Fix product, Publish to …, Remove from …, Connect, Disconnect. Not: Push, Resync, Re-upload,
+Feed, Payload, Webhook, API, Scope, Diagnostics (those words appear only under Advanced settings or Technical details).
+
 ## Actions (buttons)
 
 | Use | When | Bangla |

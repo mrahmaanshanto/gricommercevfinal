@@ -71,6 +71,11 @@ export const MODULES = {
     nav: ['orders-rto', 'promo-flash', 'promo-page', 'rec-carts', 'rec-auto', 'tracking', 'ta-track', 'ta-health', 'ta-conn', 'ta-setup', 'storefront', 'storefront-pages', 'storefront-wp', 'blog', 'blog-posts', 'blog-new', 'blog-cats', 'blog-authors'],
     routes: ['/new-order', '/new-flash-sale', '/customer-profile', '/analytics-hub', '/attribution', '/campaigns', '/products-traffic', '/reports-alerts', '/setup-clarity', '/setup-ga4', '/setup-google-ads', '/setup-gtm', '/setup-meta-pixel', '/setup-tik-tok', '/author-profile', '/set-delivery', '/set-seo', '/checkout', '/offer-detail', '/offers', '/order-link'],
   },
+  channels: {
+    label: 'Sales channels', desc: 'Meta catalog for Facebook and Instagram, Google Merchant Center, Google Business Profile',
+    nav: ['ch-home', 'ch-meta', 'ch-gmc', 'ch-gbp', 'ch-issues', 'ch-settings'],
+    routes: ['/connect-channel'],
+  },
   comms: {
     label: 'Communication', desc: 'Inbox for Facebook, Instagram, WhatsApp and more, calls, AI calls, support tickets, social posts',
     nav: ['inbox', 'calls', 'comm-ai', 'tickets', 'social', 'comm-cal', 'comm-new', 'comm-conn', 'set-wallet'],
@@ -88,11 +93,11 @@ const BACK_OFFICE = ['core', 'catalog', 'money', 'reports', 'hr', 'commerce', 'm
 const STORE = ['places', 'purchasing'];
 export const EDITIONS = {
   full: { name: 'GridCommerce', short: 'All modules', modules: Object.keys(MODULES), channels: ['Online', 'Retail', 'Wholesale'] },
-  'retail-wholesale': { name: 'GridCommerce Retail + Wholesale', short: 'Retail + Wholesale', modules: [...BACK_OFFICE, ...STORE, 'pos', 'wholesale'], channels: ['Retail', 'Wholesale'] },
+  'retail-wholesale': { name: 'GridCommerce Retail + Wholesale', short: 'Retail + Wholesale', modules: [...BACK_OFFICE, ...STORE, 'pos', 'wholesale', 'channels'], channels: ['Retail', 'Wholesale'] },
   // an online-only shop: one stock place, direct purchases, no holds (an approved order takes its stock out at once,
   // it may go below zero), purchase and sale prices only
-  online: { name: 'GridCommerce Online', short: 'Online', modules: [...BACK_OFFICE, 'online', 'comms', 'automation'], channels: ['Online'], noHolds: true },
-  'retail-online': { name: 'GridCommerce Retail + Wholesale + Online', short: 'Retail + Wholesale + Online', modules: [...BACK_OFFICE, ...STORE, 'pos', 'wholesale', 'online', 'comms', 'automation'], channels: ['Retail', 'Wholesale', 'Online'] },
+  online: { name: 'GridCommerce Online', short: 'Online', modules: [...BACK_OFFICE, 'online', 'channels', 'comms', 'automation'], channels: ['Online'], noHolds: true },
+  'retail-online': { name: 'GridCommerce Retail + Wholesale + Online', short: 'Retail + Wholesale + Online', modules: [...BACK_OFFICE, ...STORE, 'pos', 'wholesale', 'online', 'channels', 'comms', 'automation'], channels: ['Retail', 'Wholesale', 'Online'] },
   comms: { name: 'GridCommerce Connect', short: 'Communication & CRM', modules: ['core', 'comms', 'automation', 'pos'], channels: ['Retail'] },
 };
 export const EDITION_IDS = Object.keys(EDITIONS);

@@ -3542,5 +3542,82 @@ export const SCREENS = [
     "width": 1440,
     "height": 1850,
     "interactive": true
+  },
+  {
+    "name": "ChannelsOverview",
+    "route": "/channels",
+    "folder": "channels",
+    "title": "Sales channels",
+    "description": "Meta, Google Merchant and Google Business at a glance: sync health and recent issues",
+    "canvasPage": "25 · Sales channels",
+    "width": 1380,
+    "height": 880,
+    "interactive": true
+  },
+  {
+    "name": "MetaCommerce",
+    "route": "/meta-commerce",
+    "folder": "channels",
+    "title": "Meta Commerce",
+    "description": "The Facebook & Instagram catalog: products, status and fixes",
+    "canvasPage": "25 · Sales channels",
+    "width": 1380,
+    "height": 880,
+    "interactive": true
+  },
+  {
+    "name": "GoogleMerchant",
+    "route": "/google-merchant",
+    "folder": "channels",
+    "title": "Google Merchant Center",
+    "description": "Products on Google: approved, limited, disapproved, with the fix",
+    "canvasPage": "25 · Sales channels",
+    "width": 1380,
+    "height": 880,
+    "interactive": true
+  },
+  {
+    "name": "GoogleBusiness",
+    "route": "/google-business",
+    "folder": "channels",
+    "title": "Google Business",
+    "description": "Locations, reviews, business info, posts, media and services",
+    "canvasPage": "25 · Sales channels",
+    "width": 1380,
+    "height": 880,
+    "interactive": true
+  },
+  {
+    "name": "SyncIssues",
+    "route": "/sync-issues",
+    "folder": "channels",
+    "title": "Sync issues",
+    "description": "Every channel problem in one place, with the suggested fix",
+    "canvasPage": "25 · Sales channels",
+    "width": 1380,
+    "height": 880,
+    "interactive": true
+  },
+  {
+    "name": "ChannelSettings",
+    "route": "/channel-settings",
+    "folder": "channels",
+    "title": "Channel settings",
+    "description": "What stays in sync and who hears about problems",
+    "canvasPage": "25 · Sales channels",
+    "width": 1380,
+    "height": 880,
+    "interactive": true
+  },
+  {
+    "name": "ConnectChannel",
+    "route": "/connect-channel",
+    "folder": "channels",
+    "title": "Connect a channel",
+    "description": "Choose, sign in, pick the account, choose what to sync, review, done",
+    "canvasPage": "25 · Sales channels",
+    "width": 1380,
+    "height": 880,
+    "interactive": true
   }
 ];

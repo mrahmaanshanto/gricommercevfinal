@@ -1,4 +1,4 @@
-// The left menu: 9 groups, every item and sub-item, count badges and the screen each opens. Daily pages sit at the
+// The left menu: 10 groups, every item and sub-item, count badges and the screen each opens. Daily pages sit at the
 // top level of their group; rarely used tools are one level down ("More stock tools", "Warehouses & branches").
 // `to` is the design file (templates/<folder>/<Page>.dc.html); routeOf() turns it into an app route.
 // Shared by <gc-sidebar> and anything else that needs the menu (site map, search).
@@ -55,6 +55,15 @@ export const NAV = [
       { id: 'stock-branches', icon: 'store', label: 'Branches', to: 'purchase-stock/Branches.dc.html' },
       { id: 'stock-racks', icon: 'layout-grid', label: 'Racks & bins', to: 'purchase-stock/Racks.dc.html' },
     ] },
+  ] },
+  // Sales channels: Meta catalog, Google Merchant Center, Google Business Profile (src/lib/channels.js)
+  { label: 'Channels', items: [
+    { id: 'ch-home', icon: 'radio-tower', label: 'Overview', to: 'channels/Channels.dc.html' },
+    { id: 'ch-meta', icon: 'store', label: 'Meta Commerce', to: 'channels/MetaCommerce.dc.html' },
+    { id: 'ch-gmc', icon: 'shopping-bag', label: 'Google Merchant Center', to: 'channels/GoogleMerchant.dc.html' },
+    { id: 'ch-gbp', icon: 'map-pin', label: 'Google Business', to: 'channels/GoogleBusiness.dc.html' },
+    { id: 'ch-issues', icon: 'triangle-alert', label: 'Sync issues', to: 'channels/SyncIssues.dc.html' },
+    { id: 'ch-settings', icon: 'sliders-horizontal', label: 'Settings', to: 'channels/ChannelSettings.dc.html' },
   ] },
   { label: 'Money', items: [
     { id: 'acc-home', icon: 'layout-dashboard', label: 'Money overview', to: 'accounts/AccountsHome.dc.html' },
