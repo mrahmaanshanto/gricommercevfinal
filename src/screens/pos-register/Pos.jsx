@@ -37,6 +37,7 @@ import { loadVat, vatRateFor } from '@/lib/vat';
 import { getCustomers, findCustomer, tierOf, tierPrice, phoneDigits, saveCustomerOnce, ADDED_FROM } from '@/lib/customers';
 import { dueForPhone, recordDelivery, challanNo } from '@/lib/invoices';
 import { CATALOG, getCatalog, productBy, stockAt, getMoves, addMove, allowNegative } from '@/lib/stock';
+import { isStatusSellable } from '@/lib/sellable';
 import { getHolds, addHolds } from '@/lib/stockHolds';
 import { STOCK_PLACES, getStockPlaces, placeName } from '@/lib/locations';
 import { usePlaceList } from '@/lib/usePlaces';
@@ -205,7 +206,8 @@ export default function Pos() {
     setCash(getCash());
     setVat(loadVat());
     setBook(getCustomers());
-    setProducts(posProducts(getCatalog()));
+    // the register sells Active products only: a Draft, Archived or Deleted product is not on the counter (sellable.js)
+    setProducts(posProducts(getCatalog().filter(isStatusSellable)));
     setPoints(load(KEYS.points, {}));
     setLoy(getLoyaltySettings()); setLoyMembers(getLoyaltyMembers()); setPtModes(getProductPoints());
     const want = new URLSearchParams(window.location.search).get('panel');

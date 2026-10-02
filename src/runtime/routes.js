@@ -42,11 +42,16 @@ const DEV_ROUTES = {
   "SiteMap": "/dev/site-map"
 };
 
+// Product screens whose address is not the kebab of their name.
+const NAMED_ROUTES = {
+  "WooCommerce": "/woocommerce"
+};
+
 /** Maps a design link to its app route. Anything else is returned unchanged. */
 export function routeOf(href) {
   if (!isScreenHref(href)) return href;
   const [, name, hash] = href.match(DC_RE);
-  return (DEV_ROUTES[name] || '/' + kebab(name)) + (hash || '');
+  return (DEV_ROUTES[name] || NAMED_ROUTES[name] || '/' + kebab(name)) + (hash || '');
 }
 
 /** `/_blob/<id>` (the design canvas' asset store) -> `/assets/<id>.<ext>` */

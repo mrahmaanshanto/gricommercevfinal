@@ -137,6 +137,9 @@ export function markReady(o) {
 // ---- courier -----------------------------------------------------------------------------------------------------
 /** Book the parcel with the courier (its API checks phone and address). In transit when it is accepted. */
 export function sendToCourier(o) {
+  // booked once: a second press (or a retry after a slow answer) returns the parcel already booked
+  if (o.sentAt && o.consignment && o.consignment !== '—') return { ok: true, id: o.consignment, courier: o.courier, duplicate: true };
+  if (!['approved', 'ready'].includes(o.statusKey)) return { ok: false, error: 'Only approved or packed orders can be sent to the courier.' };
   const courier = prepOf(o).courier;
   if (!COURIERS.includes(courier)) return { ok: false, error: 'Choose a courier first.' };
   if (!/^01[3-9]\d{8}$/.test(digits(o.phone))) return { ok: false, error: `${courier} rejected it: phone number not valid.` };

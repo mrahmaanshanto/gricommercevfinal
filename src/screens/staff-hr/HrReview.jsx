@@ -22,20 +22,20 @@ const CSS = `
 .rv-who{display:flex;align-items:center;gap:var(--space-3)}
 .rv-who b{display:block;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .rv-who small{font-size:var(--text-xs);color:var(--text-muted)}
-.rv-sum{display:flex;flex-direction:column;gap:2px;padding:var(--space-4);border-radius:var(--radius-lg);background:var(--surface-subtle)}
-.rv-sum b{font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.rv-sum{display:flex;flex-direction:column;gap:2px;padding:var(--space-3);border-radius:var(--radius-lg);background:var(--surface-subtle)}
+.rv-sum b{font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .rv-sum span{font-size:var(--text-sm);color:var(--text-body)}
-.rv h3{margin:0 0 var(--space-2);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-muted);text-transform:uppercase;letter-spacing:var(--tracking-wide)}
+.rv h3{margin:0 0 var(--space-2);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-muted)}
 .rv-kv{display:grid;grid-template-columns:auto 1fr;gap:6px var(--space-4);margin:0;font-size:var(--text-sm)}
 .rv-kv dt{color:var(--text-muted)}
 .rv-kv dd{margin:0;text-align:right;color:var(--text-heading);font-variant-numeric:tabular-nums}
 .rv-days{display:flex;flex-direction:column}
-.rv-day{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-height:40px;border-top:1px solid var(--border-subtle);font-size:var(--text-sm)}
+.rv-day{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-height:36px;border-top:1px solid var(--border-subtle);font-size:var(--text-sm)}
 .rv-day:first-child{border-top:0}
 .rv-day small{font-size:var(--text-xs);color:var(--text-muted)}
 .rv-ok{color:var(--text-success)}
 .rv-short{color:var(--text-warning);font-weight:var(--weight-medium)}
-.rv-quote{margin:0;padding:var(--space-3) var(--space-4);border-left:3px solid var(--border-strong);background:var(--surface-card);font-size:var(--text-sm);color:var(--text-body)}
+.rv-quote{margin:0;padding:var(--space-2) var(--space-3);border-left:3px solid var(--border-strong);background:var(--surface-card);font-size:var(--text-sm);color:var(--text-body)}
 `;
 
 const range = (a, b) => (a === b ? `${WEEKDAYS[dowOf(a)]} ${dayLabel(a)}` : `${dayLabel(a)} – ${dayLabel(b)}`);
@@ -184,7 +184,7 @@ export function HrReview({ S, req, onClose }) {
           : <><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setDeny('')}>Deny</button><button type="button" className="gc-btn gc-btn--solid" onClick={approve}>{req.kind === 'loan' ? `Approve and pay ${money(item.amount)}` : 'Approve'}</button></>}>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="rv">
-        <div className="rv-who"><Avatar st={st} large /><span><b>{st.name}</b><small>{[st.designation, st.branch].filter(Boolean).join(' · ')}</small></span></div>
+        <div className="rv-who"><Avatar st={st} /><span><b>{st.name}</b><small>{[st.designation, st.branch].filter(Boolean).join(' · ')}</small></span></div>
         {body}
         {deny != null ? (
           <form id="rv-deny" className="hr-form" onSubmit={sendDeny}>

@@ -269,11 +269,15 @@ function putBackOrderStock(o, by = 'Staff') {
   o.lines.forEach((l) => { const p = productBy(l.name); if (p) addMove({ sku: p.sku, place: o.stockOut.place, qty: l.qty, kind: 'return', reason: 'Online order cancelled', by, ref: o.id }); });
   patchOrder(o, { stockOut: null });
 }
+/** Approve a new order. Returns false (and changes nothing) when it is no longer waiting for approval, for
+ *  example when it was approved a moment ago in another tab: an order is approved once. */
 export function approveOrder(o, place, by = 'Staff') {
+  if (!o || !CAN_APPROVE.includes(o.statusKey)) return false;
   if (holdsStock()) holdOrderStock(o, place, 'Order approved', by); else takeOrderStock(o, place, by);
   setOrderStatus(o, 'Approved');
   logOrder(o.id, 'circle-check', 'Approved', `${place} · ${by}`);
   notify(o, 'approved');
+  return true;
 }
 /** Cancel and release every open hold. Returns the released holds. */
 export function cancelOrder(o, why = 'Order cancelled', by = 'Staff', reason = '') {

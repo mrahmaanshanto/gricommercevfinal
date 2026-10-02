@@ -1,6 +1,9 @@
 'use client';
 // Generated from design/templates/customers-crm/AllCustomers.dc.html by scripts/convert-design.mjs.
-// AllCustomers — Customers CRM — All customers.
+// AllCustomers — Customers, laid out like Shopify's Customers list (components/ui/IndexKit.jsx): title row, then one
+// card with the views as tabs (the rest under More views), search and filter pills, bulk actions and a compact table
+// (customer, status, location, orders, amount spent, due). Extra columns are picked in Columns; edits, merges and the
+// customer book are kept in this browser.
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
@@ -9,22 +12,19 @@ import { getInvoices } from '@/lib/invoices';
 import { getDemoEdits, saveDemoEdit, getMerges, addMerge, getNotDupes, addNotDupe, removeFromBook } from '@/lib/customerEdits';
 import CustomerEditDialog from './CustomerEditDialog';
 import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
-import { PageHeader as __PageHeader, Dialog as __Dialog, EmptyState as __EmptyState, PhoneMore as __PhoneMore } from '@/components/ui';
+import { DCLogic, Icon as __Icon } from '@/runtime/dc';
+import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
+import { Dialog as __Dialog, EmptyState as __EmptyState, StatusBadge as __StatusBadge } from '@/components/ui';
+import { ShopHeader, IndexTabs, SearchField, Pager, LearnMore, Menu } from '@/components/ui/IndexKit';
 import { toast as uiToast } from '@/runtime/ui';
+import { navigate } from '@/runtime/routes';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
 function bdt(n) { var neg = n < 0; var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return (neg ? '−' : '') + '৳' + s; }
 var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
-function mkTabs(self, list, cur, key, counts) { return list.map(function (x) { var on = x.k === cur; var c = counts ? counts[x.k] : null; return { label: x.label, on: on, cls: on ? 'tab on' : 'tab', hasCount: c != null, count: c, countBg: on ? 'rgba(255,255,255,0.2)' : '#e9eef5', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-function mkChips(self, list, cur, key) { return list.map(function (x) { var on = x.k === cur; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-var CHN = { sms: ['SMS', '#e7f8f1', '#047857'], wa: ['WhatsApp', '#dcfce7', '#166534'], email: ['Email', '#e0f2fe', '#075985'] };
 function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-function toast(self, m, bad) { uiToast(m, bad ? { tone: 'error' } : undefined); }
-function msgV(s) { return { hasMsg: !!s.msg, msg: s.msg || '', msgBg: s.bad ? '#fff4e0' : '#e7f8f1', msgFg: s.bad ? '#7a3b04' : '#065f46' }; }
 // Demo list rows (not in the customer book). `id` keys their edits and merges in this browser;
 // `due` is what they still owe on credit or cash-on-delivery orders.
 var C = [
@@ -48,16 +48,19 @@ var VIEWS = [
   { k: 'pts', label: 'Points expiring', n: 64 }, { k: 'bday', label: 'Birthday this month', n: 97 }, { k: 'codBlock', label: 'COD blocked', n: 3 }, { k: 'suspended', label: 'Suspended', n: 6 },
   { k: 'dupes', label: 'Possible duplicates', n: 0 }
 ];
+// Columns of the list, in order. The main ones always show (Shopify's Customers list: customer, status, location,
+// orders, amount spent, and what they still owe); the extra ones are picked in Columns.
 var COLS = [
-  { k: 'email', l: 'Email' }, { k: 'city', l: 'City' }, { k: 'signup', l: 'Signed up' }, { k: 'orders', l: 'Orders', al: 'right' }, { k: 'spent', l: 'Total spent', al: 'right' },
-  { k: 'due', l: 'Due', al: 'right' }, { k: 'last', l: 'Last order' }, { k: 'pts', l: 'Points', al: 'right' }, { k: 'level', l: 'Level' }, { k: 'src', l: 'Came from' }, { k: 'status', l: 'Status' }
+  { k: 'status', l: 'Status' }, { k: 'city', l: 'Location' }, { k: 'email', l: 'Email', extra: true }, { k: 'signup', l: 'Signed up', extra: true },
+  { k: 'last', l: 'Last order', extra: true }, { k: 'level', l: 'Level', extra: true }, { k: 'pts', l: 'Points', al: 'right', extra: true }, { k: 'src', l: 'Came from', extra: true },
+  { k: 'orders', l: 'Orders', al: 'right' }, { k: 'spent', l: 'Amount spent', al: 'right' }, { k: 'due', l: 'Due', al: 'right' }
 ];
-var DEFCUSTOM = { city: true, orders: true, spent: true, due: true, last: true, status: true };
-var SCLS = { 'Active': 'badge b-received', 'Suspended': 'badge b-cancelled', 'COD blocked': 'badge b-approval' };
-var LCLS = { Member: 'badge t-member', Silver: 'badge t-silver', Gold: 'badge t-gold', Platinum: 'badge t-plat' };
-// Views shown as chips, in priority order. The chip row drops chips from the end when the row is
-// too narrow (container queries in the CSS below); a dropped chip shows up in "More views" instead.
+var STONE = { 'Active': 'success', 'Suspended': 'error', 'COD blocked': 'warning' };
+var LTONE = { Member: 'neutral', Silver: 'neutral', Gold: 'warning', Platinum: 'primary' };
+// Views shown as tabs, in priority order; the rest are in "More views" (the one picked from there shows as a tab).
 var PRIMARY = ['all', 'wholesale', 'signToday', 'orderToday', 'week', 'repeat', 'big'];
+var CITIES = ['Dhaka', 'Chattogram', 'Sylhet', 'Khulna', 'Rajshahi', 'Outside Dhaka'];
+var NO_PILLS = { fCity: '', fStatus: '', fLevel: '', fSrc: '' };
 var TODAY = '19 Sep 2026'; // "today" in the demo data
 var EMPTY_FORM = { name: '', phone: '', area: '', types: ['Online'], tier: 'A', credit: '' };
 var CUST_TYPES = ['Online', 'Retail', 'Wholesale'];   // how the customer buys; one, two or all three
@@ -109,10 +112,10 @@ function sideOf(c) {
     types: typesText(c.types), src: c.src, signup: c.signup, last: c.last };
 }
 
+
 class Component extends DCLogic {
   componentDidMount() {
     try { var k = new URLSearchParams(window.location.search).get('view'); if (k && VIEWS.some(function (x) { return x.k === k; })) this.setState({ view: k }); } catch (e) { /* no URL access */ }
-    document.addEventListener('mousedown', this.onDocDown);
     this.load();
   }
   /** Rows from the customer book (orders, spend and due from their invoices) and the demo list with the
@@ -199,39 +202,16 @@ class Component extends DCLogic {
     this.load();
     uiToast(p.a.name + ' and ' + p.b.name + ' are kept as two customers.');
   };
-  componentWillUnmount() { clearTimeout(this.t); document.removeEventListener('mousedown', this.onDocDown); }
-
-  // ---- views (stored in the URL as ?view=<key>) ----
-  setView = (k) => {
-    this.setState({ view: k, sel: {}, moreOpen: false });
-    try { var u = new URL(window.location.href); if (k === 'all') u.searchParams.delete('view'); else u.searchParams.set('view', k); window.history.replaceState(window.history.state, '', u.pathname + u.search + u.hash); } catch (e) { /* no URL access */ }
-  };
-  moreWrap = React.createRef(); moreBtn = React.createRef(); moreList = React.createRef();
-  menuItems = () => { var box = this.moreList.current; return box ? Array.prototype.filter.call(box.querySelectorAll('[role="menuitemradio"]'), function (el) { return el.offsetParent !== null; }) : []; };
-  toggleMore = () => {
-    var open = !(this.state || {}).moreOpen;
-    this.setState({ moreOpen: open }, () => { if (!open) return; var it = this.menuItems(); var cur = it.filter(function (el) { return el.getAttribute('aria-checked') === 'true'; })[0] || it[0]; if (cur) cur.focus(); });
-  };
-  closeMore = (refocus) => { this.setState({ moreOpen: false }, () => { if (refocus && this.moreBtn.current) this.moreBtn.current.focus(); }); };
-  onDocDown = (e) => { if ((this.state || {}).moreOpen && this.moreWrap.current && !this.moreWrap.current.contains(e.target)) this.closeMore(false); };
-  onMoreKey = (e) => {
-    if (!(this.state || {}).moreOpen) return;
-    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); this.closeMore(true); return; }
-    if (e.key === 'Tab') { this.closeMore(false); return; }
-    var it = this.menuItems(); if (!it.length) return;
-    var i = it.indexOf(document.activeElement), n = -1;
-    if (e.key === 'ArrowDown') n = i < 0 ? 0 : (i + 1) % it.length;
-    else if (e.key === 'ArrowUp') n = i < 0 ? it.length - 1 : (i - 1 + it.length) % it.length;
-    else if (e.key === 'Home') n = 0;
-    else if (e.key === 'End') n = it.length - 1;
-    if (n >= 0) { e.preventDefault(); it[n].focus(); }
-  };
-  pickFromMenu = (k) => { this.setView(k); if (this.moreBtn.current) this.moreBtn.current.focus(); };
 
   // ---- search ----
   typeQ = (e) => { this.setState({ q: e.target.value, sel: {} }); };
-  clearQ = () => { this.setState({ q: '', sel: {} }, function () { var el = document.getElementById('ac-search'); if (el) el.focus(); }); };
-  showAll = () => { this.setState({ q: '' }); this.setView('all'); };
+  showAll = () => { this.setState({ q: '', pills: NO_PILLS, fApplied: false, find: false }); this.setView('all'); };
+
+  // ---- views (stored in the URL as ?view=<key>) ----
+  setView = (k) => {
+    this.setState({ view: k, sel: {} });
+    try { var u = new URL(window.location.href); if (k === 'all') u.searchParams.delete('view'); else u.searchParams.set('view', k); window.history.replaceState(window.history.state, '', u.pathname + u.search + u.hash); } catch (e) { /* no URL access */ }
+  };
 
   // ---- add customer ----
   openAdd = () => { this.setState({ addOpen: true, form: EMPTY_FORM, errs: {} }); };
@@ -276,14 +256,20 @@ class Component extends DCLogic {
 
   renderVals() {
     var self = this, s = this.state || {};
-    var view = s.view || 'all', mode = s.mode || 'full', pick = s.pick || DEFCUSTOM, sel = s.sel || {};
+    var view = s.view || 'all', pick = s.pick || {}, sel = s.sel || {};
     var q = s.q || '', qShown = q.trim(), form = s.form || EMPTY_FORM, errs = s.errs || {};
+    var pills = assign(assign({}, NO_PILLS), s.pills || {});
+    var pillCount = (pills.fCity ? 1 : 0) + (pills.fStatus ? 1 : 0) + (pills.fLevel ? 1 : 0) + (pills.fSrc ? 1 : 0);
     var ALL = (s.rows || []).filter(function (c) { return !c.hidden; });
     var pairs = s.pairs || [];
     var isDupes = view === 'dupes';
-    var cols = COLS.filter(function (c) { return mode === 'full' || pick[c.k]; });
+    var cols = COLS.filter(function (c) { return !c.extra || pick[c.k]; });
     var inView = isDupes ? [] : ALL.filter(function (c) { return view === 'all' || c.f.indexOf(view) >= 0; });
-    var list = inView.filter(function (c) { return matches(c, q); });
+    var pillOk = function (c) {
+      return (!pills.fCity || (pills.fCity === 'Dhaka' ? /Dhaka/.test(c.city) && c.city !== 'Outside Dhaka' : c.city.indexOf(pills.fCity) >= 0))
+        && (!pills.fStatus || c.status === pills.fStatus) && (!pills.fLevel || c.level === pills.fLevel) && (!pills.fSrc || String(c.src).indexOf(pills.fSrc) >= 0);
+    };
+    var list = inView.filter(function (c) { return matches(c, q) && pillOk(c); });
     var pairList = pairs.filter(function (p) { return matches(p.a, q) || matches(p.b, q); });
     var V = VIEWS.filter(function (v) { return v.k === view; })[0];
     // Demo totals per view, adjusted for the customer book, edits (e.g. made wholesale) and merges.
@@ -297,191 +283,133 @@ class Component extends DCLogic {
       return Math.max(0, n);
     };
     var total = countOf(V);
-    var selN = list.filter(function (c) { return sel[c.key]; }).length;
-    var outN = qShown ? (isDupes ? pairList.length : list.length) : total;
+    var selRows = list.filter(function (c) { return sel[c.key]; });
+    var selN = selRows.length;
+    var filtered = !!qShown || pillCount > 0;
+    var outN = filtered ? (isDupes ? pairList.length : list.length) : total;
     var cell = function (c, k) {
-      var v = c[k], o = { al: 'left', fw: 400, color: '#334155', isBadge: false, isText: true, cls: '', v: v };
-      if (k === 'spent') { o.v = v ? bdt(v) : '—'; o.al = 'right'; o.fw = 600; o.color = '#0f172a'; }
-      if (k === 'due') { o.v = v ? bdt(v) : '—'; o.al = 'right'; o.fw = v ? 600 : 400; o.color = v ? 'var(--text-danger)' : 'var(--text-muted)'; }
-      if (k === 'orders' || k === 'pts') { o.al = 'right'; o.v = typeof v === 'number' ? v.toLocaleString('en-IN') : v; }
-      if (k === 'status' || k === 'level') { o.isBadge = true; o.isText = false; o.cls = k === 'status' ? SCLS[v] : LCLS[v]; }
-      if (k === 'email' || k === 'signup' || k === 'last') o.color = '#64748b';
-      return o;
+      var v = c[k];
+      if (k === 'spent') return { v: v ? bdt(v) : '—', cls: 'ix-num' };
+      if (k === 'due') return { v: v ? bdt(v) : '—', cls: 'ix-num' + (v ? ' ix-bad' : ' ix-muted') };
+      if (k === 'orders' || k === 'pts') return { v: typeof v === 'number' ? v.toLocaleString('en-IN') : v, cls: 'ix-num' };
+      if (k === 'status') return { badge: STONE[v] || 'neutral', v: v };
+      if (k === 'level') return { badge: LTONE[v] || 'neutral', v: v };
+      if (k === 'email' || k === 'city' || k === 'src') return { v: v, cls: 'ix-muted', trunc: true };
+      if (k === 'signup' || k === 'last') return { v: v, cls: 'ix-muted' };
+      return { v: v, cls: '' };
     };
-    var mkView = function (v) {
-      var on = v.k === view, pi = PRIMARY.indexOf(v.k);
-      return { k: v.k, label: v.label, count: countOf(v).toLocaleString('en-IN'), on: on, cBg: on ? 'rgba(0,48,135,.14)' : '#eef2f6',
-        cls: (on ? 'chip on' : 'chip') + ' ac-c' + (pi + 1), mcls: 'ac-mi' + (pi >= 0 ? ' ac-m ac-m' + (pi + 1) : '') + (on ? ' on' : ''),
-        pick: function () { self.setView(v.k); }, pickMenu: function () { self.pickFromMenu(v.k); } };
-    };
-    var moreOn = PRIMARY.indexOf(view) < 0;
+    // tabs: the main views, the view picked from More views, and Possible duplicates while there are any
+    var tabKeys = PRIMARY.concat(PRIMARY.indexOf(view) < 0 && view !== 'dupes' ? [view] : []).concat(pairs.length || isDupes ? ['dupes'] : []);
+    var tabs = tabKeys.map(function (k) { var v = VIEWS.filter(function (x) { return x.k === k; })[0]; return { key: k, id: 'ac-tab-' + k, label: v.label, count: countOf(v).toLocaleString('en-IN'), on: k === view, onClick: function () { self.setView(k); } }; });
+    var moreViews = VIEWS.filter(function (v) { return tabKeys.indexOf(v.k) < 0; }).map(function (v) { return { label: v.label + ' · ' + countOf(v).toLocaleString('en-IN'), onClick: function () { self.setView(v.k); } }; });
+    var setPill = function (k) { return function (e) { var o = assign({}, pills); o[k] = e.target.value; self.setState({ pills: o, sel: {} }); }; };
+    var clearAll = function () { self.setState({ q: '', pills: NO_PILLS, fApplied: false, sel: {} }); };
     return {
-      views: VIEWS.filter(function (v) { return PRIMARY.indexOf(v.k) >= 0; }).sort(function (a, b) { return PRIMARY.indexOf(a.k) - PRIMARY.indexOf(b.k); }).map(mkView),
-      // "All customers" is always a chip, so it never needs a menu entry.
-      moreViews: VIEWS.filter(function (v) { return v.k !== 'all'; }).map(mkView),
-      moreOpen: !!s.moreOpen, moreOn: moreOn, moreCls: 'chip ac-more' + (moreOn ? ' on' : ''), moreLabel: moreOn ? V.label : 'More views',
-      moreName: moreOn ? 'More views, showing ' + V.label : 'More views',
-      toggleMore: self.toggleMore, onMoreKey: self.onMoreKey, moreWrap: self.moreWrap, moreBtn: self.moreBtn, moreList: self.moreList,
-      q: q, typeQ: self.typeQ, clearQ: self.clearQ, showAll: self.showAll, hasQ: !!qShown,
+      tabs: tabs, moreViews: moreViews,
+      q: q, typeQ: self.typeQ, hasQ: !!qShown,
+      find: !!(s.find || qShown || pillCount), openFind: function () { self.setState({ find: true }); },
+      closeFind: function () { self.setState({ find: false, q: '', pills: NO_PILLS, fApplied: false, sel: {} }); },
+      pills: pills, setCity: setPill('fCity'), setStatus: setPill('fStatus'), setLevel: setPill('fLevel'), setSrc: setPill('fSrc'), cities: CITIES,
+      hasFilters: filtered || !!s.fApplied, clearAll: clearAll,
       emptyTitle: qShown ? 'No customers match “' + qShown + '”' : isDupes ? 'No possible duplicates' : 'No customers in this view',
-      emptyBody: '',
-      emptyAction: qShown ? 'Clear search' : 'Show all customers', emptyDo: qShown ? self.clearQ : self.showAll,
+      emptyAction: filtered ? 'Clear search' : 'Show all customers', emptyDo: filtered ? clearAll : self.showAll,
       addOpen: !!s.addOpen, openAdd: self.openAdd, closeAdd: self.closeAdd, submitAdd: self.submitAdd, typeField: self.typeField, form: form, toggleType: self.toggleType, errTypes: (s.errs || {}).types,
       errName: errs.name || '', errPhone: errs.phone || '', errCredit: errs.credit || '',
-      modes: [{ k: 'full', l: 'Full view' }, { k: 'custom', l: 'Custom view' }].map(function (m) { var on = m.k === mode; return { l: m.l, on: on, bg: on ? '#003087' : 'transparent', fg: on ? '#fff' : '#475569', pick: function () { self.setState({ mode: m.k, colsOpen: m.k === 'custom' }); } }; }),
-      isCustom: mode === 'custom', colsOpen: mode === 'custom' && !!s.colsOpen, toggleCols: function () { self.setState({ colsOpen: !s.colsOpen }); },
-      colChips: COLS.map(function (c) { var on = !!pick[c.k]; return { label: c.l, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var p = assign({}, pick); p[c.k] = !on; self.setState({ pick: p }); } }; }),
-      fOpen: !!s.fOpen, toggleF: function () { self.setState({ fOpen: !s.fOpen }); }, fBtnCls: s.fOpen ? 'btn soft sm' : 'btn line sm', hasF: !!s.fApplied, fCount: 3,
-      clearF: function () { self.setState({ fApplied: false }); }, applyF: function () { self.setState({ fApplied: true, fOpen: false }); toast(self, 'Filters applied.'); },
-      saveView: function () { self.setState({ fOpen: false, fApplied: true }); toast(self, 'Saved as a view. It now shows with the other views.'); },
-      print: function () { toast(self, 'Opening a print-ready list of ' + outN.toLocaleString('en-IN') + ' customers with the columns you see.'); },
-      csv: function () { toast(self, 'Downloading ' + (selN || outN).toLocaleString('en-IN') + ' customers as CSV — ' + (cols.length + 2) + ' columns.'); },
-      heads: cols.map(function (c) { return { l: c.l, al: c.al || 'left' }; }),
-      rows: list.map(function (c) { var on = !!sel[c.key]; return { key: c.key, href: hrefOf(c), wholesale: !!c.wholesale, name: c.name, phone: c.phone, initial: c.name.charAt(0).toUpperCase(), sel: on, bg: on ? '#f2f6fc' : 'transparent', rowCls: c.isNew ? 'row flash' : 'row', merged: c.mergedFrom ? 'Merged with ' + c.mergedFrom.join(', ') : '', cells: cols.map(function (k) { return cell(c, k.k); }), toggle: function () { var o = assign({}, sel); o[c.key] = !on; self.setState({ sel: o }); }, edit: function () { self.openEdit(c); } }; }),
+      // Columns: the extra facts a merchant may want in the list
+      colsOpen: !!s.colsOpen, openCols: function () { self.setState({ colsOpen: true }); }, closeCols: function () { self.setState({ colsOpen: false }); },
+      extraOn: COLS.some(function (c) { return c.extra && pick[c.k]; }),
+      colChips: COLS.filter(function (c) { return c.extra; }).map(function (c) { var on = !!pick[c.k]; return { label: c.l, on: on, pick: function () { var p = assign({}, pick); p[c.k] = !on; self.setState({ pick: p }); } }; }),
+      showAllCols: function () { var p = {}; COLS.forEach(function (c) { if (c.extra) p[c.k] = true; }); self.setState({ pick: p }); },
+      hideExtraCols: function () { self.setState({ pick: {} }); },
+      // More filters (dialog)
+      fOpen: !!s.fOpen, openF: function () { self.setState({ fOpen: true }); }, closeF: function () { self.setState({ fOpen: false }); }, hasF: !!s.fApplied,
+      clearF: function () { self.setState({ fApplied: false, fOpen: false }); }, applyF: function () { self.setState({ fApplied: true, fOpen: false }); uiToast('Filters applied.'); },
+      saveView: function () { self.setState({ fOpen: false, fApplied: true }); uiToast('Saved as a view. It now shows with the other views.'); },
+      print: function () { uiToast('Opening a print-ready list of ' + outN.toLocaleString('en-IN') + ' customers with the columns you see.'); },
+      csv: function () { uiToast('Downloading ' + (selN || outN).toLocaleString('en-IN') + ' customers as CSV — ' + (cols.length + 2) + ' columns.'); },
+      heads: cols.map(function (c) { return { k: c.k, l: c.l, al: c.al || 'left' }; }),
+      rows: list.map(function (c) { var on = !!sel[c.key], href = hrefOf(c); return { key: c.key, href: href, wholesale: !!c.wholesale, name: c.name, city: c.city, orders: c.orders, spent: c.spent ? bdt(c.spent) : '—', due: c.due ? bdt(c.due) : '', status: c.status, statusTone: STONE[c.status] || 'neutral', sel: on, isNew: !!c.isNew, merged: c.mergedFrom ? 'Merged with ' + c.mergedFrom.join(', ') : '',
+        cells: cols.map(function (k) { return assign({ k: k.k }, cell(c, k.k)); }),
+        onRowClick: function (e) { if (e.target.closest('a,button,input,label,select')) return; navigate(href); },
+        toggle: function () { var o = assign({}, sel); o[c.key] = !on; self.setState({ sel: o }); } }; }),
       allSel: list.length > 0 && selN === list.length, toggleAll: function () { var o = {}; if (selN !== list.length) list.forEach(function (c) { o[c.key] = true; }); self.setState({ sel: o }); },
+      clearSel: function () { self.setState({ sel: {} }); },
+      editSel: function () { if (selN === 1) self.openEdit(selRows[0]); else uiToast('Select one customer to edit.', { tone: 'info' }); },
       // duplicates
-      isDupes: isDupes, pairCount: pairs.length, showDupeNote: view === 'all' && !qShown && pairs.length > 0, goDupes: function () { self.setView('dupes'); },
+      isDupes: isDupes,
       pairs: pairList.map(function (p) { return { id: p.id, why: p.why, a: sideOf(p.a), b: sideOf(p.b), merge: function () { self.openMerge(p); }, notDupe: function () { self.notDupe(p); } }; }),
       editOpen: !!s.editRow, editCust: s.editCust, editLocked: !!(s.editRow && s.editRow.book), closeEdit: self.closeEdit, saveEdit: self.saveEdit, editPhoneTaken: self.editPhoneTaken,
       mergeOpen: !!s.mergePair, closeMerge: self.closeMerge, confirmMerge: self.confirmMerge,
       mergeSides: s.mergePair ? [s.mergePair.a, s.mergePair.b].map(function (c) { var on = c.key === s.keepKey; return assign(sideOf(c), { key: c.key, on: on, pick: function () { self.setState({ keepKey: c.key }); } }); }) : [],
       mergeKeepName: s.mergePair ? (s.mergePair.a.key === s.keepKey ? s.mergePair.a : s.mergePair.b).name : '', mergeDropName: s.mergePair ? (s.mergePair.a.key === s.keepKey ? s.mergePair.b : s.mergePair.a).name : '',
       hasSel: selN > 0, selCount: selN,
-      bulkSms: function () { toast(self, 'SMS composer opened for ' + selN + ' customers.'); }, bulkCoupon: function () { toast(self, 'A one-time coupon was assigned to ' + selN + ' customers.'); }, bulkTag: function () { toast(self, 'Tag added to ' + selN + ' customers.'); },
-      perPage: s.perPage || '25', setPerPage: function (e) { self.setState({ perPage: e.target.value }); },
-      empty: isDupes ? !pairList.length : !list.length, shown: isDupes ? pairList.length : list.length, total: total.toLocaleString('en-IN')
+      bulkSms: function () { uiToast('SMS composer opened for ' + selN + ' customers.'); }, bulkCoupon: function () { uiToast('A one-time coupon was assigned to ' + selN + ' customers.'); }, bulkTag: function () { uiToast('Tag added to ' + selN + ' customers.'); },
+      empty: isDupes ? !pairList.length : !list.length,
+      countLabel: isDupes ? 'Showing ' + pairList.length + ' possible ' + (pairList.length === 1 ? 'duplicate pair' : 'duplicate pairs')
+        : filtered ? 'Showing ' + list.length + (qShown ? ' matching “' + qShown + '”' : ' customers') : 'Showing ' + list.length + ' of ' + total.toLocaleString('en-IN') + ' customers',
+      caption: (V ? V.label : 'All customers') + ', ' + list.length + ' shown'
     };
   }
 }
 
-// ---- styles (from the design's <helmet>) ----
+// ---- styles ----
 
 const CSS = `
-body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
-*{box-sizing:border-box}
-a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
-.nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
-.nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
-.btn:hover{text-decoration:none}
-.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
-.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
-.line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
-.warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
-.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
-.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
-.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:var(--text-muted)}
-.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
-.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
-.tab:hover{background:#f1f5f9;color:#0f172a}
-.tab.on{background:#003087;color:#fff}
-.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
-.chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
-.row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
-.b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
-.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
-.b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:var(--font-data);letter-spacing:.02em}
-.fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
-@keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.flash{animation:gcFlash 900ms ease-out}
-@keyframes gcFlash{from{background:#e7f8f1}to{background:transparent}}
-.scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
-@keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
-
-.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
-.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
-.sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
-.t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
-.actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:var(--font-bn)}
-.pulse{animation:gcPulse 1.6s ease-in-out infinite}
-@keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
-/* KPI cards: 5 across when there is room, then 3 + 2, then 2 + 2 + 1, then one column. No orphan card,
-   and the label and sub-text get enough width to stay within two lines. */
-/* View chips: the row keeps as many chips as fit and moves the rest into "More views". */
-.ac-viewwrap{container-type:inline-size;position:relative;z-index:20}
-.ac-views{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.ac-morewrap{position:relative}
-.ac-more__lbl{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ac-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:30;min-width:260px;max-width:min(320px,calc(100vw - 48px));padding:6px;border:1px solid #e2e8f0;border-radius:var(--radius-xl);background:#fff;box-shadow:0 16px 40px -12px rgba(15,23,42,.28);display:flex;flex-direction:column;gap:2px}
-.ac-mi{display:flex;align-items:center;gap:10px;width:100%;min-height:36px;padding:6px 10px;border:0;border-radius:var(--radius-lg);background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:#334155;text-align:left;cursor:pointer}
-.ac-mi:hover,.ac-mi:focus-visible{background:#f1f5f9;color:#0f172a}
-.ac-mi:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:-2px}
-.ac-mi.on{color:#003087;background:rgba(0,48,135,.08)}
-.ac-mi__chk{width:16px;flex:none;display:inline-flex}
-.ac-mi__n{margin-left:auto;font-size:var(--text-xs);color:var(--text-muted);font-variant-numeric:tabular-nums}
-.ac-m{display:none}
-@container (max-width:1219px){.ac-c6{display:none}.ac-m6{display:flex}}
-@container (max-width:1049px){.ac-c5{display:none}.ac-m5{display:flex}}
-@container (max-width:879px){.ac-c4{display:none}.ac-m4{display:flex}}
-@container (max-width:709px){.ac-c3{display:none}.ac-m3{display:flex}}
-@container (max-width:519px){.ac-c2{display:none}.ac-m2{display:flex}}
-/* phones: every view chip sits in one swipe strip (More views last); the menu hangs from the strip's box so the
-   scrolling row does not clip it */
-@media (max-width:640px){
-  .ac-views{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-14px;padding:0 14px 2px;scroll-padding-inline:14px}
-  .ac-views::-webkit-scrollbar{display:none}
-  .ac-views>*{flex:none}
-  .ac-views>.chip{display:inline-flex}
-  .ac-morewrap{position:static}
-  .ac-menu{left:auto;right:0}
-  .ac-menu .ac-m{display:none}
-}
-/* Table: the customer cell is two single lines, never wrapped. */
-.ac-th-cust{min-width:220px}
-.ac-cust{display:flex;align-items:center;gap:12px;min-width:196px;max-width:300px;text-decoration:none;color:inherit}
-.ac-cust__txt{min-width:0;flex:1 1 auto}
-.ac-cust__name,.ac-cust__phone{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ac-cust:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px;border-radius:var(--radius-lg)}
-.ac-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid #e2e8f0}
-/* phones: the list is cards, so the column view switch is not needed */
-@media (max-width:640px){.ac-toolbar{padding:12px}.ac-toolbar>div:has(>button[aria-pressed]){display:none!important}.ac-toolbar>span[style*="flex-grow"]{display:none}}
-.ac-search{position:relative;flex:1 1 240px;max-width:360px;min-width:200px}
-.btn[disabled]{opacity:.5;cursor:not-allowed}
+.ac-cust{display:inline-flex;align-items:center;gap:6px;max-width:260px}
+.ac-cust>a{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.ac-trunc{display:block;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+.ix-table tr.is-new td{animation:acNew 900ms ease-out}
+@keyframes acNew{from{background:var(--fill-success-soft)}to{background:transparent}}
+.ac-pitem-new{animation:acNew 900ms ease-out}
+/* Possible duplicates */
+.ac-pairs{margin:0;padding:0;list-style:none}
+.ac-pair{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--space-2) var(--space-3);align-items:center;padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border-subtle)}
+.ac-pair:last-child{border-bottom:0}
+.ac-pair__why{grid-column:1 / -1}
+.ac-pair__sides{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2)}
+.ac-pair__side{display:flex;flex-direction:column;min-width:0;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);color:inherit;text-decoration:none}
+.ac-pair__side:hover{border-color:var(--primary);color:inherit;text-decoration:none}
+.ac-pair__name{display:block;overflow:hidden;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);text-overflow:ellipsis;white-space:nowrap}
+.ac-pair__sub{display:block;overflow:hidden;font-size:var(--text-xs);color:var(--text-muted);text-overflow:ellipsis}
+.ac-pair__acts{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:var(--space-2)}
+.ac-mono{font-family:var(--font-data)}
+/* dialogs */
+.ac-form{display:flex;flex-direction:column;gap:var(--space-3)}
 .ac-field{display:flex;flex-direction:column}
 .ac-err{display:flex;align-items:flex-start;gap:6px;color:var(--text-danger)!important}
+.ac-types{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.ac-type{display:inline-flex;align-items:center;gap:var(--space-2);height:var(--control-height);padding:0 var(--space-3);border:1px solid var(--border-field);border-radius:var(--radius-lg);font-size:var(--text-sm);color:var(--text-heading);cursor:pointer}
+.ac-type.is-on{border-color:var(--primary);background:var(--fill-primary-soft)}
 .ac-money{position:relative}
-.ac-money span{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:var(--text-sm)}
-.ac-money input{padding-left:30px}
-/* Possible duplicates */
-.ac-dnote{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--border-subtle);background:var(--fill-warning-soft);font-size:var(--text-sm);color:var(--text-heading)}
-.ac-pairs{list-style:none;margin:0;padding:0}
-.ac-pair{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 16px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border-subtle)}
-.ac-pair__why{grid-column:1 / -1}
-.ac-pair__sides{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.ac-pair__side{display:flex;align-items:center;gap:10px;min-width:0;padding:10px 12px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);color:inherit;text-decoration:none}
-.ac-pair__side:hover{border-color:var(--primary);color:inherit;text-decoration:none}
-.ac-pair__name{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ac-pair__sub{display:block;font-size:var(--text-xs);color:var(--text-muted);overflow:hidden;text-overflow:ellipsis}
-.ac-pair__acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-.ac-avatar{width:38px;height:38px;flex:none;border-radius:var(--radius-full);background:var(--fill-primary-soft);color:var(--primary);font-weight:var(--weight-medium);display:flex;align-items:center;justify-content:center}
-.ac-mg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.ac-mg__opt{display:flex;flex-direction:column;gap:12px;padding:14px;border:1px solid var(--border-subtle);border-radius:var(--radius-xl);cursor:pointer;min-width:0}
+.ac-money span{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:var(--text-sm)}
+.ac-money input{padding-left:28px}
+.ac-mgset{display:flex;flex-direction:column;gap:var(--space-3);min-width:0;margin:0;padding:0;border:0}
+.ac-mg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)}
+.ac-mg__opt{display:flex;flex-direction:column;gap:var(--space-3);min-width:0;padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);cursor:pointer}
 .ac-mg__opt.is-on{border-color:var(--primary);background:var(--fill-primary-soft)}
-.ac-mg__facts{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:0;font-size:var(--text-sm)}
+.ac-mg__head{display:flex;align-items:center;gap:var(--space-2);min-width:0}
+.ac-mg__facts{display:grid;grid-template-columns:auto 1fr;gap:6px var(--space-3);margin:0;font-size:var(--text-sm)}
 .ac-mg__facts dt{color:var(--text-muted)}
 .ac-mg__facts dd{margin:0;text-align:right;color:var(--text-heading);overflow-wrap:anywhere}
-@media (max-width:760px){.ac-pair{grid-template-columns:minmax(0,1fr)}.ac-pair__sides,.ac-mg{grid-template-columns:minmax(0,1fr)}.ac-pair__acts{justify-content:flex-start}}
-@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+.ac-colchips{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.ac-fgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)}
+/* phones: More views is an icon and Columns is hidden (the phone list has no columns) */
+@media (max-width:640px){.ac-views .ix-btn{width:32px;padding:0}.ac-views .ix-btn>span,.ac-views .ix-btn>svg:last-child{display:none}.ac-colbtn{display:none}}
+@media (max-width:760px){.ac-pair{grid-template-columns:minmax(0,1fr)}.ac-pair__sides,.ac-mg,.ac-fgrid{grid-template-columns:minmax(0,1fr)}.ac-pair__acts{justify-content:flex-start}}
 `;
 
 // ---- markup ----
+
+const FILTERS_MORE = [
+  ['Signed up', ['Any time', 'Today', 'Yesterday', 'Last 7 days', 'Last 30 days', 'This year', 'Pick dates']],
+  ['Last order', ['Any time', 'Today', 'Last 7 days', 'Last 30 days', 'More than 60 days ago', 'Never ordered']],
+  ['Total spent', ['Any amount', 'Under ৳1,000', '৳1,000 – ৳10,000', '৳10,000 – ৳50,000', 'Above ৳50,000']],
+  ['Number of orders', ['Any', '0 orders', '1 order', '2–4 orders', '5+ orders']],
+  ['Paid with', ['Any', 'Cash on delivery', 'bKash', 'Nagad', 'Card', 'Wallet']],
+  ['Has', ['Anything', 'Abandoned cart', 'Unused coupon', 'Points expiring', 'Open support ticket', 'Items in wishlist']],
+  ['Tag', ['Any', 'VIP', 'Wholesale', 'Influencer', 'Staff', 'Fraud watch']],
+  ['Birthday', ['Any', 'This week', 'This month']],
+];
 
 export default class AllCustomersScreen extends Component {
   render() {
@@ -489,470 +417,235 @@ export default class AllCustomersScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="AllCustomers">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
+        <div className="gc-shell">
           <__Sidebar sticky="" active="customers" />
-          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
+          <main className="gc-shell__main">
             <__Topbar crumb="Customers" page="All customers" placeholder="Search customer by name or phone" />
-            <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <__PageHeader title="All customers" />
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                <div style={{ flexGrow: "1", flexBasis: "260px", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#475569" }}>Every person who signed up or bought from you. Pick a ready view, or filter on anything.</div>
-                <button type="button" className="btn solid" onClick={v.openAdd} aria-haspopup="dialog">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M5 12h14" />
-                    <path d="M12 5v14" />
-                  </svg>
-                  <span>Add customer</span>
-                </button>
-              </div>
-              <div className="ac-viewwrap">
-                <div className="ac-views" role="group" aria-label="Customer views">
-                  {__list(v.views).map((vw) => (
-                    <button key={vw.k} type="button" className={vw.cls} aria-pressed={vw.on} onClick={vw.pick}>{vw.label}<span style={__sx(`min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: ${vw.cBg ?? ""}; font-size: var(--text-xs); font-weight: var(--weight-medium); display: inline-flex; align-items: center; justify-content: center;`)}>{vw.count}</span></button>
-                  ))}
-                  <div className="ac-morewrap" ref={v.moreWrap} onKeyDown={v.onMoreKey}>
-                    <button type="button" ref={v.moreBtn} id="ac-more-btn" className={v.moreCls} aria-haspopup="menu" aria-expanded={v.moreOpen} aria-controls="ac-more-menu" aria-label={v.moreName} onClick={v.toggleMore}>
-                      <span className="ac-more__lbl">{v.moreLabel}</span>
-                      <__Icon name="chevron-down" width="16" height="16" aria-hidden="true" />
-                    </button>
-                    {v.moreOpen ? (
-                      <div className="ac-menu fade" id="ac-more-menu" role="menu" aria-labelledby="ac-more-btn" ref={v.moreList}>
-                        {__list(v.moreViews).map((vw) => (
-                          <button key={vw.k} type="button" role="menuitemradio" aria-checked={vw.on} tabIndex={-1} className={vw.mcls} onClick={vw.pickMenu}>
-                            <span className="ac-mi__chk">{vw.on ? <__Icon name="check" width="16" height="16" aria-hidden="true" /> : null}</span>
-                            <span>{vw.label}</span>
-                            <span className="ac-mi__n">{vw.count}</span>
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-              <section className="card" style={{ overflow: "hidden" }}>
-                <div className="ac-toolbar">
-                  <label className="ac-search">
-                    <span style={{ position: "absolute", left: "14px", top: "12px", color: "var(--text-muted)" }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <circle cx="11" cy="11" r="8" />
-                        <path d="m21 21-4.3-4.3" />
-                      </svg>
-                    </span>
-                    <input id="ac-search" className="inp" type="search" value={v.q} onChange={v.typeQ} placeholder="Search by name or phone" aria-label="Search customers by name or phone" autoComplete="off" style={{ paddingLeft: "44px" }} />
-                  </label>
-                  <button type="button" className={v.fBtnCls} onClick={v.toggleF}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-                    </svg>
-                    <span>Filters</span>
-                    {v.hasF ? (<>
-                      <span style={{ minWidth: "20px", height: "20px", borderRadius: "var(--radius-full)", background: "#003087", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{v.fCount}</span>
-                    </>) : null}
-                  </button>
-                  <div style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
-                    {__list(v.modes).map((m, $index) => (<React.Fragment key={$index}>
-                        <button type="button" onClick={m?.pick} aria-pressed={m?.on} style={__sx(`height: 34px; padding: 0 14px; border: 0; border-radius: var(--radius-full); font: inherit; font-size: var(--text-xs-plus); font-weight: var(--weight-medium); cursor: pointer; background: ${m?.bg ?? ""}; color: ${m?.fg ?? ""};`)}>{m?.l}</button>
-                      </React.Fragment>))}
-                  </div>
-                  {v.isCustom ? (<>
-                    <button type="button" className="btn line sm" onClick={v.toggleCols}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <rect width="18" height="18" x="3" y="3" rx="2" />
-                        <path d="M9 3v18" />
-                        <path d="M15 3v18" />
-                      </svg>
-                      <span>Columns</span>
-                    </button>
-                  </>) : null}
-                  <span style={{ flexGrow: "1" }} />
-                  <__PhoneMore>
-                  <button type="button" className="btn line sm" onClick={v.print}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-                      <path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6" />
-                      <rect x="6" y="14" width="12" height="8" rx="1" />
-                    </svg>
-                    <span>Print</span>
-                  </button>
-                  <button type="button" className="btn line sm" onClick={v.csv}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <path d="m7 10 5 5 5-5" />
-                      <path d="M12 15V3" />
-                    </svg>
-                    <span>Download CSV</span>
-                  </button>
-                  </__PhoneMore>
-                </div>
-                {v.fOpen ? (<>
-                  <div className="fade gc-cols-4" style={{ padding: "16px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "14px" }}>
-                    <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <span className="lbl">Signed up</span>
-                      <select className="inp" aria-label="Signed up">
-                        <option>Any time</option>
-                        <option>Today</option>
-                        <option>Yesterday</option>
-                        <option>Last 7 days</option>
-                        <option>Last 30 days</option>
-                        <option>This year</option>
-                        <option>Pick dates</option>
-                      </select>
-                    </label>
-                    <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <span className="lbl">Last order</span>
-                      <select className="inp" aria-label="Last order">
-                        <option>Any time</option>
-                        <option>Today</option>
-                        <option>Last 7 days</option>
-                        <option>Last 30 days</option>
-                        <option>More than 60 days ago</option>
-                        <option>Never ordered</option>
-                      </select>
-                    </label>
-                    <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <span className="lbl">Total spent</span>
-                      <select className="inp" aria-label="Total spent">
-                        <option>Any amount</option>
-                        <option>Under ৳1,000</option>
-                        <option>৳1,000 – ৳10,000</option>
-                        <option>৳10,000 – ৳50,000</option>
-                        <option>Above ৳50,000</option>
-                      </select>
-                    </label>
-                    <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <span className="lbl">Number of orders</span>
-                      <select className="inp" aria-label="Number of orders">
-                        <option>Any</option>
-                        <option>0 orders</option>
-                        <option>1 order</option>
-                        <option>2–4 orders</option>
-                        <option>5+ orders</option>
-                      </select>
-                    </label>
-                    <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <span className="lbl">City or area</span>
-                      <select className="inp" aria-label="City or area">
-                        <option>All</option>
-                        <option>Dhaka</option>
-                        <option>Chattogram</option>
-                        <option>Sylhet</option>
-                        <option>Khulna</option>
-                        <option>Rajshahi</option>
-                        <option>Outside Dhaka</option>
-                      </select>
-                    </label>
-                    <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <span className="lbl">Member level</span>
-                      <select className="inp" aria-label="Member level">
-                        <option>All</option>
-                        <option>Member</option>
-                        <option>Silver</option>
-                        <option>Gold</option>
-                        <option>Platinum</option>
-                      </select>
-                    </label>
-                    <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <span className="lbl">Came from</span>
-                      <select className="inp" aria-label="Came from">
-                        <option>All</option>
-                        <option>Facebook ad</option>
-                        <option>Instagram</option>
-                        <option>Google</option>
-                        <option>TikTok</option>
-                        <option>Invite a friend</option>
-                        <option>Shop counter (POS)</option>
-                      </select>
-                    </label>
-                    <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <span className="lbl">Paid with</span>
-                      <select className="inp" aria-label="Paid with">
-                        <option>Any</option>
-                        <option>Cash on delivery</option>
-                        <option>bKash</option>
-                        <option>Nagad</option>
-                        <option>Card</option>
-                        <option>Wallet</option>
-                      </select>
-                    </label>
-                    <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <span className="lbl">Account status</span>
-                      <select className="inp" aria-label="Account status">
-                        <option>All</option>
-                        <option>Active</option>
-                        <option>Suspended</option>
-                        <option>COD blocked</option>
-                        <option>Gateway blocked</option>
-                      </select>
-                    </label>
-                    <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <span className="lbl">Has</span>
-                      <select className="inp" aria-label="Has">
-                        <option>Anything</option>
-                        <option>Abandoned cart</option>
-                        <option>Unused coupon</option>
-                        <option>Points expiring</option>
-                        <option>Open support ticket</option>
-                        <option>Items in wishlist</option>
-                      </select>
-                    </label>
-                    <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <span className="lbl">Tag</span>
-                      <select className="inp" aria-label="Tag">
-                        <option>Any</option>
-                        <option>VIP</option>
-                        <option>Wholesale</option>
-                        <option>Influencer</option>
-                        <option>Staff</option>
-                        <option>Fraud watch</option>
-                      </select>
-                    </label>
-                    <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <span className="lbl">Birthday</span>
-                      <select className="inp" aria-label="Birthday">
-                        <option>Any</option>
-                        <option>This week</option>
-                        <option>This month</option>
-                      </select>
-                    </label>
-                    <div style={{ gridColumn: "1 / -1", display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-                      <button type="button" className="btn line sm" onClick={v.clearF}>Clear</button>
-                      <button type="button" className="btn solid sm" onClick={v.applyF}>Show customers</button>
-                      <button type="button" className="btn soft sm" onClick={v.saveView}>
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" />
-                        </svg>
-                        <span>Save as a view</span>
-                      </button>
+            <div className="gc-shell__content">
+              <div className="ix-page">
+                <ShopHeader icon="users" title="Customers"
+                  about="Every person who signed up or bought from you. Pick a ready view, or filter on anything."
+                  secondary={[{ label: 'Export', onClick: v.csv }]}
+                  more={[{ label: 'Print', onClick: v.print }, { label: 'Members', href: '/members' }, { label: 'Abandoned carts', href: '/abandoned-carts' }]}
+                  primary={{ label: 'Add customer', onClick: v.openAdd }} />
+
+                <section className="ix-card" aria-label="Customers">
+                  {v.hasSel ? (
+                    <div className="ix-bulk" role="toolbar" aria-label="Selected customers">
+                      <input type="checkbox" checked={v.allSel} onChange={v.toggleAll} aria-label="Select all" style={{ width: 16, height: 16, margin: '0 6px', accentColor: 'var(--primary)' }} />
+                      <span className="ix-bulk__n">{v.selCount} selected</span>
+                      <button type="button" className="ix-btn ix-btn--sm" onClick={v.bulkSms}><__Icon name="message-circle" width="16" height="16" aria-hidden="true" />Send SMS</button>
+                      <button type="button" className="ix-btn ix-btn--sm" onClick={v.bulkCoupon}><__Icon name="ticket-percent" width="16" height="16" aria-hidden="true" />Assign coupon</button>
+                      <button type="button" className="ix-btn ix-btn--sm" onClick={v.bulkTag}><__Icon name="tag" width="16" height="16" aria-hidden="true" />Add tag</button>
+                      <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" align="start" items={[{ label: 'Edit customer', onClick: v.editSel }, { label: 'Export', onClick: v.csv }, { label: 'Clear selection', onClick: v.clearSel }]} />
                     </div>
-                  </div>
-                </>) : null}
-                {v.colsOpen ? (<>
-                  <div className="fade" style={{ padding: "14px 16px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-                    <span className="lbl">Show columns:</span>
-                    {__list(v.colChips).map((c, $index) => (<React.Fragment key={$index}>
-                        <button type="button" className={c?.cls} aria-pressed={c?.on} onClick={c?.pick} style={{ height: "36px" }}>{c?.on ? (<>
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M20 6 9 17l-5-5" />
-  </svg>
-</>) : null}{c?.label}</button>
-                      </React.Fragment>))}
-                  </div>
-                </>) : null}
-                {v.hasSel ? (<>
-                  <div className="fade" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 16px", background: "#003087", color: "#fff", fontSize: "var(--text-sm)" }}>
-                    <b>{v.selCount} selected</b>
-                    <span style={{ flexGrow: "1" }} />
-                    <button type="button" className="btn sm" style={{ background: "rgba(255,255,255,.14)", color: "#fff" }} onClick={v.bulkSms}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
-                      </svg>
-                      <span>Send SMS</span>
-                    </button>
-                    <button type="button" className="btn sm" style={{ background: "rgba(255,255,255,.14)", color: "#fff" }} onClick={v.bulkCoupon}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
-                        <path d="M9 9h.01" />
-                        <path d="m15 9-6 6" />
-                        <path d="M15 15h.01" />
-                      </svg>
-                      <span>Assign coupon</span>
-                    </button>
-                    <button type="button" className="btn sm" style={{ background: "rgba(255,255,255,.14)", color: "#fff" }} onClick={v.bulkTag}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
-                        <circle cx="7.5" cy="7.5" r="1" />
-                      </svg>
-                      <span>Add tag</span>
-                    </button>
-                    <button type="button" className="btn sm" style={{ background: "rgba(255,255,255,.14)", color: "#fff" }} onClick={v.csv}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <path d="m7 10 5 5 5-5" />
-                        <path d="M12 15V3" />
-                      </svg>
-                      <span>Export</span>
-                    </button>
-                  </div>
-                </>) : null}
-                {v.showDupeNote ? (
-                  <div className="ac-dnote" role="note">
-                    <__Icon name="users" width="18" height="18" aria-hidden="true" style={{ flex: "none", color: "var(--text-warning)" }} />
-                    <span style={{ flexGrow: "1" }}>{v.pairCount === 1 ? '1 pair of customers looks like the same person.' : v.pairCount + ' pairs of customers look like the same person.'} Merge them to keep one record.</span>
-                    <button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={v.goDupes}>Review duplicates</button>
-                  </div>
-                ) : null}
-                {v.empty ? (
-                  <__EmptyState title={v.emptyTitle} body={v.emptyBody} actionLabel={v.emptyAction} onAction={v.emptyDo} />
-                ) : v.isDupes ? (
-                  <ul className="ac-pairs" aria-label="Possible duplicate customers">
-                    {v.pairs.map((p) => (
-                      <li key={p.id} className="ac-pair">
-                        <div className="ac-pair__why"><span className="gc-badge gc-badge--warning">{p.why}</span></div>
-                        <div className="ac-pair__sides">
-                          {[p.a, p.b].map((c, i) => (
-                            <__Link key={i} href={c.href} className="ac-pair__side">
-                              <span className="ac-avatar" aria-hidden="true">{c.initial}</span>
-                              <span style={{ minWidth: "0" }}>
-                                <span className="ac-pair__name">{c.name}</span>
-                                <span className="mono ac-pair__sub">{c.phone}</span>
-                                <span className="ac-pair__sub">{c.orders} orders · {c.spent} spent · {c.types}</span>
-                              </span>
-                            </__Link>
-                          ))}
-                        </div>
-                        <div className="ac-pair__acts">
-                          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={p.notDupe}>Not the same</button>
-                          <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={p.merge} aria-haspopup="dialog">Merge…</button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                <div className="gc-table-wrap" style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr>
-                        <th className="th" style={{ width: "44px" }}>
-                          <input type="checkbox" aria-label="Select all" checked={v.allSel} onChange={v.toggleAll} style={{ width: "18px", height: "18px" }} />
-                        </th>
-                        <th className="th ac-th-cust" scope="col">Customer</th>
-                        {__list(v.heads).map((h, $index) => (<React.Fragment key={$index}>
-                            <th className="th" scope="col" style={__sx(`text-align: ${h?.al ?? ""};`)}>{h?.l}</th>
-                          </React.Fragment>))}
-                        <th className="th" scope="col"><span className="sr-only">Actions</span></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {__list(v.rows).map((r) => (<React.Fragment key={r.key}>
-                          <tr className={r?.rowCls} style={__sx(`background: ${r?.bg ?? ""};`)}>
-                            <td className="td">
-                              <input type="checkbox" aria-label={`Select ${r?.name ?? ""}`} checked={r?.sel} onChange={r?.toggle} style={{ width: "18px", height: "18px" }} />
-                            </td>
-                            <td className="td">
-                              <__Link href={r?.href} className="ac-cust" title={r?.merged ? r.name + ' · ' + r.merged : r?.name}>
-                                <span aria-hidden="true" style={{ width: "38px", height: "38px", flexShrink: "0", borderRadius: "var(--radius-full)", background: "#e0f3fb", color: "#003087", fontWeight: "var(--weight-medium)", display: "flex", alignItems: "center", justifyContent: "center" }}>{r?.initial}</span>
-                                <span className="ac-cust__txt">
-                                  <span className="ac-cust__name" style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{r?.name}</span>
-                                  <span className="mono ac-cust__phone" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{r?.phone}</span>
-                                </span>
-                              </__Link>
-                            </td>
-                            {__list(r?.cells).map((cl, $index) => (<React.Fragment key={$index}>
-                                <td className="td" style={__sx(`text-align: ${cl?.al ?? ""}; font-weight: ${cl?.fw ?? ""}; color: ${cl?.color ?? ""}; white-space: nowrap;`)}>
-                                  {cl?.isBadge ? (<>
-                                    <span className={cl?.cls}>{cl?.v}</span>
-                                  </>) : null}
-                                  {cl?.isText ? (<>{cl?.v}</>) : null}
-                                </td>
-                              </React.Fragment>))}
-                            <td className="td" style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                              <button type="button" className="gc-iconbtn" onClick={r.edit} aria-label={`Edit ${r.name}`} title="Edit" aria-haspopup="dialog" style={{ verticalAlign: "middle", marginRight: "4px" }}><__Icon name="pencil" width="16" height="16" aria-hidden="true" /></button>
-                              <__Link href={r?.href} className="btn soft sm" aria-label={`Open ${r?.name ?? ""}`}>Open <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="m9 18 6-6-6-6" />
-</svg></__Link>
-                            </td>
-                          </tr>
-                        </React.Fragment>))}
-                    </tbody>
-                  </table>
-                </div>
-                )}
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", padding: "14px 16px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>
-                  <span style={{ flexGrow: "1" }} role="status" aria-live="polite">{v.isDupes ? (<>Showing {v.shown} possible {v.shown === 1 ? 'duplicate pair' : 'duplicate pairs'}</>) : v.hasQ ? (<>Showing {v.shown} matching “{v.q.trim()}”</>) : (<>Showing {v.shown} of {v.total} customers</>)}</span>
-                  <label htmlFor="ac-perpage">Rows per page</label>
-                  <select id="ac-perpage" className="inp" value={v.perPage} onChange={v.setPerPage} style={{ width: "90px", height: "36px" }}>
-                    <option>25</option>
-                    <option>50</option>
-                    <option>100</option>
-                  </select>
-                  <button type="button" className="btn line sm" aria-label="Previous page" title="This is the first page" disabled>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m15 18-6-6 6-6" />
-                    </svg>
-                  </button>
-                  <button type="button" className="btn line sm" aria-label="Next page" title="All demo customers fit on one page" disabled>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 18 6-6-6-6" />
-                    </svg>
-                  </button>
-                </div>
-              </section>
-              <__Dialog open={v.addOpen} title="Add customer" onClose={v.closeAdd} width={480} footer={<>
-                <button type="button" className="gc-btn gc-btn--neutral" onClick={v.closeAdd}>Cancel</button>
-                <button type="submit" form="ac-add-form" className="gc-btn gc-btn--solid">Save customer</button>
-              </>}>
-                <form id="ac-add-form" noValidate onSubmit={v.submitAdd} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                  <div className="ac-field">
-                    <label className="gc-label" htmlFor="ac-add-name">Full name <span aria-hidden="true" style={{ color: "var(--text-danger)" }}>*</span></label>
-                    <input id="ac-add-name" name="name" data-autofocus="" className={v.errName ? "gc-input gc-input--error" : "gc-input"} value={v.form?.name} onChange={v.typeField} required aria-required="true" aria-invalid={v.errName ? "true" : "false"} aria-describedby={v.errName ? "ac-add-name-err" : undefined} autoComplete="off" maxLength={80} />
-                    {v.errName ? (<p id="ac-add-name-err" className="gc-help gc-help--error ac-err"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" style={{ flex: "none", marginTop: "1px" }} /><span>{v.errName}</span></p>) : null}
-                  </div>
-                  <div className="ac-field">
-                    <label className="gc-label" htmlFor="ac-add-phone">Mobile number <span aria-hidden="true" style={{ color: "var(--text-danger)" }}>*</span></label>
-                    <input id="ac-add-phone" name="phone" type="tel" inputMode="tel" className={v.errPhone ? "gc-input gc-input--error mono" : "gc-input mono"} value={v.form?.phone} onChange={v.typeField} placeholder="01XXXXXXXXX" required aria-required="true" aria-invalid={v.errPhone ? "true" : "false"} aria-describedby={v.errPhone ? "ac-add-phone-err" : "ac-add-phone-help"} autoComplete="off" maxLength={20} />
-                    {v.errPhone ? (<p id="ac-add-phone-err" className="gc-help gc-help--error ac-err"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" style={{ flex: "none", marginTop: "1px" }} /><span>{v.errPhone}</span></p>) : (<p id="ac-add-phone-help" className="gc-help">11 digits, starting with 01.</p>)}
-                  </div>
-                  <div className="ac-field">
-                    <label className="gc-label" htmlFor="ac-add-area">Address <span style={{ color: "var(--text-muted)", fontWeight: "var(--weight-regular)" }}>(optional)</span></label>
-                    <textarea id="ac-add-area" name="area" rows="2" className="gc-input" value={v.form?.area} onChange={v.typeField} placeholder="House, road, area and city" autoComplete="off" maxLength={160} />
-                  </div>
-                  <fieldset className="ac-field" style={{ border: "0", margin: "0", padding: "0", minWidth: "0" }} aria-describedby={v.errTypes ? "ac-add-type-err" : "ac-add-type-help"}>
-                    <legend className="gc-label">Customer type <span aria-hidden="true" style={{ color: "var(--text-danger)" }}>*</span></legend>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                      {CUST_TYPES.map((t) => { const on = (v.form?.types || []).indexOf(t) >= 0; return (
-                        <label key={t} style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "44px", padding: "0 14px", border: on ? "1px solid var(--primary)" : "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: on ? "var(--fill-primary-soft)" : "transparent", fontSize: "var(--text-sm)", color: "var(--text-heading)", cursor: "pointer" }}>
-                          <input id={"ac-add-type-" + t} type="checkbox" className="gc-check" checked={on} onChange={() => v.toggleType(t)} />{t}
-                        </label>); })}
-                      <button type="button" className="gc-btn gc-btn--flat" aria-pressed={(v.form?.types || []).length === 3} onClick={() => v.toggleType('all')}>All three</button>
-                    </div>
-                    {v.errTypes ? (<p id="ac-add-type-err" className="gc-help gc-help--error ac-err"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" style={{ flex: "none", marginTop: "1px" }} /><span>{v.errTypes}</span></p>) : (<p id="ac-add-type-help" className="gc-help">Pick every way this customer buys from you.</p>)}
-                  </fieldset>
-                  {(v.form?.types || []).indexOf('Wholesale') >= 0 ? (<>
-                    <div className="ac-field">
-                      <label className="gc-label" htmlFor="ac-add-tier">Wholesale price list</label>
-                      <select id="ac-add-tier" name="tier" className="gc-input gc-select" value={v.form?.tier || 'A'} onChange={v.typeField}>
-                        {Object.keys(PRICE_TIERS).map((k) => (<option key={k} value={k}>{PRICE_TIERS[k].label} · {PRICE_TIERS[k].off}% below retail</option>))}
-                      </select>
-                      <p className="gc-help">New sale loads these prices by itself when this customer is chosen.</p>
-                    </div>
-                    <div className="ac-field">
-                      <label className="gc-label" htmlFor="ac-add-credit">Credit limit</label>
-                      <div className="ac-money"><span aria-hidden="true">৳</span><input id="ac-add-credit" name="credit" type="number" min="0" step="1000" inputMode="numeric" className={v.errCredit ? "gc-input gc-input--error" : "gc-input"} value={v.form?.credit || ''} onChange={v.typeField} placeholder="0" aria-invalid={v.errCredit ? "true" : "false"} aria-describedby={v.errCredit ? "ac-add-credit-err" : "ac-add-credit-help"} /></div>
-                      {v.errCredit ? (<p id="ac-add-credit-err" className="gc-help gc-help--error ac-err"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" style={{ flex: "none", marginTop: "1px" }} /><span>{v.errCredit}</span></p>) : (<p id="ac-add-credit-help" className="gc-help">The most this customer can owe you. 0 means no limit.</p>)}
-                    </div>
-                  </>) : null}
-                </form>
-              </__Dialog>
-              <CustomerEditDialog open={v.editOpen} customer={v.editCust} phoneLocked={v.editLocked} phoneTaken={v.editPhoneTaken} onSave={v.saveEdit} onClose={v.closeEdit} />
-              <__Dialog open={v.mergeOpen} title="Merge duplicate customers" onClose={v.closeMerge} width={640} footer={<>
-                <button type="button" className="gc-btn gc-btn--neutral" onClick={v.closeMerge}>Cancel</button>
-                <button type="button" className="gc-btn gc-btn--solid" onClick={v.confirmMerge}>Keep {v.mergeKeepName}</button>
-              </>}>
-                <fieldset style={{ border: "0", margin: "0", padding: "0", minWidth: "0", display: "flex", flexDirection: "column", gap: "14px" }}>
-                  <legend className="gc-label" style={{ marginBottom: "10px" }}>Which record do you keep?</legend>
-                  <div className="ac-mg">
-                    {v.mergeSides.map((c) => (
-                      <label key={c.key} className={'ac-mg__opt' + (c.on ? ' is-on' : '')}>
-                        <span style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <input type="radio" name="ac-keep" className="gc-check" checked={c.on} onChange={c.pick} />
-                          <span style={{ minWidth: "0" }}>
-                            <span className="ac-pair__name">{c.name}</span>
-                            <span className="mono ac-pair__sub">{c.phone}</span>
-                          </span>
+                  ) : (
+                    <div className="ix-bar">
+                      {v.find ? (<>
+                        <SearchField value={v.q} onChange={v.typeQ} placeholder="Search by name or phone" onDone={v.closeFind} autoFocus />
+                        <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={v.closeFind}>Cancel</button>
+                      </>) : (<>
+                        <IndexTabs tabs={v.tabs} label="Customer views" />
+                        <span className="ix-tools">
+                          <span className="ac-views"><Menu label="More views" icon="list" cls="ix-btn ix-btn--sm" items={v.moreViews} /></span>
+                          <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search and filter" onClick={v.openFind}><__Icon name="search" width="16" height="16" aria-hidden="true" /></button>
+                          <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ac-colbtn" aria-label="Columns" title="Columns" aria-haspopup="dialog" onClick={v.openCols}><__Icon name="columns-3" width="16" height="16" aria-hidden="true" /></button>
                         </span>
-                        <dl className="ac-mg__facts">
-                          <dt>Orders</dt><dd>{c.orders}</dd>
-                          <dt>Spent</dt><dd>{c.spent}</dd>
-                          <dt>Due</dt><dd style={c.hasDue ? { color: "var(--text-danger)", fontWeight: "var(--weight-semibold)" } : undefined}>{c.due}</dd>
-                          <dt>Buys</dt><dd>{c.types}</dd>
-                          <dt>Came from</dt><dd>{c.src}</dd>
-                          <dt>Last order</dt><dd>{c.last}</dd>
-                        </dl>
-                      </label>
-                    ))}
-                  </div>
-                  <p className="gc-help" style={{ margin: "0" }}>{v.mergeDropName} is hidden from your lists. Their orders, spend and due are added to {v.mergeKeepName}.</p>
-                </fieldset>
+                      </>)}
+                    </div>
+                  )}
+                  {v.find && !v.hasSel ? (
+                    <div className="ix-filters" role="group" aria-label="Filters">
+                      <select aria-label="City or area" className={'ix-filter' + (v.pills.fCity ? ' is-set' : '')} value={v.pills.fCity} onChange={v.setCity}>
+                        <option value="">Location</option>{v.cities.map((c) => <option key={c}>{c}</option>)}
+                      </select>
+                      <select aria-label="Account status" className={'ix-filter' + (v.pills.fStatus ? ' is-set' : '')} value={v.pills.fStatus} onChange={v.setStatus}>
+                        <option value="">Status</option><option>Active</option><option>Suspended</option><option>COD blocked</option>
+                      </select>
+                      <select aria-label="Member level" className={'ix-filter' + (v.pills.fLevel ? ' is-set' : '')} value={v.pills.fLevel} onChange={v.setLevel}>
+                        <option value="">Level</option><option>Member</option><option>Silver</option><option>Gold</option><option>Platinum</option>
+                      </select>
+                      <select aria-label="Came from" className={'ix-filter' + (v.pills.fSrc ? ' is-set' : '')} value={v.pills.fSrc} onChange={v.setSrc}>
+                        <option value="">Came from</option><option>Facebook ad</option><option>Instagram</option><option>Google</option><option>TikTok</option><option>Invite a friend</option><option>Shop counter (POS)</option>
+                      </select>
+                      <button type="button" className={'ix-filter' + (v.hasF ? ' is-set' : '')} onClick={v.openF} aria-haspopup="dialog" style={{ backgroundImage: 'none', paddingRight: 10 }}>More filters</button>
+                      {v.hasFilters ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={v.clearAll}>Clear all</button> : null}
+                    </div>
+                  ) : null}
+
+                  {v.empty ? (
+                    <div className="ix-empty"><__EmptyState icon="users" title={v.emptyTitle} actionLabel={v.emptyAction} onAction={v.emptyDo} /></div>
+                  ) : v.isDupes ? (
+                    <ul className="ac-pairs" aria-label="Possible duplicate customers">
+                      {v.pairs.map((p) => (
+                        <li key={p.id} className="ac-pair">
+                          <div className="ac-pair__why"><__StatusBadge tone="warning" icon="users">{p.why}</__StatusBadge></div>
+                          <div className="ac-pair__sides">
+                            {[p.a, p.b].map((c, i) => (
+                              <__Link key={i} href={c.href} className="ac-pair__side">
+                                <span className="ac-pair__name">{c.name}</span>
+                                <span className="ac-pair__sub ac-mono">{c.phone}</span>
+                                <span className="ac-pair__sub">{c.orders} orders · {c.spent} spent · {c.types}</span>
+                              </__Link>
+                            ))}
+                          </div>
+                          <div className="ac-pair__acts">
+                            <button type="button" className="ix-btn ix-btn--sm" onClick={p.notDupe}>Not the same</button>
+                            <button type="button" className="ix-btn ix-btn--sm ix-btn--primary" onClick={p.merge} aria-haspopup="dialog">Merge…</button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (<>
+                    <ul className="ix-plist" aria-label={v.caption}>
+                      {v.rows.map((r) => (
+                        <li key={r.key}>
+                          <__Link href={r.href} className={'ix-pitem' + (r.isNew ? ' ac-pitem-new' : '')}>
+                            <span className="ix-pitem__top"><b>{r.name}</b><span>{r.spent}</span></span>
+                            <span className="ix-pitem__mid">{r.city} · {r.orders === 1 ? '1 order' : r.orders + ' orders'}</span>
+                            {r.status !== 'Active' || r.due || r.wholesale ? (
+                              <span className="ix-pitem__tags">
+                                {r.status !== 'Active' ? <__StatusBadge tone={r.statusTone}>{r.status}</__StatusBadge> : null}
+                                {r.due ? <__StatusBadge tone="error" icon="circle-alert">{r.due} due</__StatusBadge> : r.wholesale ? <__StatusBadge tone="primary" icon="store">Wholesale</__StatusBadge> : null}
+                              </span>
+                            ) : null}
+                          </__Link>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="ix-table-wrap">
+                      <table className="ix-table gc-table--keep">
+                        <caption className="sr-only">{v.caption}</caption>
+                        <thead>
+                          <tr>
+                            <th scope="col" className="ix-check"><input type="checkbox" aria-label="Select all" checked={v.allSel} onChange={v.toggleAll} /></th>
+                            <th scope="col">Customer</th>
+                            {v.heads.map((h) => <th key={h.k} scope="col" className={h.al === 'right' ? 'ix-num' : ''}>{h.l}</th>)}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {v.rows.map((r) => (
+                            <tr key={r.key} className={(r.sel ? 'is-sel' : '') + (r.isNew ? ' is-new' : '')} onClick={r.onRowClick}>
+                              <td className="ix-check"><input type="checkbox" aria-label={`Select ${r.name}`} checked={r.sel} onChange={r.toggle} /></td>
+                              <td>
+                                <span className="ac-cust" title={r.merged ? r.name + ' · ' + r.merged : undefined}>
+                                  <__Link href={r.href} className="ix-strong">{r.name}</__Link>
+                                  {r.wholesale ? <__StatusBadge tone="primary" icon="store">Wholesale</__StatusBadge> : null}
+                                </span>
+                              </td>
+                              {r.cells.map((cl) => (
+                                <td key={cl.k} className={cl.cls || ''}>{cl.badge ? <__StatusBadge tone={cl.badge}>{cl.v}</__StatusBadge> : cl.trunc ? <span className="ac-trunc" title={cl.v}>{cl.v}</span> : cl.v}</td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>)}
+                  <Pager label={v.countLabel} atStart atEnd prev={() => {}} next={() => {}} />
+                </section>
+                <LearnMore topic="customers" />
+              </div>
+          <__Dialog open={v.addOpen} title="Add customer" onClose={v.closeAdd} width={480} footer={<>
+            <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.closeAdd}>Cancel</button>
+            <button type="submit" form="ac-add-form" className="gc-btn gc-btn--sm gc-btn--solid">Save customer</button>
+          </>}>
+            <form id="ac-add-form" className="ac-form" noValidate onSubmit={v.submitAdd}>
+              <div className="ac-field">
+                <label className="gc-label" htmlFor="ac-add-name">Full name <span aria-hidden="true" style={{ color: "var(--text-danger)" }}>*</span></label>
+                <input id="ac-add-name" name="name" data-autofocus="" className={v.errName ? "gc-input gc-input--error" : "gc-input"} value={v.form?.name} onChange={v.typeField} required aria-required="true" aria-invalid={v.errName ? "true" : "false"} aria-describedby={v.errName ? "ac-add-name-err" : undefined} autoComplete="off" maxLength={80} />
+                {v.errName ? (<p id="ac-add-name-err" className="gc-help gc-help--error ac-err"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" style={{ flex: "none", marginTop: "1px" }} /><span>{v.errName}</span></p>) : null}
+              </div>
+              <div className="ac-field">
+                <label className="gc-label" htmlFor="ac-add-phone">Mobile number <span aria-hidden="true" style={{ color: "var(--text-danger)" }}>*</span></label>
+                <input id="ac-add-phone" name="phone" type="tel" inputMode="tel" className={v.errPhone ? "gc-input gc-input--error mono" : "gc-input mono"} value={v.form?.phone} onChange={v.typeField} placeholder="01XXXXXXXXX" required aria-required="true" aria-invalid={v.errPhone ? "true" : "false"} aria-describedby={v.errPhone ? "ac-add-phone-err" : "ac-add-phone-help"} autoComplete="off" maxLength={20} />
+                {v.errPhone ? (<p id="ac-add-phone-err" className="gc-help gc-help--error ac-err"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" style={{ flex: "none", marginTop: "1px" }} /><span>{v.errPhone}</span></p>) : (<p id="ac-add-phone-help" className="gc-help">11 digits, starting with 01.</p>)}
+              </div>
+              <div className="ac-field">
+                <label className="gc-label" htmlFor="ac-add-area">Address <span style={{ color: "var(--text-muted)", fontWeight: "var(--weight-regular)" }}>(optional)</span></label>
+                <textarea id="ac-add-area" name="area" rows="2" className="gc-input" value={v.form?.area} onChange={v.typeField} placeholder="House, road, area and city" autoComplete="off" maxLength={160} />
+              </div>
+              <fieldset className="ac-field ac-mgset" aria-describedby={v.errTypes ? "ac-add-type-err" : "ac-add-type-help"}>
+                <legend className="gc-label">Customer type <span aria-hidden="true" style={{ color: "var(--text-danger)" }}>*</span></legend>
+                <div className="ac-types">
+                  {CUST_TYPES.map((t) => { const on = (v.form?.types || []).indexOf(t) >= 0; return (
+                    <label key={t} className={"ac-type" + (on ? " is-on" : "")}>
+                      <input id={"ac-add-type-" + t} type="checkbox" className="gc-check" checked={on} onChange={() => v.toggleType(t)} />{t}
+                    </label>); })}
+                  <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" aria-pressed={(v.form?.types || []).length === 3} onClick={() => v.toggleType('all')}>All three</button>
+                </div>
+                {v.errTypes ? (<p id="ac-add-type-err" className="gc-help gc-help--error ac-err"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" style={{ flex: "none", marginTop: "1px" }} /><span>{v.errTypes}</span></p>) : (<p id="ac-add-type-help" className="gc-help">Pick every way this customer buys from you.</p>)}
+              </fieldset>
+              {(v.form?.types || []).indexOf('Wholesale') >= 0 ? (<>
+                <div className="ac-field">
+                  <label className="gc-label" htmlFor="ac-add-tier">Wholesale price list</label>
+                  <select id="ac-add-tier" name="tier" className="gc-input gc-select" value={v.form?.tier || 'A'} onChange={v.typeField}>
+                    {Object.keys(PRICE_TIERS).map((k) => (<option key={k} value={k}>{PRICE_TIERS[k].label} · {PRICE_TIERS[k].off}% below retail</option>))}
+                  </select>
+                  <p className="gc-help">New sale loads these prices by itself when this customer is chosen.</p>
+                </div>
+                <div className="ac-field">
+                  <label className="gc-label" htmlFor="ac-add-credit">Credit limit</label>
+                  <div className="ac-money"><span aria-hidden="true">৳</span><input id="ac-add-credit" name="credit" type="number" min="0" step="1000" inputMode="numeric" className={v.errCredit ? "gc-input gc-input--error" : "gc-input"} value={v.form?.credit || ''} onChange={v.typeField} placeholder="0" aria-invalid={v.errCredit ? "true" : "false"} aria-describedby={v.errCredit ? "ac-add-credit-err" : "ac-add-credit-help"} /></div>
+                  {v.errCredit ? (<p id="ac-add-credit-err" className="gc-help gc-help--error ac-err"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" style={{ flex: "none", marginTop: "1px" }} /><span>{v.errCredit}</span></p>) : (<p id="ac-add-credit-help" className="gc-help">The most this customer can owe you. 0 means no limit.</p>)}
+                </div>
+              </>) : null}
+            </form>
+          </__Dialog>
+          <CustomerEditDialog open={v.editOpen} customer={v.editCust} phoneLocked={v.editLocked} phoneTaken={v.editPhoneTaken} onSave={v.saveEdit} onClose={v.closeEdit} />
+          <__Dialog open={v.mergeOpen} title="Merge duplicate customers" onClose={v.closeMerge} width={640} footer={<>
+            <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.closeMerge}>Cancel</button>
+            <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.confirmMerge}>Keep {v.mergeKeepName}</button>
+          </>}>
+            <fieldset className="ac-mgset">
+              <legend className="gc-label">Which record do you keep?</legend>
+              <div className="ac-mg">
+                {v.mergeSides.map((c) => (
+                  <label key={c.key} className={'ac-mg__opt' + (c.on ? ' is-on' : '')}>
+                    <span className="ac-mg__head">
+                      <input type="radio" name="ac-keep" className="gc-check" checked={c.on} onChange={c.pick} />
+                      <span style={{ minWidth: "0" }}>
+                        <span className="ac-pair__name">{c.name}</span>
+                        <span className="mono ac-pair__sub">{c.phone}</span>
+                      </span>
+                    </span>
+                    <dl className="ac-mg__facts">
+                      <dt>Orders</dt><dd>{c.orders}</dd>
+                      <dt>Spent</dt><dd>{c.spent}</dd>
+                      <dt>Due</dt><dd style={c.hasDue ? { color: "var(--text-danger)", fontWeight: "var(--weight-semibold)" } : undefined}>{c.due}</dd>
+                      <dt>Buys</dt><dd>{c.types}</dd>
+                      <dt>Came from</dt><dd>{c.src}</dd>
+                      <dt>Last order</dt><dd>{c.last}</dd>
+                    </dl>
+                  </label>
+                ))}
+              </div>
+              <p className="gc-help" style={{ margin: "0" }}>{v.mergeDropName} is hidden from your lists. Their orders, spend and due are added to {v.mergeKeepName}.</p>
+            </fieldset>
+          </__Dialog>
+              <__Dialog open={v.colsOpen} title="Columns" onClose={v.closeCols} width={440} footer={<>
+                <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={v.extraOn ? v.hideExtraCols : v.showAllCols}>{v.extraOn ? 'Reset' : 'Show all'}</button>
+                <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.closeCols}>Done</button>
+              </>}>
+                <div className="ac-colchips" role="group" aria-label="Show columns:">
+                  {v.colChips.map((c) => (
+                    <button key={c.label} type="button" className={'ix-filter' + (c.on ? ' is-set' : '')} aria-pressed={c.on} onClick={c.pick} style={{ backgroundImage: 'none', paddingRight: 10 }}>{c.on ? <__Icon name="check" width="14" height="14" aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} /> : null}{c.label}</button>
+                  ))}
+                </div>
+              </__Dialog>
+              <__Dialog open={v.fOpen} title="More filters" onClose={v.closeF} width={560} footer={<>
+                <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={v.clearF}>Clear</button>
+                <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.saveView}>Save as a view</button>
+                <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.applyF}>Show customers</button>
+              </>}>
+                <div className="ac-fgrid">
+                  {FILTERS_MORE.map(([label, opts]) => (
+                    <div key={label}>
+                      <label className="gc-label" htmlFor={'ac-f-' + label}>{label}</label>
+                      <select id={'ac-f-' + label} className="gc-input gc-select" aria-label={label}>{opts.map((o) => <option key={o}>{o}</option>)}</select>
+                    </div>
+                  ))}
+                </div>
               </__Dialog>
             </div>
           </main>

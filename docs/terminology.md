@@ -7,6 +7,23 @@ Bangla. Money is always `৳12,500` (Latin digits, comma groups) in both languag
 
 The Bangla interface reads these words from `src/lib/i18n/bn.js`; add a word there when you add it here.
 
+## Menu areas (navigation.js)
+
+The sidebar lists business areas; each area's pages are tabs under the top bar (docs/reference-ux.md).
+
+| Use | Not | Bangla |
+|---|---|---|
+| Home | General, Dashboard (as the area) | হোম |
+| Orders | Sales (as the area) | অর্ডার |
+| Inventory | Stock & inventory, More stock tools | মজুদ |
+| Purchasing | Purchase (as the area) | ক্রয় |
+| Payments | Payment partners (as the area) | পেমেন্ট |
+| Communications | Customer support, Communication | যোগাযোগ |
+| Finances | Money, Accounts (as the area) | টাকা-পয়সা |
+| Analytics | Reports (as the area), Tracking & analytics | অ্যানালিটিক্স |
+| Online Store | Online store & settings | অনলাইন স্টোর |
+| Team & settings | — | টিম ও সেটিংস |
+
 ## Statuses (badges, tabs, filters)
 
 | Use | Not | Bangla | Meaning |

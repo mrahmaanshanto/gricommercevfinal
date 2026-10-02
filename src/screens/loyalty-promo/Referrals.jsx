@@ -13,35 +13,29 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
-import { Dialog, EmptyState } from '@/components/ui';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Dialog, EmptyState, StatusBadge } from '@/components/ui';
+import { MetricStrip, IndexTabs, LearnMore } from '@/components/ui/IndexKit';
 import { formatDate } from '@/lib/format';
 import { balanceOf } from '@/lib/ledger';
 import { getReferrers, getReferralRecords, payReferral, getLoyaltySettings, saveLoyaltySettings, getMembers, monthRange, DEFAULT_SETTINGS } from '@/lib/loyalty';
 import { clockNow } from '@/lib/settlements';
 import { AccountSelect, accName } from '@/screens/accounts/accShared';
-import { LoyPage, Kpi, Stepper, useLoyalty, money, pts, plural } from './loyShared';
+import { LoyPage, Stepper, useLoyalty, money, pts, plural } from './loyShared';
 
-const STATUS = { due: ['Unpaid', 'warning'], given: ['Given', 'success'], waiting: ['No order yet', 'slate'] };
+const STATUS = { due: ['Unpaid', 'warning'], given: ['Given', 'success'], waiting: ['No order yet', 'neutral'] };
 const HOW = { wallet: 'Into wallet', cash: 'Paid', points: 'As points' };
 const CSS = `
-.rf-rule{display:flex;flex-direction:column;gap:var(--space-4);padding:var(--space-5)}
-.rf-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3)}
-.rf-row > span:first-child{flex:1 1 220px;min-width:0;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
-.rf-gets{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
-.rf-gets > div{padding:var(--space-3) var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-subtle)}
-.rf-gets span{display:block;font-size:var(--text-xs);color:var(--text-muted)}
-.rf-gets b{display:block;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.rf-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-3);padding:0 var(--space-5) var(--space-5)}
-.rf-step{display:flex;flex-direction:column;gap:4px;padding:var(--space-4);border-radius:var(--radius-xl);background:var(--surface-subtle)}
-.rf-step span{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--primary)}
-.rf-step b{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.rf-step small{font-size:var(--text-xs);color:var(--text-muted)}
-.rf-rank{display:grid;place-items:center;width:28px;height:28px;border-radius:var(--radius-full);background:var(--surface-subtle);font-family:var(--font-data);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-body)}
-.rf-rank.is-top{background:var(--fill-warning-soft);color:var(--text-warning)}
-.rf-code{font-family:var(--font-data);font-size:var(--text-xs);padding:2px 8px;border-radius:var(--radius-full);background:var(--fill-primary-soft);color:var(--primary)}
-@media (max-width:760px){.rf-steps{grid-template-columns:minmax(0,1fr)}.rf-gets{grid-template-columns:minmax(0,1fr)}}
-/* phones (table as cards): the customer sits on the right like every other value */
-@media (max-width:640px){.rf-table .ly-who{justify-content:flex-end;text-align:right}}
+.rf-side{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--space-4);align-items:start}
+.rf-side .ix-card__body{display:flex;flex-direction:column;gap:var(--space-3)}
+@media (max-width:900px){.rf-side{grid-template-columns:minmax(0,1fr)}}
+.rf-gets{margin:0;font-size:var(--text-xs);color:var(--text-muted)}
+.rf-gets b{font-weight:var(--weight-medium);color:var(--text-heading)}
+.rf-steps{display:flex;flex-direction:column;gap:var(--space-2);margin:0;padding:0 var(--space-4) var(--space-4);list-style:none}
+.rf-steps li{display:flex;flex-direction:column;gap:2px;font-size:var(--text-xs);color:var(--text-muted)}
+.rf-steps b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.rf-code{font-family:var(--font-data);font-size:var(--text-xs);color:var(--primary)}
 `;
 
 export default function Referrals() {
@@ -49,6 +43,8 @@ export default function Referrals() {
   const [rule, setRule] = useState(DEFAULT_SETTINGS.referral);
   const [dirty, setDirty] = useState(false);
   const [pay, setPay] = useState(null);   // referrer row
+  const [view, setView] = useState('top');
+  const router = useRouter();
 
   useEffect(() => { if (tick === 1) setRule(getLoyaltySettings().referral); }, [tick]);
   const setR = (patch) => { setRule((r) => ({ ...r, ...patch })); setDirty(true); };
@@ -76,94 +72,101 @@ export default function Referrals() {
     toast('Invite reward saved · it counts from the next friend’s first order');
   };
 
+  const open = (phone) => (e) => { if (e.target.closest('a,button,input,label,select')) return; router.push(`/member-detail?phone=${phone}`); };
+  const tabs = [['top', 'Top sharers', data ? data.referrers.length : null], ['list', 'Recent invites', data ? data.records.length : null]]
+    .map(([k, label, n]) => ({ key: k, id: 'rf-tab-' + k, label, count: n, on: view === k, onClick: () => setView(k) }));
+
   return (
-    <LoyPage screen="Referrals" active="loy-referrals" title="Invite a friend" css={CSS}
-      about="Customers share their code. When a friend’s first order is delivered, the customer gets a reward. Rewards are a cost of your online sales.">
-      <div className="gc-kpis gc-kpis--tight">
-        <Kpi icon="share-2" label="Customers sharing" value={data ? pts(data.referrers.length) : '—'} sub="have an invite code" />
-        <Kpi icon="user-plus" tone="success" label="Friends who joined" value={data ? pts(data.joined) : '—'} sub={data ? `${pts(data.bought)} bought · ${money(data.sales)} sales` : ''} />
-        <Kpi icon="gift" tone="info" label="Rewards given" value={data ? money(data.earned) : '—'} sub={data ? `${money(data.due)} not paid yet` : ''} />
-        <Kpi icon="receipt" tone="warning" label="Invite cost this month" value={data ? money(data.month) : '—'} sub={data ? `${data.lastLabel}: ${money(data.last)}` : ''} />
-      </div>
+    <LoyPage screen="Referrals" active="loy-referrals" title="Invite a friend" icon="share-2" css={CSS}
+      about="Customers share their code. When a friend’s first order is delivered, the customer gets a reward. Rewards are a cost of your online sales."
+      more={[{ label: 'Loyalty rules', href: '/loyalty' }, { label: 'Members', href: '/members' }]}>
+      <MetricStrip items={[
+        { label: 'Customers sharing', value: data ? pts(data.referrers.length) : '—', sub: 'have an invite code' },
+        { label: 'Friends who joined', value: data ? pts(data.joined) : '—', sub: data ? `${pts(data.bought)} bought` : '' },
+        { label: 'Rewards given', value: data ? money(data.earned) : '—', sub: data ? `${money(data.due)} due` : '' },
+        { label: 'Invite cost this month', value: data ? money(data.month) : '—', sub: data ? `${data.lastLabel}: ${money(data.last)}` : '' },
+      ]} />
 
-      <details className="gc-card ac-card gc-disclose">
-        <summary>How “Invite a friend” works</summary>
-        <div className="rf-steps">
-          <div className="rf-step"><span>Step 1</span><b>Customer shares the code</b><small>From the app, website or SMS, for example RAKIB250</small></div>
-          <div className="rf-step"><span>Step 2</span><b>Friend buys for the first time</b><small>{rule.kind === 'comm' ? `and gets ${rule.friendPoints} welcome points` : `and gets ${rule.points} welcome points`}</small></div>
-          <div className="rf-step"><span>Step 3</span><b>Customer gets a reward</b><small>{rule.kind === 'comm' ? `${rule.pct}% of the friend’s first order, in the wallet or paid out` : `${rule.points} points (${money(rule.points * (data ? data.pv : DEFAULT_SETTINGS.pointValue))})`}</small></div>
-        </div>
-      </details>
-
-      <section className="gc-card rf-rule" aria-labelledby="rf-rule">
-        <div className="ac-head" style={{ padding: 0 }}><div><h2 id="rf-rule">Reward</h2></div></div>
-        <div className="ac-seg" role="group" aria-label="Reward type" style={{ alignSelf: 'flex-start' }}>
-          <button type="button" aria-pressed={rule.kind === 'comm'} onClick={() => setR({ kind: 'comm' })}>Share of the first order</button>
-          <button type="button" aria-pressed={rule.kind === 'points'} onClick={() => setR({ kind: 'points' })}>Points each</button>
-        </div>
-        <div className="rf-row">
-          <span>{rule.kind === 'comm' ? 'The customer gets this share of the friend’s first order' : 'Both the customer and the friend get'}</span>
-          {rule.kind === 'comm' ? <Stepper label="percent" value={rule.pct} min={1} max={30} onChange={(v) => setR({ pct: v })} /> : <Stepper label="points each" value={rule.points} step={10} min={10} max={1000} onChange={(v) => setR({ points: v })} />}
-          <span className="ac-sub" style={{ display: 'inline', minWidth: 64 }}>{rule.kind === 'comm' ? '%' : 'points each'}</span>
-        </div>
-        <div className="rf-gets">
-          <div><span>The friend gets</span><b>{rule.kind === 'comm' ? rule.friendPoints : rule.points} welcome points</b></div>
-          <div><span>The customer gets</span><b>{rule.kind === 'comm' ? `${rule.pct}% of the order (e.g. ${money(5000 * rule.pct / 100)} on ${money(5000)})` : `${rule.points} points`}</b></div>
-        </div>
-        <div className="ac-row-actions" style={{ justifyContent: 'flex-start' }}>
-          <button type="button" className="gc-btn gc-btn--solid" onClick={saveRule} disabled={!dirty}><Icon name="check" width="18" height="18" aria-hidden="true" /> Save reward</button>
-          {dirty ? <button type="button" className="gc-btn gc-btn--neutral" onClick={() => { setRule(getLoyaltySettings().referral); setDirty(false); }}>Undo</button> : null}
-        </div>
-      </section>
-
-      <section className="gc-card ac-card" aria-labelledby="rf-top">
-        <div className="ac-head"><div><h2 id="rf-top">Top sharers</h2></div></div>
-        {!data ? <EmptyState icon="loader" title="Reading invites" /> : (
-          <div className="gc-table-wrap">
-            <table className="gc-table gc-table--compact gc-table--hoverable rf-table">
-              <thead><tr><th scope="col">#</th><th scope="col">Customer</th><th scope="col">Invite code</th><th scope="col" className="ac-num">Friends joined</th><th scope="col" className="ac-num">Bought</th><th scope="col" className="ac-num">Friends’ sales</th><th scope="col" className="ac-num">Earned</th><th scope="col" className="ac-num">Due</th><th scope="col"><span className="sr-only">Pay</span></th></tr></thead>
-              <tbody>
-                {data.referrers.map((r, i) => (
-                  <tr key={r.phone}>
-                    <td><span className={'rf-rank' + (i === 0 ? ' is-top' : '')}>{i + 1}</span></td>
-                    <td><div className="ly-who"><span className="ly-ava" aria-hidden="true">{r.name.charAt(0)}</span><span><b>{r.name}</b><small>{r.phone}</small></span></div></td>
-                    <td><span className="rf-code">{r.code}</span></td>
-                    <td className="ac-num ac-fig">{pts(r.joined)}</td>
-                    <td className="ac-num ac-fig">{pts(r.bought)}</td>
-                    <td className="ac-num ac-fig">{money(r.sales)}</td>
-                    <td className="ac-num ac-fig">{money(r.earned)}</td>
-                    <td className="ac-num ac-fig ac-strong">{r.due ? money(r.due) : '—'}</td>
-                    <td><div className="ac-row-actions">{r.due ? <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => setPay(r)} aria-label={`Pay ${r.name} ${money(r.due)}`}>Pay reward</button> : <span className="gc-badge gc-badge--success">Paid</span>}</div></td>
-                  </tr>
+      <section className="ix-card" aria-label="Invites">
+            <div className="ix-bar"><IndexTabs tabs={tabs} label="Invites" /></div>
+            {!data ? <div className="ix-empty"><EmptyState icon="loader" title="Reading invites" /></div> : view === 'top' ? (<>
+              <ul className="ix-plist" aria-label="Top sharers">
+                {data.referrers.map((r) => (
+                  <li key={r.phone}><Link href={`/member-detail?phone=${r.phone}`} className="ix-pitem"><span className="ix-pitem__top"><b>{r.name}</b><span>{r.due ? money(r.due) + ' due' : money(r.earned)}</span></span><span className="ix-pitem__mid">{r.code} · {pts(r.joined)} joined · {money(r.sales)} sales</span></Link></li>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <section className="gc-card ac-card" aria-labelledby="rf-list">
-        <div className="ac-head"><div><h2 id="rf-list">Recent invites</h2><p>{data ? `${plural(data.records.length, 'friend')} joined with a code` : ''}</p></div></div>
-        {!data ? null : data.records.length === 0 ? <EmptyState icon="share-2" title="No invites yet" body="Friends who join with a code show here." /> : (
-          <div className="gc-table-wrap">
-            <table className="gc-table gc-table--compact">
-              <thead><tr><th scope="col">Friend</th><th scope="col">Invited by</th><th scope="col">Joined</th><th scope="col">First order</th><th scope="col" className="ac-num">Reward</th><th scope="col">Status</th></tr></thead>
-              <tbody>
+              </ul>
+              <div className="ix-table-wrap">
+                <table className="ix-table gc-table--keep">
+                  <thead><tr><th scope="col">Customer</th><th scope="col">Invite code</th><th scope="col" className="ix-num">Friends joined</th><th scope="col" className="ix-num">Friends’ sales</th><th scope="col" className="ix-num">Earned</th><th scope="col" className="ix-num">Due</th><th scope="col"><span className="sr-only">Pay</span></th></tr></thead>
+                  <tbody>
+                    {data.referrers.map((r) => (
+                      <tr key={r.phone} onClick={open(r.phone)}>
+                        <td><Link href={`/member-detail?phone=${r.phone}`} className="ix-strong">{r.name}</Link></td>
+                        <td><span className="rf-code">{r.code}</span></td>
+                        <td className="ix-num">{pts(r.joined)}<span className="ix-muted"> · {pts(r.bought)} bought</span></td>
+                        <td className="ix-num">{money(r.sales)}</td>
+                        <td className="ix-num">{money(r.earned)}</td>
+                        <td className="ix-num ix-strong">{r.due ? money(r.due) : '—'}</td>
+                        <td className="ix-num">{r.due ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => setPay(r)} aria-label={`Pay ${r.name} ${money(r.due)}`}>Pay reward</button> : <StatusBadge tone="success">Paid</StatusBadge>}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>) : data.records.length === 0 ? <div className="ix-empty"><EmptyState icon="share-2" title="No invites yet" body="Friends who join with a code show here." /></div> : (<>
+              <ul className="ix-plist" aria-label="Recent invites">
                 {data.records.map((r) => (
-                  <tr key={r.id}>
-                    <td><span className="ac-strong">{r.friend}</span><span className="ac-sub ac-fig">{r.id}</span></td>
-                    <td>{data.names[r.referrer] || r.referrer}</td>
-                    <td>{formatDate(r.joinedAt)}</td>
-                    <td>{r.order ? <><span className="ac-fig">{r.order.ref}</span><span className="ac-sub">{money(r.order.amount)}</span></> : '—'}</td>
-                    <td className="ac-num ac-fig">{r.reward ? money(r.reward) : '—'}{r.how === 'points' && r.points ? <span className="ac-sub">{pts(r.points)} points</span> : null}</td>
-                    <td><span className={'gc-badge gc-badge--' + STATUS[r.status][1]}>{STATUS[r.status][0]}</span>{r.status === 'given' ? <span className="ac-sub">{HOW[r.how] || 'Given'}{r.account ? ' · ' + accName(r.account) : ''} · {formatDate(r.givenAt)}</span> : null}</td>
-                  </tr>
+                  <li key={r.id} className="ix-pitem"><span className="ix-pitem__top"><b>{r.friend}</b><span>{r.reward ? money(r.reward) : '—'}</span></span><span className="ix-pitem__mid">{data.names[r.referrer] || r.referrer} · {formatDate(r.joinedAt)}</span><span className="ix-pitem__tags"><StatusBadge tone={STATUS[r.status][1]}>{STATUS[r.status][0]}</StatusBadge></span></li>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              </ul>
+              <div className="ix-table-wrap">
+                <table className="ix-table ix-table--static gc-table--keep">
+                  <thead><tr><th scope="col">Friend</th><th scope="col">Invited by</th><th scope="col">Joined</th><th scope="col">First order</th><th scope="col" className="ix-num">Reward</th><th scope="col">Status</th></tr></thead>
+                  <tbody>
+                    {data.records.map((r) => (
+                      <tr key={r.id}>
+                        <td><span className="ix-strong">{r.friend}</span></td>
+                        <td>{data.names[r.referrer] || r.referrer}</td>
+                        <td className="ix-muted">{formatDate(r.joinedAt)}</td>
+                        <td>{r.order ? <><span className="ly-fig">{r.order.ref}</span><span className="ix-muted"> · {money(r.order.amount)}</span></> : '—'}</td>
+                        <td className="ix-num">{r.reward ? money(r.reward) : '—'}{r.how === 'points' && r.points ? <span className="ly-sub">{pts(r.points)} points</span> : null}</td>
+                        <td><span title={r.status === 'given' ? `${HOW[r.how] || 'Given'}${r.account ? ' · ' + accName(r.account) : ''} · ${formatDate(r.givenAt)}` : undefined}><StatusBadge tone={STATUS[r.status][1]}>{STATUS[r.status][0]}</StatusBadge></span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>)}
+            <div className="ix-foot"><span>{data ? (view === 'top' ? plural(data.referrers.length, 'customer') : `${plural(data.records.length, 'friend')} joined with a code`) : ''}</span></div>
       </section>
+
+      <div className="rf-side">
+          <section className="ix-card" aria-labelledby="rf-rule">
+            <header className="ix-card__head"><h2 id="rf-rule">Reward</h2>{dirty ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => { setRule(getLoyaltySettings().referral); setDirty(false); }}>Undo</button> : null}</header>
+            <div className="ix-card__body">
+              <div className="ac-seg" role="group" aria-label="Reward type" style={{ alignSelf: 'flex-start' }}>
+                <button type="button" aria-pressed={rule.kind === 'comm'} onClick={() => setR({ kind: 'comm' })}>Share of the first order</button>
+                <button type="button" aria-pressed={rule.kind === 'points'} onClick={() => setR({ kind: 'points' })}>Points each</button>
+              </div>
+              <div className="ly-row">
+                <span className="ly-grow">{rule.kind === 'comm' ? 'The customer gets this share of the friend’s first order' : 'Both the customer and the friend get'}</span>
+                {rule.kind === 'comm' ? <Stepper label="percent" value={rule.pct} min={1} max={30} onChange={(v) => setR({ pct: v })} /> : <Stepper label="points each" value={rule.points} step={10} min={10} max={1000} onChange={(v) => setR({ points: v })} />}
+                <span className="ly-sub">{rule.kind === 'comm' ? '%' : 'points each'}</span>
+              </div>
+              <p className="rf-gets">The friend gets <b>{rule.kind === 'comm' ? rule.friendPoints : rule.points} welcome points</b>. The customer gets <b>{rule.kind === 'comm' ? `${rule.pct}% of the order (e.g. ${money(5000 * rule.pct / 100)} on ${money(5000)})` : `${rule.points} points`}</b>.</p>
+              <button type="button" className="ix-btn ix-btn--primary" onClick={saveRule} disabled={!dirty}>Save reward</button>
+            </div>
+          </section>
+          <details className="ix-card gc-disclose">
+            <summary>How “Invite a friend” works</summary>
+            <ol className="rf-steps">
+              <li><b>Customer shares the code</b>From the app, website or SMS, for example RAKIB250</li>
+              <li><b>Friend buys for the first time</b>{rule.kind === 'comm' ? `and gets ${rule.friendPoints} welcome points` : `and gets ${rule.points} welcome points`}</li>
+              <li><b>Customer gets a reward</b>{rule.kind === 'comm' ? `${rule.pct}% of the friend’s first order, in the wallet or paid out` : `${rule.points} points (${money(rule.points * (data ? data.pv : DEFAULT_SETTINGS.pointValue))})`}</li>
+            </ol>
+          </details>
+      </div>
+      <LearnMore topic="invites" />
 
       {pay ? <PayDialog r={pay} onClose={() => setPay(null)} /> : null}
     </LoyPage>

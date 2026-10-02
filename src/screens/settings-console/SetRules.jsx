@@ -6,6 +6,7 @@
 import { SetTips as __SetTips } from './SetChrome';
 import React from 'react';
 import { Icon as __Icon } from '@/runtime/dc';
+import { Menu as __Menu } from '@/components/ui/IndexKit';
 import { SettingsSwitcher as __SettingsSwitcher } from '@/shell/Shell';
 import __SetChrome, { SettingsLogic as __SettingsLogic, SetIn as __In, SetErr as __Err, SetSw as __Sw, SetChk as __Chk, SetSaveBar as __SaveBar } from '@/screens/settings-console/SetChrome';
 import __SetRail from '@/screens/settings-console/SetRail';
@@ -55,22 +56,7 @@ class Component extends __SettingsLogic {
 
 // ---- styles (from the design's <helmet>) ----
 
-const CSS = `.dc-h466:hover{background:#e9eef5 !important;color:#1e293b !important}
-.dc-h467:hover{background:#e9eef5 !important;color:#1e293b !important}
-.dc-h468:hover{background:#e9eef5 !important;color:#1e293b !important}
-.dc-h469:hover{background:#e9eef5 !important;color:#1e293b !important}
-.dc-h470:hover{background:#e9eef5 !important;color:#1e293b !important}
-.dc-h471:hover{background:#e9eef5 !important;color:#1e293b !important}
-.dc-h472:hover{background:#e9eef5 !important;color:#1e293b !important}
-.dc-h473:hover{background:#e9eef5 !important;color:#1e293b !important}
-.dc-h474:hover{background:#e9eef5 !important;color:#1e293b !important}
-.dc-h475:hover{background:#e9eef5 !important;color:#1e293b !important}
-.dc-h476:hover{background:#e9eef5 !important;color:#1e293b !important}
-.dc-h477:hover{background:#e9eef5 !important;color:#1e293b !important}
-.dc-h478:hover{background:#e9eef5 !important;color:#1e293b !important}
-.dc-h479:hover{background:#e9eef5 !important;color:#1e293b !important}
-.dc-h480:hover{background:#e9eef5 !important;color:#1e293b !important}
-.dc-h481:hover{background:#f1f5f9 !important;color:#475569 !important}`;
+const CSS = `.dc-h481:hover{background:#f1f5f9 !important;color:#475569 !important}`;
 
 // ---- markup ----
 
@@ -90,41 +76,41 @@ export default class SetRulesScreen extends Component {
               <form className="set-shell__col" noValidate onSubmit={v.f.submit}>
                 <div className="set-content">
                   <main className="set-main">
-                    <header style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
-                      <span style={{ display: "block", minWidth: "0" }}>
-                        <h1 style={{ margin: "0 0 4px", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>Auto-Reply Rules</h1>
+                    <header className="set-pagehead">
+                      <span className="set-pagehead__text">
+                        <h1 className="ix-head__title">Auto-Reply Rules</h1>
                         <__SetTips />
                       </span>
                       <span style={{ marginLeft: "auto", flex: "none", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>5 rules · {v.onCount} on</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>5 rules · {v.onCount} on</span>
                         <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Last edited 6 Sep 2026, 9:41 PM</span>
                       </span>
                     </header>
-                    <section id="s0" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                    <section id="s0" className="ix-card set-card">
+                      <div className="set-head">
                         <span style={{ display: "block" }}>
-                          <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Rules</span>
+                          <h2 className="set-title">Rules</h2>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>5 rules · {v.onCount} on</span>
-                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", width: "150px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>5 rules · {v.onCount} on</span>
+                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", width: "150px", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
                             <select className="set-in" aria-label="Show rules for channel" value={v.chan} onChange={v.setChan}>{["All channels", "Website widget", "WhatsApp", "Messenger"].map((o) => <option key={o} value={o}>{o}</option>)}</select>
                             <__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ color: "var(--text-muted)" }} />
                           </span>
-                          <button type="button" onClick={v.f.say("“Add rule” is not available in the demo yet.")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#003087", color: "#fff" }}><__Icon name="plus" strokeWidth="1.75" width="15" height="15" />Add rule</button>
+                          <button type="button" onClick={v.f.say("“Add rule” is not available in the demo yet.")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "var(--control-height)", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#003087", color: "#fff" }}><__Icon name="plus" strokeWidth="1.75" width="15" height="15" />Add rule</button>
                         </span>
                       </div>
                       <div className="gc-table-wrap" style={{ overflow: "auto" }}>
                         <table style={{ width: "100%", minWidth: "760px", borderCollapse: "collapse" }}>
                           <thead>
                             <tr>
-                              <th style={{ padding: "9px 8px 9px 16px", borderBottom: "1px solid #e2e8f0", background: "#fcfdfe", textAlign: "left", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Priority</th>
-                              <th style={{ padding: "9px 8px", borderBottom: "1px solid #e2e8f0", background: "#fcfdfe", textAlign: "left", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Type</th>
-                              <th style={{ padding: "9px 8px", borderBottom: "1px solid #e2e8f0", background: "#fcfdfe", textAlign: "left", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Channel</th>
-                              <th style={{ padding: "9px 8px", borderBottom: "1px solid #e2e8f0", background: "#fcfdfe", textAlign: "left", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Trigger</th>
-                              <th style={{ padding: "9px 8px", borderBottom: "1px solid #e2e8f0", background: "#fcfdfe", textAlign: "left", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Response</th>
-                              <th style={{ padding: "9px 8px", borderBottom: "1px solid #e2e8f0", background: "#fcfdfe", textAlign: "left", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>On</th>
-                              <th style={{ padding: "9px 8px", borderBottom: "1px solid #e2e8f0", background: "#fcfdfe", textAlign: "left", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }} />
+                              <th style={{ padding: "9px 8px 9px 16px", borderBottom: "1px solid #e2e8f0", background: "var(--surface-subtle)", textAlign: "left", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-body)" }}>Priority</th>
+                              <th style={{ padding: "9px 8px", borderBottom: "1px solid #e2e8f0", background: "var(--surface-subtle)", textAlign: "left", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-body)" }}>Type</th>
+                              <th style={{ padding: "9px 8px", borderBottom: "1px solid #e2e8f0", background: "var(--surface-subtle)", textAlign: "left", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-body)" }}>Channel</th>
+                              <th style={{ padding: "9px 8px", borderBottom: "1px solid #e2e8f0", background: "var(--surface-subtle)", textAlign: "left", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-body)" }}>Trigger</th>
+                              <th style={{ padding: "9px 8px", borderBottom: "1px solid #e2e8f0", background: "var(--surface-subtle)", textAlign: "left", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-body)" }}>Response</th>
+                              <th style={{ padding: "9px 8px", borderBottom: "1px solid #e2e8f0", background: "var(--surface-subtle)", textAlign: "left", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-body)" }}>On</th>
+                              <th style={{ padding: "9px 8px", borderBottom: "1px solid #e2e8f0", background: "var(--surface-subtle)", textAlign: "left", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-body)" }} />
                             </tr>
                           </thead>
                           <tbody>
@@ -133,7 +119,7 @@ export default class SetRulesScreen extends Component {
                                 <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}><__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" style={{ color: "#cbd5e1" }} />1</span>
                               </td>
                               <td style={{ padding: "10px 8px", borderBottom: "1px solid #f1f5f9" }}>
-                                <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(0,156,222,.14)", color: "var(--accent-text)" }}>Keyword</span>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(0,156,222,.14)", color: "var(--accent-text)" }}>Keyword</span>
                               </td>
                               <td style={{ padding: "10px 8px", borderBottom: "1px solid #f1f5f9", fontSize: "var(--text-xs)", color: "#475569" }}>All channels</td>
                               <td style={{ padding: "10px 8px", borderBottom: "1px solid #f1f5f9", fontSize: "var(--text-xs-plus)", color: "#1e293b" }}>
@@ -144,17 +130,7 @@ export default class SetRulesScreen extends Component {
                                 <__Sw f={v.f} n="rule_1_on" />
                               </td>
                               <td style={{ padding: "10px 16px 10px 8px", borderBottom: "1px solid #f1f5f9", textAlign: "right", whiteSpace: "nowrap" }}>
-                                <span style={{ display: "inline-flex", gap: "4px" }}>
-                                  <button type="button" onClick={v.f.say("“Edit rule 1” is not available in the demo yet.")} className="dc-h466" aria-label="Edit rule 1" title="Edit rule 1" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
-                                    <__Icon name="pencil" strokeWidth="1.75" width="15" height="15" />
-                                  </button>
-                                  <button type="button" onClick={v.f.say("“Duplicate rule 1” is not available in the demo yet.")} className="dc-h467" aria-label="Duplicate rule 1" title="Duplicate rule 1" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
-                                    <__Icon name="copy" strokeWidth="1.75" width="15" height="15" />
-                                  </button>
-                                  <button type="button" onClick={v.f.say("“Delete rule 1” is not available in the demo yet.")} className="dc-h468" aria-label="Delete rule 1" title="Delete rule 1" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
-                                    <__Icon name="trash-2" strokeWidth="1.75" width="15" height="15" />
-                                  </button>
-                                </span>
+                                <__Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" items={[{ label: 'Edit', onClick: v.f.say("“Edit rule 1” is not available in the demo yet.") }, { label: 'Duplicate', onClick: v.f.say("“Duplicate rule 1” is not available in the demo yet.") }, { label: 'Delete', onClick: v.f.say("“Delete rule 1” is not available in the demo yet."), tone: 'danger' }]} />
                               </td>
                             </tr>
                             <tr hidden={!v.show(2)}>
@@ -162,7 +138,7 @@ export default class SetRulesScreen extends Component {
                                 <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}><__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" style={{ color: "#cbd5e1" }} />2</span>
                               </td>
                               <td style={{ padding: "10px 8px", borderBottom: "1px solid #f1f5f9" }}>
-                                <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(0,156,222,.14)", color: "var(--accent-text)" }}>Keyword</span>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(0,156,222,.14)", color: "var(--accent-text)" }}>Keyword</span>
                               </td>
                               <td style={{ padding: "10px 8px", borderBottom: "1px solid #f1f5f9", fontSize: "var(--text-xs)", color: "#475569" }}>WhatsApp · Widget</td>
                               <td style={{ padding: "10px 8px", borderBottom: "1px solid #f1f5f9", fontSize: "var(--text-xs-plus)", color: "#1e293b" }}>
@@ -173,17 +149,7 @@ export default class SetRulesScreen extends Component {
                                 <__Sw f={v.f} n="rule_2_on" />
                               </td>
                               <td style={{ padding: "10px 16px 10px 8px", borderBottom: "1px solid #f1f5f9", textAlign: "right", whiteSpace: "nowrap" }}>
-                                <span style={{ display: "inline-flex", gap: "4px" }}>
-                                  <button type="button" onClick={v.f.say("“Edit rule 2” is not available in the demo yet.")} className="dc-h469" aria-label="Edit rule 2" title="Edit rule 2" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
-                                    <__Icon name="pencil" strokeWidth="1.75" width="15" height="15" />
-                                  </button>
-                                  <button type="button" onClick={v.f.say("“Duplicate rule 2” is not available in the demo yet.")} className="dc-h470" aria-label="Duplicate rule 2" title="Duplicate rule 2" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
-                                    <__Icon name="copy" strokeWidth="1.75" width="15" height="15" />
-                                  </button>
-                                  <button type="button" onClick={v.f.say("“Delete rule 2” is not available in the demo yet.")} className="dc-h471" aria-label="Delete rule 2" title="Delete rule 2" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
-                                    <__Icon name="trash-2" strokeWidth="1.75" width="15" height="15" />
-                                  </button>
-                                </span>
+                                <__Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" items={[{ label: 'Edit', onClick: v.f.say("“Edit rule 2” is not available in the demo yet.") }, { label: 'Duplicate', onClick: v.f.say("“Duplicate rule 2” is not available in the demo yet.") }, { label: 'Delete', onClick: v.f.say("“Delete rule 2” is not available in the demo yet."), tone: 'danger' }]} />
                               </td>
                             </tr>
                             <tr hidden={!v.show(3)} style={{ background: "rgba(0,48,135,.05)" }}>
@@ -191,7 +157,7 @@ export default class SetRulesScreen extends Component {
                                 <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}><__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" style={{ color: "#cbd5e1" }} />3</span>
                               </td>
                               <td style={{ padding: "10px 8px", borderBottom: "1px solid #f1f5f9" }}>
-                                <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>Intent</span>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>Intent</span>
                               </td>
                               <td style={{ padding: "10px 8px", borderBottom: "1px solid #f1f5f9", fontSize: "var(--text-xs)", color: "#475569" }}>All channels</td>
                               <td style={{ padding: "10px 8px", borderBottom: "1px solid #f1f5f9", fontSize: "var(--text-xs-plus)", color: "#1e293b" }}>
@@ -202,17 +168,7 @@ export default class SetRulesScreen extends Component {
                                 <__Sw f={v.f} n="rule_3_on" />
                               </td>
                               <td style={{ padding: "10px 16px 10px 8px", borderBottom: "1px solid #f1f5f9", textAlign: "right", whiteSpace: "nowrap" }}>
-                                <span style={{ display: "inline-flex", gap: "4px" }}>
-                                  <button type="button" aria-expanded={v.editor} onClick={v.openEditor} className="dc-h472" aria-label="Edit rule 3" title="Edit rule 3" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
-                                    <__Icon name="pencil" strokeWidth="1.75" width="15" height="15" />
-                                  </button>
-                                  <button type="button" onClick={v.f.say("“Duplicate rule 3” is not available in the demo yet.")} className="dc-h473" aria-label="Duplicate rule 3" title="Duplicate rule 3" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
-                                    <__Icon name="copy" strokeWidth="1.75" width="15" height="15" />
-                                  </button>
-                                  <button type="button" onClick={v.f.say("“Delete rule 3” is not available in the demo yet.")} className="dc-h474" aria-label="Delete rule 3" title="Delete rule 3" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
-                                    <__Icon name="trash-2" strokeWidth="1.75" width="15" height="15" />
-                                  </button>
-                                </span>
+                                <__Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" items={[{ label: 'Edit', onClick: v.openEditor }, { label: 'Duplicate', onClick: v.f.say("“Duplicate rule 3” is not available in the demo yet.") }, { label: 'Delete', onClick: v.f.say("“Delete rule 3” is not available in the demo yet."), tone: 'danger' }]} />
                               </td>
                             </tr>
                             <tr hidden={!v.show(4)}>
@@ -220,7 +176,7 @@ export default class SetRulesScreen extends Component {
                                 <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}><__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" style={{ color: "#cbd5e1" }} />4</span>
                               </td>
                               <td style={{ padding: "10px 8px", borderBottom: "1px solid #f1f5f9" }}>
-                                <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(255,152,0,.16)", color: "var(--text-warning)" }}>Schedule</span>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(255,152,0,.16)", color: "var(--text-warning)" }}>Schedule</span>
                               </td>
                               <td style={{ padding: "10px 8px", borderBottom: "1px solid #f1f5f9", fontSize: "var(--text-xs)", color: "#475569" }}>Widget · Messenger</td>
                               <td style={{ padding: "10px 8px", borderBottom: "1px solid #f1f5f9", fontSize: "var(--text-xs-plus)", color: "#1e293b" }}>
@@ -231,17 +187,7 @@ export default class SetRulesScreen extends Component {
                                 <__Sw f={v.f} n="rule_4_on" />
                               </td>
                               <td style={{ padding: "10px 16px 10px 8px", borderBottom: "1px solid #f1f5f9", textAlign: "right", whiteSpace: "nowrap" }}>
-                                <span style={{ display: "inline-flex", gap: "4px" }}>
-                                  <button type="button" onClick={v.f.say("“Edit rule 4” is not available in the demo yet.")} className="dc-h475" aria-label="Edit rule 4" title="Edit rule 4" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
-                                    <__Icon name="pencil" strokeWidth="1.75" width="15" height="15" />
-                                  </button>
-                                  <button type="button" onClick={v.f.say("“Duplicate rule 4” is not available in the demo yet.")} className="dc-h476" aria-label="Duplicate rule 4" title="Duplicate rule 4" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
-                                    <__Icon name="copy" strokeWidth="1.75" width="15" height="15" />
-                                  </button>
-                                  <button type="button" onClick={v.f.say("“Delete rule 4” is not available in the demo yet.")} className="dc-h477" aria-label="Delete rule 4" title="Delete rule 4" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
-                                    <__Icon name="trash-2" strokeWidth="1.75" width="15" height="15" />
-                                  </button>
-                                </span>
+                                <__Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" items={[{ label: 'Edit', onClick: v.f.say("“Edit rule 4” is not available in the demo yet.") }, { label: 'Duplicate', onClick: v.f.say("“Duplicate rule 4” is not available in the demo yet.") }, { label: 'Delete', onClick: v.f.say("“Delete rule 4” is not available in the demo yet."), tone: 'danger' }]} />
                               </td>
                             </tr>
                             <tr hidden={!v.show(5)}>
@@ -249,7 +195,7 @@ export default class SetRulesScreen extends Component {
                                 <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}><__Icon name="grip-vertical" strokeWidth="1.75" width="14" height="14" style={{ color: "#cbd5e1" }} />5</span>
                               </td>
                               <td style={{ padding: "10px 8px", borderBottom: "1px solid #f1f5f9" }}>
-                                <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(0,156,222,.14)", color: "var(--accent-text)" }}>Keyword</span>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(0,156,222,.14)", color: "var(--accent-text)" }}>Keyword</span>
                               </td>
                               <td style={{ padding: "10px 8px", borderBottom: "1px solid #f1f5f9", fontSize: "var(--text-xs)", color: "#475569" }}>Messenger</td>
                               <td style={{ padding: "10px 8px", borderBottom: "1px solid #f1f5f9", fontSize: "var(--text-xs-plus)", color: "#1e293b" }}>
@@ -260,17 +206,7 @@ export default class SetRulesScreen extends Component {
                                 <__Sw f={v.f} n="rule_5_on" />
                               </td>
                               <td style={{ padding: "10px 16px 10px 8px", borderBottom: "1px solid #f1f5f9", textAlign: "right", whiteSpace: "nowrap" }}>
-                                <span style={{ display: "inline-flex", gap: "4px" }}>
-                                  <button type="button" onClick={v.f.say("“Edit rule 5” is not available in the demo yet.")} className="dc-h478" aria-label="Edit rule 5" title="Edit rule 5" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
-                                    <__Icon name="pencil" strokeWidth="1.75" width="15" height="15" />
-                                  </button>
-                                  <button type="button" onClick={v.f.say("“Duplicate rule 5” is not available in the demo yet.")} className="dc-h479" aria-label="Duplicate rule 5" title="Duplicate rule 5" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
-                                    <__Icon name="copy" strokeWidth="1.75" width="15" height="15" />
-                                  </button>
-                                  <button type="button" onClick={v.f.say("“Delete rule 5” is not available in the demo yet.")} className="dc-h480" aria-label="Delete rule 5" title="Delete rule 5" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
-                                    <__Icon name="trash-2" strokeWidth="1.75" width="15" height="15" />
-                                  </button>
-                                </span>
+                                <__Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" items={[{ label: 'Edit', onClick: v.f.say("“Edit rule 5” is not available in the demo yet.") }, { label: 'Duplicate', onClick: v.f.say("“Duplicate rule 5” is not available in the demo yet.") }, { label: 'Delete', onClick: v.f.say("“Delete rule 5” is not available in the demo yet."), tone: 'danger' }]} />
                               </td>
                             </tr>
                           </tbody>
@@ -295,7 +231,7 @@ export default class SetRulesScreen extends Component {
                           <label htmlFor={v.f.id("rule_type")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Rule type</label>
                         </span>
                         <span id={v.f.id("rule_type") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Keyword matches text; intent uses the model’s classification; schedule fires on time of day.</span>
-                        <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
+                        <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
                           <__In f={v.f} n="rule_type" labelled desc opts={["Keyword","Intent","Schedule"]} />
                           <__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ color: "var(--text-muted)" }} />
                         </span>
@@ -306,7 +242,7 @@ export default class SetRulesScreen extends Component {
                           <label htmlFor={v.f.id("intent")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Intent</label>
                         </span>
                         <span id={v.f.id("intent") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Trained intents from your last 90 days of conversations.</span>
-                        <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)" }}>
+                        <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)" }}>
                           <__In f={v.f} n="intent" labelled desc opts={["return_or_exchange","order_status","payment_help","wholesale_enquiry"]} />
                           <__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ color: "var(--text-muted)" }} />
                         </span>
@@ -328,7 +264,7 @@ export default class SetRulesScreen extends Component {
                           <label htmlFor={v.f.id("response")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Response</label>
                         </span>
                         <span id={v.f.id("response") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>{"Supports {order_code}, {customer_name} and {policy_days}. Bangla version is generated on send."}</span>
-                        <div className="set-box" style={{ border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "9px 11px", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "#1e293b" }}><__In f={v.f} n="response" labelled desc rows={4} /></div>
+                        <div className="set-box" style={{ border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "9px 11px", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "#1e293b" }}><__In f={v.f} n="response" labelled desc rows={4} /></div>
                         <__Err f={v.f} n="response" />
                         <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><__Icon name="languages" strokeWidth="1.75" width="13" height="13" />Bangla preview available after saving</span>
                       </div>
@@ -338,7 +274,7 @@ export default class SetRulesScreen extends Component {
                             <label htmlFor={v.f.id("priority")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Priority</label>
                           </span>
                           <span id={v.f.id("priority") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Lower runs first.</span>
-                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", width: "80px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", width: "80px", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                             <__In f={v.f} n="priority" labelled desc />
                           </span>
                           <__Err f={v.f} n="priority" />
@@ -348,7 +284,7 @@ export default class SetRulesScreen extends Component {
                             <label htmlFor={v.f.id("then")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Then</label>
                           </span>
                           <span id={v.f.id("then") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>What happens after the reply.</span>
-                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
+                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
                             <__In f={v.f} n="then" labelled desc opts={["Offer return form","Hand the thread to a human","Close the thread"]} />
                             <__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ color: "var(--text-muted)" }} />
                           </span>
@@ -364,10 +300,10 @@ export default class SetRulesScreen extends Component {
                       </div>
                     </div>
                     <div style={{ flex: "none", display: "flex", alignItems: "center", gap: "10px", borderTop: "1px solid #f1f5f9", background: "#f8fafc", padding: "12px 16px" }}>
-                      <button type="button" onClick={v.f.say("Deleting a rule is not available in the demo yet.")} style={{ height: "36px", border: "none", borderRadius: "var(--radius-lg)", background: "none", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--text-danger)", cursor: "pointer" }}>Delete</button>
+                      <button type="button" onClick={v.f.say("Deleting a rule is not available in the demo yet.")} style={{ height: "var(--control-height)", border: "none", borderRadius: "var(--radius-lg)", background: "none", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--text-danger)", cursor: "pointer" }}>Delete</button>
                       <span style={{ flex: "1" }} />
-                      <button type="button" onClick={v.cancelRule} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "1px solid #cbd5e1", background: "#fff", color: "#1e293b" }}>Cancel</button>
-                      <button type="submit" style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#003087", color: "#fff" }}><__Icon name="check" strokeWidth="1.75" width="15" height="15" />Save rule</button>
+                      <button type="button" onClick={v.cancelRule} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "var(--control-height)", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "1px solid var(--border-field)", background: "#fff", color: "#1e293b" }}>Cancel</button>
+                      <button type="submit" style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "var(--control-height)", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#003087", color: "#fff" }}><__Icon name="check" strokeWidth="1.75" width="15" height="15" />Save rule</button>
                     </div>
                   </aside>
                 </div>

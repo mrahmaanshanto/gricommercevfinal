@@ -18,16 +18,16 @@ export function bdMobile(x) {
 }
 
 const CSS = `
-.ce-form{display:flex;flex-direction:column;gap:16px}
+.ce-form{display:flex;flex-direction:column;gap:var(--space-3)}
 .ce-field{display:flex;flex-direction:column}
-.ce-types{display:flex;flex-wrap:wrap;gap:8px}
-.ce-type{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 14px;border:1px solid var(--border-field);border-radius:var(--radius-lg);font-size:var(--text-sm);color:var(--text-heading);cursor:pointer}
+.ce-types{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.ce-type{display:inline-flex;align-items:center;gap:var(--space-2);height:var(--control-height);padding:0 var(--space-3);border:1px solid var(--border-field);border-radius:var(--radius-lg);font-size:var(--text-sm);color:var(--text-heading);cursor:pointer}
 .ce-type.is-on{border-color:var(--primary);background:var(--fill-primary-soft)}
 .ce-money{position:relative}
-.ce-money span{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:var(--text-sm)}
-.ce-money input{padding-left:30px}
+.ce-money span{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:var(--text-sm)}
+.ce-money input{padding-left:28px}
 .ce-err{display:flex;align-items:flex-start;gap:6px;color:var(--text-danger)!important}
-.ce-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.ce-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)}
 @media (max-width:560px){.ce-pair{grid-template-columns:minmax(0,1fr)}}
 `;
 
@@ -80,8 +80,8 @@ export default function CustomerEditDialog({ open, customer, phoneLocked, phoneT
 
   return (
     <Dialog open={open} title={'Edit ' + customer.name} onClose={onClose} width={520} footer={<>
-      <button type="button" className="gc-btn gc-btn--neutral" onClick={onClose}>Cancel</button>
-      <button type="submit" form="ce-form" className="gc-btn gc-btn--solid">Save changes</button>
+      <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={onClose}>Cancel</button>
+      <button type="submit" form="ce-form" className="gc-btn gc-btn--sm gc-btn--solid">Save changes</button>
     </>}>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <form id="ce-form" className="ce-form" noValidate onSubmit={submit}>

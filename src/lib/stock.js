@@ -13,6 +13,7 @@ import { getTransfers, inTransit } from './transfers';
 import { STOCK_PLACES, DAMAGED_PLACE, namesOf, getPlaces, onlinePlace } from './locations';
 import { isOnePlace } from './stockSetup';
 import { productCostOf } from './productCost';   // called at run time only (productCost reads this module too)
+import { DEMO_PRODUCTS } from './products';       // read at run time only (products.js reads this module too)
 
 const MOVES = 'gc.stock.moves';
 // sku, name, variant, barcode, category, retail price, wholesale price, MOQ for wholesale, sold to, on hand by place, in transit by place
@@ -36,14 +37,23 @@ export const CATALOG = [
   P('HM-RCK-18', 'Rice Cooker 1.8L Walton', '1.8L', '8941500500026', 'Home', 2950, 2508, 4, 'both', { 'Central Warehouse': 40, 'Dhanmondi branch': 4, 'Mirpur branch': 3 }),
 ];
 
-// ---- products saved in Products join the catalogue ----------------------------------------------
-// Read straight from localStorage (products.js imports this file, so it cannot be imported here).
-// A saved product whose SKU is already in the catalogue changes its name, prices, MOQ, barcode and
-// "sold to"; any other saved product (or variant) is new and starts with 0 on hand everywhere.
+// ---- one product master: the product list joins the catalogue -------------------------------------
+// Nayeem's Product brief (#1): one SKU, one product record. Every product in Products › All products
+// (products.js: its demo rows and the products saved in this browser) is a row here too, so orders, the
+// register, stock and reports all see the same products:
+//   - a product whose SKU is already in the catalogue is that row (a saved edit changes its name, prices,
+//     MOQ, barcode and "sold to");
+//   - any other product, or each of its variants, is a new row: a demo product brings its own stock at the
+//     home place, a product added in this browser starts at 0 (Add product › Opening stock adds to it).
+// Every row carries the product's status (st), pre-order switch (oversell), id, MRP and barcode kind, which
+// sellable.js reads. Saved products are read straight from localStorage; the demo product list is read from
+// products.js at run time only (products.js imports this file too).
 const SAVED_PRODUCTS = 'gc.products.saved';
+const HOME = 'Central Warehouse';
 let cache = { raw: null, list: [] };   // many lookups per render: parse only when the saved list changed
+const NONE = [];
 const readSaved = () => {
-  if (typeof window === 'undefined') return [];
+  if (typeof window === 'undefined') return NONE;
   try {
     const raw = window.localStorage.getItem(SAVED_PRODUCTS);
     if (raw !== cache.raw) { const v = JSON.parse(raw); cache = { raw, list: Array.isArray(v) ? v : [] }; }
@@ -65,32 +75,54 @@ const fresh = (sku, name, variant, barcode, cat, price, wholesale, moq, sell, br
   moq: moq ?? 0, sell: sell || 'retail', on: {}, transit: {}, saved: true, brand: brand || '',
 });
 
-/** The stock catalogue with the products saved in Products: CATALOG + new products, edits applied. */
-let built = { from: null, list: CATALOG };
+// what a catalogue row learns from its product (sellable.js reads these)
+const metaOf = (p, v) => ({ st: p.st || 'active', oversell: !!p.oversell, productId: p.id, mrp: num((v && v.mrp) ?? p.mrp), barcodeType: (v && v.barcodeType) || p.barcodeType || '' });
+
+/** The one catalogue: the stock catalogue and the product list (demo + saved in this browser), see above. */
+let built = { from: undefined, list: CATALOG };
 export function getCatalog(saved = readSaved()) {
-  if (!saved.length) return CATALOG;
   if (built.from === saved) return built.list;
+  const demo = demoProducts();
+  if (!demo) return CATALOG;                             // products.js not ready yet (module start-up): don't cache
+  const products = listProducts(saved, demo);
   const list = CATALOG.slice();
   const at = (sku) => list.findIndex((c) => c.sku.toLowerCase() === String(sku || '').trim().toLowerCase());
-  saved.filter((p) => p && p.st !== 'deleted').forEach((p) => {
+  const mine = new Set(saved.map((p) => p && p.id));
+  products.filter((p) => p && p.st !== 'deleted').forEach((p) => {
+    const edited = mine.has(p.id);                       // saved in this browser: its values win
+    const demoStock = !p.savedNew;                       // a demo product brings its own stock; a new one starts at 0
     const i = at(p.sku);
-    if (p.sku && i >= 0) { list[i] = applyEdit(list[i], p); return; }
+    if (p.sku && i >= 0) { list[i] = { ...(edited ? applyEdit(list[i], p) : list[i]), ...metaOf(p) }; return; }
     const vars = Array.isArray(p.variants) ? p.variants : [];
     if (!vars.length) {
       const sku = p.sku || p.id;
-      if (sku && at(sku) < 0) list.push(fresh(sku, p.name, '', p.barcode, topCat(p.cat), num(p.price), num(p.wholesale), num(p.moq), p.sell, p.brand));
+      if (sku && at(sku) < 0) {
+        const row = fresh(sku, p.name, '', p.barcode, topCat(p.cat), num(p.price), num(p.wholesale), num(p.moq), p.sell, p.brand);
+        if (demoStock && p.inv > 0) row.on = { [HOME]: Number(p.inv) };
+        list.push({ ...row, saved: edited || !!p.savedNew, ...metaOf(p) });
+      }
       return;
     }
     vars.forEach((v, n) => {
       const sku = v.sku || (p.sku || p.id) + '-' + (n + 1);
       const j = at(sku);
       const row = { name: p.name + ' · ' + v.name, price: num(v.price) ?? num(p.price), wholesale: num(v.wholesale) ?? num(p.wholesale), moq: num(v.moq) ?? num(p.moq), barcode: v.barcode, sell: p.sell };
-      if (j >= 0) list[j] = applyEdit(list[j], row);
-      else list.push(fresh(sku, row.name, v.name, row.barcode, topCat(p.cat), row.price, row.wholesale, row.moq, row.sell, p.brand));
+      if (j >= 0) { list[j] = { ...(edited ? applyEdit(list[j], row) : list[j]), ...metaOf(p, v) }; return; }
+      const add = fresh(sku, row.name, v.name, row.barcode, topCat(p.cat), row.price, row.wholesale, row.moq, row.sell, p.brand);
+      if (demoStock && Number(v.stock) > 0) add.on = { [HOME]: Number(v.stock) };
+      list.push({ ...add, saved: edited || !!p.savedNew, ...metaOf(p, v) });
     });
   });
   built = { from: saved, list };
   return list;
+}
+function demoProducts() { try { return Array.isArray(DEMO_PRODUCTS) ? DEMO_PRODUCTS : null; } catch { return null; } }
+/** The product list with saved edits applied; products added in this browser are marked savedNew. */
+function listProducts(saved, demo) {
+  const ids = new Set(demo.map((p) => p.id));
+  const byId = new Map(saved.filter((p) => p && ids.has(p.id)).map((p) => [p.id, p]));
+  const added = saved.filter((p) => p && !ids.has(p.id)).map((p) => ({ ...p, savedNew: true }));
+  return added.concat(demo.map((p) => (byId.has(p.id) ? { ...p, ...byId.get(p.id), variants: byId.get(p.id).variants || p.variants } : p)));
 }
 const matches = (p, key) => p.sku === key || p.name === key || p.barcode === key || (p.aka && p.aka === key);
 export const productBy = (key, catalog = getCatalog()) => (key ? catalog.find((p) => matches(p, key)) || null : null);

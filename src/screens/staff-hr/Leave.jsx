@@ -1,42 +1,37 @@
 'use client';
-// Leave — approve or reject requests (with the balance and clashes in view), apply on someone's
-// behalf, see who is off in the month, and keep balances right. Approved leave shows on the roster
-// and in the attendance register by itself; unpaid leave is cut in payroll. Data: src/lib/hr.js.
+// Leave — decide requests (each opens the review drawer with the balance and cover), apply on someone's behalf, see
+// who is off in the month and keep balances right. One card with the views Pending · Approved · Rejected · All ·
+// Calendar · Balances. Approved leave shows on the roster and in the attendance register by itself; unpaid leave is
+// cut in payroll. Data: src/lib/hr.js.
 
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
-import { Dialog, EmptyState } from '@/components/ui';
+import { Dialog, EmptyState, InfoTip, StatusBadge } from '@/components/ui';
+import { MetricStrip, IndexTabs, LearnMore } from '@/components/ui/IndexKit';
 import { HrReview } from './HrReview';
 import { formatDate } from '@/lib/format';
 import {
   todayKey, staffBy, leaveType, leaveDaysOf, leaveBalance, leaveWarnings, applyLeave, decideLeave, dayLabel, dowOf, WEEKDAYS,
   keysOf, monthOf, addMonths, monthLabel, weekStartOf, addDays, isClosedDay,
 } from '@/lib/hr';
-import { HrPage, useHr, Person } from './hrShared';
+import { HrPage, useHr, Person, rowGo } from './hrShared';
 
 const CSS = `
-.lv-list{display:flex;flex-direction:column}
-.lv-row{display:grid;grid-template-columns:minmax(180px,1.4fr) minmax(110px,.7fr) minmax(150px,1fr) auto;align-items:center;gap:var(--space-4);padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle)}
-.lv-row:last-child{border-bottom:0}
-.lv-why{font-size:var(--text-xs);color:var(--text-body);min-width:0}
-.lv-warn{display:flex;gap:6px;align-items:flex-start;margin-top:4px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-warning)}
-.lv-warn svg{flex:none;margin-top:1px}
-.lv-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;padding:var(--space-4) var(--space-5)}
+.lv-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:var(--space-3) var(--space-4) var(--space-4)}
 .lv-wd{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted);text-align:center;padding:4px}
-.lv-day{min-height:92px;min-width:0;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:6px;display:flex;flex-direction:column;gap:4px;background:var(--surface-card)}
+.lv-day{min-height:80px;min-width:0;border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:4px;display:flex;flex-direction:column;gap:3px;background:var(--surface-card)}
 .lv-day.is-closed{background:var(--surface-subtle)}
 .lv-day.is-today{border-color:var(--primary)}
 .lv-day.is-out{border-color:transparent;background:transparent}
 .lv-day > span{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body)}
-.lv-ev{font-size:var(--text-xs);font-weight:var(--weight-medium);padding:2px 6px;border-radius:var(--radius-md);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lv-ev{font-size:var(--text-xs);font-weight:var(--weight-medium);padding:1px 6px;border-radius:var(--radius-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lv-ev--wait{background:transparent!important;border:1px dashed currentColor}
-.lv-legend{display:flex;flex-wrap:wrap;gap:var(--space-3);font-size:var(--text-xs);color:var(--text-body)}
+.lv-legend{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-3);margin-left:auto;font-size:var(--text-xs);color:var(--text-body)}
 .lv-legend span{display:inline-flex;align-items:center;gap:6px}
-.lv-legend i{width:12px;height:12px;border-radius:var(--radius-sm)}
-@media (max-width:900px){.lv-row{grid-template-columns:minmax(0,1fr) auto;gap:var(--space-2) var(--space-4)}.lv-row > :nth-child(2){grid-row:2}.lv-row > :nth-child(3){grid-row:2;grid-column:2;text-align:right}.lv-row > :last-child{grid-row:1;grid-column:2}}
-@media (max-width:640px){.lv-day{min-height:64px}.lv-ev{font-size:var(--text-2xs)}}
+.lv-legend i{width:10px;height:10px;border-radius:var(--radius-sm)}
+.lv-bal{display:flex;flex-direction:column;gap:3px;min-width:110px}
+@media (max-width:640px){.lv-day{min-height:56px}.lv-ev{font-size:var(--text-2xs)}.lv-legend{margin-left:0}}
 `;
 const TONE = { casual: ['var(--fill-info-soft)', 'var(--text-info)'], sick: ['var(--fill-error-soft)', 'var(--text-danger)'], earned: ['var(--fill-success-soft)', 'var(--text-success)'], festival: ['var(--fill-secondary-soft)', 'var(--secondary)'], maternity: ['var(--fill-primary-soft)', 'var(--primary)'], paternity: ['var(--fill-primary-soft)', 'var(--primary)'], unpaid: ['var(--surface-subtle)', 'var(--text-body)'] };
 const toneOf = (t) => TONE[t] || TONE.unpaid;
@@ -78,68 +73,81 @@ export default function Leave() {
     setReject(null);
   };
 
+  const reqTab = (k, l) => ({ key: k, id: 'lv-tab-' + k, label: l, count: k === 'wait' ? waiting.length : null, on: tab === 'req' && rf === k, onClick: () => { setTab('req'); setRf(k); } });
+  const tabs = [reqTab('wait', 'Pending'), reqTab('ok', 'Approved'), reqTab('no', 'Rejected'), reqTab('all', 'All'),
+    { key: 'cal', id: 'lv-tab-cal', label: 'Calendar', on: tab === 'cal', onClick: () => setTab('cal') },
+    { key: 'bal', id: 'lv-tab-bal', label: 'Balances', on: tab === 'bal', onClick: () => setTab('bal') }];
+
   return (
-    <HrPage screen="Leave" active="hr-leave" page="Leave" title="Leave" css={CSS}
-      description="Requests, who is off, and balances."
-      actions={<button type="button" className="gc-btn gc-btn--solid" onClick={() => setApply({ code: S.staff[0].code, type: 'casual', from: addDays(today, 1), to: addDays(today, 1), reason: '', approve: true })}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Apply on behalf</button>}>
+    <HrPage screen="Leave" active="hr-leave" page="Leave" title="Leave" icon="plane" css={CSS}
+      about="Requests, who is off, and balances. Open a request to see the balance and the cover on each day, then approve or deny it."
+      more={[{ label: 'Leave policies', href: '/hr-setup?sec=leave' }, { label: 'Shifts & roster', href: '/shifts' }]}
+      primary={{ label: 'Apply on behalf', onClick: () => setApply({ code: S.staff[0].code, type: 'casual', from: addDays(today, 1), to: addDays(today, 1), reason: '', approve: true }) }}>
 
-      <div className="gc-kpis">
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-warning-soft)', color: 'var(--text-warning)' }}><Icon name="inbox" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Waiting for you</p><p className="gc-kpi__value">{waiting.length}<small>{waiting.length ? `oldest ${Math.max(0, Math.round((S.now - oldest) / 864e5))} days` : 'all decided'}</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-info-soft)', color: 'var(--text-info)' }}><Icon name="plane" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Off today</p><p className="gc-kpi__value">{offToday.length}<small>{offToday.map((r) => `${staffBy(S, r.code).name.split(' ')[0]} · ${leaveType(S, r.type).name.toLowerCase()}`).join(', ')}</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--surface-subtle)', color: 'var(--text-body)' }}><Icon name="calendar-range" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Off this week</p><p className="gc-kpi__value">{offWeek.length}<small>{dayLabel(wk)} – {dayLabel(addDays(wk, 6))}</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="calendar-check" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Days taken · {year}</p><p className="gc-kpi__value">{takenYear}<small>across {S.staff.length} staff</small></p></div></div>
-      </div>
+      <MetricStrip label="Who is off" items={[
+        { label: 'Off today', value: String(offToday.length), sub: offToday.map((r) => staffBy(S, r.code).name.split(' ')[0]).join(', ') || null },
+        { label: 'Off this week', value: String(offWeek.length), sub: `${dayLabel(wk)} – ${dayLabel(addDays(wk, 6))}` },
+        { label: `Days taken · ${year}`, value: String(takenYear), sub: `across ${S.staff.length} staff` },
+        { label: 'Waiting for you', value: String(waiting.length), sub: waiting.length ? `oldest ${Math.max(0, Math.round((S.now - oldest) / 864e5))} days` : 'all decided' },
+      ]} />
 
-      <section className="gc-card hr-card">
-        <div className="hr-tabsbar">
-          <div className="gc-tabs" role="tablist" aria-label="Leave views">
-            {[['req', 'Requests', waiting.length], ['cal', 'Leave calendar'], ['bal', 'Balances']].map(([id, l, n]) => <button key={id} type="button" role="tab" aria-selected={tab === id} className={'gc-tab hr-tab' + (tab === id ? ' gc-tab--active' : '')} onClick={() => setTab(id)}>{l}{n != null ? <b>{n}</b> : null}</button>)}
-          </div>
-        </div>
+      <section className="ix-card" aria-label="Leave">
+        <div className="ix-bar"><IndexTabs tabs={tabs} label="Leave views" /></div>
 
         {tab === 'req' ? (
-          <>
-            <div className="hr-bar">
-              <div className="gc-seg" role="group" aria-label="Show">
-                {[['wait', 'Pending'], ['ok', 'Approved'], ['no', 'Rejected'], ['all', 'All']].map(([k, l]) => <button key={k} type="button" className={'gc-seg__btn' + (rf === k ? ' gc-seg__btn--active' : '')} aria-pressed={rf === k} onClick={() => setRf(k)}>{l} · {reqs.filter((r) => k === 'all' || r.status === k).length}</button>)}
-              </div>
-            </div>
-            {shown.length ? (
-              <div className="lv-list">
+          shown.length ? (
+            <>
+              <ul className="ix-plist" aria-label="Leave requests">
                 {shown.map((r) => {
                   const st = staffBy(S, r.code) || { code: r.code, name: r.code };
-                  const t = leaveType(S, r.type), [bg, fg] = toneOf(r.type);
                   const days = leaveDaysOf(S, r.code, r.from, r.to);
-                  const bal = leaveBalance(S, r.code)[r.type];
-                  const after = bal && bal.left != null ? bal.left - (r.status === 'wait' ? days : 0) : null;
-                  const warns = r.status === 'wait' ? leaveWarnings(S, r) : [];
                   return (
-                    <div key={r.id} className="lv-row">
-                      <Person st={st} sub={st.branch || ''} />
-                      <div><span className="hr-chip" style={{ background: bg, color: fg }}>{t.name}</span></div>
-                      <div><span className="hr-strong">{range(r.from, r.to)}</span><span className="hr-sub">{days} day{days === 1 ? '' : 's'}{warns.length ? <span className="hr-warn"> · check cover</span> : null}</span></div>
-                      <div className="hr-actions">
-                        {r.status === 'wait' ? <button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={() => setReview({ kind: 'leave', id: r.id })} aria-label={`Review ${st.name}’s ${t.name.toLowerCase()} leave, ${range(r.from, r.to)}`}>Review</button> : <>
-                          <span className={'gc-badge gc-badge--' + STATUS[r.status][1]}>{STATUS[r.status][0]}</span>
-                          <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => setReview({ kind: 'leave', id: r.id })}>Details</button>
-                        </>}
-                      </div>
-                    </div>
+                    <li key={r.id}>
+                      <button type="button" className="ix-pitem" onClick={() => setReview({ kind: 'leave', id: r.id })}>
+                        <span className="ix-pitem__top"><b>{st.name}</b><StatusBadge tone={STATUS[r.status][1]}>{STATUS[r.status][0]}</StatusBadge></span>
+                        <span className="ix-pitem__mid">{leaveType(S, r.type).name} · {range(r.from, r.to)} · {days} day{days === 1 ? '' : 's'}</span>
+                      </button>
+                    </li>
                   );
                 })}
+              </ul>
+              <div className="ix-table-wrap">
+                <table className="ix-table gc-table--keep">
+                  <caption className="sr-only">Leave requests</caption>
+                  <thead><tr><th scope="col">Staff</th><th scope="col">Leave</th><th scope="col">Dates</th><th scope="col" className="ix-num">Days</th><th scope="col">Asked</th><th scope="col">Status</th></tr></thead>
+                  <tbody>
+                    {shown.map((r) => {
+                      const st = staffBy(S, r.code) || { code: r.code, name: r.code };
+                      const t = leaveType(S, r.type), [bg, fg] = toneOf(r.type);
+                      const days = leaveDaysOf(S, r.code, r.from, r.to);
+                      const warns = r.status === 'wait' ? leaveWarnings(S, r) : [];
+                      return (
+                        <tr key={r.id} onClick={rowGo(() => setReview({ kind: 'leave', id: r.id }))}>
+                          <td><Person st={st} /></td>
+                          <td><span className="hr-chip" style={{ background: bg, color: fg }}>{t.name}</span></td>
+                          <td>{range(r.from, r.to)}{warns.length ? <span className="hr-warn"> · check cover</span> : null}</td>
+                          <td className="ix-num">{days}</td>
+                          <td className="ix-muted">{r.at ? formatDate(r.at) : '—'}</td>
+                          <td>{r.status === 'wait' ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => setReview({ kind: 'leave', id: r.id })} aria-label={`Review ${st.name}’s ${t.name.toLowerCase()} leave, ${range(r.from, r.to)}`}>Review</button> : <StatusBadge tone={STATUS[r.status][1]}>{STATUS[r.status][0]}</StatusBadge>}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-            ) : <EmptyState icon="plane" title="No leave requests in this list" body="Staff ask for leave from the staff app, or apply for them with Apply on behalf." />}
-          </>
+              <div className="ix-foot"><span>{shown.length === 1 ? '1 request' : `${shown.length} requests`}</span></div>
+            </>
+          ) : <div className="ix-empty"><EmptyState icon="plane" title="No leave requests in this list" /></div>
         ) : null}
 
         {tab === 'cal' ? (
           <>
-            <div className="hr-bar">
-              <div className="hr-bar__group">
-                <button type="button" className="gc-iconbtn" aria-label="Previous month" onClick={() => setMonth(addMonths(mon, -1))}><Icon name="chevron-left" width="18" height="18" /></button>
-                <span className="hr-strong">{monthLabel(mon)}</span>
-                <button type="button" className="gc-iconbtn" aria-label="Next month" onClick={() => setMonth(addMonths(mon, 1))}><Icon name="chevron-right" width="18" height="18" /></button>
-              </div>
+            <div className="hr-sub2">
+              <span className="hr-step">
+                <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Previous month" onClick={() => setMonth(addMonths(mon, -1))}><Icon name="chevron-left" width="16" height="16" aria-hidden="true" /></button>
+                <b>{monthLabel(mon)}</b>
+                <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Next month" onClick={() => setMonth(addMonths(mon, 1))}><Icon name="chevron-right" width="16" height="16" aria-hidden="true" /></button>
+              </span>
               <div className="lv-legend">
                 {['casual', 'sick', 'earned', 'festival', 'unpaid'].map((k) => <span key={k}><i style={{ background: toneOf(k)[1] }} />{leaveType(S, k).name.split(' ')[0]}</span>)}
                 <span><i style={{ border: '1px dashed var(--text-muted)' }} />Pending</span>
@@ -153,7 +161,7 @@ export default function Leave() {
                 return (
                   <div key={k} className={'lv-day' + (isClosedDay(S, k) ? ' is-closed' : '') + (k === today ? ' is-today' : '')}>
                     <span>{Number(k.slice(8))}{S.holidayMap[k] ? <span className="hr-sub" style={{ display: 'inline' }}> · {S.holidayMap[k]}</span> : null}</span>
-                    {evs.map((r) => { const [bg, fg] = toneOf(r.type); return <span key={r.id} className={'lv-ev' + (r.status === 'wait' ? ' lv-ev--wait' : '')} style={{ background: bg, color: fg }} title={`${staffBy(S, r.code).name} · ${leaveType(S, r.type).name}${r.status === 'wait' ? ' (waiting)' : ''}`}>{staffBy(S, r.code).name.split(' ')[0]} · {leaveType(S, r.type).name.split(' ')[0].toLowerCase()}</span>; })}
+                    {evs.map((r) => { const [bg, fg] = toneOf(r.type); return <button key={r.id} type="button" className={'lv-ev' + (r.status === 'wait' ? ' lv-ev--wait' : '')} style={{ background: bg, color: fg, border: 0, font: 'inherit', textAlign: 'left', cursor: 'pointer' }} title={`${staffBy(S, r.code).name} · ${leaveType(S, r.type).name}${r.status === 'wait' ? ' (waiting)' : ''}`} onClick={() => setReview({ kind: 'leave', id: r.id })}>{staffBy(S, r.code).name.split(' ')[0]} · {leaveType(S, r.type).name.split(' ')[0].toLowerCase()}</button>; })}
                   </div>
                 );
               })}
@@ -163,34 +171,38 @@ export default function Leave() {
 
         {tab === 'bal' ? (
           <>
-            <div className="gc-table-wrap">
-              <table className="gc-table gc-table--compact gc-table--hoverable">
-                <thead><tr><th scope="col">Staff</th>{['casual', 'sick', 'earned', 'festival'].map((k) => { const t = leaveType(S, k); return <th key={k} scope="col">{t.name.split(' ')[0]}{t.days ? ` · ${t.days}` : ''}</th>; })}<th scope="col" className="hr-num">Unpaid</th><th scope="col" className="hr-num">Taken {year}</th></tr></thead>
+            <div className="ix-table-wrap ix-table-wrap--show">
+              <table className="ix-table gc-table--keep ix-table--static">
+                <caption className="sr-only">Leave balances {year}</caption>
+                <thead><tr><th scope="col">Staff</th>{['casual', 'sick', 'earned', 'festival'].map((k) => { const t = leaveType(S, k); return <th key={k} scope="col">{t.name.split(' ')[0]}{t.days ? ` · ${t.days}` : ''}</th>; })}<th scope="col" className="ix-num">Unpaid</th><th scope="col" className="ix-num">Taken {year}</th></tr></thead>
                 <tbody>
                   {S.staff.filter((s) => s.status !== 'left').map((st) => {
                     const b = leaveBalance(S, st.code);
                     return (
                       <tr key={st.code}>
-                        <td><Person st={st} sub={st.designation} /></td>
+                        <td><Person st={st} /></td>
                         {['casual', 'sick', 'earned', 'festival'].map((k) => {
                           const v = b[k] || {}, q = v.quota || 0, left = v.left ?? 0;
-                          return <td key={k} style={{ minWidth: 120 }}>
-                            <div className="hr-bar-track" style={{ width: 80 }}><div className="hr-bar-fill" style={{ width: q ? `${Math.max(0, left) / q * 100}%` : 0, background: toneOf(k)[1] }} /></div>
-                            <span className={'hr-sub hr-fig' + (left < 0 ? ' hr-out' : '')}>{q ? `${left} of ${q} left` : 'Not yet'}{v.pending ? ` · ${v.pending} asked` : ''}</span>
+                          return <td key={k}>
+                            <span className="lv-bal">
+                              <span className="hr-bar-track" style={{ width: 80 }}><span className="hr-bar-fill" style={{ display: 'block', width: q ? `${Math.max(0, left) / q * 100}%` : 0, background: toneOf(k)[1] }} /></span>
+                              <span className={'hr-sub hr-fig' + (left < 0 ? ' hr-out' : '')}>{q ? `${left} of ${q} left` : 'Not yet'}{v.pending ? ` · ${v.pending} asked` : ''}</span>
+                            </span>
                           </td>;
                         })}
-                        <td className="hr-num">{(b.unpaid || {}).taken || '—'}</td>
-                        <td className="hr-num hr-strong">{Object.values(b).reduce((a, v) => a + v.taken, 0)}</td>
+                        <td className="ix-num">{(b.unpaid || {}).taken || '—'}</td>
+                        <td className="ix-num hr-strong">{Object.values(b).reduce((a, v) => a + v.taken, 0)}</td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
             </div>
-            <p className="hr-sub" style={{ margin: 0, padding: 'var(--space-3) var(--space-5)', borderTop: '1px solid var(--border-subtle)' }}>Days left of the yearly allowance, counting leave approved here and days taken earlier this year. Earned leave builds up at 1 day for every 18 days worked, after the first year. Weekly off days and public holidays inside a leave are not counted. <Link href="/hr-setup?sec=leave" className="hr-link">Leave policies</Link></p>
+            <div className="ix-foot"><span>Days left of the yearly allowance <InfoTip text="Counts leave approved here and days taken earlier this year. Earned leave builds up at 1 day for every 18 days worked, after the first year. Weekly off days and public holidays inside a leave are not counted." /></span></div>
           </>
         ) : null}
       </section>
+      <LearnMore topic="leave" />
 
       <HrReview S={S} req={review} onClose={() => setReview(null)} />
       <Dialog open={!!apply} title="Apply for leave" onClose={() => setApply(null)} width={600}

@@ -1,10 +1,11 @@
 'use client';
-// teamShared — what My dashboard, Tasks and Leads share: the page frame, the signed-in user, live task and lead
-// lists (re-read on change), user avatars and small CSS.
+// teamShared — what My dashboard, Tasks, Team chat and Leads share: the page frame (Shopify-style title row,
+// components/ui/IndexKit.jsx), the signed-in user, live task and lead lists (re-read on change), user avatars and CSS.
 
 import React, { useEffect, useState } from 'react';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { PageHeader } from '@/components/ui';
+import { Icon } from '@/runtime/dc';
+import { ShopHeader, RecordHeader } from '@/components/ui/IndexKit';
 import { USERS, currentUser, userBy, roleOf, SESSION_EVENT } from '@/lib/team';
 import { getTasks, TASKS_EVENT } from '@/lib/tasks';
 import { getLeads, LEADS_EVENT } from '@/lib/leads';
@@ -40,40 +41,60 @@ export const userName = (id) => (userBy(id) || { name: id || '—' }).name;
 
 export const TEAM_CSS = `
 .tm-av{display:inline-grid;place-items:center;flex:none;border-radius:var(--radius-full);font-size:var(--text-2xs);font-weight:var(--weight-semibold)}
-.tm-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-4) var(--space-5)}
-.tm-head h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.tm-head p{margin:2px 0 0;font-size:var(--text-xs);color:var(--text-muted)}
+.tm-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-2);min-height:44px;padding:var(--space-3) var(--space-4)}
+.tm-head h2{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .tm-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .tm-strong{font-weight:var(--weight-medium);color:var(--text-heading)}
 .tm-fig{font-family:var(--font-data);font-variant-numeric:tabular-nums;white-space:nowrap}
 .tm-warn{color:var(--text-warning)}
 .tm-out{color:var(--text-danger)}
 .tm-in{color:var(--text-success)}
-.tm-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-5);border-bottom:1px solid var(--border-subtle)}
 .tm-bar__g{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
-@media (max-width:640px){.tm-bar{padding:var(--space-3)}.tm-bar__g:has(.gc-mf__btn){width:100%;flex-wrap:nowrap}.tm-bar__g:has(.gc-mf__btn)>button.gc-btn--flat{display:none}}
 .tm-form{display:flex;flex-direction:column;gap:var(--space-4)}
 .tm-two{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
 .tm-three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-3)}
-.tm-tile{display:grid;place-items:center;width:36px;height:36px;flex:none;border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary)}
-.tm-empty{margin:0;padding:var(--space-4) var(--space-5);font-size:var(--text-sm);color:var(--text-muted)}
+.tm-tile{display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary)}
 @media (max-width:640px){.tm-two,.tm-three{grid-template-columns:1fr}}
 `;
 
-export function TeamPage({ screen, active, crumb, page, title, description, about, actions, children, css = '' }) {
+/**
+ * The shell around a team page: menu, top bar and the Shopify-style title row.
+ *   title + icon + secondary / more / primary → ShopHeader;  title + back / meta / badges → RecordHeader;
+ *   actions (JSX) → the old free-form buttons. No title = the page draws its own h1. narrow = the 1040px column.
+ */
+export function TeamPage({ screen, active, crumb, page, title, description, about, actions, children, css = '', icon, secondary, more, primary, back, badges, meta, narrow }) {
+  const info = about || description;
+  let head = null;
+  if (title && actions) {
+    head = (
+      <header className="ix-head">
+        <h1 className="ix-head__title">{icon ? <Icon name={icon} width="18" height="18" aria-hidden="true" /> : null}<span>{title}</span></h1>
+        {info ? <span className="gc-pagehead__about" hidden>{info}</span> : null}
+        <div className="ix-head__actions">{actions}</div>
+      </header>
+    );
+  } else if (title && (back || meta || badges)) {
+    head = <RecordHeader back={back} title={title} badges={badges} meta={meta} about={info} secondary={secondary || []} more={more || []} primary={primary} />;
+  } else if (title) {
+    head = <ShopHeader icon={icon} title={title} about={info} secondary={secondary || []} more={more || []} primary={primary} />;
+  }
   return (
     <div className="dc-screen ds" data-screen={screen}>
       <style dangerouslySetInnerHTML={{ __html: TEAM_CSS + css }} />
       <div className="gc-shell">
         <Sidebar sticky="" active={active} />
-        <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
+        <main className="gc-shell__main">
           <Topbar crumb={crumb} page={page} />
-          <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-            {title ? <PageHeader title={title} description={description} about={about} actions={actions} /> : null}
-            {children}
+          <div className="gc-shell__content">
+            <div className={'ix-page' + (narrow ? ' ix-page--narrow' : '')}>
+              {head}
+              {children}
+            </div>
           </div>
         </main>
       </div>
     </div>
   );
 }
+/** A row click that opens the record, unless the click was on a control inside the row. */
+export const rowGo = (fn) => (e) => { if (e.target.closest('a,button,input,label,select,textarea')) return; fn(); };

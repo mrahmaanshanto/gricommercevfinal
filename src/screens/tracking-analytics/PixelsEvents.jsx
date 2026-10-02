@@ -1,52 +1,32 @@
 'use client';
 // Generated from design/templates/tracking-analytics/PixelsEvents.dc.html by scripts/convert-design.mjs.
-// G1 · Pixels & events — Tracking & analytics — Pixels & events.
+// Pixels & events — what the store sends to Meta, Google and TikTok, laid out the Shopify way: the title row (Connect a
+// platform), four key figures, one card per platform, then the order's life as the platforms see it, which events go
+// where, sending and data safety, and per-product pixels.
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
-import { TA_PHONE_CSS } from './taPhone';
+import { toast as __toast } from '@/runtime/ui';
+import { InfoTip as __InfoTip } from '@/components/ui';
+import { ShopHeader, MetricStrip } from '@/components/ui/IndexKit';
+import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
+import { TA_CSS, TA_PHONE_CSS } from './taPhone';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
-function bdt(n) { var neg = n < 0; var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return (neg ? '−' : '') + '৳' + s; }
-var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
-function mkTabs(self, list, cur, key, counts) { return list.map(function (x) { var on = x.k === cur; var c = counts ? counts[x.k] : null; return { label: x.label, on: on, cls: on ? 'tab on' : 'tab', hasCount: c != null, count: c, countBg: on ? 'rgba(255,255,255,0.2)' : '#e9eef5', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-function mkChips(self, list, cur, key) { return list.map(function (x) { var on = x.k === cur; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-function pTabs(self, list, cur, key, counts) { return mkTabs(self, list, cur, key, counts).map(function (x) { x.pcls = x.on ? 'ptab on' : 'ptab'; return x; }); }
 function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
-function stepN(self, key, def, step, min, max) { var s = self.state || {}; var v = s[key] == null ? def : s[key]; return { v: v, dec: function () { var p = {}; p[key] = Math.max(min, +(v - step).toFixed(2)); self.setState(p); }, inc: function () { var p = {}; p[key] = Math.min(max, +(v + step).toFixed(2)); self.setState(p); } }; }
-var CHN = { sms: ['SMS', '#e7f8f1', '#047857'], wa: ['WhatsApp', '#dcfce7', '#166534'], email: ['Email', '#e0f2fe', '#075985'] };
 function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-function toast(self, m, bad) { clearTimeout(self.t); self.setState({ msg: m, bad: !!bad }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 2800); }
-function msgV(s) { return { hasMsg: !!s.msg, msg: s.msg || '', msgBg: s.bad ? '#fff4e0' : '#e7f8f1', msgFg: s.bad ? '#7a3b04' : '#065f46' }; }
-function segv(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#0b1733' : 'transparent', fg: on ? '#fff' : '#475569', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
+function toast(self, m, bad) { __toast(m, bad ? { tone: 'info' } : undefined); }
 var PL = { meta: ['Meta', '#e7efff', '#1d4ed8'], google: ['Google', '#e7f8f1', '#047857'], tiktok: ['TikTok', '#f1f5f9', '#0f172a'], gc: ['GridCommerce', '#fff4e0', '#a14f06'] };
 var LOGO = { meta: '/assets/41f77fbf774c3a1c10208ca2b086bc14.png', google: '/assets/85e4f9f412e9d0859b3e4e19309ccb4d.png', tiktok: '/assets/57bb10142b6017571910098da3778028.png' };
 function plv(k) { var p = PL[k]; return { pl: p[0], pb: p[1], pf: p[2], lg: LOGO[k] || '' }; }
-function pct(n) { return (Math.round(n * 10) / 10) + '%'; }
-function x2(n) { return (Math.round(n * 100) / 100).toFixed(2) + '×'; }
-var PERIOD = [['7', '7 days'], ['30', '30 days'], ['90', '90 days']];
 // 30-day figures per platform: spend, platform-claimed revenue, claimed purchases, GC placed, confirmed, delivered, delivered revenue, returned, new customers, clicks, impressions
-var PF = { meta: [124500, 940000, 1190, 952, 790, 676, 672000, 64, 410, 38400, 1920000], google: [38200, 310000, 360, 318, 272, 238, 248000, 18, 142, 9100, 212000], tiktok: [22300, 185000, 240, 150, 118, 98, 96000, 14, 71, 11800, 1340000] };
-var COST = { courier: 70, ret: 120, pack: 15 };
-function agg(keys) { var t = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; keys.forEach(function (k) { PF[k].forEach(function (x, i) { t[i] += x; }); }); return t; }
-function netRev(a) { return a[6] - a[5] * COST.courier - a[7] * COST.ret - a[4] * COST.pack; }
 var PC = { meta: '#2563eb', google: '#059669', tiktok: '#db2777' };
-function curve(pts) { if (!pts.length) return ''; var d = 'M' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1); for (var i = 0; i < pts.length - 1; i++) { var p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2; var c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6, c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6; d += ' C' + c1x.toFixed(1) + ' ' + c1y.toFixed(1) + ' ' + c2x.toFixed(1) + ' ' + c2y.toFixed(1) + ' ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1); } return d; }
-function pts(vals, w, h, max, min, padT, padB) { padT = padT || 2; padB = padB || 2; min = min == null ? 0 : min; max = max || Math.max.apply(null, vals) || 1; var n = vals.length; return vals.map(function (v, i) { return [n === 1 ? w / 2 : i * w / (n - 1), padT + (h - padT - padB) * (1 - (v - min) / (max - min || 1))]; }); }
-function sparkP(vals, w, h) { w = w || 160; h = h || 30; var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals); var p = pts(vals, w, h, mx + (mx - mn) * .1, mn - (mx - mn) * .15, 3, 2); var l = curve(p); return { line: l, area: l + ' L' + w + ' ' + h + ' L0 ' + h + ' Z' }; }
 function series(n, base, amp, seed, trend) { var out = []; for (var i = 0; i < n; i++) { var s = Math.sin((i + seed) * 1.7) * .5 + Math.sin((i * 3 + seed) * .9) * .3 + Math.cos(i * .45 + seed) * .2; out.push(Math.max(0, base * (1 + (trend || 0) * (i / n - .5)) + amp * s)); } return out; }
-function delta(p, good) { var up = p >= 0; var ok = good === 'down' ? !up : up; return { d: (up ? '▲ ' : '▼ ') + Math.abs(p) + '%', db: ok ? 'rgba(16,185,129,.16)' : 'rgba(244,63,94,.16)', df: ok ? '#34d399' : '#fb7185' }; }
-function deltaL(p, good) { var up = p >= 0; var ok = good === 'down' ? !up : up; return { d: (up ? '▲ ' : '▼ ') + Math.abs(p) + '%', db: ok ? '#e7f8f1' : '#ffece6', df: ok ? '#047857' : '#be123c' }; }
-function tile(l, v, s, c, vals, dp, good) { var sp = sparkP(vals); var dl = delta(dp, good); return { l: l, v: v, s: s, c: c, line: sp.line, area: sp.area, d: dl.d, db: dl.db, df: dl.df }; }
-function dseg(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#fff' : 'transparent', fg: on ? '#0b1733' : 'rgba(226,232,240,.85)', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
-function lseg(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#fff' : 'transparent', fg: on ? '#0b1733' : '#64748b', sh: on ? '0 1px 2px rgba(15,23,42,.08), 0 1px 1px rgba(15,23,42,.04)' : 'none', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
-function ring(pctv, r) { var C = 2 * Math.PI * r; return { da: (C * pctv / 100).toFixed(1) + ' ' + C.toFixed(1) }; }
-function kfmt(n) { return n >= 100000 ? '৳' + (n / 100000).toFixed(n >= 1000000 ? 1 : 2) + 'L' : n >= 1000 ? '৳' + Math.round(n / 1000) + 'k' : '৳' + Math.round(n); }
+function delta(p, good) { var up = p >= 0; var ok = good === 'down' ? !up : up; return { up: up, ok: ok, dir: (up ? 'Up ' : 'Down ') + Math.abs(p) + '%' + (ok ? ', good' : ', worse'), d: (up ? '▲ ' : '▼ ') + Math.abs(p) + '%', db: ok ? 'var(--fill-success-soft)' : 'var(--fill-error-soft)', df: ok ? 'var(--text-success)' : 'var(--text-danger)' }; }
+function tile(l, v, s, c, vals, dp, good) { var dl = delta(dp, good); return { l: l, v: v, s: s, c: c, vals: vals.map(function (x) { return Math.round(x * 100) / 100; }), d: dl.d, up: dl.up, ok: dl.ok, dir: dl.dir, db: dl.db, df: dl.df }; }
 var EV = [['Page view', 'PageView · page_view', 'Any page opens', '48,210'], ['View content', 'ViewContent · view_item', 'A product page opens', '12,904'], ['Search', 'Search · search', 'Someone searches the shop', '1,862'], ['Add to cart', 'AddToCart · add_to_cart', 'Added to cart', '2,318'], ['Add to wishlist', 'AddToWishlist', 'Heart tapped', '406'], ['Checkout started', 'InitiateCheckout · begin_checkout', 'Checkout page opens', '1,140'], ['Payment info added', 'AddPaymentInfo', 'bKash, card or COD chosen', '812'], ['Contact', 'Contact', 'Messenger, WhatsApp or call button', '334'], ['Lead · registration · subscribe', 'Lead · CompleteRegistration', 'Form, sign-up or newsletter', '96'], ['Purchase', 'Purchase · purchase', 'Order placed', '61'], ['Order confirmed', 'OrderConfirmed (custom)', 'Confirmed by phone or message', '52'], ['Order delivered', 'Delivered (custom, offline)', 'Courier confirms delivery', '47'], ['Order returned', 'Returned (custom)', 'Courier returns it to you', '4']];
 var OFF = { 'Add to wishlist:tiktok': 1, 'Contact:google': 1, 'Lead · registration · subscribe:tiktok': 1 };
 var WS = [['Choose', 'Which platform?', 'Pick one. You can add more later — each gets its own pixel.'], ['Paste ID', 'Paste your Pixel ID', 'Find it in Events Manager › Data sources. It is a long number like 1024 8871 2230 4410.'], ['Connect token', 'Paste the Conversions API token', 'Events Manager › Settings › Generate access token. We store it encrypted and warn you before it expires.'], ['Verify', 'We sent a test event', 'Open Events Manager › Test events to see it arrive. Then choose which events to send.']];
@@ -60,7 +40,7 @@ class Component extends DCLogic {
       ['tiktok', 't', 'Pixel + Events API', 'Token expires in 6 days', [['7.2', 'Match quality', '#b45309'], ['91%', 'Deduplicated', '#047857'], ['0', 'Catalogue', '#94a3b8']], [['Store pixel', 'CQ4M2JRC77U1A9', 'Live', '#047857'], ['Events API token', '•••• 8K2F', 'Expires 25 Sep', '#b45309']]]];
     var v = {
       tiles: [tile('Events sent today', '7,990', 'server + browser', '#60a5fa', series(14, 7600, 500, 2, .2), 6), tile('Delivered events', '47', 'last 24 h · real conversions', '#34d399', series(14, 42, 6, 4, .3), 12), tile('Counted once', '95%', 'deduplication rate', '#a78bfa', series(14, 93, 1.5, 6, .2), 2), tile('Average match quality', '8.2', 'out of 10', '#fbbf24', series(14, 7.8, .3, 8, .3), 5)],
-      life: [['Step 1', 'Purchase', '1,420', 'Order placed · sent instantly', '#fff', '#0f172a', '#64748b', 0], ['Step 2', 'Order confirmed', '1,180', 'After phone or message check', '#fff', '#0f172a', '#64748b', 0], ['Step 3', 'Order delivered', '1,012', 'Courier confirmed · sent up to 7 days later', '#0b1733', '#fff', 'rgba(203,216,238,.7)', 1], ['Step 4', 'Order returned', '96', 'Platforms stop targeting look-alikes', '#fff5f5', '#9f1239', '#be123c', 0]].map(function (l) { return { step: l[0], n: l[1], v: l[2], s: l[3], bg: l[4], fg: l[5], ey: l[6], star: !!l[7] }; }),
+      life: [['Step 1', 'Purchase', '1,420', 'Order placed · sent instantly', '#fff', '#0f172a', '#64748b', 0], ['Step 2', 'Order confirmed', '1,180', 'After phone or message check', '#fff', '#0f172a', '#64748b', 0], ['Step 3', 'Order delivered', '1,012', 'Courier confirmed · sent up to 7 days later', 'var(--fill-primary-soft)', 'var(--primary)', 'var(--primary)', 1], ['Step 4', 'Order returned', '96', 'Platforms stop targeting look-alikes', '#fff5f5', '#9f1239', '#be123c', 0]].map(function (l) { return { step: l[0], n: l[1], v: l[2], s: l[3], bg: l[4], fg: l[5], ey: l[6], star: !!l[7] }; }),
       plats: P.map(function (p) { var warn = p[3] !== 'Connected'; var sh = share[p[0]] !== false; var q = parseFloat(p[4][0][0]); var C = 2 * Math.PI * 36; return assign(plv(p[0]), { c: PC[p[0]], q: q, gc: q >= 8 ? '#10b981' : '#f59e0b', da: (C * q / 10).toFixed(1) + ' ' + C.toFixed(1), i: p[1], what: p[2], st: p[3], sb: warn ? '#fff4e0' : '#e7f8f1', sf: warn ? '#a14f06' : '#047857', m: p[4].slice(1).concat([[{ meta: '3,420', google: '2,980', tiktok: '1,610' }[p[0]], 'Events sent today', '#0f172a']]).map(function (x) { return { v: x[0], l: x[1], c: x[2] }; }), ids: p[5].map(function (x) { return { k: x[0], v: x[1], s: x[2], c: x[3] }; }),
         test: function () { toast(self, 'Test event sent to ' + PL[p[0]][0] + ' — received in 2 seconds.'); }, shareL: sh ? 'Pause data sharing' : 'Resume data sharing', share: function () { var n = assign({}, share); n[p[0]] = !sh; self.setState({ share: n }); toast(self, sh ? 'Nothing is sent to ' + PL[p[0]][0] + ' until you resume.' : 'Sending to ' + PL[p[0]][0] + ' again.', sh); } }); }),
       evs: EV.map(function (e) { var star = e[0] === 'Order delivered'; return { n: e[0], api: e[1], w: e[2], n24: e[3], star: star, bg: star ? '#f5f8ff' : 'transparent',
@@ -75,120 +55,13 @@ class Component extends DCLogic {
       wBack: function () { if (ws) self.setState({ ws: ws - 1 }); else self.setState({ wiz: false }); }, wNextL: ws === 3 ? 'Done' : 'Next',
       wNext: function () { if (ws < 3) self.setState({ ws: ws + 1 }); else { self.setState({ wiz: false }); toast(self, PL[wp][0] + ' connected. Events start flowing now.'); } }
     };
-    return assign(v, msgV(s));
+    return v;
   }
 }
 
 // ---- styles (from the design's <helmet>) ----
 
-const CSS = `
-body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
-*{box-sizing:border-box}
-a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
-.nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
-.nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
-.btn:hover{text-decoration:none}
-.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
-.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
-.line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
-.warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
-.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
-.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
-.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:var(--text-muted)}
-.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
-.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
-.tab:hover{background:#f1f5f9;color:#0f172a}
-.tab.on{background:#003087;color:#fff}
-.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
-.chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
-.row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
-.b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
-.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
-.b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:var(--font-data);letter-spacing:.02em}
-.fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
-@keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.flash{animation:gcFlash 900ms ease-out}
-@keyframes gcFlash{from{background:#e7f8f1}to{background:transparent}}
-.scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
-@keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
-
-.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
-.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
-.sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
-.t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
-.actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:var(--font-bn)}
-.pulse{animation:gcPulse 1.6s ease-in-out infinite}
-@keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
-@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
-.psec{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
-.num{font-variant-numeric:tabular-nums}
-.ai{height:28px;padding:0 10px;border-radius:var(--radius-lg);border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
-.ai:hover{border-color:#a78bfa;box-shadow:0 4px 12px -6px rgba(91,33,182,.5)}
-.ai:focus-visible{outline:3px solid rgba(124,58,237,.4);outline-offset:2px}
-.abtn{height:32px;padding:0 12px;border-radius:var(--radius-lg);border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-.abtn:hover{background:#f1f5f9}
-.ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0}
-.ptab{position:relative;height:52px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:var(--weight-medium)}
-.ptab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2.5px;border-radius:3px 3px 0 0;background:#003087}
-.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
-.ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
-.thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
-
-.tc{background:#fff;border:1px solid #e7ebf2;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px -20px rgba(15,23,42,.18)}
-.ey{font-size:var(--text-xs);line-height:17px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
-.ey-d{color:rgba(203,216,238,.7)}
-.tn{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;letter-spacing:0}
-.dl{display:inline-flex;align-items:center;gap:3px;height:22px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums}
-.hero{position:relative;overflow:hidden;border-radius:var(--radius-xl);background:#0b1733;color:#fff;padding:24px 26px;--accent-text:#7fcff0;--text-success:#6ee7b7;--text-warning:#fcd34d;--text-danger:#fda4af;--text-info:#7dd3fc}
-.hero::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:32px 32px;pointer-events:none}
-.hero>*{position:relative}
-.ht{border-radius:var(--radius-xl);background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
-.dseg{display:inline-flex;padding:3px;border-radius:var(--radius-full);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1)}
-.dseg button{height:32px;padding:0 14px;border:0;border-radius:var(--radius-full);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
-.lseg{display:inline-flex;padding:3px;border-radius:var(--radius-xl);background:#f1f4f9;border:1px solid #e7ebf2}
-.lseg button{height:32px;padding:0 13px;border:0;border-radius:var(--radius-lg);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease,box-shadow 200ms ease}
-button:active,.btn:active,.abtn:active{transform:scale(.97)}
-.btn,.abtn{transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
-.st>*{animation:taUp 420ms cubic-bezier(.23,1,.32,1) both}
-.st>*:nth-child(2){animation-delay:40ms}.st>*:nth-child(3){animation-delay:80ms}.st>*:nth-child(4){animation-delay:120ms}.st>*:nth-child(5){animation-delay:160ms}.st>*:nth-child(6){animation-delay:200ms}.st>*:nth-child(7){animation-delay:240ms}.st>*:nth-child(8){animation-delay:280ms}
-@keyframes taUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.gr{transform-origin:left center;animation:taGrow 700ms cubic-bezier(.23,1,.32,1) both}
-@keyframes taGrow{from{transform:scaleX(.35);opacity:0}to{transform:none;opacity:1}}
-.draw{stroke-dasharray:1600;stroke-dashoffset:0;animation:taDraw 1100ms cubic-bezier(.77,0,.175,1) both}
-@keyframes taDraw{from{stroke-dashoffset:1600}to{stroke-dashoffset:0}}
-.fadein{animation:taFade 600ms ease both 200ms}@keyframes taFade{from{opacity:0}to{opacity:1}}
-.tt{position:relative}
-.tt .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px) scale(.97);transform-origin:bottom center;opacity:0;pointer-events:none;transition:opacity 125ms ease-out,transform 125ms ease-out;background:#0b1733;color:#fff;border-radius:var(--radius-lg);padding:8px 10px;font-size:var(--text-xs);white-space:nowrap;box-shadow:0 10px 24px -8px rgba(15,23,42,.45);z-index:5}
-.col{position:relative;flex:1;height:100%;border-radius:var(--radius-md);transition:background-color 150ms ease}
-.col .tip{bottom:auto;top:6px}
-.col .cl{position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(15,23,42,.18);opacity:0;transition:opacity 125ms ease}
-@media (hover:hover) and (pointer:fine){.tt:hover .tip,.col:hover .tip{opacity:1;transform:translate(-50%,0) scale(1)}.col:hover .cl{opacity:1}.row:hover{background:#f7f9fd}.tc.lift{transition:box-shadow 200ms ease,transform 200ms cubic-bezier(.23,1,.32,1)}.tc.lift:hover{box-shadow:0 1px 2px rgba(15,23,42,.05),0 18px 40px -20px rgba(15,23,42,.3)}}
-.tb{width:100%;border-collapse:separate;border-spacing:0}
-.tb th{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #eef1f6;background:#fbfcfe;white-space:nowrap}
-.tb td{padding:13px 16px;border-bottom:1px solid #f1f4f8;font-size:var(--text-sm);vertical-align:middle}
-.tb tr:last-child td{border-bottom:0}
-.tb .r{text-align:right}
-@media (prefers-reduced-motion:reduce){.st>*,.gr,.draw,.fadein{animation:none}}
+const CSS = TA_CSS + `
 @media (max-width:640px){
   /* platform card head: the status pill gets its own line under the name */
   .pe-phead{flex-wrap:wrap;row-gap:6px!important}
@@ -208,65 +81,25 @@ export default class PixelsEventsScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="PixelsEvents">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
+        <div className="gc-shell">
           <__Sidebar sticky="" active="ta-track" />
-          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
+          <main className="gc-shell__main">
             <__Topbar crumb={"Tracking & analytics"} page={"Pixels & events"} placeholder="Search campaign, event or product" />
-            <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <section className="hero st">
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "20px" }}>
-                  <div style={{ flexGrow: "1", minWidth: "0" }}>
-                    <div className="ey ey-d">G1 · Server-side tracking</div>
-                    <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>Delivered is the conversion that counts</h1>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: "0" }}>
-                    <button type="button" className="btn sm" onClick={v.openWiz} style={{ background: "#fff", color: "#0b1733", height: "36px" }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M5 12h14" />
-                        <path d="M12 5v14" />
-                      </svg>
-                      <span>Connect a platform</span>
-                    </button>
-                  </div>
-                </div>
-                <div className="st gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px", marginTop: "20px" }}>
-                  {__list(v.tiles).map((ht, $index) => (<React.Fragment key={$index}>
-                      <div className="ht">
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <span style={__sx(`width: 7px; height: 7px; border-radius: var(--radius-full); background: ${ht?.c ?? ""};`)} />
-                          <span style={{ fontSize: "var(--text-xs)", color: "rgba(203,216,238,.85)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ht?.l}</span>
-                        </div>
-                        <div className="tn" style={{ fontSize: "var(--text-2xl)", lineHeight: "30px", fontWeight: "var(--weight-semibold)", color: "#fff" }}>{ht?.v}</div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <span className="dl" style={__sx(`background: ${ht?.db ?? ""}; color: ${ht?.df ?? ""};`)}>{ht?.d}</span>
-                          <span style={{ fontSize: "var(--text-xs)", color: "rgba(203,216,238,.7)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ht?.s}</span>
-                        </div>
-                        <svg width="100%" height="30" viewBox="0 0 160 30" preserveAspectRatio="none" aria-hidden="true" style={{ display: "block", marginTop: "2px" }}>
-                          <path d={ht?.area} fill={ht?.c} fillOpacity=".14" />
-                          <path d={ht?.line} fill="none" stroke={ht?.c} strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-                        </svg>
-                      </div>
-                    </React.Fragment>))}
-                </div>
-              </section>
-              {v.hasMsg ? (<>
-                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-lg); background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: var(--text-sm); font-weight: var(--weight-medium);`)}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="m9 12 2 2 4-4" />
-                  </svg>
-                  <span>{v.msg}</span>
-                </div>
-              </>) : null}
-              <div className="st gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "16px" }}>
+            <div className="gc-shell__content">
+              <div className="ix-page ta">
+              <ShopHeader icon="radar" title="Pixels & events"
+                about="Delivered is the conversion that counts: the store server sends each order's events to Meta, Google and TikTok, so a delivered cash-on-delivery order reaches the ad platforms as a sale and a returned one does not. Connect a platform, choose which events go where, and set per-product or per-page pixels."
+                secondary={[{ label: 'Event health', href: '/event-health' }]}
+                more={[{ label: 'Setup guides', href: '/setup-guide' }, { label: 'Ad accounts', href: '/ad-accounts' }]}
+                primary={{ label: 'Connect a platform', onClick: v.openWiz }} />
+              <MetricStrip label="Key figures" items={__list(v.tiles).map((t) => ({ label: t.l, value: t.v, spark: t.vals, sub: <span className="dl" title={t.s} style={{ background: t.db, color: t.df }}>{t.d}</span> }))} />
+              <div className="gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "16px" }}>
                 {__list(v.plats).map((pt, $index) => (<React.Fragment key={$index}>
-                    <section className="tc lift" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                    <section className="tc" style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "16px" }}>
                       <div className="pe-phead" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <span style={{ width: "42px", height: "42px", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e7ebf2", boxShadow: "0 1px 2px rgba(15,23,42,.06)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: "0" }}>
-                          <img src={pt?.lg} alt="" width="24" height="24" style={{ width: "24px", height: "24px", objectFit: "contain", flexShrink: "0", display: "block" }} />
-                        </span>
+                        <img src={pt?.lg} alt="" width="20" height="20" style={{ width: "20px", height: "20px", objectFit: "contain", flexShrink: "0", display: "block" }} />
                         <div style={{ flexGrow: "1", minWidth: "0" }}>
-                          <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{pt?.pl}</div>
+                          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{pt?.pl}</div>
                           <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{pt?.what}</div>
                         </div>
                         <span className="dl" style={__sx(`background: ${pt?.sb ?? ""}; color: ${pt?.sf ?? ""};`)}>{pt?.st}</span>
@@ -275,11 +108,11 @@ export default class PixelsEventsScreen extends Component {
                         <div style={{ position: "relative", width: "88px", height: "88px", flexShrink: "0" }}>
                           <svg width="88" height="88" viewBox="0 0 88 88" aria-hidden="true" style={{ transform: "rotate(-90deg)" }}>
                             <circle cx="44" cy="44" r="36" fill="none" stroke="#eef1f6" strokeWidth="8" />
-                            <circle className="fadein" cx="44" cy="44" r="36" fill="none" stroke={pt?.gc} strokeWidth="8" strokeLinecap="round" strokeDasharray={pt?.da} />
+                            <circle cx="44" cy="44" r="36" fill="none" stroke={pt?.gc} strokeWidth="8" strokeLinecap="round" strokeDasharray={pt?.da} />
                           </svg>
                           <div style={{ position: "absolute", inset: "0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
                             <span className="tn" style={{ fontSize: "var(--text-xl)", fontWeight: "var(--weight-semibold)" }}>{pt?.q}</span>
-                            <span style={{ fontSize: "var(--text-2xs)", color: "var(--text-muted)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase" }}>match</span>
+                            <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", }}>match</span>
                           </div>
                         </div>
                         <div style={{ flexGrow: "1", display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -308,33 +141,32 @@ export default class PixelsEventsScreen extends Component {
                     </section>
                   </React.Fragment>))}
               </div>
-              <section className="tc " style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
+              <section className="tc" style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
-                    <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "0" }}>An order’s life, as the ad platforms see it · last 30 days</h2>
-                    <p style={{ margin: "3px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Platforms learn from delivered buyers — and stop chasing people who return.</p>
+                    <h2 className="ta-h2">An order’s life, as the ad platforms see it · last 30 days <__InfoTip text="Platforms learn from delivered buyers — and stop chasing people who return." /></h2>
                   </div>
                 </div>
                 <div className="gc-cols-4 pe-life" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "12px" }}>
                   {__list(v.life).map((lf, $index) => (<React.Fragment key={$index}>
-                      <div style={__sx(`position: relative; padding: 16px; border-radius: var(--radius-xl); background: ${lf?.bg ?? ""}; color: ${lf?.fg ?? ""}; display: flex; flex-direction: column; gap: 6px;`)}>
+                      <div style={__sx(`position: relative; padding: 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: ${lf?.bg ?? ""}; color: ${lf?.fg ?? ""}; display: flex; flex-direction: column; gap: 6px;`)}>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                           <span className="ey" style={__sx(`color: ${lf?.ey ?? ""};`)}>{lf?.step}</span>
                           {lf?.star ? (<>
                             <span className="dl" style={{ background: "#34d399", color: "#064e3b" }}>REAL CONVERSION</span>
                           </>) : null}
                         </div>
-                        <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>{lf?.n}</div>
-                        <div className="tn" style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)" }}>{lf?.v}</div>
+                        <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)" }}>{lf?.n}</div>
+                        <div className="tn" style={{ fontSize: "var(--text-xl)", fontWeight: "var(--weight-semibold)" }}>{lf?.v}</div>
                         <div style={{ fontSize: "var(--text-xs)", opacity: ".8" }}>{lf?.s}</div>
                       </div>
                     </React.Fragment>))}
                 </div>
               </section>
-              <section className="tc " style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
+              <section className="tc" style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                 <div className="pe-ehead" style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
-                    <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "0" }}>Which events go where</h2>
+                    <h2 className="ta-h2">Which events go where</h2>
                   </div>
                   <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Click a box to turn it on or off</span>
                 </div>
@@ -363,7 +195,7 @@ export default class PixelsEventsScreen extends Component {
                               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                 <span style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{ev?.n}</span>
                                 {ev?.star ? (<>
-                                  <span style={{ height: "20px", padding: "0 8px", borderRadius: "var(--radius-full)", background: "#0b1733", color: "#fff", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center" }}>REAL CONVERSION</span>
+                                  <span style={{ height: "20px", padding: "0 8px", borderRadius: "var(--radius-full)", background: "#0b1733", color: "#fff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center" }}>REAL CONVERSION</span>
                                 </>) : null}
                               </div>
                               <div className="mono" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{ev?.api}</div>
@@ -383,11 +215,11 @@ export default class PixelsEventsScreen extends Component {
                   </table>
                 </div>
               </section>
-              <div className="st gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px", alignItems: "start" }}>
-                <section className="tc " style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
+              <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px", alignItems: "start" }}>
+                <section className="tc" style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "0" }}>Sending and data safety</h2>
+                      <h2 className="ta-h2">Sending and data safety</h2>
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
@@ -460,10 +292,10 @@ export default class PixelsEventsScreen extends Component {
                     <input className="inp mono" defaultValue="TEST48213" aria-label="Test code" style={{ width: "190px" }} />
                   </div>
                 </section>
-                <section className="tc " style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
+                <section className="tc" style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <h2 style={{ margin: "0", fontSize: "var(--text-base)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a", letterSpacing: "0" }}>Per-product and per-page pixels</h2>
+                      <h2 className="ta-h2">Per-product and per-page pixels</h2>
                     </div>
                     <button type="button" className="abtn" onClick={v.addOvr}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M5 12h14" />
@@ -498,9 +330,9 @@ export default class PixelsEventsScreen extends Component {
               </div>
               {v.wizOn ? (<>
                 <div style={{ position: "fixed", inset: "0", background: "rgba(15,23,42,.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: "50" }}>
-                  <section className="tc fade" style={{ width: "640px", padding: "24px", borderRadius: "var(--radius-xl)", display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <section className="tc" role="dialog" aria-modal="true" aria-label="Connect a platform" style={{ width: "min(640px, calc(100vw - 32px))", maxHeight: "calc(100dvh - 32px)", overflow: "auto", padding: "16px", borderRadius: "var(--radius-xl)", display: "flex", flexDirection: "column", gap: "16px" }}>
                     <div style={{ display: "flex", alignItems: "center" }}>
-                      <h2 style={{ margin: "0", fontSize: "var(--text-lg)", flexGrow: "1" }}>Connect a platform</h2>
+                      <h2 className="ta-h2" style={{ flexGrow: "1" }}>Connect a platform</h2>
                       <button type="button" className="ib" onClick={v.closeWiz} aria-label="Close">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M18 6 6 18" />
@@ -516,7 +348,7 @@ export default class PixelsEventsScreen extends Component {
                           </div>
                         </React.Fragment>))}
                     </div>
-                    <div style={{ minHeight: "150px", padding: "18px", borderRadius: "var(--radius-xl)", background: "#f7f9fc", display: "flex", flexDirection: "column", gap: "12px" }}>
+                    <div style={{ minHeight: "150px", padding: "16px", borderRadius: "var(--radius-xl)", background: "#f7f9fc", display: "flex", flexDirection: "column", gap: "12px" }}>
                       <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>{v.wT}</div>
                       <div style={{ fontSize: "var(--text-sm)", color: "#475569", lineHeight: "21px" }}>{v.wB}</div>
                       {v.wIsPick ? (<>
@@ -543,6 +375,7 @@ export default class PixelsEventsScreen extends Component {
                   </section>
                 </div>
               </>) : null}
+              </div>
             </div>
           </main>
         </div>

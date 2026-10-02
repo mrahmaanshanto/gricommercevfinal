@@ -1,10 +1,11 @@
 'use client';
-// Connections (/connections?group=&connect=) — every outside app and service the shop uses, connected and managed from
-// this one page: Sell online (Meta catalog, Google Merchant, WooCommerce, Shopify), Inbox & social (Facebook, Instagram,
-// WhatsApp, TikTok, YouTube, Google Business, LinkedIn, X, Pinterest, Threads, Telegram), Ads & tracking, Payments,
-// Delivery, SMS & email, Devices & tools. Summary tabs filter by state (connected · needs attention · not connected);
-// group chips and search narrow the list. One button per app: Connect (the connect flow, /connect?app=), Reconnect, or
-// Manage (its page, the gateway setup, or a details panel with what it is used for and Disconnect).
+// Connections (/connections?group=&connect=) — every outside app and service the shop uses, like Shopify's Apps and
+// sales channels list: Sell online (Meta catalog, Google Merchant, WooCommerce, Shopify), Inbox & social (Facebook,
+// Instagram, WhatsApp, TikTok, YouTube, Google Business, LinkedIn, X, Pinterest, Threads, Telegram), Ads & tracking,
+// Payments, Delivery, SMS & email, Devices & tools. One card: state views with counts (all · connected · needs
+// attention · not connected), search and a group filter, then the apps grouped. A row opens the app: Connect (the
+// connect flow, /connect?app=), Reconnect / Review, or Manage (its page, the gateway setup, or a details panel with
+// what it is used for and Disconnect). Connected apps have ⋯ (Manage, Disconnect).
 // Data: src/lib/connections.js. Gateways and couriers use components/GatewaySetup.jsx.
 
 import React, { useEffect, useState } from 'react';
@@ -12,17 +13,18 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
-import { PageHeader, EmptyState, Sheet, StatusBadge } from '@/components/ui';
+import { EmptyState, Sheet, StatusBadge } from '@/components/ui';
+import { ShopHeader, IndexTabs, SearchField, Menu, KV, LearnMore } from '@/components/ui/IndexKit';
 import { BrandLogo } from '@/components/BrandLogo';
 import { GatewaySetup } from '@/components/GatewaySetup';
 import { partnerBy } from '@/lib/settlements';
 import { CHANNELS_EVENT, ago, agoLow } from '@/lib/channels';
 import { GROUPS, appBy, allStatuses, disconnectApp, reconnectApp, CONNECTIONS_EVENT } from '@/lib/connections';
-import { ChannelFrame, RowMenu } from '@/screens/channels/chShared';
+import { ChannelFrame } from '@/screens/channels/chShared';
 import { formatDate } from '@/lib/format';
 
 const RANK = { attention: 0, connected: 1, off: 2 };
-const STATES = [['all', 'All apps', 'var(--primary)'], ['connected', 'Connected', 'var(--success)'], ['attention', 'Needs attention', 'var(--warning)'], ['off', 'Not connected', 'var(--slate-400)']];
+const STATES = [['all', 'All'], ['connected', 'Connected'], ['attention', 'Needs attention'], ['off', 'Not connected']];
 const BADGE = {
   connected: <StatusBadge tone="success" icon="plug">Connected</StatusBadge>,
   attention: <StatusBadge tone="warning" icon="triangle-alert">Needs attention</StatusBadge>,
@@ -30,51 +32,28 @@ const BADGE = {
 };
 
 const CSS = `
-.cn-chips{display:flex;gap:var(--space-1);overflow-x:auto;scrollbar-width:none;max-width:100%}
-.cn-chips::-webkit-scrollbar{display:none}
-.cn-chips button{flex:none;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-full);background:var(--surface-card);font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer;white-space:nowrap}
-.cn-chips button[aria-pressed="true"]{border-color:var(--primary);background:var(--fill-primary-soft);color:var(--primary)}
-.cn-tools{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3)}
-.cn-search{position:relative;flex:0 1 300px;min-width:200px}
-.cn-search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none}
-.cn-search .gc-input{padding-left:40px}
-.cn-group{display:flex;flex-direction:column;gap:var(--space-3)}
-.cn-group__head{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-3)}
-.cn-group__head h2{display:flex;align-items:center;gap:var(--space-2);margin:0;font-size:var(--text-base);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.cn-group__head p{margin:2px 0 0;font-size:var(--text-xs);color:var(--text-muted)}
-.cn-group__head small{flex:none;font-size:var(--text-xs);color:var(--text-muted)}
-.cn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:var(--space-3)}
-.cn-tile{display:flex;flex-direction:column;min-width:0;border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card)}
-.cn-tile[data-state="attention"]{border-color:color-mix(in srgb,var(--warning) 45%,var(--border-subtle))}
-.cn-tile__head{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-4) var(--space-4) var(--space-3)}
-.cn-tile__name{display:flex;flex-direction:column;min-width:0;flex:1}
-.cn-tile__name b{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.cn-tile__name small{font-size:var(--text-xs);color:var(--text-muted)}
-.cn-tile__head .gc-badge{flex:none}
-.cn-tile__body{display:flex;flex-direction:column;gap:6px;padding:0 var(--space-4) var(--space-3);flex:1;font-size:var(--text-sm)}
-.cn-acc{color:var(--text-heading);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cn-acc small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
-.cn-note{margin:0;font-size:var(--text-xs);color:var(--text-warning)}
-.cn-uses{display:flex;flex-wrap:wrap;gap:4px}
-.cn-uses span{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:var(--radius-full);background:var(--surface-subtle);font-size:var(--text-xs);color:var(--text-body)}
-.cn-tile__foot{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);padding:var(--space-2) var(--space-2) var(--space-2) var(--space-4);border-top:1px solid var(--border-subtle)}
-.cn-tile__foot .gc-btn{min-width:96px}
+.cn-app{display:flex;align-items:center;gap:10px;min-width:0}
+.cn-app>span{display:flex;flex-direction:column;min-width:0}
+.cn-app small{overflow:hidden;font-size:var(--text-xs);color:var(--text-muted);text-overflow:ellipsis;white-space:nowrap}
+.cn-acc{display:flex;flex-direction:column;max-width:260px;min-width:0}
+.cn-acc>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cn-acc small{font-size:var(--text-xs);color:var(--text-muted)}
+.cn-note{font-size:var(--text-xs);color:var(--text-warning);white-space:normal}
+.ix-table tr.cn-ghead td{height:36px;padding-top:var(--space-3);background:var(--surface-card);cursor:default;font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.ix-table tr.cn-ghead:hover td{background:var(--surface-card)}
+.cn-ghead small{margin-left:var(--space-2);font-weight:var(--weight-regular);color:var(--text-muted)}
+.cn-ghead svg{margin-right:6px;vertical-align:-3px;color:var(--text-muted)}
+.cn-phead{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);padding:var(--space-3) var(--space-3) var(--space-1);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.cn-phead small{font-weight:var(--weight-regular);color:var(--text-muted)}
+.cn-act{width:1%;text-align:right;white-space:nowrap}
 .cn-detail{display:flex;flex-direction:column;gap:var(--space-4)}
 .cn-detail__head{display:flex;align-items:center;gap:var(--space-3)}
-.cn-detail__head b{display:block;font-size:var(--text-base);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.cn-detail__head b{display:block;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .cn-detail__head small{font-size:var(--text-xs);color:var(--text-muted)}
-.cn-facts{display:grid;grid-template-columns:auto 1fr;gap:6px var(--space-4);margin:0;font-size:var(--text-sm)}
-.cn-facts dt{color:var(--text-muted)}
-.cn-facts dd{margin:0;color:var(--text-heading);text-align:right;min-width:0;overflow-wrap:anywhere}
-.cn-uses-list{display:flex;flex-direction:column}
-.cn-use{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-height:52px;border-top:1px solid var(--border-subtle);font-size:var(--text-sm)}
+.cn-use{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-height:44px;border-top:1px solid var(--border-subtle);font-size:var(--text-sm)}
 .cn-use:first-child{border-top:0}
 .cn-use span{display:flex;flex-direction:column}
 .cn-use small{font-size:var(--text-xs);color:var(--text-muted)}
-@media (max-width:640px){
-  .cn-search{flex:1 1 100%;min-width:0}
-  .cn-group__head small{display:none}
-}
 `;
 
 const USE_HELP = {
@@ -94,6 +73,7 @@ export default function Connections() {
   const [st, setSt] = useState('all');
   const [group, setGroup] = useState('');
   const [q, setQ] = useState('');
+  const [find, setFind] = useState(false);
   const [gate, setGate] = useState(null);       // { partner } | { provider }
   const [detail, setDetail] = useState(null);   // app id
   useEffect(() => {
@@ -138,55 +118,82 @@ export default function Connections() {
     if (a.kind === 'channel' || a.kind === 'page') { router.push(a.id === 'gbp' ? '/google-business?tab=locations' : a.page); return; }
     reconnectApp(a.id); toast(`${a.name} reconnected`);
   };
-  const frame = (body) => <ChannelFrame screen="Connections" active="connections" page="Connections" crumb="Online store & settings" css={CSS}>{body}</ChannelFrame>;
-  if (!ready) return frame(<PageHeader title="Connections" description="Every app and service your shop uses, connected from one place." />);
+  /** What a row does when it is opened: connect, reconnect or manage. */
+  const open = (a) => (a.status.state === 'off' ? connect(a) : a.status.state === 'attention' ? reconnect(a) : manage(a));
+  const head = <ShopHeader icon="plug" title="Connections" about="Every app and service your shop uses, connected from one place."
+    more={[{ label: 'Sales channels', href: '/channels' }, { label: 'Channel settings', href: '/channel-settings' }]} />;
+  const frame = (body) => <ChannelFrame screen="Connections" active="connections" page="Connections" crumb="Online store & settings" css={CSS}>{head}{body}</ChannelFrame>;
+  if (!ready) return frame(null);
 
   const groups = GROUPS.filter((g) => shown.some((a) => a.group === g.id));
   const sel = detail ? apps.find((a) => a.id === detail) : null;
+  const tabs = STATES.map(([id, label]) => ({ key: id, id: 'cn-tab-' + id, label, count: apps.filter((a) => inState(a, id) && (!group || a.group === group)).length, on: st === id, onClick: () => setSt(id) }));
+  const closeFind = () => { setFind(false); setQ(''); pickGroup(''); };
+  const sorted = (g) => shown.filter((a) => a.group === g.id).sort((x, y) => RANK[x.status.state] - RANK[y.status.state]);
+  const tally = (g) => { const all = apps.filter((a) => a.group === g.id); return `${all.filter((a) => a.status.state !== 'off').length} of ${all.length} connected`; };
 
   return frame(<>
-    <PageHeader title="Connections" description="Every app and service your shop uses, connected from one place." />
-
-    <div className="gc-stattabs ch-stattabs" role="tablist" aria-label="Apps by state">
-      {STATES.map(([id, label, dot]) => (
-        <button key={id} type="button" role="tab" aria-selected={st === id} className="gc-stattab" onClick={() => setSt(id)}>
-          <span className="gc-stattab__label"><i className="gc-stattab__dot" style={{ background: dot }} />{label}</span>
-          <span className="gc-stattab__nums"><b>{apps.filter((a) => inState(a, id) && (!group || a.group === group)).length}</b>{id === 'all' ? <small>{group ? GROUPS.find((g) => g.id === group).label.toLowerCase() : 'apps'}</small> : null}</span>
-        </button>
-      ))}
-    </div>
-
-    <div className="cn-tools">
-      <label className="cn-search">
-        <Icon name="search" width="16" height="16" aria-hidden="true" />
-        <input className="gc-input" type="search" placeholder="Search apps" aria-label="Search apps" value={q} onChange={(e) => setQ(e.target.value)} />
-      </label>
-      <div className="cn-chips" role="group" aria-label="Show">
-        <button type="button" aria-pressed={!group} onClick={() => pickGroup('')}>All</button>
-        {GROUPS.filter((g) => apps.some((a) => a.group === g.id)).map((g) => <button key={g.id} type="button" aria-pressed={group === g.id} onClick={() => pickGroup(group === g.id ? '' : g.id)}><Icon name={g.icon} width="14" height="14" aria-hidden="true" />{g.label}</button>)}
+    <section className="ix-card" aria-label="Apps">
+      <div className="ix-bar">
+        {find ? (<>
+          <SearchField value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search apps" onDone={closeFind} autoFocus />
+          <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={closeFind}>Cancel</button>
+        </>) : (<>
+          <IndexTabs tabs={tabs} label="Apps by state" />
+          <span className="ix-tools">
+            <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search and filter" onClick={() => setFind(true)}><Icon name="search" width="16" height="16" aria-hidden="true" /></button>
+          </span>
+        </>)}
       </div>
-    </div>
+      {find || group ? (
+        <div className="ix-filters" role="group" aria-label="Filters">
+          <select aria-label="Group" className={'ix-filter' + (group ? ' is-set' : '')} value={group} onChange={(e) => pickGroup(e.target.value)}>
+            <option value="">Group</option>
+            {GROUPS.filter((g) => apps.some((a) => a.group === g.id)).map((g) => <option key={g.id} value={g.id}>{g.label}</option>)}
+          </select>
+          {group || query ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => { setQ(''); pickGroup(''); }}>Clear all</button> : null}
+        </div>
+      ) : null}
 
-    {groups.length ? groups.map((g) => {
-      // what needs fixing first, then what works, then what is not set up
-      const list = shown.filter((a) => a.group === g.id).sort((x, y) => RANK[x.status.state] - RANK[y.status.state]);
-      const all = apps.filter((a) => a.group === g.id);
-      return (
-        <section key={g.id} className="cn-group" aria-labelledby={'cn-' + g.id}>
-          <div className="cn-group__head">
-            <div><h2 id={'cn-' + g.id}><Icon name={g.icon} width="18" height="18" aria-hidden="true" />{g.label}</h2><p>{g.sub}</p></div>
-            <small>{all.filter((a) => a.status.state !== 'off').length} of {all.length} connected</small>
-          </div>
-          <div className="cn-grid">
-            {list.map((a) => <Tile key={a.id} a={a} now={now} onConnect={connect} onManage={manage} onDisconnect={disconnect} onReconnect={reconnect} />)}
-          </div>
-        </section>
-      );
-    }) : (
-      <section className="gc-card" style={{ padding: 'var(--space-5)' }}>
-        <EmptyState title={query ? `No apps match “${q.trim()}”` : 'Nothing here'} body={query ? 'Check the spelling, or clear the search.' : 'No app has this state right now.'} actionLabel="Show all apps" onAction={() => { setQ(''); setSt('all'); pickGroup(''); }} />
-      </section>
-    )}
+      {groups.length ? (<>
+        <ul className="ix-plist" aria-label="Apps">
+          {groups.map((g) => (
+            <React.Fragment key={g.id}>
+              <li className="cn-phead"><span>{g.label}</span><small>{tally(g)}</small></li>
+              {sorted(g).map((a) => (
+                <li key={a.id}>
+                  <button type="button" className="ix-pitem" onClick={() => open(a)}>
+                    <span className="ix-pitem__top"><b>{a.name}</b>{BADGE[a.status.state]}</span>
+                    <span className="ix-pitem__mid">{a.status.state !== 'off' && a.status.account ? a.status.account : a.sub}</span>
+                    {a.status.note ? <span className="cn-note">{a.status.note}</span> : null}
+                  </button>
+                </li>
+              ))}
+            </React.Fragment>
+          ))}
+        </ul>
+        <div className="ix-table-wrap">
+          <table className="ix-table gc-table--keep">
+            <caption className="sr-only">Apps and services</caption>
+            <thead><tr><th scope="col">App</th><th scope="col">Status</th><th scope="col">Account</th><th scope="col" className="cn-act"><span className="sr-only">Action</span></th></tr></thead>
+            <tbody>
+              {groups.map((g) => (
+                <React.Fragment key={g.id}>
+                  <tr className="cn-ghead"><td colSpan={4} id={'cn-' + g.id}><Icon name={g.icon} width="16" height="16" aria-hidden="true" />{g.label}<small>{tally(g)}</small></td></tr>
+                  {sorted(g).map((a) => <Row key={a.id} a={a} now={now} onOpen={open} onManage={manage} onDisconnect={disconnect} />)}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </>) : (
+        <div className="ix-empty">
+          <EmptyState title={query ? `No apps match “${q.trim()}”` : 'Nothing here'} body={query ? 'Check the spelling, or clear the search.' : 'No app has this state right now.'} actionLabel="Show all apps" onAction={() => { setQ(''); setSt('all'); pickGroup(''); }} />
+        </div>
+      )}
+      <div className="ix-foot"><span>{shown.length === 1 ? '1 app' : shown.length + ' apps'}</span></div>
+    </section>
+    <LearnMore topic="connections" />
 
     {gate ? <GatewaySetup partner={gate.partner} provider={gate.provider} onClose={() => { setGate(null); bump((x) => x + 1); }} /> : null}
 
@@ -199,17 +206,13 @@ export default function Connections() {
       </> : null}>
       {sel ? (
         <div className="cn-detail">
-          <div className="cn-detail__head"><BrandLogo brand={sel.brand} size={48} decorative /><span><b>{sel.name}</b><small>{sel.sub}</small></span></div>
+          <div className="cn-detail__head"><BrandLogo brand={sel.brand} size={40} decorative /><span><b>{sel.name}</b><small>{sel.sub}</small></span></div>
           <div>{BADGE[sel.status.state]}</div>
-          {sel.status.note ? <p className="cn-note" style={{ fontSize: 'var(--text-sm)' }}>{sel.status.note}</p> : null}
-          <dl className="cn-facts">
-            <dt>Account</dt><dd>{sel.status.account || '—'}</dd>
-            {sel.status.at ? <><dt>Connected</dt><dd>{formatDate(sel.status.at)}</dd></> : null}
-            {sel.status.lastSync ? <><dt>Last update</dt><dd>{ago(sel.status.lastSync)}</dd></> : null}
-          </dl>
+          {sel.status.note ? <p className="cn-note" style={{ margin: 0, fontSize: 'var(--text-sm)' }}>{sel.status.note}</p> : null}
+          <KV rows={[['Account', sel.status.account], sel.status.at ? ['Connected', formatDate(sel.status.at)] : null, sel.status.lastSync ? ['Last update', ago(sel.status.lastSync)] : null]} />
           <div>
             <h3 className="ch-section-title" style={{ marginBottom: 'var(--space-2)' }}>Used for</h3>
-            <div className="cn-uses-list">
+            <div>
               {(sel.uses || []).map((u) => <div key={u} className="cn-use"><span>{u}<small>{USE_HELP[u] || ''}</small></span><Icon name="check" width="16" height="16" aria-hidden="true" style={{ color: 'var(--success)' }} /></div>)}
             </div>
           </div>
@@ -219,31 +222,21 @@ export default function Connections() {
   </>);
 }
 
-function Tile({ a, now, onConnect, onManage, onDisconnect, onReconnect }) {
+/** One app: what it is, its state, the account it uses, and one control (Connect, Reconnect / Review, or ⋯). */
+function Row({ a, now, onOpen, onManage, onDisconnect }) {
   const s = a.status;
-  const off = s.state === 'off';
-  const menu = off ? [] : [
-    s.state === 'attention' ? { label: 'Manage', icon: 'settings', onClick: () => onManage(a) } : null,
-    a.kind !== 'page' ? { label: 'Disconnect', icon: 'unplug', danger: true, onClick: () => onDisconnect(a) } : null,
-  ];
+  const control = s.state === 'off' ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => onOpen(a)}>Connect</button>
+    : s.state === 'attention' ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => onOpen(a)}>{a.kind === 'channel' || a.kind === 'page' ? 'Review' : 'Reconnect'}</button>
+      : <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" items={[{ label: 'Manage', onClick: () => onManage(a) }, a.kind !== 'page' ? { label: 'Disconnect', onClick: () => onDisconnect(a), tone: 'danger' } : null].filter(Boolean)} />;
   return (
-    <article className="cn-tile" data-state={s.state} aria-label={a.name}>
-      <div className="cn-tile__head">
-        <BrandLogo brand={a.brand} size={40} decorative />
-        <span className="cn-tile__name"><b>{a.name}</b><small>{a.sub}</small></span>
-        {BADGE[s.state]}
-      </div>
-      <div className="cn-tile__body">
-        {!off && s.account ? <span className="cn-acc">{s.account}{s.lastSync ? <small>Updated {agoLow(s.lastSync, now)}</small> : null}</span> : null}
-        {s.note ? <p className="cn-note">{s.note}</p> : null}
-        <span className="cn-uses" aria-label="Used for">{(a.uses || []).map((u) => <span key={u}>{u}</span>)}</span>
-      </div>
-      <div className="cn-tile__foot">
-        {off ? <button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={() => onConnect(a)}><Icon name="plug" width="16" height="16" aria-hidden="true" /> Connect</button>
-          : s.state === 'attention' ? <button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={() => onReconnect(a)}>{a.kind === 'channel' || a.kind === 'page' ? 'Review' : 'Reconnect'}</button>
-            : <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => onManage(a)}>Manage</button>}
-        <RowMenu label={`More for ${a.name}`} items={menu} />
-      </div>
-    </article>
+    <tr onClick={(e) => { if (!e.target.closest('a,button')) onOpen(a); }}>
+      <td><span className="cn-app"><BrandLogo brand={a.brand} size={28} decorative /><span><span className="ix-strong">{a.name}</span><small>{a.sub}</small></span></span></td>
+      <td>{BADGE[s.state]}</td>
+      <td>
+        {s.state !== 'off' && s.account ? <span className="cn-acc"><span>{s.account}</span>{s.lastSync ? <small>Updated {agoLow(s.lastSync, now)}</small> : null}</span> : <span className="ix-muted">—</span>}
+        {s.note ? <span className="cn-note">{s.note}</span> : null}
+      </td>
+      <td className="cn-act">{control}</td>
+    </tr>
   );
 }

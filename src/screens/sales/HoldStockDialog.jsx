@@ -16,7 +16,7 @@ import { sentOf, stockOutAtSale } from '@/lib/invoices';
 export const HOLD_CSS = `
 .hs-form{display:flex;flex-direction:column;gap:var(--space-4)}
 .hs-two{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
-.hs-line{display:grid;grid-template-columns:minmax(0,1fr) 96px;align-items:center;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid var(--border-subtle)}
+.hs-line{display:grid;grid-template-columns:minmax(0,1fr) 88px;align-items:center;gap:var(--space-3);min-height:48px;padding:6px 0;border-bottom:1px solid var(--border-subtle)}
 .hs-line b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 .hs-line small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .hs-line small.is-short{color:var(--text-danger)}

@@ -9,7 +9,6 @@ import { toast } from '@/runtime/ui';
 import { Dialog } from '@/components/ui';
 import { MERCHANT } from '@/lib/merchant';
 import { formatDate } from '@/lib/format';
-import { fromKey } from '@/lib/settlements';
 import {
   saveChange, staffBy, positionOf, gradeOf, gradeLabel, CHANGE_KINDS, HR_PLACES, STAFF_TYPES, monthLabel, monthOf, addMonths, todayKey, takaWords, changePct,
 } from '@/lib/hr';
@@ -17,9 +16,9 @@ import { printNode } from '@/lib/printNode';
 import { money } from './hrShared';
 
 export const LETTER_CSS = `
-.ltr{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-5);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font-size:var(--text-sm);line-height:1.6;color:var(--text-body)}
+.ltr{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font-size:var(--text-sm);line-height:1.6;color:var(--text-body)}
 .ltr__head{display:flex;justify-content:space-between;gap:var(--space-3);padding-bottom:var(--space-3);border-bottom:2px solid var(--primary)}
-.ltr__head b{display:block;font-size:var(--text-md);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.ltr__head b{display:block;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .ltr__head small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .ltr p{margin:0}
 .ltr__subj{font-weight:var(--weight-semibold);color:var(--text-heading)}
@@ -152,12 +151,12 @@ export function ChangeLetter({ S, change }) {
   );
 }
 
-/** A dialog showing a letter with a Print button. */
-export function LetterDialog({ S, change, onClose }) {
+/** A dialog showing a letter with a Print button. onCancel (a planned change only) adds "Cancel change". */
+export function LetterDialog({ S, change, onClose, onCancel }) {
   if (!change) return null;
   return (
     <Dialog open title="Letter" onClose={onClose} width={720}
-      footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={onClose}>Close</button><button type="button" className="gc-btn gc-btn--solid" onClick={() => printNode(document.querySelector('.ltr-print'), { title: `${(staffBy(S, change.code) || {}).name} - ${(CHANGE_KINDS[change.kind] || [''])[0]} letter`, css: LETTER_CSS + LETTER_PRINT })}><Icon name="printer" width="18" height="18" aria-hidden="true" /> Print letter</button></>}>
+      footer={<>{onCancel && change.status === 'planned' ? <button type="button" className="gc-btn gc-btn--flat" style={{ marginRight: 'auto', color: 'var(--text-danger)' }} onClick={() => onCancel(change)}>Cancel change</button> : null}<button type="button" className="gc-btn gc-btn--neutral" onClick={onClose}>Close</button><button type="button" className="gc-btn gc-btn--solid" onClick={() => printNode(document.querySelector('.ltr-print'), { title: `${(staffBy(S, change.code) || {}).name} - ${(CHANGE_KINDS[change.kind] || [''])[0]} letter`, css: LETTER_CSS + LETTER_PRINT })}><Icon name="printer" width="16" height="16" aria-hidden="true" /> Print letter</button></>}>
       <div className="ltr-print"><ChangeLetter S={S} change={change} /></div>
     </Dialog>
   );

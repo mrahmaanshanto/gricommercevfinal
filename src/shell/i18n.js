@@ -57,6 +57,30 @@ const BN = {
   'Business plan · 3 branches': 'বিজনেস প্ল্যান · ৩টি শাখা', 'Recent files': 'সাম্প্রতিক ফাইল', 'File manager': 'ফাইল ম্যানেজার',
   'See all': 'সব দেখুন', 'New invoice': 'নতুন ইনভয়েস', 'Upload a file': 'ফাইল আপলোড করুন',
   'Language set to English. The menu and top bar follow it; page content is English for now.': 'ভাষা বাংলা করা হয়েছে। মেনু ও উপরের বার বাংলায় দেখাবে; পেজের ভেতরের লেখা আপাতত ইংরেজিতে।',
+  // proposal switches (src/lib/proposal.js)
+  'Proposal: {n} on': 'প্রস্তাব: {n}টি চালু', 'Proposal switches': 'প্রস্তাবের সুইচ',
+  // business areas and their page tabs (navigation.js, Oct 2026)
+  'Commerce': 'কমার্স', 'Team & settings': 'টিম ও সেটিংস', 'Purchasing': 'ক্রয়', 'Payments': 'পেমেন্ট',
+  'Communications': 'যোগাযোগ', 'Finances': 'টাকা-পয়সা', 'Analytics': 'অ্যানালিটিক্স', 'Marketing': 'মার্কেটিং',
+  'Online Store': 'অনলাইন স্টোর', 'POS': 'পিওএস', 'Team': 'টিম', 'Dashboard': 'ড্যাশবোর্ড',
+  'My dashboard': 'আমার ড্যাশবোর্ড', 'Tasks': 'কাজ', 'Team chat': 'টিম চ্যাট', 'Wholesale orders': 'হোলসেল অর্ডার',
+  'Returns & exchanges': 'ফেরত ও বদল', 'Courier returns': 'কুরিয়ার ফেরত', 'Stock': 'স্টক',
+  'Stock adjustments': 'স্টক সমন্বয়', 'Stock holds': 'স্টক হোল্ড', 'Purchases': 'কেনাকাটা', 'Suppliers': 'সরবরাহকারী',
+  'Purchase requests': 'ক্রয়ের অনুরোধ', 'Payouts': 'পেআউট', 'Payment setup': 'পেমেন্ট সেটআপ',
+  'All customers': 'সব গ্রাহক', 'Leads & follow-ups': 'লিড ও ফলো-আপ', 'Social posts': 'সোশ্যাল পোস্ট',
+  'Automations': 'অটোমেশন', 'Cash, bank & wallets': 'নগদ, ব্যাংক ও ওয়ালেট', 'Income & expenses': 'আয় ও খরচ',
+  'Dues': 'বকেয়া', 'Bills to pay': 'পরিশোধের বিল', 'Money setup': 'টাকা-পয়সা সেটআপ',
+  'Daily summary': 'দৈনিক সারসংক্ষেপ', 'Scheduled reports': 'নির্ধারিত রিপোর্ট', 'Offers': 'অফার', 'Coupons': 'কুপন',
+  'Offers page': 'অফার পেজ', 'Blog categories': 'ব্লগ ক্যাটাগরি', 'Authors': 'লেখক',
+  'Channel settings': 'চ্যানেল সেটিংস', 'POS manage': 'পিওএস ব্যবস্থাপনা', 'Salary statements': 'বেতন বিবরণী',
+  'Increments & promotions': 'ইনক্রিমেন্ট ও পদোন্নতি', 'Gratuity & leaving': 'গ্র্যাচুইটি ও চাকরি ছাড়া',
+  'Positions & grades': 'পদ ও গ্রেড', 'ID cards & QR': 'আইডি কার্ড ও কিউআর', 'Attendance devices': 'হাজিরা ডিভাইস',
+  'New post': 'নতুন পোস্ট', 'Add staff': 'কর্মী যোগ করুন',
+  // short tab names (navigation.js › tab)
+  'Adjustments': 'সমন্বয়', 'Counts': 'গণনা', 'Holds': 'হোল্ড', 'Staff': 'কর্মী', 'Shifts': 'শিফট', 'Statements': 'বিবরণী',
+  'Increments': 'ইনক্রিমেন্ট', 'Loans': 'ঋণ', 'Gratuity': 'গ্র্যাচুইটি', 'Positions': 'পদ', 'ID cards': 'আইডি কার্ড',
+  'Devices': 'ডিভাইস', 'Setup': 'সেটআপ', 'Wallet': 'ওয়ালেট', 'Reminders': 'রিমাইন্ডার', 'Google Merchant': 'গুগল মার্চেন্ট',
+  'Cash & bank': 'নগদ ও ব্যাংক',
 };
 
 /** Translates a shell string for the active locale. */

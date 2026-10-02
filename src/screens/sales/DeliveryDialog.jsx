@@ -27,17 +27,17 @@ const HOW = ['Customer collected from the shop', 'Our own delivery', 'Courier'];
 export const DELIVERY_CSS = `
 .dl-form{display:flex;flex-direction:column;gap:var(--space-4)}
 .dl-two{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
-.dl-line{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid var(--border-subtle)}
+.dl-line{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:var(--space-3);min-height:48px;padding:6px 0;border-bottom:1px solid var(--border-subtle)}
 .dl-line b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 .dl-line small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .dl-line small.is-short{color:var(--text-danger)}
 .dl-line small.is-ok{color:var(--text-success)}
 .dl-step{display:flex;align-items:center;gap:2px;padding:2px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
-.dl-step button{display:grid;place-items:center;width:32px;height:36px;border:0;border-radius:var(--radius-md);background:none;color:var(--text-body);cursor:pointer}
+.dl-step button{display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:var(--radius-md);background:none;color:var(--text-body);cursor:pointer}
 .dl-step button:disabled{opacity:.4;cursor:not-allowed}
-.dl-step input{width:52px;height:36px;border:0;background:none;text-align:center;font:inherit;font-weight:var(--weight-medium);color:var(--text-heading);font-variant-numeric:tabular-nums}
-.dl-total{display:flex;align-items:baseline;justify-content:space-between;padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary)}
-.dl-total b{font-size:var(--text-xl);font-weight:var(--weight-semibold);font-variant-numeric:tabular-nums}
+.dl-step input{width:48px;height:28px;border:0;background:none;text-align:center;font:inherit;font-weight:var(--weight-medium);color:var(--text-heading);font-variant-numeric:tabular-nums}
+.dl-total{display:flex;align-items:baseline;justify-content:space-between;padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--fill-primary-soft);font-size:var(--text-sm);color:var(--primary)}
+.dl-total b{font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);font-variant-numeric:tabular-nums}
 .dl-quick{display:flex;gap:var(--space-2)}
 .dl-sheet .iv-paper__title b{font-size:var(--text-xl)}
 .dl-sheet .iv-paper__items td.iv-num{white-space:nowrap}
@@ -45,6 +45,7 @@ export const DELIVERY_CSS = `
 .dl-sign{display:flex;flex-direction:column;gap:2px;padding-top:var(--space-2);margin-top:var(--space-8);border-top:1px solid var(--border-strong);font-size:var(--text-xs);color:var(--text-muted)}
 .dl-sign b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 @media (max-width:599px){.dl-two,.dl-signs{grid-template-columns:1fr}}
+@media (max-width:640px){.dl-step button{width:36px;height:36px}.dl-step input{height:36px}}
 `;
 
 const pcs = (lines) => Object.values(lines || {}).reduce((a, n) => a + n, 0);
@@ -160,7 +161,7 @@ export function ChallanDialog({ inv, index, onClose, saved }) {
   const no = challanNo(inv, index);
   return (
     <Dialog open title={saved ? `Delivery saved · challan ${no}` : `Challan ${no}`} onClose={onClose} width={820}
-      footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={onClose}>{saved ? 'Done' : 'Close'}</button><button type="button" className="gc-btn gc-btn--solid" onClick={() => window.print()}><Icon name="printer" width="18" height="18" aria-hidden="true" /> Print challan / gate pass</button></>}>
+      footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={onClose}>{saved ? 'Done' : 'Close'}</button><button type="button" className="gc-btn gc-btn--solid" onClick={() => window.print()}><Icon name="printer" width="16" height="16" aria-hidden="true" /> Print challan / gate pass</button></>}>
       <ChallanPaper inv={inv} index={index} />
     </Dialog>
   );

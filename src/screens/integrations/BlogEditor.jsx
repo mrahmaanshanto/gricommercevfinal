@@ -13,6 +13,9 @@
 //   Saving        every 4 s: a draft saves itself; a live or scheduled post keeps its changes on this
 //                 device until Update. Leaving with unsaved changes asks first. Publishing checks the
 //                 title, a category, the meta description and the cover alt text.
+//   Layout        a Shopify-style record: back to the posts, the title with its status and address, Archive and
+//                 Delete under More actions; a sticky bar (save state, Edit/Preview, Save draft, Publish); the
+//                 writing on the left and the settings panels on the right.
 // Front end only: data from src/lib/blog.js, products from src/lib/stock.js.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -20,7 +23,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
-import { PageHeader, EmptyState } from '@/components/ui';
+import { EmptyState, InfoTip } from '@/components/ui';
+import { RecordHeader } from '@/components/ui/IndexKit';
 import { formatBDT, formatDate, formatTime, formatDateTime } from '@/lib/format';
 import {
   getPost, blankPost, savePost, deletePosts, publishProblems, getAutosave, setAutosave, clearAutosave,
@@ -40,71 +44,65 @@ const cut = (s, max) => (s.length > max ? s.slice(0, max - 1).trimEnd() + '…' 
 const rowsFor = (s, min = 3) => Math.min(16, Math.max(min, String(s || '').split('\n').reduce((a, line) => a + Math.max(1, Math.ceil(line.length / 80)), 0)));
 
 const CSS = `
-.be-bar{position:sticky;top:var(--header-height);z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);padding:var(--space-3) var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card);box-shadow:var(--shadow-soft)}
+.be-bar{position:sticky;top:var(--header-height);z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-xl);background:var(--surface-card);box-shadow:var(--shadow-card)}
 .be-save{flex:1 1 180px;min-width:0;font-size:var(--text-xs);color:var(--text-muted)}
 .be-save b{font-weight:var(--weight-medium);color:var(--text-body)}
 .be-bar .be-acts{display:flex;flex-wrap:wrap;gap:var(--space-2)}
-.be-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,360px);gap:var(--space-5);align-items:start}
-.be-main,.be-side{display:flex;flex-direction:column;gap:var(--space-4);min-width:0}
-.be-card{padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4)}
-.be-title{height:56px;font-size:var(--text-xl);font-weight:var(--weight-semibold)}
+.be-card{display:flex;flex-direction:column;gap:var(--space-3)}
+.be-title{font-weight:var(--weight-medium)}
 .be-slug{display:flex;align-items:stretch;min-width:0}
 .be-slug span{display:flex;align-items:center;padding:0 var(--space-3);border:1px solid var(--border-field);border-right:0;border-radius:var(--radius-lg) 0 0 var(--radius-lg);background:var(--surface-subtle);font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap;font-family:var(--font-data)}
 .be-slug input{border-radius:0 var(--radius-lg) var(--radius-lg) 0;font-family:var(--font-data);min-width:0}
-.be-count{display:flex;justify-content:space-between;gap:var(--space-2);margin-top:var(--space-2);font-size:var(--text-xs);color:var(--text-muted)}
+.be-count{display:flex;justify-content:space-between;gap:var(--space-2);margin-top:var(--space-1);font-size:var(--text-xs);color:var(--text-muted)}
 .be-count .is-good{color:var(--text-success)}.be-count .is-warn{color:var(--text-warning)}
+.be-chead{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-3)}
+.be-chead h2{display:inline-flex;align-items:center;gap:4px;margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .be-blocks{display:flex;flex-direction:column}
-.be-block{border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card)}
+.be-block{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card)}
 .be-block:focus-within{border-color:var(--border-field-focus)}
-.be-bhead{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);padding:var(--space-1) var(--space-2) var(--space-1) var(--space-4);border-bottom:1px solid var(--border-subtle);background:var(--surface-subtle);border-radius:var(--radius-xl) var(--radius-xl) 0 0}
+.be-bhead{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);padding:2px var(--space-1) 2px var(--space-3);border-bottom:1px solid var(--border-subtle);background:var(--surface-subtle);border-radius:var(--radius-lg) var(--radius-lg) 0 0}
 .be-btype{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
 .be-bacts{display:flex;flex-wrap:wrap;gap:2px}
-.be-bacts .gc-iconbtn[disabled]{opacity:.35;cursor:default}
-.be-bbody{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-4)}
+.be-bacts .ix-btn[disabled]{opacity:.35}
+.be-bbody{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3)}
 .be-tools{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1)}
-.be-tool{display:inline-grid;place-items:center;width:36px;height:36px;border:1px solid var(--border-subtle);border-radius:var(--radius-full);background:var(--surface-card);color:var(--text-body);cursor:pointer;padding:0}
-.be-tool:hover{background:var(--surface-subtle);color:var(--text-heading)}
 .be-tools .bl-sub{margin-left:var(--space-2)}
 .be-text{line-height:1.6}
-.be-ins{position:relative;display:flex;justify-content:center;height:28px;align-items:center}
+.be-ins{position:relative;display:flex;justify-content:center;height:24px;align-items:center}
 .be-ins::before{content:"";position:absolute;left:var(--space-4);right:var(--space-4);top:50%;border-top:1px dashed var(--border-subtle)}
-.be-plus{position:relative;display:inline-grid;place-items:center;width:28px;height:28px;border:1px solid var(--border-strong);border-radius:var(--radius-full);background:var(--surface-card);color:var(--text-muted);cursor:pointer;padding:0}
+.be-plus{position:relative;display:inline-grid;place-items:center;width:24px;height:24px;border:1px solid var(--border-strong);border-radius:var(--radius-full);background:var(--surface-card);color:var(--text-muted);cursor:pointer;padding:0}
 .be-plus:hover,.be-plus:focus-visible{border-color:var(--primary);color:var(--primary)}
-.be-menu{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:var(--space-2);padding:var(--space-3);margin:var(--space-2) 0;border:1px solid var(--border-strong);border-radius:var(--radius-xl);background:var(--surface-card);box-shadow:var(--shadow-lg)}
+.be-menu{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:var(--space-2);padding:var(--space-3);margin:var(--space-2) 0;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);box-shadow:var(--shadow-lg)}
 .be-menu p{grid-column:1/-1;margin:0;display:flex;justify-content:space-between;align-items:center;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
-.be-mitem{display:flex;align-items:center;gap:var(--space-2);height:44px;padding:0 var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font:inherit;font-size:var(--text-sm);color:var(--text-heading);cursor:pointer;text-align:left}
+.be-mitem{display:flex;align-items:center;gap:var(--space-2);height:32px;padding:0 var(--space-2);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font:inherit;font-size:var(--text-sm);color:var(--text-heading);cursor:pointer;text-align:left}
 .be-mitem:hover,.be-mitem:focus-visible{border-color:var(--primary);background:var(--fill-primary-soft)}
 .be-gallery{display:flex;flex-wrap:wrap;gap:var(--space-2)}
-.be-gpick{position:relative;width:56px;height:56px;padding:0;border:2px solid transparent;border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;background:var(--surface-subtle);display:grid;place-items:center;color:var(--text-muted)}
+.be-gpick{position:relative;width:48px;height:48px;padding:0;border:2px solid transparent;border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;background:var(--surface-subtle);display:grid;place-items:center;color:var(--text-muted)}
 .be-gpick img{width:100%;height:100%;object-fit:cover;display:block}
 .be-gpick[aria-pressed="true"]{border-color:var(--primary)}
-.be-gpick:focus-visible{outline:3px solid var(--fill-primary-soft-hover);outline-offset:2px}
+.be-gpick:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 .be-tablegrid{display:grid;gap:var(--space-1)}
-.be-tablegrid input{height:44px}
 .be-tablegrid .is-head{font-weight:var(--weight-semibold);background:var(--surface-subtle)}
 .be-faq{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
-.be-panel{overflow:hidden}
-.be-panel>summary{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-4) var(--space-5);cursor:pointer;list-style:none;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.be-panel>summary{display:flex;align-items:center;gap:var(--space-2);min-height:44px;padding:0 var(--space-4);cursor:pointer;list-style:none;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .be-panel>summary::-webkit-details-marker{display:none}
+.be-panel>summary>svg:first-child{color:var(--text-muted)}
 .be-panel>summary .be-chev{margin-left:auto;color:var(--text-muted);transition:transform var(--duration-base) var(--ease-out)}
 .be-panel[open]>summary .be-chev{transform:rotate(180deg)}
-.be-panel>summary:focus-visible{outline:3px solid var(--fill-primary-soft-hover);outline-offset:-3px}
-.be-pbody{display:flex;flex-direction:column;gap:var(--space-4);padding:0 var(--space-5) var(--space-5)}
+.be-panel>summary:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.be-pbody{display:flex;flex-direction:column;gap:var(--space-3);padding:0 var(--space-4) var(--space-4)}
 .be-line{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);font-size:var(--text-sm);color:var(--text-body)}
-.be-btns{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2)}
-.be-btns .gc-btn{padding:0 var(--space-3)}
-.be-btns .be-wide{grid-column:1/-1}
-.be-problems{margin:0;padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);background:var(--fill-error-soft);color:var(--text-danger);font-size:var(--text-xs)}
+.be-problems{margin:0;padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--fill-error-soft);color:var(--text-danger);font-size:var(--text-xs)}
 .be-problems ul{margin:var(--space-1) 0 0;padding-left:1.2em}
 .be-problems button{border:0;background:none;padding:0;font:inherit;color:inherit;text-decoration:underline;cursor:pointer;text-align:left}
-.be-tree{display:flex;flex-direction:column;gap:var(--space-1);max-height:260px;overflow:auto;border:0;padding:0;margin:0}
-.be-tree label{display:flex;align-items:center;gap:var(--space-2);min-height:36px;font-size:var(--text-sm);color:var(--text-body);cursor:pointer}
+.be-tree{display:flex;flex-direction:column;gap:2px;max-height:260px;overflow:auto;border:0;padding:0;margin:0}
+.be-tree label{display:flex;align-items:center;gap:var(--space-2);min-height:32px;font-size:var(--text-sm);color:var(--text-body);cursor:pointer}
 .be-tree.is-error{outline:1px solid var(--text-danger);outline-offset:4px;border-radius:var(--radius-md)}
-.be-serp{padding:var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font-family:var(--font-sans)}
+.be-serp{padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font-family:var(--font-sans)}
 .be-serp-site{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-body);min-width:0}
-.be-serp-site span.be-fav{display:grid;place-items:center;width:26px;height:26px;flex:none;border-radius:var(--radius-full);background:var(--fill-primary-soft);color:var(--primary);font-weight:var(--weight-semibold)}
+.be-serp-site span.be-fav{display:grid;place-items:center;width:24px;height:24px;flex:none;border-radius:var(--radius-full);background:var(--fill-primary-soft);color:var(--primary);font-weight:var(--weight-semibold)}
 .be-serp-site small{display:block;color:var(--text-muted);font-size:var(--text-xs);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.be-serp-title{margin-top:var(--space-2);font-size:var(--text-lg);line-height:1.3;color:var(--primary-600)}
+.be-serp-title{margin-top:var(--space-2);font-size:var(--text-sm-plus);line-height:1.3;color:var(--primary-600)}
 .be-serp-desc{margin-top:var(--space-1);font-size:var(--text-sm);line-height:1.5;color:var(--text-body)}
 .be-score{display:flex;align-items:center;gap:var(--space-3)}
 .be-score .gc-progress{flex:1}
@@ -119,23 +117,20 @@ const CSS = `
 .be-og b{display:block;margin-top:2px;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .be-og p{margin:2px 0 0;font-size:var(--text-xs);color:var(--text-muted)}
 .be-rel{display:flex;flex-direction:column;gap:var(--space-2);margin:0;padding:0;list-style:none}
-.be-rel li{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-2) var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);font-size:var(--text-sm)}
+.be-rel li{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-1) var(--space-1) var(--space-1) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);font-size:var(--text-sm)}
 .be-rel li div{flex:1;min-width:0}
-.be-pv{padding:var(--space-6) var(--space-5);background:var(--surface-card);border-radius:var(--radius-xl);box-shadow:var(--shadow-soft)}
+.be-pv{padding:var(--space-6) var(--space-5)}
 .be-pv--mobile{max-width:430px;margin:0 auto;width:100%;padding:var(--space-5) var(--space-4);border:8px solid var(--slate-800);border-radius:var(--radius-2xl)}
-@media (max-width:1023px){.be-layout{grid-template-columns:minmax(0,1fr)}}
-@media (max-width:599px){.be-bar{position:static}.be-card{padding:var(--space-4)}.be-slug{flex-direction:column}.be-slug span{border-right:1px solid var(--border-field);border-bottom:0;border-radius:var(--radius-lg) var(--radius-lg) 0 0;height:32px}.be-slug input{border-radius:0 0 var(--radius-lg) var(--radius-lg)}.be-bbody{padding:var(--space-3)}}
-/* phones: the character count stays on one line; checklist tips use the helper-text size */
+@media (max-width:599px){.be-bar{position:static}.be-slug{flex-direction:column}.be-slug span{border-right:1px solid var(--border-field);border-bottom:0;border-radius:var(--radius-lg) var(--radius-lg) 0 0;height:32px}.be-slug input{border-radius:0 0 var(--radius-lg) var(--radius-lg)}}
+/* phones: the character count stays on one line */
 @media (max-width:640px){.be-count>span:last-child{flex:none;white-space:nowrap}}
-/* phones: Save draft / Publish already sit in the bar at the top, so the Publish panel does not repeat them */
-@media (max-width:640px){.be-btns{display:none}}
 `;
 
 // ---- collapsible side panel -------------------------------------------------------------------
 function Panel({ title, icon, open = true, extra, children, id }) {
   return (
-    <details className="gc-card be-panel" open={open} id={id}>
-      <summary><Icon name={icon} width="18" height="18" aria-hidden="true" /><span>{title}</span>{extra}<Icon name="chevron-down" width="18" height="18" className="be-chev" aria-hidden="true" /></summary>
+    <details className="ix-card be-panel" open={open} id={id}>
+      <summary><Icon name={icon} width="16" height="16" aria-hidden="true" /><span>{title}</span>{extra}<Icon name="chevron-down" width="16" height="16" className="be-chev" aria-hidden="true" /></summary>
       <div className="be-pbody">{children}</div>
     </details>
   );
@@ -159,8 +154,8 @@ function AddMenu({ onPick, onClose }) {
   useEffect(() => { const b = ref.current && ref.current.querySelector('button.be-mitem'); if (b) b.focus(); }, []);
   return (
     <div ref={ref} className="be-menu" role="group" aria-label="Add a block" onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } }}>
-      <p><span>Add a block</span><button type="button" className="gc-iconbtn" aria-label="Close the block menu" onClick={onClose}><Icon name="x" width="16" height="16" /></button></p>
-      {BLOCK_TYPES.map((t) => <button key={t.type} type="button" className="be-mitem" onClick={() => onPick(t.type)}><Icon name={t.icon} width="18" height="18" aria-hidden="true" />{t.label}</button>)}
+      <p><span>Add a block</span><button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Close the block menu" onClick={onClose}><Icon name="x" width="16" height="16" /></button></p>
+      {BLOCK_TYPES.map((t) => <button key={t.type} type="button" className="be-mitem" onClick={() => onPick(t.type)}><Icon name={t.icon} width="16" height="16" aria-hidden="true" />{t.label}</button>)}
     </div>
   );
 }
@@ -291,7 +286,7 @@ function BlockEditor({ b, i, count, catalog, onChange, onMove, onDup, onDel }) {
           <div key={k} className="be-faq">
             <div className="bl-row">
               <input id={k === 0 ? fid : undefined} className="gc-input" value={x.q} placeholder="Question" aria-label={`Question ${k + 1}`} onChange={(e) => setItem(k, { q: e.target.value })} />
-              <button type="button" className="gc-iconbtn" aria-label={`Remove question ${k + 1}`} disabled={items.length < 2} onClick={() => onChange({ items: items.filter((_, j) => j !== k) })}><Icon name="trash-2" width="16" height="16" /></button>
+              <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label={`Remove question ${k + 1}`} disabled={items.length < 2} onClick={() => onChange({ items: items.filter((_, j) => j !== k) })}><Icon name="trash-2" width="16" height="16" /></button>
             </div>
             <textarea className="gc-input" rows={2} value={x.a} placeholder="Answer" aria-label={`Answer ${k + 1}`} onChange={(e) => setItem(k, { a: e.target.value })} />
           </div>
@@ -303,9 +298,9 @@ function BlockEditor({ b, i, count, catalog, onChange, onMove, onDup, onDel }) {
     default:
       body = (<>
         <div className="be-tools" role="group" aria-label="Formatting">
-          <button type="button" className="be-tool" aria-label="Bold (Ctrl+B)" title="Bold · Ctrl+B" onClick={() => wrap('**', '**', 'bold text')}><Icon name="bold" width="16" height="16" /></button>
-          <button type="button" className="be-tool" aria-label="Italic (Ctrl+I)" title="Italic · Ctrl+I" onClick={() => wrap('*', '*', 'italic text')}><Icon name="italic" width="16" height="16" /></button>
-          <button type="button" className="be-tool" aria-label="Link (Ctrl+K)" title="Link · Ctrl+K" onClick={() => wrap('[', '](https://)', 'link text')}><Icon name="link" width="16" height="16" /></button>
+          <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Bold (Ctrl+B)" title="Bold · Ctrl+B" onClick={() => wrap('**', '**', 'bold text')}><Icon name="bold" width="16" height="16" /></button>
+          <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Italic (Ctrl+I)" title="Italic · Ctrl+I" onClick={() => wrap('*', '*', 'italic text')}><Icon name="italic" width="16" height="16" /></button>
+          <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Link (Ctrl+K)" title="Link · Ctrl+K" onClick={() => wrap('[', '](https://)', 'link text')}><Icon name="link" width="16" height="16" /></button>
           <span className="bl-sub">**bold** · *italic* · [text](url)</span>
         </div>
         <textarea id={fid} className="gc-input be-text" rows={rowsFor(b.text)} value={b.text || ''} placeholder="Write a paragraph…" aria-label="Paragraph text" onChange={(e) => onChange({ text: e.target.value })} onKeyDown={fmtKeys} />
@@ -317,10 +312,10 @@ function BlockEditor({ b, i, count, catalog, onChange, onMove, onDup, onDel }) {
       <div className="be-bhead">
         <span className="be-btype"><Icon name={meta.icon} width="16" height="16" aria-hidden="true" />{meta.label}</span>
         <div className="be-bacts">
-          <button type="button" className="gc-iconbtn" data-act="up" aria-label="Move block up (Alt+Up)" title="Move up · Alt+↑" disabled={i === 0} onClick={() => onMove(-1)}><Icon name="arrow-up" width="16" height="16" /></button>
-          <button type="button" className="gc-iconbtn" data-act="down" aria-label="Move block down (Alt+Down)" title="Move down · Alt+↓" disabled={i === count - 1} onClick={() => onMove(1)}><Icon name="arrow-down" width="16" height="16" /></button>
-          <button type="button" className="gc-iconbtn" aria-label="Duplicate block" title="Duplicate" onClick={onDup}><Icon name="copy" width="16" height="16" /></button>
-          <button type="button" className="gc-iconbtn" aria-label="Delete block" title="Delete" onClick={onDel}><Icon name="trash-2" width="16" height="16" /></button>
+          <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" data-act="up" aria-label="Move block up (Alt+Up)" title="Move up · Alt+↑" disabled={i === 0} onClick={() => onMove(-1)}><Icon name="arrow-up" width="16" height="16" /></button>
+          <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" data-act="down" aria-label="Move block down (Alt+Down)" title="Move down · Alt+↓" disabled={i === count - 1} onClick={() => onMove(1)}><Icon name="arrow-down" width="16" height="16" /></button>
+          <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Duplicate block" title="Duplicate" onClick={onDup}><Icon name="copy" width="16" height="16" /></button>
+          <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Delete block" title="Delete" onClick={onDel}><Icon name="trash-2" width="16" height="16" /></button>
         </div>
       </div>
       <div className="be-bbody">{body}</div>
@@ -447,16 +442,16 @@ export default function BlogEditor() {
   // ---- missing / loading --------------------------------------------------------------------
   if (missing) {
     return (
-      <BlogFrame screen="BlogEditor" active="blog-posts" page="Edit post" css={CSS}>
-        <PageHeader title="Post not found" description="It may have been deleted on this device." actions={<Link href="/blog-posts" className="gc-btn gc-btn--neutral"><Icon name="arrow-left" width="18" height="18" aria-hidden="true" /> All posts</Link>} />
-        <section className="gc-card"><EmptyState icon="file-question" title="This post is not here" body="Go back to the list, or start a new post." actionLabel="New post" onAction={() => { setMissing(false); try { window.history.replaceState(window.history.state, '', '/blog-editor'); } catch { /* ignore */ } }} /></section>
+      <BlogFrame screen="BlogEditor" active="blog-posts" page="Edit post" css={CSS} narrow>
+        <RecordHeader back="/blog-posts" backLabel="All posts" title="Post not found" about="It may have been deleted on this device." />
+        <section className="ix-card ix-empty"><EmptyState icon="file-question" title="This post is not here" body="Go back to the list, or start a new post." actionLabel="New post" onAction={() => { setMissing(false); try { window.history.replaceState(window.history.state, '', '/blog-editor'); } catch { /* ignore */ } }} /></section>
       </BlogFrame>
     );
   }
   if (!post) {
     return (
-      <BlogFrame screen="BlogEditor" active="blog-new" page="New post" css={CSS}>
-        <PageHeader title="Blog post" description="Loading the editor…" />
+      <BlogFrame screen="BlogEditor" active="blog-new" page="New post" css={CSS} narrow>
+        <RecordHeader back="/blog-posts" backLabel="All posts" title="Blog post" meta="Loading the editor…" />
         <div style={{ minHeight: 320 }} aria-busy="true" />
       </BlogFrame>
     );
@@ -618,13 +613,19 @@ export default function BlogEditor() {
   );
 
   return (
-    <BlogFrame screen="BlogEditor" active={isNew ? 'blog-new' : 'blog-posts'} page={isNew ? 'New post' : 'Edit post'} css={CSS}>
+    <BlogFrame screen="BlogEditor" active={isNew ? 'blog-new' : 'blog-posts'} page={isNew ? 'New post' : 'Edit post'} css={CSS} narrow>
       <form onSubmit={(e) => e.preventDefault()} style={{ display: 'contents' }}>
-        <PageHeader compact title={isNew ? 'New post' : 'Edit post'} description={isNew ? 'Write, format and optimise a post for the storefront blog. Drafts save on this device every few seconds.' : post.title || 'Untitled post'} />
+        <RecordHeader back="/blog-posts" backLabel="All posts"
+          title={isNew ? 'New post' : post.title || 'Untitled post'}
+          badges={<PostStatus status={isNew ? 'draft' : (stored || post).status} />}
+          meta={<span style={{ fontFamily: 'var(--font-data)' }}>{BLOG_BASE}{post.slug || '…'}</span>}
+          about="Write, format and optimise a post for the storefront blog. Drafts save on this device every few seconds."
+          more={[
+            !isNew && post.status !== 'archived' ? { label: 'Move to archive', onClick: archive } : null,
+            { label: isNew ? 'Discard' : 'Delete', onClick: remove, tone: 'danger' },
+          ].filter(Boolean)} />
 
         <div className="be-bar">
-          <Link href="/blog-posts" className="gc-btn gc-btn--sm gc-btn--flat"><Icon name="arrow-left" width="16" height="16" aria-hidden="true" /> All posts</Link>
-          <PostStatus status={isNew ? 'draft' : (stored || post).status} />
           <span className="be-save" aria-live="polite">{statusLine}</span>
           <div className="gc-seg" role="group" aria-label="Edit or preview">
             <button type="button" className={'gc-seg__btn' + (mode === 'edit' ? ' gc-seg__btn--active' : '')} aria-pressed={mode === 'edit'} onClick={() => setMode('edit')}>Edit</button>
@@ -637,29 +638,29 @@ export default function BlogEditor() {
             </div>
           ) : null}
           <div className="be-acts">
-            <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={saveDraft}>{isLiveNow || (stored && stored.status === 'scheduled') ? 'Switch to draft' : 'Save draft'}</button>
-            <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={publish}><Icon name={primaryLabel === 'Schedule' ? 'calendar-clock' : 'send'} width="16" height="16" aria-hidden="true" /> {primaryLabel}</button>
+            <button type="button" className="ix-btn" onClick={saveDraft}>{isLiveNow || (stored && stored.status === 'scheduled') ? 'Switch to draft' : 'Save draft'}</button>
+            <button type="button" className="ix-btn ix-btn--primary" onClick={publish}><Icon name={primaryLabel === 'Schedule' ? 'calendar-clock' : 'send'} width="16" height="16" aria-hidden="true" />{primaryLabel}</button>
           </div>
         </div>
 
         {restore ? (
           <div className="gc-alert gc-alert--soft gc-alert--warning" role="status" style={{ flexWrap: 'wrap' }}>
-            <Icon name="history" width="20" height="20" aria-hidden="true" />
+            <Icon name="history" width="16" height="16" aria-hidden="true" />
             <span style={{ flex: '1 1 240px' }}>You have changes from {formatDateTime(restore.at)} that are not live yet.</span>
-            <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={doRestore}>Restore them</button>
-            <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={dropRestore}>Discard</button>
+            <button type="button" className="ix-btn ix-btn--sm ix-btn--primary" onClick={doRestore}>Restore them</button>
+            <button type="button" className="ix-btn ix-btn--sm" onClick={dropRestore}>Discard</button>
           </div>
         ) : null}
 
-        <div className="be-layout gc-split">
+        <div className="ix-record">
           {/* ---- main column ---- */}
-          <div className="be-main">
+          <div className="ix-main">
             {mode === 'preview' ? (
-              <div className={'be-pv' + (device === 'mobile' ? ' be-pv--mobile' : '')}>
+              <div className={'ix-card be-pv' + (device === 'mobile' ? ' be-pv--mobile' : '')}>
                 <PostPreview post={{ ...post, readingTime: readingTime(post.blocks) }} db={db} device={device} />
               </div>
             ) : (<>
-              <section className="gc-card be-card" aria-label="Title and summary">
+              <section className="ix-card ix-card--pad be-card" aria-label="Title and summary">
                 <div>
                   <label className="gc-label" htmlFor="bl-title">Title *</label>
                   <input id="bl-title" className={'gc-input be-title' + (bad('bl-title') ? ' gc-input--error' : '')} value={post.title} placeholder="What is this post about?" onChange={(e) => onTitle(e.target.value)} data-autofocus />
@@ -680,9 +681,10 @@ export default function BlogEditor() {
                 </div>
               </section>
 
-              <section className="gc-card be-card" aria-label="Content">
-                <div className="bl-head" style={{ padding: 0 }}>
-                  <div><h2>Content</h2><p>{words} words · {readingTime(post.blocks)} min read · Alt+↑/↓ moves the block you are in</p></div>
+              <section className="ix-card ix-card--pad be-card" aria-label="Content">
+                <div className="be-chead">
+                  <h2>Content <InfoTip text="Alt+↑/↓ moves the block you are in." /></h2>
+                  <span className="bl-sub">{words} words · {readingTime(post.blocks)} min read</span>
                 </div>
                 <div className="be-blocks">
                   {insertRow(0)}
@@ -700,7 +702,7 @@ export default function BlogEditor() {
           </div>
 
           {/* ---- side panels ---- */}
-          <aside className="be-side" aria-label="Post settings">
+          <aside className="ix-side" aria-label="Post settings">
             <Panel title="Publish" icon="send">
               {problems.length ? (
                 <div className="be-problems" role="alert">
@@ -708,7 +710,6 @@ export default function BlogEditor() {
                   <ul>{problems.map((x) => <li key={x.field}><button type="button" onClick={() => focusField(x.field)}>{x.message}</button></li>)}</ul>
                 </div>
               ) : null}
-              <div className="be-line"><span>Status</span><PostStatus status={isNew ? 'draft' : (stored || post).status} /></div>
               {!isNew && stored && stored.autoPublishedAt && stored.status === 'published' ? <p className="gc-help" style={{ margin: 0 }}><Icon name="calendar-check" width="14" height="14" aria-hidden="true" style={{ verticalAlign: 'middle' }} /> Published automatically on {formatDateTime(stored.autoPublishedAt)}, as scheduled.</p> : null}
               <div><label className="gc-label" htmlFor="bl-vis">Visibility</label><select id="bl-vis" className="gc-input gc-select" value={post.visibility} onChange={(e) => set({ visibility: e.target.value })}>{Object.entries(VISIBILITY).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
               <div>
@@ -718,15 +719,6 @@ export default function BlogEditor() {
               </div>
               <Switch label="Featured" help="Pinned at the top of the blog" on={post.featured} onChange={(v) => set({ featured: v })} />
               <Switch label="Allow comments" on={post.allowComments} onChange={(v) => set({ allowComments: v })} />
-              <div className="be-btns">
-                <button type="button" className="gc-btn gc-btn--neutral" onClick={saveDraft}>{isLiveNow || (stored && stored.status === 'scheduled') ? 'To draft' : 'Save draft'}</button>
-                <button type="button" className="gc-btn gc-btn--neutral" onClick={() => { setMode(mode === 'preview' ? 'edit' : 'preview'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}><Icon name="eye" width="16" height="16" aria-hidden="true" /> {mode === 'preview' ? 'Edit' : 'Preview'}</button>
-                <button type="button" className="gc-btn gc-btn--solid be-wide" onClick={publish}>{primaryLabel}</button>
-              </div>
-              <div className="be-line">
-                {!isNew && post.status !== 'archived' ? <button type="button" className="gc-btn gc-btn--xs gc-btn--flat" onClick={archive}><Icon name="archive" width="14" height="14" aria-hidden="true" /> Move to archive</button> : <span />}
-                <button type="button" className="gc-btn gc-btn--xs gc-btn--flat" style={{ color: 'var(--text-danger)' }} onClick={remove}><Icon name="trash-2" width="14" height="14" aria-hidden="true" /> {isNew ? 'Discard' : 'Delete'}</button>
-              </div>
             </Panel>
 
             <Panel title="Category" icon="folder-tree" extra={post.categoryIds.length ? <span className="gc-badge gc-badge--slate">{post.categoryIds.length}</span> : null}>
@@ -870,7 +862,7 @@ export default function BlogEditor() {
                   {relatedList.map((p) => (
                     <li key={p.sku}>
                       <div><span className="bl-strong">{p.name}</span><span className="bl-sub"><span className="bl-id">{p.sku}</span> · {formatBDT(p.price)}</span></div>
-                      <button type="button" className="gc-iconbtn" aria-label={`Remove ${p.name}`} onClick={() => set({ relatedProductSkus: post.relatedProductSkus.filter((s) => s !== p.sku) })}><Icon name="x" width="16" height="16" /></button>
+                      <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label={`Remove ${p.name}`} onClick={() => set({ relatedProductSkus: post.relatedProductSkus.filter((s) => s !== p.sku) })}><Icon name="x" width="16" height="16" /></button>
                     </li>
                   ))}
                 </ul>

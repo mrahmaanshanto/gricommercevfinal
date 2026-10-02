@@ -8,35 +8,19 @@
 // Front end only: src/lib/loyalty.js.
 
 import React, { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { Icon } from '@/runtime/dc';
 import { EmptyState } from '@/components/ui';
+import { MetricStrip, IndexTabs, KV } from '@/components/ui/IndexKit';
 import { formatDate, formatTime } from '@/lib/format';
 import { findMember, memberHistory, getLoyaltySettings, getReferrers, WALLET_KIND } from '@/lib/loyalty';
 import { accName } from '@/screens/accounts/accShared';
-import { LoyPage, Kpi, TierBadge, WalletDialog, PointsDialog, useLoyalty, money, pts, plural } from './loyShared';
+import { LoyPage, TierBadge, WalletDialog, PointsDialog, useLoyalty, money, pts, plural } from './loyShared';
 
 const DEFAULT_PHONE = '01819072332';
 const KIND_WORD = { earn: 'Earned', redeem: 'Used', adjust: 'By hand', expire: 'Expired', welcome: 'Welcome', birthday: 'Birthday', referral: 'Invite', return: 'Return' };
 const CSS = `
-.md-head{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-4);padding:var(--space-5)}
-.md-head .ly-ava{width:56px;height:56px;font-size:var(--text-lg)}
-.md-head h2{margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.md-head p{margin:2px 0 0;font-size:var(--text-xs);color:var(--text-muted)}
-.md-head > div{flex:1 1 240px;min-width:0}
-.md-prog{display:flex;flex-direction:column;gap:6px;padding:0 var(--space-5) var(--space-5)}
-.md-prog p{display:flex;flex-wrap:wrap;justify-content:space-between;gap:var(--space-2);margin:0;font-size:var(--text-xs);color:var(--text-muted)}
+.md-prog{display:flex;flex-direction:column;gap:6px}
+.md-prog p{margin:0;font-size:var(--text-xs);color:var(--text-muted)}
 .md-amt{font-family:var(--font-data);font-variant-numeric:tabular-nums;font-weight:var(--weight-semibold);white-space:nowrap}
-/* phones: the name is already the page title, so the card shows the level badge and number only */
-@media (max-width:640px){
-.md-head{padding:var(--space-4);gap:var(--space-3)}
-.md-head .ly-ava{width:44px;height:44px}
-.md-head > div{flex:1 1 0}
-.md-head > .ac-row-actions{flex:1 1 100%}
-.md-name{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.md-prog{padding:0 var(--space-4) var(--space-4)}
-.md-prog p{flex-direction:column;gap:2px}
-}
 `;
 
 export default function MemberDetail() {
@@ -65,9 +49,8 @@ export default function MemberDetail() {
   const m = data && data.m;
   if (data && !m) {
     return (
-      <LoyPage screen="MemberDetail" active="loy-members" crumb="Loyalty & rewards / Members" page="Member" title="Member">
-        <section className="gc-card"><EmptyState icon="user-x" title="No member with this number" body={`${phone} is not a loyalty member yet.`} /></section>
-        <div><Link href="/members" className="gc-btn gc-btn--neutral"><Icon name="arrow-left" width="18" height="18" aria-hidden="true" /> All members</Link></div>
+      <LoyPage screen="MemberDetail" active="loy-members" crumb="Loyalty & rewards / Members" page="Member" title="Member" back="/members" backLabel="All members">
+        <section className="ix-card"><div className="ix-empty"><EmptyState icon="user-x" title="No member with this number" body={`${phone} is not a loyalty member yet.`} /></div></section>
       </LoyPage>
     );
   }
@@ -76,69 +59,78 @@ export default function MemberDetail() {
   const list = data ? (tab === 'points' ? data.history.points : data.history.wallet) : [];
   const pct = m && data.next ? Math.min(100, Math.round((m.bought / data.next.min) * 100)) : 100;
 
+  const histTabs = [['points', 'Points history', data ? data.history.points.length : 0], ['wallet', 'Wallet money', data ? data.history.wallet.length : 0]]
+    .map(([k, label, n]) => ({ key: k, id: 'md-tab-' + k, label, count: n, on: tab === k, onClick: () => setTab(k) }));
+
   return (
     <LoyPage screen="MemberDetail" active="loy-members" crumb="Loyalty & rewards / Members" page={m ? m.name : 'Member'} title={m ? m.name : 'Member'} css={CSS}
-      description={m ? `Member since ${formatDate(m.joined)}${m.birthday ? ' · birthday ' + m.birthday : ''}` : ''}
-      actions={m ? <>
-        <Link href="/members" className="gc-btn gc-btn--neutral"><Icon name="arrow-left" width="18" height="18" aria-hidden="true" /> Members</Link>
-        <button type="button" className="gc-btn gc-btn--neutral" onClick={() => open('points', 'give')}><Icon name="star" width="18" height="18" aria-hidden="true" /> Give or take points</button>
-        <button type="button" className="gc-btn gc-btn--solid" onClick={() => open('wallet', 'topup')}><Icon name="wallet" width="18" height="18" aria-hidden="true" /> Add money</button>
-      </> : null}>
-      {!m ? <section className="gc-card"><EmptyState icon="loader" title="Reading the member" /></section> : (
+      back="/members" backLabel="All members"
+      badges={m ? <TierBadge m={m} /> : null}
+      meta={m ? [m.phone, `Member since ${formatDate(m.joined)}`, m.birthday ? 'birthday ' + m.birthday : ''].filter(Boolean).join(' · ') : ''}
+      secondary={m ? [{ label: 'Give or take points', onClick: () => open('points', 'give') }] : []}
+      more={m ? [{ label: 'Pay back wallet', onClick: () => open('wallet', 'refund'), disabled: !m.wallet }, { label: 'Give credit', onClick: () => open('wallet', 'reward') }] : []}
+      primary={m ? { label: 'Add money', onClick: () => open('wallet', 'topup') } : null}>
+      {!m ? <section className="ix-card"><div className="ix-empty"><EmptyState icon="loader" title="Reading the member" /></div></section> : (
         <>
-          <section className="gc-card" aria-label="Member">
-            <div className="md-head">
-              <span className="ly-ava" aria-hidden="true">{m.name.charAt(0)}</span>
-              <div><h2><span className="md-name">{m.name}</span> <TierBadge m={m} /></h2><p className="ac-fig">{m.phone}{m.code ? ' · invite code ' + m.code : ''}</p></div>
-              <div className="ac-row-actions">
-                <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => open('wallet', 'refund')} disabled={!m.wallet}>Pay back wallet</button>
-                <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => open('wallet', 'reward')}>Give credit</button>
-              </div>
-            </div>
-            <div className="md-prog">
-              <p><span>{data.next ? `To ${data.next.name}: ${money(m.bought)} / ${money(data.next.min)}` : `${m.tierObj.name} is the top level`}</span><span>{data.next ? `Buy ${money(data.next.min - m.bought)} more to get ${data.next.mult}x points` : `${m.tierObj.mult}x points on every buy`}</span></p>
-              <div className="gc-progress" role="progressbar" aria-label="Progress to the next level" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}><div className="gc-progress__fill" style={{ width: pct + '%' }} /></div>
-            </div>
-          </section>
+          <MetricStrip items={[
+            { label: 'Points now', value: pts(m.points), sub: `= ${money(m.value)} off` },
+            { label: 'Wallet money', value: money(m.wallet) },
+            { label: 'Total bought', value: money(m.bought), sub: m.last ? 'last ' + formatDate(m.last) : '' },
+            { label: 'Friends invited', value: data.ref ? pts(data.ref.joined) : '0', sub: data.ref ? (data.ref.due ? money(data.ref.due) + ' due' : money(data.ref.earned) + ' earned') : '' },
+          ]} />
 
-          <div className="gc-kpis gc-kpis--tight">
-            <Kpi icon="star" label="Points now" value={pts(m.points)} sub={`= ${money(m.value)} off`} />
-            <Kpi icon="wallet" tone="success" label="Wallet money" value={money(m.wallet)} sub="held for the customer" />
-            <Kpi icon="shopping-bag" tone="info" label="Total bought" value={money(m.bought)} sub={m.last ? 'last ' + formatDate(m.last) : ''} />
-            <Kpi icon="share-2" tone="warning" label="Friends invited" value={data.ref ? pts(data.ref.joined) : '0'} sub={data.ref ? `${money(data.ref.earned)} earned${data.ref.due ? ' · ' + money(data.ref.due) + ' due' : ''}` : m.code ? 'code ' + m.code : 'no invite code'} />
+          <div className="ix-record">
+            <div className="ix-main">
+              <section className="ix-card" aria-label="History">
+                <div className="ix-bar"><IndexTabs tabs={histTabs} label="History" /></div>
+                {list.length === 0 ? <div className="ix-empty"><EmptyState icon="history" title={tab === 'points' ? 'No points yet' : 'No wallet money yet'} body={tab === 'points' ? 'Points show here from the first order.' : 'Top-ups, return credit and rewards show here.'} actionLabel={tab === 'wallet' ? 'Add money' : 'Give points'} onAction={() => (tab === 'wallet' ? open('wallet', 'topup') : open('points', 'give'))} /></div> : (
+                  <div className="ix-table-wrap ix-table-wrap--show">
+                    <table className="ix-table ix-table--static gc-table--keep">
+                      <thead><tr><th scope="col">Date</th><th scope="col">What happened</th><th scope="col">{tab === 'points' ? 'Channel' : 'Account'}</th><th scope="col" className="ix-num">{tab === 'points' ? 'Points' : 'Amount'}</th><th scope="col" className="ix-num">Balance after</th></tr></thead>
+                      <tbody>
+                        {list.map((e) => {
+                          const v = tab === 'points' ? e.points : e.amount;
+                          const up = v > 0;
+                          return (
+                            <tr key={e.id}>
+                              <td className="ix-nowrap">{formatDate(e.at)}<span className="ly-sub">{formatTime(e.at)}</span></td>
+                              <td><span className="ix-strong">{e.what}</span><span className="ly-sub">{[tab === 'points' ? KIND_WORD[e.kind] : WALLET_KIND[e.kind], e.sub].filter(Boolean).join(' · ')}{tab === 'points' && e.kind === 'redeem' && e.value ? ` · ${money(e.value)} off` : ''}</span></td>
+                              <td className="ix-muted">{tab === 'points' ? (e.channel || '—') : e.account ? accName(e.account) : 'No money moved'}</td>
+                              <td className={'ix-num md-amt ' + (up ? 'ly-in' : 'ly-out')}>{up ? '+' : '−'}{tab === 'points' ? pts(Math.abs(v)) : money(v)}</td>
+                              <td className="ix-num">{tab === 'points' ? pts(e.after) : money(e.after)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            </div>
+            <aside className="ix-side">
+              <section className="ix-card" aria-labelledby="md-level">
+                <header className="ix-card__head"><h2 id="md-level">{m.tierObj.name} level</h2></header>
+                <div className="ix-card__body md-prog">
+                  <p>{data.next ? `To ${data.next.name}: ${money(m.bought)} / ${money(data.next.min)}` : `${m.tierObj.name} is the top level`}</p>
+                  <div className="gc-progress" role="progressbar" aria-label="Progress to the next level" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}><div className="gc-progress__fill" style={{ width: pct + '%' }} /></div>
+                  <p>{data.next ? `Buy ${money(data.next.min - m.bought)} more to get ${data.next.mult}x points` : `${m.tierObj.mult}x points on every buy`}</p>
+                </div>
+              </section>
+              <section className="ix-card" aria-labelledby="md-who">
+                <header className="ix-card__head"><h2 id="md-who">Member</h2></header>
+                <div className="ix-card__body">
+                  <KV rows={[
+                    ['Phone', <span className="ly-fig">{m.phone}</span>],
+                    ['Invite code', m.code ? <span className="ly-fig">{m.code}</span> : 'no invite code'],
+                    ['Member since', formatDate(m.joined)],
+                    m.birthday ? ['Birthday', m.birthday] : null,
+                    ['Last buy', m.last ? formatDate(m.last) : '—'],
+                  ]} />
+                </div>
+              </section>
+              <p className="ly-note">{plural(m.points, 'point')} are worth {money(m.value)} at {money(data.s.pointValue)} a point. Points and wallet money are money you hold for {m.name}; they show under Accounts › Liabilities.</p>
+            </aside>
           </div>
-
-          <section className="gc-card ly-card" aria-label="History">
-            <div className="ly-bar">
-              <div className="gc-tabs" role="tablist" aria-label="History">
-                <button type="button" role="tab" aria-selected={tab === 'points'} className={'gc-tab ly-tab' + (tab === 'points' ? ' gc-tab--active' : '')} onClick={() => setTab('points')}>Points history<b>{data.history.points.length}</b></button>
-                <button type="button" role="tab" aria-selected={tab === 'wallet'} className={'gc-tab ly-tab' + (tab === 'wallet' ? ' gc-tab--active' : '')} onClick={() => setTab('wallet')}>Wallet money<b>{data.history.wallet.length}</b></button>
-              </div>
-            </div>
-            {list.length === 0 ? <EmptyState icon="history" title={tab === 'points' ? 'No points yet' : 'No wallet money yet'} body={tab === 'points' ? 'Points show here from the first order.' : 'Top-ups, return credit and rewards show here.'} actionLabel={tab === 'wallet' ? 'Add money' : 'Give points'} onAction={() => (tab === 'wallet' ? open('wallet', 'topup') : open('points', 'give'))} /> : (
-              <div className="gc-table-wrap">
-                <table className="gc-table gc-table--compact">
-                  <thead><tr><th scope="col">Date</th><th scope="col">What happened</th><th scope="col">{tab === 'points' ? 'Channel' : 'Account'}</th><th scope="col" className="ac-num">{tab === 'points' ? 'Points' : 'Amount'}</th><th scope="col" className="ac-num">Balance after</th></tr></thead>
-                  <tbody>
-                    {list.map((e) => {
-                      const v = tab === 'points' ? e.points : e.amount;
-                      const up = v > 0;
-                      return (
-                        <tr key={e.id}>
-                          <td>{formatDate(e.at)}<span className="ac-sub">{formatTime(e.at)}</span></td>
-                          <td><span className="ac-strong">{e.what}</span><span className="ac-sub">{[tab === 'points' ? KIND_WORD[e.kind] : WALLET_KIND[e.kind], e.sub].filter(Boolean).join(' · ')}{tab === 'points' && e.kind === 'redeem' && e.value ? ` · ${money(e.value)} off` : ''}</span></td>
-                          <td>{tab === 'points' ? (e.channel || '—') : e.account ? accName(e.account) : <span className="ac-sub" style={{ display: 'inline' }}>No money moved</span>}</td>
-                          <td className={'ac-num md-amt ' + (up ? 'ly-in' : 'ly-out')}>{up ? '+' : '−'}{tab === 'points' ? pts(Math.abs(v)) : money(v)}</td>
-                          <td className="ac-num ac-fig">{tab === 'points' ? pts(e.after) : money(e.after)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-          <p className="gc-help" style={{ margin: 0 }}>{plural(m.points, 'point')} are worth {money(m.value)} at {money(data.s.pointValue)} a point. Points and wallet money are money you hold for {m.name}; they show under Accounts › Liabilities.</p>
         </>
       )}
       {dialog && m && dialog.kind === 'points' ? <PointsDialog phone={m.phone} mode={dialog.mode} onClose={() => setDialog(null)} /> : null}

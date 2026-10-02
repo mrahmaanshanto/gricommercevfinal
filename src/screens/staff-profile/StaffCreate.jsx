@@ -34,40 +34,40 @@ const STEPS = [
 ];
 
 const CSS = `
-.sc{display:flex;flex-direction:column;gap:var(--space-4);width:100%;max-width:1080px;margin:0 auto;min-width:0}
+.sc{display:flex;flex-direction:column;gap:var(--space-4);width:100%;min-width:0}
 .sc > *{min-width:0;max-width:100%}
-.sc-steps{display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;justify-content:flex-start!important;align-items:center!important;gap:var(--space-2);padding:var(--space-3) var(--space-4);overflow-x:auto;scrollbar-width:none}
+.sc-steps{display:flex;flex-wrap:nowrap;align-items:center;gap:var(--space-1);padding:6px 8px;overflow-x:auto;scrollbar-width:none}
 .sc-steps::-webkit-scrollbar{display:none}
-.sc-step{display:flex;align-items:center;gap:var(--space-2);flex:none;height:36px;padding:0 var(--space-3) 0 4px;border:0;border-radius:var(--radius-full);background:none;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer}
+.sc-step{display:flex;align-items:center;gap:var(--space-2);flex:none;height:32px;padding:0 var(--space-3) 0 4px;border:0;border-radius:var(--radius-full);background:none;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer}
 .sc-step:disabled{cursor:default}
-.sc-step i{display:grid;place-items:center;width:28px;height:28px;border-radius:var(--radius-full);border:1px solid var(--border-field);font-style:normal;font-family:var(--font-data);background:var(--surface-card)}
+.sc-step i{display:grid;place-items:center;width:24px;height:24px;border-radius:var(--radius-full);border:1px solid var(--border-field);font-style:normal;font-family:var(--font-data);background:var(--surface-card)}
 .sc-step.is-done{color:var(--text-body)}
 .sc-step.is-done i{background:var(--fill-success-soft);border-color:transparent;color:var(--text-success)}
 .sc-step[aria-current="step"]{background:var(--fill-primary-soft);color:var(--primary)}
 .sc-step[aria-current="step"] i{background:var(--primary);border-color:var(--primary);color:var(--text-on-dark)}
-.sc-line{flex:1 0 16px;max-width:48px;height:1px;background:var(--border-subtle)}
-.sc-card{padding:var(--space-5)}
-.sc-card > header{margin-bottom:var(--space-4)}
-.sc-card > header h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.sc-line{flex:1 0 12px;max-width:40px;height:1px;background:var(--border-subtle)}
+.sc-card{padding:var(--space-4)}
+.sc-card > header{margin-bottom:var(--space-3)}
+.sc-card > header h2{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .sc-card > header p{margin:2px 0 0;font-size:var(--text-xs);color:var(--text-muted)}
-.sc-foot{position:sticky;bottom:var(--space-3);z-index:5;display:flex!important;flex-direction:row!important;justify-content:flex-start!important;align-items:center!important;gap:var(--space-3);padding:var(--space-3) var(--space-4);box-shadow:var(--shadow-lg)}
+.sc-foot{position:sticky;bottom:var(--space-3);z-index:5;display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);box-shadow:var(--shadow-lg)}
 .sc-foot p{flex:1;margin:0;font-size:var(--text-xs);color:var(--text-muted)}
 .sc-foot > :last-child{margin-left:auto}
-.sc-review{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:var(--space-3)}
+.sc-review{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:var(--space-3)}
 .sc-group{display:flex;flex-direction:column;border:1px solid var(--border-subtle);border-radius:var(--radius-xl);overflow:hidden}
-.sc-group > header{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);padding:var(--space-3) var(--space-4);background:var(--surface-subtle)}
+.sc-group > header{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-height:40px;padding:4px 8px 4px var(--space-3);background:var(--surface-subtle)}
 .sc-group > header b{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.sc-group dl{display:grid;grid-template-columns:minmax(110px,auto) 1fr;gap:6px var(--space-3);margin:0;padding:var(--space-3) var(--space-4);font-size:var(--text-sm)}
+.sc-group dl{display:grid;grid-template-columns:minmax(100px,auto) 1fr;gap:6px var(--space-3);margin:0;padding:var(--space-3);font-size:var(--text-sm)}
 .sc-group dt{color:var(--text-muted)}
 .sc-group dd{margin:0;color:var(--text-heading);min-width:0;overflow-wrap:anywhere}
 .sc-leave{width:100%}
-.sc-done{display:flex;flex-direction:column;align-items:center;gap:var(--space-4);padding:var(--space-6) var(--space-5);text-align:center}
-.sc-done h2{margin:0;font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.sc-done{display:flex;flex-direction:column;align-items:center;gap:var(--space-3);padding:var(--space-5) var(--space-4);text-align:center}
+.sc-done h2{margin:0;font-size:var(--text-md);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .sc-done p{margin:0;max-width:520px;font-size:var(--text-sm);color:var(--text-body)}
 .sc-done .idc-pair{justify-content:center}
-.sc-tick{display:grid;place-items:center;width:56px;height:56px;border-radius:var(--radius-full);background:var(--fill-success-soft);color:var(--text-success)}
+.sc-tick{display:grid;place-items:center;width:44px;height:44px;border-radius:var(--radius-full);background:var(--fill-success-soft);color:var(--text-success)}
 .sc-done__actions{display:flex;flex-wrap:wrap;justify-content:center;gap:var(--space-2)}
-@media (max-width:640px){.sc-card{padding:var(--space-4)}.sc-foot p{display:none}}
+@media (max-width:640px){.sc-card{padding:var(--space-3)}.sc-foot p{display:none}}
 `;
 
 const blank = (S) => ({
@@ -158,10 +158,10 @@ export default function StaffCreate() {
       case 'salary': return <PayFields S={S} f={f} set={set} err={err} />;
       case 'leave': return (
         <div className="sf-sec">
-          <div className="gc-table-wrap">
-            <table className="gc-table gc-table--compact sc-leave">
+          <div className="ix-table-wrap ix-table-wrap--show" style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)' }}>
+            <table className="ix-table gc-table--keep ix-table--static sc-leave">
               <thead><tr><th scope="col">Leave</th><th scope="col">They get</th><th scope="col">Paid</th><th scope="col">Rule</th></tr></thead>
-              <tbody>{leaveRows.map((t) => <tr key={t.id}><td className="hr-strong">{t.name}</td><td>{t.get}</td><td>{t.paid ? 'Yes' : 'No'}</td><td className="hr-sub">{t.needs}</td></tr>)}</tbody>
+              <tbody>{leaveRows.map((t) => <tr key={t.id}><td className="hr-strong">{t.name}</td><td>{t.get}</td><td>{t.paid ? 'Yes' : 'No'}</td><td className="ix-muted">{t.needs}</td></tr>)}</tbody>
             </table>
           </div>
           <div className="hr-note hr-note--info"><Icon name="info" width="16" height="16" aria-hidden="true" /><span>Public holidays follow HR setup › Holidays. Festival bonus ({S.settings.bonusPct}% of basic) starts after {S.settings.bonusMonths} months. Gratuity builds up from the joining date and is paid after {S.settings.gratuity.after} full years.</span></div>
@@ -193,18 +193,19 @@ export default function StaffCreate() {
 
   if (done) {
     return (
-      <HrPage screen="StaffCreate" active="hr-add" page="Add staff" title="Add staff" css={FORM_CSS + ID_CARD_CSS + CSS} description="Done — the new person is on the staff list.">
+      <HrPage screen="StaffCreate" active="hr-add" page="Add staff" title="Add staff" css={FORM_CSS + ID_CARD_CSS + CSS} narrow back="/all-staff" backLabel="All staff"
+        meta="Done — the new person is on the staff list.">
         <div className="sc">
-          <section className="gc-card sc-done">
-              <span className="sc-tick"><Icon name="check" width="28" height="28" aria-hidden="true" /></span>
+          <section className="ix-card sc-done">
+              <span className="sc-tick"><Icon name="check" width="20" height="20" aria-hidden="true" /></span>
               <h2>{done.name} added as {done.code}</h2>
               <p>{done.access && done.access.invite === 'sent' ? `Invitation sent by ${done.access.inviteBy === 'email' ? 'email to ' + done.email : 'SMS to ' + done.phone}. ` : ''}They are on the {(shiftBy(S, done.shift) || {}).name || ''} shift at {done.branch} from {formatDate(fromKey(done.joined))}, and in {monthLabel(monthOf(done.joined))} payroll.{done.bio && (done.bio.fingers || done.bio.face) ? ' Their fingerprint / face is saved for the machine.' : ' Save their fingerprint or face on the machine on the first day.'}</p>
               <div className="idc-print"><IdCard S={S} st={done} issued={todayKey(S)} /></div>
               <div className="sc-done__actions">
-                <Link href={profileHref(done.code)} className="gc-btn gc-btn--solid"><Icon name="user" width="18" height="18" aria-hidden="true" /> Open profile</Link>
-                <button type="button" className="gc-btn gc-btn--neutral" onClick={() => printNode(document.querySelector('.idc-print'), { title: `ID card - ${done.name}`, css: ID_CARD_CSS + ID_CARD_PRINT })}><Icon name="printer" width="18" height="18" aria-hidden="true" /> Print ID card</button>
-                <button type="button" className="gc-btn gc-btn--neutral" onClick={() => { setDone(null); setF(blank(S)); setStep(0); setFar(0); }}><Icon name="user-plus" width="18" height="18" aria-hidden="true" /> Add another</button>
-                <Link href="/all-staff" className="gc-btn gc-btn--flat">All staff</Link>
+                <Link href={profileHref(done.code)} className="ix-btn ix-btn--primary">Open profile</Link>
+                <button type="button" className="ix-btn" onClick={() => printNode(document.querySelector('.idc-print'), { title: `ID card - ${done.name}`, css: ID_CARD_CSS + ID_CARD_PRINT })}><Icon name="printer" width="16" height="16" aria-hidden="true" />Print ID card</button>
+                <button type="button" className="ix-btn" onClick={() => { setDone(null); setF(blank(S)); setStep(0); setFar(0); }}><Icon name="user-plus" width="16" height="16" aria-hidden="true" />Add another</button>
+                <Link href="/all-staff" className="ix-btn ix-btn--plain">All staff</Link>
               </div>
             </section>
         </div>
@@ -214,30 +215,31 @@ export default function StaffCreate() {
 
   const [, label, , title, help] = STEPS[step];
   return (
-    <HrPage screen="StaffCreate" active="hr-add" page="Add staff" title="Add staff" css={FORM_CSS + CSS}
-      description={`Step ${step + 1} of ${STEPS.length} · ${label}`}
-      actions={<button type="button" className="gc-btn gc-btn--neutral" onClick={saveDraft} disabled={!ready}><Icon name="save" width="18" height="18" aria-hidden="true" /> Save as draft</button>}>
+    <HrPage screen="StaffCreate" active="hr-add" page="Add staff" title="Add staff" css={FORM_CSS + CSS} narrow back="/all-staff" onBack={leave} backLabel="All staff"
+      meta={`Step ${step + 1} of ${STEPS.length} · ${label}`}
+      about="The joining flow: personal details, job, login, shift, salary, leave, then review. Nothing is saved until you press Create; Save as draft keeps what you entered in this browser."
+      secondary={[{ label: 'Save as draft', onClick: saveDraft, disabled: !ready }]}>
       <div className="sc">
-        <nav className="gc-card sc-steps" aria-label="Steps">
+        <nav className="ix-card sc-steps" aria-label="Steps">
           {STEPS.map(([k, l], i) => (
             <React.Fragment key={k}>
               {i ? <span className="sc-line" aria-hidden="true" /> : null}
               <button type="button" className={'sc-step' + (i < step || (i <= far && i !== step) ? ' is-done' : '')} aria-current={i === step ? 'step' : undefined} disabled={i > far} onClick={() => go(i)}>
-                <i>{i < step || (i <= far && i !== step) ? <Icon name="check" width="14" height="14" aria-hidden="true" /> : i + 1}</i>{l}
+                <i>{i < step || (i <= far && i !== step) ? <Icon name="check" width="12" height="12" aria-hidden="true" /> : i + 1}</i>{l}
               </button>
             </React.Fragment>
           ))}
         </nav>
-        <section className="gc-card sc-card" aria-labelledby="sc-title">
+        <section className="ix-card sc-card" aria-labelledby="sc-title">
           <header><h2 id="sc-title">{title}</h2><p>{help}</p></header>
           {body()}
         </section>
-        <footer className="gc-card sc-foot">
-          {step ? <button type="button" className="gc-btn gc-btn--neutral" onClick={() => go(step - 1)}><Icon name="arrow-left" width="18" height="18" aria-hidden="true" /> Back</button> : <button type="button" className="gc-btn gc-btn--neutral" onClick={leave}><Icon name="arrow-left" width="18" height="18" aria-hidden="true" /> Cancel</button>}
+        <footer className="ix-card sc-foot">
+          {step ? <button type="button" className="gc-btn gc-btn--neutral" onClick={() => go(step - 1)}><Icon name="arrow-left" width="16" height="16" aria-hidden="true" /> Back</button> : <button type="button" className="gc-btn gc-btn--neutral" onClick={leave}><Icon name="arrow-left" width="16" height="16" aria-hidden="true" /> Cancel</button>}
           <p>You can leave at any step — Save as draft keeps what you entered.</p>
           {key === 'review'
-            ? <button type="button" className="gc-btn gc-btn--solid" onClick={create}><Icon name="check" width="18" height="18" aria-hidden="true" /> {f.role !== 'No login' && f.invite !== 'none' ? 'Create and send invitation' : 'Create'}</button>
-            : <button type="button" className="gc-btn gc-btn--solid" onClick={next}>Continue <Icon name="arrow-right" width="18" height="18" aria-hidden="true" /></button>}
+            ? <button type="button" className="gc-btn gc-btn--solid" onClick={create}><Icon name="check" width="16" height="16" aria-hidden="true" /> {f.role !== 'No login' && f.invite !== 'none' ? 'Create and send invitation' : 'Create'}</button>
+            : <button type="button" className="gc-btn gc-btn--solid" onClick={next}>Continue <Icon name="arrow-right" width="16" height="16" aria-hidden="true" /></button>}
         </footer>
       </div>
     </HrPage>
@@ -247,7 +249,7 @@ export default function StaffCreate() {
 function Group({ title, rows, onEdit }) {
   return (
     <div className="sc-group">
-      <header><b>{title}</b><button type="button" className="gc-btn gc-btn--flat gc-btn--sm" onClick={onEdit}><Icon name="pencil" width="14" height="14" aria-hidden="true" /> Edit</button></header>
+      <header><b>{title}</b><button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={onEdit}><Icon name="pencil" width="16" height="16" aria-hidden="true" />Edit</button></header>
       <dl>{rows.map(([k, v]) => <React.Fragment key={k}><dt>{k}</dt><dd>{v}</dd></React.Fragment>)}</dl>
     </div>
   );

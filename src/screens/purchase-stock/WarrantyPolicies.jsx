@@ -1,28 +1,23 @@
 'use client';
 // Generated from design/templates/purchase-stock/WarrantyPolicies.dc.html by scripts/convert-design.mjs.
-// Warranty policies — Stock — Warranty policies.
+// Warranty policies — Stock — Warranty policies, laid out like Shopify (docs/shopify-style.md): the list of policies
+// first; a policy opens as a record on this page (basics, coverage, claim process and terms on the left; what it
+// applies to, the customer's view and the versions on the right), with Publish in its header.
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
-import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
-import { PageHeader as __PageHeader } from '@/components/ui';
+import { DCLogic, Icon as __Icon, list as __list } from '@/runtime/dc';
+import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
+import { StatusBadge as __StatusBadge, InfoTip as __InfoTip } from '@/components/ui';
+import { ShopHeader, RecordHeader, LearnMore } from '@/components/ui/IndexKit';
+import { QrCode } from '@/components/QrCode';
+import { toast as __toast } from '@/runtime/ui';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
-function bdt(n) { var neg = n < 0; var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return (neg ? '−' : '') + '৳' + s; }
-var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
-function mkTabs(self, list, cur, key, counts) { return list.map(function (x) { var on = x.k === cur; var c = counts ? counts[x.k] : null; return { label: x.label, on: on, cls: on ? 'tab on' : 'tab', hasCount: c != null, count: c, countBg: on ? 'rgba(255,255,255,0.2)' : '#e9eef5', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-function mkChips(self, list, cur, key) { return list.map(function (x) { var on = x.k === cur; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-function pTabs(self, list, cur, key, counts) { return mkTabs(self, list, cur, key, counts).map(function (x) { x.pcls = x.on ? 'ptab on' : 'ptab'; return x; }); }
-function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
-function stepN(self, key, def, step, min, max) { var s = self.state || {}; var v = s[key] == null ? def : s[key]; return { v: v, dec: function () { var p = {}; p[key] = Math.max(min, +(v - step).toFixed(2)); self.setState(p); }, inc: function () { var p = {}; p[key] = Math.min(max, +(v + step).toFixed(2)); self.setState(p); } }; }
-var CHN = { sms: ['SMS', '#e7f8f1', '#047857'], wa: ['WhatsApp', '#dcfce7', '#166534'], email: ['Email', '#e0f2fe', '#075985'] };
+function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
 function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-function toast(self, m, bad) { clearTimeout(self.t); self.setState({ msg: m, bad: !!bad }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 2800); }
-function msgV(s) { return { hasMsg: !!s.msg, msg: s.msg || '', msgBg: s.bad ? '#fff4e0' : '#e7f8f1', msgFg: s.bad ? '#7a3b04' : '#065f46' }; }
+function toast(self, m) { __toast(m); }
 var POLS = {
   phone: { n: 'Smartphone brand warranty', type: 'brand', per: ['12', 'months'], cnt: '46 products', st: 'Published', ver: 'v3 · published 2 Sep 2026', tint: '#e0f3fb', ink: '#003087', def: false,
     cov: ['Manufacturing defects', 'Battery below 80% health', 'Motherboard and display faults'], not: ['Physical or liquid damage', 'Opened by third party', 'Software issues after rooting'],
@@ -50,7 +45,6 @@ var TERMS = {
 };
 var MONTHS3 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 class Component extends DCLogic {
-  componentWillUnmount() { clearTimeout(this.t); }
   renderVals() {
     var self = this, s = this.state || {};
     var pk = s.pk || 'phone', P = POLS[pk];
@@ -64,9 +58,11 @@ class Component extends DCLogic {
     var lang = s.lang || 'en';
     var end = (function () { var d = new Date(Date.UTC(2026, 8, 19)); var n = +perN || 0; if (perU === 'days') d.setUTCDate(d.getUTCDate() + n); else if (perU === 'months') d.setUTCMonth(d.getUTCMonth() + n); else d.setUTCFullYear(d.getUTCFullYear() + n); return d.getUTCDate() + ' ' + MONTHS3[d.getUTCMonth()] + ' ' + d.getUTCFullYear(); })();
     var v = {
-      pols: ORDER.map(function (k) { var p = POLS[k], on = k === pk; var pub = p.st === 'Published'; return { n: k === pk ? name : p.n, t: TYPEL[p.type], cnt: p.cnt, per: p.per[0] + (p.per[1] === 'days' ? 'd' : p.per[1] === 'months' ? 'm' : 'y'), st: p.st, sb: pub ? '#e7f8f1' : '#eef2f6', sf: pub ? '#047857' : '#475569', tint: p.tint, ink: p.ink, def: p.def, on: on, bd: on ? '#003087' : '#e6eaf0', bg: on ? '#f5f8ff' : '#fff', pick: function () { self.setState({ pk: k }); } }; }),
+      // the list; a policy opens as its own record on this page
+      editing: !!s.edit, back: function () { self.setState({ edit: false }); },
+      pols: ORDER.map(function (k) { var p = POLS[k], on = k === pk; return { k: k, n: k === pk ? name : p.n, t: TYPEL[p.type], cnt: p.cnt, per: p.per[0] + ' ' + p.per[1], st: p.st, def: p.def, on: on, pick: function () { self.setState({ pk: k, edit: true }); } }; }),
       newPolicy: function () { toast(self, 'A blank policy is ready — give it a name and a period.'); },
-      pName: name, pVer: P.ver, typeName: function (e) { set({ n: e.target.value }); },
+      pName: name, pVer: P.ver, pSt: P.st, typeName: function (e) { set({ n: e.target.value }); },
       pType: type, setType: function (e) { set({ type: e.target.value }); },
       perN: perN, typePer: function (e) { set({ perN: e.target.value }); }, perU: perU, setPerU: function (e) { set({ perU: e.target.value }); },
       proofTxt: PROOF.filter(function (x) { return pr.indexOf(x[0]) >= 0; }).map(function (x) { return x[1].replace('Serial or IMEI number', 'IMEI'); }).join(' + ') || 'Nothing',
@@ -76,793 +72,407 @@ class Component extends DCLogic {
       notc: not.map(function (t, i) { return { t: t, del: function () { set({ not: not.filter(function (_, j) { return j !== i; }) }); } }; }),
       covIn: s.covIn || '', covInType: function (e) { self.setState({ covIn: e.target.value }); }, addCov: function () { if (!s.covIn) return; set({ cov: cov.concat([s.covIn]) }); self.setState({ covIn: '' }); },
       notIn: s.notIn || '', notInType: function (e) { self.setState({ notIn: e.target.value }); }, addNot: function () { if (!s.notIn) return; set({ not: not.concat([s.notIn]) }); self.setState({ notIn: '' }); },
-      remedy: rem.map(function (k, i) { var off = remOff.indexOf(k) >= 0; var l = REM.filter(function (x) { return x[0] === k; })[0][1]; return { l: l, n: off ? '–' : i + 1, bd: off ? '#e2e8f0' : '#003087', bg: off ? '#f8fafc' : '#f5f8ff', fg: off ? 'var(--text-muted)' : '#003087', dot: off ? '#64748b' : '#003087', sym: off ? 'plus' : 'x', off: off, togL: (off ? 'Turn on ' : 'Turn off ') + l, upL: 'Move ' + l + ' earlier',
+      remedy: rem.map(function (k, i) { var off = remOff.indexOf(k) >= 0; var l = REM.filter(function (x) { return x[0] === k; })[0][1]; return { l: l, n: off ? '–' : i + 1, off: off, sym: off ? 'plus' : 'x', togL: (off ? 'Turn on ' : 'Turn off ') + l, upL: 'Move ' + l + ' earlier',
         up: function () { if (!i) return; var r = rem.slice(); r[i] = r[i - 1]; r[i - 1] = k; set({ rem: r }); },
         tog: function () { set({ remOff: off ? remOff.filter(function (x) { return x !== k; }) : remOff.concat([k]) }); } }; }),
       voids: ['Physical or liquid damage', 'Opened or repaired by others', 'Rooted or modified software', 'Warranty sticker removed'].map(function (t) { return { t: t }; }),
-      proofs: PROOF.map(function (x) { var on = pr.indexOf(x[0]) >= 0; return { l: x[1], on: on, bd: on ? '#003087' : '#e2e8f0', bg: on ? '#f5f8ff' : '#fff', fg: on ? '#003087' : '#475569', tog: function () { set({ proof: on ? pr.filter(function (y) { return y !== x[0]; }) : pr.concat([x[0]]) }); } }; }),
-      langs: [['en', 'English'], ['bn', 'বাংলা']].map(function (x) { var on = x[0] === lang; return { l: x[1], on: on, bg: on ? '#0b1733' : 'transparent', fg: on ? '#fff' : '#475569', pick: function () { self.setState({ lang: x[0] }); } }; }),
-      termsTxt: TERMS[lang], termsCls: lang === 'bn' ? 'bn' : '', aiTerms: function () { toast(self, 'Full terms rewritten in English and Bangla from the fields above.'); },
+      proofs: PROOF.map(function (x) { var on = pr.indexOf(x[0]) >= 0; return { l: x[1], on: on, tog: function () { set({ proof: on ? pr.filter(function (y) { return y !== x[0]; }) : pr.concat([x[0]]) }); } }; }),
+      langs: [['en', 'English'], ['bn', 'বাংলা']].map(function (x) { var on = x[0] === lang; return { l: x[1], on: on, pick: function () { self.setState({ lang: x[0] }); } }; }),
+      termsTxt: TERMS[lang], termsBn: lang === 'bn', aiTerms: function () { toast(self, 'Full terms rewritten in English and Bangla from the fields above.'); },
       apply: P.apply.map(function (x) { return { k: x[0], v: x[1] }; }),
       isDef: mkSw(this, 'def_' + pk, P.def),
       bulk: function () { toast(self, 'Pick products on the next screen — the policy is attached to all of them at once.'); },
       custTitle: perN + ' ' + perU + ' ' + TYPEL[type].toLowerCase(), custSub: cov.length ? 'Covers ' + cov[0].toLowerCase() + (cov.length > 1 ? ' and more' : '') : 'See what is covered', cardEnd: end,
-      vers: [['v3', '2 Sep 2026', 'Added battery below 80% health · 214 orders sold on this version', '#10b981'], ['v2', '11 Apr 2026', 'Courier pickup added · 812 orders', '#94a3b8'], ['v1', '6 Jan 2026', 'First version · 390 orders', '#cbd5e1']].map(function (x) { return { v: x[0], d: x[1], s: x[2], c: x[3] }; }),
+      vers: [['v3', '2 Sep 2026', 'Added battery below 80% health · 214 orders sold on this version', true], ['v2', '11 Apr 2026', 'Courier pickup added · 812 orders'], ['v1', '6 Jan 2026', 'First version · 390 orders']].map(function (x) { return { v: x[0], d: x[1], s: x[2], live: !!x[3] }; }),
       preview: function () { toast(self, 'Opening the policy page as customers see it.'); },
       saveDraft: function () { toast(self, 'Draft saved. Customers still see the published version.'); },
       publish: function () { toast(self, name + ' published as a new version. New orders use it from now on.'); }
     };
-    return assign(v, msgV(s));
+    return v;
   }
 }
 
-// ---- styles (from the design's <helmet>) ----
+// ---- styles ----
 
-const CSS = `/* phones: rows of label + buttons wrap instead of running out of the card */
-@media (max-width:640px){.gc-shell__content [style*="display:flex"]:not([role="tablist"]):not([style*="column"]),.gc-shell__content [style*="display: flex"]:not([role="tablist"]):not([style*="column"]){flex-wrap:wrap}.gc-shell__content select,.gc-shell__content input{min-width:0;max-width:100%}.gc-shell__content .mono,.gc-shell__content [class*="badge"]{overflow-wrap:anywhere}}
-
-body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
-*{box-sizing:border-box}
-a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
-.nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
-.nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
-.btn:hover{text-decoration:none}
-.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
-.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
-.line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
-.warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
-.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
-.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
-.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:var(--text-muted)}
-.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
-.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
-.tab:hover{background:#f1f5f9;color:#0f172a}
-.tab.on{background:#003087;color:#fff}
-.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
-.chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
-.row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
-.b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
-.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
-.b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:var(--font-data);letter-spacing:.02em}
-.fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
-@keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.flash{animation:gcFlash 900ms ease-out}
-@keyframes gcFlash{from{background:#e7f8f1}to{background:transparent}}
-.scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
-@keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
-
-.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
-.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
-.sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
-.t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
-.actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:var(--font-bn)}
-.pulse{animation:gcPulse 1.6s ease-in-out infinite}
-@keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
-@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
-.psec{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
-.num{font-variant-numeric:tabular-nums}
-.ai{height:28px;padding:0 10px;border-radius:var(--radius-lg);border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
-.ai:hover{border-color:#a78bfa;box-shadow:0 4px 12px -6px rgba(91,33,182,.5)}
-.ai:focus-visible{outline:3px solid rgba(124,58,237,.4);outline-offset:2px}
-.abtn{height:32px;padding:0 12px;border-radius:var(--radius-lg);border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-.abtn:hover{background:#f1f5f9}
-.ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0}
-.ptab{position:relative;height:52px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:var(--weight-medium)}
-.ptab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2.5px;border-radius:3px 3px 0 0;background:#003087}
-.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
-.ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
-.thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
-/* the policy title on the dark editor bar is light text (a heading colour rule would otherwise make it navy on navy) */
-.wp-editbar .wp-editbar__title{color:var(--text-on-dark)}
-/* tablets and phones: the side column (applies to, preview) stacks under the editor */
-@media (max-width:1023px){
-  .wp-layout{flex-direction:column!important;align-items:stretch!important}
-  .wp-side{width:100%!important}
-}
-/* phones: the intro's two actions share a row; the editor bar's buttons wrap in pairs; form grids are one column */
+const CSS = `
+.wp-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.wp-field .gc-label{margin:0}
+.wp-lbl{display:flex;align-items:center;gap:6px}
+.wp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3) var(--space-4)}
+.wp-body{display:flex;flex-direction:column;gap:var(--space-4)}
+.wp-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
+.wp-row>.gc-input{flex:1 1 140px;min-width:0}
+.wp-sub{margin:0;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body)}
+.wp-help{margin:0;font-size:var(--text-xs);color:var(--text-muted)}
+.wp-readonly{display:flex;align-items:center;background:var(--surface-subtle);color:var(--text-body)}
+.wp-switch{display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.wp-switch>span{display:flex;flex:1;align-items:center;gap:6px;min-width:0}
+.wp-parts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-2)}
+.wp-part{display:flex;flex-direction:column;gap:2px;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
+.wp-part>span{font-size:var(--text-xs);color:var(--text-muted)}
+.wp-part>b{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.wp-list{display:flex;flex-direction:column;gap:6px}
+.wp-item{display:flex;align-items:center;gap:var(--space-2);min-height:32px;padding:2px 2px 2px 10px;border-radius:var(--radius-lg);background:var(--surface-subtle);font-size:var(--text-sm)}
+.wp-item>span:nth-child(2){flex:1;min-width:0}
+.wp-dot{width:8px;height:8px;flex:none;border-radius:var(--radius-full)}
+.wp-dot--ok{background:var(--success)}.wp-dot--no{background:var(--error)}
+.wp-rem{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 2px 0 8px;border:1px solid var(--primary);border-radius:var(--radius-lg);background:var(--fill-primary-soft);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--primary)}
+.wp-rem.is-off{border-color:var(--border-subtle);background:var(--surface-subtle);color:var(--text-muted)}
+.wp-rem>i{display:grid;place-items:center;width:20px;height:20px;border-radius:var(--radius-full);background:var(--primary);color:#fff;font-size:var(--text-xs);font-style:normal}
+.wp-rem.is-off>i{background:var(--slate-400)}
+.wp-chip{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:var(--radius-full);background:var(--fill-error-soft);color:var(--text-danger);font-size:var(--text-xs-plus);font-weight:var(--weight-medium)}
+.wp-checks{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);font-size:var(--text-sm)}
+.wp-checks label{display:flex;align-items:center;gap:var(--space-2);cursor:pointer}
+.wp-checks--col{flex-direction:column}
+.wp-terms{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden}
+.wp-terms__bar{display:flex;gap:2px;padding:4px 6px;border-bottom:1px solid var(--border-subtle);background:var(--surface-subtle);color:var(--text-muted)}
+.wp-terms__bar>span{display:grid;place-items:center;width:28px;height:24px}
+.wp-terms__text{min-height:140px;padding:var(--space-3);font-size:var(--text-sm);line-height:22px;color:var(--text-body);white-space:pre-line}
+.wp-apply{display:flex;flex-direction:column}
+.wp-apply>div{display:flex;align-items:center;gap:var(--space-2);padding:6px 0;border-top:1px solid var(--border-subtle);font-size:var(--text-sm)}
+.wp-apply>div:first-child{border-top:0;padding-top:0}
+.wp-apply span{width:76px;flex:none;font-size:var(--text-xs-plus);color:var(--text-muted)}
+.wp-apply b{flex:1;min-width:0;font-weight:var(--weight-medium);color:var(--text-heading)}
+.wp-snip{display:flex;flex-direction:column;gap:2px;padding:var(--space-3);border-radius:var(--radius-lg);background:var(--fill-primary-soft)}
+.wp-snip>b{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.wp-snip>span{font-size:var(--text-xs-plus);color:var(--text-body)}
+.wp-snip>em{margin-top:4px;font-size:var(--text-xs-plus);font-style:normal;font-weight:var(--weight-medium);color:var(--text-link)}
+.wp-card{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden}
+.wp-card__head{display:flex;align-items:center;gap:var(--space-2);padding:6px var(--space-3);background:var(--brand-navy-deep);color:#fff;font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label)}
+.wp-card__body{display:flex;gap:var(--space-3);padding:var(--space-3);font-size:var(--text-xs-plus)}
+.wp-card__body>div{display:flex;flex:1;flex-direction:column;gap:2px;min-width:0}
+.wp-vers{display:flex;flex-direction:column;gap:var(--space-2);margin:0;padding:0;list-style:none}
+.wp-vers li{display:flex;gap:var(--space-2)}
+.wp-vers li>i{width:8px;height:8px;flex:none;margin-top:6px;border-radius:var(--radius-full);background:var(--slate-300)}
+.wp-vers li>i.is-live{background:var(--success)}
+.wp-vers b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.wp-vers small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
+.wp-note{margin:0;padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--fill-warning-soft);font-size:var(--text-xs-plus);color:var(--text-heading)}
 @media (max-width:640px){
-  .wp-intro{gap:10px!important}
-  .wp-intro>div{flex:1 1 100%!important}
-  .wp-intro>.btn{flex:1 1 auto;padding:0 12px}
-  .wp-editbar{padding:16px!important;gap:10px!important}
-  .wp-editbar>div:first-child{flex:1 1 100%!important;min-width:0}
-  .wp-editbar__title{font-size:var(--text-xl)!important}
-  .wp-editbar>.btn{flex:1 1 auto;padding:0 14px}
-  .wp-grid{grid-template-columns:minmax(0,1fr)!important}
-  .wp-grid label>div[style*="display"]{flex-wrap:nowrap!important}
-  .gc-shell__content [style*="display"]:has(> button[role="switch"]){flex-wrap:nowrap!important}
-  .gc-shell__content [style*="display"]:has(> button[role="switch"])>div{flex:1 1 0!important;min-width:0}
+  .wp-grid{grid-template-columns:minmax(0,1fr)}
+  .wp-parts{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 `;
 
 // ---- markup ----
 
+const Switch = ({ sw, label }) => (
+  <button type="button" role="switch" aria-checked={!!(sw && sw.on)} aria-label={label} className="gc-switch" onClick={sw && sw.toggle}><span className="gc-switch__knob" /></button>
+);
+const stTone = (st) => (st === 'Published' ? 'success' : 'info');
+
 export default class WarrantyPoliciesScreen extends Component {
   render() {
     const v = this.renderVals() || {};
+    const sec = [{ label: 'Preview', onClick: v.preview, icon: 'eye' }, { label: 'Save draft', onClick: v.saveDraft }];
     return (
       <div className="dc-screen ds" data-screen="WarrantyPolicies">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
+        <div className="gc-shell">
           <__Sidebar sticky="" active="stock-wpol" />
-          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
+          <main className="gc-shell__main">
             <__Topbar crumb="Stock" page="Warranty policies" placeholder="Search policy, product or brand" />
-            <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <__PageHeader title="Warranty policies" />
-              <div className="wp-intro" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ flexGrow: "1", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#475569" }}></div>
-                <__Link href="/warranty-claims" className="btn line">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
-                    <path d="m9 12 2 2 4-4" />
-                  </svg>
-                  <span>{"Claims & serial numbers"}</span>
-                </__Link>
-                <button type="button" className="btn solid" onClick={v.newPolicy}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M5 12h14" />
-                    <path d="M12 5v14" />
-                  </svg>
-                  <span>New policy</span>
-                </button>
-              </div>
-              {v.hasMsg ? (<>
-                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-lg); background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: var(--text-sm); font-weight: var(--weight-medium);`)}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="m9 12 2 2 4-4" />
-                  </svg>
-                  <span>{v.msg}</span>
+            <div className="gc-shell__content">
+              {!v.editing ? (
+                <div className="ix-page">
+                  <ShopHeader icon="shield-check" title="Warranty policies"
+                    about="Orders keep the version they were sold under. Changing the policy never changes an old customer’s warranty."
+                    secondary={[{ label: 'Claims & serial numbers', href: '/warranty-claims' }]}
+                    primary={{ label: 'New policy', onClick: v.newPolicy }} />
+                  <section className="ix-card" aria-label="Warranty policies">
+                    <ul className="ix-plist" aria-label="Warranty policies">
+                      {__list(v.pols).map((pl) => (
+                        <li key={pl.k}>
+                          <button type="button" className="ix-pitem" onClick={pl.pick}>
+                            <span className="ix-pitem__top"><b>{pl.n}</b><__StatusBadge tone={stTone(pl.st)}>{pl.st}</__StatusBadge></span>
+                            <span className="ix-pitem__mid">{pl.t} · {pl.per} · {pl.cnt}{pl.def ? ' · ★ Store default' : ''}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="ix-table-wrap">
+                      <table className="ix-table gc-table--keep">
+                        <caption className="sr-only">Warranty policies</caption>
+                        <thead><tr><th scope="col">Policy</th><th scope="col">Type</th><th scope="col">Period</th><th scope="col">Products</th><th scope="col">Status</th></tr></thead>
+                        <tbody>
+                          {__list(v.pols).map((pl) => (
+                            <tr key={pl.k} onClick={pl.pick}>
+                              <td>
+                                <button type="button" className="ix-strong" onClick={(e) => { e.stopPropagation(); pl.pick(); }}>{pl.n}</button>
+                                {pl.def ? <span className="ix-muted" style={{ marginLeft: "var(--space-2)", fontSize: "var(--text-xs)" }}>★ Store default</span> : null}
+                              </td>
+                              <td className="ix-muted">{pl.t}</td>
+                              <td>{pl.per}</td>
+                              <td className="ix-muted">{pl.cnt}</td>
+                              <td><__StatusBadge tone={stTone(pl.st)}>{pl.st}</__StatusBadge></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="ix-foot"><span>{v.pols.length + ' policies'}</span></div>
+                  </section>
+                  <LearnMore topic="warranty policies" />
                 </div>
-              </>) : null}
-              <div className="gc-cols-5" style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: "12px" }}>
-                {__list(v.pols).map((pl, $index) => (<React.Fragment key={$index}>
-                    <button type="button" onClick={pl?.pick} aria-pressed={pl?.on} style={__sx(`text-align: left; padding: 16px; border-radius: var(--radius-xl); border: 1.5px solid ${pl?.bd ?? ""}; background: ${pl?.bg ?? ""}; font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 2px rgba(15,23,42,.04);`)}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <span style={__sx(`width: 34px; height: 34px; border-radius: var(--radius-lg); background: ${pl?.tint ?? ""}; color: ${pl?.ink ?? ""}; display: flex; align-items: center; justify-content: center; font-size: var(--text-xs); font-weight: var(--weight-medium);`)}>{pl?.per}</span>
-                        <span style={{ flexGrow: "1" }} />
-                        <span style={__sx(`height: 22px; padding: 0 8px; border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: var(--weight-medium); display: inline-flex; align-items: center; background: ${pl?.sb ?? ""}; color: ${pl?.sf ?? ""};`)}>{pl?.st}</span>
-                      </div>
-                      <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a", lineHeight: "20px" }}>{pl?.n}</div>
-                      <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{pl?.t} · {pl?.cnt}</div>
-                      {pl?.def ? (<>
-                        <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#047857" }}>★ Store default</span>
-                      </>) : null}
-                    </button>
-                  </React.Fragment>))}
-                <button type="button" onClick={v.newPolicy} style={{ padding: "16px", borderRadius: "var(--radius-lg)", border: "1.5px dashed #94a3b8", background: "transparent", font: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#475569", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "6px" }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M5 12h14" />
-  <path d="M12 5v14" />
-</svg>New policy</button>
-              </div>
-              <div className="gc-on-dark wp-editbar" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "20px 24px", borderRadius: "var(--radius-xl)", background: "#0b1733", color: "#fff" }}>
-                <div style={{ flexGrow: "1" }}>
-                  <div style={{ fontSize: "var(--text-xs)", opacity: ".7" }}>Stock › Warranty policies › {v.pName}</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "2px" }}>
-                    <h2 className="wp-editbar__title" style={{ margin: "0", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.pName}</h2>
-                    <span style={{ height: "24px", padding: "0 10px", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.14)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center" }}>{v.pVer}</span>
+              ) : (
+                <div className="ix-page">
+                  {/* the policy as a record: back to the list, its name and version, Publish */}
+                  <RecordHeader onBack={v.back} title={v.pName} badges={<__StatusBadge tone={stTone(v.pSt)}>{v.pSt}</__StatusBadge>} meta={v.pVer}
+                    secondary={sec} primary={{ label: 'Publish policy', onClick: v.publish }} />
+
+                  <div className="ix-record">
+                    <div className="ix-main">
+                      <section className="ix-card" aria-labelledby="wp-h-basics">
+                        <div className="ix-card__head"><h2 id="wp-h-basics">Policy basics</h2></div>
+                        <div className="ix-card__body wp-body">
+                          <div className="wp-grid">
+                            <label className="wp-field">
+                              <span className="gc-label">Policy name</span>
+                              <input className="gc-input" value={v.pName} onInput={v.typeName} onChange={v.typeName} aria-label="Policy name" />
+                            </label>
+                            <label className="wp-field">
+                              <span className="gc-label">Type</span>
+                              <select className="gc-input gc-select" value={v.pType} onChange={v.setType} aria-label="Type">
+                                <option value="brand">Brand warranty</option>
+                                <option value="seller">Seller warranty</option>
+                                <option value="service">Service warranty</option>
+                                <option value="replace">Replacement guarantee</option>
+                                <option value="money">Money-back guarantee</option>
+                              </select>
+                            </label>
+                            <label className="wp-field">
+                              <span className="gc-label">Provided by</span>
+                              <select className="gc-input gc-select" aria-label="Provided by">
+                                <option>Brand (official)</option>
+                                <option>Our shop</option>
+                                <option>Supplier</option>
+                              </select>
+                            </label>
+                            <div className="wp-field">
+                              <span className="gc-label">Period</span>
+                              <div className="wp-row" style={{ flexWrap: "nowrap" }}>
+                                <input className="gc-input" value={v.perN} onInput={v.typePer} onChange={v.typePer} aria-label="Period" style={{ flex: "0 0 72px", textAlign: "center", fontVariantNumeric: "tabular-nums" }} />
+                                <select className="gc-input gc-select" value={v.perU} onChange={v.setPerU} aria-label="Period unit">
+                                  <option value="days">days</option>
+                                  <option value="months">months</option>
+                                  <option value="years">years</option>
+                                </select>
+                              </div>
+                            </div>
+                            <label className="wp-field">
+                              <span className="gc-label">Starts from</span>
+                              <select className="gc-input gc-select" aria-label="Starts from">
+                                <option>Delivery date</option>
+                                <option>Purchase date</option>
+                                <option>Activation date</option>
+                              </select>
+                            </label>
+                            <div className="wp-field">
+                              <div className="wp-lbl"><span className="gc-label">Proof needed</span><__InfoTip text="Pick below in Claim process" /></div>
+                              <div className="gc-input wp-readonly">{v.proofTxt}</div>
+                            </div>
+                          </div>
+                          <div className="wp-switch">
+                            <span>Different periods for parts, labour or components<__InfoTip text="e.g. motherboard 12 months, battery 6 months" /></span>
+                            <Switch sw={v.split} label="Different periods for parts, labour or components" />
+                          </div>
+                          {v.split?.on ? (
+                            <div className="wp-parts">
+                              {__list(v.parts).map((pt) => <div key={pt.k} className="wp-part"><span>{pt.k}</span><b>{pt.v}</b></div>)}
+                              <button type="button" className="ix-btn"><__Icon name="plus" width="16" height="16" aria-hidden="true" />Add component</button>
+                            </div>
+                          ) : null}
+                        </div>
+                      </section>
+
+                      <section className="ix-card" aria-labelledby="wp-h-cover">
+                        <div className="ix-card__head"><h2 id="wp-h-cover">Covered / not covered</h2></div>
+                        <div className="ix-card__body wp-body">
+                          <div className="wp-grid">
+                            <div className="wp-list">
+                              <p className="wp-sub">Covered</p>
+                              {__list(v.covd).map((co, i) => (
+                                <div key={i} className="wp-item"><span className="wp-dot wp-dot--ok" /><span>{co.t}</span><button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" onClick={co.del} aria-label={"Remove: " + (co.t ?? "")}><__Icon name="x" width="14" height="14" aria-hidden="true" /></button></div>
+                              ))}
+                              <div className="wp-row">
+                                <input className="gc-input" value={v.covIn} onInput={v.covInType} onChange={v.covInType} placeholder="Add something covered" aria-label="Add something covered" />
+                                <button type="button" className="ix-btn" onClick={v.addCov}>Add</button>
+                              </div>
+                            </div>
+                            <div className="wp-list">
+                              <p className="wp-sub">Not covered</p>
+                              {__list(v.notc).map((no, i) => (
+                                <div key={i} className="wp-item"><span className="wp-dot wp-dot--no" /><span>{no.t}</span><button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" onClick={no.del} aria-label={"Remove: " + (no.t ?? "")}><__Icon name="x" width="14" height="14" aria-hidden="true" /></button></div>
+                              ))}
+                              <div className="wp-row">
+                                <input className="gc-input" value={v.notIn} onInput={v.notInType} onChange={v.notInType} placeholder="Add something not covered" aria-label="Add something not covered" />
+                                <button type="button" className="ix-btn" onClick={v.addNot}>Add</button>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="wp-field">
+                            <p className="wp-sub">Remedy — offered in this order</p>
+                            <div className="wp-row">
+                              {__list(v.remedy).map((rm) => (
+                                <span key={rm.l} className={'wp-rem' + (rm.off ? ' is-off' : '')}>
+                                  <i>{rm.n}</i>{rm.l}
+                                  <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" onClick={rm.up} aria-label={rm.upL} title={rm.upL}><__Icon name="chevron-left" width="14" height="14" aria-hidden="true" /></button>
+                                  <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" onClick={rm.tog} aria-label={rm.togL} title={rm.togL} style={{ marginLeft: "-6px" }}><__Icon name={rm.sym} width="14" height="14" aria-hidden="true" /></button>
+                                </span>
+                              ))}
+                            </div>
+                            <div className="wp-row" style={{ fontSize: "var(--text-sm)" }}>Replace if it cannot be repaired within<input className="gc-input" defaultValue="15" aria-label="Days" style={{ flex: "0 0 64px", textAlign: "center" }} />days</div>
+                          </div>
+                          <div className="wp-field">
+                            <p className="wp-sub">Conditions that void the warranty</p>
+                            <div className="wp-row">
+                              {__list(v.voids).map((vd) => <span key={vd.t} className="wp-chip">{vd.t}</span>)}
+                              <button type="button" className="ix-btn ix-btn--sm"><__Icon name="plus" width="16" height="16" aria-hidden="true" />Add condition</button>
+                            </div>
+                          </div>
+                        </div>
+                      </section>
+
+                      <section className="ix-card" aria-labelledby="wp-h-claim">
+                        <div className="ix-card__head"><h2 id="wp-h-claim">Claim process</h2></div>
+                        <div className="ix-card__body wp-body">
+                          <div className="wp-field">
+                            <p className="wp-sub">How customers claim</p>
+                            <div className="wp-checks">
+                              <label><input type="checkbox" className="gc-check" defaultChecked />Drop-off at shop</label>
+                              <label><input type="checkbox" className="gc-check" defaultChecked />Courier pickup</label>
+                              <label><input type="checkbox" className="gc-check" />On-site visit</label>
+                            </div>
+                          </div>
+                          <div className="wp-grid">
+                            <label className="wp-field"><span className="gc-label">Service centre</span><input className="gc-input" defaultValue="Service centre, Mirpur 10, Dhaka" aria-label="Service centre" /></label>
+                            <label className="wp-field"><span className="gc-label">Hours</span><input className="gc-input" defaultValue="Sat–Thu, 10:00 AM – 7:00 PM" aria-label="Hours" /></label>
+                          </div>
+                          <div className="wp-field">
+                            <p className="wp-sub">Proof the customer must show</p>
+                            <div className="ix-chips">
+                              {__list(v.proofs).map((pf) => <button key={pf.l} type="button" className="ix-chip" onClick={pf.tog} aria-pressed={!!pf.on}>{pf.l}</button>)}
+                            </div>
+                          </div>
+                          <div className="wp-grid">
+                            <div className="wp-field">
+                              <span className="gc-label">Turnaround</span>
+                              <div className="wp-row" style={{ flexWrap: "nowrap", fontSize: "var(--text-sm)" }}>
+                                <input className="gc-input" defaultValue="7" aria-label="From days" style={{ flex: "0 0 64px", textAlign: "center" }} />
+                                <span>to</span>
+                                <input className="gc-input" defaultValue="15" aria-label="To days" style={{ flex: "0 0 64px", textAlign: "center" }} />
+                                <span>days</span>
+                              </div>
+                            </div>
+                            <label className="wp-field">
+                              <span className="gc-label">Delivery cost during a claim</span>
+                              <select className="gc-input gc-select" aria-label="Who pays">
+                                <option>Shop pays both ways</option>
+                                <option>Customer pays to send, shop pays return</option>
+                                <option>Customer pays both ways</option>
+                              </select>
+                            </label>
+                            <label className="wp-field">
+                              <span className="gc-label">Claim updates to the customer</span>
+                              <select className="gc-input gc-select" aria-label="Updates">
+                                <option>SMS + WhatsApp at every step</option>
+                                <option>SMS only</option>
+                                <option>WhatsApp only</option>
+                              </select>
+                            </label>
+                          </div>
+                        </div>
+                      </section>
+
+                      <section className="ix-card" aria-labelledby="wp-h-terms">
+                        <div className="ix-card__head">
+                          <h2 id="wp-h-terms">Full terms <__InfoTip text="Shown on the full policy page of your website. Write both languages — customers pick one." /></h2>
+                          <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={v.aiTerms}><__Icon name="sparkles" width="16" height="16" aria-hidden="true" />Write from the fields above</button>
+                        </div>
+                        <div className="ix-card__body wp-body">
+                          <div className="gc-seg" role="group" aria-label="Language">
+                            {__list(v.langs).map((lg) => <button key={lg.l} type="button" className={'gc-seg__btn' + (lg.on ? ' gc-seg__btn--active' : '')} aria-pressed={!!lg.on} onClick={lg.pick}>{lg.l}</button>)}
+                          </div>
+                          <div className="wp-terms">
+                            <div className="wp-terms__bar" aria-hidden="true">
+                              <span><__Icon name="bold" width="16" height="16" /></span>
+                              <span><__Icon name="italic" width="16" height="16" /></span>
+                              <span><__Icon name="heading" width="16" height="16" /></span>
+                              <span><__Icon name="list" width="16" height="16" /></span>
+                              <span><__Icon name="list-ordered" width="16" height="16" /></span>
+                              <span><__Icon name="link" width="16" height="16" /></span>
+                            </div>
+                            <div className="wp-terms__text" style={v.termsBn ? { fontFamily: "var(--font-bn)" } : undefined}>{v.termsTxt}</div>
+                          </div>
+                        </div>
+                      </section>
+                    </div>
+
+                    <aside className="ix-side">
+                      <section className="ix-card" aria-labelledby="wp-h-apply">
+                        <div className="ix-card__head"><h2 id="wp-h-apply">Applies to</h2></div>
+                        <div className="ix-card__body wp-body">
+                          <div className="wp-apply">
+                            {__list(v.apply).map((ap) => (
+                              <div key={ap.k}><span>{ap.k}</span><b>{ap.v}</b><button type="button" className="ix-btn ix-btn--sm ix-btn--plain">Edit</button></div>
+                            ))}
+                          </div>
+                          <div className="wp-switch">
+                            <span>Store default policy<__InfoTip text="Used when a product, category or brand has none. A product’s own choice always wins." /></span>
+                            <Switch sw={v.isDef} label="Store default policy" />
+                          </div>
+                          <button type="button" className="ix-btn" onClick={v.bulk}><__Icon name="package" width="16" height="16" aria-hidden="true" />Bulk attach to products</button>
+                        </div>
+                      </section>
+
+                      <section className="ix-card" aria-labelledby="wp-h-cust">
+                        <div className="ix-card__head"><h2 id="wp-h-cust">As the customer sees it</h2></div>
+                        <div className="ix-card__body wp-body">
+                          <div className="wp-snip">
+                            <b>{v.custTitle}</b>
+                            <span>{v.custSub}</span>
+                            <em>See full warranty policy ›</em>
+                          </div>
+                          <div className="wp-card">
+                            <div className="wp-card__head gc-on-dark"><__Icon name="shield-check" width="14" height="14" aria-hidden="true" />WARRANTY CARD</div>
+                            <div className="wp-card__body">
+                              <div>
+                                <b style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", color: "var(--text-heading)" }}>Galaxy A55 5G · 8/256 GB</b>
+                                <span style={{ fontFamily: "var(--font-data)", color: "var(--text-body)" }}>IMEI 350912118845201</span>
+                                <span>Starts <b>19 Sep 2026</b></span>
+                                <span>Ends <b>{v.cardEnd}</b></span>
+                                <span className="ix-muted">INV-24817 · GridShop</span>
+                              </div>
+                              <QrCode text="https://gridshop.com.bd/warranty/INV-24817" size={76} label="QR code" />
+                            </div>
+                          </div>
+                          <div className="wp-field">
+                            <p className="wp-sub">Also printed on</p>
+                            <div className="wp-checks wp-checks--col">
+                              <label><input type="checkbox" className="gc-check" defaultChecked />Invoice and receipt</label>
+                              <label><input type="checkbox" className="gc-check" defaultChecked />Warranty card with QR</label>
+                              <label><input type="checkbox" className="gc-check" defaultChecked />Order confirmation message</label>
+                              <label><input type="checkbox" className="gc-check" defaultChecked />Customer account, per order</label>
+                            </div>
+                          </div>
+                        </div>
+                      </section>
+
+                      <section className="ix-card" aria-labelledby="wp-h-vers">
+                        <div className="ix-card__head"><h2 id="wp-h-vers">Version history</h2></div>
+                        <div className="ix-card__body wp-body">
+                          <ul className="wp-vers">
+                            {__list(v.vers).map((vr) => (
+                              <li key={vr.v}><i className={vr.live ? 'is-live' : ''} /><span><b>{vr.v} <span className="ix-muted">· {vr.d}</span></b><small>{vr.s}</small></span></li>
+                            ))}
+                          </ul>
+                          <p className="wp-note">Orders keep the version they were sold under. Changing the policy never changes an old customer’s warranty.</p>
+                        </div>
+                      </section>
+                    </aside>
                   </div>
                 </div>
-                <button type="button" className="btn" onClick={v.preview} style={{ background: "rgba(255,255,255,.1)", color: "#fff" }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                  <span>Preview</span>
-                </button>
-                <button type="button" className="btn" onClick={v.saveDraft} style={{ background: "rgba(255,255,255,.1)", color: "#fff" }}>Save draft</button>
-                <button type="button" className="btn" onClick={v.publish} style={{ background: "#fff", color: "#0b1733" }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M20 6 9 17l-5-5" />
-                  </svg>
-                  <span>Publish policy</span>
-                </button>
-              </div>
-              <div className="wp-layout" style={{ display: "flex", gap: "18px", alignItems: "flex-start" }}>
-                <div style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "18px" }}>
-                  <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <div style={{ flexGrow: "1" }}>
-                        <div className="psec" style={{ color: "#0a5bd0" }}>Policy basics</div>
-                      </div>
-                    </div>
-                    <div className="wp-grid" style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr", gap: "14px" }}>
-                      <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <span className="lbl">Policy name</span>
-                        <input className="inp" value={v.pName} onInput={v.typeName} onChange={v.typeName} aria-label="Policy name" />
-                      </label>
-                      <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <span className="lbl">Type</span>
-                        <select className="inp" value={v.pType} onChange={v.setType} aria-label="Type">
-                          <option value="brand">Brand warranty</option>
-                          <option value="seller">Seller warranty</option>
-                          <option value="service">Service warranty</option>
-                          <option value="replace">Replacement guarantee</option>
-                          <option value="money">Money-back guarantee</option>
-                        </select>
-                      </label>
-                      <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <span className="lbl">Provided by</span>
-                        <select className="inp" aria-label="Provided by">
-                          <option>Brand (official)</option>
-                          <option>Our shop</option>
-                          <option>Supplier</option>
-                        </select>
-                      </label>
-                    </div>
-                    <div className="wp-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px" }}>
-                      <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <span className="lbl">Period</span>
-                        <div style={{ display: "flex", gap: "8px" }}>
-                          <input className="inp num" value={v.perN} onInput={v.typePer} onChange={v.typePer} aria-label="Period" style={{ width: "90px", textAlign: "center", fontWeight: "var(--weight-semibold)" }} />
-                          <select className="inp" value={v.perU} onChange={v.setPerU} aria-label="Period unit">
-                            <option value="days">days</option>
-                            <option value="months">months</option>
-                            <option value="years">years</option>
-                          </select>
-                        </div>
-                      </label>
-                      <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <span className="lbl">Starts from</span>
-                        <select className="inp" aria-label="Starts from">
-                          <option>Delivery date</option>
-                          <option>Purchase date</option>
-                          <option>Activation date</option>
-                        </select>
-                      </label>
-                      <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <span className="lbl">Proof needed</span>
-                        <div className="inp" style={{ display: "flex", alignItems: "center", background: "#f8fafc" }}>{v.proofTxt}</div>
-                        <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Pick below in Claim process</span>
-                      </label>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                      <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M21 4h-7" />
-                          <path d="M10 4H3" />
-                          <path d="M21 12h-9" />
-                          <path d="M8 12H3" />
-                          <path d="M21 20h-5" />
-                          <path d="M12 20H3" />
-                          <path d="M14 2v4" />
-                          <path d="M8 10v4" />
-                          <path d="M16 18v4" />
-                        </svg>
-                      </span>
-                      <div style={{ flexGrow: "1" }}>
-                        <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Different periods for parts, labour or components</div>
-                        <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>e.g. motherboard 12 months, battery 6 months</div>
-                      </div>
-                      <button type="button" role="switch" aria-checked={v.split?.on} aria-label="Different periods for parts, labour or components" className={v.split?.cls} onClick={v.split?.toggle} />
-                    </div>
-                    {v.split?.on ? (<>
-                      <div className="fade gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px" }}>
-                        {__list(v.parts).map((pt, $index) => (<React.Fragment key={$index}>
-                            <div style={{ padding: "12px 14px", borderRadius: "var(--radius-xl)", background: "#f7f9fc", border: "1px solid #e6eaf0" }}>
-                              <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{pt?.k}</div>
-                              <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{pt?.v}</div>
-                            </div>
-                          </React.Fragment>))}
-                        <button type="button" className="abtn" style={{ height: "auto", justifyContent: "center" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M5 12h14" />
-  <path d="M12 5v14" />
-</svg>Add component</button>
-                      </div>
-                    </>) : null}
-                  </section>
-                  <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <div style={{ flexGrow: "1" }}>
-                        <div className="psec" style={{ color: "#0a5bd0" }}>Covered / not covered</div>
-                      </div>
-                    </div>
-                    <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                        <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Covered</div>
-                        {__list(v.covd).map((co, $index) => (<React.Fragment key={$index}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", borderRadius: "var(--radius-lg)", background: "#f7f9fc" }}>
-                              <span style={{ width: "10px", height: "10px", borderRadius: "var(--radius-full)", background: "#10b981", flexShrink: "0" }} />
-                              <span style={{ flexGrow: "1", fontSize: "var(--text-sm)" }}>{co?.t}</span>
-                              <button type="button" className="ib" onClick={co?.del} aria-label={"Remove: " + (co?.t ?? "")} style={{ width: "28px", height: "28px" }}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <path d="M18 6 6 18" />
-                                  <path d="m6 6 12 12" />
-                                </svg>
-                              </button>
-                            </div>
-                          </React.Fragment>))}
-                        <div style={{ display: "flex", gap: "8px" }}>
-                          <input className="inp" value={v.covIn} onInput={v.covInType} onChange={v.covInType} placeholder="Add something covered" aria-label="Add something covered" style={{ height: "38px" }} />
-                          <button type="button" className="btn soft sm" onClick={v.addCov}>Add</button>
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                        <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Not covered</div>
-                        {__list(v.notc).map((no, $index) => (<React.Fragment key={$index}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", borderRadius: "var(--radius-lg)", background: "#f7f9fc" }}>
-                              <span style={{ width: "10px", height: "10px", borderRadius: "var(--radius-full)", background: "#e11d48", flexShrink: "0" }} />
-                              <span style={{ flexGrow: "1", fontSize: "var(--text-sm)" }}>{no?.t}</span>
-                              <button type="button" className="ib" onClick={no?.del} aria-label={"Remove: " + (no?.t ?? "")} style={{ width: "28px", height: "28px" }}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <path d="M18 6 6 18" />
-                                  <path d="m6 6 12 12" />
-                                </svg>
-                              </button>
-                            </div>
-                          </React.Fragment>))}
-                        <div style={{ display: "flex", gap: "8px" }}>
-                          <input className="inp" value={v.notIn} onInput={v.notInType} onChange={v.notInType} placeholder="Add something not covered" aria-label="Add something not covered" style={{ height: "38px" }} />
-                          <button type="button" className="btn soft sm" onClick={v.addNot}>Add</button>
-                        </div>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                      <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>Remedy — offered in this order</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                        {__list(v.remedy).map((rm, $index) => (<React.Fragment key={$index}>
-                            <div style={__sx(`display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 6px 0 12px; border-radius: var(--radius-xl); border: 1.5px solid ${rm?.bd ?? ""}; background: ${rm?.bg ?? ""}; font-size: var(--text-sm); font-weight: var(--weight-medium); color: ${rm?.fg ?? ""};`)}><span style={__sx(`width: 22px; height: 22px; border-radius: var(--radius-full); background: ${rm?.dot ?? ""}; color: #fff; font-size: var(--text-xs); display: inline-flex; align-items: center; justify-content: center;`)}>{rm?.n}</span>{rm?.l}<button type="button" className="ib" onClick={rm?.up} aria-label={rm?.upL} title={rm?.upL} style={{ width: "28px", height: "28px" }}>
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="m15 18-6-6 6-6" />
-  </svg>
-</button><button type="button" className="ib" onClick={rm?.tog} aria-label={rm?.togL} title={rm?.togL} style={{ width: "28px", height: "28px" }}><__Icon name={rm?.sym} width="14" height="14" aria-hidden="true" /></button></div>
-                          </React.Fragment>))}
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-sm)", color: "#334155" }}>Replace if it cannot be repaired within<input className="inp num" defaultValue="15" aria-label="Days" style={{ width: "64px", height: "36px", textAlign: "center" }} />days</div>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                      <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>Conditions that void the warranty</div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                        {__list(v.voids).map((vd, $index) => (<React.Fragment key={$index}>
-                            <span style={{ display: "inline-flex", alignItems: "center", height: "32px", padding: "0 12px", borderRadius: "var(--radius-full)", background: "#fff1f2", color: "#9f1239", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>{vd?.t}</span>
-                          </React.Fragment>))}
-                        <button type="button" className="abtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M5 12h14" />
-  <path d="M12 5v14" />
-</svg>Add condition</button>
-                      </div>
-                    </div>
-                  </section>
-                  <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <div style={{ flexGrow: "1" }}>
-                        <div className="psec" style={{ color: "#0a5bd0" }}>Claim process</div>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                      <span className="lbl">How customers claim</span>
-                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                        <label style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "38px", padding: "0 12px", borderRadius: "var(--radius-lg)", border: "1px solid #e2e8f0", background: "#fff", fontSize: "var(--text-sm)", cursor: "pointer" }}><input type="checkbox" defaultChecked="" style={{ width: "16px", height: "16px", accentColor: "#003087" }} />Drop-off at shop</label>
-                        <label style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "38px", padding: "0 12px", borderRadius: "var(--radius-lg)", border: "1px solid #e2e8f0", background: "#fff", fontSize: "var(--text-sm)", cursor: "pointer" }}><input type="checkbox" defaultChecked="" style={{ width: "16px", height: "16px", accentColor: "#003087" }} />Courier pickup</label>
-                        <label style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "38px", padding: "0 12px", borderRadius: "var(--radius-lg)", border: "1px solid #e2e8f0", background: "#fff", fontSize: "var(--text-sm)", cursor: "pointer" }}><input type="checkbox" style={{ width: "16px", height: "16px", accentColor: "#003087" }} />On-site visit</label>
-                      </div>
-                    </div>
-                    <div className="wp-grid" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: "14px" }}>
-                      <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <span className="lbl">Service centre</span>
-                        <input className="inp" defaultValue="Service centre, Mirpur 10, Dhaka" aria-label="Service centre" />
-                      </label>
-                      <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <span className="lbl">Hours</span>
-                        <input className="inp" defaultValue="Sat–Thu, 10:00 AM – 7:00 PM" aria-label="Hours" />
-                      </label>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                      <span className="lbl">Proof the customer must show</span>
-                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                        {__list(v.proofs).map((pf, $index) => (<React.Fragment key={$index}>
-                            <button type="button" onClick={pf?.tog} aria-pressed={pf?.on} style={__sx(`height: 38px; padding: 0 14px; border-radius: var(--radius-lg); border: 1.5px solid ${pf?.bd ?? ""}; background: ${pf?.bg ?? ""}; color: ${pf?.fg ?? ""}; font: inherit; font-size: var(--text-sm); font-weight: var(--weight-medium); cursor: pointer;`)}>{pf?.l}</button>
-                          </React.Fragment>))}
-                      </div>
-                    </div>
-                    <div className="wp-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px" }}>
-                      <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <span className="lbl">Turnaround</span>
-                        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                          <input className="inp num" defaultValue="7" aria-label="From days" style={{ width: "70px", textAlign: "center" }} />
-                          <span>to</span>
-                          <input className="inp num" defaultValue="15" aria-label="To days" style={{ width: "70px", textAlign: "center" }} />
-                          <span>days</span>
-                        </div>
-                      </label>
-                      <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <span className="lbl">Delivery cost during a claim</span>
-                        <select className="inp" aria-label="Who pays">
-                          <option>Shop pays both ways</option>
-                          <option>Customer pays to send, shop pays return</option>
-                          <option>Customer pays both ways</option>
-                        </select>
-                      </label>
-                      <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <span className="lbl">Claim updates to the customer</span>
-                        <select className="inp" aria-label="Updates">
-                          <option>SMS + WhatsApp at every step</option>
-                          <option>SMS only</option>
-                          <option>WhatsApp only</option>
-                        </select>
-                      </label>
-                    </div>
-                  </section>
-                  <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <div style={{ flexGrow: "1" }}>
-                        <div className="psec" style={{ color: "#0a5bd0" }}>Full terms</div>
-                        <p style={{ margin: "4px 0 0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Shown on the full policy page of your website. Write both languages — customers pick one.</p>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <div style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
-                        {__list(v.langs).map((lg, $index) => (<React.Fragment key={$index}>
-                            <button type="button" onClick={lg?.pick} aria-pressed={lg?.on} style={__sx(`height: 32px; padding: 0 16px; border: 0; border-radius: var(--radius-full); font: inherit; font-size: var(--text-xs-plus); font-weight: var(--weight-medium); cursor: pointer; background: ${lg?.bg ?? ""}; color: ${lg?.fg ?? ""};`)}>{lg?.l}</button>
-                          </React.Fragment>))}
-                      </div>
-                      <span style={{ flexGrow: "1" }} />
-                      <button type="button" className="ai" onClick={v.aiTerms}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-</svg>Write from the fields above</button>
-                    </div>
-                    <div style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", overflow: "hidden" }}>
-                      <div aria-hidden="true" style={{ display: "flex", gap: "2px", padding: "6px 8px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-semibold)", color: "#475569" }}>
-                        <span style={{ width: "30px", height: "24px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><__Icon name="bold" width="16" height="16" /></span>
-                        <span style={{ width: "30px", height: "24px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><__Icon name="italic" width="16" height="16" /></span>
-                        <span style={{ width: "30px", height: "24px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><__Icon name="heading" width="16" height="16" /></span>
-                        <span style={{ width: "30px", height: "24px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><__Icon name="list" width="16" height="16" /></span>
-                        <span style={{ width: "30px", height: "24px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><__Icon name="list-ordered" width="16" height="16" /></span>
-                        <span style={{ width: "30px", height: "24px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><__Icon name="link" width="16" height="16" /></span>
-                      </div>
-                      <div className={v.termsCls} style={{ padding: "14px 16px", fontSize: "var(--text-sm)", lineHeight: "22px", color: "#334155", minHeight: "150px", whiteSpace: "pre-line" }}>{v.termsTxt}</div>
-                    </div>
-                  </section>
-                </div>
-                <div className="wp-side" style={{ width: "380px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "18px" }}>
-                  <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <div style={{ flexGrow: "1" }}>
-                        <div className="psec" style={{ color: "#0a5bd0" }}>Applies to</div>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column" }}>
-                      {__list(v.apply).map((ap, $index) => (<React.Fragment key={$index}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 0", borderBottom: "1px solid #eef2f6" }}>
-                            <span style={{ width: "84px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{ap?.k}</span>
-                            <span style={{ flexGrow: "1", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{ap?.v}</span>
-                            <button type="button" className="abtn" style={{ height: "28px" }}>Edit</button>
-                          </div>
-                        </React.Fragment>))}
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                      <div style={{ flexGrow: "1" }}>
-                        <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Store default policy</div>
-                        <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Used when a product, category or brand has none. A product’s own choice always wins.</div>
-                      </div>
-                      <button type="button" role="switch" aria-checked={v.isDef?.on} aria-label="Store default policy" className={v.isDef?.cls} onClick={v.isDef?.toggle} />
-                    </div>
-                    <button type="button" className="btn line" onClick={v.bulk} style={{ width: "100%" }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="m7.5 4.27 9 5.15" />
-                        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-                        <path d="m3.3 7 8.7 5 8.7-5" />
-                        <path d="M12 22V12" />
-                      </svg>
-                      <span>Bulk attach to products</span>
-                    </button>
-                  </section>
-                  <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <div style={{ flexGrow: "1" }}>
-                        <div className="psec" style={{ color: "#0a5bd0" }}>As the customer sees it</div>
-                      </div>
-                    </div>
-                    <div style={{ padding: "16px", borderRadius: "var(--radius-xl)", background: "#e8f1fd" }}>
-                      <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{v.custTitle}</div>
-                      <div style={{ fontSize: "var(--text-xs-plus)", color: "#475569", marginTop: "2px" }}>{v.custSub}</div>
-                      <div style={{ fontSize: "var(--text-xs-plus)", color: "#0a5bd0", fontWeight: "var(--weight-medium)", marginTop: "8px" }}>See full warranty policy ›</div>
-                    </div>
-                    <div style={{ borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", overflow: "hidden" }}>
-                      <div className="gc-on-dark" style={{ padding: "10px 14px", background: "#0b1733", color: "#fff", display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
-  <path d="m9 12 2 2 4-4" />
-</svg>WARRANTY CARD</div>
-                      <div style={{ display: "flex", gap: "12px", padding: "14px" }}>
-                        <div style={{ flexGrow: "1", display: "flex", flexDirection: "column", gap: "4px", fontSize: "var(--text-xs-plus)" }}>
-                          <div style={{ fontWeight: "var(--weight-semibold)", fontSize: "var(--text-sm)" }}>Galaxy A55 5G · 8/256 GB</div>
-                          <div className="mono" style={{ color: "#475569" }}>IMEI 350912118845201</div>
-                          <div>Starts <b>19 Sep 2026</b></div>
-                          <div>Ends <b>{v.cardEnd}</b></div>
-                          <div style={{ color: "var(--text-muted)" }}>INV-24817 · GridShop</div>
-                        </div>
-                        <svg width="76" height="76" viewBox="0 0 21 21" aria-label="QR code" style={{ flexShrink: "0" }}>
-                          <rect width="21" height="21" fill="#fff" />
-                          <rect x="0" y="0" width="1" height="1" fill="#0b1733" />
-                          <rect x="1" y="0" width="1" height="1" fill="#0b1733" />
-                          <rect x="2" y="0" width="1" height="1" fill="#0b1733" />
-                          <rect x="3" y="0" width="1" height="1" fill="#0b1733" />
-                          <rect x="4" y="0" width="1" height="1" fill="#0b1733" />
-                          <rect x="5" y="0" width="1" height="1" fill="#0b1733" />
-                          <rect x="6" y="0" width="1" height="1" fill="#0b1733" />
-                          <rect x="7" y="0" width="1" height="1" fill="#0b1733" />
-                          <rect x="8" y="0" width="1" height="1" fill="#0b1733" />
-                          <rect x="10" y="0" width="1" height="1" fill="#0b1733" />
-                          <rect x="12" y="0" width="1" height="1" fill="#0b1733" />
-                          <rect x="13" y="0" width="1" height="1" fill="#0b1733" />
-                          <rect x="14" y="0" width="1" height="1" fill="#0b1733" />
-                          <rect x="15" y="0" width="1" height="1" fill="#0b1733" />
-                          <rect x="16" y="0" width="1" height="1" fill="#0b1733" />
-                          <rect x="17" y="0" width="1" height="1" fill="#0b1733" />
-                          <rect x="18" y="0" width="1" height="1" fill="#0b1733" />
-                          <rect x="19" y="0" width="1" height="1" fill="#0b1733" />
-                          <rect x="20" y="0" width="1" height="1" fill="#0b1733" />
-                          <rect x="0" y="1" width="1" height="1" fill="#0b1733" />
-                          <rect x="6" y="1" width="1" height="1" fill="#0b1733" />
-                          <rect x="8" y="1" width="1" height="1" fill="#0b1733" />
-                          <rect x="9" y="1" width="1" height="1" fill="#0b1733" />
-                          <rect x="10" y="1" width="1" height="1" fill="#0b1733" />
-                          <rect x="11" y="1" width="1" height="1" fill="#0b1733" />
-                          <rect x="12" y="1" width="1" height="1" fill="#0b1733" />
-                          <rect x="14" y="1" width="1" height="1" fill="#0b1733" />
-                          <rect x="20" y="1" width="1" height="1" fill="#0b1733" />
-                          <rect x="0" y="2" width="1" height="1" fill="#0b1733" />
-                          <rect x="2" y="2" width="1" height="1" fill="#0b1733" />
-                          <rect x="3" y="2" width="1" height="1" fill="#0b1733" />
-                          <rect x="4" y="2" width="1" height="1" fill="#0b1733" />
-                          <rect x="6" y="2" width="1" height="1" fill="#0b1733" />
-                          <rect x="7" y="2" width="1" height="1" fill="#0b1733" />
-                          <rect x="8" y="2" width="1" height="1" fill="#0b1733" />
-                          <rect x="12" y="2" width="1" height="1" fill="#0b1733" />
-                          <rect x="14" y="2" width="1" height="1" fill="#0b1733" />
-                          <rect x="16" y="2" width="1" height="1" fill="#0b1733" />
-                          <rect x="17" y="2" width="1" height="1" fill="#0b1733" />
-                          <rect x="18" y="2" width="1" height="1" fill="#0b1733" />
-                          <rect x="20" y="2" width="1" height="1" fill="#0b1733" />
-                          <rect x="0" y="3" width="1" height="1" fill="#0b1733" />
-                          <rect x="2" y="3" width="1" height="1" fill="#0b1733" />
-                          <rect x="3" y="3" width="1" height="1" fill="#0b1733" />
-                          <rect x="4" y="3" width="1" height="1" fill="#0b1733" />
-                          <rect x="6" y="3" width="1" height="1" fill="#0b1733" />
-                          <rect x="7" y="3" width="1" height="1" fill="#0b1733" />
-                          <rect x="9" y="3" width="1" height="1" fill="#0b1733" />
-                          <rect x="10" y="3" width="1" height="1" fill="#0b1733" />
-                          <rect x="11" y="3" width="1" height="1" fill="#0b1733" />
-                          <rect x="12" y="3" width="1" height="1" fill="#0b1733" />
-                          <rect x="14" y="3" width="1" height="1" fill="#0b1733" />
-                          <rect x="16" y="3" width="1" height="1" fill="#0b1733" />
-                          <rect x="17" y="3" width="1" height="1" fill="#0b1733" />
-                          <rect x="18" y="3" width="1" height="1" fill="#0b1733" />
-                          <rect x="20" y="3" width="1" height="1" fill="#0b1733" />
-                          <rect x="0" y="4" width="1" height="1" fill="#0b1733" />
-                          <rect x="2" y="4" width="1" height="1" fill="#0b1733" />
-                          <rect x="3" y="4" width="1" height="1" fill="#0b1733" />
-                          <rect x="4" y="4" width="1" height="1" fill="#0b1733" />
-                          <rect x="6" y="4" width="1" height="1" fill="#0b1733" />
-                          <rect x="7" y="4" width="1" height="1" fill="#0b1733" />
-                          <rect x="10" y="4" width="1" height="1" fill="#0b1733" />
-                          <rect x="12" y="4" width="1" height="1" fill="#0b1733" />
-                          <rect x="13" y="4" width="1" height="1" fill="#0b1733" />
-                          <rect x="14" y="4" width="1" height="1" fill="#0b1733" />
-                          <rect x="16" y="4" width="1" height="1" fill="#0b1733" />
-                          <rect x="17" y="4" width="1" height="1" fill="#0b1733" />
-                          <rect x="18" y="4" width="1" height="1" fill="#0b1733" />
-                          <rect x="20" y="4" width="1" height="1" fill="#0b1733" />
-                          <rect x="0" y="5" width="1" height="1" fill="#0b1733" />
-                          <rect x="6" y="5" width="1" height="1" fill="#0b1733" />
-                          <rect x="7" y="5" width="1" height="1" fill="#0b1733" />
-                          <rect x="9" y="5" width="1" height="1" fill="#0b1733" />
-                          <rect x="10" y="5" width="1" height="1" fill="#0b1733" />
-                          <rect x="13" y="5" width="1" height="1" fill="#0b1733" />
-                          <rect x="14" y="5" width="1" height="1" fill="#0b1733" />
-                          <rect x="20" y="5" width="1" height="1" fill="#0b1733" />
-                          <rect x="0" y="6" width="1" height="1" fill="#0b1733" />
-                          <rect x="1" y="6" width="1" height="1" fill="#0b1733" />
-                          <rect x="2" y="6" width="1" height="1" fill="#0b1733" />
-                          <rect x="3" y="6" width="1" height="1" fill="#0b1733" />
-                          <rect x="4" y="6" width="1" height="1" fill="#0b1733" />
-                          <rect x="5" y="6" width="1" height="1" fill="#0b1733" />
-                          <rect x="6" y="6" width="1" height="1" fill="#0b1733" />
-                          <rect x="9" y="6" width="1" height="1" fill="#0b1733" />
-                          <rect x="14" y="6" width="1" height="1" fill="#0b1733" />
-                          <rect x="15" y="6" width="1" height="1" fill="#0b1733" />
-                          <rect x="16" y="6" width="1" height="1" fill="#0b1733" />
-                          <rect x="17" y="6" width="1" height="1" fill="#0b1733" />
-                          <rect x="18" y="6" width="1" height="1" fill="#0b1733" />
-                          <rect x="19" y="6" width="1" height="1" fill="#0b1733" />
-                          <rect x="20" y="6" width="1" height="1" fill="#0b1733" />
-                          <rect x="0" y="7" width="1" height="1" fill="#0b1733" />
-                          <rect x="2" y="7" width="1" height="1" fill="#0b1733" />
-                          <rect x="3" y="7" width="1" height="1" fill="#0b1733" />
-                          <rect x="5" y="7" width="1" height="1" fill="#0b1733" />
-                          <rect x="7" y="7" width="1" height="1" fill="#0b1733" />
-                          <rect x="12" y="7" width="1" height="1" fill="#0b1733" />
-                          <rect x="0" y="8" width="1" height="1" fill="#0b1733" />
-                          <rect x="5" y="8" width="1" height="1" fill="#0b1733" />
-                          <rect x="6" y="8" width="1" height="1" fill="#0b1733" />
-                          <rect x="8" y="8" width="1" height="1" fill="#0b1733" />
-                          <rect x="10" y="8" width="1" height="1" fill="#0b1733" />
-                          <rect x="11" y="8" width="1" height="1" fill="#0b1733" />
-                          <rect x="12" y="8" width="1" height="1" fill="#0b1733" />
-                          <rect x="14" y="8" width="1" height="1" fill="#0b1733" />
-                          <rect x="15" y="8" width="1" height="1" fill="#0b1733" />
-                          <rect x="16" y="8" width="1" height="1" fill="#0b1733" />
-                          <rect x="18" y="8" width="1" height="1" fill="#0b1733" />
-                          <rect x="19" y="8" width="1" height="1" fill="#0b1733" />
-                          <rect x="3" y="9" width="1" height="1" fill="#0b1733" />
-                          <rect x="4" y="9" width="1" height="1" fill="#0b1733" />
-                          <rect x="5" y="9" width="1" height="1" fill="#0b1733" />
-                          <rect x="8" y="9" width="1" height="1" fill="#0b1733" />
-                          <rect x="9" y="9" width="1" height="1" fill="#0b1733" />
-                          <rect x="10" y="9" width="1" height="1" fill="#0b1733" />
-                          <rect x="11" y="9" width="1" height="1" fill="#0b1733" />
-                          <rect x="14" y="9" width="1" height="1" fill="#0b1733" />
-                          <rect x="15" y="9" width="1" height="1" fill="#0b1733" />
-                          <rect x="16" y="9" width="1" height="1" fill="#0b1733" />
-                          <rect x="17" y="9" width="1" height="1" fill="#0b1733" />
-                          <rect x="3" y="10" width="1" height="1" fill="#0b1733" />
-                          <rect x="8" y="10" width="1" height="1" fill="#0b1733" />
-                          <rect x="9" y="10" width="1" height="1" fill="#0b1733" />
-                          <rect x="10" y="10" width="1" height="1" fill="#0b1733" />
-                          <rect x="12" y="10" width="1" height="1" fill="#0b1733" />
-                          <rect x="13" y="10" width="1" height="1" fill="#0b1733" />
-                          <rect x="14" y="10" width="1" height="1" fill="#0b1733" />
-                          <rect x="15" y="10" width="1" height="1" fill="#0b1733" />
-                          <rect x="16" y="10" width="1" height="1" fill="#0b1733" />
-                          <rect x="17" y="10" width="1" height="1" fill="#0b1733" />
-                          <rect x="18" y="10" width="1" height="1" fill="#0b1733" />
-                          <rect x="19" y="10" width="1" height="1" fill="#0b1733" />
-                          <rect x="20" y="10" width="1" height="1" fill="#0b1733" />
-                          <rect x="0" y="11" width="1" height="1" fill="#0b1733" />
-                          <rect x="1" y="11" width="1" height="1" fill="#0b1733" />
-                          <rect x="4" y="11" width="1" height="1" fill="#0b1733" />
-                          <rect x="5" y="11" width="1" height="1" fill="#0b1733" />
-                          <rect x="6" y="11" width="1" height="1" fill="#0b1733" />
-                          <rect x="7" y="11" width="1" height="1" fill="#0b1733" />
-                          <rect x="8" y="11" width="1" height="1" fill="#0b1733" />
-                          <rect x="13" y="11" width="1" height="1" fill="#0b1733" />
-                          <rect x="14" y="11" width="1" height="1" fill="#0b1733" />
-                          <rect x="15" y="11" width="1" height="1" fill="#0b1733" />
-                          <rect x="16" y="11" width="1" height="1" fill="#0b1733" />
-                          <rect x="18" y="11" width="1" height="1" fill="#0b1733" />
-                          <rect x="19" y="11" width="1" height="1" fill="#0b1733" />
-                          <rect x="1" y="12" width="1" height="1" fill="#0b1733" />
-                          <rect x="3" y="12" width="1" height="1" fill="#0b1733" />
-                          <rect x="8" y="12" width="1" height="1" fill="#0b1733" />
-                          <rect x="9" y="12" width="1" height="1" fill="#0b1733" />
-                          <rect x="10" y="12" width="1" height="1" fill="#0b1733" />
-                          <rect x="14" y="12" width="1" height="1" fill="#0b1733" />
-                          <rect x="15" y="12" width="1" height="1" fill="#0b1733" />
-                          <rect x="1" y="13" width="1" height="1" fill="#0b1733" />
-                          <rect x="3" y="13" width="1" height="1" fill="#0b1733" />
-                          <rect x="4" y="13" width="1" height="1" fill="#0b1733" />
-                          <rect x="5" y="13" width="1" height="1" fill="#0b1733" />
-                          <rect x="6" y="13" width="1" height="1" fill="#0b1733" />
-                          <rect x="7" y="13" width="1" height="1" fill="#0b1733" />
-                          <rect x="10" y="13" width="1" height="1" fill="#0b1733" />
-                          <rect x="14" y="13" width="1" height="1" fill="#0b1733" />
-                          <rect x="15" y="13" width="1" height="1" fill="#0b1733" />
-                          <rect x="16" y="13" width="1" height="1" fill="#0b1733" />
-                          <rect x="17" y="13" width="1" height="1" fill="#0b1733" />
-                          <rect x="18" y="13" width="1" height="1" fill="#0b1733" />
-                          <rect x="0" y="14" width="1" height="1" fill="#0b1733" />
-                          <rect x="1" y="14" width="1" height="1" fill="#0b1733" />
-                          <rect x="2" y="14" width="1" height="1" fill="#0b1733" />
-                          <rect x="3" y="14" width="1" height="1" fill="#0b1733" />
-                          <rect x="4" y="14" width="1" height="1" fill="#0b1733" />
-                          <rect x="5" y="14" width="1" height="1" fill="#0b1733" />
-                          <rect x="6" y="14" width="1" height="1" fill="#0b1733" />
-                          <rect x="11" y="14" width="1" height="1" fill="#0b1733" />
-                          <rect x="17" y="14" width="1" height="1" fill="#0b1733" />
-                          <rect x="19" y="14" width="1" height="1" fill="#0b1733" />
-                          <rect x="0" y="15" width="1" height="1" fill="#0b1733" />
-                          <rect x="6" y="15" width="1" height="1" fill="#0b1733" />
-                          <rect x="8" y="15" width="1" height="1" fill="#0b1733" />
-                          <rect x="9" y="15" width="1" height="1" fill="#0b1733" />
-                          <rect x="12" y="15" width="1" height="1" fill="#0b1733" />
-                          <rect x="13" y="15" width="1" height="1" fill="#0b1733" />
-                          <rect x="14" y="15" width="1" height="1" fill="#0b1733" />
-                          <rect x="17" y="15" width="1" height="1" fill="#0b1733" />
-                          <rect x="0" y="16" width="1" height="1" fill="#0b1733" />
-                          <rect x="2" y="16" width="1" height="1" fill="#0b1733" />
-                          <rect x="3" y="16" width="1" height="1" fill="#0b1733" />
-                          <rect x="4" y="16" width="1" height="1" fill="#0b1733" />
-                          <rect x="6" y="16" width="1" height="1" fill="#0b1733" />
-                          <rect x="7" y="16" width="1" height="1" fill="#0b1733" />
-                          <rect x="9" y="16" width="1" height="1" fill="#0b1733" />
-                          <rect x="10" y="16" width="1" height="1" fill="#0b1733" />
-                          <rect x="15" y="16" width="1" height="1" fill="#0b1733" />
-                          <rect x="18" y="16" width="1" height="1" fill="#0b1733" />
-                          <rect x="19" y="16" width="1" height="1" fill="#0b1733" />
-                          <rect x="20" y="16" width="1" height="1" fill="#0b1733" />
-                          <rect x="0" y="17" width="1" height="1" fill="#0b1733" />
-                          <rect x="2" y="17" width="1" height="1" fill="#0b1733" />
-                          <rect x="3" y="17" width="1" height="1" fill="#0b1733" />
-                          <rect x="4" y="17" width="1" height="1" fill="#0b1733" />
-                          <rect x="6" y="17" width="1" height="1" fill="#0b1733" />
-                          <rect x="7" y="17" width="1" height="1" fill="#0b1733" />
-                          <rect x="9" y="17" width="1" height="1" fill="#0b1733" />
-                          <rect x="10" y="17" width="1" height="1" fill="#0b1733" />
-                          <rect x="11" y="17" width="1" height="1" fill="#0b1733" />
-                          <rect x="13" y="17" width="1" height="1" fill="#0b1733" />
-                          <rect x="17" y="17" width="1" height="1" fill="#0b1733" />
-                          <rect x="0" y="18" width="1" height="1" fill="#0b1733" />
-                          <rect x="2" y="18" width="1" height="1" fill="#0b1733" />
-                          <rect x="3" y="18" width="1" height="1" fill="#0b1733" />
-                          <rect x="4" y="18" width="1" height="1" fill="#0b1733" />
-                          <rect x="6" y="18" width="1" height="1" fill="#0b1733" />
-                          <rect x="8" y="18" width="1" height="1" fill="#0b1733" />
-                          <rect x="9" y="18" width="1" height="1" fill="#0b1733" />
-                          <rect x="10" y="18" width="1" height="1" fill="#0b1733" />
-                          <rect x="11" y="18" width="1" height="1" fill="#0b1733" />
-                          <rect x="13" y="18" width="1" height="1" fill="#0b1733" />
-                          <rect x="17" y="18" width="1" height="1" fill="#0b1733" />
-                          <rect x="0" y="19" width="1" height="1" fill="#0b1733" />
-                          <rect x="6" y="19" width="1" height="1" fill="#0b1733" />
-                          <rect x="7" y="19" width="1" height="1" fill="#0b1733" />
-                          <rect x="9" y="19" width="1" height="1" fill="#0b1733" />
-                          <rect x="10" y="19" width="1" height="1" fill="#0b1733" />
-                          <rect x="16" y="19" width="1" height="1" fill="#0b1733" />
-                          <rect x="0" y="20" width="1" height="1" fill="#0b1733" />
-                          <rect x="1" y="20" width="1" height="1" fill="#0b1733" />
-                          <rect x="2" y="20" width="1" height="1" fill="#0b1733" />
-                          <rect x="3" y="20" width="1" height="1" fill="#0b1733" />
-                          <rect x="4" y="20" width="1" height="1" fill="#0b1733" />
-                          <rect x="5" y="20" width="1" height="1" fill="#0b1733" />
-                          <rect x="6" y="20" width="1" height="1" fill="#0b1733" />
-                          <rect x="14" y="20" width="1" height="1" fill="#0b1733" />
-                          <rect x="18" y="20" width="1" height="1" fill="#0b1733" />
-                          <rect x="19" y="20" width="1" height="1" fill="#0b1733" />
-                          <rect x="20" y="20" width="1" height="1" fill="#0b1733" />
-                        </svg>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <span className="lbl">Also printed on</span>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-sm)" }}><input type="checkbox" defaultChecked="" style={{ width: "16px", height: "16px", accentColor: "#003087" }} />Invoice and receipt</label>
-                        <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-sm)" }}><input type="checkbox" defaultChecked="" style={{ width: "16px", height: "16px", accentColor: "#003087" }} />Warranty card with QR</label>
-                        <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-sm)" }}><input type="checkbox" defaultChecked="" style={{ width: "16px", height: "16px", accentColor: "#003087" }} />Order confirmation message</label>
-                        <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-sm)" }}><input type="checkbox" defaultChecked="" style={{ width: "16px", height: "16px", accentColor: "#003087" }} />Customer account, per order</label>
-                      </div>
-                    </div>
-                  </section>
-                  <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <div style={{ flexGrow: "1" }}>
-                        <div className="psec" style={{ color: "#0a5bd0" }}>Version history</div>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                      {__list(v.vers).map((vr, $index) => (<React.Fragment key={$index}>
-                          <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
-                            <span style={__sx(`width: 10px; height: 10px; margin-top: 5px; border-radius: var(--radius-full); background: ${vr?.c ?? ""}; flex-shrink: 0;`)} />
-                            <div style={{ flexGrow: "1" }}>
-                              <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>{vr?.v} <span style={{ fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>· {vr?.d}</span></div>
-                              <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{vr?.s}</div>
-                            </div>
-                          </div>
-                        </React.Fragment>))}
-                    </div>
-                    <div style={{ padding: "12px 14px", borderRadius: "var(--radius-xl)", background: "#fff4e0", color: "#7a3b04", fontSize: "var(--text-xs-plus)" }}>Orders keep the version they were sold under. Changing the policy never changes an old customer’s warranty.</div>
-                  </section>
-                </div>
-              </div>
+              )}
             </div>
           </main>
         </div>

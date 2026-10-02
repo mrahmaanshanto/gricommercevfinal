@@ -1,7 +1,7 @@
 'use client';
 // Shared pieces for the blog screens (/blog-posts, /blog-editor, /blog-categories, /blog-authors,
-// /author-profile): the page frame, the data hook, covers, avatars, chips, the storefront preview
-// of a post and the author dialog. Data lives in src/lib/blog.js.
+// /author-profile): the page frame (the shell plus one Shopify-style ix-page), the data hook, covers,
+// avatars, chips, the storefront preview of a post and the author dialog. Data lives in src/lib/blog.js.
 
 import React, { useEffect, useState } from 'react';
 import { Icon } from '@/runtime/dc';
@@ -35,14 +35,10 @@ export const queryParam = (name) => (typeof window === 'undefined' ? '' : new UR
 
 // ---- styles -----------------------------------------------------------------------------------
 export const BLOG_CSS = `
-.bl-card{overflow:hidden}
-.bl-pad{padding:var(--space-4) var(--space-5)}
-.bl-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-4) var(--space-5)}
-.bl-head h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.bl-head p{margin:2px 0 0;font-size:var(--text-xs);color:var(--text-muted)}
+/* kit gap: a list right under a card head */
+.ix-card__head+.ix-plist,.ix-card__head+.ix-table-wrap,.ix-card__head+.ix-plist+.ix-table-wrap{margin-top:var(--space-2)}
 .bl-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .bl-strong{font-weight:var(--weight-medium);color:var(--text-heading)}
-.bl-num{text-align:right;font-family:var(--font-data);font-variant-numeric:tabular-nums}
 .bl-id{font-family:var(--font-data);font-size:var(--text-xs);color:var(--text-muted)}
 .bl-link{color:var(--text-link);text-decoration:none;font-weight:var(--weight-medium)}
 .bl-link:hover{text-decoration:underline}
@@ -115,16 +111,18 @@ export const BLOG_CSS = `
 `;
 
 // ---- page frame -------------------------------------------------------------------------------
-export function BlogFrame({ screen, active, page, css = '', children, after }) {
+/** The shell and one Shopify-style page (docs/shopify-style.md); narrow for the editor and records. `after` renders
+ *  outside the shell (dialogs). */
+export function BlogFrame({ screen, active, page, css = '', children, after, narrow }) {
   return (
     <div className="dc-screen ds" data-screen={screen}>
       <style dangerouslySetInnerHTML={{ __html: BLOG_CSS + css }} />
       <div className="gc-shell">
         <Sidebar sticky="" active={active} />
-        <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
+        <main className="gc-shell__main">
           <Topbar crumb="Blog" page={page} />
-          <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-            {children}
+          <div className="gc-shell__content">
+            <div className={'ix-page' + (narrow ? ' ix-page--narrow' : '')}>{children}</div>
           </div>
         </main>
       </div>

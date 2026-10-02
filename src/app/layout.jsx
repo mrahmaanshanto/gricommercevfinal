@@ -4,6 +4,7 @@ import { Overlays } from '@/components/ui';
 import { GridAi } from '@/components/ui/GridAi';
 import { EveningCheck } from '@/components/EveningCheck';
 import { HelpPanel } from '@/components/ui/HelpPanel';
+import { ProposalBadge } from '@/components/ProposalBadge';
 
 export const metadata = {
   title: { default: 'GridCommerce', template: '%s · GridCommerce' },
@@ -27,6 +28,7 @@ export default function RootLayout({ children }) {
         <GridAi />
         <EveningCheck />
         <HelpPanel />
+        <ProposalBadge />
       </body>
     </html>
   );

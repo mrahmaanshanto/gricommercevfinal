@@ -1,13 +1,15 @@
 'use client';
 // Generated from design/templates/products/AddProductTabs.dc.html by scripts/convert-design.mjs.
-// Add product · tabs version — Products — Add product (tabs).
+// Add product · tabs version — Products — Add product (tabs), laid out like Shopify's product page with the left
+// column split into steps (docs/shopify-style.md). The fields and their logic are the same as before.
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
 import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
-import { PageHeader as __PageHeader } from '@/components/ui';
+import { DCLogic, Icon as __Icon, list as __list } from '@/runtime/dc';
+import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
+import { StatusBadge as __StatusBadge, InfoTip as __InfoTip } from '@/components/ui';
+import { RecordHeader } from '@/components/ui/IndexKit';
 import { toast as __toast, confirmDialog as __confirm } from '@/runtime/ui';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
@@ -223,116 +225,183 @@ class Component extends DCLogic {
   }
 }
 
-// ---- styles (from the design's <helmet>) ----
+// ---- styles ----
+// Kit classes (design-system.css › Index kit, records and forms) do the layout; these are the form's own parts
+// (the same as Add product's) and the step strip.
 
-const CSS = `/* phones: rows of label + buttons wrap instead of running out of the card */
-@media (max-width:640px){.gc-shell__content [style*="display:flex"]:not([role="tablist"]):not([style*="column"]),.gc-shell__content [style*="display: flex"]:not([role="tablist"]):not([style*="column"]){flex-wrap:wrap}#product-form{flex-wrap:nowrap!important}.gc-shell__content select,.gc-shell__content input{min-width:0;max-width:100%}.gc-shell__content .mono,.gc-shell__content [class*="badge"]{overflow-wrap:anywhere}}
-
-body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
-*{box-sizing:border-box}
-a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
-.nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
-.nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
-.btn:hover{text-decoration:none}
-.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
-.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
-.line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
-.warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
-.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
-.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
-.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:var(--text-muted)}
-.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
-.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
-.tab:hover{background:#f1f5f9;color:#0f172a}
-.tab.on{background:#003087;color:#fff}
-.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
-.chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
-.row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
-.b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
-.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
-.b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:var(--font-data);letter-spacing:.02em}
-.fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
-@keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.flash{animation:gcFlash 900ms ease-out}
-@keyframes gcFlash{from{background:#e7f8f1}to{background:transparent}}
-.scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
-@keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
-
-.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
-.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
-.sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
-.t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
-.actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:var(--font-bn)}
-.pulse{animation:gcPulse 1.6s ease-in-out infinite}
-@keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
-@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
-.psec{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
-.num{font-variant-numeric:tabular-nums}
-.ai{height:28px;padding:0 10px;border-radius:var(--radius-lg);border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
-.ai:hover{border-color:#a78bfa;box-shadow:0 4px 12px -6px rgba(91,33,182,.5)}
-.ai:focus-visible{outline:3px solid rgba(124,58,237,.4);outline-offset:2px}
-.abtn{height:32px;padding:0 12px;border-radius:var(--radius-lg);border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-.abtn:hover{background:#f1f5f9}
-.ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0}
-.ptab{position:relative;height:52px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:var(--weight-medium)}
-.ptab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2.5px;border-radius:3px 3px 0 0;background:#003087}
-.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
-.ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
-.req{color:var(--text-danger)}
-.inp[aria-invalid="true"]{border-color:var(--text-danger)!important}
-.ferr{margin:0;font-size:var(--text-xs);line-height:16px;color:var(--text-danger);display:flex;align-items:center;gap:6px}
-.savebar{position:sticky;bottom:0;z-index:5;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px;border-radius:var(--radius-xl);background:#fff;border:1px solid #e6eaf0;box-shadow:0 -8px 20px -12px rgba(15,23,42,.28)}
-.savebar__note{flex:1 1 140px;min-width:0;display:flex;align-items:center;gap:8px;font-size:var(--text-sm);font-weight:var(--weight-medium);color:#475569}
-.savebar__dot{width:8px;height:8px;border-radius:var(--radius-full);background:var(--fill-warning);flex-shrink:0}
-.tagx{width:24px;height:24px;border:0;border-radius:var(--radius-full);background:transparent;cursor:pointer;color:inherit;display:inline-flex;align-items:center;justify-content:center}
-.tagx:hover{background:rgba(15,23,42,.08)}
-.tagx:focus-visible,.abtn:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.steps{flex:1 1 0;min-width:0;position:relative;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}
-.steps::-webkit-scrollbar{display:none}
-.step{height:42px;padding:0 12px;border:0;border-radius:var(--radius-lg);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;flex-shrink:0}
-.step:focus-visible{outline-offset:-3px}
-.thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
-
-/* phones: a switch row keeps icon, text and switch on one line; two-way choices share the width; save bar on one row */
+const CSS = `
+.ap-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.ap-field>.gc-label,.ap-lbl .gc-label{margin:0}
+.ap-lbl{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;min-height:24px}
+.ap-lbl>.gc-label{flex:0 1 auto;min-width:0}
+.ap-lbl>.ap-push{margin-left:auto}
+.ap-grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3) var(--space-4)}
+.ap-body{display:flex;flex-direction:column;gap:var(--space-4)}
+.ap-req{color:var(--text-danger)}
+.ap-err{display:flex;align-items:center;gap:6px;margin:0;font-size:var(--text-xs);color:var(--text-danger)}
+.ap-help{margin:0;font-size:var(--text-xs);color:var(--text-muted)}
+.ap-count{font-size:var(--text-xs);color:var(--text-muted);font-variant-numeric:tabular-nums}
+.ap-form .gc-input[aria-invalid="true"]{border-color:var(--text-danger)}
+.ap-form textarea.gc-input{resize:vertical}
+.ap-mono{font-family:var(--font-data)}
+.ap-num{font-variant-numeric:tabular-nums}
+.ap-sub{margin:0;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body)}
+.ap-links{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4);font-size:var(--text-xs-plus)}
+.ap-links a{font-weight:var(--weight-medium)}
+/* AI: quiet buttons, a purple edge on what AI wrote, and a "please check" row under it */
+.ap-ai{color:var(--viz-7)}
+.ap-ai-on{border-color:var(--viz-7)!important}
+.ap-aicheck{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
+.ap-aitag{display:inline-flex;align-items:center;gap:6px;height:20px;padding:0 8px;border-radius:var(--radius-full);background:color-mix(in srgb,var(--viz-7) 10%,transparent);color:var(--viz-7);font-size:var(--text-xs);font-weight:var(--weight-medium)}
+.ap-assist{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-3);border-radius:var(--radius-lg);background:var(--surface-subtle)}
+.ap-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
+.ap-row>.gc-input{width:auto;min-width:0}
+.ap-grow{flex:1 1 auto}
+/* long description: a small toolbar on top of the box */
+.ap-rte{display:flex;flex-direction:column}
+.ap-rte__bar{display:flex;gap:2px;padding:4px;border:1px solid var(--border-field);border-bottom:0;border-radius:var(--radius-lg) var(--radius-lg) 0 0;background:var(--surface-subtle)}
+.ap-rte__bar .ix-btn{color:var(--text-muted)}
+.ap-rte textarea.gc-input{border-radius:0 0 var(--radius-lg) var(--radius-lg)}
+/* media: the cover first, the rest beside it, then the drop target */
+.ap-media{display:grid;grid-template-columns:2fr repeat(3,minmax(0,1fr));grid-auto-rows:88px;gap:var(--space-2)}
+.ap-tile{display:flex;align-items:flex-end;padding:var(--space-2);border-radius:var(--radius-lg);background:var(--surface-subtle);font-size:var(--text-xs);color:var(--text-body)}
+.ap-tile--cover{position:relative;grid-row:span 2;padding:var(--space-3);background:linear-gradient(135deg,var(--brand-navy-deep),var(--primary));color:#fff;font-size:var(--text-sm);font-weight:var(--weight-medium)}
+.ap-tile--cover>small{position:absolute;top:8px;left:8px;padding:2px 6px;border-radius:var(--radius-md);background:rgba(255,255,255,.2);font-size:var(--text-xs)}
+.ap-tile--info{background:var(--fill-info-soft)}.ap-tile--violet{background:var(--fill-secondary-soft)}.ap-tile--green{background:var(--fill-success-soft)}
+.ap-drop{grid-column:span 2;display:flex;align-items:center;justify-content:center;gap:var(--space-2);border:1px dashed var(--border-strong);border-radius:var(--radius-lg);background:none;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer}
+.ap-drop:hover{background:var(--surface-subtle)}
+/* profit, margin and saving under the prices */
+.ap-figs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
+.ap-fig{display:flex;flex-direction:column;gap:2px;min-width:0;padding:var(--space-2) var(--space-3);border-left:1px solid var(--border-subtle)}
+.ap-fig:first-child{border-left:0}
+.ap-fig>span{font-size:var(--text-xs);color:var(--text-muted)}
+.ap-fig>b{font-family:var(--font-data);font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ap-suffix{position:relative;display:block}
+.ap-suffix>.gc-input{padding-right:64px}
+.ap-suffix>span{position:absolute;top:0;right:12px;bottom:0;display:flex;align-items:center;font-size:var(--text-sm);color:var(--text-muted);pointer-events:none}
+/* a setting with a switch, a yes / no question */
+.ap-switch,.ap-q{display:flex;align-items:center;gap:var(--space-3)}
+.ap-switch>span,.ap-q>span{flex:1;min-width:0;display:flex;align-items:center;gap:6px;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.ap-panel{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-3);border-radius:var(--radius-lg);background:var(--surface-subtle)}
+.ap-panel .gc-input:not(select){background:var(--surface-card)}
+.ap-readonly{display:flex;align-items:center;background:var(--surface-subtle);color:var(--text-body)}
+.ap-sep{height:1px;margin:0;border:0;background:var(--border-subtle)}
+.ap-sncount{flex:none;text-align:right}
+.ap-sncount>b{display:block;font-family:var(--font-data);font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.ap-sncount>span{font-size:var(--text-xs);color:var(--text-muted)}
+/* tables inside the form (variants, size guide) */
+.ap-tbl .gc-input{height:28px;padding:0 8px;text-align:right}
+.ap-tbl .ap-err{max-width:160px;margin-top:4px;white-space:normal}
+.ap-tbl td{vertical-align:top}
+.ap-swatch{display:inline-block;width:12px;height:12px;flex:none;border:1px solid var(--border-strong);border-radius:var(--radius-full)}
+.ap-vname{display:flex;align-items:center;gap:var(--space-2)}
+.ap-opt{display:flex;align-items:center;gap:var(--space-2);padding:6px 10px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
+.ap-opt>b{width:80px;flex:none;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--text-heading)}
+.ap-opt>span{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:var(--radius-full);background:var(--surface-subtle);font-size:var(--text-xs)}
+/* search engine preview */
+.ap-serp{display:flex;flex-direction:column;gap:2px;padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
+.ap-serp>small{font-size:var(--text-xs);color:var(--text-success);overflow-wrap:anywhere}
+.ap-serp>b{font-size:var(--text-sm-plus);font-weight:var(--weight-medium);color:var(--text-link)}
+.ap-serp>span{font-size:var(--text-xs-plus);color:var(--text-body)}
+.ap-faq{display:flex;flex-direction:column;gap:2px;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
+.ap-faq>b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.ap-faq>span{font-size:var(--text-xs-plus);color:var(--text-body)}
+/* side column: category picker, tags, stock here, ready to sell */
+.ap-pick{display:flex;align-items:center;gap:var(--space-2);height:auto;min-height:var(--control-height);padding:6px 10px;text-align:left;cursor:pointer}
+.ap-pick>span{flex:1;min-width:0;font-size:var(--text-sm);color:var(--text-heading)}
+.ap-pick>svg{flex:none;color:var(--text-muted)}
+.ap-cats{display:flex;flex-direction:column;gap:2px;max-height:300px;overflow-y:auto;padding:6px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);box-shadow:var(--shadow-lg)}
+.ap-cats>.gc-input{height:32px;margin-bottom:4px}
+.ap-cats>button{display:flex;align-items:center;gap:var(--space-2);min-height:32px;padding-right:10px;border:0;border-radius:var(--radius-md);font:inherit;font-size:var(--text-xs-plus);text-align:left;cursor:pointer}
+.ap-cats>button>span{margin-left:auto;font-size:var(--text-xs);color:var(--text-muted)}
+.ap-cats>a{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;font-size:var(--text-xs-plus);font-weight:var(--weight-medium)}
+.ap-tags{display:flex;flex-wrap:wrap;gap:6px}
+.ap-tag{display:inline-flex;align-items:center;gap:2px;height:24px;padding:0 2px 0 8px;border-radius:var(--radius-full);font-size:var(--text-xs-plus)}
+.ap-tag>button{display:grid;place-items:center;width:20px;height:20px;border:0;border-radius:var(--radius-full);background:none;color:inherit;cursor:pointer}
+.ap-tag>button:hover{background:var(--surface-quiet)}
+.ap-ready{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.ap-ready li{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}
+.ap-ready i{display:grid;flex:none;place-items:center;width:16px;height:16px;border-radius:var(--radius-full);color:#fff}
+/* the save bar: shown while there is something to save or fix */
+.savebar{position:sticky;bottom:0;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border-radius:var(--radius-xl);background:var(--surface-card);box-shadow:var(--shadow-lg)}
+.savebar__note{display:flex;flex:1 1 160px;align-items:center;gap:var(--space-2);min-width:0;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-body)}
+.savebar__note.is-bad{color:var(--text-danger)}
+.savebar__dot{width:8px;height:8px;flex:none;border-radius:var(--radius-full);background:var(--fill-warning)}
+@media (prefers-reduced-motion:no-preference){.ap-fade{animation:apFade 200ms ease-out}@keyframes apFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}}
 @media (max-width:640px){
-  .gc-shell__content [style*="display"]:has(> button[role="switch"]){flex-wrap:nowrap!important}
-  .gc-shell__content [style*="display"]:has(> button[role="switch"])>div{flex:1 1 0!important;min-width:0}
-  .apt-seg{display:grid!important;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);width:100%;border-radius:var(--radius-xl)!important}
-  .apt-seg>button{height:auto!important;min-height:36px;padding:6px 10px!important;border-radius:var(--radius-lg)!important;white-space:normal;line-height:16px}
-  .savebar{flex-wrap:wrap;gap:8px!important;padding:10px 12px!important}
-  .savebar__note:empty{display:none}
-  .savebar__note{flex:1 1 100%!important;font-size:var(--text-xs)!important}
-  .savebar>.btn{flex:1 1 auto;padding:0 12px}
-  .savebar>.savebar__note+.btn{flex:0 0 auto;background:none;border-color:transparent;padding:0 8px}
-  .savebar>.btn svg{display:none}
-  body:has(.savebar) .gc-ai{bottom:84px}
-  .apt-stepnav{padding:12px!important;gap:8px!important}
-  .apt-stepnav>span{order:-1;flex:1 1 100%!important}
-  .apt-stepnav>.btn{flex:1 1 0;min-width:0;padding:0 12px}
+  .ap-grid2{grid-template-columns:minmax(0,1fr)}
+  .ap-media{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:72px}
+  .ap-tile--cover{grid-column:span 2}
+  .ap-figs{grid-template-columns:minmax(0,1fr)}
+  .ap-fig{flex-direction:row;justify-content:space-between;border-left:0;border-top:1px solid var(--border-subtle)}
+  .ap-fig:first-child{border-top:0}
+  .ap-q{flex-wrap:wrap}
+  .ap-q>span{flex:1 1 100%}
+  .ap-q>.gc-seg{width:100%}
+  .ap-q>.gc-seg>.gc-seg__btn{flex:1 1 0}
+  .savebar{padding:var(--space-2)}
+  .savebar__note{flex:1 1 100%;font-size:var(--text-xs)}
+  .savebar>.ix-btn{flex:1 1 auto}
+}
+/* the step strip, the panels and Back / Next */
+.apt-strip{display:flex;align-items:center;gap:4px;padding:6px}
+.apt-steps{position:relative;display:flex;flex:1;gap:2px;min-width:0;overflow-x:auto;scrollbar-width:none} /* keeps the steps' screen-reader text inside the strip */
+.apt-steps::-webkit-scrollbar{display:none}
+.apt-step{flex:none}
+.apt-n{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:var(--radius-full);background:var(--surface-quiet);color:var(--text-body);font-size:var(--text-xs);font-weight:var(--weight-medium)}
+.apt-step.is-done .apt-n{background:var(--success);color:#fff}
+.apt-step.is-bad .apt-n{background:var(--fill-danger);color:#fff}
+.apt-step[aria-selected="true"] .apt-n{background:var(--primary);color:#fff}
+.apt-step:focus-visible{outline-offset:-3px}
+.apt-panel{display:flex;flex-direction:column;gap:var(--space-4)}
+.apt-panel[hidden]{display:none}
+.apt-nav{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3)}
+.apt-nav>span{flex:1;text-align:center;font-size:var(--text-xs-plus);color:var(--text-muted)}
+.apt-life{display:block;width:96px;height:6px;border-radius:var(--radius-full);background:var(--surface-quiet);overflow:hidden}
+.apt-life>span{display:block;height:100%;border-radius:var(--radius-full)}
+.apt-life+small{display:block;margin-top:3px;font-size:var(--text-xs);font-weight:var(--weight-medium)}
+@media (max-width:640px){
+  .apt-nav{flex-wrap:wrap}
+  .apt-nav>span{order:-1;flex:1 1 100%}
+  .apt-nav>.ix-btn{flex:1 1 0;min-width:0}
 }
 `;
 
 // ---- markup ----
+
+// The tab version of Shopify's product page: the same header (back, title, Save) and the same right column; the
+// left column shows one section at a time behind a strip of numbered steps, with Back / Next under it. Every
+// panel stays in the page (hidden when not chosen), so unsaved-changes tracking sees every field.
+const BATCH_TONE = { Expired: 'error', 'Stopped · 3 days rule': 'error', 'Expiring soon': 'warning', Fresh: 'success' };
+
+function AiCheck({ onKeep, onUndo }) {
+  return (
+    <div className="ap-aicheck ap-fade">
+      <span className="ap-aitag"><__Icon name="sparkles" width="12" height="12" aria-hidden="true" />AI wrote this — please check</span>
+      <button type="button" className="ix-btn ix-btn--sm" onClick={onKeep}>Looks good</button>
+      <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={onUndo}>Undo</button>
+    </div>
+  );
+}
+function AiBtn({ onClick, children }) {
+  return <button type="button" className="ix-btn ix-btn--sm ix-btn--plain ap-ai" onClick={onClick}><__Icon name="sparkles" width="16" height="16" aria-hidden="true" />{children}</button>;
+}
+function Switch({ sw, label }) {
+  return <button type="button" role="switch" aria-checked={!!(sw && sw.on)} aria-label={label} className="gc-switch" onClick={sw && sw.toggle}><span className="gc-switch__knob" /></button>;
+}
+function Seg({ opts, labelledBy }) {
+  return (
+    <div className="gc-seg" role="group" aria-labelledby={labelledBy}>
+      {__list(opts).map((o, i) => <button key={i} type="button" className={'gc-seg__btn' + (o.on ? ' gc-seg__btn--active' : '')} aria-pressed={!!o.on} onClick={o.pick}>{o.l}</button>)}
+    </div>
+  );
+}
+function Err({ id, text }) {
+  return text ? <span id={id} className="ap-err" role="alert"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" />{text}</span> : null;
+}
+function Panel({ id, on, children }) {
+  return <div role="tabpanel" id={'ppanel-' + id} aria-labelledby={'ptab-' + id} hidden={!on} className={'apt-panel' + (on ? ' ap-fade' : '')}>{children}</div>;
+}
 
 export default class AddProductTabsScreen extends Component {
   render() {
@@ -340,990 +409,545 @@ export default class AddProductTabsScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="AddProductTabs">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
+        <div className="gc-shell">
           <__Sidebar sticky="" active="products-add" />
-          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
+          <main className="gc-shell__main">
             <__Topbar crumb="Products / All products" page="Add product · tab view" placeholder="Search products, SKU or barcode" />
-            <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <__PageHeader title="Add product · tab view" />
-              <form id="product-form" noValidate aria-label="Add product" onSubmit={v.submit} onInput={v.formInput} onChange={v.formInput} onKeyDown={v.formKey} style={{ display: "flex", gap: "20px", alignItems: "flex-start" }}>
-                <div style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "18px" }}>
-                  <div className="pcard" style={{ display: "flex", alignItems: "center", gap: "4px", padding: "6px" }}>
-                    {v.stripL ? (
-                      <button type="button" className="ib" tabIndex={-1} aria-label="Scroll the steps left" onClick={v.stripBy(-1)}><__Icon name="chevron-left" width="16" height="16" aria-hidden="true" /></button>
-                    ) : null}
-                    <div id="product-steps" className="steps" role="tablist" aria-label="Product sections" onKeyDown={v.tabKey} onScroll={v.stripScroll}>
-                      {__list(v.tabs).map((tb, $index) => (<React.Fragment key={$index}>
-                          <button type="button" role="tab" id={tb?.id} className="step" aria-selected={tb?.on} aria-controls={tb?.panel} tabIndex={tb?.tabIndex} onClick={tb?.pick} style={__sx(`background: ${tb?.bg ?? ""}; color: ${tb?.fg ?? ""};`)}><span style={__sx(`width: 20px; height: 20px; border-radius: var(--radius-full); background: ${tb?.dbg ?? ""}; color: ${tb?.dfg ?? ""}; font-size: var(--text-xs); font-weight: var(--weight-medium); display: inline-flex; align-items: center; justify-content: center;`)}>{tb?.dn ? (<__Icon name="check" width="12" height="12" strokeWidth="3" aria-hidden="true" />) : tb?.n}</span>{tb?.l}{tb?.dn ? (<span className="sr-only">, completed</span>) : null}{tb?.bad ? (<span className="sr-only">, has an error</span>) : null}</button>
-                        </React.Fragment>))}
+            <div className="gc-shell__content">
+              <div className="ix-page">
+                <RecordHeader back="/all-products" title="Add product · tab view"
+                  about="Connected to Purchase, Stock and POS — you never enter stock twice."
+                  secondary={[{ label: 'Save as draft', onClick: v.saveDraft }]}
+                  primary={{ label: 'Save product', onClick: v.submit }} />
+
+                <form id="product-form" className="ix-record ap-form" noValidate aria-label="Add product" onSubmit={v.submit} onInput={v.formInput} onChange={v.formInput} onKeyDown={v.formKey}>
+                  <div className="ix-main">
+                    {/* the steps: scroll sideways, arrows only when there is more */}
+                    <div className="ix-card apt-strip">
+                      {v.stripL ? <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" tabIndex={-1} aria-label="Scroll the steps left" onClick={v.stripBy(-1)}><__Icon name="chevron-left" width="16" height="16" aria-hidden="true" /></button> : null}
+                      <div id="product-steps" className="apt-steps" role="tablist" aria-label="Product sections" onKeyDown={v.tabKey} onScroll={v.stripScroll}>
+                        {__list(v.tabs).map((tb, i) => (
+                          <button key={i} type="button" role="tab" id={tb.id} className={'ix-tab apt-step' + (tb.dn ? ' is-done' : '') + (tb.bad ? ' is-bad' : '')} aria-selected={!!tb.on} aria-controls={tb.panel} tabIndex={tb.tabIndex} onClick={tb.pick}>
+                            <span className="apt-n">{tb.dn ? <__Icon name="check" width="12" height="12" strokeWidth="3" aria-hidden="true" /> : tb.n}</span>{tb.l}
+                            {tb.dn ? <span className="sr-only">, completed</span> : null}{tb.bad ? <span className="sr-only">, has an error</span> : null}
+                          </button>
+                        ))}
+                      </div>
+                      {v.stripR ? <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" tabIndex={-1} aria-label="Scroll the steps right" onClick={v.stripBy(1)}><__Icon name="chevron-right" width="16" height="16" aria-hidden="true" /></button> : null}
                     </div>
-                    {v.stripR ? (
-                      <button type="button" className="ib" tabIndex={-1} aria-label="Scroll the steps right" onClick={v.stripBy(1)}><__Icon name="chevron-right" width="16" height="16" aria-hidden="true" /></button>
-                    ) : null}
-                  </div>
-                    <div role="tabpanel" id="ppanel-basics" aria-labelledby="ptab-basics" hidden={!v.is_basics} className={v.is_basics ? "fade" : undefined} style={{ display: v.is_basics ? "flex" : "none", flexDirection: "column", gap: "18px" }}>
-                      <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <div style={{ flexGrow: "1" }}>
-                            <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Title and description</h2>
-                            <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)", marginTop: "2px" }}>Fields marked <span className="req" aria-hidden="true">*</span><span className="sr-only">with a star</span> are required.</div>
-                          </div>
-                        </div>
-                        <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                          <span className="lbl">Title <span className="req" aria-hidden="true">*</span></span>
-                          <input className="inp" value={v.title} onInput={v.typeTitle} onChange={v.typeTitle} aria-label="Title" id="pf-title" aria-required="true" aria-invalid={v.err?.title ? "true" : undefined} aria-describedby={v.err?.title ? "pf-title-err" : undefined} style={{ height: "46px", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)" }} />
-                          {v.err?.title ? (<span id="pf-title-err" className="ferr" role="alert"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" />{v.err.title}</span>) : null}
-                        </label>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                          <div style={{ display: "flex", alignItems: "center" }}>
-                            <span className="lbl" style={{ flexGrow: "1" }}>Short description</span>
-                            <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", marginRight: "10px" }}>{v.shortCount}</span>
-                            <button type="button" className="ai" onClick={v.aiShort}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-</svg>Write with AI</button>
-                          </div>
-                          <textarea className="inp" rows="2" value={v.short} onInput={v.typeShort} onChange={v.typeShort} aria-label="Short description" style={__sx(`height: auto; padding: 12px 14px; line-height: 22px; resize: vertical; border-color: ${v.shortBorder ?? ""};`)} />
-                          {v.ai?.short ? (<>
-                            <div className="fade" style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "#6d28d9" }}>
-                              <span style={{ height: "22px", padding: "0 8px", borderRadius: "var(--radius-full)", background: "#f3e8ff", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center", gap: "5px" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-</svg>AI wrote this — please check</span>
-                              <button type="button" className="abtn" style={{ height: "28px" }} onClick={v.keep_short}>Looks good</button>
-                              <button type="button" className="abtn" style={{ height: "28px" }} onClick={v.undo_short}>Undo</button>
-                            </div>
-                          </>) : null}
-                          <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Shown next to the price and in search results. One or two lines.</span>
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                            <span className="lbl" style={{ flexGrow: "1" }}>Long description</span>
-                            <button type="button" className="ai" onClick={v.aiLong}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-</svg>Write with AI</button>
-                            <button type="button" className="ai" onClick={v.aiImprove}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-</svg>Improve</button>
-                            <button type="button" className="ai" onClick={v.aiBangla}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-</svg>Add Bangla</button>
-                          </div>
-                          <div style={{ display: "flex", gap: "2px", padding: "6px", border: "1px solid #cbd5e1", borderBottom: "0", borderRadius: "var(--radius-lg) var(--radius-lg) 0 0", background: "#f8fafc" }}>
-                            <button type="button" className="ib" aria-label="Bold" style={{ width: "32px", height: "32px", borderRadius: "var(--radius-md)" }}><__Icon name="bold" width="15" height="15" aria-hidden="true" /></button>
-                            <button type="button" className="ib" aria-label="Italic" style={{ width: "32px", height: "32px", borderRadius: "var(--radius-md)" }}><__Icon name="italic" width="15" height="15" aria-hidden="true" /></button>
-                            <button type="button" className="ib" aria-label="List" style={{ width: "32px", height: "32px", borderRadius: "var(--radius-md)" }}>
-                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <rect width="8" height="4" x="8" y="2" rx="1" />
-                                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-                                <path d="M12 11h4" />
-                                <path d="M12 16h4" />
-                                <path d="M8 11h.01" />
-                                <path d="M8 16h.01" />
-                              </svg>
-                            </button>
-                            <button type="button" className="ib" aria-label="Link" style={{ width: "32px", height: "32px", borderRadius: "var(--radius-md)" }}>
-                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                              </svg>
-                            </button>
-                            <button type="button" className="ib" aria-label="Picture" style={{ width: "32px", height: "32px", borderRadius: "var(--radius-md)" }}>
-                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <rect width="18" height="18" x="3" y="3" rx="2" />
-                                <circle cx="9" cy="9" r="2" />
-                                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-                              </svg>
-                            </button>
-                          </div>
-                          <textarea className="inp bn" rows="8" value={v.long} onInput={v.typeLong} onChange={v.typeLong} aria-label="Long description" style={__sx(`height: auto; padding: 12px 14px; line-height: 23px; border-radius: 0 0 var(--radius-lg) var(--radius-lg); resize: vertical; border-color: ${v.longBorder ?? ""};`)} />
-                          {v.ai?.long ? (<>
-                            <div className="fade" style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "#6d28d9" }}>
-                              <span style={{ height: "22px", padding: "0 8px", borderRadius: "var(--radius-full)", background: "#f3e8ff", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center", gap: "5px" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-</svg>AI wrote this — please check</span>
-                              <button type="button" className="abtn" style={{ height: "28px" }} onClick={v.keep_long}>Looks good</button>
-                              <button type="button" className="abtn" style={{ height: "28px" }} onClick={v.undo_long}>Undo</button>
-                            </div>
-                          </>) : null}
-                        </div>
-                      </section>
-                      <section className="pcard" style={{ padding: "18px 22px", display: "flex", flexDirection: "column", gap: "12px", borderColor: "#d9d2fb", background: "linear-gradient(135deg, #fbfaff, #f4f8ff)" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                          <span style={{ width: "38px", height: "38px", borderRadius: "var(--radius-lg)", background: "linear-gradient(135deg, #7c3aed, #0a5bd0)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-                            </svg>
-                          </span>
-                          <div style={{ flexGrow: "1" }}>
-                            <h2 style={{ margin: "0", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>AI writing assistant</h2>
-                            <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Tell it a few facts. Pick the fields you want filled. You check every word before saving.</div>
-                          </div>
-                          <button type="button" className="abtn" onClick={v.toggleAssist} aria-expanded={v.assistOpen} aria-controls={v.assistOpen ? "ai-assist-panel" : undefined} aria-label={`${v.assistBtn ?? ""} the AI writing assistant`}><__Icon name={v.assistOpen ? "chevron-up" : "chevron-down"} width="14" height="14" aria-hidden="true" />{v.assistBtn}</button>
-                        </div>
-                        {v.assistOpen ? (<>
-                          <div id="ai-assist-panel" data-nodirty="" className="fade" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                            <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                              <span className="lbl">Key facts about the product</span>
-                              <input className="inp" value={v.facts} onInput={v.typeFacts} onChange={v.typeFacts} aria-label="Key facts" />
-                              <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>For example: 6.7 inch AMOLED, 5000 mAh, 1 year official warranty, PTA approved.</span>
-                            </label>
-                            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-                              <span className="lbl">Fill these:</span>
-                              {__list(v.aiFields).map((c, $index) => (<React.Fragment key={$index}>
-                                  <button type="button" className={c?.cls} aria-pressed={c?.on} onClick={c?.pick} style={{ height: "36px" }}>{c?.on ? (<>
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M20 6 9 17l-5-5" />
-  </svg>
-</>) : null}{c?.label}</button>
-                                </React.Fragment>))}
-                            </div>
-                            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                              <select className="inp" aria-label="Language" style={{ width: "180px" }}>
-                                <option>English</option>
-                                <option>বাংলা</option>
-                                <option>English + বাংলা</option>
-                              </select>
-                              <select className="inp" aria-label="Tone" style={{ width: "180px" }}>
-                                <option>Premium</option>
-                                <option>Friendly</option>
-                                <option>Simple and short</option>
-                              </select>
-                              <span style={{ flexGrow: "1" }} />
-                              <button type="button" className="btn solid" onClick={v.runAssist} style={{ background: "#6d28d9" }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-                                </svg>
-                                <span>Write {v.aiCount} fields</span>
-                              </button>
-                            </div>
-                          </div>
-                        </>) : null}
-                      </section>
-                      <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <div style={{ flexGrow: "1" }}>
-                            <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Media</h2>
-                            <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", marginTop: "2px" }}>Drag to reorder. The first photo is the cover.</div>
-                          </div>
-                          <button type="button" className="ai" onClick={v.aiAlt}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-</svg>Alt text with AI</button>
-                        </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gridTemplateRows: "110px 110px", gap: "10px" }}>
-                          <div style={{ gridRow: "span 2", borderRadius: "var(--radius-xl)", background: "linear-gradient(135deg, #0b1733, #0a5bd0)", color: "#fff", display: "flex", alignItems: "flex-end", padding: "14px", fontWeight: "var(--weight-medium)", position: "relative" }}>Front · main photo<span style={{ position: "absolute", top: "10px", left: "10px", height: "22px", padding: "0 8px", borderRadius: "var(--radius-md)", background: "rgba(255,255,255,.2)", fontSize: "var(--text-xs)", display: "inline-flex", alignItems: "center" }}>COVER</span></div>
-                          <div style={{ borderRadius: "var(--radius-xl)", background: "#e0f2fe", display: "flex", alignItems: "flex-end", padding: "8px", fontSize: "var(--text-xs)", color: "#334155" }}>Back</div>
-                          <div style={{ borderRadius: "var(--radius-xl)", background: "#eef2f6", display: "flex", alignItems: "flex-end", padding: "8px", fontSize: "var(--text-xs)", color: "#334155" }}>Side</div>
-                          <div style={{ borderRadius: "var(--radius-xl)", background: "#f3e8ff", display: "flex", alignItems: "flex-end", padding: "8px", fontSize: "var(--text-xs)", color: "#334155" }}>Box</div>
-                          <div style={{ borderRadius: "var(--radius-xl)", background: "#e7f8f1", display: "flex", alignItems: "flex-end", padding: "8px", fontSize: "var(--text-xs)", color: "#334155" }}>In hand</div>
-                          <button type="button" style={{ gridColumn: "span 2", borderRadius: "var(--radius-lg)", border: "2px dashed #94a3b8", background: "#f8fafc", font: "inherit", color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                              <path d="M17 8 12 3 7 8" />
-                              <path d="M12 3v12" />
-                            </svg>
-                            <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>Add photos or a video</span>
+
+                    <Panel id="basics" on={v.is_basics}>
+                      <section className="ix-card" aria-labelledby="apt-h-desc">
+                        <div className="ix-card__head">
+                          <h2 id="apt-h-desc">Title and description</h2>
+                          <button type="button" className="ix-btn ix-btn--sm ix-btn--plain ap-ai" onClick={v.toggleAssist} aria-expanded={v.assistOpen} aria-controls={v.assistOpen ? "ai-assist-panel" : undefined} aria-label={`${v.assistBtn ?? ""} the AI writing assistant`}>
+                            <__Icon name="sparkles" width="16" height="16" aria-hidden="true" />AI writing assistant<__Icon name={v.assistOpen ? "chevron-up" : "chevron-down"} width="14" height="14" aria-hidden="true" />
                           </button>
                         </div>
-                      </section>
-                    </div>
-                    <div role="tabpanel" id="ppanel-pricing" aria-labelledby="ptab-pricing" hidden={!v.is_pricing} className={v.is_pricing ? "fade" : undefined} style={{ display: v.is_pricing ? "flex" : "none", flexDirection: "column", gap: "18px" }}>
-                      <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <div style={{ flexGrow: "1" }}>
-                            <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Pricing</h2>
+                        <div className="ix-card__body ap-body">
+                          {v.assistOpen ? (
+                            <div id="ai-assist-panel" data-nodirty="" className="ap-assist ap-fade">
+                              <p className="ap-help">Tell it a few facts. Pick the fields you want filled. You check every word before saving.</p>
+                              <div className="ap-field">
+                                <div className="ap-lbl"><label className="gc-label" htmlFor="apt-facts">Key facts about the product</label><__InfoTip text="For example: 6.7 inch AMOLED, 5000 mAh, 1 year official warranty, PTA approved." /></div>
+                                <input id="apt-facts" className="gc-input" value={v.facts} onInput={v.typeFacts} onChange={v.typeFacts} aria-label="Key facts" />
+                              </div>
+                              <div className="ix-chips" style={{ alignItems: "center" }}>
+                                <span className="ap-sub">Fill these:</span>
+                                {__list(v.aiFields).map((c, i) => <button key={i} type="button" className="ix-chip" aria-pressed={!!c.on} onClick={c.pick}>{c.on ? <__Icon name="check" width="14" height="14" aria-hidden="true" /> : null}{c.label}</button>)}
+                              </div>
+                              <div className="ap-row">
+                                <select className="gc-input gc-select" aria-label="Language"><option>English</option><option>বাংলা</option><option>English + বাংলা</option></select>
+                                <select className="gc-input gc-select" aria-label="Tone"><option>Premium</option><option>Friendly</option><option>Simple and short</option></select>
+                                <span className="ap-grow" />
+                                <button type="button" className="ix-btn ix-btn--primary" onClick={v.runAssist}><__Icon name="sparkles" width="16" height="16" aria-hidden="true" /><span>Write {v.aiCount} fields</span></button>
+                              </div>
+                            </div>
+                          ) : null}
+                          <div className="ap-field">
+                            <label className="gc-label" htmlFor="pf-title">Title <span className="ap-req" aria-hidden="true">*</span></label>
+                            <input className="gc-input" value={v.title} onInput={v.typeTitle} onChange={v.typeTitle} aria-label="Title" id="pf-title" aria-required="true" aria-invalid={v.err?.title ? "true" : undefined} aria-describedby={v.err?.title ? "pf-title-err" : undefined} />
+                            <Err id="pf-title-err" text={v.err?.title} />
                           </div>
-                        </div>
-                        <div className="gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "14px" }}>
-                          <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                            <span className="lbl">Selling price <span className="req" aria-hidden="true">*</span></span>
-                            <input className="inp num" inputMode="decimal" value={v.price} onInput={v.typePrice} onChange={v.typePrice} aria-label="Selling price" id="pf-price" aria-required="true" aria-invalid={v.err?.price ? "true" : undefined} aria-describedby={v.err?.price ? "pf-price-err" : undefined} />
-                            {v.err?.price ? (<span id="pf-price-err" className="ferr" role="alert"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" />{v.err.price}</span>) : null}
-                          </label>
-                          <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                            <span className="lbl">MRP (compare-at price)</span>
-                            <input className="inp num" defaultValue="৳420" aria-label="MRP" />
-                            <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Shown crossed out</span>
-                          </label>
-                          <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                            <span className="lbl">Buying price (cost)</span>
-                            <input className="inp num" inputMode="decimal" value={v.cost} onInput={v.typeCost} onChange={v.typeCost} aria-label="Buying price" id="pf-cost" aria-invalid={v.err?.cost ? "true" : undefined} aria-describedby={v.err?.cost ? "pf-cost-err" : undefined} />
-                            {v.err?.cost ? (<span id="pf-cost-err" className="ferr" role="alert"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" />{v.err.cost}</span>) : null}
-                            <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Customers never see this</span>
-                          </label>
-                        </div>
-                        <div style={{ display: "flex", gap: "12px" }}>
-                          <div style={{ flex: "1 1 0", padding: "12px 14px", borderRadius: "var(--radius-xl)", background: "#f8fafc" }}>
-                            <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Profit per piece</div>
-                            <div className="num" style={__sx(`font-size: var(--text-lg); font-weight: var(--weight-semibold); color: ${v.profitColor ?? ""};`)}>{v.profit}</div>
+                          <div className="ap-field">
+                            <div className="ap-lbl">
+                              <label className="gc-label" htmlFor="apt-short">Short description</label>
+                              <__InfoTip text="Shown next to the price and in search results. One or two lines." />
+                              <span className="ap-count ap-push">{v.shortCount}</span>
+                              <AiBtn onClick={v.aiShort}>Write with AI</AiBtn>
+                            </div>
+                            <textarea id="apt-short" className={'gc-input' + (v.ai?.short ? ' ap-ai-on' : '')} rows="2" value={v.short} onInput={v.typeShort} onChange={v.typeShort} aria-label="Short description" />
+                            {v.ai?.short ? <AiCheck onKeep={v.keep_short} onUndo={v.undo_short} /> : null}
                           </div>
-                          <div style={{ flex: "1 1 0", padding: "12px 14px", borderRadius: "var(--radius-xl)", background: "#f8fafc" }}>
-                            <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Margin</div>
-                            <div className="num" style={__sx(`font-size: var(--text-lg); font-weight: var(--weight-semibold); color: ${v.profitColor ?? ""};`)}>{v.margin}</div>
+                          <div className="ap-field">
+                            <div className="ap-lbl">
+                              <label className="gc-label" htmlFor="apt-long">Long description</label>
+                              <span className="ap-push" />
+                              <AiBtn onClick={v.aiLong}>Write with AI</AiBtn>
+                              <AiBtn onClick={v.aiImprove}>Improve</AiBtn>
+                              <AiBtn onClick={v.aiBangla}>Add Bangla</AiBtn>
+                            </div>
+                            <div className="ap-rte">
+                              <div className="ap-rte__bar">
+                                <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Bold"><__Icon name="bold" width="16" height="16" aria-hidden="true" /></button>
+                                <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Italic"><__Icon name="italic" width="16" height="16" aria-hidden="true" /></button>
+                                <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="List"><__Icon name="list" width="16" height="16" aria-hidden="true" /></button>
+                                <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Link"><__Icon name="link" width="16" height="16" aria-hidden="true" /></button>
+                                <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Picture"><__Icon name="image" width="16" height="16" aria-hidden="true" /></button>
+                              </div>
+                              <textarea id="apt-long" className={'gc-input' + (v.ai?.long ? ' ap-ai-on' : '')} rows="7" value={v.long} onInput={v.typeLong} onChange={v.typeLong} aria-label="Long description" style={{ fontFamily: "var(--font-sans), var(--font-bn)" }} />
+                            </div>
+                            {v.ai?.long ? <AiCheck onKeep={v.keep_long} onUndo={v.undo_long} /> : null}
                           </div>
-                          <div style={{ flex: "1 1 0", padding: "12px 14px", borderRadius: "var(--radius-xl)", background: "#f8fafc" }}>
-                            <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Customer saves</div>
-                            <div className="num" style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>{v.saves}</div>
-                          </div>
-                        </div>
-                        <div className="gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "14px" }}>
-                          <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                            <span className="lbl">VAT / tax</span>
-                            <select className="inp" aria-label="Tax rate">
-                              <option>Standard VAT 15%</option>
-                              <option>Reduced 7.5%</option>
-                              <option>No VAT</option>
-                            </select>
-                          </label>
-                          <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                            <span className="lbl">Wholesale price</span>
-                            <input className="inp num" defaultValue="৳300" aria-label="Wholesale price" />
-                          </label>
-                          <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                            <span className="lbl">Wholesale from</span>
-                            <input className="inp num" defaultValue="12 jars" aria-label="Wholesale minimum" />
-                          </label>
                         </div>
                       </section>
-                    </div>
-                    <div role="tabpanel" id="ppanel-stock" aria-labelledby="ptab-stock" hidden={!v.is_stock} className={v.is_stock ? "fade" : undefined} style={{ display: v.is_stock ? "flex" : "none", flexDirection: "column", gap: "18px" }}>
-                      <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <div style={{ flexGrow: "1" }}>
-                            <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Inventory</h2>
-                            <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", marginTop: "2px" }}>Connected to Purchase, Stock and POS. Batches and expiry dates are in the next tab.</div>
+                      <section className="ix-card" aria-labelledby="apt-h-media">
+                        <div className="ix-card__head">
+                          <h2 id="apt-h-media">Media <__InfoTip text="Drag to reorder. The first photo is the cover." /></h2>
+                          <AiBtn onClick={v.aiAlt}>Alt text with AI</AiBtn>
+                        </div>
+                        <div className="ix-card__body">
+                          <div className="ap-media">
+                            <div className="ap-tile ap-tile--cover"><small>COVER</small>Front · main photo</div>
+                            <div className="ap-tile ap-tile--info">Back</div>
+                            <div className="ap-tile">Side</div>
+                            <div className="ap-tile ap-tile--violet">Box</div>
+                            <div className="ap-tile ap-tile--green">In hand</div>
+                            <button type="button" className="ap-drop"><__Icon name="upload" width="16" height="16" aria-hidden="true" />Add photos or a video</button>
                           </div>
-                        </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", gap: "14px" }}>
-                          <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                            <span className="lbl">SKU</span>
-                            <input className="inp mono" defaultValue="FD-PKL-400" aria-label="SKU" />
-                          </label>
-                          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                            <span className="lbl">Barcode (EAN-13)</span>
-                            <div style={{ display: "flex", gap: "8px" }}>
-                              <input className="inp mono" value={v.barcode} onInput={v.typeBarcode} onChange={v.typeBarcode} aria-label="Barcode" />
-                              <button type="button" className="abtn" style={{ height: "44px" }} onClick={v.genBarcode}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <line x1="4" x2="20" y1="9" y2="9" />
-  <line x1="4" x2="20" y1="15" y2="15" />
-  <line x1="10" x2="8" y1="3" y2="21" />
-  <line x1="16" x2="14" y1="3" y2="21" />
-</svg>Make one</button>
-                              <__Link href="/barcode-labels" className="abtn" style={{ height: "44px", textDecoration: "none" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-  <path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6" />
-  <rect x="6" y="14" width="12" height="8" rx="1" />
-</svg>Label</__Link>
-                            </div>
-                          </div>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                          <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-                              <path d="m3.3 7 8.7 5 8.7-5" />
-                              <path d="M12 22V12" />
-                            </svg>
-                          </span>
-                          <div style={{ flexGrow: "1" }}>
-                            <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Track stock for this product</div>
-                            <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Stock goes up with purchase orders and returns, down with sales and damage</div>
-                          </div>
-                          <button type="button" role="switch" aria-checked={v.track?.on} aria-label="Track stock for this product" className={v.track?.cls} onClick={v.track?.toggle} />
-                        </div>
-                        <div className="gc-table-wrap">
-                          <table style={{ width: "100%%", borderCollapse: "collapse" }}>
-                            <thead>
-                              <tr>
-                                <th className="th">Location</th>
-                                <th className="th" style={{ textAlign: "right" }}>Available</th>
-                                <th className="th" style={{ textAlign: "right" }}>Reserved for orders</th>
-                                <th className="th" style={{ textAlign: "right" }}>Opening stock</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              <tr className="row">
-                                <td className="td">Central Warehouse</td>
-                                <td className="td num" style={{ textAlign: "right", fontWeight: "var(--weight-medium)" }}>86</td>
-                                <td className="td num" style={{ textAlign: "right", color: "var(--text-muted)" }}>3</td>
-                                <td className="td" style={{ textAlign: "right" }}>
-                                  <input className="inp num" defaultValue="0" aria-label="Opening stock Central Warehouse" style={{ width: "90px", height: "36px", textAlign: "right" }} />
-                                </td>
-                              </tr>
-                              <tr className="row">
-                                <td className="td">Dhanmondi branch</td>
-                                <td className="td num" style={{ textAlign: "right", fontWeight: "var(--weight-medium)" }}>40</td>
-                                <td className="td num" style={{ textAlign: "right", color: "var(--text-muted)" }}>1</td>
-                                <td className="td" style={{ textAlign: "right" }}>
-                                  <input className="inp num" defaultValue="0" aria-label="Opening stock Dhanmondi branch" style={{ width: "90px", height: "36px", textAlign: "right" }} />
-                                </td>
-                              </tr>
-                            </tbody>
-                          </table>
-                        </div>
-                        <div style={{ display: "flex", gap: "16px", alignItems: "center", fontSize: "var(--text-xs-plus)", color: "#334155" }}>
-                          <span>Alert me when stock is below</span>
-                          <input className="inp num" defaultValue="5" aria-label="Low stock alert" style={{ width: "80px", height: "36px" }} />
-                          <label style={{ display: "flex", gap: "8px", alignItems: "center" }}><input type="checkbox" style={{ width: "16px", height: "16px" }} />Keep selling when out of stock (pre-order)</label>
-                          <span style={{ flexGrow: "1" }} />
-                          <__Link href="/stock" style={{ fontWeight: "var(--weight-medium)" }}>Stock history</__Link>
                         </div>
                       </section>
-                    </div>
-                    <div role="tabpanel" id="ppanel-validity" aria-labelledby="ptab-validity" hidden={!v.is_validity} className={v.is_validity ? "fade" : undefined} style={{ display: v.is_validity ? "flex" : "none", flexDirection: "column", gap: "18px" }}>
-                      <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <div style={{ flexGrow: "1" }}>
-                            <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Product validity (expiry)</h2>
-                            <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", marginTop: "2px" }}>Tell the system how long the product stays good. It warns you, stops sales in time and moves expired stock to disposal.</div>
-                          </div>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                          <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <circle cx="12" cy="12" r="10" />
-                              <path d="M12 6v6l4 2" />
-                            </svg>
-                          </span>
-                          <div style={{ flexGrow: "1" }}>
-                            <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>This product expires</div>
-                            <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Food, medicine, cosmetics — anything with a best-before or expiry date</div>
-                          </div>
-                          <button type="button" role="switch" aria-checked={v.expires?.on} aria-label="This product expires" className={v.expires?.cls} onClick={v.expires?.toggle} />
-                        </div>
-                        {v.expires?.on ? (<>
-                          <div className="fade" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                              <span className="lbl">How is the expiry date set?</span>
-                              <div className="apt-seg" style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
-                                {__list(v.vModes).map((o, $index) => (<React.Fragment key={$index}>
-                                    <button type="button" onClick={o?.pick} aria-pressed={o?.on} style={__sx(`height: 34px; padding: 0 16px; border: 0; border-radius: var(--radius-full); font: inherit; font-size: var(--text-xs-plus); font-weight: var(--weight-medium); cursor: pointer; background: ${o?.bg ?? ""}; color: ${o?.fg ?? ""};`)}>{o?.l}</button>
-                                  </React.Fragment>))}
-                              </div>
+                    </Panel>
+
+                    <Panel id="pricing" on={v.is_pricing}>
+                      <section className="ix-card" aria-labelledby="apt-h-price">
+                        <div className="ix-card__head"><h2 id="apt-h-price">Pricing</h2></div>
+                        <div className="ix-card__body ap-body">
+                          <div className="ap-grid2">
+                            <div className="ap-field">
+                              <label className="gc-label" htmlFor="pf-price">Selling price <span className="ap-req" aria-hidden="true">*</span></label>
+                              <input className="gc-input ap-num" inputMode="decimal" value={v.price} onInput={v.typePrice} onChange={v.typePrice} aria-label="Selling price" id="pf-price" aria-required="true" aria-invalid={v.err?.price ? "true" : undefined} aria-describedby={v.err?.price ? "pf-price-err" : undefined} />
+                              <Err id="pf-price-err" text={v.err?.price} />
                             </div>
-                            {v.isShelf ? (<>
-                              <div className="fade" style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", padding: "14px 16px", borderRadius: "var(--radius-xl)", background: "#f2f6fc" }}>
-                                <span style={{ fontSize: "var(--text-sm)" }}>Every batch lasts</span>
-                                <input className="inp num" inputMode="numeric" value={v.shelfN} onInput={v.typeShelf} onChange={v.typeShelf} aria-label="Shelf life" id="pf-shelf" aria-required="true" aria-invalid={v.err?.shelf ? "true" : undefined} aria-describedby={v.err?.shelf ? "pf-shelf-err" : undefined} style={{ width: "80px", height: "40px", textAlign: "center", fontWeight: "var(--weight-semibold)" }} />
-                                {v.err?.shelf ? (<span id="pf-shelf-err" className="ferr" style={{ order: "9", flexBasis: "100%" }} role="alert"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" />{v.err.shelf}</span>) : null}
-                                <select className="inp" value={v.shelfU} onChange={v.setShelfU} aria-label="Shelf life unit" style={{ width: "120px", height: "40px" }}>
-                                  <option value="days">days</option>
-                                  <option value="weeks">weeks</option>
-                                  <option value="months">months</option>
-                                  <option value="years">years</option>
-                                </select>
-                                <span style={{ fontSize: "var(--text-sm)" }}>from its</span>
-                                <select className="inp" aria-label="Counted from" style={{ width: "170px", height: "40px" }}>
-                                  <option>making date</option>
-                                  <option>receiving date</option>
-                                  <option>opening date</option>
-                                </select>
-                                <span style={{ fontSize: "var(--text-xs-plus)", color: "#003087", fontWeight: "var(--weight-medium)" }}>{v.shelfEx}</span>
-                              </div>
-                            </>) : null}
-                            {v.isBatch ? (<>
-                              <div className="fade" style={{ padding: "14px 16px", borderRadius: "var(--radius-xl)", background: "#f2f6fc", fontSize: "var(--text-sm)", color: "#334155" }}>Staff type or scan the expiry date printed on the pack each time goods arrive. Good for imported items with different dates.</div>
-                            </>) : null}
-                            <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "14px" }}>
-                              <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                                <span className="lbl">Stop selling</span>
-                                <select className="inp" aria-label="Stop selling">
-                                  <option>3 days before expiry</option>
-                                  <option>On the expiry date</option>
-                                  <option>7 days before expiry</option>
-                                  <option>1 day before expiry</option>
-                                </select>
-                                <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Hidden from the website and blocked at the POS</span>
-                              </label>
-                              <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                                <span className="lbl">Warn me</span>
-                                <select className="inp" aria-label="Warn before">
-                                  <option>14 days before expiry</option>
-                                  <option>7 days before</option>
-                                  <option>30 days before</option>
-                                </select>
-                                <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>{"Shows in Expiry & disposal and on the dashboard"}</span>
-                              </label>
+                            <div className="ap-field">
+                              <div className="ap-lbl"><label className="gc-label" htmlFor="apt-mrp">MRP (compare-at price)</label><__InfoTip text="Shown crossed out" /></div>
+                              <input id="apt-mrp" className="gc-input ap-num" defaultValue="৳420" aria-label="MRP" />
                             </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                              <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-                                  <path d="m3.3 7 8.7 5 8.7-5" />
-                                  <path d="M12 22V12" />
-                                </svg>
-                              </span>
-                              <div style={{ flexGrow: "1" }}>
-                                <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Sell the oldest first</div>
-                                <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Picking and POS always take the batch that expires first</div>
-                              </div>
-                              <button type="button" role="switch" aria-checked={v.fefo?.on} aria-label="Sell the oldest first" className={v.fefo?.cls} onClick={v.fefo?.toggle} />
+                            <div className="ap-field">
+                              <div className="ap-lbl"><label className="gc-label" htmlFor="pf-cost">Buying price (cost)</label><__InfoTip text="Customers never see this" /></div>
+                              <input className="gc-input ap-num" inputMode="decimal" value={v.cost} onInput={v.typeCost} onChange={v.typeCost} aria-label="Buying price" id="pf-cost" aria-invalid={v.err?.cost ? "true" : undefined} aria-describedby={v.err?.cost ? "pf-cost-err" : undefined} />
+                              <Err id="pf-cost-err" text={v.err?.cost} />
                             </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                              <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
-                                  <circle cx="12" cy="12" r="3" />
-                                </svg>
-                              </span>
-                              <div style={{ flexGrow: "1" }}>
-                                <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Show the expiry date to customers</div>
-                                <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>On the product page, invoice and shelf label</div>
-                              </div>
-                              <button type="button" role="switch" aria-checked={v.showExp?.on} aria-label="Show the expiry date to customers" className={v.showExp?.cls} onClick={v.showExp?.toggle} />
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                              <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <path d="M19 5 5 19" />
-                                  <circle cx="6.5" cy="6.5" r="2.5" />
-                                  <circle cx="17.5" cy="17.5" r="2.5" />
-                                </svg>
-                              </span>
-                              <div style={{ flexGrow: "1" }}>
-                                <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Auto discount near expiry</div>
-                                <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Clears stock before it goes bad</div>
-                              </div>
-                              <button type="button" role="switch" aria-checked={v.nearDisc?.on} aria-label="Auto discount near expiry" className={v.nearDisc?.cls} onClick={v.nearDisc?.toggle} />
-                            </div>
-                            {v.nearDisc?.on ? (<>
-                              <div className="fade" style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-sm)", paddingLeft: "54px" }}>
-                                <select className="inp" aria-label="Discount" style={{ width: "110px", height: "36px" }}>
-                                  <option>20% off</option>
-                                  <option>10% off</option>
-                                  <option>30% off</option>
-                                  <option>50% off</option>
-                                </select>
-                                <span>when</span>
-                                <select className="inp" aria-label="Days left" style={{ width: "170px", height: "36px" }}>
-                                  <option>7 days are left</option>
-                                  <option>5 days are left</option>
-                                  <option>10 days are left</option>
-                                </select>
-                              </div>
-                            </>) : null}
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                              <span className="lbl" style={{ flexGrow: "1" }}>Batches in stock</span>
-                              <button type="button" className="abtn" onClick={v.addBatch}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M5 12h14" />
-  <path d="M12 5v14" />
-</svg>Add batch</button>
-                              <__Link href="/expiry-disposal" className="abtn" style={{ textDecoration: "none" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M3 6h18" />
-  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2" />
-</svg>{"Expiry & disposal"}</__Link>
-                            </div>
-                            <div className="gc-table-wrap">
-                              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                                <thead>
-                                  <tr>
-                                    <th className="th">Batch</th>
-                                    <th className="th">Made on</th>
-                                    <th className="th">Expires</th>
-                                    <th className="th" style={{ width: "180px" }}>Life left</th>
-                                    <th className="th" style={{ textAlign: "right" }}>Qty</th>
-                                    <th className="th">Where</th>
-                                    <th className="th">Status</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {__list(v.batches).map((b, $index) => (<React.Fragment key={$index}>
-                                      <tr className={`row ${b?.cls ?? ""}`}>
-                                        <td className="td mono" style={{ fontWeight: "var(--weight-medium)" }}>{b?.no}</td>
-                                        <td className="td" style={{ color: "#475569" }}>{b?.made}</td>
-                                        <td className="td" style={{ fontWeight: "var(--weight-medium)" }}>{b?.exp}</td>
-                                        <td className="td">
-                                          <div style={{ height: "8px", borderRadius: "var(--radius-full)", background: "#eef2f6", overflow: "hidden" }}>
-                                            <div style={__sx(`width: ${b?.w ?? ""}; height: 100%; border-radius: var(--radius-full); background: ${b?.c ?? ""};`)} />
-                                          </div>
-                                          <div style={__sx(`font-size: var(--text-xs); color: ${b?.c ?? ""}; margin-top: 3px; font-weight: var(--weight-medium);`)}>{b?.left}</div>
-                                        </td>
-                                        <td className="td num" style={{ textAlign: "right" }}>{b?.q}</td>
-                                        <td className="td" style={{ color: "#475569" }}>{b?.loc}</td>
-                                        <td className="td">
-                                          <span className={b?.sCls}>{b?.st}</span>
-                                        </td>
-                                      </tr>
-                                    </React.Fragment>))}
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        </>) : null}
-                      </section>
-                    </div>
-                    <div role="tabpanel" id="ppanel-variants" aria-labelledby="ptab-variants" hidden={!v.is_variants} className={v.is_variants ? "fade" : undefined} style={{ display: v.is_variants ? "flex" : "none", flexDirection: "column", gap: "18px" }}>
-                      <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <div style={{ flexGrow: "1" }}>
-                            <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Variants</h2>
-                          </div>
-                          <button type="button" className="abtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M5 12h14" />
-  <path d="M12 5v14" />
-</svg>Add option</button>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", borderRadius: "var(--radius-lg)", border: "1px solid #e6eaf0" }}>
-                          <span style={{ color: "var(--text-muted)" }}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <circle cx="9" cy="12" r="1" />
-                              <circle cx="9" cy="5" r="1" />
-                              <circle cx="9" cy="19" r="1" />
-                              <circle cx="15" cy="12" r="1" />
-                              <circle cx="15" cy="5" r="1" />
-                              <circle cx="15" cy="19" r="1" />
-                            </svg>
-                          </span>
-                          <span style={{ width: "90px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>Size</span>
-                          <div style={{ display: "flex", gap: "6px", flexGrow: "1" }}>
-                            <span style={{ height: "28px", padding: "0 10px", borderRadius: "var(--radius-full)", background: "#eef2f6", fontSize: "var(--text-xs-plus)", display: "inline-flex", alignItems: "center" }}>400 g</span>
-                            <span style={{ height: "28px", padding: "0 10px", borderRadius: "var(--radius-full)", background: "#eef2f6", fontSize: "var(--text-xs-plus)", display: "inline-flex", alignItems: "center" }}>1 kg</span>
-                          </div>
-                        </div>
-                        <div className="gc-table-wrap">
-                          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                            <thead>
-                              <tr>
-                                <th className="th">Variant</th>
-                                <th className="th" style={{ textAlign: "right" }}>Price</th>
-                                <th className="th" style={{ textAlign: "right" }}>Stock</th>
-                                <th className="th">SKU</th>
-                                <th className="th">Barcode</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              <tr className="row">
-                                <td className="td">400 g jar</td>
-                                <td className="td num" style={{ textAlign: "right" }}>৳350</td>
-                                <td className="td num" style={{ textAlign: "right", fontWeight: "var(--weight-medium)" }}>126</td>
-                                <td className="td mono" style={{ color: "#475569" }}>FD-PKL-400</td>
-                                <td className="td mono" style={{ color: "#475569" }}>8941600200146</td>
-                              </tr>
-                              <tr className="row">
-                                <td className="td">1 kg jar</td>
-                                <td className="td num" style={{ textAlign: "right" }}>৳780</td>
-                                <td className="td num" style={{ textAlign: "right", fontWeight: "var(--weight-medium)" }}>48</td>
-                                <td className="td mono" style={{ color: "#475569" }}>FD-PKL-1K</td>
-                                <td className="td mono" style={{ color: "#475569" }}>8941600200153</td>
-                              </tr>
-                            </tbody>
-                          </table>
-                        </div>
-                      </section>
-                    </div>
-                    <div role="tabpanel" id="ppanel-track" aria-labelledby="ptab-track" hidden={!v.is_track} className={v.is_track ? "fade" : undefined} style={{ display: v.is_track ? "flex" : "none", flexDirection: "column", gap: "18px" }}>
-                      <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <div style={{ flexGrow: "1" }}>
-                            <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Warranty and serial numbers</h2>
-                            <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", marginTop: "2px" }}>Two quick questions. Details are managed in Stock.</div>
-                          </div>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                          <span style={{ width: "28px", height: "28px", flexShrink: "0", borderRadius: "var(--radius-full)", background: "#0b1733", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-semibold)" }}>1</span>
-                          <div style={{ flexGrow: "1" }}>
-                            <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Does this product come with a warranty?</div>
-                            <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>
-                              <span className="bn">এই পণ্যে কি ওয়ারেন্টি আছে?</span>
-                            </div>
-                          </div>
-                          <div className="apt-seg" style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
-                            {__list(v.wqOpts).map((o, $index) => (<React.Fragment key={$index}>
-                                <button type="button" onClick={o?.pick} aria-pressed={o?.on} style={__sx(`height: 34px; padding: 0 16px; border: 0; border-radius: var(--radius-full); font: inherit; font-size: var(--text-xs-plus); font-weight: var(--weight-medium); cursor: pointer; background: ${o?.bg ?? ""}; color: ${o?.fg ?? ""};`)}>{o?.l}</button>
-                              </React.Fragment>))}
-                          </div>
-                        </div>
-                        {v.wYes ? (<>
-                          <div className="fade" style={{ marginLeft: "42px", display: "flex", flexDirection: "column", gap: "12px", padding: "16px", borderRadius: "var(--radius-xl)", background: "#f7f9fc", border: "1px solid #e6eaf0" }}>
-                            <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: "14px" }}>
-                              <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                                <span className="lbl">Warranty policy</span>
-                                <select className="inp" value={v.wp} onChange={v.setWp} aria-label="Warranty policy">
-                                  <option value="brand1y">Smartphone brand warranty · 12 months</option>
-                                  <option value="shop6m">6 months shop service warranty</option>
-                                  <option value="rep7d">7-day replacement guarantee</option>
-                                  <option value="elec2y">2 years parts, 1 year service</option>
-                                </select>
-                                <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Written once in Stock › Warranty policies</span>
-                              </label>
-                              <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                                <span className="lbl">Starts from</span>
-                                <div className="inp" style={{ display: "flex", alignItems: "center", background: "#f1f5f9", color: "#334155" }}>{v.wpStart}</div>
-                                <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Set by the policy</span>
-                              </label>
-                            </div>
-                            <div className="gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "10px" }}>
-                              {__list(v.wpInfo).map((w, $index) => (<React.Fragment key={$index}>
-                                  <div style={{ padding: "12px", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e6eaf0" }}>
-                                    <div style={{ fontSize: "var(--text-xs)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>{w?.k}</div>
-                                    <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{w?.v}</div>
-                                  </div>
-                                </React.Fragment>))}
-                            </div>
-                            <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                              <span className="lbl">Warranty description for this product</span>
-                              <textarea className="inp" rows="3" aria-label="Warranty description" style={{ height: "84px", padding: "10px 14px", resize: "none" }} defaultValue={`${v.wpText ?? ""}`} />
-                              <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Shown on the product page under the price, with a link to the full policy. Filled from the policy — change it only if this product is different.</span>
+                            <label className="ap-field">
+                              <span className="gc-label">VAT / tax</span>
+                              <select className="gc-input gc-select" aria-label="Tax rate"><option>Standard VAT 15%</option><option>Reduced 7.5%</option><option>No VAT</option></select>
                             </label>
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs-plus)" }}>
-                              <__Link href="/warranty-policies" style={{ fontWeight: "var(--weight-medium)" }}>Open warranty policies</__Link>
-                              <span style={{ color: "var(--text-muted)" }}>·</span>
-                              <span style={{ color: "#475569" }}>Printed on the invoice and warranty card</span>
-                            </div>
                           </div>
-                        </>) : null}
-                        <div style={{ height: "1px", background: "#eef2f6" }} />
-                        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                          <span style={{ width: "28px", height: "28px", flexShrink: "0", borderRadius: "var(--radius-full)", background: "#0b1733", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-semibold)" }}>2</span>
-                          <div style={{ flexGrow: "1" }}>
-                            <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Does each piece have its own serial or IMEI number?</div>
-                            <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Phones, laptops, TVs — so you know exactly which piece was sold</div>
+                          <div className="ap-figs">
+                            <div className="ap-fig"><span>Profit per piece</span><b style={{ color: v.profitColor }}>{v.profit}</b></div>
+                            <div className="ap-fig"><span>Margin</span><b style={{ color: v.profitColor }}>{v.margin}</b></div>
+                            <div className="ap-fig"><span>Customer saves</span><b>{v.saves}</b></div>
                           </div>
-                          <div className="apt-seg" style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
-                            {__list(v.sqOpts).map((o, $index) => (<React.Fragment key={$index}>
-                                <button type="button" onClick={o?.pick} aria-pressed={o?.on} style={__sx(`height: 34px; padding: 0 16px; border: 0; border-radius: var(--radius-full); font: inherit; font-size: var(--text-xs-plus); font-weight: var(--weight-medium); cursor: pointer; background: ${o?.bg ?? ""}; color: ${o?.fg ?? ""};`)}>{o?.l}</button>
-                              </React.Fragment>))}
+                          <div className="ap-grid2">
+                            <label className="ap-field"><span className="gc-label">Wholesale price</span><input className="gc-input ap-num" defaultValue="৳300" aria-label="Wholesale price" /></label>
+                            <label className="ap-field"><span className="gc-label">Wholesale from</span><input className="gc-input ap-num" defaultValue="12 jars" aria-label="Wholesale minimum" /></label>
                           </div>
                         </div>
-                        {v.sYes ? (<>
-                          <div className="fade" style={{ marginLeft: "42px", display: "flex", flexDirection: "column", gap: "12px", padding: "16px", borderRadius: "var(--radius-xl)", background: "#f7f9fc", border: "1px solid #e6eaf0" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                              <span className="lbl">Which number?</span>
-                              <div className="apt-seg" style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
-                                {__list(v.sntOpts).map((o, $index) => (<React.Fragment key={$index}>
-                                    <button type="button" onClick={o?.pick} aria-pressed={o?.on} style={__sx(`height: 34px; padding: 0 16px; border: 0; border-radius: var(--radius-full); font: inherit; font-size: var(--text-xs-plus); font-weight: var(--weight-medium); cursor: pointer; background: ${o?.bg ?? ""}; color: ${o?.fg ?? ""};`)}>{o?.l}</button>
-                                  </React.Fragment>))}
+                      </section>
+                    </Panel>
+
+                    <Panel id="stock" on={v.is_stock}>
+                      <section className="ix-card" aria-labelledby="apt-h-inv">
+                        <div className="ix-card__head">
+                          <h2 id="apt-h-inv">Inventory <__InfoTip text="Connected to Purchase, Stock and POS. Batches and expiry dates are in the next tab." /></h2>
+                          <__Link href="/stock">Stock history</__Link>
+                        </div>
+                        <div className="ix-card__body ap-body">
+                          <div className="ap-grid2">
+                            <label className="ap-field"><span className="gc-label">SKU</span><input className="gc-input ap-mono" defaultValue="FD-PKL-400" aria-label="SKU" /></label>
+                            <div className="ap-field">
+                              <label className="gc-label" htmlFor="apt-barcode">Barcode (EAN-13)</label>
+                              <div className="ap-row" style={{ flexWrap: "nowrap" }}>
+                                <input id="apt-barcode" className="gc-input ap-mono ap-grow" value={v.barcode} onInput={v.typeBarcode} onChange={v.typeBarcode} aria-label="Barcode" />
+                                <button type="button" className="ix-btn" onClick={v.genBarcode}><__Icon name="hash" width="16" height="16" aria-hidden="true" />Make one</button>
+                                <__Link href="/barcode-labels" className="ix-btn ix-btn--icon" aria-label="Label" title="Label"><__Icon name="printer" width="16" height="16" aria-hidden="true" /></__Link>
                               </div>
                             </div>
-                            <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", padding: "14px", borderRadius: "var(--radius-xl)", background: "#e0f3fb", color: "#0c4a6e", fontSize: "var(--text-sm)", lineHeight: "20px" }}>
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <circle cx="12" cy="12" r="10" />
-                                <path d="M12 16v-4" />
-                                <path d="M12 8h.01" />
-                              </svg>
-                              <div style={{ flexGrow: "1" }}>You do not type the numbers here. Staff scan them in <b>Stock</b> when goods arrive, and the POS asks for the number at sale. <div style={{ display: "flex", gap: "14px", marginTop: "6px" }}>
-  <__Link href="/receive-goods" style={{ fontWeight: "var(--weight-medium)" }}>Receive goods</__Link>
-  <__Link href="/warranty-claims" style={{ fontWeight: "var(--weight-medium)" }}>Serial number register</__Link>
-</div></div>
-                              <span style={{ flexShrink: "0", textAlign: "right" }}>
-                                <span style={{ display: "block", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#003087" }}>{v.snCount}</span>
-                                <span style={{ fontSize: "var(--text-xs)" }}>in stock now</span>
-                              </span>
+                          </div>
+                          <div className="ap-switch">
+                            <span>Track stock for this product<__InfoTip text="Stock goes up with purchase orders and returns, down with sales and damage" /></span>
+                            <Switch sw={v.track} label="Track stock for this product" />
+                          </div>
+                          <div className="ix-table-wrap ix-table-wrap--show">
+                            <table className="ix-table ix-table--static ap-tbl">
+                              <thead><tr><th scope="col">Location</th><th scope="col" className="ix-num">Available</th><th scope="col" className="ix-num">Reserved for orders</th><th scope="col" className="ix-num">Opening stock</th></tr></thead>
+                              <tbody>
+                                <tr><td>Central Warehouse</td><td className="ix-num ix-strong">86</td><td className="ix-num ix-muted">3</td><td className="ix-num"><input className="gc-input ap-num" defaultValue="0" aria-label="Opening stock Central Warehouse" style={{ width: "88px" }} /></td></tr>
+                                <tr><td>Dhanmondi branch</td><td className="ix-num ix-strong">40</td><td className="ix-num ix-muted">1</td><td className="ix-num"><input className="gc-input ap-num" defaultValue="0" aria-label="Opening stock Dhanmondi branch" style={{ width: "88px" }} /></td></tr>
+                              </tbody>
+                            </table>
+                          </div>
+                          <div className="ap-row">
+                            <span style={{ fontSize: "var(--text-sm)" }}>Alert me when stock is below</span>
+                            <input className="gc-input ap-num" defaultValue="5" aria-label="Low stock alert" style={{ width: "72px" }} />
+                          </div>
+                          <label className="ap-row" style={{ fontSize: "var(--text-sm)", color: "var(--text-heading)", cursor: "pointer" }}><input type="checkbox" className="gc-check" />Keep selling when out of stock (pre-order)</label>
+                        </div>
+                      </section>
+                    </Panel>
+
+                    <Panel id="validity" on={v.is_validity}>
+                      <section className="ix-card" aria-labelledby="apt-h-exp">
+                        <div className="ix-card__head"><h2 id="apt-h-exp">Product validity (expiry) <__InfoTip text="Tell the system how long the product stays good. It warns you, stops sales in time and moves expired stock to disposal." /></h2></div>
+                        <div className="ix-card__body ap-body">
+                          <div className="ap-switch">
+                            <span>This product expires<__InfoTip text="Food, medicine, cosmetics — anything with a best-before or expiry date" /></span>
+                            <Switch sw={v.expires} label="This product expires" />
+                          </div>
+                          {v.expires?.on ? (
+                            <div className="ap-body ap-fade">
+                              <div className="ap-field">
+                                <span className="gc-label" id="apt-vm">How is the expiry date set?</span>
+                                <Seg opts={v.vModes} labelledBy="apt-vm" />
+                              </div>
+                              {v.isShelf ? (
+                                <div className="ap-panel ap-fade">
+                                  <div className="ap-row">
+                                    <span style={{ fontSize: "var(--text-sm)" }}>Every batch lasts</span>
+                                    <input className="gc-input ap-num" inputMode="numeric" value={v.shelfN} onInput={v.typeShelf} onChange={v.typeShelf} aria-label="Shelf life" id="pf-shelf" aria-required="true" aria-invalid={v.err?.shelf ? "true" : undefined} aria-describedby={v.err?.shelf ? "pf-shelf-err" : undefined} style={{ width: "64px", textAlign: "center" }} />
+                                    <select className="gc-input gc-select" value={v.shelfU} onChange={v.setShelfU} aria-label="Shelf life unit" style={{ width: "112px" }}>
+                                      <option value="days">days</option><option value="weeks">weeks</option><option value="months">months</option><option value="years">years</option>
+                                    </select>
+                                    <span style={{ fontSize: "var(--text-sm)" }}>from its</span>
+                                    <select className="gc-input gc-select" aria-label="Counted from" style={{ width: "150px" }}><option>making date</option><option>receiving date</option><option>opening date</option></select>
+                                  </div>
+                                  <Err id="pf-shelf-err" text={v.err?.shelf} />
+                                  <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--primary)" }}>{v.shelfEx}</span>
+                                </div>
+                              ) : null}
+                              {v.isBatch ? <p className="ap-panel ap-fade" style={{ margin: 0, fontSize: "var(--text-sm)" }}>Staff type or scan the expiry date printed on the pack each time goods arrive. Good for imported items with different dates.</p> : null}
+                              <div className="ap-grid2">
+                                <div className="ap-field">
+                                  <div className="ap-lbl"><label className="gc-label" htmlFor="apt-stop">Stop selling</label><__InfoTip text="Hidden from the website and blocked at the POS" /></div>
+                                  <select id="apt-stop" className="gc-input gc-select" aria-label="Stop selling"><option>3 days before expiry</option><option>On the expiry date</option><option>7 days before expiry</option><option>1 day before expiry</option></select>
+                                </div>
+                                <div className="ap-field">
+                                  <div className="ap-lbl"><label className="gc-label" htmlFor="apt-warn">Warn me</label><__InfoTip text={"Shows in Expiry & disposal and on the dashboard"} /></div>
+                                  <select id="apt-warn" className="gc-input gc-select" aria-label="Warn before"><option>14 days before expiry</option><option>7 days before</option><option>30 days before</option></select>
+                                </div>
+                              </div>
+                              <div className="ap-switch">
+                                <span>Sell the oldest first<__InfoTip text="Picking and POS always take the batch that expires first" /></span>
+                                <Switch sw={v.fefo} label="Sell the oldest first" />
+                              </div>
+                              <div className="ap-switch">
+                                <span>Show the expiry date to customers<__InfoTip text="On the product page, invoice and shelf label" /></span>
+                                <Switch sw={v.showExp} label="Show the expiry date to customers" />
+                              </div>
+                              <div className="ap-switch">
+                                <span>Auto discount near expiry<__InfoTip text="Clears stock before it goes bad" /></span>
+                                <Switch sw={v.nearDisc} label="Auto discount near expiry" />
+                              </div>
+                              {v.nearDisc?.on ? (
+                                <div className="ap-row ap-fade" style={{ fontSize: "var(--text-sm)" }}>
+                                  <select className="gc-input gc-select" aria-label="Discount" style={{ width: "120px" }}><option>20% off</option><option>10% off</option><option>30% off</option><option>50% off</option></select>
+                                  <span>when</span>
+                                  <select className="gc-input gc-select" aria-label="Days left" style={{ width: "160px" }}><option>7 days are left</option><option>5 days are left</option><option>10 days are left</option></select>
+                                </div>
+                              ) : null}
+                              <div className="ap-row">
+                                <span className="ap-sub ap-grow">Batches in stock</span>
+                                <button type="button" className="ix-btn ix-btn--sm" onClick={v.addBatch}><__Icon name="plus" width="16" height="16" aria-hidden="true" />Add batch</button>
+                                <__Link href="/expiry-disposal" className="ix-btn ix-btn--sm">{"Expiry & disposal"}</__Link>
+                              </div>
+                              <div className="ix-table-wrap ix-table-wrap--show">
+                                <table className="ix-table ix-table--static ap-tbl gc-table--keep">
+                                  <thead><tr><th scope="col">Batch</th><th scope="col">Made on</th><th scope="col">Expires</th><th scope="col">Life left</th><th scope="col" className="ix-num">Qty</th><th scope="col">Where</th><th scope="col">Status</th></tr></thead>
+                                  <tbody>
+                                    {__list(v.batches).map((b, i) => (
+                                      <tr key={i} className={b.cls ? 'ap-fade' : ''}>
+                                        <td className="ap-mono ix-nowrap">{b.no}</td>
+                                        <td className="ix-nowrap">{b.made}</td>
+                                        <td className="ix-nowrap">{b.exp}</td>
+                                        <td><span className="apt-life"><span style={{ width: b.w, background: b.c }} /></span><small style={{ color: b.c }}>{b.left}</small></td>
+                                        <td className="ix-num">{b.q}</td>
+                                        <td className="ix-muted">{b.loc}</td>
+                                        <td><__StatusBadge tone={BATCH_TONE[b.st] || 'neutral'}>{b.st}</__StatusBadge></td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
                             </div>
-                          </div>
-                        </>) : null}
-                      </section>
-                    </div>
-                    <div role="tabpanel" id="ppanel-details" aria-labelledby="ptab-details" hidden={!v.is_details} className={v.is_details ? "fade" : undefined} style={{ display: v.is_details ? "flex" : "none", flexDirection: "column", gap: "18px" }}>
-                      <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <div style={{ flexGrow: "1" }}>
-                            <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>More details</h2>
-                            <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", marginTop: "2px" }}>These fields come from the category. Change the category and the fields change with it.</div>
-                          </div>
-                          <span className="badge b-approved">From “Grocery › Pickles”</span>
-                        </div>
-                        <div className="gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "14px" }}>
-                          {__list(v.cfs).map((f, $index) => (<React.Fragment key={$index}>
-                              <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                                <span className="lbl">{f?.l} <span style={{ fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>{f?.type}</span></span>
-                                <input className="inp" defaultValue={f?.v} aria-label={f?.l} />
-                              </label>
-                            </React.Fragment>))}
-                        </div>
-                        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                          <button type="button" className="abtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M5 12h14" />
-  <path d="M12 5v14" />
-</svg>Add a field just for this product</button>
-                          <__Link href="/catalog-setup" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>Manage custom fields</__Link>
+                          ) : null}
                         </div>
                       </section>
-                      <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <div style={{ flexGrow: "1" }}>
-                            <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Size guide</h2>
+                    </Panel>
+
+                    <Panel id="variants" on={v.is_variants}>
+                      <section className="ix-card" aria-labelledby="apt-h-var">
+                        <div className="ix-card__head">
+                          <h2 id="apt-h-var">Variants</h2>
+                          <button type="button" className="ix-btn ix-btn--sm"><__Icon name="plus" width="16" height="16" aria-hidden="true" />Add option</button>
+                        </div>
+                        <div className="ix-card__body ap-body">
+                          <div className="ap-opt">
+                            <__Icon name="grip-vertical" width="16" height="16" aria-hidden="true" style={{ color: "var(--text-muted)", flex: "none" }} />
+                            <b>Size</b><span>400 g</span><span>1 kg</span>
+                          </div>
+                          <div className="ix-table-wrap ix-table-wrap--show">
+                            <table className="ix-table ix-table--static ap-tbl">
+                              <thead><tr><th scope="col">Variant</th><th scope="col" className="ix-num">Price</th><th scope="col" className="ix-num">Stock</th><th scope="col">SKU</th><th scope="col">Barcode</th></tr></thead>
+                              <tbody>
+                                <tr><td>400 g jar</td><td className="ix-num">৳350</td><td className="ix-num">126</td><td className="ap-mono ix-muted">FD-PKL-400</td><td className="ap-mono ix-muted">8941600200146</td></tr>
+                                <tr><td>1 kg jar</td><td className="ix-num">৳780</td><td className="ix-num">48</td><td className="ap-mono ix-muted">FD-PKL-1K</td><td className="ap-mono ix-muted">8941600200153</td></tr>
+                              </tbody>
+                            </table>
                           </div>
                         </div>
-                        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                          <select className="inp" value={v.sg} onChange={v.setSg} aria-label="Size guide" style={{ maxWidth: "360px" }}>
+                      </section>
+                    </Panel>
+
+                    <Panel id="track" on={v.is_track}>
+                      <section className="ix-card" aria-labelledby="apt-h-war">
+                        <div className="ix-card__head"><h2 id="apt-h-war">Warranty and serial numbers</h2></div>
+                        <div className="ix-card__body ap-body">
+                          <div className="ap-q">
+                            <span id="apt-q-war">Does this product come with a warranty?</span>
+                            <Seg opts={v.wqOpts} labelledBy="apt-q-war" />
+                          </div>
+                          {v.wYes ? (
+                            <div className="ap-panel ap-fade">
+                              <div className="ap-grid2">
+                                <div className="ap-field">
+                                  <div className="ap-lbl"><label className="gc-label" htmlFor="apt-wp">Warranty policy</label><__InfoTip text="Written once in Stock › Warranty policies" /></div>
+                                  <select id="apt-wp" className="gc-input gc-select" value={v.wp} onChange={v.setWp} aria-label="Warranty policy">
+                                    <option value="brand1y">Smartphone brand warranty · 12 months</option>
+                                    <option value="shop6m">6 months shop service warranty</option>
+                                    <option value="rep7d">7-day replacement guarantee</option>
+                                    <option value="elec2y">2 years parts, 1 year service</option>
+                                  </select>
+                                </div>
+                                <div className="ap-field">
+                                  <div className="ap-lbl"><span className="gc-label">Starts from</span><__InfoTip text="Set by the policy" /></div>
+                                  <div className="gc-input ap-readonly">{v.wpStart}</div>
+                                </div>
+                              </div>
+                              <dl className="ix-kv">{__list(v.wpInfo).map((w, i) => (<React.Fragment key={i}><dt>{w.k}</dt><dd>{w.v}</dd></React.Fragment>))}</dl>
+                              <div className="ap-field">
+                                <div className="ap-lbl"><label className="gc-label" htmlFor="apt-wtext">Warranty description for this product</label><__InfoTip text="Shown on the product page under the price, with a link to the full policy. Filled from the policy — change it only if this product is different." /></div>
+                                <textarea id="apt-wtext" className="gc-input" rows="3" aria-label="Warranty description" defaultValue={`${v.wpText ?? ""}`} />
+                              </div>
+                              <div className="ap-links"><__Link href="/warranty-policies">Open warranty policies</__Link><span className="ix-muted">Printed on the invoice and warranty card</span></div>
+                            </div>
+                          ) : null}
+                          <hr className="ap-sep" />
+                          <div className="ap-q">
+                            <span id="apt-q-sn">Does each piece have its own serial or IMEI number?<__InfoTip text="Phones, laptops, TVs — so you know exactly which piece was sold" /></span>
+                            <Seg opts={v.sqOpts} labelledBy="apt-q-sn" />
+                          </div>
+                          {v.sYes ? (
+                            <div className="ap-panel ap-fade">
+                              <div className="ap-row"><span className="gc-label" id="apt-snt" style={{ margin: 0 }}>Which number?</span><Seg opts={v.sntOpts} labelledBy="apt-snt" /></div>
+                              <div className="ap-row" style={{ alignItems: "flex-start", flexWrap: "nowrap" }}>
+                                <div className="ap-grow" style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                                  <p className="ap-help" style={{ fontSize: "var(--text-sm)", color: "var(--text-body)" }}>You do not type the numbers here. Staff scan them in <b>Stock</b> when goods arrive, and the POS asks for the number at sale.</p>
+                                  <div className="ap-links"><__Link href="/receive-goods">Receive goods</__Link><__Link href="/warranty-claims">Serial number register</__Link></div>
+                                </div>
+                                <span className="ap-sncount"><b>{v.snCount}</b><span>in stock now</span></span>
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+                      </section>
+                    </Panel>
+
+                    <Panel id="details" on={v.is_details}>
+                      <section className="ix-card" aria-labelledby="apt-h-more">
+                        <div className="ix-card__head">
+                          <h2 id="apt-h-more">More details <__InfoTip text="These fields come from the category. Change the category and the fields change with it." /></h2>
+                          <__Link href="/catalog-setup">Manage custom fields</__Link>
+                        </div>
+                        <div className="ix-card__body ap-body">
+                          <span><__StatusBadge tone="info" icon="folder">From “Grocery › Pickles”</__StatusBadge></span>
+                          <div className="ap-grid2">
+                            {__list(v.cfs).map((f, i) => (
+                              <label key={i} className="ap-field"><span className="gc-label">{f.l} <span className="ix-muted" style={{ fontWeight: "var(--weight-regular)" }}>{f.type}</span></span><input className="gc-input" defaultValue={f.v} aria-label={f.l} /></label>
+                            ))}
+                          </div>
+                          <div><button type="button" className="ix-btn ix-btn--sm"><__Icon name="plus" width="16" height="16" aria-hidden="true" />Add a field just for this product</button></div>
+                        </div>
+                      </section>
+                      <section className="ix-card" aria-labelledby="apt-h-sg">
+                        <div className="ix-card__head">
+                          <h2 id="apt-h-sg">Size guide {v.noSg ? <__InfoTip text="Not needed for phones. Clothing and shoes should have one — it cuts returns." /> : null}</h2>
+                          <__Link href="/catalog-setup">Make a size chart</__Link>
+                        </div>
+                        <div className="ix-card__body ap-body">
+                          <select className="gc-input gc-select" value={v.sg} onChange={v.setSg} aria-label="Size guide" style={{ maxWidth: "360px" }}>
                             <option value="none">No size guide</option>
                             <option value="shirt">Men’s shirts and polos</option>
                             <option value="kurti">Women’s kurti</option>
                             <option value="shoe">Shoes (BD / EU / UK)</option>
                           </select>
-                          <__Link href="/catalog-setup" className="abtn" style={{ textDecoration: "none" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z" />
-  <path d="m14.5 12.5 2-2" />
-  <path d="m11.5 9.5 2-2" />
-  <path d="m8.5 6.5 2-2" />
-  <path d="m17.5 15.5 2-2" />
-</svg>Make a size chart</__Link>
-                        </div>
-                        {v.hasSg ? (<>
-                          <div className="gc-table-wrap">
-                            <table className="fade" style={{ width: "100%%", borderCollapse: "collapse" }}>
-                              <thead>
-                                <tr>
-                                  {__list(v.sgHead).map((h, $index) => (<React.Fragment key={$index}>
-                                      <th className="th">{h?.t}</th>
-                                    </React.Fragment>))}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {__list(v.sgRows).map((r, $index) => (<React.Fragment key={$index}>
-                                    <tr className="row">
-                                      {__list(r?.c).map((cc, $index) => (<React.Fragment key={$index}>
-                                          <td className="td num">{cc?.t}</td>
-                                        </React.Fragment>))}
-                                    </tr>
-                                  </React.Fragment>))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </>) : null}
-                        {v.noSg ? (<>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Not needed for phones. Clothing and shoes should have one — it cuts returns.</div>
-                        </>) : null}
-                      </section>
-                    </div>
-                    <div role="tabpanel" id="ppanel-ship" aria-labelledby="ptab-ship" hidden={!v.is_ship} className={v.is_ship ? "fade" : undefined} style={{ display: v.is_ship ? "flex" : "none", flexDirection: "column", gap: "18px" }}>
-                      <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <div style={{ flexGrow: "1" }}>
-                            <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Shipping</h2>
-                          </div>
-                        </div>
-                        <div className="gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "14px" }}>
-                          <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                            <span className="lbl">Weight</span>
-                            <input className="inp num" defaultValue="0.52 kg" aria-label="Weight" />
-                          </label>
-                          <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                            <span className="lbl">Length</span>
-                            <input className="inp num" defaultValue="9 cm" aria-label="Length" />
-                          </label>
-                          <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                            <span className="lbl">Width</span>
-                            <input className="inp num" defaultValue="9 cm" aria-label="Width" />
-                          </label>
-                          <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                            <span className="lbl">Height</span>
-                            <input className="inp num" defaultValue="12 cm" aria-label="Height" />
-                          </label>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                          <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-                              <path d="M12 9v4" />
-                              <path d="M12 17h.01" />
-                            </svg>
-                          </span>
-                          <div style={{ flexGrow: "1" }}>
-                            <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Fragile — glass jar</div>
-                            <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Printed on the courier label</div>
-                          </div>
-                          <button type="button" role="switch" aria-checked={v.fragile?.on} aria-label="Fragile — glass jar" className={v.fragile?.cls} onClick={v.fragile?.toggle} />
-                        </div>
-                      </section>
-                    </div>
-                    <div role="tabpanel" id="ppanel-seo" aria-labelledby="ptab-seo" hidden={!v.is_seo} className={v.is_seo ? "fade" : undefined} style={{ display: v.is_seo ? "flex" : "none", flexDirection: "column", gap: "18px" }}>
-                      <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <div style={{ flexGrow: "1" }}>
-                            <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Search engine listing</h2>
-                          </div>
-                          <button type="button" className="ai" onClick={v.aiSeo}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-</svg>Write with AI</button>
-                        </div>
-                        <div style={{ padding: "14px 16px", borderRadius: "var(--radius-xl)", border: "1px solid #e6eaf0" }}>
-                          <div style={{ fontSize: "var(--text-xs)", color: "#047857" }}>gridshop.com.bd › products › {v.handle}</div>
-                          <div style={{ fontSize: "var(--text-lg)", color: "#1a0dab", margin: "2px 0" }}>{v.seoTitle}</div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "#475569", lineHeight: "19px" }}>{v.seoDesc}</div>
-                        </div>
-                        <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                          <span className="lbl">Page title</span>
-                          <input className="inp" value={v.seoTitle} onInput={v.typeSeoT} onChange={v.typeSeoT} aria-label="Page title" />
-                          <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>{v.seoTCount}</span>
-                        </label>
-                        <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                          <span className="lbl">Meta description</span>
-                          <textarea className="inp" rows="2" value={v.seoDesc} onInput={v.typeSeoD} onChange={v.typeSeoD} aria-label="Meta description" style={{ height: "auto", padding: "10px 12px" }} />
-                        </label>
-                        {v.ai?.seo ? (<>
-                          <div className="fade" style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "#6d28d9" }}>
-                            <span style={{ height: "22px", padding: "0 8px", borderRadius: "var(--radius-full)", background: "#f3e8ff", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center", gap: "5px" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-</svg>AI wrote this — please check</span>
-                            <button type="button" className="abtn" style={{ height: "28px" }} onClick={v.keep_seo}>Looks good</button>
-                            <button type="button" className="abtn" style={{ height: "28px" }} onClick={v.undo_seo}>Undo</button>
-                          </div>
-                        </>) : null}
-                      </section>
-                      <section className="pcard" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <div style={{ flexGrow: "1" }}>
-                            <h2 style={{ margin: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Product FAQ</h2>
-                            <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", marginTop: "2px" }}>Shown on the product page. Answers the questions customers ask most.</div>
-                          </div>
-                          <button type="button" className="ai" onClick={v.aiFaq}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-</svg>Suggest with AI</button>
-                        </div>
-                        {__list(v.faqs).map((q, $index) => (<React.Fragment key={$index}>
-                            <div className={q?.cls} style={__sx(`padding: 12px 14px; border-radius: var(--radius-xl); border: 1px solid ${q?.border ?? ""};`)}>
-                              <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>{q?.q}</div>
-                              <div style={{ fontSize: "var(--text-xs-plus)", color: "#475569", marginTop: "4px" }}>{q?.a}</div>
+                          {v.hasSg ? (
+                            <div className="ix-table-wrap ix-table-wrap--show ap-fade">
+                              <table className="ix-table ix-table--static ap-tbl gc-table--keep">
+                                <thead><tr>{__list(v.sgHead).map((h, i) => <th key={i} scope="col">{h.t}</th>)}</tr></thead>
+                                <tbody>{__list(v.sgRows).map((r, i) => <tr key={i}>{__list(r.c).map((cc, j) => <td key={j} className="ap-num">{cc.t}</td>)}</tr>)}</tbody>
+                              </table>
                             </div>
-                          </React.Fragment>))}
-                        {v.ai?.faq ? (<>
-                          <div className="fade" style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "#6d28d9" }}>
-                            <span style={{ height: "22px", padding: "0 8px", borderRadius: "var(--radius-full)", background: "#f3e8ff", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center", gap: "5px" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-</svg>AI wrote this — please check</span>
-                            <button type="button" className="abtn" style={{ height: "28px" }} onClick={v.keep_faq}>Looks good</button>
-                            <button type="button" className="abtn" style={{ height: "28px" }} onClick={v.undo_faq}>Undo</button>
-                          </div>
-                        </>) : null}
-                        <button type="button" className="abtn" style={{ alignSelf: "flex-start" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M5 12h14" />
-  <path d="M12 5v14" />
-</svg>Add a question</button>
+                          ) : null}
+                        </div>
                       </section>
-                    </div>
-                  <div className="apt-stepnav" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 18px", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e6eaf0" }}>
-                    <button type="button" className="btn line" onClick={v.prevTab} disabled={v.isFirst} style={v.isFirst ? { opacity: "0.5", cursor: "not-allowed" } : undefined}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="m15 18-6-6 6-6" />
-                      </svg>
-                      <span>{v.prevLbl}</span>
-                    </button>
-                    <span style={{ flexGrow: "1", textAlign: "center", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Step {v.stepN} of {v.stepTotal} · you can jump to any tab</span>
-                    <button type="button" className="btn solid" onClick={v.nextTab}>
-                      <span>{v.nextLbl}</span>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="m9 18 6-6-6-6" />
-                      </svg>
-                    </button>
-                  </div>
-                  <div className="savebar" role="group" aria-label="Save product">
-                    <span className="savebar__note" role="status">
-                      {v.hasErr ? (<span style={{ color: "var(--text-danger)", display: "inline-flex", alignItems: "center", gap: "8px" }}><__Icon name="triangle-alert" width="16" height="16" aria-hidden="true" />{v.errSummary}</span>) : v.dirty ? (<><span className="savebar__dot" aria-hidden="true" />Unsaved changes</>) : null}
-                    </span>
-                    {v.dirty ? (
-                      <button type="button" className="btn line" onClick={v.discard}>Discard</button>
-                    ) : (
-                      <__Link href="/all-products" className="btn line">Cancel</__Link>
-                    )}
-                    <button type="button" className="btn line" onClick={v.saveDraft}>Save as draft</button>
-                    <button type="submit" className="btn solid">
-                      <__Icon name="check" width="18" height="18" strokeWidth="2" aria-hidden="true" />
-                      <span>Save product</span>
-                    </button>
-                  </div>
-                </div>
-                <aside className="gc-side" style={{ width: "350px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "18px", position: "sticky", top: "0" }}>
-                  <section className="pcard" style={{ padding: "18px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                    <div className="psec">Status</div>
-                    <select className="inp" value={v.status} onChange={v.setStatus} aria-label="Status">
-                      <option value="active">Active — customers can buy</option>
-                      <option value="draft">Draft — hidden</option>
-                      <option value="scheduled">Go live on a date</option>
-                    </select>
-                    <div className="lbl" style={{ marginTop: "4px" }}>Sell on</div>
-                    <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-sm)" }}><input type="checkbox" defaultChecked={true} style={{ width: "16px", height: "16px" }} />Online shop</label>
-                    <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-sm)" }}><input type="checkbox" defaultChecked={true} style={{ width: "16px", height: "16px" }} />POS counter</label>
-                    <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-sm)" }}><input type="checkbox" defaultChecked={true} style={{ width: "16px", height: "16px" }} />Facebook shop</label>
-                    <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-sm)" }}><input type="checkbox" defaultChecked={false} style={{ width: "16px", height: "16px" }} />Seller marketplace</label>
-                  </section>
-                  <section className="pcard" style={{ padding: "18px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                    <div className="psec">Organisation</div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <span className="lbl">Category</span>
-                      <button type="button" onClick={v.toggleCat} aria-expanded={v.catOpen} aria-label={`Category: ${v.catPath ?? ""}`} className="inp" style={{ height: "auto", minHeight: "44px", padding: "8px 12px", textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}>
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
-                        </svg>
-                        <span style={{ flexGrow: "1", fontSize: "var(--text-sm)" }}>{v.catPath}</span>
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="m6 9 6 6 6-6" />
-                        </svg>
-                      </button>
-                      {v.catOpen ? (<>
-                        <div className="fade" style={{ border: "1px solid #e6eaf0", borderRadius: "var(--radius-xl)", padding: "8px", display: "flex", flexDirection: "column", gap: "2px", maxHeight: "300px", overflowY: "auto", boxShadow: "0 12px 24px -12px rgba(15,23,42,.25)" }}>
-                          <input className="inp" placeholder="Search categories" aria-label="Search categories" data-nodirty="" style={{ height: "36px", marginBottom: "4px" }} />
-                          {__list(v.cats).map((ct, $index) => (<React.Fragment key={$index}>
-                              <button type="button" onClick={ct?.pick} style={__sx(`height: 34px; padding: 0 10px 0 ${ct?.pad ?? ""}; border: 0; border-radius: var(--radius-lg); background: ${ct?.bg ?? ""}; color: ${ct?.fg ?? ""}; font: inherit; font-size: var(--text-xs-plus); font-weight: ${ct?.fw ?? ""}; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px;`)}>{ct?.name}<span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{ct?.n}</span></button>
-                            </React.Fragment>))}
-                          <__Link href="/categories" style={{ padding: "8px 10px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center", gap: "6px" }}><__Icon name="plus" width="14" height="14" aria-hidden="true" />New category</__Link>
+                    </Panel>
+
+                    <Panel id="ship" on={v.is_ship}>
+                      <section className="ix-card" aria-labelledby="apt-h-ship">
+                        <div className="ix-card__head"><h2 id="apt-h-ship">Shipping</h2></div>
+                        <div className="ix-card__body ap-body">
+                          <div className="ap-grid2">
+                            <label className="ap-field"><span className="gc-label">Weight</span><input className="gc-input ap-num" defaultValue="0.52 kg" aria-label="Weight" /></label>
+                            <label className="ap-field"><span className="gc-label">Length</span><input className="gc-input ap-num" defaultValue="9 cm" aria-label="Length" /></label>
+                            <label className="ap-field"><span className="gc-label">Width</span><input className="gc-input ap-num" defaultValue="9 cm" aria-label="Width" /></label>
+                            <label className="ap-field"><span className="gc-label">Height</span><input className="gc-input ap-num" defaultValue="12 cm" aria-label="Height" /></label>
+                          </div>
+                          <div className="ap-switch">
+                            <span>Fragile — glass jar<__InfoTip text="Printed on the courier label" /></span>
+                            <Switch sw={v.fragile} label="Fragile — glass jar" />
+                          </div>
                         </div>
-                      </>) : null}
-                      <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Sets the tax, the extra fields and where it shows in your shop menu.</span>
-                    </div>
-                    <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <span className="lbl">Brand</span>
-                      <select className="inp" aria-label="Brand">
-                        <option>Ruchi</option>
-                        <option>Pran</option>
-                        <option>GridShop Kitchen</option>
-                        <option>Add a brand…</option>
-                      </select>
-                    </label>
-                    <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                      <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <span className="lbl">Unit</span>
-                        <select className="inp" aria-label="Unit">
-                          <option>Jar</option>
-                          <option>Piece</option>
-                          <option>kg</option>
-                          <option>Litre</option>
-                          <option>Pack</option>
-                        </select>
-                      </label>
-                      <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <span className="lbl">Sold by</span>
-                        <select className="inp" aria-label="Sold by">
-                          <option>Own product</option>
-                          <option>Nanir Ranna (seller)</option>
-                        </select>
-                      </label>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <div style={{ display: "flex", alignItems: "center" }}>
-                        <span className="lbl" style={{ flexGrow: "1" }}>Tags</span>
-                        <button type="button" className="ai" onClick={v.aiTags}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-</svg>AI</button>
-                      </div>
-                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                        {__list(v.tags).map((t, $index) => (<React.Fragment key={$index}>
-                            <span style={__sx(`height: 28px; padding: 0 2px 0 10px; border-radius: var(--radius-full); background: ${t?.bg ?? ""}; color: ${t?.fg ?? ""}; font-size: var(--text-xs-plus); display: inline-flex; align-items: center; gap: 4px;`)}>{t?.t}<button type="button" onClick={t?.remove} aria-label={`Remove ${t?.t ?? ""}`} className="tagx"><__Icon name="x" width="12" height="12" aria-hidden="true" /></button></span>
-                          </React.Fragment>))}
-                      </div>
-                    </div>
-                    <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <span className="lbl">Collections</span>
-                      <select className="inp" aria-label="Collections">
-                        <option>New arrivals, Eid picks</option>
-                      </select>
-                    </label>
-                  </section>
-                  <section className="pcard" style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <div className="psec">Ready to sell?</div>
-                    {__list(v.checks).map((k, $index) => (<React.Fragment key={$index}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)" }}>
-                          <span style={__sx(`width: 18px; height: 18px; border-radius: var(--radius-full); background: ${k?.bg ?? ""}; color: #fff; display: flex; align-items: center; justify-content: center;`)}>
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <path d="M20 6 9 17l-5-5" />
-                            </svg>
-                          </span>
-                          <span style={__sx(`color: ${k?.fg ?? ""};`)}>{k?.l}</span>
+                      </section>
+                    </Panel>
+
+                    <Panel id="seo" on={v.is_seo}>
+                      <section className="ix-card" aria-labelledby="apt-h-seo">
+                        <div className="ix-card__head"><h2 id="apt-h-seo">Search engine listing</h2><AiBtn onClick={v.aiSeo}>Write with AI</AiBtn></div>
+                        <div className="ix-card__body ap-body">
+                          <div className="ap-serp"><small>gridshop.com.bd › products › {v.handle}</small><b>{v.seoTitle}</b><span>{v.seoDesc}</span></div>
+                          <div className="ap-field">
+                            <div className="ap-lbl"><label className="gc-label" htmlFor="apt-seot">Page title</label><span className="ap-count ap-push">{v.seoTCount}</span></div>
+                            <input id="apt-seot" className={'gc-input' + (v.ai?.seo ? ' ap-ai-on' : '')} value={v.seoTitle} onInput={v.typeSeoT} onChange={v.typeSeoT} aria-label="Page title" />
+                          </div>
+                          <div className="ap-field">
+                            <label className="gc-label" htmlFor="apt-seod">Meta description</label>
+                            <textarea id="apt-seod" className={'gc-input' + (v.ai?.seo ? ' ap-ai-on' : '')} rows="2" value={v.seoDesc} onInput={v.typeSeoD} onChange={v.typeSeoD} aria-label="Meta description" />
+                          </div>
+                          {v.ai?.seo ? <AiCheck onKeep={v.keep_seo} onUndo={v.undo_seo} /> : null}
                         </div>
-                      </React.Fragment>))}
-                  </section>
-                </aside>
-              </form>
+                      </section>
+                      <section className="ix-card" aria-labelledby="apt-h-faq">
+                        <div className="ix-card__head">
+                          <h2 id="apt-h-faq">Product FAQ <__InfoTip text="Shown on the product page. Answers the questions customers ask most." /></h2>
+                          <AiBtn onClick={v.aiFaq}>Suggest with AI</AiBtn>
+                        </div>
+                        <div className="ix-card__body ap-body" style={{ gap: "var(--space-2)" }}>
+                          {__list(v.faqs).map((q, i) => (
+                            <div key={i} className={'ap-faq' + (q.cls ? ' ap-fade' : '')} style={{ borderColor: v.ai?.faq ? 'var(--viz-7)' : undefined }}><b>{q.q}</b><span>{q.a}</span></div>
+                          ))}
+                          {v.ai?.faq ? <AiCheck onKeep={v.keep_faq} onUndo={v.undo_faq} /> : null}
+                          <div><button type="button" className="ix-btn ix-btn--sm"><__Icon name="plus" width="16" height="16" aria-hidden="true" />Add a question</button></div>
+                        </div>
+                      </section>
+                    </Panel>
+
+                    {/* back / next through the steps */}
+                    <div className="ix-card apt-nav">
+                      <button type="button" className="ix-btn" onClick={v.prevTab} disabled={v.isFirst}><__Icon name="chevron-left" width="16" height="16" aria-hidden="true" /><span>{v.prevLbl}</span></button>
+                      <span>Step {v.stepN} of {v.stepTotal} · you can jump to any tab</span>
+                      <button type="button" className="ix-btn ix-btn--primary" onClick={v.nextTab}><span>{v.nextLbl}</span><__Icon name="chevron-right" width="16" height="16" aria-hidden="true" /></button>
+                    </div>
+
+                    {v.dirty || v.hasErr ? (
+                      <div className="savebar" role="group" aria-label="Save product">
+                        <span className={'savebar__note' + (v.hasErr ? ' is-bad' : '')} role="status">
+                          {v.hasErr ? (<><__Icon name="triangle-alert" width="16" height="16" aria-hidden="true" />{v.errSummary}</>) : (<><span className="savebar__dot" aria-hidden="true" />Unsaved changes</>)}
+                        </span>
+                        {v.dirty ? <button type="button" className="ix-btn" onClick={v.discard}>Discard</button> : <__Link href="/all-products" className="ix-btn">Cancel</__Link>}
+                        <button type="submit" className="ix-btn ix-btn--primary"><__Icon name="check" width="16" height="16" aria-hidden="true" /><span>Save product</span></button>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <aside className="ix-side">
+                    <section className="ix-card" aria-labelledby="apt-h-status">
+                      <div className="ix-card__head"><h2 id="apt-h-status">Status</h2></div>
+                      <div className="ix-card__body ap-body" style={{ gap: "var(--space-3)" }}>
+                        <select className="gc-input gc-select" value={v.status} onChange={v.setStatus} aria-label="Status">
+                          <option value="active">Active — customers can buy</option>
+                          <option value="draft">Draft — hidden</option>
+                          <option value="scheduled">Go live on a date</option>
+                        </select>
+                        <div className="ap-field">
+                          <span className="gc-label">Sell on</span>
+                          <label className="ap-row" style={{ fontSize: "var(--text-sm)", cursor: "pointer" }}><input type="checkbox" className="gc-check" defaultChecked={true} />Online shop</label>
+                          <label className="ap-row" style={{ fontSize: "var(--text-sm)", cursor: "pointer" }}><input type="checkbox" className="gc-check" defaultChecked={true} />POS counter</label>
+                          <label className="ap-row" style={{ fontSize: "var(--text-sm)", cursor: "pointer" }}><input type="checkbox" className="gc-check" defaultChecked={true} />Facebook shop</label>
+                          <label className="ap-row" style={{ fontSize: "var(--text-sm)", cursor: "pointer" }}><input type="checkbox" className="gc-check" defaultChecked={false} />Seller marketplace</label>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section className="ix-card" aria-labelledby="apt-h-org">
+                      <div className="ix-card__head"><h2 id="apt-h-org">Organisation</h2></div>
+                      <div className="ix-card__body ap-body" style={{ gap: "var(--space-3)" }}>
+                        <div className="ap-field">
+                          <div className="ap-lbl"><span className="gc-label">Category</span><__InfoTip text="Sets the tax, the extra fields and where it shows in your shop menu." /></div>
+                          <button type="button" onClick={v.toggleCat} aria-expanded={v.catOpen} aria-label={`Category: ${v.catPath ?? ""}`} className="gc-input ap-pick">
+                            <__Icon name="folder" width="16" height="16" aria-hidden="true" /><span>{v.catPath}</span><__Icon name="chevron-down" width="16" height="16" aria-hidden="true" />
+                          </button>
+                          {v.catOpen ? (
+                            <div className="ap-cats ap-fade">
+                              <input className="gc-input" placeholder="Search categories" aria-label="Search categories" data-nodirty="" />
+                              {__list(v.cats).map((ct, i) => (
+                                <button key={i} type="button" onClick={ct.pick} style={{ paddingLeft: ct.pad, background: ct.bg, color: ct.fg, fontWeight: ct.fw === 600 ? "var(--weight-semibold)" : "var(--weight-regular)" }}>{ct.name}<span>{ct.n}</span></button>
+                              ))}
+                              <__Link href="/categories"><__Icon name="plus" width="14" height="14" aria-hidden="true" />New category</__Link>
+                            </div>
+                          ) : null}
+                        </div>
+                        <label className="ap-field">
+                          <span className="gc-label">Brand</span>
+                          <select className="gc-input gc-select" aria-label="Brand"><option>Ruchi</option><option>Pran</option><option>GridShop Kitchen</option><option>Add a brand…</option></select>
+                        </label>
+                        <div className="ap-grid2">
+                          <label className="ap-field">
+                            <span className="gc-label">Unit</span>
+                            <select className="gc-input gc-select" aria-label="Unit"><option>Jar</option><option>Piece</option><option>kg</option><option>Litre</option><option>Pack</option></select>
+                          </label>
+                          <label className="ap-field">
+                            <span className="gc-label">Sold by</span>
+                            <select className="gc-input gc-select" aria-label="Sold by"><option>Own product</option><option>Nanir Ranna (seller)</option></select>
+                          </label>
+                        </div>
+                        <div className="ap-field">
+                          <div className="ap-lbl"><span className="gc-label">Tags</span><span className="ap-push" /><AiBtn onClick={v.aiTags}>AI</AiBtn></div>
+                          <div className="ap-tags">
+                            {__list(v.tags).map((t, i) => (
+                              <span key={i} className="ap-tag" style={{ background: t.bg, color: t.fg }}>{t.t}<button type="button" onClick={t.remove} aria-label={`Remove ${t.t ?? ""}`}><__Icon name="x" width="12" height="12" aria-hidden="true" /></button></span>
+                            ))}
+                          </div>
+                        </div>
+                        <label className="ap-field">
+                          <span className="gc-label">Collections</span>
+                          <select className="gc-input gc-select" aria-label="Collections"><option>New arrivals, Eid picks</option></select>
+                        </label>
+                      </div>
+                    </section>
+
+                    <section className="ix-card" aria-labelledby="apt-h-ready">
+                      <div className="ix-card__head"><h2 id="apt-h-ready">Ready to sell?</h2></div>
+                      <div className="ix-card__body">
+                        <ul className="ap-ready">
+                          {__list(v.checks).map((k, i) => (
+                            <li key={i}><i style={{ background: k.bg }} aria-hidden="true"><__Icon name="check" width="10" height="10" strokeWidth="3" /></i><span style={{ color: k.fg }}>{k.l}</span></li>
+                          ))}
+                        </ul>
+                      </div>
+                    </section>
+                  </aside>
+                </form>
+              </div>
             </div>
           </main>
         </div>

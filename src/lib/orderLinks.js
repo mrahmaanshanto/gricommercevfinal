@@ -58,13 +58,46 @@ export const STATUS_TIME = { Approved: 'approved', 'Ready for courier': 'ready',
 export const METHOD_OF_PAYMENT = { COD: 'COD', Paid: 'Gateway', Partial: 'Mixed', Unpaid: 'Due' };
 const isCounter = (channel) => /^(POS|Wholesale)/.test(String(channel || ''));
 
+// ---- the line as sold (Nayeem's Sales & Orders brief #4: the order keeps what was sold) ----------------
+// Each line is frozen when the order is made, so a later price, cost or product change never rewrites it:
+//   { name, qty, price (final, each), listPrice (the catalogue price then), priceChanged, variant, sku, cat,
+//     cost (buying price of one), productId, discount (this line's share of the order discount),
+//     taxRate (%), tax (this line's VAT) }
+// The order keeps discount, discountReason, vat, vatRate, note and tags beside its total.
+function freezeLines(lines, discount, vat, vatRate) {
+  const gross = lines.reduce((s, l) => s + (Number(l.price) || 0) * l.qty, 0);
+  let leftDisc = Math.round(Number(discount) || 0), leftVat = Math.round(Number(vat) || 0);
+  return lines.map((l, i) => {
+    const f = freezeLine(l);
+    const amount = (Number(l.price) || 0) * l.qty;
+    const last = i === lines.length - 1;
+    const share = gross ? amount / gross : 0;
+    const disc = last ? leftDisc : Math.min(leftDisc, Math.round((Number(discount) || 0) * share));
+    const tax = last ? leftVat : Math.min(leftVat, Math.round((Number(vat) || 0) * share));
+    leftDisc -= disc; leftVat -= tax;
+    const listPrice = l.listPrice != null && l.listPrice !== '' ? Number(l.listPrice) : Number(l.price);
+    return { name: l.name, qty: l.qty, price: l.price, listPrice, priceChanged: listPrice !== Number(l.price), variant: l.variant || l.meta || '', sku: f.sku, cat: f.cat, cost: f.cost,
+      productId: l.productId || '', discount: disc, taxRate: Number(vatRate) || 0, tax };
+  });
+}
+// The same order sent twice (a double press, a slow network resending) is one order: same customer phone,
+// same items and same total within DUP_MS returns the first order (marked duplicate) instead of a second one.
+const DUP_MS = 20 * 1000;
+const keyOf = (phone, lines, total) => [String(phone || '').replace(/\D/g, ''), Math.round(Number(total) || 0), ...lines.map((l) => `${l.sku || l.name}x${l.qty}@${l.price}`).sort()].join('|');
+
 /** Adds an order row (the shape the orders list uses) and returns it. The lines are kept so the
- *  order page can show them: [{ name, qty, price, variant, sku, cat, cost }] (cost = buying price of one). */
-export function addOrder({ lines, customer, phone, zone, total, status = 'New', payment = 'COD', channel = 'Manual order', address = '', shipping = 0, paid, source, method }) {
+ *  order page can show them (frozen as sold, see freezeLines). Returns the earlier order, marked
+ *  { duplicate: true }, when the same order was just added. */
+export function addOrder({ lines, customer, phone, zone, total, status = 'New', payment = 'COD', channel = 'Manual order', address = '', shipping = 0, paid, source, method, discount = 0, discountReason = '', vat = 0, vatRate = 0, note = '', tags = [] }) {
   const list = read(ORDERS, []);
   const count = lines.reduce((n, l) => n + l.qty, 0);
   const now = new Date();
   const t = now.getTime();
+  // counter sales and walk-ins (no phone) are never treated as repeats: two shoppers may buy the same thing
+  const guard = !isCounter(channel) && String(phone || '').replace(/\D/g, '').length >= 10;
+  const key = guard ? keyOf(phone, lines, total) : '';
+  const same = guard ? list.find((o) => o.key === key && t - (o.at || 0) < DUP_MS) : null;
+  if (same) return { ...same, duplicate: true };
   const counter = isCounter(channel);
   const times = { placed: t, approved: null, ready: null, shipped: null, delivered: null, returned: null, cancelled: null };
   if (status === 'Approved' || status === 'Delivered') times.approved = t;
@@ -74,7 +107,10 @@ export function addOrder({ lines, customer, phone, zone, total, status = 'New', 
     at: t, placed: stamp(now), channel, customer, address, shipping, times,
     source: source || (counter ? '' : channel === 'Order link' ? 'Order link' : 'Phone'),
     method: method || (counter ? '' : METHOD_OF_PAYMENT[payment] || ''),
-    lines: lines.map((l) => { const f = freezeLine(l); return { name: l.name, qty: l.qty, price: l.price, variant: l.variant || l.meta || '', sku: f.sku, cat: f.cat, cost: f.cost }; }),
+    lines: freezeLines(lines, discount, vat, vatRate), key,
+    ...(discount ? { discount: Math.round(discount), discountReason: discountReason || '' } : {}),
+    ...(vat ? { vat: Math.round(vat), vatRate: Number(vatRate) || 0 } : {}),
+    ...(note ? { note } : {}), ...(tags && tags.length ? { tags } : {}),
     initials: customer.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase(),
     phone, zone,
     itemTitle: lines[0].name + (lines.length > 1 ? ` + ${lines.length - 1} more` : ''),

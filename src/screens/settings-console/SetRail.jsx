@@ -1,7 +1,8 @@
 'use client';
 // Generated from design/templates/settings-console/SetRail.dc.html by scripts/convert-design.mjs.
-// SetRail — the settings navigation: a column beside the form from 1024px up, and a
-// horizontally scrolling strip of sections above the form on narrower windows.
+// SetRail — the settings list (Shopify's Settings navigation): a column beside the cards from 1024px up (search,
+// then each section with its icon and a status dot), and a horizontally scrolling strip of sections above the
+// cards on narrower windows.
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
@@ -32,6 +33,13 @@ const GROUPS = [
 ];
 
 const STATE = { ok: 'configured', warn: 'needs setup', off: 'turned off' };
+// the small icon in front of each section
+const ICON = {
+  connections: 'plug', general: 'store', profile: 'user-cog', stocksetup: 'boxes', preference: 'sliders-horizontal', pos: 'scan-line', report: 'file-bar-chart',
+  payment: 'credit-card', delivery: 'truck', courier: 'package', notifications: 'bell', mail: 'mail', sms: 'message-square', push: 'bell-ring',
+  social: 'share-2', ai: 'bot', rules: 'list-checks', usage: 'gauge', seo: 'search', smart: 'sparkles', imgsearch: 'image', storage: 'hard-drive',
+  realtime: 'radio', apisec: 'shield', recaptcha: 'shield-check', dbbackup: 'database', filebackup: 'archive',
+};
 // sections that belong to a module (src/lib/edition.js); the rest are in every edition
 const SECTION_MODULE = { notifications: 'commerce', stocksetup: 'catalog', pos: 'pos', report: 'reports', payment: 'commerce', delivery: 'online', courier: 'online', social: 'comms', ai: 'comms', rules: 'comms', seo: 'online', smart: 'online', imgsearch: 'online' };
 
@@ -77,48 +85,56 @@ class Component extends DCLogic {
   }
 }
 
-// ---- styles (from the design's <helmet>) ----
+// ---- styles ----
 
 const CSS = `
 .set-shell__nav{flex:none;display:flex;align-self:flex-start;position:sticky;top:var(--header-height,64px);height:calc(var(--set-vh,100dvh) - var(--header-height,64px) - 24px)}
-.set-nav{width:272px;flex:none;height:100%;display:flex;flex-direction:column;border-right:1px solid #e2e8f0;background:#fff;font-family:var(--font-sans)}
-.set-nav__head{flex:none;display:flex;flex-direction:column;gap:10px;padding:16px 14px 12px}
-.set-nav__back{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 10px;margin-left:-6px;align-self:flex-start;border-radius:var(--radius-lg);font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#003087;text-decoration:none}
-.set-nav__back:hover{background:rgba(0,48,135,.06)}
-.set-nav__iconbtn{width:32px;height:32px;flex:none;display:grid;place-items:center;border:0;border-radius:var(--radius-md);background:none;color:var(--text-muted);cursor:pointer}
-.set-nav__iconbtn:hover{background:#f1f5f9;color:#475569}
-.set-nav__search{display:flex;align-items:center;gap:8px;height:44px;padding:0 10px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;color:var(--text-muted)}
-.set-nav__search:focus-within{border-color:#003087;box-shadow:0 0 0 3px rgba(0,48,135,.14)}
-.set-nav__search input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);color:#1e293b}
+.set-nav{width:240px;flex:none;height:100%;display:flex;flex-direction:column;border-right:1px solid var(--border-subtle);background:var(--surface-card);font-family:var(--font-sans)}
+.set-nav__head{flex:none;display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) var(--space-3) var(--space-2)}
+.set-nav__top{display:flex;align-items:center;gap:var(--space-2);min-height:32px}
+.set-nav__title{flex:1;min-width:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.set-nav__back{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 8px;margin-left:-4px;align-self:flex-start;border-radius:var(--radius-lg);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body);text-decoration:none}
+.set-nav__back:hover{background:var(--surface-subtle);color:var(--text-heading)}
+.set-nav__iconbtn{width:28px;height:28px;flex:none;display:grid;place-items:center;border:0;border-radius:var(--radius-md);background:none;color:var(--text-muted);cursor:pointer}
+.set-nav__iconbtn:hover{background:var(--surface-subtle);color:var(--text-body)}
+.set-nav__search{display:flex;align-items:center;gap:var(--space-2);height:32px;padding:0 10px;border:1px solid var(--border-field);border-radius:var(--radius-lg);background:var(--surface-card);color:var(--text-muted)}
+.set-nav__search:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px var(--fill-primary-soft)}
+.set-nav__search input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;font:inherit;font-size:var(--text-sm);color:var(--text-heading)}
 .set-nav__search input::placeholder{color:var(--text-muted)}
-.set-nav__list{flex:1;min-height:0;overflow:auto;padding:0 10px 12px}
-.set-nav__group{display:flex;flex-direction:column;gap:1px;padding-bottom:10px}
-.set-nav__grouphead{display:flex;align-items:center;gap:5px;height:28px;padding:0 6px;border:0;background:none;font-family:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted);cursor:pointer}
-.set-nav__grouphead:hover{color:#475569}
+.set-nav__list{flex:1;min-height:0;overflow:auto;padding:0 var(--space-2) var(--space-3)}
+.set-nav__group{display:flex;flex-direction:column;gap:1px;padding-bottom:var(--space-2)}
+.set-nav__grouphead{display:flex;align-items:center;gap:4px;height:28px;padding:0 6px;border:0;background:none;font-family:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer}
+.set-nav__grouphead:hover{color:var(--text-body)}
 .set-nav__grouphead[aria-expanded="false"] svg{transform:rotate(-90deg)}
-.set-nav__item{display:flex;align-items:center;gap:9px;width:100%;height:36px;padding:0 9px;border:0;border-radius:var(--radius-lg);background:none;font-family:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-regular);letter-spacing:.005em;text-align:left;text-decoration:none;color:#475569;cursor:pointer}
-.set-nav__item:hover{background:#f1f5f9;color:#1e293b}
-.set-nav__item[aria-current="page"],.set-nav__item[aria-current="page"]:hover{background:rgba(0,48,135,.1);font-weight:var(--weight-medium);color:#003087}
+.set-nav__item{display:flex;align-items:center;gap:var(--space-2);width:100%;height:32px;padding:0 8px;border:0;border-radius:var(--radius-lg);background:none;font-family:inherit;font-size:var(--text-sm);font-weight:var(--weight-regular);text-align:left;text-decoration:none;color:var(--text-body);cursor:pointer}
+.set-nav__item>svg{flex:none;color:var(--text-muted)}
+.set-nav__item:hover{background:var(--surface-subtle);color:var(--text-heading)}
+.set-nav__item[aria-current="page"],.set-nav__item[aria-current="page"]:hover{background:var(--fill-primary-soft);font-weight:var(--weight-medium);color:var(--primary)}
+.set-nav__item[aria-current="page"]>svg{color:var(--primary)}
 .set-nav__name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.set-nav__dot{flex:none;width:7px;height:7px;border-radius:var(--radius-full)}
-.set-nav__dot--ok{background:#10b981}
-.set-nav__dot--warn{background:#ff9800}
-.set-nav__dot--off{border:1.5px solid #64748b}
-.set-nav__badge{flex:none;display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:var(--radius-full);background:rgba(255,152,0,.16);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-warning)}
-.set-nav__legend{flex:none;display:flex;flex-wrap:wrap;gap:4px 12px;padding:10px 14px;border-top:1px solid #e2e8f0;font-size:var(--text-xs);color:var(--text-muted)}
-.set-nav__legend span{display:inline-flex;align-items:center;gap:5px}
-.set-nav__empty{padding:8px 9px;font-size:var(--text-xs);color:var(--text-muted)}
-.set-nav a:focus-visible,.set-nav button:focus-visible{outline:3px solid var(--focus-ring,rgba(0,48,135,.5));outline-offset:-2px}
+.set-nav__dot{flex:none;width:6px;height:6px;border-radius:var(--radius-full)}
+.set-nav__dot--ok{background:var(--success,#10b981)}
+.set-nav__dot--warn{background:var(--warning,#ff9800)}
+.set-nav__dot--off{border:1.5px solid var(--text-muted)}
+.set-nav__badge{flex:none;display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:var(--radius-full);background:var(--fill-warning-soft);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-warning)}
+.set-nav__empty{padding:8px;font-size:var(--text-xs);color:var(--text-muted)}
+.set-nav__clear{border:0;background:none;padding:0;font:inherit;color:var(--text-link);text-decoration:underline;cursor:pointer}
+.set-nav a:focus-visible,.set-nav button:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
 .set-nav--collapsed{width:56px}
-.set-nav--collapsed .set-nav__head{padding:16px 12px 12px}
 .set-nav--collapsed .set-nav__hide{display:none}
-@media (max-width:1439px){.set-nav{width:248px}.set-nav--collapsed{width:56px}}
-@media (max-width:1279px){.set-nav{width:224px}.set-nav--collapsed{width:56px}}
+/* collapsed: the list keeps only its icons */
+@media (min-width:1024px){
+  .set-nav--collapsed .set-nav__head{padding:var(--space-3) 14px var(--space-2)}
+  .set-nav--collapsed .set-nav__list{padding:0 10px var(--space-3)}
+  .set-nav--collapsed .set-nav__grouphead,.set-nav--collapsed .set-nav__name,.set-nav--collapsed .set-nav__dot,.set-nav--collapsed .set-nav__badge{display:none}
+  .set-nav--collapsed .set-nav__item{justify-content:center;padding:0}
+}
+@media (max-width:1279px){.set-nav{width:220px}.set-nav--collapsed{width:56px}}
 /* below 1024px: one row of sections that scrolls sideways, pinned under the top bar */
 @media (max-width:1023px){
   .set-shell__nav{align-self:stretch;width:100%;height:auto;z-index:30}
-  .set-nav,.set-nav--collapsed{width:100%;height:auto;border-right:0;border-bottom:1px solid #e2e8f0}
-  .set-nav__head,.set-nav__legend,.set-nav__grouphead{display:none}
+  .set-nav,.set-nav--collapsed{width:100%;height:auto;border-right:0;border-bottom:1px solid var(--border-subtle)}
+  .set-nav__head,.set-nav__grouphead{display:none}
   .set-nav--collapsed .set-nav__list{display:flex}
   .set-nav__list{display:flex;align-items:center;gap:4px;overflow-x:auto;overflow-y:hidden;padding:8px 12px;scrollbar-width:thin}
   .set-nav__group{display:contents}
@@ -132,48 +148,42 @@ const CSS = `
 export default class SetRailScreen extends Component {
   render() {
     const v = this.renderVals() || {};
-    const dot = (it) => (it.dot === 'none' ? <span className="set-nav__dot" aria-hidden="true" /> : <span className={'set-nav__dot set-nav__dot--' + it.dot} role="img" aria-label={STATE[it.dot]} />);
+    const dot = (it) => (it.dot === 'none' ? null : <span className={'set-nav__dot set-nav__dot--' + it.dot} role="img" aria-label={STATE[it.dot]} title={STATE[it.dot]} />);
     const inner = (it) => (<>
-      {dot(it)}
+      <__Icon name={ICON[it.id] || 'settings'} width="16" height="16" aria-hidden="true" />
       <span className="set-nav__name">{it.name}</span>
-      {it.badge ? <span className="set-nav__badge" aria-label={it.badge + ' to fix'}>{it.badge}</span> : null}
+      {it.badge ? <span className="set-nav__badge" aria-label={it.badge + ' to fix'}>{it.badge}</span> : dot(it)}
     </>);
     const screen = (
       <div className="dc-screen ds" data-screen="SetRail">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <nav aria-label="Settings sections" className={'set-nav' + (v.collapsed ? ' set-nav--collapsed' : '')}>
           <div className="set-nav__head">
-            <__Link className="set-nav__back set-nav__hide" href="/merchant-overview"><__Icon name="arrow-left" strokeWidth="1.75" width="15" height="15" aria-hidden="true" />Back to dashboard</__Link>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span className="set-nav__hide" style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".015em", color: "#1e293b" }}>Settings</span>
-              <button type="button" className="set-nav__iconbtn" style={{ marginLeft: "auto" }} aria-label={v.collapsed ? 'Show the settings menu' : 'Hide the settings menu'} aria-expanded={!v.collapsed} aria-controls="set-nav-list" onClick={v.toggleNav}>
-                <__Icon name={v.collapsed ? 'panel-left-open' : 'panel-left-close'} strokeWidth="1.75" width="16" height="16" aria-hidden="true" />
+            <__Link className="set-nav__back set-nav__hide" href="/merchant-overview"><__Icon name="arrow-left" width="14" height="14" aria-hidden="true" />Back to dashboard</__Link>
+            <div className="set-nav__top">
+              <span className="set-nav__title set-nav__hide">Settings</span>
+              <button type="button" className="set-nav__iconbtn" aria-label={v.collapsed ? 'Show the settings menu' : 'Hide the settings menu'} aria-expanded={!v.collapsed} aria-controls="set-nav-list" onClick={v.toggleNav}>
+                <__Icon name={v.collapsed ? 'panel-left-open' : 'panel-left-close'} width="16" height="16" aria-hidden="true" />
               </button>
             </div>
             <label className="set-nav__search set-nav__hide">
-              <__Icon name="search" strokeWidth="1.75" width="16" height="16" aria-hidden="true" />
+              <__Icon name="search" width="16" height="16" aria-hidden="true" />
               <input type="search" value={v.q} onChange={v.setQ} placeholder="Search settings" aria-label="Search settings sections" />
             </label>
-            <span className="set-nav__hide" style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Type a section name, like “Payment”, “Storage” or “SEO”.</span>
           </div>
-          <div ref={v.scroller} id="set-nav-list" className="set-nav__list set-nav__hide">
+          <div ref={v.scroller} id="set-nav-list" className="set-nav__list">
             {__list(v.groups).map((g) => (
               <div key={g.label} className="set-nav__group">
-                <button type="button" className="set-nav__grouphead" aria-expanded={g.open} onClick={v.toggleGroup(g.label)}><__Icon name="chevron-down" strokeWidth="1.75" width="13" height="13" aria-hidden="true" />{g.label}<span style={{ marginLeft: "auto", letterSpacing: ".02em" }}>{g.count}</span></button>
+                <button type="button" className="set-nav__grouphead" aria-expanded={g.open} onClick={v.toggleGroup(g.label)}><__Icon name="chevron-down" width="12" height="12" aria-hidden="true" />{g.label}</button>
                 {g.open ? __list(g.items).map((it) => (it.href
-                  ? <__Link key={it.id} className="set-nav__item" href={it.href} aria-current={it.active ? 'page' : undefined}>{inner(it)}</__Link>
-                  : <button key={it.id} type="button" className="set-nav__item" aria-current={it.active ? 'page' : undefined} onClick={v.soon(it.name)}>{inner(it)}</button>
+                  ? <__Link key={it.id} className="set-nav__item" href={it.href} title={v.collapsed ? it.name : undefined} aria-current={it.active ? 'page' : undefined}>{inner(it)}</__Link>
+                  : <button key={it.id} type="button" className="set-nav__item" title={v.collapsed ? it.name : undefined} aria-current={it.active ? 'page' : undefined} onClick={v.soon(it.name)}>{inner(it)}</button>
                 )) : null}
               </div>
             ))}
             {v.groups.length ? null : (
-              <span className="set-nav__empty">No section matches “{v.q}”. <button type="button" onClick={v.clearQ} style={{ border: "0", background: "none", padding: "0", font: "inherit", color: "#003087", textDecoration: "underline", cursor: "pointer" }}>Clear search</button></span>
+              <span className="set-nav__empty">No section matches “{v.q}”. <button type="button" className="set-nav__clear" onClick={v.clearQ}>Clear search</button></span>
             )}
-          </div>
-          <div className="set-nav__legend set-nav__hide" aria-hidden="true">
-            <span><span className="set-nav__dot set-nav__dot--ok" />Configured</span>
-            <span><span className="set-nav__dot set-nav__dot--warn" />Needs setup</span>
-            <span><span className="set-nav__dot set-nav__dot--off" />Turned off</span>
           </div>
         </nav>
       </div>

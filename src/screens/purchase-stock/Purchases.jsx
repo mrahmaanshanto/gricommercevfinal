@@ -1,55 +1,52 @@
 'use client';
 // Purchases (/purchases) — everything bought from suppliers: direct purchases (New purchase, /buy-goods) and the bills
-// from received purchase orders. Summary tabs: All · To pay · Overdue · Paid. A row opens the purchase: items, payments,
-// what is left and when, and Pay. Data: src/lib/supplierBills.js (bills, payments). Text stays short.
+// from received purchase orders. Laid out like Shopify's index pages (components/ui/IndexKit.jsx): title row, what is
+// owed, then one card with the payment views (All · To pay · Overdue · Paid), search and a supplier filter, and a
+// compact table. A row opens the purchase in a side panel: items, payments, what is left and when, and Pay.
+// Data: src/lib/supplierBills.js (bills, payments). Text stays short.
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { PageHeader, Sheet, StatusBadge, EmptyState } from '@/components/ui';
+import { Sheet, StatusBadge, EmptyState } from '@/components/ui';
+import { ShopHeader, MetricStrip, IndexTabs, SearchField, LearnMore, KV } from '@/components/ui/IndexKit';
 import { formatBDT, formatDate } from '@/lib/format';
 import { getDb, billLeft, billStatus, BILL_TONE, supplierById, paySupplier, dayStart, daysFrom } from '@/lib/supplierBills';
 import { accountsForMethod, balanceOf, getEntries } from '@/lib/ledger';
 
-const TABS = [['all', 'All', 'var(--primary)'], ['open', 'To pay', 'var(--warning)'], ['overdue', 'Overdue', 'var(--error)'], ['paid', 'Paid', 'var(--success)']];
+const TABS = [['all', 'All'], ['open', 'To pay'], ['overdue', 'Overdue'], ['paid', 'Paid']];
 const METHODS = ['Cash', 'bKash', 'Nagad', 'Bank'];
 const money = (n) => formatBDT(Math.round(Number(n) || 0));
+const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many || one + 's');
 
 const CSS = `
-.pu-tools{display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center}
-.pu-tools .gc-input{max-width:340px}
-.pu-list{display:flex;flex-direction:column}
-.pu-row{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) auto auto;align-items:center;gap:var(--space-4);min-height:64px;padding:var(--space-2) var(--space-5);border:0;border-top:1px solid var(--border-subtle);background:none;font:inherit;text-align:left;color:inherit;cursor:pointer;width:100%;transition:background-color 150ms ease}
-.pu-row:first-child{border-top:0}
-@media (hover:hover) and (pointer:fine){.pu-row:hover{background:var(--surface-subtle)}.pu-row:hover b{color:var(--primary)}}
-.pu-main{display:flex;flex-direction:column;min-width:0}
-.pu-main b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pu-main small{font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pu-num{font-family:var(--font-data);font-size:var(--text-sm);text-align:right;white-space:nowrap;color:var(--text-heading)}
-.pu-num small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
-.pu-sum{display:grid;grid-template-columns:1fr auto;gap:6px var(--space-4);margin:0;font-size:var(--text-sm)}
-.pu-sum dt{color:var(--text-muted)}.pu-sum dd{margin:0;text-align:right;font-family:var(--font-data);color:var(--text-heading)}
-.pu-sum .is-total{font-weight:var(--weight-semibold);color:var(--primary)}
+.pu-id{font-family:var(--font-data)}
+.pu-idbtn{padding:0;border:0;background:none;font-size:inherit;cursor:pointer}
+.pu-sup{display:block;max-width:240px;overflow:hidden;text-overflow:ellipsis}
+.pu-pbtn{width:100%;border-top:0;border-left:0;border-right:0;background:none;font:inherit;text-align:left;cursor:pointer}
+.pu-sheet{display:flex;flex-direction:column;gap:var(--space-4)}
+.pu-meta{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);margin:0;font-size:var(--text-xs-plus);color:var(--text-muted)}
 .pu-lines{width:100%;border-collapse:collapse;font-size:var(--text-sm)}
-.pu-lines td{padding:var(--space-2) 0;border-top:1px solid var(--border-subtle)}
-.pu-lines td:last-child{text-align:right;font-family:var(--font-data)}
+.pu-lines td{padding:var(--space-2) 0;border-top:1px solid var(--border-subtle);vertical-align:top}
+.pu-lines td:last-child{text-align:right;font-family:var(--font-data);white-space:nowrap;padding-left:var(--space-3)}
+.pu-lines small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
+.pu-links{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.pu-pay{display:flex;flex-direction:column;gap:var(--space-3);padding-top:var(--space-3);border-top:1px solid var(--border-subtle)}
 .pu-methods{display:flex;flex-wrap:wrap;gap:var(--space-2)}
-.pu-methods button{height:40px;padding:0 var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-full);background:var(--surface-card);font:inherit;font-size:var(--text-sm);cursor:pointer}
+.pu-methods button{height:28px;padding:0 var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-full);background:var(--surface-card);font:inherit;font-size:var(--text-xs-plus);cursor:pointer}
 .pu-methods button[aria-pressed="true"]{border-color:var(--primary);background:var(--fill-primary-soft);color:var(--primary);font-weight:var(--weight-medium)}
-@media (max-width:640px){
-  .pu-row{grid-template-columns:minmax(0,1fr) auto;row-gap:4px;padding:var(--space-3) var(--space-4)}
-  .pu-row>:nth-child(2){grid-column:1;grid-row:2}
-  .pu-row>:nth-child(4){grid-column:2;grid-row:1 / span 2}
-  .pu-row>:nth-child(3){display:none}
-}
+.pu-acts{display:flex;gap:var(--space-2)}
+@media (max-width:640px){.pu-methods button{height:36px}}
 `;
 
 export default function Purchases() {
   const [db, setDb] = useState(null);
   const [tab, setTab] = useState('all');
   const [q, setQ] = useState('');
+  const [sup, setSup] = useState('');           // supplier filter (id)
+  const [find, setFind] = useState(false);      // search and filters open
   const [open, setOpen] = useState(null);       // bill no. in the side panel
   const [pay, setPay] = useState(null);         // { amount, method, account }
   useEffect(() => { setDb(getDb()); }, []);
@@ -59,15 +56,25 @@ export default function Purchases() {
     if (!db) return [];
     const today = dayStart();
     return db.bills.map((b) => {
-      const sup = supplierById(b.supplier, db.suppliers) || { name: b.supplier };
+      const s = supplierById(b.supplier, db.suppliers) || { id: b.supplier, name: b.supplier };
       const st = billStatus(b, today);
-      return { ...b, sup, st, left: billLeft(b), items: (b.lines || []).reduce((a, l) => a + (Number(l.qty) || 0), 0) };
+      return { ...b, sup: s, st, left: billLeft(b), items: (b.lines || []).reduce((a, l) => a + (Number(l.qty) || 0), 0) };
     }).sort((a, b) => b.at - a.at);
   }, [db]);
   const inTab = (r, t) => (t === 'all' ? true : t === 'paid' ? r.st === 'Paid' : t === 'overdue' ? r.st === 'Overdue' : r.left > 0);
   const query = q.trim().toLowerCase();
-  const shown = rows.filter((r) => inTab(r, tab) && (!query || [r.no, r.ref, r.sup.name, ...(r.lines || []).map((l) => l.name)].join(' ').toLowerCase().includes(query)));
+  const shown = rows.filter((r) => inTab(r, tab) && (!sup || r.sup.id === sup)
+    && (!query || [r.no, r.ref, r.sup.name, ...(r.lines || []).map((l) => l.name)].join(' ').toLowerCase().includes(query)));
+  const suppliers = [...new Map(rows.map((r) => [r.sup.id, r.sup.name])).entries()].sort((a, b) => a[1].localeCompare(b[1]));
   const sel = open ? rows.find((r) => r.no === open) : null;
+  const searching = find || !!q || !!sup;
+  const hasFilters = !!(q || sup);
+  const closeFind = () => { setFind(false); setQ(''); setSup(''); };
+  const clearFilters = () => { setQ(''); setSup(''); };
+  const openRow = (r) => { setOpen(r.no); setPay(null); };
+
+  const owed = rows.filter((r) => r.left > 0);
+  const late = rows.filter((r) => r.st === 'Overdue');
 
   const startPay = (r) => {
     const acc = accountsForMethod('Cash')[0];
@@ -89,42 +96,96 @@ export default function Purchases() {
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="gc-shell">
         <Sidebar sticky="" active="po-buy" />
-        <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
+        <main className="gc-shell__main">
           <Topbar crumb="Products & stock" page="Purchases" />
-          <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-            <PageHeader title="Purchases" description="What you bought and what you still owe."
-              actions={<Link href="/buy-goods" className="gc-btn gc-btn--solid"><Icon name="plus" width="18" height="18" aria-hidden="true" /> New purchase</Link>} />
-            {!db ? null : (<>
-              <div className="gc-stattabs" role="tablist" aria-label="Purchases by payment">
-                {TABS.map(([id, label, dot]) => {
-                  const list = rows.filter((r) => inTab(r, id));
-                  const sum = list.reduce((a, r) => a + (id === 'all' || id === 'paid' ? r.amount : r.left), 0);
-                  return (
-                    <button key={id} type="button" role="tab" aria-selected={tab === id} className="gc-stattab" onClick={() => setTab(id)}>
-                      <span className="gc-stattab__label"><i className="gc-stattab__dot" style={{ background: dot }} />{label}</span>
-                      <span className="gc-stattab__nums"><b>{list.length}</b><small>{money(sum)}{id === 'open' || id === 'overdue' ? ' due' : ''}</small></span>
-                    </button>
-                  );
-                })}
-              </div>
-              <section className="gc-card" style={{ overflow: 'hidden' }}>
-                <div className="pu-tools" style={{ padding: 'var(--space-4) var(--space-5)' }}>
-                  <input className="gc-input" type="search" placeholder="Search supplier, bill or product" aria-label="Search purchases" value={q} onChange={(e) => setQ(e.target.value)} />
-                </div>
-                {shown.length ? (
-                  <div className="pu-list">
-                    {shown.map((r) => (
-                      <button key={r.no} type="button" className="pu-row" onClick={() => { setOpen(r.no); setPay(null); }}>
-                        <span className="pu-main"><b>{r.sup.name}</b><small>{formatDate(r.at)} · {r.no}{r.ref && r.ref !== r.no ? ' · ' + r.ref : ''}{r.items ? ` · ${r.items} pcs` : ''}</small></span>
-                        <span className="pu-main"><small>{r.left > 0 ? `Due ${formatDate(r.due)}` : 'Paid'}{r.direct ? '' : r.po ? ' · ' + r.po : ''}</small></span>
-                        <span><StatusBadge tone={BILL_TONE[r.st]}>{r.st}</StatusBadge></span>
-                        <span className="pu-num">{money(r.amount)}{r.left > 0 ? <small>{money(r.left)} left</small> : null}</span>
-                      </button>
-                    ))}
+          <div className="gc-shell__content">
+            <div className="ix-page">
+              <ShopHeader icon="shopping-bag" title="Purchases"
+                about="What you bought and what you still owe."
+                more={[{ label: 'Suppliers & payables', href: '/suppliers' }]}
+                primary={{ label: 'New purchase', href: '/buy-goods' }} />
+
+              {db ? (<>
+                <MetricStrip label="What you owe" items={[
+                  { label: 'To pay', value: money(owed.reduce((a, r) => a + r.left, 0)), sub: plural(owed.length, 'bill') },
+                  { label: 'Overdue', value: money(late.reduce((a, r) => a + r.left, 0)), sub: plural(late.length, 'bill') },
+                  { label: 'Bought', value: money(rows.reduce((a, r) => a + (r.amount || 0), 0)), sub: plural(rows.length, 'purchase') },
+                ]} />
+
+                <section className="ix-card" aria-label="Purchases">
+                  <div className="ix-bar">
+                    {searching ? (<>
+                      <SearchField value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search supplier, bill or product" onDone={closeFind} autoFocus />
+                      <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={closeFind}>Cancel</button>
+                    </>) : (<>
+                      <IndexTabs label="Purchases by payment" tabs={TABS.map(([id, label]) => ({ key: id, id: 'pu-tab-' + id, label, count: rows.filter((r) => inTab(r, id)).length, on: tab === id, onClick: () => setTab(id) }))} />
+                      <span className="ix-tools">
+                        <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search and filter" onClick={() => setFind(true)}><Icon name="search" width="16" height="16" aria-hidden="true" /></button>
+                      </span>
+                    </>)}
                   </div>
-                ) : <div style={{ padding: '0 var(--space-5) var(--space-5)' }}><EmptyState icon="shopping-bag" title="No purchases here" body="Enter what you buy from suppliers." /></div>}
-              </section>
-            </>)}
+                  {searching ? (
+                    <div className="ix-filters" role="group" aria-label="Filters">
+                      <select aria-label="Supplier" className={'ix-filter' + (sup ? ' is-set' : '')} value={sup} onChange={(e) => setSup(e.target.value)}>
+                        <option value="">Supplier</option>
+                        {suppliers.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+                      </select>
+                      {hasFilters ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={clearFilters}>Clear all</button> : null}
+                    </div>
+                  ) : null}
+
+                  {shown.length ? (<>
+                    <ul className="ix-plist" aria-label="Purchases">
+                      {shown.map((r) => (
+                        <li key={r.no}>
+                          <button type="button" className="ix-pitem pu-pbtn" onClick={() => openRow(r)}>
+                            <span className="ix-pitem__top"><b>{r.sup.name}</b><span>{money(r.amount)}</span></span>
+                            <span className="ix-pitem__mid">{formatDate(r.at)} · {r.no}{r.left > 0 ? ' · ' + money(r.left) + ' left' : ''}</span>
+                            <span className="ix-pitem__tags"><StatusBadge tone={BILL_TONE[r.st]}>{r.st}</StatusBadge></span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="ix-table-wrap">
+                      <table className="ix-table gc-table--keep">
+                        <caption className="sr-only">Purchases</caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">Bill</th>
+                            <th scope="col">Date</th>
+                            <th scope="col">Supplier</th>
+                            <th scope="col">Status</th>
+                            <th scope="col" className="ix-num">Items</th>
+                            <th scope="col" className="ix-num">Total</th>
+                            <th scope="col" className="ix-num">Left to pay</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {shown.map((r) => (
+                            <tr key={r.no} onClick={(e) => { if (!e.target.closest('a,button')) openRow(r); }}>
+                              <td><button type="button" className="ix-strong pu-id pu-idbtn" onClick={() => openRow(r)}>{r.no}</button></td>
+                              <td className="ix-muted">{formatDate(r.at)}</td>
+                              <td><span className="pu-sup">{r.sup.name}</span></td>
+                              <td><StatusBadge tone={BILL_TONE[r.st]}>{r.st}</StatusBadge></td>
+                              <td className="ix-num ix-muted">{r.items || '—'}</td>
+                              <td className="ix-num">{money(r.amount)}</td>
+                              <td className={'ix-num' + (r.st === 'Overdue' ? ' ix-bad' : '')}>{r.left > 0 ? money(r.left) : '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>) : (
+                    <div className="ix-empty">
+                      <EmptyState icon="shopping-bag" title={hasFilters ? 'No purchase matches these filters' : 'No purchases here'}
+                        actionLabel={hasFilters ? 'Clear filters' : undefined} onAction={hasFilters ? clearFilters : undefined} />
+                    </div>
+                  )}
+                  <div className="ix-foot"><span>{plural(shown.length, 'purchase')}</span></div>
+                </section>
+                <LearnMore topic="purchases" />
+              </>) : null}
+            </div>
           </div>
         </main>
       </div>
@@ -132,28 +193,31 @@ export default function Purchases() {
       <Sheet open={!!sel} title={sel ? sel.sup.name : ''} onClose={() => { setOpen(null); setPay(null); }}
         footer={sel && sel.left > 0 && !pay ? <button type="button" className="gc-btn gc-btn--solid" onClick={() => startPay(sel)}>Pay</button> : null}>
         {sel ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-            <p className="gc-help" style={{ margin: 0 }}>{formatDate(sel.at)} · {sel.no}{sel.ref && sel.ref !== sel.no ? ' · ' + sel.ref : ''} · <StatusBadge tone={BILL_TONE[sel.st]}>{sel.st}</StatusBadge></p>
+          <div className="pu-sheet">
+            <p className="pu-meta"><span>{formatDate(sel.at)} · <span className="pu-id">{sel.no}</span>{sel.ref && sel.ref !== sel.no ? ' · ' + sel.ref : ''}</span><StatusBadge tone={BILL_TONE[sel.st]}>{sel.st}</StatusBadge></p>
             {(sel.lines || []).length ? (
-              <table className="pu-lines"><tbody>{sel.lines.map((l, i) => <tr key={i}><td>{l.name}<span className="gc-help" style={{ display: 'block', margin: 0 }}>{l.qty} × {money(l.cost)}</span></td><td>{money(l.qty * l.cost)}</td></tr>)}</tbody></table>
+              <table className="pu-lines"><tbody>{sel.lines.map((l, i) => <tr key={i}><td>{l.name}<small>{l.qty} × {money(l.cost)}</small></td><td>{money(l.qty * l.cost)}</td></tr>)}</tbody></table>
             ) : null}
-            <dl className="pu-sum">
-              {sel.extra ? <><dt>Transport & other</dt><dd>{money(sel.extra)}</dd></> : null}
-              {sel.discount ? <><dt>Discount</dt><dd>−{money(sel.discount)}</dd></> : null}
-              <dt>Total</dt><dd>{money(sel.amount)}</dd>
-              <dt>Paid</dt><dd>{money(sel.paid || 0)}</dd>
-              {sel.credited ? <><dt>Returned (credit)</dt><dd>{money(sel.credited)}</dd></> : null}
-              <dt className="is-total">{sel.left > 0 ? 'Left to pay' : 'Settled'}</dt><dd className="is-total">{money(sel.left)}</dd>
-              {sel.left > 0 ? <><dt>Pay by</dt><dd>{formatDate(sel.due)}{daysFrom(sel.due) < 0 ? ' · overdue' : ''}</dd></> : null}
-            </dl>
+            <KV rows={[
+              sel.extra ? ['Transport & other', money(sel.extra)] : null,
+              sel.discount ? ['Discount', '−' + money(sel.discount)] : null,
+              ['Total', money(sel.amount)],
+              ['Paid', money(sel.paid || 0)],
+              sel.credited ? ['Returned (credit)', money(sel.credited)] : null,
+              [sel.left > 0 ? 'Left to pay' : 'Settled', <b key="left" className="ix-strong">{money(sel.left)}</b>],
+              sel.left > 0 ? ['Pay by', formatDate(sel.due) + (daysFrom(sel.due) < 0 ? ' · overdue' : '')] : null,
+            ]} />
             {sel.direct && sel.returnable === false ? <p className="gc-help" style={{ margin: 0 }}>Supplier takes no returns on this purchase.</p> : null}
-            <Link href={'/supplier-detail?id=' + encodeURIComponent(sel.supplier)} className="gc-btn gc-btn--sm gc-btn--neutral" style={{ alignSelf: 'flex-start' }}>Supplier</Link>
+            <div className="pu-links">
+              <Link href={'/supplier-detail?id=' + encodeURIComponent(sel.supplier)} className="ix-btn ix-btn--sm">Supplier</Link>
+              {sel.po ? <Link href={'/po-detail?no=' + encodeURIComponent(sel.po)} className="ix-btn ix-btn--sm pu-id">{sel.po}</Link> : null}
+            </div>
             {pay ? (
-              <form onSubmit={doPay} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', paddingTop: 'var(--space-3)', borderTop: '1px solid var(--border-subtle)' }}>
+              <form onSubmit={doPay} className="pu-pay">
                 <div><label className="gc-label" htmlFor="pu-amt">Amount (৳)</label><input id="pu-amt" className="gc-input" type="number" inputMode="numeric" min="1" max={sel.left} value={pay.amount} onChange={(e) => setPay({ ...pay, amount: e.target.value })} /></div>
                 <div className="pu-methods" role="group" aria-label="Paid by">{METHODS.map((m) => <button key={m} type="button" aria-pressed={pay.method === m} onClick={() => { const a = accountsForMethod(m)[0]; setPay({ ...pay, method: m, account: a ? a.id : '' }); }}>{m}</button>)}</div>
                 {accounts.length > 1 ? <div><label className="gc-label" htmlFor="pu-acc">From</label><select id="pu-acc" className="gc-input gc-select" value={pay.account} onChange={(e) => setPay({ ...pay, account: e.target.value })}>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name} · {money(a.balance)}</option>)}</select></div> : null}
-                <div style={{ display: 'flex', gap: 'var(--space-2)' }}><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setPay(null)}>Cancel</button><button type="submit" className="gc-btn gc-btn--solid" disabled={!(Number(pay.amount) > 0 && Number(pay.amount) <= sel.left && pay.account)}>Save payment</button></div>
+                <div className="pu-acts"><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setPay(null)}>Cancel</button><button type="submit" className="gc-btn gc-btn--solid" disabled={!(Number(pay.amount) > 0 && Number(pay.amount) <= sel.left && pay.account)}>Save payment</button></div>
               </form>
             ) : null}
           </div>

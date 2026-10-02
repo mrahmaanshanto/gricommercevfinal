@@ -8,6 +8,8 @@
 // When the order was paid or part paid, the receive dialog also asks for the refund (default: the value
 // of what came back, never more than was paid and not yet refunded). A refund is kept on the history row
 // (money 'refunded', amount, method) and posted to the ledger; "No refund" is for COD not collected.
+// Laid out like Shopify's lists (components/ui/IndexKit.jsx): the list shows the order, date, customer, courier,
+// what is back and the state; phone, tracking ID, reason and items are in the receive dialog (the record).
 // Front end only: orders and receipts come from src/lib/orders.js.
 
 import React, { useEffect, useState } from 'react';
@@ -15,7 +17,8 @@ import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { Dialog, PageHeader, EmptyState } from '@/components/ui';
+import { Dialog, EmptyState, StatusBadge } from '@/components/ui';
+import { ShopHeader, MetricStrip, IndexTabs, SearchField, LearnMore } from '@/components/ui/IndexKit';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
 import { DAMAGED_PLACE } from '@/lib/locations';
 import { EMPLOYEES } from '@/lib/posStore';
@@ -25,37 +28,31 @@ import { postEntry, accountForMethod, accountBy } from '@/lib/ledger';
 
 const TABS = [['waiting', 'Still with courier'], ['done', 'Received'], ['all', 'All']];
 const STATE = { courier: ['With courier', 'warning'], partial: ['Partly received', 'info'], received: ['Received', 'success'] };
+const COURIERS = ['Steadfast', 'Pathao', 'Carrybee', 'RedX'];
 const pc = (n) => n + (n === 1 ? ' pc' : ' pcs');   // "1 pc", "3 pcs"
-const pcWord = (n) => (n === 1 ? 'pc' : 'pcs');
 const num = (v) => Math.max(0, Math.floor(Number(v) || 0));
+const digits = (t) => String(t || '').replace(/\D/g, '');
 const REFUND_METHODS = [['bKash', 'bKash'], ['Nagad', 'Nagad'], ['Cash', 'Cash'], ['Bank', 'Bank transfer'], ['none', 'No refund (COD not collected)']];
 /** What the customer paid on an order before it came back (0 for cash on delivery). */
 const paidOn = (o) => (o.paid != null ? o.paid : o.payment === 'Paid' || o.payment === 'Partial' ? o.amount : 0);
 
 const CSS = `
-.cr-card{overflow:hidden}
-.cr-card .gc-table th,.cr-card .gc-table td{padding-left:var(--space-3);padding-right:var(--space-3);white-space:normal}
-.cr-card .gc-table th:first-child,.cr-card .gc-table td:first-child{padding-left:var(--space-5)}
-.cr-card .gc-table th:last-child,.cr-card .gc-table td:last-child{padding-right:var(--space-5)}
-.cr-card .gc-badge,.cr-card .gc-btn,.cr-num{white-space:nowrap}
-.cr-bar{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--space-3);padding:0 var(--space-4)}
-.cr-tab b{margin-left:6px;font-weight:var(--weight-medium);color:var(--text-muted);font-variant-numeric:tabular-nums}
+.cr-id{font-family:var(--font-data)}
+.cr-pbtn{width:100%;border:0;background:none;font:inherit;text-align:left;cursor:pointer}
 .cr-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .cr-strong{font-weight:var(--weight-medium);color:var(--text-heading)}
-.cr-id{font-family:var(--font-data);font-weight:var(--weight-medium);color:var(--primary)}
 .cr-num{text-align:right;font-variant-numeric:tabular-nums}
-.cr-actions{display:flex;justify-content:flex-end}
 .cr-form{display:flex;flex-direction:column;gap:var(--space-4)}
 .cr-lines{width:100%;border-collapse:collapse;font-size:var(--text-sm)}
 .cr-lines th{padding:0 var(--space-2) var(--space-2) 0;border-bottom:1px solid var(--border-subtle);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted);text-align:left}
 .cr-lines td{padding:var(--space-2) var(--space-2) var(--space-2) 0;border-bottom:1px solid var(--border-subtle);vertical-align:middle}
 .cr-lines .cr-num{padding-right:var(--space-3)}
-.cr-qty{width:84px}
+.cr-qty{width:80px}
 .cr-err{color:var(--text-danger)}
 .cr-receipts{display:flex;flex-direction:column;gap:var(--space-2);margin:0;padding:0;list-style:none}
 .cr-receipts li{padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--surface-subtle);font-size:var(--text-sm);color:var(--text-body)}
 .cr-two{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
-.cr-refund{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-3) var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-subtle)}
+.cr-refund{display:flex;flex-direction:column;gap:var(--space-3);margin:0;padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-subtle)}
 .cr-refund h3{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
 @media (max-width:599px){.cr-two{grid-template-columns:1fr}.cr-qty{width:64px}}
 `;
@@ -63,6 +60,9 @@ const CSS = `
 export default function CourierReturns() {
   const [all, setAll] = useState([]);
   const [tab, setTab] = useState('waiting');
+  const [find, setFind] = useState(false);
+  const [q, setQ] = useState('');
+  const [courier, setCourier] = useState('');
   const [form, setForm] = useState(null);   // { id, rows: { [name]: { good, damaged } }, by }
 
   const openFor = (o) => setForm({ id: o.id, by: EMPLOYEES[0].name, rows: Object.fromEntries(o.lines.map((l) => [l.name, { good: '', damaged: '' }])), refund: null, method: 'bKash' });
@@ -76,8 +76,12 @@ export default function CourierReturns() {
 
   const rows = courierReturns(all).map((o) => ({ o, s: rtoState(o) }));
   const groups = { waiting: rows.filter((r) => r.s.left > 0), done: rows.filter((r) => r.s.left === 0), all: rows };
-  const shown = groups[tab];
+  const needle = q.trim().toLowerCase();
+  const shown = groups[tab].filter(({ o }) => (!courier || o.courier === courier)
+    && (!needle || [o.id, o.customer, o.phone, o.consignment].join(' ').toLowerCase().includes(needle) || (digits(needle).length > 2 && digits(o.id + ' ' + o.phone).includes(digits(needle)))));
   const pcs = (list, k) => list.reduce((a, r) => a + r.s[k], 0);
+  const searching = find || !!q || !!courier;
+  const closeFind = () => { setFind(false); setQ(''); setCourier(''); };
 
   const cur = form ? rows.find((r) => r.o.id === form.id) : null;
   const setRow = (name, k, value) => setForm({ ...form, rows: { ...form.rows, [name]: { ...form.rows[name], [k]: value } } });
@@ -123,57 +127,87 @@ export default function CourierReturns() {
     setAll(getOrders());
   };
 
+  const tabs = TABS.map(([id, label]) => ({ key: id, id: 'cr-tab-' + id, label, count: groups[id].length, on: tab === id, onClick: () => setTab(id) }));
+  const backOf = (s) => `${s.good + s.damaged} of ${s.sent}`;
+
   return (
     <div className="dc-screen ds" data-screen="CourierReturns">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="gc-shell">
         <Sidebar sticky="" active="orders-rto" />
-        <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
+        <main className="gc-shell__main">
           <Topbar crumb="Orders" page="Courier returns" />
-          <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-            <PageHeader
-              title="Courier returns"
-              about="Parcels the courier brings back. Count what arrived, good or damaged. Good items go back on sale, damaged ones are set aside."
-              actions={<>
-                <Link href="/merchant-orders?status=returned" className="gc-btn gc-btn--neutral"><Icon name="inbox" width="18" height="18" aria-hidden="true" /> Returned orders</Link>
-                <Link href="/return-history" className="gc-btn gc-btn--neutral"><Icon name="history" width="18" height="18" aria-hidden="true" /> Returns history</Link>
-              </>}
-            />
+          <div className="gc-shell__content">
+            <div className="ix-page">
+              <ShopHeader icon="undo-2" title="Courier returns"
+                about="Parcels the courier brings back. Count what arrived, good or damaged. Good items go back on sale, damaged ones are set aside."
+                more={[{ label: 'Returned orders', href: '/merchant-orders?status=returned' }, { label: 'Returns history', href: '/return-history' }]} />
 
-            <div className="gc-kpis">
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-warning-soft)', color: 'var(--text-warning)' }}><Icon name="truck" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Still with courier</p><p className="gc-kpi__value">{groups.waiting.length}<small>parcels · {pc(pcs(rows, 'left'))}</small></p></div></div>
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="package-check" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Back on sale</p><p className="gc-kpi__value">{pcs(rows, 'good')}<small>{pcWord(pcs(rows, 'good'))} received good</small></p></div></div>
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-error-soft)', color: 'var(--text-danger)' }}><Icon name="package-x" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Damaged</p><p className="gc-kpi__value">{pcs(rows, 'damaged')}<small>{pcWord(pcs(rows, 'damaged'))} at {DAMAGED_PLACE}</small></p></div></div>
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="undo-2" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Returned orders</p><p className="gc-kpi__value">{rows.length}<small>{groups.done.length} fully received</small></p></div></div>
+              <MetricStrip label="Courier returns" items={[
+                { label: 'With courier', value: pc(pcs(rows, 'left')) },
+                { label: 'Back on sale', value: pc(pcs(rows, 'good')) },
+                { label: 'Damaged', value: pc(pcs(rows, 'damaged')), sub: DAMAGED_PLACE },
+              ]} />
+
+              <section className="ix-card" aria-label="Courier returns">
+                <div className="ix-bar">
+                  {searching ? (<>
+                    <SearchField value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search order, customer, phone or tracking ID" onDone={closeFind} autoFocus />
+                    <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={closeFind}>Cancel</button>
+                  </>) : (<>
+                    <IndexTabs tabs={tabs} label="Courier returns" />
+                    <span className="ix-tools">
+                      <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search and filter" onClick={() => setFind(true)}><Icon name="search" width="16" height="16" aria-hidden="true" /></button>
+                    </span>
+                  </>)}
+                </div>
+                {searching ? (
+                  <div className="ix-filters" role="group" aria-label="Filters">
+                    <select aria-label="Courier" className={'ix-filter' + (courier ? ' is-set' : '')} value={courier} onChange={(e) => setCourier(e.target.value)}>
+                      <option value="">Courier</option>{COURIERS.map((c) => <option key={c}>{c}</option>)}
+                    </select>
+                    {q || courier ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => { setQ(''); setCourier(''); }}>Clear all</button> : null}
+                  </div>
+                ) : null}
+
+                {shown.length === 0 ? (
+                  <div className="ix-empty"><EmptyState icon="package-check" title={q || courier ? 'No returns match these filters' : tab === 'waiting' ? 'No parcels with couriers' : 'Nothing here yet'} /></div>
+                ) : (<>
+                  <ul className="ix-plist" aria-label="Courier returns">
+                    {shown.map(({ o, s }) => (
+                      <li key={o.id}>
+                        <button type="button" className="ix-pitem cr-pbtn" onClick={() => openFor(o)}>
+                          <span className="ix-pitem__top"><b className="cr-id">{o.id}</b><span>{backOf(s)} back</span></span>
+                          <span className="ix-pitem__mid">{o.customer} · {o.courier}</span>
+                          <span className="ix-pitem__tags"><StatusBadge tone={STATE[s.status][1]}>{STATE[s.status][0]}</StatusBadge></span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="ix-table-wrap">
+                    <table className="ix-table gc-table--keep">
+                      <caption className="sr-only">Courier returns, {shown.length} shown</caption>
+                      <thead><tr><th scope="col">Order</th><th scope="col">Date</th><th scope="col">Customer</th><th scope="col">Courier</th><th scope="col" className="ix-num">Back</th><th scope="col">Status</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
+                      <tbody>
+                        {shown.map(({ o, s }) => (
+                          <tr key={o.id} onClick={(e) => { if (!e.target.closest('a,button')) openFor(o); }}>
+                            <td><Link href={orderHref(o.id)} className="ix-strong cr-id">{o.id}</Link></td>
+                            <td className="ix-muted">{o.placed}</td>
+                            <td>{o.customer}</td>
+                            <td className="ix-muted">{o.courier}</td>
+                            <td className="ix-num">{backOf(s)}</td>
+                            <td><StatusBadge tone={STATE[s.status][1]}>{STATE[s.status][0]}</StatusBadge></td>
+                            <td className="ix-num">{s.left ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => openFor(o)} aria-label={'Receive the parcel for ' + o.id}>Receive</button> : null}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>)}
+                <div className="ix-foot"><span>{shown.length === 1 ? '1 return' : shown.length + ' returns'}</span></div>
+              </section>
+              <LearnMore topic="courier returns" />
             </div>
-
-            <section className="gc-card cr-card">
-              <div className="cr-bar">
-                <div className="gc-tabs" role="tablist" aria-label="Courier returns" style={{ borderBottom: 0, overflow: 'visible', flexWrap: 'wrap' }}>
-                  {TABS.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={tab === id} className={'gc-tab cr-tab' + (tab === id ? ' gc-tab--active' : '')} onClick={() => setTab(id)}>{label}<b>{groups[id].length}</b></button>)}
-                </div>
-              </div>
-              {shown.length === 0 ? <EmptyState icon="package-check" title={tab === 'waiting' ? 'No parcels with couriers' : 'Nothing here yet'} /> : (
-                <div className="gc-table-wrap">
-                  <table className="gc-table gc-table--compact gc-table--hoverable">
-                    <thead><tr><th scope="col">Order</th><th scope="col">Customer</th><th scope="col">Courier</th><th scope="col">Items</th><th scope="col" className="cr-num">Back</th><th scope="col">Status</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
-                    <tbody>
-                      {shown.map(({ o, s }) => (
-                        <tr key={o.id}>
-                          <td><Link href={orderHref(o.id)} className="cr-id">{o.id}</Link><span className="cr-sub">{o.placed}</span></td>
-                          <td><span className="cr-strong">{o.customer}</span><span className="cr-sub">{o.phone} · {o.zone}</span></td>
-                          <td>{o.courier}<span className="cr-sub">{o.consignment !== '—' ? o.consignment : 'No tracking ID'}{o.rtoReason ? ' · ' + o.rtoReason : ''}</span></td>
-                          <td>{s.lines.map((l) => `${l.name} × ${l.qty}`).join(', ')}</td>
-                          <td className="cr-num"><span className="cr-strong">{s.good + s.damaged} of {s.sent}</span>{s.good + s.damaged ? <span className="cr-sub">{s.good} good · {s.damaged} damaged</span> : null}</td>
-                          <td><span className={'gc-badge gc-badge--' + STATE[s.status][1]}>{STATE[s.status][0]}</span>{s.left ? <span className="cr-sub">{pc(s.left)} still with courier</span> : null}</td>
-                          <td><div className="cr-actions"><button type="button" className={'gc-btn gc-btn--sm ' + (s.left ? 'gc-btn--solid' : 'gc-btn--neutral')} onClick={() => openFor(o)} aria-label={(s.left ? 'Receive the parcel for ' : 'See what came back for ') + o.id}>{s.left ? 'Receive' : 'View'}</button></div></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </section>
           </div>
         </main>
       </div>
@@ -181,7 +215,7 @@ export default function CourierReturns() {
       <Dialog open={!!cur} title={cur ? `Courier return · ${cur.o.id}` : 'Courier return'} onClose={() => setForm(null)} width={640}>
         {cur ? (
           <form className="cr-form" onSubmit={save} noValidate>
-            <p className="cr-sub" style={{ margin: 0 }}>{cur.o.customer} · {cur.o.courier} {cur.o.consignment !== '—' ? cur.o.consignment : ''} · good items go back to {holdPlaceOf(cur.o.id)}, damaged ones to {DAMAGED_PLACE}.</p>
+            <p className="cr-sub" style={{ margin: 0 }}>{cur.o.customer} · {cur.o.phone} · {cur.o.courier} {cur.o.consignment !== '—' ? cur.o.consignment : 'No tracking ID'}{cur.o.rtoReason ? ' · ' + cur.o.rtoReason : ''} · good items go back to {holdPlaceOf(cur.o.id)}, damaged ones to {DAMAGED_PLACE}.</p>
             {cur.s.left ? (
               <>
                 <table className="cr-lines">
@@ -203,7 +237,7 @@ export default function CourierReturns() {
                   <div style={{ alignSelf: 'end' }}><button type="button" className="gc-btn gc-btn--soft gc-btn--block" onClick={allGood}>Everything arrived in good condition</button></div>
                 </div>
                 {asksRefund ? (
-                  <fieldset className="cr-refund" style={{ margin: 0 }}>
+                  <fieldset className="cr-refund">
                     <legend className="sr-only">Refund to the customer</legend>
                     <div><h3>Refund to the customer</h3><span className="cr-sub">{cur.o.customer} paid {formatBDT(paid)} ({cur.o.payment}){refundedBefore ? ` · ${formatBDT(refundedBefore)} already refunded` : ''} · up to {formatBDT(canRefund)} can go back</span></div>
                     <div className="cr-two">

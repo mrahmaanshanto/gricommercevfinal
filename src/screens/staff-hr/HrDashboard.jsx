@@ -1,70 +1,60 @@
 'use client';
-// HR dashboard — the first screen for the owner or HR (UI/UX audit 2 Oct 2026: show a fact once, summarise before
-// listing, details in a drawer). Date and four attendance counters · Needs attention (grouped, top five, View all) ·
-// On duty now (one coverage row per place; Shift details drawer; hidden when no shift is scheduled) · Approvals (short
-// rows, Review opens HrReview) · Payroll status · the next three dates. History, charts and headcount live on their pages.
-// Data: src/lib/hr.js.
+// HR dashboard — the first screen for the owner or HR, laid out like Home (docs/shopify-style.md): the day's key
+// figures (attendance today and the open payroll), what needs you as short pills (top five, grouped; View all opens
+// the full list), then the work: approvals (Review opens HrReview), who is on duty per place (Shift details drawer)
+// and the next three dates. History, charts and headcount live on their pages. Data: src/lib/hr.js.
 
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
-import { toast } from '@/runtime/ui';
 import { formatDate, formatTime } from '@/lib/format';
 import { Sheet } from '@/components/ui';
+import { MetricStrip } from '@/components/ui/IndexKit';
 import { fromKey } from '@/lib/settlements';
 import {
-  todayKey, cellOf, staffBy, leaveType, leaveDaysOf, leaveWarnings, decideLeave, decideFix, t12, dayLabel, WEEKDAYS, dowOf,
-  runTotal, runStatusLabel, payDateOf, monthLabel, RUN_STEPS, shiftBy, addDays, HR_PLACES, toMin, coverageOf, isClosedDay,
-  punchesOn, profileIssues, loanLeft, gratuityOf, changePct, CHANGE_KINDS, enrolmentOf, hm,
+  todayKey, cellOf, staffBy, leaveType, t12, WEEKDAYS, dowOf, runTotal, runStatusLabel, payDateOf, shiftBy, addDays, HR_PLACES, toMin,
+  coverageOf, isClosedDay, profileIssues, changePct, CHANGE_KINDS, enrolmentOf,
 } from '@/lib/hr';
 import { HrPage, useHr, Avatar, money, profileHref } from './hrShared';
 import { HrReview, reviewRow } from './HrReview';
 
 const CSS = `
-.hd-counts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:var(--space-3);align-items:stretch}
-.hd-count{display:flex;flex-direction:column;gap:2px;padding:var(--space-3) var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card);text-decoration:none;color:inherit;min-width:0}
-.hd-count:hover{border-color:var(--border-strong)}
-.hd-count span{display:flex;align-items:center;gap:6px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
-.hd-count b{font-family:var(--font-data);font-size:var(--text-xl);font-weight:var(--weight-semibold);color:var(--text-heading);font-variant-numeric:tabular-nums}
-.hd-count small{font-size:var(--text-xs);color:var(--text-muted)}
-.hd-counts > a.hr-link{align-self:center;white-space:nowrap}
-.hd-main{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,360px);gap:var(--space-5);align-items:start}
-.hd-col{display:flex;flex-direction:column;gap:var(--space-5);min-width:0}
+.hd-todo{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.hd-todo a,.hd-todo button{display:inline-flex;align-items:center;gap:var(--space-2);height:32px;padding:0 5px 0 12px;border:1px solid var(--border-subtle);border-radius:var(--radius-full);background:var(--surface-card);box-shadow:var(--shadow-xs);font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);text-decoration:none;white-space:nowrap;cursor:pointer;transition:var(--transition-colors)}
+.hd-todo a:not(:has(b)),.hd-todo button:not(:has(b)){padding-right:12px}
+.hd-todo a:hover,.hd-todo button:hover{border-color:var(--primary);color:var(--primary)}
+.hd-todo a>span{max-width:340px;overflow:hidden;text-overflow:ellipsis}
+.hd-todo i{width:6px;height:6px;flex:none;border-radius:var(--radius-full);background:var(--text-warning)}
+.hd-todo .is-error i{background:var(--text-danger)}
+.hd-todo .is-info i{background:var(--text-info)}
+.hd-todo b{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:var(--radius-full);background:var(--surface-subtle);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.hd-done{display:inline-flex;align-items:center;gap:var(--space-2);margin:0;font-size:var(--text-sm);color:var(--text-success)}
+.hd-cards{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:var(--space-4);align-items:start}
+.hd-col{display:flex;flex-direction:column;gap:var(--space-4);min-width:0}
 .hd-rows{display:flex;flex-direction:column}
-.hd-row{display:flex;align-items:center;gap:var(--space-3);min-height:60px;padding:var(--space-2) var(--space-5);border:0;border-top:1px solid var(--border-subtle);background:none;font:inherit;text-align:left;color:inherit;text-decoration:none;width:100%;cursor:pointer}
+.hd-row{display:flex;align-items:center;gap:var(--space-3);width:100%;min-height:44px;padding:6px var(--space-4);border:0;border-top:1px solid var(--border-subtle);background:none;font:inherit;text-align:left;color:inherit;text-decoration:none;cursor:pointer}
+.hd-rows>.hd-row:first-child{border-top:0}
 .hd-row:hover{background:var(--surface-subtle)}
-.hd-row__icon{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:var(--radius-lg)}
-.hd-row__text{display:flex;flex-direction:column;min-width:0;flex:1}
-.hd-row__text b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hd-row__text small{font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hd-row__text{display:flex;flex-direction:column;flex:1;min-width:0}
+.hd-row__text b{overflow:hidden;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);text-overflow:ellipsis;white-space:nowrap}
+.hd-row__text small{overflow:hidden;font-size:var(--text-xs);color:var(--text-muted);text-overflow:ellipsis;white-space:nowrap}
 .hd-row__go{flex:none;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-link)}
-.hd-more{display:block;padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-link);background:none;border-left:0;border-right:0;border-bottom:0;width:100%;text-align:left;cursor:pointer}
-.tone-error{background:var(--fill-error-soft);color:var(--text-danger)}
-.tone-warn{background:var(--fill-warning-soft);color:var(--text-warning)}
-.tone-info{background:var(--fill-info-soft);color:var(--text-info)}
-.tone-ok{background:var(--fill-success-soft);color:var(--text-success)}
-.tone-primary{background:var(--fill-primary-soft);color:var(--primary)}
-.hd-box{padding:var(--space-4) var(--space-5);display:flex;flex-direction:column;gap:var(--space-3)}
-.hd-box h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.hd-big{font-family:var(--font-data);font-size:var(--text-2xl);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.hd-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
-.hd-steps div{display:flex;flex-direction:column;gap:4px;font-size:var(--text-2xs);color:var(--text-muted);min-width:0}
-.hd-steps i{height:6px;border-radius:var(--radius-full);background:var(--slate-200)}
-.hd-up{display:flex;align-items:center;gap:var(--space-3);text-decoration:none;color:inherit}
-.hd-date{flex:none;width:44px;text-align:center;border-radius:var(--radius-lg);background:var(--surface-subtle);padding:4px 0}
-.hd-date b{display:block;font-size:var(--text-base);font-weight:var(--weight-semibold);color:var(--text-heading);line-height:1.1}
-.hd-date span{font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase}
 .hd-cov{flex:none;font-family:var(--font-data);font-size:var(--text-sm);font-weight:var(--weight-semibold)}
+.hd-up{display:flex;align-items:center;gap:var(--space-3);min-height:44px;padding:6px var(--space-4);border-top:1px solid var(--border-subtle);text-decoration:none;color:inherit}
+.hd-rows>.hd-up:first-child{border-top:0}
+a.hd-up:hover{background:var(--surface-subtle)}
+.hd-date{flex:none;width:36px;padding:2px 0;border-radius:var(--radius-md);background:var(--surface-subtle);text-align:center}
+.hd-date b{display:block;font-size:var(--text-sm);font-weight:var(--weight-semibold);line-height:1.2;color:var(--text-heading)}
+.hd-date span{font-size:var(--text-2xs);color:var(--text-muted)}
 .hd-people{display:flex;flex-direction:column}
-.hd-person{display:flex;align-items:center;gap:var(--space-3);min-height:52px;border-top:1px solid var(--border-subtle);text-decoration:none;color:inherit}
+.hd-person{display:flex;align-items:center;gap:var(--space-3);min-height:44px;border-top:1px solid var(--border-subtle);text-decoration:none;color:inherit}
 .hd-person:first-child{border-top:0}
-.hd-person span{display:flex;flex-direction:column;min-width:0;flex:1}
+.hd-person span{display:flex;flex-direction:column;flex:1;min-width:0}
 .hd-person b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 .hd-person small{font-size:var(--text-xs);color:var(--text-muted)}
-.hd-sheet h3{margin:var(--space-2) 0;font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-muted);text-transform:uppercase;letter-spacing:var(--tracking-wide)}
-@media (max-width:1180px){.hd-main{grid-template-columns:minmax(0,1fr)}}
-@media (max-width:767px){.hd-counts{grid-template-columns:repeat(2,minmax(0,1fr))}.hd-counts > a.hr-link{grid-column:1 / -1;justify-self:start}}
-@media (max-width:640px){.hd-row{padding:var(--space-2) var(--space-4)}.hd-box{padding:var(--space-4)}.hd-more{padding:var(--space-3) var(--space-4)}}
+.hd-sheet h3{margin:var(--space-3) 0 var(--space-1);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-muted)}
+@media (max-width:1023px){.hd-cards{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){.hd-todo a>span{max-width:240px}}
 `;
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const WORKED = ['P', 'L', 'HD'];
@@ -76,6 +66,7 @@ export default function HrDashboard() {
   const { S, ready } = useHr();
   const [review, setReview] = useState(null);   // { kind, id } for HrReview
   const [allNeeds, setAllNeeds] = useState(false);
+  const [allApprovals, setAllApprovals] = useState(false);
   const [shiftOf, setShiftOf] = useState(null);  // place in the Shift details drawer
   const today = todayKey(S);
   const nowMin = new Date(S.now).getHours() * 60 + new Date(S.now).getMinutes();
@@ -171,46 +162,66 @@ export default function HrDashboard() {
     return out.filter(([k]) => k >= today && k <= end).sort((a, b) => a[0].localeCompare(b[0])).slice(0, 3);
   }, [S, staff, today]);
 
-  const step = run ? (run.status === 'paid' ? 6 : run.step || 1) : 0;
   const shown = needs.slice(0, 5);
   const needRow = (n, i) => (
     <Link key={i} href={n.href} className="hd-row">
-      <span className={'hd-row__icon tone-' + n.tone}><Icon name={n.icon} width="16" height="16" aria-hidden="true" /></span>
-      <span className="hd-row__text"><b>{n.t}</b>{n.s ? <small>{n.s}</small> : null}</span>
+      <span className="hd-row__text"><b className={n.tone === 'error' ? 'hr-out' : ''}>{n.t}</b>{n.s ? <small>{n.s}</small> : null}</span>
       <Icon name="chevron-right" width="16" height="16" aria-hidden="true" style={{ color: 'var(--text-muted)', flex: 'none' }} />
     </Link>
   );
+  // a pill: grouped problems carry their count ("Missing punch-outs 3"); a single one reads as it is
+  const pill = (n, i) => {
+    const label = n.n ? n.gl.charAt(0).toUpperCase() + n.gl.slice(1) : n.t;
+    return <Link key={i} href={n.href} className={'is-' + n.tone} title={n.s || undefined}><i aria-hidden="true" /><span>{label}</span>{n.n ? <b>{n.n}</b> : null}</Link>;
+  };
+  const approvalRow = (a) => {
+    const inner = <><span className="hd-row__text"><b>{a.title}</b><small className={a.warn ? 'hr-warn' : ''}>{a.sub}</small></span><span className="hd-row__go">Review</span></>;
+    return a.href ? <Link key={a.id} href={a.href} className="hd-row">{inner}</Link>
+      : <button key={a.id} type="button" className="hd-row" onClick={() => { setAllApprovals(false); setReview({ kind: a.kind, id: a.id }); }}>{inner}</button>;
+  };
   const offWhy = (c) => (c.code === 'S' ? 'Suspended' : c.code === 'W' ? 'Weekly off' : c.code === 'H' ? 'Holiday' : `${leaveType(S, (c.plan.leave || {}).type).name} leave`);
+  const runStatus = run ? runStatusLabel(run) : '';
 
   return (
-    <HrPage screen="HrDashboard" active="hr-home" page="HR dashboard" title="HR dashboard" css={CSS}
-      description={`${WEEKDAYS[dowOf(today)]}, ${formatDate(fromKey(today))}`}
-      actions={<Link href="/staff-create" className="gc-btn gc-btn--solid"><Icon name="user-plus" width="18" height="18" aria-hidden="true" /> Add staff</Link>}>
-      <div className="hd-counts" aria-label="Attendance today">
-        <Link href="/attendance" className="hd-count"><span>Present</span><b style={{ color: 'var(--text-success)' }}>{present}</b><small>of {expected.length}{late.length ? ` · ${late.length} late` : ''}</small></Link>
-        <Link href="/attendance" className="hd-count"><span>Not in yet</span><b>{notIn.length}</b><small>{notIn.length ? 'shift not started or no punch' : 'everyone is in'}</small></Link>
-        <Link href="/leave" className="hd-count"><span>On leave</span><b>{onLeave.length}</b><small>today</small></Link>
-        <Link href="/attendance" className="hd-count"><span>Absent</span><b style={{ color: absent.length ? 'var(--text-danger)' : undefined }}>{absent.length}</b><small>no leave</small></Link>
-        <Link href="/attendance" className="hr-link">View attendance</Link>
-      </div>
+    <HrPage screen="HrDashboard" active="hr-home" page="HR dashboard" title="HR dashboard" css={CSS} narrow
+      meta={`${WEEKDAYS[dowOf(today)]}, ${formatDate(fromKey(today))}`}
+      about="Today at a glance: who is in, what needs you, requests to decide and the next dates. Tap a figure or a task to open its page."
+      more={[{ label: 'Attendance', href: '/attendance' }, { label: 'Shifts & roster', href: '/shifts' }, { label: 'Leave', href: '/leave' }, { label: 'Payroll', href: '/payroll' }]}
+      primary={{ label: 'Add staff', href: '/staff-create' }}>
+      <MetricStrip label="Attendance today" items={[
+        { label: 'Present', value: String(present), sub: `of ${expected.length}${late.length ? ` · ${late.length} late` : ''}`, href: '/attendance' },
+        { label: 'Not in yet', value: String(notIn.length), href: '/attendance' },
+        { label: 'On leave', value: String(onLeave.length), href: '/leave?tab=cal' },
+        { label: 'Absent', value: String(absent.length), sub: absent.length ? 'no leave' : null, href: '/attendance' },
+        run ? { label: `${run.title} payroll`, value: money(total), sub: runStatus, href: '/payroll' } : null,
+      ]} />
 
-      <div className="hd-main">
+      <section aria-label="Needs attention">
+        {shown.length ? (
+          <nav className="hd-todo" aria-label="Needs attention">
+            {shown.map(pill)}
+            {needs.length > 5 ? <button type="button" onClick={() => setAllNeeds(true)}>View all<b>{needCount}</b></button> : null}
+          </nav>
+        ) : <p className="hd-done"><Icon name="circle-check" width="16" height="16" aria-hidden="true" />Nothing needs you right now.</p>}
+      </section>
+
+      <div className="hd-cards">
         <div className="hd-col">
-          <section className="gc-card hr-card" aria-labelledby="hd-needs">
-            <div className="hr-head"><h2 id="hd-needs">Needs attention</h2><span className={'gc-badge gc-badge--' + (needCount ? 'warning' : 'success')}>{needCount}</span></div>
-            {shown.length ? <div className="hd-rows">{shown.map(needRow)}</div> : <p className="hr-sub" style={{ margin: 0, padding: '0 var(--space-5) var(--space-5)' }}>Nothing needs you right now.</p>}
-            {needs.length > 5 ? <button type="button" className="hd-more" onClick={() => setAllNeeds(true)}>View all {needCount}</button> : null}
+          <section className="ix-card" aria-labelledby="hd-approvals">
+            <header className="ix-card__head"><h2 id="hd-approvals">Approvals</h2>{approvals.length > 5 ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => setAllApprovals(true)}>View all</button> : null}</header>
+            {approvals.length ? <div className="hd-rows" style={{ paddingTop: 'var(--space-2)' }}>{approvals.slice(0, 5).map(approvalRow)}</div> : <p className="hr-empty">Nothing waiting.</p>}
           </section>
+        </div>
 
+        <div className="hd-col">
           {onDuty.length ? (
-            <section className="gc-card hr-card" aria-labelledby="hd-duty">
-              <div className="hr-head"><h2 id="hd-duty">On duty now</h2><Link href="/shifts" className="hr-link">Shifts & roster</Link></div>
-              <div className="hd-rows">
+            <section className="ix-card" aria-labelledby="hd-duty">
+              <header className="ix-card__head"><h2 id="hd-duty">On duty now</h2><Link href="/shifts">Roster</Link></header>
+              <div className="hd-rows" style={{ paddingTop: 'var(--space-2)' }}>
                 {onDuty.map((d) => {
                   const short = d.need && d.inside.length < d.need;
                   return (
                     <button key={d.place} type="button" className="hd-row" onClick={() => setShiftOf(d.place)} aria-label={`${d.place}: ${d.inside.length} of ${d.planned.length} in. Shift details`}>
-                      <span className={'hd-row__icon ' + (short ? 'tone-warn' : 'tone-ok')}><Icon name="store" width="16" height="16" aria-hidden="true" /></span>
                       <span className="hd-row__text"><b>{d.place}</b><small>{d.shifts.map((sh) => `${sh.name} ${t12(sh.start)}–${t12(sh.end)}`).join(' · ')}</small></span>
                       <span className={'hd-cov ' + (short ? 'hr-warn' : 'hr-in')}>{d.inside.length}/{d.planned.length}{short ? ` · need ${d.need}` : ''}</span>
                     </button>
@@ -220,43 +231,27 @@ export default function HrDashboard() {
             </section>
           ) : null}
 
-          <section className="gc-card hr-card" aria-labelledby="hd-approvals">
-            <div className="hr-head"><h2 id="hd-approvals">Approvals</h2><span className={'gc-badge gc-badge--' + (approvals.length ? 'warning' : 'success')}>{approvals.length}</span></div>
-            {approvals.length ? (
-              <div className="hd-rows">
-                {approvals.map((a) => {
-                  const inner = <><span className={'hd-row__icon ' + a.tone}><Icon name={a.icon} width="16" height="16" aria-hidden="true" /></span><span className="hd-row__text"><b>{a.title}</b><small className={a.warn ? 'hr-warn' : ''}>{a.sub}</small></span><span className="hd-row__go">Review</span></>;
-                  return a.href ? <Link key={a.id} href={a.href} className="hd-row">{inner}</Link>
-                    : <button key={a.id} type="button" className="hd-row" onClick={() => setReview({ kind: a.kind, id: a.id })}>{inner}</button>;
+          <section className="ix-card" aria-labelledby="hd-up">
+            <header className="ix-card__head"><h2 id="hd-up">Coming up</h2></header>
+            {upcoming.length ? (
+              <div className="hd-rows" style={{ paddingTop: 'var(--space-2)' }}>
+                {upcoming.map(([k, , t, sub, href]) => {
+                  const d = new Date(fromKey(k));
+                  const body = <><span className="hd-date"><b>{d.getDate()}</b><span>{MON[d.getMonth()]}</span></span><span className="hd-row__text"><b>{t}</b><small>{sub}</small></span></>;
+                  return href ? <Link key={k + t} href={href} className="hd-up">{body}</Link> : <div key={k + t} className="hd-up">{body}</div>;
                 })}
               </div>
-            ) : <p className="hr-sub" style={{ margin: 0, padding: '0 var(--space-5) var(--space-5)' }}>Nothing waiting.</p>}
-          </section>
-        </div>
-
-        <div className="hd-col">
-          {run ? (
-            <section className="gc-card hd-box" aria-labelledby="hd-pay">
-              <div className="hr-head" style={{ padding: 0 }}><h2 id="hd-pay">{run.title} payroll</h2><span className={'gc-badge gc-badge--' + (run.status === 'paid' ? 'success' : run.status === 'approved' ? 'info' : 'warning')}>{runStatusLabel(run)}</span></div>
-              <div><span className="hd-big">{money(total)}</span><span className="hr-sub">{run.status === 'paid' ? `Paid ${formatDate(run.paidAt)}` : `Pay day ${formatDate(payDateOf(run.month, S.settings))}`}</span></div>
-              <div className="hd-steps" aria-label={`Step ${step} of ${RUN_STEPS.length}`}>{RUN_STEPS.map(([l], i) => <div key={l}><i style={{ background: i + 1 < step ? 'var(--fill-success)' : i + 1 === step ? 'var(--fill-warning)' : undefined }} />{l.split(' ')[0]}</div>)}</div>
-              <Link href="/payroll" className="gc-btn gc-btn--neutral gc-btn--block">{run.status === 'approved' ? 'Pay salaries' : run.status === 'paid' ? 'Payslips' : 'Review salary sheet'}</Link>
-            </section>
-          ) : null}
-
-          <section className="gc-card hd-box" aria-labelledby="hd-up">
-            <h2 id="hd-up">Coming up</h2>
-            {upcoming.length ? upcoming.map(([k, icon, t, sub, href]) => {
-              const d = new Date(fromKey(k));
-              const body = <><span className="hd-date"><b>{d.getDate()}</b><span>{MON[d.getMonth()]}</span></span><span style={{ minWidth: 0 }}><span className="hr-strong" style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icon name={icon} width="14" height="14" aria-hidden="true" />{t}</span><span className="hr-sub">{sub}</span></span></>;
-              return href ? <Link key={k + t} href={href} className="hd-up">{body}</Link> : <div key={k + t} className="hd-up">{body}</div>;
-            }) : <p className="hr-sub" style={{ margin: 0 }}>Nothing in the next 30 days.</p>}
+            ) : <p className="hr-empty">Nothing in the next 30 days.</p>}
           </section>
         </div>
       </div>
 
       <Sheet open={allNeeds} title={`Needs attention · ${needCount}`} onClose={() => setAllNeeds(false)}>
         <div className="hd-rows" style={{ margin: '0 calc(var(--space-5) * -1)' }}>{needs.map(needRow)}</div>
+      </Sheet>
+
+      <Sheet open={allApprovals} title={`Approvals · ${approvals.length}`} onClose={() => setAllApprovals(false)}>
+        <div className="hd-rows" style={{ margin: '0 calc(var(--space-5) * -1)' }}>{approvals.map(approvalRow)}</div>
       </Sheet>
 
       <Sheet open={!!shiftPlace} title={shiftPlace ? `Shift details · ${shiftPlace.place}` : ''} onClose={() => setShiftOf(null)}>

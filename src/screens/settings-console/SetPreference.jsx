@@ -52,7 +52,7 @@ class Component extends __SettingsLogic {
 
 // ---- styles (from the design's <helmet>) ----
 
-const CSS = `.dc-h460:hover{background:#e9eef5 !important;color:#1e293b !important}`;
+const CSS = ``;
 
 // ---- markup ----
 
@@ -72,32 +72,33 @@ export default class SetPreferenceScreen extends Component {
               <form className="set-shell__col" noValidate onSubmit={v.f.submit}>
                 <div className="set-content">
                   <main className="set-main">
-                    <header style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
-                      <span style={{ display: "block", minWidth: "0" }}>
-                        <h1 style={{ margin: "0 0 4px", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>Preference</h1>
+                    <header className="set-pagehead">
+                      <span className="set-pagehead__text">
+                        <h1 className="ix-head__title">Preference</h1>
                         <__SetTips />
+                        <span className="gc-pagehead__about" hidden>Nothing is applied until you choose Save changes.</span>
                       </span>
                       <span style={{ marginLeft: "auto", flex: "none", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><span style={{ width: "7px", height: "7px", borderRadius: "var(--radius-full)", background: "#10b981" }} />Configured · 22 settings</span>
                         <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Saved a moment ago</span>
                       </span>
                     </header>
-                    <section id="s0" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                    <section id="s0" className="ix-card set-card">
+                      <div className="set-head">
                         <span style={{ display: "block" }}>
-                          <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Identifiers</span>
+                          <h2 className="set-title">Identifiers</h2>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
                           <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>4 settings</span>
                         </span>
                       </div>
-                      <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 20px", padding: "18px" }}>
+                      <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 20px", padding: "16px" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                           <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                             <label htmlFor={v.f.id("customer_id_prefix")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Customer ID prefix <span className="set-req" aria-hidden="true">*</span></label>
                           </span>
                           <span id={v.f.id("customer_id_prefix") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Shown on the membership card and in the POS customer search.</span>
-                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", width: "160px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}><__In f={v.f} n="customer_id_prefix" labelled desc /></span>
+                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", width: "160px", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}><__In f={v.f} n="customer_id_prefix" labelled desc /></span>
                           <__Err f={v.f} n="customer_id_prefix" />
                           <span style={{ display: "inline-flex", alignSelf: "flex-start", alignItems: "center", gap: "7px", height: "26px", borderRadius: "var(--radius-md)", background: "#f1f5f9", padding: "0 9px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Next ID<b style={{ fontFamily: "var(--font-data)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{v.f.get("customer_id_prefix", "SLC-")}004182</b></span>
                         </div>
@@ -106,7 +107,7 @@ export default class SetPreferenceScreen extends Component {
                             <label htmlFor={v.f.id("seller_id_prefix")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Seller ID prefix <span className="set-req" aria-hidden="true">*</span></label>
                           </span>
                           <span id={v.f.id("seller_id_prefix") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Used in seller payouts and commission statements.</span>
-                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", width: "160px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}><__In f={v.f} n="seller_id_prefix" labelled desc /></span>
+                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", width: "160px", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}><__In f={v.f} n="seller_id_prefix" labelled desc /></span>
                           <__Err f={v.f} n="seller_id_prefix" />
                           <span style={{ display: "inline-flex", alignSelf: "flex-start", alignItems: "center", gap: "7px", height: "26px", borderRadius: "var(--radius-md)", background: "#f1f5f9", padding: "0 9px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Next ID<b style={{ fontFamily: "var(--font-data)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{v.f.get("seller_id_prefix", "SLS-")}000246</b></span>
                         </div>
@@ -115,7 +116,7 @@ export default class SetPreferenceScreen extends Component {
                             <label htmlFor={v.f.id("admin_id_prefix")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Admin ID prefix <span className="set-req" aria-hidden="true">*</span></label>
                           </span>
                           <span id={v.f.id("admin_id_prefix") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Appears in the staff directory and audit log.</span>
-                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", width: "160px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}><__In f={v.f} n="admin_id_prefix" labelled desc /></span>
+                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", width: "160px", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}><__In f={v.f} n="admin_id_prefix" labelled desc /></span>
                           <__Err f={v.f} n="admin_id_prefix" />
                           <span style={{ display: "inline-flex", alignSelf: "flex-start", alignItems: "center", gap: "7px", height: "26px", borderRadius: "var(--radius-md)", background: "#f1f5f9", padding: "0 9px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Next ID<b style={{ fontFamily: "var(--font-data)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{v.f.get("admin_id_prefix", "SLA-")}000031</b></span>
                         </div>
@@ -124,16 +125,16 @@ export default class SetPreferenceScreen extends Component {
                             <label htmlFor={v.f.id("order_code_prefix")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Order code prefix <span className="set-req" aria-hidden="true">*</span></label>
                           </span>
                           <span id={v.f.id("order_code_prefix") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Order codes combine the prefix, the order date and a daily counter.</span>
-                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", width: "160px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}><__In f={v.f} n="order_code_prefix" labelled desc /></span>
+                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", width: "160px", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}><__In f={v.f} n="order_code_prefix" labelled desc /></span>
                           <__Err f={v.f} n="order_code_prefix" />
                           <span style={{ display: "inline-flex", alignSelf: "flex-start", alignItems: "center", gap: "7px", height: "26px", borderRadius: "var(--radius-md)", background: "#f1f5f9", padding: "0 9px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Next ID<b style={{ fontFamily: "var(--font-data)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{v.f.get("order_code_prefix", "ORD-")}20260907-0001</b></span>
                         </div>
                       </div>
                     </section>
-                    <section id="s1" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                    <section id="s1" className="ix-card set-card">
+                      <div className="set-head">
                         <span style={{ display: "block" }}>
-                          <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Security</span>
+                          <h2 className="set-title">Security</h2>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
                           <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>7 settings</span>
@@ -142,7 +143,7 @@ export default class SetPreferenceScreen extends Component {
                       <div style={{ display: "flex", flexDirection: "column", padding: "6px 18px 18px" }}>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", padding: "12px 0" }}>
                           <span style={{ display: "block", flex: "1", minWidth: "0" }}>
-                            <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Two-factor OTP on admin login<span style={{ display: "inline-flex", alignItems: "center", gap: "4px", height: "19px", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.14)", padding: "0 7px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", color: "var(--text-success)" }}>Recommended</span></span>
+                            <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Two-factor OTP on admin login<span style={{ display: "inline-flex", alignItems: "center", gap: "4px", height: "19px", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.14)", padding: "0 7px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-success)" }}>Recommended</span></span>
                             <span style={{ display: "block", paddingTop: "3px", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>After the password, admins enter a one-time code. Strongly recommended — an admin session can refund orders and export customer data.</span>
                           </span>
                           <__Sw f={v.f} n="two_factor_otp_on_admin_login" />
@@ -167,7 +168,7 @@ export default class SetPreferenceScreen extends Component {
                               <label htmlFor={v.f.id("otp_length")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>OTP length</label>
                             </span>
                             <span id={v.f.id("otp_length") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Six digits is the norm in Bangladesh. Four is easier to type; eight is harder to guess.</span>
-                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", width: "132px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}><__In f={v.f} n="otp_length" labelled desc /></span>
+                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", width: "132px", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}><__In f={v.f} n="otp_length" labelled desc /></span>
                             <__Err f={v.f} n="otp_length" />
                             <span style={{ display: "inline-flex", alignSelf: "flex-start", alignItems: "center", gap: "7px", height: "26px", borderRadius: "var(--radius-md)", background: "#f1f5f9", padding: "0 9px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Sample<b style={{ fontFamily: "var(--font-data)", fontWeight: "var(--weight-medium)", color: "#1e293b", letterSpacing: "var(--tracking-label)" }}>{v.otpSample}</b></span>
                           </div>
@@ -176,7 +177,7 @@ export default class SetPreferenceScreen extends Component {
                               <label htmlFor={v.f.id("otp_validity")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>OTP validity</label>
                             </span>
                             <span id={v.f.id("otp_validity") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Minutes before the code expires and a new one must be requested.</span>
-                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", width: "160px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}><__In f={v.f} n="otp_validity" labelled desc opts={["2 minutes","5 minutes","10 minutes","15 minutes"]} /><__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ marginLeft: "auto", color: "var(--text-muted)" }} /></span>
+                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", width: "160px", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}><__In f={v.f} n="otp_validity" labelled desc opts={["2 minutes","5 minutes","10 minutes","15 minutes"]} /><__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ marginLeft: "auto", color: "var(--text-muted)" }} /></span>
                             <__Err f={v.f} n="otp_validity" />
                           </div>
                         </div>
@@ -194,10 +195,10 @@ export default class SetPreferenceScreen extends Component {
                         </div>
                       </div>
                     </section>
-                    <section id="s2" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                    <section id="s2" className="ix-card set-card">
+                      <div className="set-head">
                         <span style={{ display: "block" }}>
-                          <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Order notifications</span>
+                          <h2 className="set-title">Order notifications</h2>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
                           <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.14)", padding: "0 9px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-success)" }}>{v.mailOn} of 4 on</span>
@@ -208,10 +209,10 @@ export default class SetPreferenceScreen extends Component {
                         <a href="/set-notifications" className="gc-btn gc-btn--sm gc-btn--neutral">Open Order notifications</a>
                       </div>
                     </section>
-                    <section id="s3" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                    <section id="s3" className="ix-card set-card">
+                      <div className="set-head">
                         <span style={{ display: "block" }}>
-                          <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Seller approvals</span>
+                          <h2 className="set-title">Seller approvals</h2>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
                           <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>6 settings</span>
@@ -262,10 +263,10 @@ export default class SetPreferenceScreen extends Component {
                         </div>
                       </div>
                     </section>
-                    <section id="s4" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                    <section id="s4" className="ix-card set-card">
+                      <div className="set-head">
                         <span style={{ display: "block" }}>
-                          <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Discovery</span>
+                          <h2 className="set-title">Discovery</h2>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
                           <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>1 setting</span>
@@ -282,18 +283,6 @@ export default class SetPreferenceScreen extends Component {
                       </div>
                     </section>
                   </main>
-                  <aside className="set-toc" aria-label="On this page">
-                    <span style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>On this page</span>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "1px", borderLeft: "2px solid #e2e8f0" }}>
-                      <a href="#s0" style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "-2px", borderLeft: "2px solid transparent", padding: "6px 10px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", textDecoration: "none" }}>Identifiers<span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>4</span></a>
-                      <a href="#s1" style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "-2px", borderLeft: "2px solid #003087", padding: "6px 10px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087", textDecoration: "none" }}>Security<span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>7</span></a>
-                      <a href="#s2" style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "-2px", borderLeft: "2px solid transparent", padding: "6px 10px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", textDecoration: "none" }}>Order emails<span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>5</span></a>
-                      <a href="#s3" style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "-2px", borderLeft: "2px solid transparent", padding: "6px 10px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", textDecoration: "none" }}>Seller approvals<span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>6</span></a>
-                      <a href="#s4" style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "-2px", borderLeft: "2px solid transparent", padding: "6px 10px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", textDecoration: "none" }}>Discovery<span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>1</span></a>
-                    </div>
-                    <span style={{ height: "1px", background: "#e2e8f0", margin: "4px 0" }} />
-                    <span style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Nothing is applied until you choose Save changes.</span>
-                  </aside>
                 </div>
                 <__SaveBar f={v.f} note="· a moment ago" />
               </form>

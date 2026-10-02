@@ -1,18 +1,20 @@
 'use client';
 // Generated from design/templates/loyalty-promo/NewCoupon.dc.html by scripts/convert-design.mjs.
-// NewCoupon — Loyalty, rewards & promo — New coupon.
+// NewCoupon — make a new discount code (docs/shopify-style.md, form page): RecordHeader with Save, the fields in
+// short cards (discount, code, who, payment, where, when, offer post) and what the customer will see on the side.
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
-import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
-import { PageHeader as __PageHeader } from '@/components/ui';
-import { toast as __toast, confirmDialog as __confirm } from '@/runtime/ui';
+import { DCLogic, Icon as __Icon } from '@/runtime/dc';
+import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
+import { InfoTip } from '@/components/ui';
+import { RecordHeader } from '@/components/ui/IndexKit';
+import { toast as __toast } from '@/runtime/ui';
+import { FORM_CSS, Steps, Switch } from './loyShared';
 
 // ---- form helpers: required marker, field error text, invalid attributes, focus the first error ----
 function __Req() { return <span aria-hidden="true" style={{ color: 'var(--text-danger)' }}> *</span>; }
-function __Err({ id, msg }) { return msg ? <span id={id} style={{ display: 'block', fontSize: 'var(--text-xs)', lineHeight: '16px', color: 'var(--text-danger)' }}>{msg}</span> : null; }
+function __Err({ id, msg }) { return msg ? <span id={id} className="ly-err">{msg}</span> : null; }
 function __inv(err, id) { return err ? { 'aria-invalid': 'true', 'aria-describedby': id } : {}; }
 function __focusSoon(id) { setTimeout(function () { var el = document.getElementById(id); if (el) el.focus(); }, 0); }
 function __without(o, k) { var r = {}; for (var x in (o || {})) if (x !== k) r[x] = o[x]; return r; }
@@ -21,8 +23,6 @@ function __without(o, k) { var r = {}; for (var x in (o || {})) if (x !== k) r[x
 
 function bdt(n) { var neg = n < 0; var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return (neg ? '−' : '') + '৳' + s; }
 var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
-function mkTabs(self, list, cur, key, counts) { return list.map(function (x) { var on = x.k === cur; var c = counts ? counts[x.k] : null; return { label: x.label, on: on, cls: on ? 'tab on' : 'tab', hasCount: c != null, count: c, countBg: on ? 'rgba(255,255,255,0.2)' : '#e9eef5', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
 function mkChips(self, list, cur, key) { return list.map(function (x) { var on = x.k === cur; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
 function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
 function stepN(self, key, def, step, min, max) { var s = self.state || {}; var v = s[key] == null ? def : s[key]; return { v: v, dec: function () { var p = {}; p[key] = Math.max(min, +(v - step).toFixed(2)); self.setState(p); }, inc: function () { var p = {}; p[key] = Math.min(max, +(v + step).toFixed(2)); self.setState(p); } }; }
@@ -133,7 +133,7 @@ class Component extends DCLogic {
       typeTitle: function (e) { self.setState({ postTitle: e.target.value, errs: __without(errs, 'title') }); },
       slug: code.toLowerCase(),
       noImg: !s.img, hasImg: !!s.img,
-      imgBg: s.img === 'auto' ? 'linear-gradient(135deg, #012169, #0a5bd0)' : 'linear-gradient(160deg, rgba(15,23,42,.1), rgba(15,23,42,.55)), linear-gradient(135deg, #b83210, #f59e0b)',
+      imgBg: s.img === 'auto' ? 'linear-gradient(135deg, var(--primary-900), var(--primary-600))' : 'linear-gradient(160deg, rgba(15,23,42,.1), rgba(15,23,42,.55)), linear-gradient(135deg, var(--error), var(--warning))',
       imgTag: s.img === 'auto' ? 'READY COVER' : 'YOUR PICTURE', imgText: s.img === 'auto' ? big : 'Festival sale',
       imgName: s.img === 'auto' ? 'Ready cover' : 'eid-offer-banner.jpg', imgNote: s.img === 'auto' ? 'Made from your offer. Changes by itself if you change the discount.' : '1200 × 630 · 184 KB',
       upload: function () { self.setState({ img: 'file' }); }, useAuto: function () { self.setState({ img: 'auto' }); }, removeImg: function () { self.setState({ img: null }); },
@@ -161,565 +161,270 @@ class Component extends DCLogic {
   }
 }
 
-// ---- styles (from the design's <helmet>) ----
+// ---- styles ----
 
 const CSS = `
-body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
-*{box-sizing:border-box}
-a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
-.nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
-.nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
-.btn:hover{text-decoration:none}
-.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
-.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
-.line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
-.warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
-.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
-.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
-.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:var(--text-muted)}
-.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
-.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
-.tab:hover{background:#f1f5f9;color:#0f172a}
-.tab.on{background:#003087;color:#fff}
-.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
-.chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
-.row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
-.b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
-.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
-.b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:var(--font-data);letter-spacing:.02em}
-.fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
-@keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.flash{animation:gcFlash 900ms ease-out}
-@keyframes gcFlash{from{background:#e7f8f1}to{background:transparent}}
-.scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
-@keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
-
-.inp[aria-invalid="true"],.stepbox[aria-invalid="true"]{border-color:var(--text-danger)!important}
-.inp[aria-invalid="true"]:focus{border-color:var(--text-danger)}
-@media (max-width:1023px){.gc-shell__content :has(> .gc-side){align-items:stretch!important}}
-.stepinp{width:64px;height:36px;padding:0;border:0;background:transparent;text-align:center;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:inherit}
-.stepinp:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:-3px}
-@media (max-width:767px){.cp-coderow{flex-direction:column}.cp-coderow .inp{max-width:none!important}.cp-img{flex-direction:column}.cp-img>div:first-child{width:100%!important}}
-.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
-.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
-.sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
-.t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
-.actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:var(--font-bn)}
-.pulse{animation:gcPulse 1.6s ease-in-out infinite}
-@keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
-@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-/* phones: a number row puts its label on its own line, then the stepper (never squeezed) and its unit */
-@media (max-width:640px){
-  .nc-steprow{flex-wrap:wrap;gap:var(--space-2) var(--space-3)!important}
-  .nc-steprow>span:first-child{flex:1 1 100%}
-  .nc-steprow>div{flex:none}
-}
+.nc-opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2)}
+.nc-opt{display:flex;align-items:flex-start;gap:var(--space-2);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font:inherit;text-align:left;cursor:pointer}
+.nc-opt[aria-pressed="true"]{border-color:var(--primary);background:var(--fill-primary-soft)}
+.nc-opt b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.nc-opt small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
+.nc-radio{display:grid;flex:none;place-items:center;width:16px;height:16px;margin-top:2px;border:2px solid var(--border-strong);border-radius:var(--radius-full)}
+.nc-opt[aria-pressed="true"] .nc-radio{border-color:var(--primary)}
+.nc-opt[aria-pressed="true"] .nc-radio::after{content:"";width:8px;height:8px;border-radius:var(--radius-full);background:var(--primary)}
+.nc-box{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-subtle)}
+.nc-note{display:flex;align-items:flex-start;gap:var(--space-2);padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);font-size:var(--text-xs);line-height:1.5}
+.nc-note svg{flex:none;margin-top:1px}
+.nc-note--info{background:var(--fill-info-soft);color:var(--text-info)}
+.nc-note--warn{background:var(--fill-warning-soft);color:var(--text-warning)}
+.nc-split{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden}
+.nc-split>div{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);padding:var(--space-2) var(--space-3);border-top:1px solid var(--border-subtle)}
+.nc-split>div:first-child{border-top:0}
+.nc-split>div.is-off{background:var(--surface-subtle)}
+.nc-what{flex:1 1 140px;min-width:0;font-size:var(--text-xs);color:var(--text-muted)}
+.nc-pm{min-width:96px;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--text-heading)}
+.nc-code{font-family:var(--font-data);font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--primary)}
+.nc-coderow{display:flex;gap:var(--space-2)}
+.nc-coderow .gc-input{max-width:320px}
+.nc-imgs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)}
+.nc-imgs>button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;height:120px;padding:var(--space-2);border:1px dashed var(--border-strong);border-radius:var(--radius-lg);background:var(--surface-subtle);font:inherit;font-size:var(--text-xs);color:var(--text-body);cursor:pointer}
+.nc-imgs>button b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.nc-imgs>button.is-cover{border-style:solid;background:var(--surface-card)}
+.nc-cover{display:flex;align-items:center;justify-content:center;width:100%;flex:1;border-radius:var(--radius-md);background:linear-gradient(135deg,var(--primary-900),var(--primary-600));font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-on-dark)}
+.nc-img{display:flex;flex-wrap:wrap;gap:var(--space-3);align-items:center}
+.nc-img__pic{position:relative;display:flex;flex-direction:column;justify-content:flex-end;width:260px;max-width:100%;height:136px;padding:var(--space-3);border-radius:var(--radius-lg);overflow:hidden;color:var(--text-on-dark)}
+.nc-img__pic small{position:absolute;top:8px;left:8px;padding:0 8px;border-radius:var(--radius-full);background:rgba(255,255,255,.22);font-size:var(--text-xs);font-weight:var(--weight-medium);line-height:20px}
+.nc-img__pic b{font-size:var(--text-lg);font-weight:var(--weight-semibold)}
+.nc-tools{display:flex;gap:2px;padding:4px;border:1px solid var(--border-field);border-bottom:0;border-radius:var(--radius-lg) var(--radius-lg) 0 0;background:var(--surface-subtle)}
+.nc-lblrow{display:flex;align-items:center;gap:var(--space-2)}
+.nc-lblrow>label{flex:1;margin:0}
+.nc-sd{height:auto;font-family:var(--font-bn);resize:none}
+.nc-full{height:auto;padding:var(--space-2) var(--space-3);border-radius:0 0 var(--radius-lg) var(--radius-lg);font-family:var(--font-bn);line-height:1.6;resize:vertical}
+.nc-ticket{position:relative;display:flex;border-radius:var(--radius-lg);overflow:hidden;background:linear-gradient(135deg,var(--primary-900),var(--primary) 55%,var(--primary-600));color:var(--text-on-dark)}
+.nc-ticket>div:first-child{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;padding:var(--space-3)}
+.nc-ticket>div:first-child b{font-size:var(--text-xl);font-weight:var(--weight-semibold);line-height:1.2}
+.nc-ticket>div:first-child span{font-size:var(--text-xs);opacity:.85}
+.nc-ticket>div:last-child{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:96px;padding:var(--space-2);border-left:2px dashed rgba(255,255,255,.4);font-size:var(--text-xs)}
+.nc-ticket>div:last-child b{font-family:var(--font-data);font-size:var(--text-sm);font-weight:var(--weight-semibold);text-align:center;word-break:break-all}
+.nc-side .ix-card__body{display:flex;flex-direction:column;gap:var(--space-3)}
+.nc-card .ix-card__body{display:flex;flex-direction:column;gap:var(--space-3)}
+@media (max-width:640px){.nc-opts,.nc-imgs{grid-template-columns:minmax(0,1fr)}.nc-coderow{flex-direction:column}.nc-coderow .gc-input{max-width:none}}
 `;
 
 // ---- markup ----
+
+const chips = (list, label) => (
+  <div className="ix-chips" role="group" aria-label={label}>
+    {list.map((c) => <button key={c.label} type="button" className="ix-chip" aria-pressed={c.on} onClick={c.pick}>{c.on && c.check ? <__Icon name="check" width="14" height="14" aria-hidden="true" /> : null}{c.label}</button>)}
+  </div>
+);
+const swRow = (sw, title, tip) => (
+  <div className="ly-set"><div><b>{title}{tip ? <InfoTip text={tip} /> : null}</b></div><Switch on={sw?.on} onToggle={sw?.toggle} label={title} /></div>
+);
 
 export default class NewCouponScreen extends Component {
   render() {
     const v = this.renderVals() || {};
     return (
       <div className="dc-screen ds" data-screen="NewCoupon">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
+        <style dangerouslySetInnerHTML={{ __html: FORM_CSS + CSS }} />
+        <div className="gc-shell">
           <__Sidebar sticky="" active="promo-coupons" />
-          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
+          <main className="gc-shell__main">
             <__Topbar crumb="Marketing" page="New coupon" placeholder="Search a code" />
-            <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <__PageHeader title="Make a new code" />
-              <form noValidate onSubmit={v.submit} aria-label="New discount code" style={{ display: "flex", gap: "20px", alignItems: "flex-start" }}>
-                <div style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "20px" }}>
-                  <section className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                      <span style={{ width: "32px", height: "32px", flexShrink: "0", borderRadius: "var(--radius-full)", background: "#003087", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)" }}>1</span>
-                      <div style={{ flexGrow: "1" }}>
-                        <h2 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>What does the customer get?</h2>
-                        <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }} />
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                      {__list(v.kinds).map((c, $index) => (<React.Fragment key={$index}>
-                          <button type="button" className={c?.cls} aria-pressed={c?.on} onClick={c?.pick}>{c?.label}</button>
-                        </React.Fragment>))}
-                    </div>
-                    {v.hasAmt ? (<>
-                      <label className="lbl" htmlFor="cp-amt" style={{ marginBottom: "-8px" }}>Discount<__Req /></label>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
-                        <div className="stepbox" {...(v.errs?.amt ? { "aria-invalid": "true" } : {})} style={{ display: "inline-flex", alignItems: "center", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", overflow: "hidden", background: "#fff" }}>
-                          <button type="button" className="ib" aria-label="Less discount" onClick={v.amt?.dec} style={{ borderRadius: "0" }}>
-                            <__Icon name="minus" width="18" height="18" aria-hidden="true" />
-                          </button>
-                          <input id="cp-amt" className="stepinp" type="text" inputMode="numeric" autoComplete="off" value={v.amt?.v} onChange={v.typeAmt} aria-required="true" {...__inv(v.errs?.amt, "cp-amt-err")} />
-                          <button type="button" className="ib" aria-label="More discount" onClick={v.amt?.inc} style={{ borderRadius: "0" }}>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <path d="M5 12h14" />
-                              <path d="M12 5v14" />
-                            </svg>
-                          </button>
-                        </div>
-                        <span style={{ fontSize: "var(--text-sm)", color: "#334155" }}>{v.unit}</span>
-                        {v.isPct ? (<>
-                          <span style={{ marginLeft: "16px", fontSize: "var(--text-sm)", color: "#334155" }}>but not more than</span>
-                          <div style={{ display: "inline-flex", alignItems: "center", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", overflow: "hidden", background: "#fff" }}>
-                            <button type="button" className="ib" aria-label="Less maximum discount" onClick={v.cap?.dec} style={{ borderRadius: "0" }}>
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <path d="M5 12h14" />
-                              </svg>
-                            </button>
-                            <span style={{ minWidth: "44px", textAlign: "center", fontWeight: "var(--weight-medium)" }}>{v.cap?.v}</span>
-                            <button type="button" className="ib" aria-label="More maximum discount" onClick={v.cap?.inc} style={{ borderRadius: "0" }}>
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <path d="M5 12h14" />
-                                <path d="M12 5v14" />
-                              </svg>
-                            </button>
+            <div className="gc-shell__content">
+              <div className="ix-page ix-page--narrow">
+                <RecordHeader back="/coupons" backLabel="Coupons" title="Make a new code" primary={{ label: 'Save and turn on', onClick: v.submit }} />
+                <form noValidate onSubmit={v.submit} aria-label="New discount code" className="ix-record">
+                  <div className="ix-main">
+                    <section className="ix-card nc-card" aria-labelledby="nc-s1">
+                      <header className="ix-card__head"><h2 id="nc-s1">What does the customer get?</h2></header>
+                      <div className="ix-card__body">
+                        {chips(v.kinds, 'Discount type')}
+                        {v.hasAmt ? (
+                          <div className="ly-field">
+                            <label className="gc-label" htmlFor="cp-amt">Discount<__Req /></label>
+                            <div className="ly-row">
+                              <Steps label="discount" less="Less discount" more="More discount" onDec={v.amt?.dec} onInc={v.amt?.inc} invalid={!!v.errs?.amt}>
+                                <input id="cp-amt" type="text" inputMode="numeric" autoComplete="off" value={v.amt?.v} onChange={v.typeAmt} aria-required="true" {...__inv(v.errs?.amt, "cp-amt-err")} />
+                              </Steps>
+                              <span>{v.unit}</span>
+                              {v.isPct ? (<>
+                                <span>but not more than</span>
+                                <Steps label="maximum discount" less="Less maximum discount" more="More maximum discount" display={v.cap?.v} onDec={v.cap?.dec} onInc={v.cap?.inc} />
+                                <span>taka</span>
+                              </>) : null}
+                            </div>
+                            <__Err id="cp-amt-err" msg={v.errs?.amt} />
                           </div>
-                          <span style={{ fontSize: "var(--text-sm)", color: "#334155" }}>taka</span>
-                        </>) : null}
+                        ) : null}
                       </div>
-                      <__Err id="cp-amt-err" msg={v.errs?.amt} />
-                    </>) : null}
-                  </section>
-                  <section className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                      <span style={{ width: "32px", height: "32px", flexShrink: "0", borderRadius: "var(--radius-full)", background: "#003087", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)" }}>2</span>
-                      <div style={{ flexGrow: "1" }}>
-                        <h2 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Name the code</h2>
-                        <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Customers type this. Keep it short and easy to say.</p>
-                      </div>
-                    </div>
-                    <label className="lbl" htmlFor="cp-code" style={{ marginBottom: "-8px" }}>Code<__Req /></label>
-                    <div className="cp-coderow" style={{ display: "flex", gap: "10px" }}>
-                      <input id="cp-code" className="inp mono" value={v.code} onChange={v.typeCode} autoComplete="off" spellCheck="false" aria-required="true" {...__inv(v.errs?.code, "cp-code-err")} style={{ height: "52px", fontSize: "var(--text-xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "#003087", maxWidth: "360px" }} />
-                      <button type="button" className="btn line big" onClick={v.autoCode}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-                        </svg>
-                        <span>Make one for me</span>
-                      </button>
-                    </div>
-                    <__Err id="cp-code-err" msg={v.errs?.code} />
-                  </section>
-                  <section className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                      <span style={{ width: "32px", height: "32px", flexShrink: "0", borderRadius: "var(--radius-full)", background: "#003087", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)" }}>3</span>
-                      <div style={{ flexGrow: "1" }}>
-                        <h2 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Who can use it?</h2>
-                        <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }} />
-                      </div>
-                    </div>
-                    <div className="lbl">Customers</div>
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                      {__list(v.whos).map((c, $index) => (<React.Fragment key={$index}>
-                          <button type="button" className={c?.cls} aria-pressed={c?.on} onClick={c?.pick}>{c?.label}</button>
-                        </React.Fragment>))}
-                    </div>
-                    <div className="lbl">Products</div>
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                      {__list(v.prods).map((c, $index) => (<React.Fragment key={$index}>
-                          <button type="button" className={c?.cls} aria-pressed={c?.on} onClick={c?.pick}>{c?.label}</button>
-                        </React.Fragment>))}
-                    </div>
-                    <div className="nc-steprow" style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                      <span style={{ fontSize: "var(--text-sm)", color: "#334155" }}>Only when the bill is at least</span>
-                      <div style={{ display: "inline-flex", alignItems: "center", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", overflow: "hidden", background: "#fff" }}>
-                        <button type="button" className="ib" aria-label="Less minimum bill" onClick={v.minb?.dec} style={{ borderRadius: "0" }}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M5 12h14" />
-                          </svg>
-                        </button>
-                        <span style={{ minWidth: "44px", textAlign: "center", fontWeight: "var(--weight-medium)" }}>{v.minb?.v}</span>
-                        <button type="button" className="ib" aria-label="More minimum bill" onClick={v.minb?.inc} style={{ borderRadius: "0" }}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M5 12h14" />
-                            <path d="M12 5v14" />
-                          </svg>
-                        </button>
-                      </div>
-                      <span style={{ fontSize: "var(--text-sm)", color: "#334155" }}>taka</span>
-                    </div>
-                  </section>
-                  <section className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                      <span style={{ width: "32px", height: "32px", flexShrink: "0", borderRadius: "var(--radius-full)", background: "#003087", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)" }}>4</span>
-                      <div style={{ flexGrow: "1" }}>
-                        <h2 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>How must they pay?</h2>
-                        <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Make the offer work only for some payments, or give a different discount for each one.</p>
-                      </div>
-                    </div>
-                    <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px" }}>
-                      {__list(v.pmodes).map((o, $index) => (<React.Fragment key={$index}>
-                          <button type="button" onClick={o?.pick} aria-pressed={o?.on} style={__sx(`text-align: left; padding: 14px; border-radius: var(--radius-xl); border: 1.5px solid ${o?.border ?? ""}; background: ${o?.bg ?? ""}; font: inherit; cursor: pointer; display: flex; align-items: flex-start; gap: 12px;`)}>
-                            <span style={__sx(`width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px; border-radius: var(--radius-full); border: 2px solid ${o?.ring ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
-                              <span style={__sx(`width: 10px; height: 10px; border-radius: var(--radius-full); background: ${o?.dot ?? ""};`)} />
-                            </span>
-                            <span>
-                              <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{o?.label}</span>
-                              <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>{o?.sub}</span>
-                            </span>
-                          </button>
-                        </React.Fragment>))}
-                    </div>
-                    {v.isOnline ? (<>
-                      <div className="fade" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                        <div className="lbl">The code works when the customer pays with</div>
-                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                          {__list(v.methods).map((m, $index) => (<React.Fragment key={$index}>
-                              <button type="button" className={m?.cls} aria-pressed={m?.on} onClick={m?.pick}>
-                                {m?.on ? (<>
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                    <path d="M20 6 9 17l-5-5" />
-                                  </svg>
-                                </>) : null}
-                                <span>{m?.label}</span>
-                              </button>
-                            </React.Fragment>))}
+                    </section>
+
+                    <section className="ix-card nc-card" aria-labelledby="nc-s2">
+                      <header className="ix-card__head"><h2 id="nc-s2">Name the code <InfoTip text="Customers type this. Keep it short and easy to say." /></h2></header>
+                      <div className="ix-card__body">
+                        <div className="ly-field">
+                          <label className="gc-label" htmlFor="cp-code">Code<__Req /></label>
+                          <div className="nc-coderow">
+                            <input id="cp-code" className="gc-input nc-code" value={v.code} onChange={v.typeCode} autoComplete="off" spellCheck="false" aria-required="true" {...__inv(v.errs?.code, "cp-code-err")} />
+                            <button type="button" className="ix-btn" onClick={v.autoCode}><__Icon name="sparkles" width="16" height="16" aria-hidden="true" />Make one for me</button>
+                          </div>
+                          <__Err id="cp-code-err" msg={v.errs?.code} />
                         </div>
-                        {v.showBanks ? (<>
-                          <div className="fade" style={{ display: "flex", flexDirection: "column", gap: "10px", padding: "16px", borderRadius: "var(--radius-xl)", background: "#f8fafc", border: "1px solid #e2e8f0" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                              <span style={{ color: "#003087" }}>
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <rect width="20" height="12" x="2" y="6" rx="2" />
-                                  <circle cx="12" cy="12" r="2" />
-                                  <path d="M6 12h.01M18 12h.01" />
-                                </svg>
-                              </span>
-                              <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>Which cards?</span>
-                              <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>For a bank partner offer, pick the bank.</span>
+                      </div>
+                    </section>
+
+                    <section className="ix-card nc-card" aria-labelledby="nc-s3">
+                      <header className="ix-card__head"><h2 id="nc-s3">Who can use it?</h2></header>
+                      <div className="ix-card__body">
+                        <div className="ly-field"><span className="gc-label">Customers</span>{chips(v.whos, 'Customers')}</div>
+                        <div className="ly-field"><span className="gc-label">Products</span>{chips(v.prods, 'Products')}</div>
+                        <div className="ly-row">
+                          <span>Only when the bill is at least</span>
+                          <Steps label="minimum bill" less="Less minimum bill" more="More minimum bill" display={v.minb?.v} onDec={v.minb?.dec} onInc={v.minb?.inc} />
+                          <span>taka</span>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section className="ix-card nc-card" aria-labelledby="nc-s4">
+                      <header className="ix-card__head"><h2 id="nc-s4">How must they pay? <InfoTip text="Make the offer work only for some payments, or give a different discount for each one." /></h2></header>
+                      <div className="ix-card__body">
+                        <div className="nc-opts">
+                          {v.pmodes.map((o) => (
+                            <button key={o.label} type="button" className="nc-opt" onClick={o.pick} aria-pressed={o.on}>
+                              <span className="nc-radio" aria-hidden="true" />
+                              <span><b>{o.label}</b><small>{o.sub}</small></span>
+                            </button>
+                          ))}
+                        </div>
+                        {v.isOnline ? (<>
+                          <div className="ly-field"><span className="gc-label">The code works when the customer pays with</span>{chips(v.methods.map((m) => ({ ...m, check: true })), 'Payment methods')}</div>
+                          {v.showBanks ? (
+                            <div className="nc-box">
+                              <span className="gc-label">Which cards? <InfoTip text="For a bank partner offer, pick the bank." /></span>
+                              {chips(v.cardModes, 'Which cards?')}
+                              {v.someBanks ? chips(v.banks.map((b) => ({ ...b, check: true })), 'Banks') : null}
                             </div>
-                            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                              {__list(v.cardModes).map((c, $index) => (<React.Fragment key={$index}>
-                                  <button type="button" className={c?.cls} aria-pressed={c?.on} onClick={c?.pick}>{c?.label}</button>
-                                </React.Fragment>))}
-                            </div>
-                            {v.someBanks ? (<>
-                              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                                {__list(v.banks).map((b, $index) => (<React.Fragment key={$index}>
-                                    <button type="button" className={b?.cls} aria-pressed={b?.on} onClick={b?.pick}>
-                                      {b?.on ? (<>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                          <path d="M20 6 9 17l-5-5" />
-                                        </svg>
-                                      </>) : null}
-                                      <span>{b?.label}</span>
-                                    </button>
-                                  </React.Fragment>))}
+                          ) : null}
+                          <div className="nc-note nc-note--info"><__Icon name="info" width="16" height="16" aria-hidden="true" /><span>Cash on delivery is hidden when this code is used. If the online payment fails, the code is removed and the customer can try again.</span></div>
+                        </>) : null}
+                        {v.isSplit ? (<>
+                          <p className="ly-help">Give a bigger discount for the payment you like most. Turn off the ones that get nothing.</p>
+                          <div className="nc-split">
+                            {v.split.map((r) => (
+                              <div key={r.label} className={r.on ? '' : 'is-off'}>
+                                <span className="nc-pm">{r.label}</span>
+                                <span className={'nc-what' + (r.on ? ' ly-in' : '')}>{r.note}</span>
+                                {r.showAmt ? (<><Steps label={`discount for ${r.label}`} less={`Less discount for ${r.label}`} more={`More discount for ${r.label}`} display={r.v} onDec={r.dn} onInc={r.up} /><span className="ly-help">{r.unit}</span></>) : null}
+                                <Switch on={r.on} onToggle={r.toggle} label={`Discount for ${r.label}`} />
                               </div>
-                            </>) : null}
+                            ))}
                           </div>
                         </>) : null}
-                        <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "12px 14px", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#075985", fontSize: "var(--text-xs-plus)", lineHeight: "18px" }}>
-                          <span style={{ flexShrink: "0" }}>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <circle cx="12" cy="12" r="10" />
-                              <path d="M12 16v-4" />
-                              <path d="M12 8h.01" />
-                            </svg>
-                          </span>
-                          <span>Cash on delivery is hidden when this code is used. If the online payment fails, the code is removed and the customer can try again.</span>
+                        {v.isCod ? <div className="nc-note nc-note--warn"><__Icon name="info" width="16" height="16" aria-hidden="true" /><span>Good for areas where people trust cash more. Online payments will not get this discount.</span></div> : null}
+                      </div>
+                    </section>
+
+                    <section className="ix-card nc-card" aria-labelledby="nc-s5">
+                      <header className="ix-card__head"><h2 id="nc-s5">Where can they use it?</h2></header>
+                      <div className="ix-card__body">{chips(v.wheres, 'Where can they use it?')}</div>
+                    </section>
+
+                    <section className="ix-card nc-card" aria-labelledby="nc-s6">
+                      <header className="ix-card__head"><h2 id="nc-s6">When, and how many times?</h2></header>
+                      <div className="ix-card__body">
+                        <div className="ly-two">
+                          <div className="ly-field">
+                            <label className="gc-label" htmlFor="cp-start">Starts<__Req /></label>
+                            <input id="cp-start" className="gc-input" type="date" value={v.dStart} onChange={v.typeStart} aria-required="true" {...__inv(v.errs?.start, "cp-start-err")} />
+                            <__Err id="cp-start-err" msg={v.errs?.start} />
+                          </div>
+                          <div className="ly-field">
+                            <label className="gc-label" htmlFor="cp-end">Ends <InfoTip text="Leave empty to keep it on always." /></label>
+                            <input id="cp-end" className="gc-input" type="date" value={v.dEnd} onChange={v.typeEnd} {...(v.errs?.end ? { "aria-invalid": "true", "aria-describedby": "cp-end-err" } : {})} />
+                            <__Err id="cp-end-err" msg={v.errs?.end} />
+                          </div>
+                        </div>
+                        <div className="ly-row">
+                          <span>Stop after it is used</span>
+                          <Steps label="use limit" less="Less use limit" more="More use limit" display={v.lim?.v} onDec={v.lim?.dec} onInc={v.lim?.inc} />
+                          <span>times in total</span>
+                        </div>
+                        <div>
+                          {swRow(v.once, 'One time per customer', 'Checked by phone number')}
+                          {swRow(v.stack, 'Can join with other offers', 'For example with a flash sale price or points')}
                         </div>
                       </div>
-                    </>) : null}
-                    {v.isSplit ? (<>
-                      <div className="fade" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                        <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Give a bigger discount for the payment you like most. Turn off the ones that get nothing.</div>
-                        <div style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", overflow: "hidden" }}>
-                          {__list(v.split).map((r, $index) => (<React.Fragment key={$index}>
-                              <div style={__sx(`display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid #eef2f6; background: ${r?.bg ?? ""};`)}>
-                                <span style={__sx(`min-width: 76px; height: 28px; padding: 0 10px; border-radius: var(--radius-lg); background: ${r?.mBg ?? ""}; color: ${r?.mFg ?? ""}; font-size: var(--text-xs-plus); font-weight: var(--weight-medium); display: inline-flex; align-items: center; justify-content: center;`)}>{r?.label}</span>
-                                <span style={__sx(`flex-grow: 1; font-size: var(--text-xs-plus); color: ${r?.noteColor ?? ""};`)}>{r?.note}</span>
-                                {r?.showAmt ? (<>
-                                  <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
-                                    <div style={{ display: "inline-flex", alignItems: "center", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", overflow: "hidden", background: "#fff" }}>
-                                      <button type="button" className="ib" aria-label={`Less discount for ${r?.label ?? ""}`} onClick={r?.dn} style={{ borderRadius: "0" }}>
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                          <path d="M5 12h14" />
-                                        </svg>
-                                      </button>
-                                      <span style={{ minWidth: "44px", textAlign: "center", fontWeight: "var(--weight-medium)" }}>{r?.v}</span>
-                                      <button type="button" className="ib" aria-label={`More discount for ${r?.label ?? ""}`} onClick={r?.up} style={{ borderRadius: "0" }}>
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                          <path d="M5 12h14" />
-                                          <path d="M12 5v14" />
-                                        </svg>
-                                      </button>
-                                    </div>
-                                    <span style={{ minWidth: "48px", fontSize: "var(--text-xs-plus)", color: "#334155" }}>{r?.unit}</span>
-                                  </span>
-                                </>) : null}
-                                <button type="button" role="switch" aria-checked={r?.on} aria-label={`Discount for ${r?.label ?? ""}`} className={r?.swCls} onClick={r?.toggle} />
+                    </section>
+
+                    <section className="ix-card nc-card" aria-labelledby="nc-s7">
+                      <header className="ix-card__head"><h2 id="nc-s7">Offer post on your website <InfoTip text={"Every offer gets its own post on the Offers & Promotions page, with a day counter. After the end date it shows as “Ended”."} /></h2></header>
+                      <div className="ix-card__body">
+                        {swRow(v.onPage, 'Show on the Offers & Promotions page', 'Customers find the offer by themselves — no need to send an SMS.')}
+                        {v.onPage?.on ? (<>
+                          <div className="ly-field">
+                            <label className="gc-label" htmlFor="cp-title">Post title<__Req /></label>
+                            <input id="cp-title" className="gc-input" value={v.postTitle} onChange={v.typeTitle} aria-required="true" {...__inv(v.errs?.title, "cp-title-err")} />
+                            <__Err id="cp-title-err" msg={v.errs?.title} />
+                            <p className="ly-help">Link: gridshop.com.bd/offers/{v.slug}</p>
+                          </div>
+                          <div className="ly-field">
+                            <span className="gc-label">Featured image</span>
+                            {v.noImg ? (
+                              <div className="nc-imgs">
+                                <button type="button" onClick={v.upload}><__Icon name="image-up" width="20" height="20" aria-hidden="true" /><b>Upload a picture</b><span>JPG or PNG · 1200 × 630 is best</span></button>
+                                <button type="button" className="is-cover" onClick={v.useAuto}><span className="nc-cover">{v.bigGets}</span><b>No picture? Use a ready cover</b></button>
                               </div>
-                            </React.Fragment>))}
-                        </div>
-                      </div>
-                    </>) : null}
-                    {v.isCod ? (<>
-                      <div className="fade" style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "12px 14px", borderRadius: "var(--radius-lg)", background: "#fff4e0", color: "#7a3b04", fontSize: "var(--text-xs-plus)", lineHeight: "18px" }}>
-                        <span style={{ flexShrink: "0" }}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <circle cx="12" cy="12" r="10" />
-                            <path d="M12 16v-4" />
-                            <path d="M12 8h.01" />
-                          </svg>
-                        </span>
-                        <span>Good for areas where people trust cash more. Online payments will not get this discount.</span>
-                      </div>
-                    </>) : null}
-                  </section>
-                  <section className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                      <span style={{ width: "32px", height: "32px", flexShrink: "0", borderRadius: "var(--radius-full)", background: "#003087", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)" }}>5</span>
-                      <div style={{ flexGrow: "1" }}>
-                        <h2 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Where can they use it?</h2>
-                        <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }} />
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                      {__list(v.wheres).map((c, $index) => (<React.Fragment key={$index}>
-                          <button type="button" className={c?.cls} aria-pressed={c?.on} onClick={c?.pick}>{c?.label}</button>
-                        </React.Fragment>))}
-                    </div>
-                  </section>
-                  <section className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                      <span style={{ width: "32px", height: "32px", flexShrink: "0", borderRadius: "var(--radius-full)", background: "#003087", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)" }}>6</span>
-                      <div style={{ flexGrow: "1" }}>
-                        <h2 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>When, and how many times?</h2>
-                        <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }} />
-                      </div>
-                    </div>
-                    <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                      <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <span className="lbl">Starts<__Req /></span>
-                        <input id="cp-start" className="inp" type="date" aria-label="Start date" value={v.dStart} onChange={v.typeStart} aria-required="true" {...__inv(v.errs?.start, "cp-start-err")} />
-                        <__Err id="cp-start-err" msg={v.errs?.start} />
-                      </label>
-                      <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <span className="lbl">Ends</span>
-                        <input id="cp-end" className="inp" type="date" aria-label="End date" value={v.dEnd} onChange={v.typeEnd} aria-describedby={v.errs?.end ? "cp-end-err" : "cp-end-help"} {...(v.errs?.end ? { "aria-invalid": "true" } : {})} />
-                        <__Err id="cp-end-err" msg={v.errs?.end} />
-                        <span id="cp-end-help" style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Leave empty to keep it on always.</span>
-                      </label>
-                    </div>
-                    <div className="nc-steprow" style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                      <span style={{ fontSize: "var(--text-sm)", color: "#334155" }}>Stop after it is used</span>
-                      <div style={{ display: "inline-flex", alignItems: "center", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", overflow: "hidden", background: "#fff" }}>
-                        <button type="button" className="ib" aria-label="Less use limit" onClick={v.lim?.dec} style={{ borderRadius: "0" }}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M5 12h14" />
-                          </svg>
-                        </button>
-                        <span style={{ minWidth: "44px", textAlign: "center", fontWeight: "var(--weight-medium)" }}>{v.lim?.v}</span>
-                        <button type="button" className="ib" aria-label="More use limit" onClick={v.lim?.inc} style={{ borderRadius: "0" }}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M5 12h14" />
-                            <path d="M12 5v14" />
-                          </svg>
-                        </button>
-                      </div>
-                      <span style={{ fontSize: "var(--text-sm)", color: "#334155" }}>times in total</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                      <div style={{ flexGrow: "1" }}>
-                        <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>One time per customer</div>
-                        <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Checked by phone number</div>
-                      </div>
-                      <button type="button" role="switch" aria-checked={v.once?.on} aria-label="One time per customer" className={v.once?.cls} onClick={v.once?.toggle} />
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                      <div style={{ flexGrow: "1" }}>
-                        <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Can join with other offers</div>
-                        <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>For example with a flash sale price or points</div>
-                      </div>
-                      <button type="button" role="switch" aria-checked={v.stack?.on} aria-label="Can join with other offers" className={v.stack?.cls} onClick={v.stack?.toggle} />
-                    </div>
-                  </section>
-                  <section className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                      <span style={{ width: "32px", height: "32px", flexShrink: "0", borderRadius: "var(--radius-full)", background: "#003087", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)" }}>7</span>
-                      <div style={{ flexGrow: "1" }}>
-                        <h2 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Offer post on your website</h2>
-                        <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>{"Every offer gets its own post on the Offers & Promotions page, with a day counter. After the end date it shows as “Ended”."}</p>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                      <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
-                          <circle cx="12" cy="12" r="3" />
-                        </svg>
-                      </span>
-                      <div style={{ flexGrow: "1" }}>
-                        <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{"Show on the Offers & Promotions page"}</div>
-                        <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Customers find the offer by themselves — no need to send an SMS.</div>
-                      </div>
-                      <button type="button" role="switch" aria-checked={v.onPage?.on} aria-label={"Show on the Offers & Promotions page"} className={v.onPage?.cls} onClick={v.onPage?.toggle} />
-                    </div>
-                    {v.onPage?.on ? (<>
-                      <div className="fade" style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "18px", borderRadius: "var(--radius-xl)", background: "#fbfcfe", border: "1px solid #e2e8f0" }}>
-                        <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                          <span className="lbl">Post title<__Req /></span>
-                          <input id="cp-title" className="inp" aria-label="Post title" value={v.postTitle} onChange={v.typeTitle} aria-required="true" {...__inv(v.errs?.title, "cp-title-err")} style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }} />
-                          <__Err id="cp-title-err" msg={v.errs?.title} />
-                          <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Link: gridshop.com.bd/offers/{v.slug}</span>
-                        </label>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                          <span className="lbl">Featured image</span>
-                          {v.noImg ? (<>
-                            <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px" }}>
-                              <button type="button" onClick={v.upload} style={{ height: "200px", borderRadius: "var(--radius-lg)", border: "2px dashed #94a3b8", background: "#f8fafc", font: "inherit", color: "#475569", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-                                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                  <path d="M17 8 12 3 7 8" />
-                                  <path d="M12 3v12" />
-                                </svg>
-                                <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Upload a picture</span>
-                                <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>JPG or PNG · 1200 × 630 is best</span>
-                              </button>
-                              <button type="button" onClick={v.useAuto} style={{ height: "200px", borderRadius: "var(--radius-lg)", border: "1.5px solid #e2e8f0", background: "#ffffff", font: "inherit", cursor: "pointer", padding: "10px", display: "flex", flexDirection: "column", gap: "8px" }}>
-                                <span style={{ flexGrow: "1", width: "100%", borderRadius: "var(--radius-lg)", background: "linear-gradient(135deg, #012169, #0a5bd0)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.bigGets}</span>
-                                <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>No picture? Use a ready cover</span>
-                              </button>
-                            </div>
-                          </>) : null}
-                          {v.hasImg ? (<>
-                            <div className="fade cp-img" style={{ display: "flex", gap: "14px", alignItems: "stretch" }}>
-                              <div style={__sx(`width: 380px; max-width: 100%; height: 200px; flex-shrink: 0; border-radius: var(--radius-xl); overflow: hidden; background: ${v.imgBg ?? ""}; color: #fff; position: relative; display: flex; flex-direction: column; justify-content: flex-end; padding: 18px;`)}>
-                                <span style={{ position: "absolute", top: "12px", left: "12px", height: "24px", padding: "0 10px", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.22)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center" }}>{v.imgTag}</span>
-                                <span style={{ fontSize: "var(--text-3xl)", lineHeight: "38px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.imgText}</span>
-                              </div>
-                              <div style={{ display: "flex", flexDirection: "column", gap: "8px", justifyContent: "center" }}>
-                                <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>{v.imgName}</div>
-                                <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{v.imgNote}</div>
-                                <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
-                                  <button type="button" className="btn line sm" onClick={v.upload}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                      <path d="M17 8 12 3 7 8" />
-                                      <path d="M12 3v12" />
-                                    </svg>
-                                    <span>Change</span>
-                                  </button>
-                                  <button type="button" className="btn line sm" onClick={v.removeImg}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                      <path d="M3 6h18" />
-                                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2" />
-                                    </svg>
-                                    <span>Remove</span>
-                                  </button>
+                            ) : (
+                              <div className="nc-img">
+                                <div className="nc-img__pic" style={{ background: v.imgBg }}><small>{v.imgTag}</small><b>{v.imgText}</b></div>
+                                <div className="ly-field">
+                                  <span className="ix-strong">{v.imgName}</span>
+                                  <span className="ly-help">{v.imgNote}</span>
+                                  <span className="ix-chips"><button type="button" className="ix-btn ix-btn--sm" onClick={v.upload}><__Icon name="upload" width="16" height="16" aria-hidden="true" />Change</button><button type="button" className="ix-btn ix-btn--sm" onClick={v.removeImg}><__Icon name="trash-2" width="16" height="16" aria-hidden="true" />Remove</button></span>
                                 </div>
                               </div>
-                            </div>
-                          </>) : null}
-                        </div>
-                        <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                          <span style={{ display: "flex", alignItems: "center" }}>
-                            <span className="lbl" style={{ flexGrow: "1" }}>Short description</span>
-                            <span style={__sx(`font-size: var(--text-xs); color: ${v.sdColor ?? ""};`)}>{v.sdCount}</span>
-                          </span>
-                          <textarea className="inp bn" rows="2" aria-label="Short description" value={v.sd} onChange={v.typeSd} style={{ height: "auto", padding: "12px 14px", lineHeight: "22px", resize: "none" }} />
-                          <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>One or two lines. Shown on the offer card and on the coupon at checkout.</span>
-                        </label>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                          <label className="lbl" htmlFor="cp-full">Full description</label>
-                          <div style={{ display: "flex", gap: "2px", padding: "6px", border: "1px solid #cbd5e1", borderBottom: "0", borderRadius: "var(--radius-lg) var(--radius-lg) 0 0", background: "#f8fafc" }}>
-                            <button type="button" className="ib" aria-label="Bold" style={{ width: "36px", height: "36px", borderRadius: "var(--radius-md)" }}><__Icon name="bold" width="16" height="16" aria-hidden="true" /></button>
-                            <button type="button" className="ib" aria-label="Italic" style={{ width: "36px", height: "36px", borderRadius: "var(--radius-md)" }}><__Icon name="italic" width="16" height="16" aria-hidden="true" /></button>
-                            <button type="button" className="ib" aria-label="List" style={{ width: "36px", height: "36px", borderRadius: "var(--radius-md)" }}>
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <rect width="8" height="4" x="8" y="2" rx="1" />
-                                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-                                <path d="M12 11h4" />
-                                <path d="M12 16h4" />
-                                <path d="M8 11h.01" />
-                                <path d="M8 16h.01" />
-                              </svg>
-                            </button>
-                            <button type="button" className="ib" aria-label="Add link" style={{ width: "36px", height: "36px", borderRadius: "var(--radius-md)" }}>
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                              </svg>
-                            </button>
-                            <button type="button" className="ib" aria-label="Add picture" style={{ width: "36px", height: "36px", borderRadius: "var(--radius-md)" }}>
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <rect width="18" height="18" x="3" y="3" rx="2" />
-                                <circle cx="9" cy="9" r="2" />
-                                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-                              </svg>
-                            </button>
+                            )}
                           </div>
-                          <textarea id="cp-full" className="inp bn" rows="7" style={{ height: "auto", padding: "12px 14px", lineHeight: "24px", borderRadius: "0 0 var(--radius-lg) var(--radius-lg)", resize: "vertical" }} defaultValue={v.fullDesc} />
-                          <span style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Tell the story of the offer. Bangla and English both work. Terms are added below the post by themselves.</span>
+                          <div className="ly-field">
+                            <span className="nc-lblrow"><label className="gc-label" htmlFor="cp-sd">Short description <InfoTip text="One or two lines. Shown on the offer card and on the coupon at checkout." /></label><span className="ly-help">{v.sdCount}</span></span>
+                            <textarea id="cp-sd" className="gc-input nc-sd" rows="2" value={v.sd} onChange={v.typeSd} />
+                          </div>
+                          <div className="ly-field">
+                            <label className="gc-label" htmlFor="cp-full">Full description <InfoTip text="Tell the story of the offer. Bangla and English both work. Terms are added below the post by themselves." /></label>
+                            <div>
+                              <div className="nc-tools">
+                                <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Bold"><__Icon name="bold" width="16" height="16" aria-hidden="true" /></button>
+                                <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Italic"><__Icon name="italic" width="16" height="16" aria-hidden="true" /></button>
+                                <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="List"><__Icon name="list" width="16" height="16" aria-hidden="true" /></button>
+                                <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Add link"><__Icon name="link" width="16" height="16" aria-hidden="true" /></button>
+                                <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Add picture"><__Icon name="image" width="16" height="16" aria-hidden="true" /></button>
+                              </div>
+                              <textarea id="cp-full" className="gc-input nc-full" rows="6" defaultValue={v.fullDesc} />
+                            </div>
+                          </div>
+                        </>) : null}
+                        {swRow(v.atCheckout, 'Show at checkout as a ready coupon', 'Customers tap it to use it. Turn off to keep the code secret (they must type it).')}
+                      </div>
+                    </section>
+                  </div>
+
+                  <aside className="ix-side nc-side">
+                    <section className="ix-card" aria-labelledby="nc-see">
+                      <header className="ix-card__head"><h2 id="nc-see">Customer will see</h2></header>
+                      <div className="ix-card__body">
+                        <div className="nc-ticket">
+                          <div><b>{v.bigGets}</b><span>{v.smallRule}</span><span>{v.endTxt}</span></div>
+                          <div><span>USE CODE</span><b>{v.code}</b></div>
                         </div>
+                        <button type="submit" className="ix-btn ix-btn--primary">Save and turn on</button>
                       </div>
-                    </>) : null}
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                      <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
-                          <path d="M9 9h.01" />
-                          <path d="m15 9-6 6" />
-                          <path d="M15 15h.01" />
-                        </svg>
-                      </span>
-                      <div style={{ flexGrow: "1" }}>
-                        <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Show at checkout as a ready coupon</div>
-                        <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Customers tap it to use it. Turn off to keep the code secret (they must type it).</div>
-                      </div>
-                      <button type="button" role="switch" aria-checked={v.atCheckout?.on} aria-label="Show at checkout as a ready coupon" className={v.atCheckout?.cls} onClick={v.atCheckout?.toggle} />
-                    </div>
-                  </section>
-                </div>
-                <aside className="gc-side" style={{ width: "360px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "16px", position: "sticky", top: "0" }}>
-                  <section className="card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                    <div className="lbl">Customer will see</div>
-                    <div style={{ position: "relative", display: "flex", borderRadius: "var(--radius-xl)", overflow: "hidden", background: "linear-gradient(135deg, #012169 0%, #003087 55%, #0a5bd0 100%)", color: "#fff" }}>
-                      <div style={{ flexGrow: "1", padding: "18px", display: "flex", flexDirection: "column", gap: "4px" }}>
-                        <div style={{ fontSize: "var(--text-3xl)", lineHeight: "36px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.bigGets}</div>
-                        <div style={{ fontSize: "var(--text-xs-plus)", opacity: ".85" }}>{v.smallRule}</div>
-                        <div style={{ fontSize: "var(--text-xs)", opacity: ".7" }}>{v.endTxt}</div>
-                      </div>
-                      <div style={{ width: "112px", borderLeft: "2px dashed rgba(255,255,255,.4)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "4px", padding: "10px" }}>
-                        <span style={{ fontSize: "var(--text-xs)", opacity: ".8" }}>USE CODE</span>
-                        <span className="mono" style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", wordBreak: "break-all", textAlign: "center" }}>{v.code}</span>
-                      </div>
-                      <span style={{ position: "absolute", top: "-10px", right: "102px", width: "20px", height: "20px", borderRadius: "var(--radius-full)", background: "#fff" }} />
-                      <span style={{ position: "absolute", bottom: "-10px", right: "102px", width: "20px", height: "20px", borderRadius: "var(--radius-full)", background: "#fff" }} />
-                    </div>
-                    <button type="submit" className="btn solid big">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M20 6 9 17l-5-5" />
-                      </svg>
-                      <span>Save and turn on</span>
-                    </button>
-                    <__Link href="/coupons" className="btn line">Cancel</__Link>
-                  </section>
-                </aside>
-              </form>
+                    </section>
+                  </aside>
+                </form>
+              </div>
             </div>
           </main>
         </div>

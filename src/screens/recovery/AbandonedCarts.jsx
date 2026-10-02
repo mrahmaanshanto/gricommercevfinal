@@ -1,13 +1,18 @@
 'use client';
 // Generated from design/templates/recovery/AbandonedCarts.dc.html by scripts/convert-design.mjs.
-// AbandonedCarts — Abandoned carts — contact list with Call, WhatsApp and SMS, plus one auto-reminder switch.
+// AbandonedCarts — carts people left, laid out like Shopify's Abandoned checkouts (components/ui/IndexKit.jsx): this
+// week's figures, the automatic reminder switch, then one card with the views (all, not contacted, contacted,
+// ordered), a search, bulk SMS / WhatsApp and a compact table. A row opens the customer; ⋯ calls or messages them.
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
 import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
-import { PageHeader as __PageHeader } from '@/components/ui';
+import { DCLogic, Icon as __Icon } from '@/runtime/dc';
+import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
+import { EmptyState as __EmptyState, StatusBadge as __StatusBadge } from '@/components/ui';
+import { ShopHeader, MetricStrip, IndexTabs, SearchField, LearnMore, Menu } from '@/components/ui/IndexKit';
+import { toast } from '@/runtime/ui';
+import { navigate } from '@/runtime/routes';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -24,114 +29,71 @@ var CARTS = [
 ];
 var CHIPS = [{ k: 'all', label: 'All' }, { k: 'new', label: 'Not contacted' }, { k: 'done', label: 'Contacted' }, { k: 'won', label: 'Ordered' }];
 var VERB = { call: 'Called', wa: 'WhatsApp', sms: 'SMS' };
+var PROFILE = '/customer-profile';
 class Component extends DCLogic {
-  componentWillUnmount() { clearTimeout(this.t); }
   renderVals() {
-    var self = this, s = this.state || {}, f = s.f || 'all', act = s.act || {};
+    var self = this, s = this.state || {}, f = s.f || 'all', act = s.act || {}, sel = s.sel || {};
     var autoOn = s.auto != null ? s.auto : true;
+    var q = String(s.q || '').trim().toLowerCase(), qd = q.replace(/[^0-9]/g, '');
     var lastOf = function (c) { return act[c.id] ? VERB[act[c.id]] + ' by you · just now' : c.last; };
     var stOf = function (c) { return c.won ? 'won' : (lastOf(c) ? 'done' : 'new'); };
+    var msgOf = function (c, k) { return k === 'call' ? 'Calling ' + c.phone + ' … logged as called.' : k === 'wa' ? 'WhatsApp opened for ' + c.phone + ' with the cart link filled in.' : 'SMS sent to ' + c.phone + ' with a link that brings the cart back.'; };
     var doAct = function (c, k) {
       var a = {}; for (var x in act) a[x] = act[x]; a[c.id] = k;
-      var m = k === 'call' ? 'Calling ' + c.phone + ' … logged as called.' : k === 'wa' ? 'WhatsApp opened for ' + c.phone + ' with the cart link filled in.' : 'SMS sent to ' + c.phone + ' with a link that brings the cart back.';
-      clearTimeout(self.t); self.setState({ act: a, msg: m }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 2800);
+      self.setState({ act: a }); toast(msgOf(c, k));
     };
-    var list = CARTS.filter(function (c) { return f === 'all' || stOf(c) === f; });
+    var hit = function (c) { return !q || (c.name + ' ' + c.items).toLowerCase().indexOf(q) >= 0 || (qd.length > 2 && c.phone.replace(/[^0-9]/g, '').indexOf(qd) >= 0); };
+    var list = CARTS.filter(function (c) { return (f === 'all' || stOf(c) === f) && hit(c); });
+    var open = list.filter(function (c) { return !c.won; });
+    var picked = open.filter(function (c) { return sel[c.id]; });
+    var bulk = function (k) {
+      if (!picked.length) return;
+      var a = {}; for (var x in act) a[x] = act[x]; picked.forEach(function (c) { a[c.id] = k; });
+      self.setState({ act: a, sel: {} });
+      toast((k === 'wa' ? 'WhatsApp opened for ' : 'SMS sent to ') + picked.length + (picked.length === 1 ? ' customer' : ' customers') + ' with the cart link.');
+    };
     var rows = list.map(function (c) {
       var guest = c.name === 'Guest', l = lastOf(c);
-      return { name: c.name, phone: c.phone, initial: guest ? '?' : c.name.charAt(0), avBg: guest ? '#eef2f6' : '#e0f3fb', avFg: guest ? '#64748b' : '#003087',
+      return { id: c.id, name: guest ? 'Guest · ' + c.phone : c.name, phone: c.phone,
         items: c.items, more: c.more, value: bdt(c.v), ago: c.ago,
-        last: l || 'Not contacted', lastCls: l ? 'badge b-approved' : 'badge b-draft',
-        open: !c.won, won: !!c.won,
-        callLabel: 'Call ' + c.name, waLabel: 'WhatsApp ' + c.name, smsLabel: 'SMS ' + c.name,
-        call: function () { doAct(c, 'call'); }, wa: function () { doAct(c, 'wa'); }, sms: function () { doAct(c, 'sms'); } };
+        last: l || 'Not contacted', contacted: !!l,
+        open: !c.won, won: !!c.won, checked: !!sel[c.id],
+        toggle: function () { var o = {}; for (var x in sel) o[x] = sel[x]; o[c.id] = !sel[c.id]; self.setState({ sel: o }); },
+        onRowClick: function (e) { if (e.target.closest('a,button,input,label,select')) return; navigate(PROFILE); },
+        contact: [{ label: 'Call', icon: 'phone', onClick: function () { doAct(c, 'call'); }, aria: 'Call ' + c.name }, { label: 'WhatsApp', icon: 'message-circle', onClick: function () { doAct(c, 'wa'); }, aria: 'WhatsApp ' + c.name }, { label: 'SMS', icon: 'message-square', onClick: function () { doAct(c, 'sms'); }, aria: 'SMS ' + c.name }] };
     });
     var cnt = { all: CARTS.length }; CARTS.forEach(function (c) { var k = stOf(c); cnt[k] = (cnt[k] || 0) + 1; });
-    var chips = CHIPS.map(function (x) { var on = x.k === f; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', count: String(cnt[x.k] || 0), pick: function () { self.setState({ f: x.k }); } }; });
+    var tabs = CHIPS.map(function (x) { return { key: x.k, id: 'rc-tab-' + x.k, label: x.label, count: cnt[x.k] || 0, on: x.k === f, onClick: function () { self.setState({ f: x.k, sel: {} }); } }; });
     var waiting = CARTS.filter(function (c) { return !c.won; }).reduce(function (a, c) { return a + c.v; }, 0);
+    var allOn = open.length > 0 && picked.length === open.length;
     return {
       kLeft: String(CARTS.length), kWaiting: bdt(waiting), kBack: String(CARTS.filter(function (c) { return c.won; }).length),
-      autoOn: autoOn, autoCls: autoOn ? 'sw on' : 'sw',
+      autoOn: autoOn,
       autoNote: autoOn ? 'On — one SMS goes out 1 hour after a customer leaves, with a link back to their cart.' : 'Off — no reminder is sent. Contact customers from the list below.',
       toggleAuto: function () { self.setState({ auto: !autoOn }); },
-      chips: chips, rows: rows, empty: !rows.length,
-      hasMsg: !!s.msg, msg: s.msg || ''
+      tabs: tabs, rows: rows, empty: !rows.length,
+      q: s.q || '', typeQ: function (e) { self.setState({ q: e.target.value, sel: {} }); },
+      find: !!(s.find || s.q), openFind: function () { self.setState({ find: true }); }, closeFind: function () { self.setState({ find: false, q: '', sel: {} }); },
+      selCount: picked.length, hasSel: picked.length > 0, allOn: allOn,
+      toggleAll: function () { var o = {}; if (!allOn) open.forEach(function (c) { o[c.id] = true; }); self.setState({ sel: o }); },
+      clearSel: function () { self.setState({ sel: {} }); }, bulkSms: function () { bulk('sms'); }, bulkWa: function () { bulk('wa'); },
+      countLabel: rows.length === 1 ? '1 cart' : rows.length + ' carts'
     };
   }
 }
 
-// ---- styles (from the design's <helmet>) ----
+// ---- styles ----
 
 const CSS = `
-body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
-*{box-sizing:border-box}
-a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
-.nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
-.nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
-.btn:hover{text-decoration:none}
-.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
-.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
-.line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
-.warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
-.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
-.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
-.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:var(--text-muted)}
-.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
-.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
-.tab:hover{background:#f1f5f9;color:#0f172a}
-.tab.on{background:#003087;color:#fff}
-.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
-.chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
-.row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
-.b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
-.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
-.b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:var(--font-data);letter-spacing:.02em}
-.fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
-@keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.flash{animation:gcFlash 900ms ease-out}
-@keyframes gcFlash{from{background:#e7f8f1}to{background:transparent}}
-.scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
-@keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
-
-.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
-.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
-.sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
-.t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
-.actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:var(--font-bn)}
-.pulse{animation:gcPulse 1.6s ease-in-out infinite}
-@keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
-@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-/* phones: the reminder card puts title + switch on one row, the note full width, "Edit message" below */
-@media (max-width:640px){
-  .ac-auto{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto;align-items:center!important;gap:var(--space-2) var(--space-3)!important;padding:var(--space-4)!important}
-  .ac-auto__ic{width:36px!important;height:36px!important;grid-row:1;grid-column:1}
-  .ac-auto__txt{display:contents}
-  .ac-auto__title{grid-row:1;grid-column:2;min-width:0}
-  .ac-auto__sw{grid-row:1;grid-column:3}
-  .ac-auto__desc{grid-row:2;grid-column:1/-1}
-  .ac-auto__edit{grid-row:3;grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;min-height:36px}
-  .ac-chips{overflow-x:auto;scrollbar-width:none}
-  .ac-chips::-webkit-scrollbar{display:none}
-  .ac-chips>.chip{flex:none}
-}
+/* phones: a figure cell grows to fit its value and sub-line (kit request) */
+@media (max-width:640px){.ix-metric{flex:0 0 auto}}
+.rc-auto{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3)}
+.rc-auto>div{flex:1 1 260px;min-width:0}
+.rc-auto b{display:flex;align-items:center;gap:4px;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.rc-auto small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
+.rc-auto a{font-size:var(--text-xs-plus);font-weight:var(--weight-medium);white-space:nowrap}
+.rc-items{display:block;max-width:280px;overflow:hidden;text-overflow:ellipsis}
+.rc-sub{font-size:var(--text-xs);color:var(--text-muted)}
 `;
 
 // ---- markup ----
@@ -139,159 +101,98 @@ a{color:#003087}a:hover{color:#002a77}
 export default class AbandonedCartsScreen extends Component {
   render() {
     const v = this.renderVals() || {};
+    const status = (r) => (r.won ? <__StatusBadge tone="success">Ordered</__StatusBadge> : <__StatusBadge tone={r.contacted ? 'info' : 'neutral'} icon={r.contacted ? 'check' : 'minus'}>{r.last}</__StatusBadge>);
     return (
       <div className="dc-screen ds" data-screen="AbandonedCarts">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
+        <div className="gc-shell">
           <__Sidebar sticky="" active="rec-carts" />
-          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
+          <main className="gc-shell__main">
             <__Topbar crumb="Orders" page="Abandoned carts" placeholder="Search customer by name or phone" />
-            <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "20px" }}>
-              <__PageHeader title="Abandoned carts" />
-              <div className="gc-cardrow" style={{ display: "flex", gap: "16px" }}>
-                <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#e0f3fb", color: "var(--accent-text)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <circle cx="8" cy="21" r="1" />
-                      <circle cx="19" cy="21" r="1" />
-                      <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-                    </svg>
-                  </span>
-                  <div>
-                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{v.kLeft}</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Carts left this week</div>
-                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>people added items but did not order</div>
-                  </div>
-                </div>
-                <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#fff4e0", color: "#a14f06", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />
-                      <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />
-                    </svg>
-                  </span>
-                  <div>
-                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#a14f06" }}>{v.kWaiting}</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Money waiting</div>
-                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>in open carts</div>
-                  </div>
-                </div>
-                <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#e7f8f1", color: "#047857", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M22 17 13.5 8.5 8.5 13.5 2 7" />
-                      <path d="M16 17h6v-6" />
-                    </svg>
-                  </span>
-                  <div>
-                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#047857" }}>{v.kBack}</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Came back and ordered</div>
-                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>this week</div>
-                  </div>
-                </div>
-              </div>
-              <section className="card ac-auto" style={{ padding: "18px 20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                <span className="ac-auto__ic" style={{ width: "44px", height: "44px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "rgba(0,48,135,.08)", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M10.268 21a2 2 0 0 0 3.464 0" />
-                    <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" />
-                  </svg>
-                </span>
-                <div className="ac-auto__txt" style={{ flexGrow: "1", minWidth: "0" }}>
-                  <div className="ac-auto__title" style={{ fontSize: "var(--text-sm-plus)", lineHeight: "22px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Send an automatic reminder</div>
-                  <div className="ac-auto__desc" style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>{v.autoNote}</div>
-                </div>
-                <__Link className="ac-auto__edit" href="/auto-reminders" style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", whiteSpace: "nowrap" }}>Edit message</__Link>
-                <button type="button" className={`${v.autoCls} ac-auto__sw`} role="switch" aria-checked={v.autoOn} aria-label="Automatic reminder" onClick={v.toggleAuto} />
-              </section>
-              <section className="card" style={{ overflow: "hidden", flexGrow: "1", display: "flex", flexDirection: "column" }}>
-                <div className="ac-chips" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "14px 16px", borderBottom: "1px solid #e2e8f0" }}>
-                  {__list(v.chips).map((c, $index) => (<React.Fragment key={$index}>
-                      <button type="button" className={c?.cls} aria-pressed={c?.on} onClick={c?.pick}>{c?.label}<span style={{ minWidth: "22px", height: "20px", padding: "0 6px", borderRadius: "var(--radius-full)", background: "#eef2f6", color: "#475569", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{c?.count}</span></button>
-                    </React.Fragment>))}
-                  <div style={{ flexGrow: "1" }} />
-                  <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Newest first</span>
-                </div>
-                {v.hasMsg ? (<>
-                  <div style={{ padding: "14px 16px 0" }}>
-                    <div className="fade" role="status" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", borderRadius: "var(--radius-lg)", background: "#e7f8f1", color: "#065f46", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <circle cx="12" cy="12" r="10" />
-                        <path d="m9 12 2 2 4-4" />
-                      </svg>
-                      <span>{v.msg}</span>
+            <div className="gc-shell__content">
+              <div className="ix-page">
+                <ShopHeader icon="shopping-cart" title="Abandoned carts"
+                  about="People who added items but did not order. Call them, or send a WhatsApp or SMS with a link that brings their cart back."
+                  more={[{ label: 'Auto reminders', href: '/auto-reminders' }, { label: 'Customers', href: '/all-customers' }, { label: 'Coupons', href: '/coupons' }]} />
+
+                <MetricStrip label="This week" items={[
+                  { label: 'Carts left this week', value: v.kLeft },
+                  { label: 'Money waiting', value: v.kWaiting, sub: 'in open carts' },
+                  { label: 'Came back and ordered', value: v.kBack, sub: 'this week' },
+                ]} />
+
+                <section className="ix-card ix-card--pad rc-auto" aria-label="Automatic reminder">
+                  <div><b>Send an automatic reminder</b><small>{v.autoNote}</small></div>
+                  <__Link href="/auto-reminders">Edit message</__Link>
+                  <button type="button" className="gc-switch" role="switch" aria-checked={v.autoOn} aria-label="Automatic reminder" onClick={v.toggleAuto}><span className="gc-switch__knob" /></button>
+                </section>
+
+                <section className="ix-card" aria-label="Abandoned carts">
+                  {v.hasSel ? (
+                    <div className="ix-bulk" role="toolbar" aria-label="Selected carts">
+                      <input type="checkbox" checked={v.allOn} onChange={v.toggleAll} aria-label="Select all" style={{ width: 16, height: 16, margin: '0 6px', accentColor: 'var(--primary)' }} />
+                      <span className="ix-bulk__n">{v.selCount} selected</span>
+                      <button type="button" className="ix-btn ix-btn--sm" onClick={v.bulkSms}><__Icon name="message-square" width="16" height="16" aria-hidden="true" />SMS</button>
+                      <button type="button" className="ix-btn ix-btn--sm" onClick={v.bulkWa}><__Icon name="message-circle" width="16" height="16" aria-hidden="true" />WhatsApp</button>
+                      <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" align="start" items={[{ label: 'Clear selection', onClick: v.clearSel }]} />
                     </div>
-                  </div>
-                </>) : null}
-                <div className="gc-table-wrap">
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr>
-                        <th className="th">Customer</th>
-                        <th className="th">In the cart</th>
-                        <th className="th" style={{ textAlign: "right" }}>Amount</th>
-                        <th className="th">Left</th>
-                        <th className="th">Last contact</th>
-                        <th className="th" style={{ textAlign: "right" }}>Contact</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {__list(v.rows).map((r, $index) => (<React.Fragment key={$index}>
-                          <tr className="row">
-                            <td className="td">
-                              <__Link href="/customer-profile" style={{ display: "flex", alignItems: "center", gap: "12px", textDecoration: "none", color: "inherit" }}>
-                                <span style={__sx(`width: 40px; height: 40px; flex-shrink: 0; border-radius: var(--radius-full); background: ${r?.avBg ?? ""}; color: ${r?.avFg ?? ""}; display: flex; align-items: center; justify-content: center; font-weight: var(--weight-medium);`)}>{r?.initial}</span>
-                                <span>
-                                  <span style={{ display: "block", fontWeight: "var(--weight-medium)" }}>{r?.name}</span>
-                                  <span className="mono" style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>{r?.phone}</span>
-                                </span>
-                              </__Link>
-                            </td>
-                            <td className="td">
-                              <div style={{ fontWeight: "var(--weight-medium)" }}>{r?.items}</div>
-                              <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>{r?.more}</div>
-                            </td>
-                            <td className="td" style={{ textAlign: "right", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", whiteSpace: "nowrap" }}>{r?.value}</td>
-                            <td className="td" style={{ whiteSpace: "nowrap", color: "#475569" }}>{r?.ago}</td>
-                            <td className="td">
-                              <span className={r?.lastCls}>{r?.last}</span>
-                            </td>
-                            <td className="td" style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                              {r?.open ? (<>
-                                <div style={{ display: "inline-flex", gap: "6px" }}>
-                                  <button type="button" className="btn solid sm" onClick={r?.call} aria-label={r?.callLabel}>
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                                    </svg>
-                                    <span>Call</span>
-                                  </button>
-                                  <button type="button" className="btn line sm" onClick={r?.wa} aria-label={r?.waLabel} style={{ color: "#166534" }}>
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                      <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
-                                    </svg>
-                                    <span>WhatsApp</span>
-                                  </button>
-                                  <button type="button" className="btn line sm" onClick={r?.sms} aria-label={r?.smsLabel}>
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                                    </svg>
-                                    <span>SMS</span>
-                                  </button>
-                                </div>
-                              </>) : null}
-                              {r?.won ? (<>
-                                <span className="badge b-received">Ordered</span>
-                              </>) : null}
-                            </td>
+                  ) : (
+                    <div className="ix-bar">
+                      {v.find ? (<>
+                        <SearchField value={v.q} onChange={v.typeQ} placeholder="Search customer by name or phone" onDone={v.closeFind} autoFocus />
+                        <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={v.closeFind}>Cancel</button>
+                      </>) : (<>
+                        <IndexTabs tabs={v.tabs} label="Carts" />
+                        <span className="ix-tools"><button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search" onClick={v.openFind}><__Icon name="search" width="16" height="16" aria-hidden="true" /></button></span>
+                      </>)}
+                    </div>
+                  )}
+                  {v.empty ? (
+                    <div className="ix-empty"><__EmptyState icon="shopping-cart" title="No carts here." /></div>
+                  ) : (<>
+                    <ul className="ix-plist" aria-label="Abandoned carts">
+                      {v.rows.map((r) => (
+                        <li key={r.id} className="ix-pitem">
+                          <span className="ix-pitem__top"><b>{r.name}</b><span>{r.value}</span></span>
+                          <span className="ix-pitem__mid">{r.items} · {r.ago}</span>
+                          <span className="ix-pitem__tags">{status(r)}{r.open ? <Menu label="Contact" cls="ix-btn ix-btn--sm" items={r.contact} /> : null}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="ix-table-wrap">
+                      <table className="ix-table gc-table--keep">
+                        <caption className="sr-only">Abandoned carts, {v.countLabel}</caption>
+                        <thead>
+                          <tr>
+                            <th scope="col" className="ix-check"><input type="checkbox" aria-label="Select all" checked={v.allOn} onChange={v.toggleAll} /></th>
+                            <th scope="col">Customer</th>
+                            <th scope="col">In the cart</th>
+                            <th scope="col" className="ix-num">Amount</th>
+                            <th scope="col">Left</th>
+                            <th scope="col">Last contact</th>
+                            <th scope="col"><span className="sr-only">Contact</span></th>
                           </tr>
-                        </React.Fragment>))}
-                    </tbody>
-                  </table>
-                </div>
-                {v.empty ? (<>
-                  <div style={{ padding: "40px", textAlign: "center", fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>No carts here.</div>
-                </>) : null}
-              </section>
+                        </thead>
+                        <tbody>
+                          {v.rows.map((r) => (
+                            <tr key={r.id} className={r.checked ? 'is-sel' : ''} onClick={r.onRowClick}>
+                              <td className="ix-check">{r.open ? <input type="checkbox" checked={r.checked} onChange={r.toggle} aria-label={`Select ${r.name}`} /> : null}</td>
+                              <td><__Link href="/customer-profile" className="ix-strong">{r.name}</__Link></td>
+                              <td><span className="rc-items" title={r.items + ' · ' + r.more}>{r.items} <span className="rc-sub">{r.more}</span></span></td>
+                              <td className="ix-num ix-strong">{r.value}</td>
+                              <td className="ix-muted">{r.ago}</td>
+                              <td>{status(r)}</td>
+                              <td className="ix-num">{r.open ? <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" items={r.contact} /> : null}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>)}
+                  <div className="ix-foot"><span>{v.countLabel} · newest first</span></div>
+                </section>
+                <LearnMore topic="abandoned carts" />
+              </div>
             </div>
           </main>
         </div>

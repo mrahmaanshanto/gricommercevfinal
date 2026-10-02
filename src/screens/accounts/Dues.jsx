@@ -1,13 +1,13 @@
 'use client';
-// Dues — what the shop will get and what it must pay, in one place.
-//   You will get  customers with money due on their invoices (wholesale customers, and retail sales
-//                 left on credit), grouped by customer with ageing from the invoice date (terms are
-//                 not stored), plus the money payment partners (gateways, couriers) still hold.
-//                 "Remind" copies a polite reminder to paste into SMS or WhatsApp.
-//   You owe       open supplier bills grouped by supplier, aged by due date, and liabilities
-//                 (salaries, sales commission, affiliate payouts, promotions) not fully paid, and a
-//                 line for what is held for customers (loyalty points + wallet money, loyalty.js),
-//                 which is not in the "You owe" total: customers use it rather than being paid.
+// Dues — what the shop will get and what it must pay, laid out like a Shopify list (docs/shopify-style.md):
+//   Figures       net, overdue, what payment partners hold (→ Payouts) and what is held for customers
+//                 (loyalty points + wallet money, loyalty.js; not in "You owe": customers use it rather than
+//                 being paid; → Customer wallets)
+//   You will get  ageing from the invoice date (terms are not stored), then customers with money due on
+//                 their invoices (wholesale customers, and retail sales left on credit). A row opens its
+//                 invoices, "Remind" (copies a polite reminder to paste into SMS or WhatsApp) and the statement.
+//   You owe       ageing of supplier bills by due date, open bills by supplier (a row opens Pay on
+//                 Suppliers) and liabilities not fully paid (a row opens Pay on Bills to pay).
 // ?tab=get|owe picks the tab. Front end only: reads src/lib/invoices.js, supplierBills.js,
 // liabilities.js and settlements.js; paying happens on Suppliers and Liabilities.
 
@@ -15,8 +15,9 @@ import React, { Fragment, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
-import { EmptyState, InfoTip } from '@/components/ui';
-import { BrandLogo } from '@/components/BrandLogo';
+import { navigate } from '@/runtime/routes';
+import { EmptyState, InfoTip, StatusBadge } from '@/components/ui';
+import { MetricStrip, IndexTabs, LearnMore } from '@/components/ui/IndexKit';
 import { formatDate } from '@/lib/format';
 import { MERCHANT } from '@/lib/merchant';
 import { getInvoices } from '@/lib/invoices';
@@ -41,20 +42,18 @@ const emptyAges = () => ({ 0: 0, 30: 0, 60: 0, 90: 0 });
 /** Overdue N days · Due today · Due in N days */
 function DueBadge({ due, today }) {
   const d = daysFrom(due, today);
-  if (d < 0) return <span className="gc-badge gc-badge--error">Overdue {plural(-d, 'day')}</span>;
-  if (d === 0) return <span className="gc-badge gc-badge--warning">Due today</span>;
-  return <span className="gc-badge gc-badge--slate">Due in {plural(d, 'day')}</span>;
+  if (d < 0) return <StatusBadge tone="error">Overdue {plural(-d, 'day')}</StatusBadge>;
+  if (d === 0) return <StatusBadge tone="warning">Due today</StatusBadge>;
+  return <StatusBadge tone="neutral" icon="clock">Due in {plural(d, 'day')}</StatusBadge>;
 }
 
 const CSS = `
-.du-bar{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--space-3);padding:0 var(--space-4);border-bottom:1px solid var(--border-subtle)}
-.du-tab b{margin-left:6px;font-weight:var(--weight-medium);color:var(--text-muted);font-family:var(--font-data);font-variant-numeric:tabular-nums}
-.du-panel{display:flex;flex-direction:column}
-.du-panel > .ac-head{border-top:1px solid var(--border-subtle)}
-.du-panel > .ac-head:first-child{border-top:0}
-.du-ages{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-3);padding:var(--space-4) var(--space-5)}
-.du-age{display:flex;flex-direction:column;gap:6px;min-width:0;padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card)}
-.du-age span{font-size:var(--text-xs);color:var(--text-muted)}
+.du-fig{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+.du-ages{display:flex;overflow-x:auto;border-bottom:1px solid var(--border-subtle);scrollbar-width:none}
+.du-ages::-webkit-scrollbar{display:none}
+.du-age{display:flex;flex:1 1 0;flex-direction:column;gap:4px;min-width:130px;padding:var(--space-3) var(--space-4);border-left:1px solid var(--border-subtle)}
+.du-age:first-child{border-left:0}
+.du-age span{font-size:var(--text-xs);color:var(--text-body);white-space:nowrap}
 .du-age b{font-family:var(--font-data);font-variant-numeric:tabular-nums;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .du-age i{display:block;height:4px;border-radius:var(--radius-full);background:var(--surface-subtle);overflow:hidden}
 .du-age i s{display:block;height:100%;border-radius:var(--radius-full);text-decoration:none}
@@ -62,45 +61,17 @@ const CSS = `
 .du-tone-info s{background:var(--text-info)}
 .du-tone-warning s{background:var(--text-warning)}
 .du-tone-error s{background:var(--text-danger)}
-.du-partner{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);margin:0 var(--space-5) var(--space-4);padding:var(--space-3) var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-subtle);color:inherit;text-decoration:none}
-.du-partner:hover{border-color:var(--primary)}
-.du-partner .du-logos{display:flex}
-.du-partner .du-logos > *{margin-left:-6px;box-shadow:0 0 0 2px var(--surface-subtle);border-radius:var(--radius-lg)}
-.du-partner .du-logos > *:first-child{margin-left:0}
-.du-partner .du-text{flex:1;min-width:180px}
-.du-partner .du-text b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
-.du-partner .du-text small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
-.du-partner .du-amt{font-family:var(--font-data);font-variant-numeric:tabular-nums;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.du-chips{display:flex;flex-wrap:wrap;gap:4px}
-.du-chips .gc-badge{white-space:nowrap}
-.du-exp{display:inline-flex;align-items:center;gap:4px}
-.du-exp svg{transition:transform var(--duration-base) var(--ease-out)}
-.du-exp[aria-expanded="true"] svg{transform:rotate(90deg)}
-.du-sub td{background:var(--surface-subtle)}
-.du-sub .ac-mini{margin:0;background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
-.du-sub .ac-mini tr:last-child td{border-bottom:0}
-.du-type{display:flex;align-items:center;gap:var(--space-3);min-width:0}
-.du-type > span:first-child{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary)}
-.du-net-pos{color:var(--text-success)}
-.du-net-neg{color:var(--text-danger)}
-@media (max-width:760px){.du-ages{grid-template-columns:1fr 1fr}}
-.du-exp-word{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.du-more{display:none}
-@media (max-width:640px){
-  /* partner / wallet card: logos on their own row, side by side (+N for the rest), then text · amount · chevron */
-  .du-partner .du-logos{flex-basis:100%;gap:var(--space-1-5)}
-  .du-partner .du-logos > *{margin-left:0;box-shadow:none}
-  .du-more{display:inline-grid;place-items:center;min-width:32px;height:32px;padding:0 var(--space-2);border-radius:var(--radius-lg);background:var(--surface-card);border:1px solid var(--border-subtle);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body)}
-  /* customer cards: "1 invoice ⌄" opens the list; the age chips sit on the right like the other values */
-  .du-exp-word{position:static;width:auto;height:auto;overflow:visible;clip:auto;margin-left:3px}
-  .du-exp svg{order:2;margin-left:2px;transform:rotate(90deg)}
-  .du-exp[aria-expanded="true"] svg{transform:rotate(-90deg)}
-  .gc-cards-on .du-chips{justify-content:flex-end}
-  .du-partner .du-text{flex:1 1 0;min-width:0}
-  .du-partner .du-amt{white-space:nowrap}
-  .du-partner > svg{flex:none;margin-left:calc(var(--space-2) * -1)}
-}
+.du-detail{display:flex;flex-direction:column;gap:var(--space-3);max-width:720px}
+.du-detail .ac-mini{margin:0;background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
+.du-detail .ac-mini tr:last-child td{border-bottom:0}
+.du-acts{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
+.du-chips{display:flex;flex-wrap:wrap;gap:6px}
+.du-chev{color:var(--text-muted);transition:transform var(--duration-base) var(--ease-out)}
+tr[aria-expanded="true"] .du-chev{transform:rotate(90deg)}
+.du-pos{color:var(--text-success)}
+.du-neg{color:var(--text-danger)}
 `;
+const ABOUT = 'What the shop will get from customers and payment partners, and what it must pay suppliers, staff and others.';
 
 export default function Dues() {
   const tick = useBooks();
@@ -188,8 +159,6 @@ export default function Dues() {
     };
   }, [tick]);
 
-  const fig = (n) => (data ? money(n) : '—');
-
   const remind = async (g) => {
     const ids = g.invoices.map((i) => i.id);
     const text = `Dear ${g.name}, ${money(g.due)} is due on ${ids.length === 1 ? 'invoice' : 'invoices'} ${ids.join(', ')}. `
@@ -221,160 +190,171 @@ export default function Dues() {
       </div>
     );
   };
+  const go = (href) => (e) => { if (e.target.closest('a,button')) return; navigate(href); };
+  const toggle = (key) => setOpenRow(openRow === key ? '' : key);
 
-  const counts = data ? { get: data.customers.length + (data.held > 0 ? 1 : 0), owe: data.supplierRows.length + data.liabs.length } : { get: 0, owe: 0 };
+  // a customer's invoices and the reminder / statement: the row's details, opened by a click on the row
+  const customerDetail = (g) => (
+    <div className="du-detail">
+      <div className="du-chips">{GET_AGES.filter(([k]) => g.ages[k] > 0).map(([k, label, tone]) => <StatusBadge key={k} tone={tone}>{label} · {money(g.ages[k])}</StatusBadge>)}</div>
+      <table className="ac-mini">
+        <thead><tr><th scope="col">Invoice</th><th scope="col">Date</th><th scope="col" className="ac-num">Total</th><th scope="col" className="ac-num">Paid</th><th scope="col" className="ac-num">Due</th></tr></thead>
+        <tbody>
+          {g.invoices.map((inv) => (
+            <tr key={inv.id}>
+              <td><Link href={`/sales-invoice?id=${encodeURIComponent(inv.id)}`} className="ac-fig">{inv.id}</Link></td>
+              <td>{formatDate(inv.at)}</td>
+              <td className="ac-num ac-fig">{money(inv.totals.total)}</td>
+              <td className="ac-num ac-fig">{money(r2(inv.totals.total - inv.due))}</td>
+              <td className="ac-num ac-fig ac-strong">{money(inv.due)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="du-acts">
+        <button type="button" className="ix-btn ix-btn--sm" onClick={() => remind(g)} aria-label={`Copy a reminder for ${g.name}`}><Icon name="message-square-text" width="16" height="16" aria-hidden="true" />Remind</button>
+        {g.digits ? <Link href={`/customer-statement?phone=${g.digits}`} className="ix-btn ix-btn--sm" aria-label={`Statement of ${g.name}`}>Statement</Link> : null}
+        <span className="ix-muted du-fig">{g.phone || 'No phone'}</span>
+      </div>
+    </div>
+  );
 
-  const getPanel = data ? (
-    <>
-      <div className="ac-head"><div><h2>Ageing of what customers owe <InfoTip text="Counted from the invoice date. Payment terms are not stored, so an invoice from today is not due yet." /></h2></div></div>
-      {ages(GET_AGES, data.getAges)}
-      <Link href="/settlements" className="du-partner">
-        <span className="du-logos" aria-hidden="true">{data.partners.slice(0, 4).map((x) => <BrandLogo key={x.p.id} brand={x.p.brand} size={32} decorative />)}{data.partners.length > 4 ? <span className="du-more">+{data.partners.length - 4}</span> : null}</span>
-        <span className="du-text"><b>With payment partners</b><small>{data.partners.length ? `${data.partners.map((x) => x.p.short).join(', ')} · gateways and couriers will pay this out` : 'Nothing waiting with gateways or couriers'}</small></span>
-        <span className="du-amt">{money(data.held)}</span>
-        <Icon name="chevron-right" width="18" height="18" aria-hidden="true" />
-      </Link>
-      <div className="ac-head"><div><h2>Customers who owe you</h2><p>{plural(data.customers.length, 'customer')} · {money(data.customerDue)} due on invoices</p></div></div>
-      {data.customers.length === 0 ? <EmptyState icon="circle-check" title="No customer owes you money" body="Every invoice is paid. Sales left on credit show up here." /> : (
-        <div className="gc-table-wrap">
-          <table className="gc-table gc-table--compact gc-table--hoverable">
-            <thead><tr><th scope="col">Customer</th><th scope="col" className="ac-num">Invoices</th><th scope="col">Oldest invoice</th><th scope="col">Age</th><th scope="col" className="ac-num">Amount due</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
-            <tbody>
-              {data.customers.map((g) => {
-                const open = openRow === g.key;
-                const subId = 'du-inv-' + g.key.replace(/[^a-z0-9]/gi, '');
-                return (
-                  <Fragment key={g.key}>
-                    <tr>
-                      <td>
-                        <span className="ac-strong">{g.name}</span>{' '}
-                        <span className={'gc-badge gc-badge--' + (g.wholesale ? 'primary' : 'slate')}>{g.wholesale ? 'Wholesale' : 'Retail credit'}</span>
-                        <span className="ac-sub ac-fig">{g.phone || 'No phone'}</span>
-                      </td>
-                      <td className="ac-num">
-                        <button type="button" className="gc-btn gc-btn--xs gc-btn--neutral du-exp" aria-expanded={open} aria-controls={subId} onClick={() => setOpenRow(open ? '' : g.key)}>
-                          <Icon name="chevron-right" width="14" height="14" aria-hidden="true" />{g.invoices.length}<span className="du-exp-word"> {g.invoices.length === 1 ? 'invoice' : 'invoices'}</span><span className="sr-only"> of {g.name}</span>
-                        </button>
-                      </td>
-                      <td>{formatDate(g.oldest)}<span className="ac-sub">{plural(-daysFrom(g.oldest, data.today), 'day')} ago</span></td>
-                      <td><span className="du-chips">{GET_AGES.filter(([k]) => g.ages[k] > 0).map(([k, label, tone]) => <span key={k} className={'gc-badge gc-badge--' + tone}>{label} · {money(g.ages[k])}</span>)}</span></td>
-                      <td className="ac-num ac-fig ac-strong">{money(g.due)}</td>
-                      <td>
-                        <div className="ac-row-actions">
-                          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => remind(g)} aria-label={`Copy a reminder for ${g.name}`}><Icon name="message-square-text" width="16" height="16" aria-hidden="true" /> Remind</button>
-                          {g.digits ? <Link href={`/customer-statement?phone=${g.digits}`} className="gc-btn gc-btn--sm gc-btn--soft" aria-label={`Statement of ${g.name}`}>Statement</Link> : null}
-                        </div>
-                      </td>
-                    </tr>
-                    {open ? (
-                      <tr className="du-sub" id={subId}>
-                        <td colSpan={6}>
-                          <table className="ac-mini">
-                            <thead><tr><th scope="col">Invoice</th><th scope="col">Date</th><th scope="col" className="ac-num">Total</th><th scope="col" className="ac-num">Paid</th><th scope="col" className="ac-num">Due</th></tr></thead>
-                            <tbody>
-                              {g.invoices.map((inv) => (
-                                <tr key={inv.id}>
-                                  <td><Link href={`/sales-invoice?id=${encodeURIComponent(inv.id)}`} className="ac-fig">{inv.id}</Link></td>
-                                  <td>{formatDate(inv.at)}</td>
-                                  <td className="ac-num ac-fig">{money(inv.totals.total)}</td>
-                                  <td className="ac-num ac-fig">{money(r2(inv.totals.total - inv.due))}</td>
-                                  <td className="ac-num ac-fig ac-strong">{money(inv.due)}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </td>
-                      </tr>
-                    ) : null}
-                  </Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </>
-  ) : null;
+  const getPanel = data ? (<>
+    {ages(GET_AGES, data.getAges)}
+    {data.customers.length === 0 ? <div className="ix-empty"><EmptyState icon="circle-check" title="No customer owes you money" body="Every invoice is paid. Sales left on credit show up here." /></div> : (<>
+      <ul className="ix-plist" aria-label="Customers who owe you">
+        {data.customers.map((g) => (
+          <li key={g.key}>
+            <button type="button" className="ix-pitem" aria-expanded={openRow === g.key} onClick={() => toggle(g.key)}>
+              <span className="ix-pitem__top"><b>{g.name}</b><span className="du-fig">{money(g.due)}</span></span>
+              <span className="ix-pitem__mid">{plural(g.invoices.length, 'invoice')} · oldest {formatDate(g.oldest)}</span>
+            </button>
+            {openRow === g.key ? <div className="ac-pdetail">{customerDetail(g)}</div> : null}
+          </li>
+        ))}
+      </ul>
+      <div className="ix-table-wrap">
+        <table className="ix-table gc-table--keep">
+          <caption className="sr-only">Customers who owe you, {money(data.customerDue)} due on invoices</caption>
+          <thead><tr><th scope="col">Customer</th><th scope="col">Type</th><th scope="col" className="ix-num">Invoices</th><th scope="col">Oldest invoice</th><th scope="col" className="ix-num">Amount due</th></tr></thead>
+          <tbody>
+            {data.customers.map((g) => {
+              const open = openRow === g.key;
+              return (
+                <Fragment key={g.key}>
+                  <tr aria-expanded={open} onClick={(e) => { if (!e.target.closest('a,button')) toggle(g.key); }}>
+                    <td><span className="ac-logo"><Icon name="chevron-right" width="14" height="14" className="du-chev" aria-hidden="true" /><span className="ix-strong">{g.name}</span></span></td>
+                    <td><StatusBadge tone={g.wholesale ? 'primary' : 'neutral'} icon={g.wholesale ? 'warehouse' : 'store'}>{g.wholesale ? 'Wholesale' : 'Retail credit'}</StatusBadge></td>
+                    <td className="ix-num">{g.invoices.length}</td>
+                    <td>{formatDate(g.oldest)} <span className="ix-muted">· {plural(-daysFrom(g.oldest, data.today), 'day')} ago</span></td>
+                    <td className="ix-num du-fig ix-strong">{money(g.due)}</td>
+                  </tr>
+                  {open ? <tr className="ac-detail"><td colSpan={5}>{customerDetail(g)}</td></tr> : null}
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>)}
+  </>) : null;
 
-  const owePanel = data ? (
-    <>
-      <div className="ac-head"><div><h2>Ageing of supplier bills</h2><p>Counted from each bill’s due date.</p></div></div>
-      {ages(OWE_AGES, data.oweAges)}
-      <div className="ac-head"><div><h2>Suppliers</h2><p>{plural(data.supplierRows.length, 'supplier')} · {money(data.supplierLeft)} left on open bills</p></div><Link href="/suppliers" className="gc-btn gc-btn--sm gc-btn--neutral">All suppliers</Link></div>
-      {data.supplierRows.length === 0 ? <EmptyState icon="circle-check" title="No open supplier bills" body="Every bill is paid. Bills from receiving goods show up here." /> : (
-        <div className="gc-table-wrap">
-          <table className="gc-table gc-table--compact gc-table--hoverable">
-            <thead><tr><th scope="col">Supplier</th><th scope="col" className="ac-num">Open bills</th><th scope="col">Next due</th><th scope="col" className="ac-num">Left to pay</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
+  const owePanel = data ? (<>
+    {ages(OWE_AGES, data.oweAges)}
+    <section aria-labelledby="du-sup-h">
+      <header className="ix-card__head"><h2 id="du-sup-h">Suppliers</h2><Link href="/suppliers">All suppliers</Link></header>
+      <div style={{ height: 'var(--space-3)' }} />
+      {data.supplierRows.length === 0 ? <div className="ix-empty"><EmptyState icon="circle-check" title="No open supplier bills" body="Every bill is paid. Bills from receiving goods show up here." /></div> : (<>
+        <ul className="ix-plist" aria-label="Suppliers">
+          {data.supplierRows.map((g) => (
+            <li key={g.id}>
+              <Link href={`/suppliers?pay=${encodeURIComponent(g.id)}`} className="ix-pitem">
+                <span className="ix-pitem__top"><b>{g.name}</b><span className="du-fig">{money(g.left)}</span></span>
+                <span className="ix-pitem__mid">{plural(g.bills.length, 'open bill')} · next {formatDate(g.next)}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <div className="ix-table-wrap">
+          <table className="ix-table gc-table--keep">
+            <caption className="sr-only">Suppliers, {money(data.supplierLeft)} left on open bills</caption>
+            <thead><tr><th scope="col">Supplier</th><th scope="col" className="ix-num">Open bills</th><th scope="col">Next due</th><th scope="col" className="ix-num">Left to pay</th></tr></thead>
             <tbody>
               {data.supplierRows.map((g) => (
-                <tr key={g.id}>
-                  <td><span className="ac-strong">{g.name}</span>{g.kind ? <span className="ac-sub">{g.kind}</span> : null}</td>
-                  <td className="ac-num ac-fig">{g.bills.length}</td>
-                  <td><DueBadge due={g.next} today={data.today} /><span className="ac-sub">{formatDate(g.next)}</span></td>
-                  <td className="ac-num ac-fig ac-strong">{money(g.left)}</td>
-                  <td><div className="ac-row-actions"><Link href={`/suppliers?pay=${encodeURIComponent(g.id)}`} className="gc-btn gc-btn--sm gc-btn--solid" aria-label={`Pay ${g.name}`}>Pay</Link></div></td>
+                <tr key={g.id} onClick={go(`/suppliers?pay=${encodeURIComponent(g.id)}`)}>
+                  <td><Link href={`/suppliers?pay=${encodeURIComponent(g.id)}`} className="ix-strong" aria-label={`Pay ${g.name}`}>{g.name}</Link>{g.kind ? <span className="ix-muted"> · {g.kind}</span> : null}</td>
+                  <td className="ix-num">{g.bills.length}</td>
+                  <td><DueBadge due={g.next} today={data.today} /> <span className="ix-muted">{formatDate(g.next)}</span></td>
+                  <td className="ix-num du-fig ix-strong">{money(g.left)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      )}
-      <div className="ac-head"><div><h2>Salaries, commission and other liabilities</h2><p>{plural(data.liabs.length, 'liability', 'liabilities')} · {money(data.liabLeft)} left to pay</p></div><Link href="/liabilities" className="gc-btn gc-btn--sm gc-btn--neutral">All liabilities</Link></div>
-      {data.liabs.length === 0 ? <EmptyState icon="circle-check" title="Nothing left to pay" body="Salaries, commission, affiliate payouts and promotions are all paid." /> : (
-        <div className="gc-table-wrap">
-          <table className="gc-table gc-table--compact gc-table--hoverable">
-            <thead><tr><th scope="col">What</th><th scope="col">Owed to</th><th scope="col">Due</th><th scope="col" className="ac-num">Left to pay</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
+      </>)}
+    </section>
+    <section className="ac-sec" aria-labelledby="du-liab-h">
+      <header className="ix-card__head"><h2 id="du-liab-h">Salaries, commission and other liabilities</h2><Link href="/liabilities">Bills to pay</Link></header>
+      <div style={{ height: 'var(--space-3)' }} />
+      {data.liabs.length === 0 ? <div className="ix-empty"><EmptyState icon="circle-check" title="Nothing left to pay" body="Salaries, commission, affiliate payouts and promotions are all paid." /></div> : (<>
+        <ul className="ix-plist" aria-label="Salaries, commission and other liabilities">
+          {data.liabs.map((l) => (
+            <li key={l.id}>
+              <Link href={`/liabilities?id=${encodeURIComponent(l.id)}`} className="ix-pitem">
+                <span className="ix-pitem__top"><b>{l.title}</b><span className="du-fig">{money(leftOf(l))}</span></span>
+                <span className="ix-pitem__mid">{l.party} · due {formatDate(l.due)}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <div className="ix-table-wrap">
+          <table className="ix-table gc-table--keep">
+            <caption className="sr-only">Salaries, commission and other liabilities, {money(data.liabLeft)} left to pay</caption>
+            <thead><tr><th scope="col">What</th><th scope="col">Owed to</th><th scope="col">Due</th><th scope="col" className="ix-num">Left to pay</th></tr></thead>
             <tbody>
               {data.liabs.map((l) => {
                 const t = LIAB_TYPES[l.type] || LIAB_TYPES.other;
                 const st = liabStatus(l, data.now);
                 return (
-                  <tr key={l.id}>
-                    <td><div className="du-type"><span aria-hidden="true"><Icon name={t.icon} width="16" height="16" /></span><span><span className="ac-strong">{l.title}</span><span className="ac-sub">{t.label} · <span className="ac-fig">{l.id}</span></span></span></div></td>
-                    <td>{l.party}</td>
-                    <td><DueBadge due={l.due} today={data.today} />{st === 'Partly paid' ? <> <span className={'gc-badge gc-badge--' + LIAB_TONE[st]}>{st}</span></> : null}<span className="ac-sub">{formatDate(l.due)}</span></td>
-                    <td className="ac-num ac-fig ac-strong">{money(leftOf(l))}</td>
-                    <td><div className="ac-row-actions"><Link href={`/liabilities?id=${encodeURIComponent(l.id)}`} className="gc-btn gc-btn--sm gc-btn--solid" aria-label={`Settle ${l.title}`}>Settle</Link></div></td>
+                  <tr key={l.id} onClick={go(`/liabilities?id=${encodeURIComponent(l.id)}`)} title={`${t.label} · ${l.id}`}>
+                    <td><Link href={`/liabilities?id=${encodeURIComponent(l.id)}`} className="ix-strong" aria-label={`Settle ${l.title}`}>{l.title}</Link></td>
+                    <td><span className="ac-trunc">{l.party}</span></td>
+                    <td><DueBadge due={l.due} today={data.today} />{st === 'Partly paid' ? <> <StatusBadge tone={LIAB_TONE[st]}>{st}</StatusBadge></> : null}</td>
+                    <td className="ix-num du-fig ix-strong">{money(leftOf(l))}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
-      )}
-      <Link href="/wallet?tab=wallets" className="du-partner" style={{ marginTop: 'var(--space-4)' }}>
-        <span className="du-type" aria-hidden="true"><span><Icon name="wallet" width="16" height="16" /></span></span>
-        <span className="du-text"><b>Customer wallets and points</b><small>{money(data.forCustomers.wallets)} wallet money and advances · {money(data.forCustomers.points)} in loyalty points · not in the total above: customers use it when they buy, or ask for it back</small></span>
-        <span className="du-amt">{money(data.forCustomers.total)}</span>
-        <Icon name="chevron-right" width="18" height="18" aria-hidden="true" />
-      </Link>
-    </>
-  ) : null;
+      </>)}
+    </section>
+  </>) : null;
+
+  const tabs = TABS.map(([id, label]) => ({ key: id, id: 'du-tab-' + id, label, count: data ? money(id === 'get' ? data.get : data.owe) : null, on: tab === id, onClick: () => pickTab(id) }));
 
   return (
-    <AccPage screen="Dues" active="acc-dues" page="Dues" title="Dues" css={CSS}
-      about="What the shop will get from customers and payment partners, and what it must pay suppliers, staff and others.">
-      <div className="gc-kpis gc-kpis--tight">
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="arrow-down-left" width="22" height="22" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">You will get</p><p className="gc-kpi__value">{fig(data?.get)}<small>{data ? `${money(data.customerDue)} customers · ${money(data.held)} partners` : ''}</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-error-soft)', color: 'var(--text-danger)' }}><Icon name="arrow-up-right" width="22" height="22" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">You owe</p><p className="gc-kpi__value">{fig(data?.owe)}<small>{data ? `${money(data.supplierLeft)} suppliers · ${money(data.liabLeft)} other` : ''}</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="scale" width="22" height="22" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Net</p><p className="gc-kpi__value"><span className={data ? (data.net >= 0 ? 'du-net-pos' : 'du-net-neg') : ''}>{data ? (data.net < 0 ? '−' : '') + money(data.net) : '—'}</span><small>{data ? (data.net >= 0 ? 'more to get than to pay' : 'more to pay than to get') : ''}</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-warning-soft)', color: 'var(--text-warning)' }}><Icon name="clock-alert" width="22" height="22" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Overdue</p><p className="gc-kpi__value">{fig(data ? data.overdue.get + data.overdue.owe : 0)}<small>{data ? `${data.overdue.getCount} to get · ${data.overdue.oweCount} to pay` : ''}</small></p></div></div>
-      </div>
+    <AccPage screen="Dues" active="acc-dues" page="Dues" title="Dues" css={CSS} icon="scale" about={ABOUT}
+      more={[{ label: 'All suppliers', href: '/suppliers' }, { label: 'Bills to pay', href: '/liabilities' }, { label: 'Payouts', href: '/settlements' }, { label: 'Customer wallets', href: '/wallet?tab=wallets' }]}>
+      <MetricStrip label="Dues" items={[
+        { label: 'Net', value: data ? <span className={data.net >= 0 ? 'du-pos' : 'du-neg'}>{(data.net < 0 ? '−' : '') + money(data.net)}</span> : '—', sub: data ? (data.net >= 0 ? 'more to get than to pay' : 'more to pay than to get') : '' },
+        { label: 'Overdue', value: data ? money(data.overdue.get + data.overdue.owe) : '—', sub: data ? `${data.overdue.getCount} to get · ${data.overdue.oweCount} to pay` : '' },
+        { label: 'With payment partners', value: data ? money(data.held) : '—', sub: data ? plural(data.partners.length, 'partner') : '', href: '/settlements' },
+        { label: 'Customer wallets and points', value: data ? money(data.forCustomers.total) : '—', sub: 'not in You owe', href: '/wallet?tab=wallets' },
+      ]} />
 
-      <section className="gc-card ac-card">
-        <div className="du-bar">
-          <div className="gc-tabs" role="tablist" aria-label="Dues" style={{ borderBottom: 0, overflow: 'visible', flexWrap: 'wrap' }}>
-            {TABS.map(([id, label]) => (
-              <button key={id} id={'du-tab-' + id} type="button" role="tab" aria-selected={tab === id} aria-controls={'du-panel-' + id} className={'gc-tab du-tab' + (tab === id ? ' gc-tab--active' : '')} onClick={() => pickTab(id)}>
-                {label}<b>{data ? money(id === 'get' ? data.get : data.owe) : ''}</b><span className="sr-only"> · {counts[id]} rows</span>
-              </button>
-            ))}
-          </div>
+      <section className="ix-card" aria-label="Dues">
+        <div className="ix-bar">
+          <IndexTabs tabs={tabs} label="Dues" />
+          <span className="ix-tools">
+            <InfoTip text={tab === 'get' ? 'Counted from the invoice date. Payment terms are not stored, so an invoice from today is not due yet. Money with payment partners is in You will get.' : 'Counted from each bill’s due date. Customer wallets and points are not in You owe: customers use them when they buy, or ask for them back.'} />
+          </span>
         </div>
-        <div className="du-panel" role="tabpanel" id={'du-panel-' + tab} aria-labelledby={'du-tab-' + tab}>
-          {!data ? <EmptyState icon="loader" title="Reading the books" /> : tab === 'get' ? getPanel : owePanel}
+        <div role="tabpanel" id={'du-panel-' + tab} aria-labelledby={'du-tab-' + tab}>
+          {!data ? <p className="ac-wait">Reading the books…</p> : tab === 'get' ? getPanel : owePanel}
         </div>
       </section>
+      <LearnMore topic="dues" />
     </AccPage>
   );
 }

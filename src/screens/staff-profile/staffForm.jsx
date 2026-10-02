@@ -21,17 +21,17 @@ export const PHONE_RE = /^01[3-9]\d{2}-?[\dX]{6}$/;
 
 export const FORM_CSS = `
 .sf-sec{display:flex;flex-direction:column;gap:var(--space-4)}
-.sf-sec > header h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.sf-sec > header h2{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .sf-sec > header p{margin:2px 0 0;font-size:var(--text-xs);color:var(--text-muted)}
-.sf-sub{margin:var(--space-2) 0 0;font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
+.sf-sub{margin:var(--space-2) 0 0;font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-muted)}
 .sf-req{margin-left:4px;font-size:var(--text-xs);font-weight:var(--weight-regular);color:var(--text-danger)}
-.sf-seg{display:inline-flex;flex-wrap:wrap;gap:4px;padding:3px;border:1px solid var(--border-field);border-radius:var(--radius-lg);background:var(--surface-subtle)}
-.sf-seg button{min-height:36px;padding:0 var(--space-3);border:0;border-radius:var(--radius-md);background:none;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer}
-.sf-seg button[aria-pressed="true"]{background:var(--surface-card);color:var(--primary);box-shadow:var(--shadow-sm)}
+.sf-seg{display:inline-flex;flex-wrap:wrap;gap:2px;padding:2px;border:1px solid var(--border-field);border-radius:var(--radius-lg);background:var(--surface-subtle)}
+.sf-seg button{min-height:28px;padding:0 var(--space-3);border:0;border-radius:var(--radius-md);background:none;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer}
+.sf-seg button[aria-pressed="true"]{background:var(--surface-card);color:var(--primary);box-shadow:var(--shadow-xs)}
 .sf-days{display:flex;flex-wrap:wrap;gap:6px}
-.sf-day{height:36px;min-width:48px;padding:0 var(--space-3);border:1px solid var(--border-field);border-radius:var(--radius-full);background:var(--surface-card);font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer}
+.sf-day{height:28px;min-width:44px;padding:0 var(--space-3);border:1px solid var(--border-field);border-radius:var(--radius-full);background:var(--surface-card);font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer}
 .sf-day[aria-pressed="true"]{border-color:var(--primary);background:var(--fill-primary-soft);color:var(--primary)}
-.sf-band{display:flex;flex-direction:column;gap:6px;padding:var(--space-3) var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-subtle);font-size:var(--text-xs);color:var(--text-body)}
+.sf-band{display:flex;flex-direction:column;gap:6px;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-subtle);font-size:var(--text-xs);color:var(--text-body)}
 .sf-band b{font-weight:var(--weight-semibold);color:var(--text-heading)}
 .sf-bar{position:relative;height:6px;border-radius:var(--radius-full);background:var(--border-subtle)}
 .sf-bar i{position:absolute;top:-3px;width:12px;height:12px;margin-left:-6px;border-radius:var(--radius-full);background:var(--primary);border:2px solid var(--surface-card)}
@@ -39,12 +39,13 @@ export const FORM_CSS = `
 .sf-parts > div{padding:var(--space-2) var(--space-3);background:var(--surface-card)}
 .sf-parts span{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .sf-parts b{font-family:var(--font-data);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.sf-dev{display:flex;gap:var(--space-3);align-items:flex-start;padding:var(--space-3) var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
-.sf-dev .rp-tile{flex:none}
+.sf-dev{display:flex;gap:var(--space-3);align-items:flex-start;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
+.sf-dev .rp-tile{flex:none;width:28px;height:28px}
 .sf-dev b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 .sf-dev small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .sf-inline{display:flex;align-items:flex-end;gap:var(--space-2)}
 .sf-inline > div{flex:1;min-width:0}
+@media (max-width:640px){.sf-seg button{min-height:36px}.sf-day{height:36px}}
 `;
 
 /** A field with label, help and error. */
@@ -230,7 +231,7 @@ export function ShiftFields({ S, f, set }) {
       <p className="sf-sub">Attendance machine at {f.branch}</p>
       {devs.length ? devs.map((d) => (
         <div key={d.id} className="sf-dev">
-          <span className="rp-tile"><Icon name={(DEVICE_KINDS[d.kind] || DEVICE_KINDS.finger)[1]} width="18" height="18" aria-hidden="true" /></span>
+          <span className="rp-tile"><Icon name={(DEVICE_KINDS[d.kind] || DEVICE_KINDS.finger)[1]} width="16" height="16" aria-hidden="true" /></span>
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
             <span><b>{d.name}</b><small>{d.brand} {d.model} · {(DEVICE_KINDS[d.kind] || [])[0]} · user number on the machine: <span className="hr-fig">{Number(String(f.code || nextStaffCode(S)).replace(/\D/g, ''))}</span>{d.status !== 'online' ? ' · offline now' : ''}</small></span>
             <div className="hr-three">

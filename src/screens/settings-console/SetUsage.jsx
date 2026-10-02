@@ -66,38 +66,39 @@ export default class SetUsageScreen extends Component {
               <div className="set-shell__col">
                 <div className="set-content">
                   <main className="set-main">
-                    <header style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
-                      <span style={{ display: "block", minWidth: "0" }}>
-                        <h1 style={{ margin: "0 0 4px", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>AI Usage</h1>
+                    <header className="set-pagehead">
+                      <span className="set-pagehead__text">
+                        <h1 className="ix-head__title">AI Usage</h1>
                         <__SetTips />
+                        <span className="gc-pagehead__about" hidden>Token counts include system prompts and retrieved product context.</span>
                       </span>
                       <span style={{ marginLeft: "auto", flex: "none", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
                         <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", width: "190px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
+                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", width: "190px", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
                             <__Icon name="calendar" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />
                             <__In f={v.f} n="usage_month" opts={["September 2026","August 2026","July 2026"]} />
                             <__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ color: "var(--text-muted)" }} />
                           </span>
                           <__Err f={v.f} n="usage_month" />
-                          <button type="button" aria-pressed={v.compare} onClick={v.toggleCompare} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "1px solid #cbd5e1", background: "#fff", color: "#1e293b" }}><__Icon name="chart-line" strokeWidth="1.75" width="15" height="15" />Compare</button>
+                          <button type="button" aria-pressed={v.compare} onClick={v.toggleCompare} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "var(--control-height)", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "1px solid var(--border-field)", background: "#fff", color: "#1e293b" }}><__Icon name="chart-line" strokeWidth="1.75" width="15" height="15" />Compare</button>
                         </span>
                         <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Read-only · mirrors provider billing</span>
                       </span>
                     </header>
-                    <section id="s1" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                    <section id="s1" className="ix-card set-card">
+                      <div className="set-head">
                         <span style={{ display: "block" }}>
-                          <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Spend against budget</span>
+                          <h2 className="set-title">Spend against budget</h2>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(0,156,222,.14)", color: "var(--accent-text)" }}>35% used</span>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(0,156,222,.14)", color: "var(--accent-text)" }}>35% used</span>
                           <__Link href="/set-ai#s3" style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#003087", textDecoration: "none" }}>Change cap</__Link>
                         </span>
                       </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "14px", padding: "18px" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "14px", padding: "16px" }}>
                         <span style={{ display: "block" }}>
                           <span className="set-flow set-sum" style={{ display: "flex", alignItems: "baseline", gap: "10px", paddingBottom: "8px" }}>
-                            <b style={{ fontSize: "var(--text-3xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>$42.18</b>
+                            <b style={{ fontSize: "var(--text-xl)", fontWeight: "var(--weight-semibold)", color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>$42.18</b>
                             <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>of $120.00 · ৳5,120 at ৳121.40</span>
                             <span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Projected <b style={{ fontWeight: "var(--weight-medium)", color: "#1e293b" }}>$58.40</b> by 30 Sep</span>
                           </span>
@@ -105,7 +106,7 @@ export default class SetUsageScreen extends Component {
                             <span style={{ display: "block", width: "35%", height: "100%", borderRadius: "var(--radius-full)", background: "#003087" }} />
                             <span style={{ position: "absolute", left: "35%", width: "14%", height: "100%", background: "repeating-linear-gradient(135deg,rgba(0,156,222,.5) 0 4px,rgba(0,156,222,.18) 4px 8px)" }} />
                           </span>
-                          <span style={{ display: "flex", justifyContent: "space-between", paddingTop: "5px", fontSize: "var(--text-2xs)", color: "var(--text-muted)" }}>
+                          <span style={{ display: "flex", justifyContent: "space-between", paddingTop: "5px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
                             <span>Spent</span>
                             <span>Projected</span>
                             <span>Cap $120</span>
@@ -113,23 +114,23 @@ export default class SetUsageScreen extends Component {
                         </span>
                         <span className="set-kpis" style={{ display: "flex", gap: "12px" }}>
                           <div style={{ flex: "1", display: "flex", flexDirection: "column", gap: "3px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "13px 14px" }}>
-                            <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Replies</span>
-                            <span style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>1,596</span>
+                            <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>Replies</span>
+                            <span style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>1,596</span>
                             <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>+18% vs August</span>
                           </div>
                           <div style={{ flex: "1", display: "flex", flexDirection: "column", gap: "3px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "13px 14px" }}>
-                            <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Avg cost / reply</span>
-                            <span style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>$0.026</span>
+                            <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>Avg cost / reply</span>
+                            <span style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>$0.026</span>
                             <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>≈ ৳3.20</span>
                           </div>
                           <div style={{ flex: "1", display: "flex", flexDirection: "column", gap: "3px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "13px 14px" }}>
-                            <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Resolved without a human</span>
-                            <span style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>71%</span>
+                            <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>Resolved without a human</span>
+                            <span style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>71%</span>
                             <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>1,133 of 1,596 threads</span>
                           </div>
                           <div style={{ flex: "1", display: "flex", flexDirection: "column", gap: "3px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "13px 14px" }}>
-                            <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Days at this rate</span>
-                            <span style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>87</span>
+                            <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>Days at this rate</span>
+                            <span style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>87</span>
                             <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>before the cap is reached</span>
                           </div>
                         </span>
@@ -234,7 +235,7 @@ export default class SetUsageScreen extends Component {
                               <span style={{ display: "block", width: "100%", height: "47%", borderRadius: "3px 3px 0 0", background: "#009cde", opacity: "1" }} />
                             </span>
                           </span>
-                          <span style={{ display: "flex", justifyContent: "space-between", paddingTop: "6px", fontSize: "var(--text-2xs)", color: "var(--text-muted)" }}>
+                          <span style={{ display: "flex", justifyContent: "space-between", paddingTop: "6px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
                             <span>1 Sep</span>
                             <span>15 Sep</span>
                             <span>30 Sep</span>
@@ -242,26 +243,26 @@ export default class SetUsageScreen extends Component {
                         </span>
                       </div>
                     </section>
-                    <section id="s2" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                    <section id="s2" className="ix-card set-card">
+                      <div className="set-head">
                         <span style={{ display: "block" }}>
-                          <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Usage by model</span>
+                          <h2 className="set-title">Usage by model</h2>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>Refreshed 4:00 PM</span>
-                          <button type="button" onClick={v.exportCsv} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#f1f5f9", color: "#1e293b" }}><__Icon name="download" strokeWidth="1.75" width="15" height="15" />Export CSV</button>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>Refreshed 4:00 PM</span>
+                          <button type="button" onClick={v.exportCsv} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "var(--control-height)", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#f1f5f9", color: "#1e293b" }}><__Icon name="download" strokeWidth="1.75" width="15" height="15" />Export CSV</button>
                         </span>
                       </div>
                       <div className="gc-table-wrap" style={{ overflow: "auto" }}>
                         <table style={{ width: "100%", minWidth: "640px", borderCollapse: "collapse" }}>
                           <thead>
                             <tr>
-                              <th style={{ padding: "9px 16px", borderBottom: "1px solid #e2e8f0", background: "#fcfdfe", textAlign: "left", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Model</th>
-                              <th style={{ padding: "9px 8px", borderBottom: "1px solid #e2e8f0", background: "#fcfdfe", textAlign: "right", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Replies</th>
-                              <th style={{ padding: "9px 8px", borderBottom: "1px solid #e2e8f0", background: "#fcfdfe", textAlign: "right", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Input tokens</th>
-                              <th style={{ padding: "9px 8px", borderBottom: "1px solid #e2e8f0", background: "#fcfdfe", textAlign: "right", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Output tokens</th>
-                              <th style={{ padding: "9px 16px", borderBottom: "1px solid #e2e8f0", background: "#fcfdfe", textAlign: "right", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Cost (USD)</th>
-                              <th style={{ padding: "9px 16px", borderBottom: "1px solid #e2e8f0", background: "#fcfdfe", textAlign: "left", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Share</th>
+                              <th style={{ padding: "9px 16px", borderBottom: "1px solid #e2e8f0", background: "var(--surface-subtle)", textAlign: "left", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-body)" }}>Model</th>
+                              <th style={{ padding: "9px 8px", borderBottom: "1px solid #e2e8f0", background: "var(--surface-subtle)", textAlign: "right", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-body)" }}>Replies</th>
+                              <th style={{ padding: "9px 8px", borderBottom: "1px solid #e2e8f0", background: "var(--surface-subtle)", textAlign: "right", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-body)" }}>Input tokens</th>
+                              <th style={{ padding: "9px 8px", borderBottom: "1px solid #e2e8f0", background: "var(--surface-subtle)", textAlign: "right", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-body)" }}>Output tokens</th>
+                              <th style={{ padding: "9px 16px", borderBottom: "1px solid #e2e8f0", background: "var(--surface-subtle)", textAlign: "right", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-body)" }}>Cost (USD)</th>
+                              <th style={{ padding: "9px 16px", borderBottom: "1px solid #e2e8f0", background: "var(--surface-subtle)", textAlign: "left", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-body)" }}>Share</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -344,20 +345,11 @@ export default class SetUsageScreen extends Component {
                       <span style={{ flex: "1", minWidth: "0", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>This tab is a report, not a form — nothing here is editable, so it has no save bar of its own. Change the cap or the model in <__Link href="/set-ai" style={{ fontWeight: "var(--weight-medium)", color: "#003087", textDecoration: "none" }}>AI Auto-Reply</__Link>.</span>
                     </div>
                   </main>
-                  <aside className="set-toc" aria-label="On this page">
-                    <span style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>On this page</span>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "1px", borderLeft: "2px solid #e2e8f0" }}>
-                      <a href="#s1" style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "-2px", borderLeft: "2px solid #003087", padding: "6px 10px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087", textDecoration: "none" }}>Spend vs budget<span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }} /></a>
-                      <a href="#s2" style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "-2px", borderLeft: "2px solid transparent", padding: "6px 10px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", textDecoration: "none" }}>Usage by model<span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>4</span></a>
-                    </div>
-                    <span style={{ height: "1px", background: "#e2e8f0", margin: "4px 0" }} />
-                    <span style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Token counts include system prompts and retrieved product context.</span>
-                  </aside>
                 </div>
                 <div style={{ flex: "none", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 14px", minHeight: "64px", padding: "10px 24px", borderTop: "1px solid #e2e8f0", background: "#fff" }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)", color: "#475569" }}><__Icon name="lock" strokeWidth="1.75" width="16" height="16" style={{ color: "var(--text-muted)" }} />Read-only tab — nothing to save</span>
                   <span style={{ flex: "1" }} />
-                  <__Link href="/set-ai" style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "1px solid #cbd5e1", background: "#fff", color: "#1e293b", textDecoration: "none" }}><__Icon name="arrow-up-right" strokeWidth="1.75" width="15" height="15" />Open AI Auto-Reply settings</__Link>
+                  <__Link href="/set-ai" style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "var(--control-height)", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "1px solid var(--border-field)", background: "#fff", color: "#1e293b", textDecoration: "none" }}><__Icon name="arrow-up-right" strokeWidth="1.75" width="15" height="15" />Open AI Auto-Reply settings</__Link>
                 </div>
               </div>
             </div>

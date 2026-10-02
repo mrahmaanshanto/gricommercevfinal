@@ -63,9 +63,7 @@ const CSS = `.dc-h505:hover{background:#e9eef5 !important;color:#1e293b !importa
 .dc-h506:hover{background:#e9eef5 !important;color:#1e293b !important}
 .dc-h507:hover{background:#e9eef5 !important;color:#1e293b !important}
 .dc-h508:hover{background:#e9eef5 !important;color:#1e293b !important}
-.dc-h509:hover{background:#e9eef5 !important;color:#1e293b !important}
-.dc-h510:hover{background:#f8fafc !important;color:#1e293b !important}
-.dc-h511:hover{background:#002a77 !important}`;
+`;
 
 // ---- markup ----
 
@@ -85,34 +83,35 @@ export default class SetSeoScreen extends Component {
               <form className="set-shell__col" noValidate onSubmit={v.f.submit}>
                 <div className="set-content">
                   <main className="set-main">
-                    <header style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
-                      <span style={{ display: "block", minWidth: "0" }}>
-                        <h1 style={{ margin: "0 0 4px", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>SEO</h1>
+                    <header className="set-pagehead">
+                      <span className="set-pagehead__text">
+                        <h1 className="ix-head__title">SEO</h1>
                         <__SetTips />
+                        <span className="gc-pagehead__about" hidden>Previews are rendered from the fields on the left, not from the live site.</span>
                       </span>
                       <span style={{ marginLeft: "auto", flex: "none", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>Indexed · 1,284 pages</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>Indexed · 1,284 pages</span>
                         <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Last saved 2 Sep 2026, 10:12 AM</span>
                       </span>
                     </header>
-                    <section id="s0" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                    <section id="s0" className="ix-card set-card">
+                      <div className="set-head">
                         <span style={{ display: "block" }}>
-                          <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Search appearance</span>
+                          <h2 className="set-title">Search appearance</h2>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(16,185,129,.14)", color: "var(--text-success)" }}>Indexed</span>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(16,185,129,.14)", color: "var(--text-success)" }}>Indexed</span>
                           <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Crawled 6 Sep</span>
                         </span>
                       </div>
-                      <div className="set-split" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 340px", gap: "20px", padding: "18px" }}>
+                      <div className="set-split" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 340px", gap: "20px", padding: "16px" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                             <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                               <label htmlFor={v.f.id("seo_title")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>SEO title <span className="set-req" aria-hidden="true">*</span></label>
                             </span>
                             <span id={v.f.id("seo_title") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Around 60 characters. Put the store name last — the first words carry the most weight.</span>
-                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
+                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
                               <__In f={v.f} n="seo_title" labelled desc />
                             </span>
                             <__Err f={v.f} n="seo_title" />
@@ -128,7 +127,7 @@ export default class SetSeoScreen extends Component {
                               <label htmlFor={v.f.id("meta_description")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Meta description</label>
                             </span>
                             <span id={v.f.id("meta_description") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>One or two sentences. Search engines may rewrite it, but a good one still lifts click-through.</span>
-                            <div className="set-box" style={{ border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "9px 11px", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "#1e293b" }}><__In f={v.f} n="meta_description" labelled desc rows={2} /></div>
+                            <div className="set-box" style={{ border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "9px 11px", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "#1e293b" }}><__In f={v.f} n="meta_description" labelled desc rows={2} /></div>
                             <__Err f={v.f} n="meta_description" />
                             <span style={{ display: "flex", alignItems: "center", gap: "8px", paddingTop: "2px" }}>
                               <span style={{ flex: "1", maxWidth: "200px", height: "4px", borderRadius: "var(--radius-full)", background: "#f1f5f9", overflow: "hidden" }}>
@@ -142,7 +141,7 @@ export default class SetSeoScreen extends Component {
                               <label htmlFor={v.f.id("keywords")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Keywords</label>
                             </span>
                             <span id={v.f.id("keywords") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Low value for ranking; still used by your own site search synonyms. Press Enter or a comma to add one.</span>
-                            <span className="set-box" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px", minHeight: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "6px 8px", fontSize: "var(--text-xs)", color: "#334155" }}>
+                            <span className="set-box" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px", minHeight: "44px", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "6px 8px", fontSize: "var(--text-xs)", color: "#334155" }}>
                               {v.keywords.map((k) => (
                                 <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: "2px", height: "28px", borderRadius: "var(--radius-md)", background: "#f1f5f9", padding: "0 2px 0 8px" }}>{k}
                                   <button type="button" aria-label={"Remove keyword " + k} onClick={v.dropKeyword(k)} style={{ display: "grid", placeItems: "center", width: "24px", height: "24px", border: "none", borderRadius: "var(--radius-md)", background: "none", padding: "0", color: "var(--text-muted)", cursor: "pointer" }}><__Icon name="x" strokeWidth="1.75" width="12" height="12" aria-hidden="true" /></button>
@@ -156,7 +155,7 @@ export default class SetSeoScreen extends Component {
                               <label htmlFor={v.f.id("author_name")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Author name</label>
                             </span>
                             <span id={v.f.id("author_name") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Written into the article schema on blog and campaign pages.</span>
-                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", width: "260px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
+                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", width: "260px", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
                               <__In f={v.f} n="author_name" labelled desc />
                             </span>
                             <__Err f={v.f} n="author_name" />
@@ -166,10 +165,10 @@ export default class SetSeoScreen extends Component {
                           <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Search result preview</span>
                           <div style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "14px" }}>
                             <span style={{ display: "flex", alignItems: "center", gap: "7px", paddingBottom: "6px" }}>
-                              <span style={{ display: "grid", placeItems: "center", width: "20px", height: "20px", borderRadius: "var(--radius-full)", background: "#003087", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", color: "#fff" }}>S</span>
+                              <span style={{ display: "grid", placeItems: "center", width: "20px", height: "20px", borderRadius: "var(--radius-full)", background: "#003087", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#fff" }}>S</span>
                               <span style={{ display: "block" }}>
                                 <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "17px", color: "#334155" }}>GridShop</span>
-                                <span style={{ display: "block", fontSize: "var(--text-2xs)", lineHeight: "15px", color: "var(--text-muted)" }}>gridshop.com.bd</span>
+                                <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "15px", color: "var(--text-muted)" }}>gridshop.com.bd</span>
                               </span>
                             </span>
                             <span style={{ display: "block", fontSize: "var(--text-sm-plus)", lineHeight: "20px", color: "#1a3fa8", paddingBottom: "3px" }}>{v.clip("seo_title", 60)}</span>
@@ -180,23 +179,23 @@ export default class SetSeoScreen extends Component {
                         </div>
                       </div>
                     </section>
-                    <section id="s1" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                    <section id="s1" className="ix-card set-card">
+                      <div className="set-head">
                         <span style={{ display: "block" }}>
-                          <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Social card</span>
+                          <h2 className="set-title">Social card</h2>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
-                          <button type="button" onClick={v.f.say("Facebook was asked to fetch the card again. It can take a few minutes to show.", "success")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#f1f5f9", color: "#1e293b" }}><__Icon name="refresh-cw" strokeWidth="1.75" width="15" height="15" />Refresh Facebook cache</button>
+                          <button type="button" onClick={v.f.say("Facebook was asked to fetch the card again. It can take a few minutes to show.", "success")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "var(--control-height)", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#f1f5f9", color: "#1e293b" }}><__Icon name="refresh-cw" strokeWidth="1.75" width="15" height="15" />Refresh Facebook cache</button>
                         </span>
                       </div>
-                      <div className="set-split" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 340px", gap: "20px", padding: "18px" }}>
+                      <div className="set-split" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 340px", gap: "20px", padding: "16px" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                             <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                               <label htmlFor={v.f.id("og_title")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>OG title</label>
                             </span>
                             <span id={v.f.id("og_title") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Shorter than the SEO title — social cards clip around 40 characters.</span>
-                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
+                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
                               <__In f={v.f} n="og_title" labelled desc />
                             </span>
                             <__Err f={v.f} n="og_title" />
@@ -212,7 +211,7 @@ export default class SetSeoScreen extends Component {
                               <label htmlFor={v.f.id("og_description")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>OG description</label>
                             </span>
                             <span id={v.f.id("og_description") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>One line. Written for a person scrolling, not for a crawler.</span>
-                            <div className="set-box" style={{ border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "9px 11px", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "#1e293b" }}><__In f={v.f} n="og_description" labelled desc rows={2} /></div>
+                            <div className="set-box" style={{ border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "9px 11px", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "#1e293b" }}><__In f={v.f} n="og_description" labelled desc rows={2} /></div>
                             <__Err f={v.f} n="og_description" />
                             <span style={{ display: "flex", alignItems: "center", gap: "8px", paddingTop: "2px" }}>
                               <span style={{ flex: "1", maxWidth: "200px", height: "4px", borderRadius: "var(--radius-full)", background: "#f1f5f9", overflow: "hidden" }}>
@@ -228,11 +227,11 @@ export default class SetSeoScreen extends Component {
                             <span style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Same media tile as Brand assets. 1200×630 keeps text readable in every app.</span>
                             <div style={{ display: "flex", alignItems: "center", gap: "12px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "10px 12px" }}>
                               <span style={{ display: "grid", placeItems: "center", width: "96px", height: "50px", flex: "none", borderRadius: "var(--radius-md)", background: "repeating-linear-gradient(135deg,#f8fafc 0 6px,#f1f5f9 6px 12px)", color: "var(--text-muted)" }}>
-                                <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-2xs)" }}>og-card.png</span>
+                                <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs)" }}>og-card.png</span>
                               </span>
                               <span style={{ display: "block", flex: "1", minWidth: "0" }}>
                                 <span style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>og-card-september.png</span>
-                                <span style={{ display: "block", fontFamily: "var(--font-data)", fontSize: "var(--text-2xs)", color: "var(--text-muted)" }}>PNG · 1200×630 · 214KB</span>
+                                <span style={{ display: "block", fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>PNG · 1200×630 · 214KB</span>
                               </span>
                               <span style={{ display: "flex", gap: "6px" }}>
                                 <button type="button" onClick={v.f.say("“Replace” is not available in the demo yet.")} className="dc-h505" aria-label="Replace" title="Replace" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
@@ -249,10 +248,10 @@ export default class SetSeoScreen extends Component {
                           <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Shared link preview</span>
                           <div style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", overflow: "hidden", background: "#fff" }}>
                             <span style={{ display: "grid", placeItems: "center", height: "158px", background: "repeating-linear-gradient(135deg,#f8fafc 0 8px,#f1f5f9 8px 16px)", color: "var(--text-muted)" }}>
-                              <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-2xs)" }}>og image · 1200×630</span>
+                              <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs)" }}>og image · 1200×630</span>
                             </span>
                             <span style={{ display: "block", borderTop: "1px solid #e2e8f0", background: "#f8fafc", padding: "10px 12px" }}>
-                              <span style={{ display: "block", fontSize: "var(--text-2xs)", textTransform: "uppercase", letterSpacing: "var(--tracking-label)", color: "var(--text-muted)" }}>gridshop.com.bd</span>
+                              <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>gridshop.com.bd</span>
                               <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{v.clip("og_title", 40)}</span>
                               <span style={{ display: "block", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>{v.clip("og_description", 110)}</span>
                             </span>
@@ -261,22 +260,22 @@ export default class SetSeoScreen extends Component {
                         </div>
                       </div>
                     </section>
-                    <section id="s2" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                    <section id="s2" className="ix-card set-card">
+                      <div className="set-head">
                         <span style={{ display: "block" }}>
-                          <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>{"Analytics & pixels"}</span>
+                          <h2 className="set-title">{"Analytics & pixels"}</h2>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(16,185,129,.14)", color: "var(--text-success)" }}>Both verified</span>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(16,185,129,.14)", color: "var(--text-success)" }}>Both verified</span>
                         </span>
                       </div>
-                      <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 20px", padding: "18px" }}>
+                      <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 20px", padding: "16px" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                           <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                             <label htmlFor={v.f.id("google_analytics_id")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Google Analytics ID</label>
                           </span>
                           <span id={v.f.id("google_analytics_id") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Analytics → Admin → <b style={{ fontWeight: "var(--weight-medium)", color: "#475569" }}>Data streams</b> → your web stream. Starts with G-.</span>
-                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 4px 0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)" }}>
+                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 4px 0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)" }}>
                             <__In f={v.f} n="google_analytics_id" labelled desc />
                             <button type="button" onClick={v.f.copy("google_analytics_id")} className="dc-h507" aria-label="Copy" title="Copy" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
                               <__Icon name="copy" strokeWidth="1.75" width="15" height="15" />
@@ -290,7 +289,7 @@ export default class SetSeoScreen extends Component {
                             <label htmlFor={v.f.id("facebook_pixel_id")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Facebook Pixel ID</label>
                           </span>
                           <span id={v.f.id("facebook_pixel_id") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Events Manager → <b style={{ fontWeight: "var(--weight-medium)", color: "#475569" }}>Data sources</b> → your pixel. Numeric, 15–16 digits.</span>
-                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 4px 0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)", fontVariantNumeric: "tabular-nums" }}>
+                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 4px 0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)", fontVariantNumeric: "tabular-nums" }}>
                             <__In f={v.f} n="facebook_pixel_id" labelled desc />
                             <button type="button" onClick={v.f.copy("facebook_pixel_id")} className="dc-h508" aria-label="Copy" title="Copy" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
                               <__Icon name="copy" strokeWidth="1.75" width="15" height="15" />
@@ -302,16 +301,6 @@ export default class SetSeoScreen extends Component {
                       </div>
                     </section>
                   </main>
-                  <aside className="set-toc" aria-label="On this page">
-                    <span style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>On this page</span>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "1px", borderLeft: "2px solid #e2e8f0" }}>
-                      <a href="#s0" style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "-2px", borderLeft: "2px solid #003087", padding: "6px 10px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087", textDecoration: "none" }}>Search appearance<span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>4</span></a>
-                      <a href="#s1" style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "-2px", borderLeft: "2px solid transparent", padding: "6px 10px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", textDecoration: "none" }}>Social card<span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>3</span></a>
-                      <a href="#s2" style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "-2px", borderLeft: "2px solid transparent", padding: "6px 10px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", textDecoration: "none" }}>Analytics<span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>2</span></a>
-                    </div>
-                    <span style={{ height: "1px", background: "#e2e8f0", margin: "4px 0" }} />
-                    <span style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Previews are rendered from the fields on the left, not from the live site.</span>
-                  </aside>
                 </div>
                 <__SaveBar f={v.f} note="· 2 Sep 2026, 10:12 AM" />
               </form>

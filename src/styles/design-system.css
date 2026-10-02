@@ -251,7 +251,7 @@ html.dark{
 }
 
 /* ---- tokens/spacing.css ---- */
-/* 4px base unit — v2 "airy" rhythm. Roomier padding, wider gaps, taller controls.
+/* 4px base unit. The shell follows Shopify's proportions (Oct 2026): 240px menu, 32px rows, 56px top bar, 24px gutter.
    Page gutter, shell widths and nav metrics are variables that respond to breakpoint. */
 :root{
   --space-0:0;
@@ -273,29 +273,29 @@ html.dark{
   --space-24:96px;
 
   /* application shell — two floating cards on a desk */
-  --shell-inset:12px;            /* desk gutter + gap between sidebar and main card */
+  --shell-inset:8px;             /* desk gutter + gap between sidebar and main card */
   --main-sidebar-width:76px;     /* collapsed icon rail */
-  --sidebar-panel-width:280px;   /* expanded nav panel */
+  --sidebar-panel-width:240px;   /* expanded nav panel */
   --sidebar-panel-min-width:76px;
-  --header-height:64px;
-  --margin-x:32px;               /* page gutter inside the main card */
+  --header-height:56px;
+  --margin-x:24px;               /* page gutter inside the main card */
 
   /* sidebar nav metrics */
   --nav-pad-x:12px;              /* sidebar card inner gutter */
-  --nav-row-height:40px;
-  --nav-row-gap:2px;
-  --nav-group-gap:28px;
-  --nav-icon:18px;
+  --nav-row-height:32px;
+  --nav-row-gap:1px;
+  --nav-group-gap:16px;
+  --nav-icon:16px;
 
   /* component rhythm */
-  --card-padding:24px;
-  --card-padding-lg:28px;
-  --grid-gap:20px;
-  --grid-gap-lg:28px;
-  --section-gap:40px;            /* vertical rhythm between page sections */
-  --stack-gap:24px;              /* between cards inside a section */
-  --control-height:44px;         /* input / select / textarea row */
-  --table-cell-y:16px;
+  --card-padding:16px;
+  --card-padding-lg:16px;
+  --grid-gap:16px;
+  --grid-gap-lg:20px;
+  --section-gap:24px;            /* vertical rhythm between page sections */
+  --stack-gap:16px;              /* between cards inside a section */
+  --control-height:32px;         /* input / select / textarea row (44px on phones, below) */
+  --table-cell-y:10px;
 }
 
 /* ---- tokens/radius.css ---- */
@@ -790,7 +790,7 @@ body{font-family:var(--font-sans)}
 /* ---- fluid shell ---- */
 .gc-shell__content{min-width:0}
 /* one page inset for every screen (the converted markup carries several different paddings) */
-@media (min-width:768px){.gc-shell__content{padding:24px var(--margin-x) 40px!important}}
+@media (min-width:768px){.gc-shell__content{padding:20px var(--margin-x) 32px!important}}
 /* inline-size containment: a wide table scrolls here and never widens the card or the page */
 .gc-table-wrap{position:relative;width:100%;max-width:100%;overflow-x:auto;contain:inline-size;-webkit-overflow-scrolling:touch}
 .gc-pagehead__text{min-width:0}
@@ -1107,3 +1107,240 @@ body:has(#nl-badge-frame) .au-root{padding-bottom:var(--host-badge)}
 .gc-disclose>summary:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
 .gc-disclose>:not(summary){margin:0 var(--space-5) var(--space-4)}
 @media (prefers-reduced-motion:reduce){.gc-disclose>summary::after{transition:none}}
+
+/* ==== Index kit: Shopify-style compact pages (components/ui/IndexKit.jsx, docs/reference-ux.md › 7) ============
+   Our font, colours and shadows; Shopify's density. Title row 32px · buttons 32px · tabs 28px · table rows 40px ·
+   icons 16px. A list shows what you act on; everything else is on the record. */
+.ix-page{display:flex;flex-direction:column;gap:var(--space-4);min-width:0;width:100%}
+.ix-page--narrow{max-width:1040px;margin:0 auto}
+.ix-head{display:flex;align-items:center;gap:var(--space-2);min-height:32px}
+.ix-head__title{display:flex;align-items:center;gap:var(--space-2);flex:1;min-width:0;margin:0;font-size:var(--text-xl);line-height:28px;font-weight:var(--weight-semibold);color:var(--text-heading)}
+.ix-head__title>svg{flex:none;color:var(--text-muted)}
+.ix-head__title>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ix-head__actions{display:flex;flex:none;align-items:center;gap:var(--space-2)}
+.ix-btn{display:inline-flex;flex:none;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);box-shadow:var(--shadow-xs);font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);line-height:1;color:var(--text-heading);text-decoration:none;white-space:nowrap;cursor:pointer;transition:var(--transition-colors)}
+.ix-btn:hover{background:var(--surface-subtle);color:var(--text-heading)}
+.ix-btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.ix-btn:disabled{opacity:.45;cursor:default;pointer-events:none}
+.ix-btn>svg{flex:none}
+.ix-btn--primary{border-color:var(--primary);background:var(--primary);color:#fff}
+.ix-btn--primary:hover{background:var(--primary-focus);color:#fff}
+.ix-btn--plain{border-color:transparent;background:none;box-shadow:none;color:var(--text-body)}
+.ix-btn--icon{width:32px;padding:0}
+.ix-btn--sm{height:28px;padding:0 10px;font-size:var(--text-xs-plus)}
+.ix-btn--sm.ix-btn--icon{width:28px;padding:0}
+.ix-btn--danger{color:var(--text-danger)}
+.ix-menu{position:relative;display:inline-flex}
+.ix-head__actions .ix-menu .ix-btn>svg:first-child{display:none} /* the ⋯ icon is for phones, where the label hides */
+.ix-menu__pop{position:absolute;top:calc(100% + 4px);z-index:60;display:flex;flex-direction:column;min-width:200px;padding:4px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);box-shadow:var(--shadow-lg)}
+.ix-menu__pop--end{right:0}.ix-menu__pop--start{left:0}
+.ix-menu__item{display:flex;align-items:center;gap:var(--space-2);min-height:32px;padding:0 10px;border:0;border-radius:var(--radius-md);background:none;font:inherit;font-size:var(--text-sm);color:var(--text-heading);text-align:left;text-decoration:none;white-space:nowrap;cursor:pointer}
+.ix-menu__item:hover,.ix-menu__item:focus-visible{background:var(--surface-subtle);outline:none}
+.ix-menu__item.is-danger{color:var(--text-danger)}
+.ix-phone{display:none}
+.ix-card{min-width:0;border-radius:var(--radius-xl);background:var(--surface-card);box-shadow:var(--shadow-card);overflow:clip}
+.ix-card__head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-height:44px;padding:var(--space-3) var(--space-4) 0}
+.ix-card__head h2{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.ix-card__head a{font-size:var(--text-xs-plus);font-weight:var(--weight-medium)}
+.ix-card__body{padding:var(--space-3) var(--space-4) var(--space-4)}
+/* key figures: one card, a row of cells with a dotted label, the value and a small trend line */
+.ix-metrics{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none}
+.ix-metrics::-webkit-scrollbar{display:none}
+.ix-metric{display:flex;flex:1 1 0;min-width:160px;align-items:flex-end;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-left:1px solid var(--border-subtle);color:inherit;text-decoration:none}
+.ix-metric:first-child{border-left:0}
+a.ix-metric:hover{background:var(--surface-subtle)}
+.ix-metric--lead{flex:0 0 auto;min-width:0;align-items:center}
+.ix-metric__text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ix-metric__label{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body);white-space:nowrap;text-decoration:underline dotted var(--border-strong);text-underline-offset:3px}
+.ix-metric__value{display:flex;align-items:baseline;gap:6px;font-family:var(--font-data);font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ix-metric__sub{font-size:var(--text-xs);font-weight:var(--weight-regular);color:var(--text-muted)}
+.ix-spark{flex:none;color:var(--chart-1,var(--primary))}
+/* a quiet select that looks like a button (period, place) */
+.ix-pick{height:32px;max-width:100%;padding:0 28px 0 10px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 8px center;box-shadow:var(--shadow-xs);font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);appearance:none;cursor:pointer}
+.ix-pick:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+/* the index card: views and tools, filters, bulk actions, table, pager */
+.ix-bar{display:flex;align-items:center;gap:var(--space-2);min-height:44px;padding:6px 8px;border-bottom:1px solid var(--border-subtle)}
+.ix-tabs{display:flex;flex:1;align-items:center;gap:2px;min-width:0;overflow-x:auto;scrollbar-width:none}
+.ix-tabs::-webkit-scrollbar{display:none}
+.ix-tab{display:inline-flex;flex:none;align-items:center;gap:6px;height:28px;padding:0 10px;border:0;border-radius:var(--radius-lg);background:none;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-body);white-space:nowrap;cursor:pointer;transition:var(--transition-colors)}
+.ix-tab:hover{background:var(--surface-subtle);color:var(--text-heading)}
+.ix-tab[aria-selected="true"]{background:var(--fill-primary-soft);color:var(--primary)}
+.ix-tab:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.ix-tab__n{font-size:var(--text-xs);font-weight:var(--weight-regular);color:var(--text-muted);font-variant-numeric:tabular-nums}
+.ix-tab[aria-selected="true"] .ix-tab__n{color:inherit}
+.ix-tools{display:flex;flex:none;align-items:center;gap:4px}
+.ix-search{display:flex;flex:1;align-items:center;gap:var(--space-2);min-width:0;height:32px;padding:0 10px;border:1px solid var(--border-field);border-radius:var(--radius-lg);background:var(--surface-card);color:var(--text-muted)}
+.ix-search:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px var(--fill-primary-soft)}
+.ix-search input{flex:1;min-width:0;height:100%;border:0;outline:0;background:none;font:inherit;font-size:var(--text-sm);color:var(--text-heading)}
+.ix-search input::placeholder{color:var(--text-muted)}
+.ix-filters{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);padding:8px;border-bottom:1px solid var(--border-subtle)}
+.ix-filter{height:28px;max-width:220px;padding:0 26px 0 10px;border:1px dashed var(--border-strong);border-radius:var(--radius-full);background:var(--surface-card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 8px center;font:inherit;font-size:var(--text-xs-plus);color:var(--text-body);appearance:none;cursor:pointer}
+.ix-filter.is-set{border-style:solid;border-color:var(--primary);background-color:var(--fill-primary-soft);color:var(--primary);font-weight:var(--weight-medium)}
+.ix-bulk{display:flex;align-items:center;gap:6px;min-height:44px;padding:6px 8px;border-bottom:1px solid var(--border-subtle);background:var(--surface-subtle);overflow-x:auto;scrollbar-width:none}
+.ix-bulk__n{flex:none;padding:0 6px;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading);white-space:nowrap}
+.ix-table-wrap{overflow-x:auto}
+.ix-table{width:100%;border-collapse:collapse;font-size:var(--text-sm);color:var(--text-body)}
+.ix-table th{height:36px;padding:0 12px;border-bottom:1px solid var(--border-subtle);background:var(--surface-subtle);text-align:left;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body);white-space:nowrap}
+.ix-table td{height:40px;padding:6px 12px;border-bottom:1px solid var(--border-subtle);white-space:nowrap;vertical-align:middle}
+.ix-table tbody tr:last-child td{border-bottom:0}
+.ix-table tbody tr{cursor:pointer}
+.ix-table tbody tr:hover td{background:var(--surface-subtle)}
+.ix-table tbody tr.is-sel td{background:var(--fill-primary-soft)}
+.ix-table .ix-check{width:36px;padding-right:0}
+.ix-table input[type=checkbox]{width:16px;height:16px;margin:0;vertical-align:middle;accent-color:var(--primary);cursor:pointer}
+.ix-table .ix-num{text-align:right;font-variant-numeric:tabular-nums}
+.ix-table .gc-badge{height:20px;padding:0 8px}
+.ix-strong{font-weight:var(--weight-semibold);color:var(--text-heading)}
+a.ix-strong{color:var(--text-heading);text-decoration:none}
+a.ix-strong:hover{color:var(--primary);text-decoration:underline}
+.ix-muted{color:var(--text-muted)}
+.ix-warn{color:var(--text-warning)}.ix-bad{color:var(--text-danger)}
+.ix-prod{display:flex;align-items:center;gap:10px;min-width:0;max-width:360px}
+.ix-prod>span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.ix-thumb{display:grid;flex:none;place-items:center;width:32px;height:32px;border:1px solid var(--border-subtle);border-radius:var(--radius-md);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.ix-foot{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-height:44px;padding:6px 8px 6px 12px;border-top:1px solid var(--border-subtle);font-size:var(--text-xs);color:var(--text-muted)}
+.ix-pager{display:flex;gap:4px}
+.ix-empty{padding:var(--space-10) var(--space-4)}
+.ix-learn{align-self:center;padding:4px 8px;border:0;background:none;font:inherit;font-size:var(--text-sm);color:var(--text-body);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.ix-learn:hover{color:var(--primary)}
+@media (max-width:640px){
+  .ix-head__sec{display:none}
+  .ix-phone{display:inline-flex}
+  .ix-head__actions .ix-menu .ix-btn>span,.ix-head__actions .ix-menu .ix-btn>svg:last-child{display:none}
+  .ix-head__actions .ix-menu .ix-btn>svg:first-child{display:block}
+  .ix-head__actions .ix-menu .ix-btn{width:36px;padding:0}
+  .ix-metrics{margin-inline:-14px;border-radius:0;border-inline:0}
+  .ix-metric{min-width:140px}
+  .ix-btn,.ix-pick{height:36px}
+  .ix-tab{height:32px}
+}
+/* a kit page is one column: never let the old phone rule (wrap any box holding a heading) turn it into columns */
+.gc-shell__content .ix-page{flex-wrap:nowrap!important}
+/* phones: a list is a two-line list (Shopify mobile), not a table turned into tall cards */
+.ix-plist{display:none;margin:0;padding:0;list-style:none}
+.ix-pitem{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-bottom:1px solid var(--border-subtle);color:inherit;text-decoration:none}
+.ix-plist>li:last-child>.ix-pitem{border-bottom:0}
+.ix-pitem:active{background:var(--surface-subtle)}
+.ix-pitem__top{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-width:0;font-size:var(--text-sm);color:var(--text-heading)}
+.ix-pitem__top>b{min-width:0;overflow:hidden;font-weight:var(--weight-semibold);text-overflow:ellipsis;white-space:nowrap}
+.ix-pitem__top>span{flex:none;font-variant-numeric:tabular-nums}
+.ix-pitem__mid{overflow:hidden;font-size:var(--text-xs);color:var(--text-muted);text-overflow:ellipsis;white-space:nowrap}
+.ix-pitem__tags{display:flex;flex-wrap:wrap;gap:6px}
+.ix-pitem__tags .gc-badge{height:20px;padding:0 8px}
+.ix-pitem--thumb{display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:10px}
+.ix-pitem--thumb>.ix-thumb{grid-row:span 2}
+@media (max-width:640px){
+  .ix-plist{display:block}
+  .ix-table-wrap{display:none}
+  .ix-bar{padding:6px}
+}
+
+/* ==== Shopify density for the whole merchant app (Oct 2026; docs/shopify-style.md) ================================
+   Same font, colours and shadows; Shopify's sizes: 32px controls on a desktop (44px on phones, for the thumb),
+   20px page titles, 16px icons in buttons, 40px table rows, compact figures and view tabs. */
+.gc-btn{height:var(--control-height);padding:0 var(--space-3);gap:6px;letter-spacing:0}
+.gc-btn>svg{width:16px;height:16px}
+.gc-btn--xs{height:26px;padding:0 var(--space-2);font-size:var(--text-xs)}
+.gc-btn--sm{height:28px;padding:0 10px;font-size:var(--text-xs-plus)}
+.gc-btn--lg{height:40px;padding:0 var(--space-5)}
+.gc-input{padding:0 var(--space-3)}
+textarea.gc-input{height:auto}
+.gc-seg__btn{height:28px;padding:0 var(--space-3)}
+.gc-search{height:32px}
+.gc-badge{height:20px}
+.gc-pagehead{gap:var(--space-2) var(--space-4);align-items:center}
+.gc-pagehead__title{font-size:var(--text-xl);line-height:28px;letter-spacing:0}
+.gc-table th{height:36px;padding:0 12px;background:var(--surface-subtle);text-transform:none;letter-spacing:0;font-size:var(--text-xs);color:var(--text-body)}
+.gc-table td,.gc-table tbody th,.gc-table tfoot th{padding:var(--table-cell-y) 12px}
+.gc-kpis{gap:var(--space-3)}
+.gc-kpi{gap:10px;padding:10px 14px;border:0;box-shadow:var(--shadow-card)}
+.gc-kpi__icon{width:32px;height:32px}
+.gc-kpi__icon svg{width:16px;height:16px}
+.gc-kpi__value{font-size:var(--text-sm-plus);line-height:22px}
+.gc-stattabs{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--space-2)}
+.gc-stattab{gap:2px;padding:var(--space-2) var(--space-3)}
+.gc-stattab__nums b{font-size:var(--text-sm-plus)}
+/* merchant pages: the large type steps are one size smaller (figures and titles were 24–30px) */
+.gc-shell__content{--text-2xl:20px;--text-2xl-lh:1.4;--text-3xl:24px;--text-3xl-lh:1.3}
+@media (max-width:640px){
+  :root{--control-height:44px}
+  .gc-btn{height:40px}
+  .gc-btn--sm{height:36px}
+  .gc-seg__btn{height:36px}
+}
+/* records and forms (IndexKit RecordHeader, KV): work on the left, facts on the right */
+.ix-head--record{align-items:flex-start}
+.ix-head--record>.ix-btn{margin-top:2px}
+.ix-head__text{flex:1;min-width:0}
+.ix-head--record .ix-head__title{flex-wrap:wrap;row-gap:4px}
+.ix-head__badges{display:inline-flex;flex-wrap:wrap;gap:6px}
+.ix-head__badges .gc-badge{height:20px}
+.ix-head__meta{margin:2px 0 0;font-size:var(--text-xs-plus);color:var(--text-muted)}
+.ix-record{display:grid;grid-template-columns:minmax(0,2fr) minmax(280px,1fr);gap:var(--space-4);align-items:start}
+.ix-main,.ix-side{display:flex;flex-direction:column;gap:var(--space-4);min-width:0}
+.ix-card--pad{padding:var(--space-4)}
+.ix-card__foot{display:flex;justify-content:flex-end;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-top:1px solid var(--border-subtle)}
+.ix-kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px var(--space-3);margin:0;font-size:var(--text-sm)}
+.ix-kv dt{color:var(--text-muted);white-space:nowrap}
+.ix-kv dd{margin:0;min-width:0;color:var(--text-heading);text-align:right;overflow-wrap:anywhere}
+.ix-section-title{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
+@media (max-width:1023px){.ix-record{grid-template-columns:minmax(0,1fr)}}
+/* shared pieces at Shopify density: empty states, alerts, dialogs and side sheets */
+.gc-empty{gap:var(--space-2);padding:var(--space-10) var(--space-4)}
+.gc-empty__icon{width:40px;height:40px}
+.gc-empty__icon svg{width:20px;height:20px}
+.gc-alert{gap:var(--space-3);padding:var(--space-3) var(--space-4)}
+.gc-modal__title{font-size:var(--text-sm-plus);line-height:22px}
+.gc-modal__head{margin-bottom:var(--space-3)}
+.gc-modal__body{gap:var(--space-3)}
+.gc-sheet__title{font-size:var(--text-sm-plus)}
+.gc-sheet__body{gap:var(--space-3)}
+/* kit additions (Oct 2026, from the page rebuild): menus drawn on the body, record tables, button rows, chips, sums */
+.ix-menu__pop--fixed{position:fixed;top:auto;z-index:var(--z-toast)}
+button.ix-metric{border-top:0;border-right:0;border-bottom:0;background:none;font:inherit;text-align:left;cursor:pointer}
+.ix-metric.is-on{background:var(--fill-primary-soft)}
+.ix-metric.is-on .ix-metric__label{color:var(--primary)}
+/* a table inside a record's card: not clickable, wraps, stays a table (or mobileTables cards) on phones */
+.ix-table--static tbody tr{cursor:default}
+.ix-table--static tbody tr:hover td{background:none}
+.ix-table--static td{white-space:normal}
+.ix-table--static td.ix-num,.ix-table--static td.ix-nowrap{white-space:nowrap}
+.ix-table-wrap--show{display:block!important}
+/* a list row or an identifier that opens a dialog or side panel instead of a page */
+button.ix-pitem{width:100%;border-top:0;border-right:0;border-left:0;background:none;font:inherit;text-align:left;cursor:pointer}
+button.ix-strong{padding:0;border:0;background:none;font:inherit;font-weight:var(--weight-semibold);color:var(--text-heading);text-align:left;cursor:pointer}
+button.ix-strong:hover{color:var(--primary);text-decoration:underline}
+/* a pill that toggles (aria-pressed) */
+.ix-chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border:1px solid var(--border-subtle);border-radius:var(--radius-full);background:var(--surface-card);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--text-body);white-space:nowrap;cursor:pointer;transition:var(--transition-colors)}
+.ix-chip:hover{border-color:var(--border-strong);color:var(--text-heading)}
+.ix-chip[aria-pressed="true"]{border-color:var(--primary);background:var(--fill-primary-soft);color:var(--primary)}
+.ix-chips{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+/* a card whose dropdowns may spill out; a sub-line under a card title */
+.ix-card--open{overflow:visible}
+.ix-card__sub{margin:2px 0 0;font-size:var(--text-xs);font-weight:var(--weight-regular);color:var(--text-muted)}
+/* totals block: label / amount rows, the last one bold (subtotal, discount, delivery, total) */
+.ix-sum{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px var(--space-4);margin:0;font-size:var(--text-sm)}
+.ix-sum dt{color:var(--text-body)}
+.ix-sum dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;color:var(--text-heading)}
+.ix-sum .is-total{padding-top:6px;border-top:1px solid var(--border-subtle);font-weight:var(--weight-semibold);color:var(--text-heading)}
+/* a small date field for period rows */
+.ix-date{height:32px;padding:0 8px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);box-shadow:var(--shadow-xs);font:inherit;font-size:var(--text-sm);color:var(--text-heading)}
+@media (max-width:640px){.ix-chip{height:36px}.ix-date{height:36px}}
+.ix-chip:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.ix-btn--success{border-color:var(--success);background:var(--success);color:#fff}
+.ix-btn--success:hover{background:color-mix(in srgb,var(--success) 88%,#000);color:#fff}
+button.ix-strong:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:var(--radius-sm)}
+.ix-id{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+/* a figure never squeezes under its text: the strip scrolls instead of figures running into each other */
+.ix-metric{flex:1 0 auto}
+.ix-metric__text{min-width:auto}
+.ix-search{flex-shrink:0;min-height:32px}
+.ix-bar>.ix-search{flex:1 1 auto}
+@media (max-width:640px){.ix-head--record .ix-head__title>span{white-space:normal;overflow:visible}}
+.ix-card__head+.ix-plist,.ix-card__head+.ix-table-wrap{margin-top:8px}
+/* each key figure carries a small icon (IndexKit figIcon picks it from the label) */
+.ix-metric{justify-content:flex-start}
+.ix-metric>.ix-spark{margin-left:auto}
+.ix-metric__icon{display:grid;flex:none;place-items:center;align-self:center;width:32px;height:32px;border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary)}
+@media (max-width:640px){.ix-metric__icon{width:28px;height:28px}}
+@media (max-width:640px){.ix-head__title>span{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.25}.ix-head__title{font-size:var(--text-lg)}}

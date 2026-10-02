@@ -1,44 +1,37 @@
 'use client';
-// ReportsCentre — every report in one place (/reports-centre, ?group=<id> for one group).
-//   search · group chips · recently viewed · all reports by group
-// Reports are definitions shown by /report?id=… or existing report pages (src/lib/reports/catalogue.js).
+// ReportsCentre — every report in one place (/reports-centre, ?group=<id> for one group), laid out like Shopify's
+// Reports list: the title row, then one card with the groups as views, a search, and a compact list of reports
+// (name, group, what it shows). A row opens the report (/report?id=…) or the page that already is that report.
+// Reports are definitions in src/lib/reports/catalogue.js.
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
+import { navigate } from '@/runtime/routes';
 import { EmptyState } from '@/components/ui';
+import { IndexTabs, SearchField, Pager, LearnMore } from '@/components/ui/IndexKit';
 import { REPORTS as ALL_REPORTS, GROUPS as ALL_GROUPS, GROUP_BY_ID, reportBy, editionReports, editionGroups } from '@/lib/reports/catalogue';
 import { currentEditionId, LOCKED, EDITION_EVENT } from '@/lib/edition';
 import { getPrefs, PREFS_EVENT } from '@/lib/reports/prefs';
 import { ReportsShell } from '@/components/reports/ReportsShell';
 
+const PAGE_SIZE = 50;
 const CSS = `
-.rc-top{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3)}
-.rc-top .gc-input{flex:1 1 260px;max-width:420px}
-.rc-chips{display:flex;flex-wrap:wrap;gap:var(--space-2)}
-.rc-chip{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-full);background:var(--surface-card);font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer;text-decoration:none}
-.rc-chip b{font-weight:var(--weight-medium);color:var(--text-muted);font-family:var(--font-data)}
-.rc-chip[aria-pressed="true"]{border-color:var(--primary);background:var(--fill-primary-soft);color:var(--primary)}
-.rc-sec{display:flex;flex-direction:column;gap:var(--space-3)}
-.rc-sec > header{display:flex;align-items:baseline;gap:var(--space-3)}
-.rc-sec h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading);display:flex;align-items:center;gap:var(--space-2)}
-.rc-sec header p{margin:0;font-size:var(--text-xs);color:var(--text-muted)}
-.rc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr));gap:var(--space-3)}
-.rc-card{position:relative;display:flex;gap:var(--space-3);align-items:center;height:100%;box-sizing:border-box;padding:var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card);text-decoration:none;color:inherit;transition:border-color .15s ease, box-shadow .15s ease}
-.rc-card:hover{border-color:var(--primary);box-shadow:0 2px 10px rgba(15,23,42,.06)}
-.rc-card:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
-.rc-card b{display:block;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.rc-card small{display:block;margin-top:2px;font-size:var(--text-xs);line-height:1.45;color:var(--text-muted)}
-.rc-card .gc-badge{margin-top:6px}
+.rc-name{display:inline-flex;align-items:center;gap:var(--space-2);max-width:360px}
+.rc-name>svg{flex:none;color:var(--text-muted)}
+.rc-name>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.rc-desc{display:block;max-width:440px;overflow:hidden;text-overflow:ellipsis}
 `;
 
 export default function ReportsCentre() {
-  const [group, setGroup] = useState('');
+  const [group, setGroup] = useState('');      // a group id, 'recent' or '' (all)
   const [q, setQ] = useState('');
+  const [find, setFind] = useState(false);
+  const [page, setPage] = useState(1);
   const [prefs, setPrefs] = useState({ favs: [], recent: [], views: [], schedules: [] });
 
   useEffect(() => {
-    const readGroup = () => { const g = new URLSearchParams(window.location.search).get('group') || ''; setGroup(GROUP_BY_ID[g] ? g : ''); };
+    const readGroup = () => { const g = new URLSearchParams(window.location.search).get('group') || ''; setGroup(GROUP_BY_ID[g] || g === 'recent' ? g : ''); };
     const readPrefs = () => setPrefs(getPrefs());
     readGroup(); readPrefs();
     window.addEventListener('gc:route', readGroup);
@@ -46,7 +39,7 @@ export default function ReportsCentre() {
     return () => { window.removeEventListener('gc:route', readGroup); window.removeEventListener(PREFS_EVENT, readPrefs); };
   }, []);
   const pick = (g) => {
-    setGroup(g);
+    setGroup(g); setPage(1);
     const u = new URL(window.location.href);
     if (g) u.searchParams.set('group', g); else u.searchParams.delete('group');
     window.history.replaceState(window.history.state, '', u.pathname + u.search);
@@ -57,55 +50,78 @@ export default function ReportsCentre() {
   useEffect(() => { const on = () => setEd(currentEditionId()); on(); window.addEventListener(EDITION_EVENT, on); return () => window.removeEventListener(EDITION_EVENT, on); }, []);
   const REPORTS = useMemo(() => (ed === 'full' ? ALL_REPORTS : editionReports(ed)), [ed]);
   const GROUPS = useMemo(() => (ed === 'full' ? ALL_GROUPS : editionGroups(ed)), [ed]);
+  const recent = prefs.recent.map(reportBy).filter((r) => r && REPORTS.includes(r));
   const words = q.trim().toLowerCase();
   const match = (r) => !words || [r.title, r.description, r.keywords, (GROUP_BY_ID[r.group] || {}).label].join(' ').toLowerCase().includes(words);
-  const shown = useMemo(() => REPORTS.filter((r) => (!group || r.group === group) && match(r)), [group, words, REPORTS]); // eslint-disable-line react-hooks/exhaustive-deps
+  const inView = group === 'recent' ? recent : REPORTS.filter((r) => !group || r.group === group);
+  const shown = inView.filter(match);
   const counts = Object.fromEntries(GROUPS.map((g) => [g.id, REPORTS.filter((r) => r.group === g.id).length]));
-  const recent = prefs.recent.map(reportBy).filter((r) => r && REPORTS.includes(r)).slice(0, 4);
+  const pages = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
+  const at = Math.min(page, pages);
+  const rows = shown.slice((at - 1) * PAGE_SIZE, at * PAGE_SIZE);
 
-  const card = (r) => {
-    const g = GROUP_BY_ID[r.group] || {};
-    return (
-      <div key={r.id} style={{ position: 'relative' }}>
-        <Link href={r.href} className="rc-card" title={r.description}>
-          <span className="rp-tile"><Icon name={r.icon || g.icon || 'file-bar-chart'} width="18" height="18" aria-hidden="true" /></span>
-          <span style={{ minWidth: 0 }}>
-            <b>{r.title}</b>
-            {r.kind === 'page' ? <span className="gc-badge gc-badge--slate">Opens its page</span> : null}
-          </span>
-        </Link>
-      </div>
-    );
-  };
-
-  const actions = (
-    <>
-      <Link href="/daily-summary" className="gc-btn gc-btn--neutral"><Icon name="sun" width="18" height="18" aria-hidden="true" /> Daily summary</Link>
-    </>
-  );
+  const tabs = [
+    { key: '', label: 'All', count: REPORTS.length },
+    ...(recent.length ? [{ key: 'recent', label: 'Recently viewed', count: recent.length }] : []),
+    ...GROUPS.map((g) => ({ key: g.id, label: g.label, count: counts[g.id] })),
+  ].map((t) => ({ ...t, id: 'rc-tab-' + (t.key || 'all'), on: group === t.key, onClick: () => pick(t.key) }));
+  const closeFind = () => { setFind(false); setQ(''); setPage(1); };
+  const open = (r) => (e) => { if (e.target.closest('a,button')) return; navigate(r.href); };
+  const groupName = (r) => (GROUP_BY_ID[r.group] || {}).label || '';
+  const countLabel = !shown.length ? 'No reports to show' : shown.length <= PAGE_SIZE ? `${shown.length} report${shown.length === 1 ? '' : 's'}` : `${(at - 1) * PAGE_SIZE + 1}–${Math.min(at * PAGE_SIZE, shown.length)} of ${shown.length}`;
 
   return (
-    <ReportsShell screen="ReportsCentre" active={group ? 'rep-' + group : 'rep-all'} page={group ? GROUP_BY_ID[group].label : 'All reports'} title="Reports"
-      about={`Every report for the shop in one place: ${REPORTS.length} reports across ${GROUPS.map((g) => g.label.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' and $1')}.`} actions={actions} css={CSS}>
-      <div className="rc-top">
-        <input type="search" className="gc-input" placeholder="Search reports, e.g. courier, slow stock, VAT" aria-label="Search reports" value={q} onChange={(e) => setQ(e.target.value)} />
-      </div>
-      <div className="rc-chips" role="group" aria-label="Report groups">
-        <button type="button" className="rc-chip" aria-pressed={!group} onClick={() => pick('')}>All <b>{REPORTS.length}</b></button>
-        {GROUPS.map((g) => <button key={g.id} type="button" className="rc-chip" aria-pressed={group === g.id} onClick={() => pick(g.id)}><Icon name={g.icon} width="14" height="14" aria-hidden="true" />{g.label} <b>{counts[g.id]}</b></button>)}
-      </div>
+    <ReportsShell screen="ReportsCentre" active={group && group !== 'recent' ? 'rep-' + group : 'rep-all'} page={GROUP_BY_ID[group] ? GROUP_BY_ID[group].label : 'All reports'}
+      icon="file-bar-chart" title="Reports"
+      about={`Every report for the shop in one place: ${REPORTS.length} reports across ${GROUPS.map((g) => g.label.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' and $1')}.`}
+      secondary={[{ label: 'Daily summary', href: '/daily-summary' }]}
+      more={[{ label: 'Scheduled reports', href: '/scheduled-reports' }]}
+      css={CSS}>
+      <section className="ix-card" aria-label="Reports">
+        <div className="ix-bar">
+          {find ? (<>
+            <SearchField value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder="Search reports, e.g. courier, slow stock, VAT" onDone={closeFind} autoFocus />
+            <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={closeFind}>Cancel</button>
+          </>) : (<>
+            <IndexTabs tabs={tabs} label="Report groups" />
+            <span className="ix-tools">
+              <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search reports" onClick={() => setFind(true)}><Icon name="search" width="16" height="16" aria-hidden="true" /></button>
+            </span>
+          </>)}
+        </div>
 
-      {!group && !words && recent.length ? (
-        <section className="rc-sec" aria-labelledby="rc-recent"><header><h2 id="rc-recent"><Icon name="history" width="16" height="16" aria-hidden="true" /> Recently viewed</h2></header><div className="rc-grid">{recent.map(card)}</div></section>
-      ) : null}
-
-      {GROUPS.filter((g) => shown.some((r) => r.group === g.id)).map((g) => (
-        <section key={g.id} className="rc-sec" aria-labelledby={'rc-g-' + g.id}>
-          <header><h2 id={'rc-g-' + g.id}><Icon name={g.icon} width="16" height="16" aria-hidden="true" /> {g.label}</h2></header>
-          <div className="rc-grid">{shown.filter((r) => r.group === g.id).map(card)}</div>
-        </section>
-      ))}
-      {!shown.length ? <section className="gc-card"><EmptyState icon="search-x" title="No report matches" body="Try another word, or show all groups." actionLabel="Clear" onAction={() => { setQ(''); pick(''); }} /></section> : null}
+        {!shown.length ? (
+          <div className="ix-empty"><EmptyState icon="search-x" title="No report matches" actionLabel="Clear" onAction={() => { closeFind(); pick(''); }} /></div>
+        ) : (<>
+          <ul className="ix-plist" aria-label="Reports">
+            {rows.map((r) => (
+              <li key={r.id}>
+                <Link href={r.href} className="ix-pitem">
+                  <span className="ix-pitem__top"><b>{r.title}</b></span>
+                  <span className="ix-pitem__mid">{groupName(r)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <div className="ix-table-wrap">
+            <table className="ix-table gc-table--keep">
+              <caption className="sr-only">Reports</caption>
+              <thead><tr><th scope="col">Name</th><th scope="col">Category</th><th scope="col">Description</th></tr></thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.id} onClick={open(r)}>
+                    <td><Link href={r.href} className="ix-strong rc-name"><Icon name={r.icon || (GROUP_BY_ID[r.group] || {}).icon || 'file-bar-chart'} width="16" height="16" aria-hidden="true" /><span>{r.title}</span></Link></td>
+                    <td className="ix-muted">{groupName(r)}</td>
+                    <td className="ix-muted"><span className="rc-desc" title={r.description}>{r.description}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>)}
+        <Pager label={countLabel} atStart={at <= 1} atEnd={at >= pages} prev={() => setPage(at - 1)} next={() => setPage(at + 1)} />
+      </section>
+      <LearnMore topic="reports" />
     </ReportsShell>
   );
 }

@@ -1,56 +1,49 @@
 'use client';
-// Shifts & roster — define shifts (time, break, grace, colour, where they run, minimum staff), plan
-// the week person by person, and see cover per shift per day. Each person follows their usual shift
-// and weekly off (HR setup) unless the roster changes a day; approved leave and public holidays
-// (src/lib/settlements.js › holidaysOf) show by themselves. Warnings: leave clashes, double or
-// overlapping shifts, cover under the minimum, weeks over 48 hours. Data: src/lib/hr.js.
+// Shifts & roster — plan the week person by person and see cover per shift per day; define shifts (time, break,
+// grace, colour, where they run, minimum staff). One card with the views Roster · Cover per shift · Shifts, a week
+// stepper and a place filter. Each person follows their usual shift and weekly off (HR setup) unless the roster
+// changes a day; approved leave and public holidays (src/lib/settlements.js › holidaysOf) show by themselves.
+// Warnings: leave clashes, double or overlapping shifts, cover under the minimum, weeks over 48 hours.
+// Data: src/lib/hr.js.
 
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
-import { Dialog } from '@/components/ui';
+import { Dialog, InfoTip, StatusBadge } from '@/components/ui';
+import { IndexTabs, LearnMore } from '@/components/ui/IndexKit';
 import { formatDate } from '@/lib/format';
 import {
   todayKey, weekStartOf, weekKeys, addDays, dayLabel, dowOf, WEEKDAYS, dayPlan, shiftBy, shiftHours, shiftTime, t12,
   coverageOf, weekWarnings, isClosedDay, setRoster, copyWeek, publishWeek, saveShift, removeShift, SHIFT_COLORS, HR_PLACES, leaveType, staffBy,
 } from '@/lib/hr';
-import { HrPage, useHr, Avatar, profileHref } from './hrShared';
+import { HrPage, useHr, Avatar, profileHref, rowGo } from './hrShared';
 
 const CSS = `
-.sf-shifts{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:var(--space-3)}
-.sf-shift{display:flex;flex-direction:column;gap:6px;min-width:0;padding:var(--space-3) var(--space-4);border:1px solid var(--border-subtle);border-top-width:4px;border-radius:var(--radius-xl);background:var(--surface-card);text-align:left;font:inherit;cursor:pointer}
-.sf-shift:hover{box-shadow:var(--shadow-sm)}
-.sf-shift b{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.sf-shift__top{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2)}
-.sf-add{align-items:center;justify-content:center;border-style:dashed;border-top-width:1px;color:var(--text-muted);min-height:96px}
-.sf-tools{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-5);border-bottom:1px solid var(--border-subtle)}
-.sf-nav{display:inline-flex;align-items:center;gap:var(--space-1)}
-.sf-nav span{font-weight:var(--weight-semibold);color:var(--text-heading);font-size:var(--text-sm);white-space:nowrap}
-.sf-place{width:auto;min-width:190px;margin-left:auto}
-.sf-grid th.sf-day{text-align:center;min-width:84px}
-.sf-grid .sf-cell small{white-space:normal;line-height:1.25;text-align:center}
+.sf-grid th.sf-day{text-align:center;min-width:104px}
+.sf-grid .sf-cell small{white-space:nowrap;line-height:1.25;text-align:center}
 .sf-grid th:first-child,.sf-grid td:first-child{min-width:170px;max-width:210px;white-space:normal}
 .sf-grid th.sf-day.is-today{color:var(--primary)}
-.sf-grid td.sf-td{padding:4px 3px!important}
-.sf-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:100%;min-height:44px;padding:4px;border:1px solid transparent;border-radius:var(--radius-lg);font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);line-height:1.2;cursor:pointer;text-align:center}
+.sf-grid td.sf-td{padding:3px!important}
+.sf-grid tbody tr{cursor:default}
+.sf-grid tbody tr:hover td{background:none}
+.sf-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:100%;min-height:40px;padding:3px;border:1px solid transparent;border-radius:var(--radius-md);font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);line-height:1.2;cursor:pointer;text-align:center}
 .sf-cell small{font-size:var(--text-2xs);font-weight:var(--weight-regular);opacity:.9}
 .sf-cell--off{border:1px dashed var(--border-strong);background:transparent;color:var(--text-muted)}
 .sf-cell--bad{box-shadow:inset 0 0 0 2px var(--text-danger)}
 .sf-cell--set{box-shadow:inset 0 -2px 0 currentColor}
-.sf-cov{display:inline-flex;align-items:center;justify-content:center;min-width:56px;height:28px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums}
-.sf-warns{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle)}
+.sf-cov{display:inline-flex;align-items:center;justify-content:center;min-width:52px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums}
+.sf-warns{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-top:1px solid var(--border-subtle)}
 .sf-places{display:flex;flex-wrap:wrap;gap:var(--space-2)}
 .sf-swatches{display:flex;flex-wrap:wrap;gap:var(--space-2)}
 .sf-swatch{width:32px;height:32px;border-radius:var(--radius-full);border:2px solid transparent;cursor:pointer;padding:0}
 .sf-swatch[aria-pressed="true"]{border-color:var(--text-heading)}
+.sf-dot{display:inline-block;width:10px;height:10px;margin-right:8px;border-radius:var(--radius-full);vertical-align:-1px}
 @media (max-width:640px){
-  .sf-place{margin-left:0;width:100%}
   /* roster on phones: a narrow staff column (name only) that stays put while the days scroll */
   .sf-grid th:first-child,.sf-grid td:first-child{position:sticky;left:0;z-index:1;width:104px;min-width:104px;max-width:104px;padding-left:var(--space-3)!important;padding-right:var(--space-2)!important;box-shadow:inset -1px 0 0 var(--border-subtle)}
   .sf-grid td:first-child{background:var(--surface-card)}
   .sf-grid td:first-child .hr-av,.sf-grid td:first-child .hr-sub{display:none}
-  .sf-grid .sf-cell small{white-space:nowrap}
 }
 `;
 const EMPTY_SHIFT = { name: '', start: '10:00', end: '18:00', breakMin: '60', graceMin: '10', color: 'pink', places: ['Dhanmondi branch'], minStaff: '1' };
@@ -129,62 +122,59 @@ export default function Shifts() {
     });
   };
 
+  const newShift = () => setForm({ ...EMPTY_SHIFT, graceMin: String(S.settings.graceMin) });
+  const editShift = (sh) => setForm({ ...sh, breakMin: String(sh.breakMin), graceMin: String(sh.graceMin), minStaff: String(sh.minStaff) });
+  const tabs = [['roster', 'Roster'], ['plan', 'Cover per shift'], ['shifts', 'Shifts', S.shifts.length]].map(([k, l, n]) => ({ key: k, id: 'sf-tab-' + k, label: l, count: n, on: view === k, onClick: () => setView(k) }));
+  const off = S.settings.weeklyOff.map((d) => WEEKDAYS[d]).join(', ') || 'by roster';
+
   return (
-    <HrPage screen="Shifts" active="hr-shifts" page="Shifts & roster" title="Shifts & roster" css={CSS}
-      about="Set your shifts once, then plan the week. Staff get the roster by SMS when you publish it."
-      actions={<>
-        <button type="button" className="gc-btn gc-btn--neutral" onClick={doCopy}><Icon name="copy" width="18" height="18" aria-hidden="true" /> Copy last week</button>
-        <button type="button" className="gc-btn gc-btn--solid" onClick={doPublish}><Icon name="send" width="18" height="18" aria-hidden="true" /> Publish roster</button>
-      </>}>
+    <HrPage screen="Shifts" active="hr-shifts" page="Shifts & roster" title="Shifts & roster" icon="calendar-clock" css={CSS}
+      about="Set your shifts once, then plan the week. Staff get the roster by SMS when you publish it. Leave comes from the Leave page; weekly off from HR setup."
+      secondary={[{ label: 'Copy last week', onClick: doCopy }]}
+      more={[{ label: 'New shift', onClick: newShift }, { label: 'Weekly off', href: '/hr-setup?sec=att' }, { label: 'Leave', href: '/leave' }]}
+      primary={{ label: 'Publish roster', onClick: doPublish }}>
 
-      <div className="sf-shifts">
-        {S.shifts.map((sh) => {
-          const [bg, fg] = SHIFT_COLORS[sh.color] || SHIFT_COLORS.slate;
-          return (
-            <button key={sh.id} type="button" className="sf-shift" style={{ borderTopColor: fg }} onClick={() => setForm({ ...sh, breakMin: String(sh.breakMin), graceMin: String(sh.graceMin), minStaff: String(sh.minStaff) })} aria-label={`Edit the ${sh.name} shift`}>
-              <span className="sf-shift__top"><b>{sh.name}</b><span className="hr-chip" style={{ background: bg, color: fg }}>{S.staff.filter((s) => s.shift === sh.id && s.status !== 'left').length} staff</span></span>
-              <span className="hr-fig hr-strong" style={{ color: fg }}>{shiftTime(sh)}</span>
-              <span className="hr-sub">{sh.breakMin ? `Break ${sh.breakMin} min` : 'No break'} · grace {sh.graceMin} min · {shiftHours(sh)} h</span>
-              <span className="hr-sub">{sh.places.join(', ')} · at least {sh.minStaff}</span>
-            </button>
-          );
-        })}
-        <button type="button" className="sf-shift sf-add" onClick={() => setForm({ ...EMPTY_SHIFT, graceMin: String(S.settings.graceMin) })}><Icon name="plus" width="18" height="18" aria-hidden="true" /> New shift</button>
-      </div>
-
-      <section className="gc-card hr-card">
-        <div className="sf-tools">
-          <div className="sf-nav">
-            <button type="button" className="gc-iconbtn" aria-label="Previous week" onClick={() => setStart(addDays(wk, -7))}><Icon name="chevron-left" width="18" height="18" /></button>
-            <span>Week of {dayLabel(wk)} – {dayLabel(addDays(wk, 6), true)}</span>
-            <button type="button" className="gc-iconbtn" aria-label="Next week" onClick={() => setStart(addDays(wk, 7))}><Icon name="chevron-right" width="18" height="18" /></button>
-            {wk !== weekStartOf(today) ? <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => setStart(null)}>This week</button> : null}
-          </div>
-          <span className={'gc-badge gc-badge--' + (published ? 'success' : 'warning')}>{published ? `Published ${formatDate(published)}` : 'Not published'}</span>
-          <div className="hr-seg" role="group" aria-label="View">
-            <button type="button" aria-pressed={view === 'roster'} onClick={() => setView('roster')}>Roster</button>
-            <button type="button" aria-pressed={view === 'plan'} onClick={() => setView('plan')}>Cover per shift</button>
-          </div>
-          <select className="gc-input gc-select sf-place" aria-label="Location" value={place} onChange={(e) => setPlace(e.target.value)}>
-            <option value="">All locations</option>
-            {HR_PLACES.filter((p) => S.staff.some((s) => s.branch === p)).map((p) => <option key={p}>{p}</option>)}
-          </select>
+      <section className="ix-card" aria-label="Roster">
+        <div className="ix-bar">
+          <IndexTabs tabs={tabs} label="Shifts and roster views" />
+          {view !== 'shifts' ? (
+            <span className="ix-tools">
+              <select className={'ix-filter' + (place ? ' is-set' : '')} aria-label="Location" value={place} onChange={(e) => setPlace(e.target.value)}>
+                <option value="">All locations</option>
+                {HR_PLACES.filter((p) => S.staff.some((s) => s.branch === p)).map((p) => <option key={p}>{p}</option>)}
+              </select>
+            </span>
+          ) : null}
         </div>
 
+        {view !== 'shifts' ? (
+          <div className="hr-sub2">
+            <span className="hr-step">
+              <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Previous week" onClick={() => setStart(addDays(wk, -7))}><Icon name="chevron-left" width="16" height="16" aria-hidden="true" /></button>
+              <b>{dayLabel(wk)} – {dayLabel(addDays(wk, 6), true)}</b>
+              <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Next week" onClick={() => setStart(addDays(wk, 7))}><Icon name="chevron-right" width="16" height="16" aria-hidden="true" /></button>
+            </span>
+            {wk !== weekStartOf(today) ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => setStart(null)}>This week</button> : null}
+            <StatusBadge tone={published ? 'success' : 'warning'}>{published ? `Published ${formatDate(published)}` : 'Not published'}</StatusBadge>
+            <InfoTip text={`Weekly off: ${off} (HR setup). Leave comes from the Leave page. A line under a cell means it was changed from the usual pattern.`} />
+          </div>
+        ) : null}
+
         {view === 'roster' ? (
-          <div className="gc-table-wrap">
-            <table className="gc-table gc-table--compact sf-grid">
+          <div className="ix-table-wrap ix-table-wrap--show">
+            <table className="ix-table gc-table--keep sf-grid">
+              <caption className="sr-only">Roster for the week of {dayLabel(wk)}</caption>
               <thead><tr>
                 <th scope="col">Staff</th>
-                {keys.map((k) => <th key={k} scope="col" className={'sf-day' + (k === today ? ' is-today' : '')}>{WEEKDAYS[dowOf(k)]}<span className="hr-sub" style={{ fontWeight: 'var(--weight-regular)' }}>{dayLabel(k)}</span></th>)}
-                <th scope="col" className="hr-num">Hours</th>
+                {keys.map((k) => <th key={k} scope="col" className={'sf-day' + (k === today ? ' is-today' : '')}>{WEEKDAYS[dowOf(k)]} <span className="ix-muted" style={{ fontWeight: 'var(--weight-regular)' }}>{dayLabel(k)}</span></th>)}
+                <th scope="col" className="ix-num">Hours</th>
               </tr></thead>
               <tbody>
                 {staff.map((st) => {
                   const h = hoursOf(st);
                   return (
                     <tr key={st.code}>
-                      <td><div className="hr-who"><Avatar st={st} /><span><Link href={profileHref(st.code)}>{st.name}</Link><span className="hr-sub">{st.designation} · {st.branch.replace(' branch', '')}</span></span></div></td>
+                      <td><div className="hr-who"><Avatar st={st} /><span><Link href={profileHref(st.code)}>{st.name}</Link><span className="hr-sub">{st.designation}</span></span></div></td>
                       {keys.map((k) => {
                         const c = cellView(st, k);
                         return (
@@ -195,17 +185,18 @@ export default function Shifts() {
                           </td>
                         );
                       })}
-                      <td className={'hr-num hr-strong' + (h > 48 ? ' hr-out' : '')}>{Math.round(h * 10) / 10} h</td>
+                      <td className={'ix-num hr-strong' + (h > 48 ? ' hr-out' : '')}>{Math.round(h * 10) / 10} h</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
-        ) : (
-          <div className="gc-table-wrap">
-            <table className="gc-table gc-table--compact">
-              <thead><tr><th scope="col">Shift · place</th>{keys.map((k) => <th key={k} scope="col" style={{ textAlign: 'center' }}>{WEEKDAYS[dowOf(k)]}<span className="hr-sub" style={{ fontWeight: 'var(--weight-regular)' }}>{dayLabel(k)}</span></th>)}</tr></thead>
+        ) : view === 'plan' ? (
+          <div className="ix-table-wrap ix-table-wrap--show">
+            <table className="ix-table gc-table--keep sf-grid">
+              <caption className="sr-only">Cover per shift for the week of {dayLabel(wk)}</caption>
+              <thead><tr><th scope="col">Shift · place</th>{keys.map((k) => <th key={k} scope="col" className="sf-day">{WEEKDAYS[dowOf(k)]} <span className="ix-muted" style={{ fontWeight: 'var(--weight-regular)' }}>{dayLabel(k)}</span></th>)}</tr></thead>
               <tbody>
                 {(() => {
                   const byDay = Object.fromEntries(keys.map((k) => [k, coverageOf(S, k)]));
@@ -219,7 +210,7 @@ export default function Shifts() {
                         const closed = isClosedDay(S, k) && !r.n;
                         const short = !closed && r.n < r.min;
                         return <td key={k} style={{ textAlign: 'center' }} title={r.names.join(', ') || 'Nobody'}>
-                          {closed ? <span className="hr-sub">Closed</span> : <span className="sf-cov" style={{ background: short ? 'var(--fill-error-soft)' : r.n ? 'var(--fill-success-soft)' : 'var(--surface-subtle)', color: short ? 'var(--text-danger)' : r.n ? 'var(--text-success)' : 'var(--text-muted)' }}>{r.n} / {r.min}</span>}
+                          {closed ? <span className="ix-muted">Closed</span> : <span className="sf-cov" style={{ background: short ? 'var(--fill-error-soft)' : r.n ? 'var(--fill-success-soft)' : 'var(--surface-subtle)', color: short ? 'var(--text-danger)' : r.n ? 'var(--text-success)' : 'var(--text-muted)' }}>{r.n} / {r.min}</span>}
                           {r.names.length ? <span className="hr-sub">{r.names.map((n) => n.split(' ')[0]).join(', ')}</span> : null}
                         </td>;
                       })}
@@ -229,16 +220,53 @@ export default function Shifts() {
               </tbody>
             </table>
           </div>
+        ) : (
+          <>
+            <ul className="ix-plist" aria-label="Shifts">
+              {S.shifts.map((sh) => { const [, fg] = SHIFT_COLORS[sh.color] || SHIFT_COLORS.slate; return (
+                <li key={sh.id}>
+                  <button type="button" className="ix-pitem" onClick={() => editShift(sh)} aria-label={`Edit the ${sh.name} shift`}>
+                    <span className="ix-pitem__top"><b><i className="sf-dot" style={{ background: fg }} aria-hidden="true" />{sh.name}</b><span className="hr-fig">{shiftTime(sh)}</span></span>
+                    <span className="ix-pitem__mid">{sh.places.join(', ')} · at least {sh.minStaff} · {S.staff.filter((s) => s.shift === sh.id && s.status !== 'left').length} staff</span>
+                  </button>
+                </li>
+              ); })}
+            </ul>
+            <div className="ix-table-wrap">
+              <table className="ix-table gc-table--keep">
+                <caption className="sr-only">Shifts</caption>
+                <thead><tr><th scope="col">Shift</th><th scope="col">Time</th><th scope="col">Break · grace</th><th scope="col" className="ix-num">Hours</th><th scope="col">Runs at</th><th scope="col" className="ix-num">Minimum</th><th scope="col" className="ix-num">Staff</th></tr></thead>
+                <tbody>
+                  {S.shifts.map((sh) => {
+                    const [, fg] = SHIFT_COLORS[sh.color] || SHIFT_COLORS.slate;
+                    return (
+                      <tr key={sh.id} onClick={rowGo(() => editShift(sh))}>
+                        <td><button type="button" className="ix-strong" onClick={() => editShift(sh)} aria-label={`Edit the ${sh.name} shift`}><i className="sf-dot" style={{ background: fg }} aria-hidden="true" />{sh.name}</button></td>
+                        <td className="hr-fig">{shiftTime(sh)}</td>
+                        <td className="ix-muted">{sh.breakMin ? `${sh.breakMin} min` : 'No break'} · {sh.graceMin} min</td>
+                        <td className="ix-num">{shiftHours(sh)} h</td>
+                        <td className="ix-muted">{sh.places.join(', ')}</td>
+                        <td className="ix-num">{sh.minStaff}</td>
+                        <td className="ix-num">{S.staff.filter((s) => s.shift === sh.id && s.status !== 'left').length}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="ix-foot"><span>{S.shifts.length === 1 ? '1 shift' : `${S.shifts.length} shifts`}</span><button type="button" className="ix-btn ix-btn--sm" onClick={newShift}><Icon name="plus" width="16" height="16" aria-hidden="true" />New shift</button></div>
+          </>
         )}
 
-        <div className="sf-warns">
-          {warns.length ? warns.map((w, i) => <div key={i} className={'hr-note hr-note--' + (w.tone === 'error' ? 'error' : 'warn')}><Icon name="triangle-alert" width="16" height="16" aria-hidden="true" /><span>{w.text}</span></div>)
-            : <div className="hr-note hr-note--ok"><Icon name="circle-check" width="16" height="16" aria-hidden="true" /><span>No clashes this week: every shift has its minimum and nobody is over 48 hours.</span></div>}
-          <p className="hr-sub" style={{ margin: 0 }}>
-            Weekly off: {S.settings.weeklyOff.map((d) => WEEKDAYS[d]).join(', ') || 'by roster'} (<Link href="/hr-setup?sec=att" className="hr-link">HR setup</Link>) · {holidays.length ? `Holiday this week: ${holidays.join(', ')}` : 'No public holiday this week'} · Leave comes from the <Link href="/leave" className="hr-link">Leave</Link> page. A line under a cell means it was changed from the usual pattern.
-          </p>
-        </div>
+        {view !== 'shifts' ? (
+          <div className="sf-warns">
+            {warns.length ? warns.map((w, i) => <div key={i} className={'hr-note hr-note--' + (w.tone === 'error' ? 'error' : 'warn')}><Icon name="triangle-alert" width="16" height="16" aria-hidden="true" /><span>{w.text}</span></div>)
+              : <div className="hr-note hr-note--ok"><Icon name="circle-check" width="16" height="16" aria-hidden="true" /><span>No clashes this week: every shift has its minimum and nobody is over 48 hours.</span></div>}
+            {holidays.length ? <p className="hr-sub" style={{ margin: 0 }}>Holiday this week: {holidays.join(', ')}</p> : null}
+          </div>
+        ) : null}
       </section>
+      <LearnMore topic="shifts" />
 
       <Dialog open={!!cell} title={cell ? `${staffBy(S, cell.code).name} · ${WEEKDAYS[dowOf(cell.key)]} ${dayLabel(cell.key, true)}` : 'Day'} onClose={() => setCell(null)} width={520}
         footer={cell ? <>{cell.set ? <button type="button" className="gc-btn gc-btn--neutral" style={{ marginRight: 'auto' }} onClick={() => { setRoster(cell.key, cell.code, null); toast('Back to the usual shift for that day.', { tone: 'info' }); setCell(null); }}>Back to usual</button> : null}<button type="button" className="gc-btn gc-btn--neutral" onClick={() => setCell(null)}>Cancel</button><button type="submit" form="sf-cell" className="gc-btn gc-btn--solid">Save day</button></> : null}>

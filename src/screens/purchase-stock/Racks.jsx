@@ -6,40 +6,34 @@
 // Rules (src/lib/racks.js): bins for a product can't hold more than its on hand at the place, a bin
 // can't go over its capacity, a rack with stock can't be removed (the dialog names the bins).
 // Places come from src/lib/locations.js, on hand from src/lib/stock.js.
+// Laid out like a Shopify page (components/ui/IndexKit.jsx): the place picker leads the key figures, then the bin
+// finder, one card per rack (the bin map; Edit opens the rack, where it can also be removed) and the put-away list.
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { Dialog, PageHeader, EmptyState } from '@/components/ui';
+import { Dialog, EmptyState, StatusBadge } from '@/components/ui';
+import { ShopHeader, MetricStrip, SearchField, LearnMore } from '@/components/ui/IndexKit';
 import { productBy, placeStock, stockAt } from '@/lib/stock';
 import { racksAt, binsOf, binCode, slotsIn, binUsed, binnedAt, placeBinStats, findInBins, saveRack, removeRack, binsWithStock, putAway, takeOut, moveBetweenBins } from '@/lib/racks';
 import { ProductPicker, PICKER_CSS } from '@/components/ProductPicker';
 import { usePlaceData, PLACE_CSS } from './placeShared';
 
 const CSS = PICKER_CSS + PLACE_CSS + `
-.rk-bar{display:flex;flex-wrap:wrap;gap:var(--space-3);align-items:flex-end;padding:var(--space-4) var(--space-5)}
-.rk-bar > div{display:flex;flex-direction:column;gap:var(--space-1);min-width:0}
-.rk-bar .rk-place{flex:0 1 260px}
-.rk-bar .rk-find{flex:1 1 280px}
-.rk-hits{display:flex;flex-direction:column;border-top:1px solid var(--border-subtle)}
-.rk-hit{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);padding:var(--space-3) var(--space-5);border-bottom:1px solid var(--border-subtle);font-size:var(--text-sm)}
+.rk-hits{display:flex;flex-direction:column}
+.rk-hit{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);padding:var(--space-2) var(--space-4);border-bottom:1px solid var(--border-subtle);font-size:var(--text-sm)}
 .rk-hit:last-child{border-bottom:0}
 .rk-hit__p{flex:1 1 220px;min-width:0}
 .rk-chips{display:flex;flex-wrap:wrap;gap:var(--space-1)}
 .rk-chip{display:inline-flex;align-items:center;gap:var(--space-1);height:28px;padding:0 var(--space-3);border-radius:var(--radius-full);border:1px solid var(--border-subtle);background:var(--surface-card);font:inherit;font-family:var(--font-data);font-size:var(--text-xs);color:var(--text-heading);cursor:pointer}
 .rk-chip:hover{border-color:var(--primary);color:var(--primary)}
-.rk-racks{display:flex;flex-direction:column;gap:var(--space-4)}
-.rk-rack{padding:var(--space-4) var(--space-5);display:flex;flex-direction:column;gap:var(--space-4);min-width:0}
-.rk-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:var(--space-3)}
-.rk-head h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.rk-head p{margin:2px 0 0;font-size:var(--text-xs);color:var(--text-muted)}
-.rk-head__actions{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.rk-head{align-items:flex-start}
 .rk-map{overflow-x:auto;padding-bottom:var(--space-1)}
 .rk-shelf{display:grid;grid-template-columns:56px repeat(var(--bins),minmax(52px,1fr));gap:var(--space-1);align-items:stretch;margin-bottom:var(--space-1)}
 .rk-shelf__label{display:flex;align-items:center;font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap}
-.rk-bin{position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:2px;min-height:52px;padding:var(--space-1) var(--space-2) var(--space-2);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font:inherit;text-align:left;cursor:pointer;overflow:hidden}
+.rk-bin{position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:2px;min-height:44px;padding:var(--space-1) var(--space-2) var(--space-2);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font:inherit;text-align:left;cursor:pointer;overflow:hidden}
 .rk-bin:hover{border-color:var(--primary)}
 .rk-bin:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
 .rk-bin__code{font-family:var(--font-data);font-size:var(--text-xs);color:var(--text-muted)}
@@ -52,17 +46,19 @@ const CSS = PICKER_CSS + PLACE_CSS + `
 .rk-legend i{display:inline-block;width:18px;height:4px;border-radius:var(--radius-full);background:var(--primary)}
 .rk-legend i.is-full{background:var(--warning)}
 .rk-legend i.is-hit{height:12px;width:12px;background:var(--fill-warning-soft);border:1px solid var(--warning)}
-.rk-card{overflow:hidden}
-.rk-card .gc-table th:first-child,.rk-card .gc-table td:first-child{padding-left:var(--space-5)}
 .rk-over{color:var(--text-danger);font-weight:var(--weight-medium)}
+.rk-act{text-align:right}
+.rk-pitem{cursor:default}
+.rk-pitem__ctl{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2)}
 .rk-lines{display:flex;flex-direction:column}
 .rk-line{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-2);padding:var(--space-3) 0;border-bottom:1px solid var(--border-subtle)}
 .rk-line__acts{display:flex;gap:var(--space-2)}
 .rk-three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-3)}
-@media (max-width:599px){.rk-three{grid-template-columns:1fr 1fr}.rk-bar .rk-place{flex:1 1 100%}}
+.rk-foot{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:var(--space-2)}
+.rk-foot .is-end{margin-right:auto}
+@media (max-width:599px){.rk-three{grid-template-columns:1fr 1fr}}
 /* phones: the shelf name sits above its bins so a whole shelf fits the width; bin codes never break */
 @media (max-width:640px){
-  .rk-rack{padding:var(--space-4) var(--space-3-5)}
   .rk-shelf{grid-template-columns:repeat(auto-fill,minmax(72px,1fr));row-gap:var(--space-1);margin-bottom:var(--space-2)}
   .rk-shelf__label{grid-column:1/-1}
   .rk-bin{padding:var(--space-1) 5px var(--space-2)}
@@ -196,49 +192,48 @@ export default function Racks() {
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="gc-shell">
         <Sidebar sticky="" active="stock-racks" />
-        <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
+        <main className="gc-shell__main">
           <Topbar crumb="Products & stock" page="Racks & bins" />
-          <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-            <PageHeader
-              title="Racks & bins"
-              about="Where stock sits inside each warehouse and branch. Bin A-2-05 is rack A, shelf 2, bin 5."
-              actions={<>
-                <button type="button" className="gc-btn gc-btn--neutral" onClick={() => startPut('', '', false)} disabled={!binOptions.length}><Icon name="package-plus" width="18" height="18" aria-hidden="true" /> Put away</button>
-                <button type="button" className="gc-btn gc-btn--solid" onClick={newRack}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Add rack</button>
-              </>}
-            />
+          <div className="gc-shell__content">
+            <div className="ix-page">
+              <ShopHeader icon="layout-grid" title="Racks & bins"
+                about="Where stock sits inside each warehouse and branch. Bin A-2-05 is rack A, shelf 2, bin 5."
+                secondary={[{ label: 'Put away', onClick: () => startPut('', '', false), disabled: !binOptions.length }]}
+                more={[{ label: 'Stock list', href: '/stock' }, { label: 'Warehouses', href: '/warehouses' }, { label: 'Branches', href: '/branches' }]}
+                primary={{ label: 'Add rack', onClick: newRack }} />
 
-            <section className="gc-card">
-              <div className="rk-bar">
-                <div className="rk-place"><label className="gc-label" htmlFor="rk-place">Warehouse or branch</label><select id="rk-place" className="gc-input gc-select" value={pid} onChange={(e) => pickPlace(e.target.value)}>{places.map((p) => <option key={p.id} value={p.id}>{p.name}{p.active === false ? ' (inactive)' : ''}</option>)}</select></div>
-                <div className="rk-find"><label className="gc-label" htmlFor="rk-find">Find a product's bin</label><input id="rk-find" className="gc-input" type="search" placeholder="Name, SKU or barcode" value={q} onChange={(e) => setQ(e.target.value)} /></div>
-              </div>
-              {q.trim() ? (
-                <div className="rk-hits" role="status" aria-live="polite">
-                  {hits.length === 0 ? <div className="rk-hit"><span className="pl-sub">No product matches “{q.trim()}”.</span></div> : hits.map((h) => (
-                    <div key={h.p.sku + h.place} className="rk-hit">
-                      <div className="rk-hit__p"><span className="pl-strong">{h.p.name}</span><span className="pl-sub pl-id">{h.p.sku}{h.p.barcode ? ` · ${h.p.barcode}` : ''}</span></div>
-                      {h.bins.length ? (<>
-                        <span className="pl-sub">{h.placeName} · {h.binned} pcs</span>
-                        <div className="rk-chips">{h.bins.map((b) => <button key={b.code} type="button" className="rk-chip" onClick={() => openBinAt(h.place, key(b.slot.rack, b.slot.shelf, b.slot.bin))} aria-label={`Open bin ${b.code} at ${h.placeName}, ${b.qty} pieces`}><Icon name="map-pin" width="12" height="12" aria-hidden="true" />{b.code} · {b.qty}</button>)}</div>
-                      </>) : <span className="gc-badge gc-badge--slate">Not in any bin</span>}
-                    </div>
-                  ))}
+              <MetricStrip label={`Racks at ${place.name}`}
+                lead={<select className="ix-pick" aria-label="Warehouse or branch" value={pid} onChange={(e) => pickPlace(e.target.value)}>{places.map((p) => <option key={p.id} value={p.id}>{p.name}{p.active === false ? ' (inactive)' : ''}</option>)}</select>}
+                items={[
+                  { label: 'Racks', value: String(stats.racks), sub: `${stats.bins} bins` },
+                  { label: 'Bins used', value: stats.bins ? Math.round((stats.used / stats.bins) * 100) + '%' : '—', sub: `${stats.used} of ${stats.bins}` },
+                  { label: 'Pieces in bins', value: String(stats.pieces), sub: `room for ${Math.max(0, stats.capacity - stats.pieces)}` },
+                  { label: 'Not in a bin yet', value: String(looseTotal), sub: 'pcs to put away' },
+                ]} />
+
+              <section className="ix-card" aria-label="Find a product's bin">
+                <div className="ix-bar">
+                  <SearchField value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find a product's bin" onDone={() => setQ('')} />
+                  {q.trim() ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => setQ('')}>Clear</button> : null}
                 </div>
-              ) : null}
-            </section>
+                {q.trim() ? (
+                  <div className="rk-hits" role="status" aria-live="polite">
+                    {hits.length === 0 ? <div className="rk-hit"><span className="pl-sub">No product matches “{q.trim()}”.</span></div> : hits.map((h) => (
+                      <div key={h.p.sku + h.place} className="rk-hit">
+                        <div className="rk-hit__p"><span className="pl-strong">{h.p.name}</span><span className="pl-sub pl-id">{h.p.sku}{h.p.barcode ? ` · ${h.p.barcode}` : ''}</span></div>
+                        {h.bins.length ? (<>
+                          <span className="pl-sub">{h.placeName} · {h.binned} pcs</span>
+                          <div className="rk-chips">{h.bins.map((b) => <button key={b.code} type="button" className="rk-chip" onClick={() => openBinAt(h.place, key(b.slot.rack, b.slot.shelf, b.slot.bin))} aria-label={`Open bin ${b.code} at ${h.placeName}, ${b.qty} pieces`}><Icon name="map-pin" width="12" height="12" aria-hidden="true" />{b.code} · {b.qty}</button>)}</div>
+                        </>) : <StatusBadge tone="neutral">Not in any bin</StatusBadge>}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </section>
 
-            <div className="gc-kpis">
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="layout-grid" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Racks at {place.name}</p><p className="gc-kpi__value">{stats.racks}<small>{stats.bins} bins</small></p></div></div>
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-info-soft)', color: 'var(--text-info)' }}><Icon name="box" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Bins used</p><p className="gc-kpi__value">{stats.bins ? Math.round((stats.used / stats.bins) * 100) + '%' : '—'}<small>{stats.used} of {stats.bins}</small></p></div></div>
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="package-check" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Pieces in bins</p><p className="gc-kpi__value">{stats.pieces}<small>room for {Math.max(0, stats.capacity - stats.pieces)}</small></p></div></div>
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-warning-soft)', color: 'var(--text-warning)' }}><Icon name="package-open" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Not in a bin yet</p><p className="gc-kpi__value">{looseTotal}<small>pcs to put away</small></p></div></div>
-            </div>
-
-            {racks.length === 0 ? (
-              <section className="gc-card"><EmptyState icon="layout-grid" title={`No racks at ${place.name} yet`} body="Add a rack with its shelves and bins, then put stock away into the bins." actionLabel="Add rack" onAction={newRack} /></section>
-            ) : (
-              <div className="rk-racks">
+              {racks.length === 0 ? (
+                <section className="ix-card"><div className="ix-empty"><EmptyState icon="layout-grid" title={`No racks at ${place.name} yet`} body="Add a rack with its shelves and bins, then put stock away into the bins." actionLabel="Add rack" onAction={newRack} /></div></section>
+              ) : (<>
                 <div className="rk-legend" aria-hidden="true"><span><i /> Filled part of the bin</span><span><i className="is-full" /> 90% full or more</span>{hitBins.size ? <span><i className="is-hit" /> Has the product you searched</span> : null}</div>
                 {racks.map((r) => {
                   const bs = binsOf(r);
@@ -246,15 +241,12 @@ export default function Racks() {
                   const shelves = [];
                   for (let s = r.shelves; s >= 1; s--) shelves.push(s);
                   return (
-                    <section key={r.id} className="gc-card rk-rack" aria-label={`Rack ${r.code}`}>
-                      <div className="rk-head">
-                        <div><h2>Rack {r.code}{r.name ? ` · ${r.name}` : ''}</h2><p>{r.shelves} shelves × {r.bins} bins · {r.capacity} pcs per bin · {usedBins} of {bs.length} bins used</p></div>
-                        <div className="rk-head__actions">
-                          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => { setRackErr(null); setRackForm({ id: r.id, code: r.code, name: r.name, shelves: String(r.shelves), bins: String(r.bins), capacity: String(r.capacity) }); }}><Icon name="pencil" width="16" height="16" aria-hidden="true" /> Edit</button>
-                          <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => askRemove(r)}><Icon name="trash-2" width="16" height="16" aria-hidden="true" /> Remove</button>
-                        </div>
+                    <section key={r.id} className="ix-card" aria-label={`Rack ${r.code}`}>
+                      <div className="ix-card__head rk-head">
+                        <div><h2>Rack {r.code}{r.name ? ` · ${r.name}` : ''}</h2><p className="ix-card__sub">{r.shelves} shelves × {r.bins} bins · {r.capacity} pcs per bin · {usedBins} of {bs.length} bins used</p></div>
+                        <button type="button" className="ix-btn ix-btn--sm" onClick={() => { setRackErr(null); setRackForm({ id: r.id, code: r.code, name: r.name, shelves: String(r.shelves), bins: String(r.bins), capacity: String(r.capacity) }); }} aria-label={`Edit rack ${r.code}`}>Edit</button>
                       </div>
-                      <div className="rk-map">
+                      <div className="ix-card__body rk-map">
                         {shelves.map((s) => (
                           <div key={s} className="rk-shelf" style={{ '--bins': r.bins }}>
                             <span className="rk-shelf__label">Shelf {s}</span>
@@ -276,33 +268,47 @@ export default function Racks() {
                     </section>
                   );
                 })}
-              </div>
-            )}
+              </>)}
 
-            <section className="gc-card rk-card">
-              <div className="rk-head" style={{ padding: 'var(--space-4) var(--space-5)' }}>
-                <div><h2>Not in a bin yet · {place.name}</h2></div>
-                <Link className="gc-btn gc-btn--sm gc-btn--neutral" href="/stock">Stock list</Link>
-              </div>
-              {loose.length === 0 ? <EmptyState icon="package-check" title="Everything is in a bin" body={racks.length ? 'Every piece on hand here has a bin.' : 'Add racks first, then put stock away.'} /> : (
-                <div className="gc-table-wrap">
-                  <table className="gc-table gc-table--compact gc-table--hoverable">
-                    <thead><tr><th scope="col">Product</th><th scope="col" className="pl-num">On hand</th><th scope="col" className="pl-num">In bins</th><th scope="col" className="pl-num">Not in a bin</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
-                    <tbody>
-                      {loose.map((r) => (
-                        <tr key={r.p.sku}>
-                          <td><span className="pl-strong">{r.p.name}</span><span className="pl-sub pl-id">{r.p.sku}</span></td>
-                          <td className={'pl-num' + (r.onHand < 0 ? ' pl-neg' : '')}>{r.onHand}</td>
-                          <td className="pl-num">{r.binned}</td>
-                          <td className="pl-num">{r.over ? <span className="rk-over">Bins list {r.over} more than on hand</span> : <b>{r.loose}</b>}</td>
-                          <td><div className="rk-line__acts" style={{ justifyContent: 'flex-end' }}>{r.over ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setQ(r.p.sku)}>Show bins</button> : <button type="button" className="gc-btn gc-btn--sm gc-btn--soft" disabled={!binOptions.length} onClick={() => startPut(r.p.sku, '', false)}>Put away</button>}</div></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </section>
+              <section className="ix-card" aria-labelledby="rk-loose-h">
+                <div className="ix-card__head"><h2 id="rk-loose-h">Not in a bin yet · {place.name}</h2><Link href="/stock">Stock list</Link></div>
+                {loose.length === 0 ? <div className="ix-empty"><EmptyState icon="package-check" title="Everything is in a bin" body={racks.length ? 'Every piece on hand here has a bin.' : 'Add racks first, then put stock away.'} /></div> : (<>
+                  <ul className="ix-plist" aria-label="Not in a bin yet">
+                    {loose.map((r) => (
+                      <li key={r.p.sku}>
+                        <div className="ix-pitem rk-pitem">
+                          <span className="ix-pitem__top"><b>{r.p.name}</b><span>{r.over ? null : `${r.loose} pcs`}</span></span>
+                          <span className="ix-pitem__mid">{r.p.sku} · {`${r.onHand} on hand · ${r.binned} in bins`}</span>
+                          <span className="rk-pitem__ctl">
+                            {r.over ? <span className="rk-over">Bins list {r.over} more than on hand</span> : <span />}
+                            {r.over ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => setQ(r.p.sku)}>Show bins</button> : <button type="button" className="ix-btn ix-btn--sm" disabled={!binOptions.length} onClick={() => startPut(r.p.sku, '', false)}>Put away</button>}
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="ix-table-wrap">
+                    <table className="ix-table ix-table--static gc-table--keep">
+                      <caption className="sr-only">Not in a bin yet at {place.name}</caption>
+                      <thead><tr><th scope="col">Product</th><th scope="col">SKU</th><th scope="col" className="ix-num">On hand</th><th scope="col" className="ix-num">In bins</th><th scope="col" className="ix-num">Not in a bin</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
+                      <tbody>
+                        {loose.map((r) => (
+                          <tr key={r.p.sku}>
+                            <td className="ix-strong">{r.p.name}</td>
+                            <td className="ix-muted pl-id">{r.p.sku}</td>
+                            <td className={'ix-num' + (r.onHand < 0 ? ' pl-neg' : '')}>{r.onHand}</td>
+                            <td className="ix-num">{r.binned}</td>
+                            <td className="ix-num">{r.over ? <span className="rk-over">Bins list {r.over} more than on hand</span> : <b>{r.loose}</b>}</td>
+                            <td className="rk-act">{r.over ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => setQ(r.p.sku)}>Show bins</button> : <button type="button" className="ix-btn ix-btn--sm" disabled={!binOptions.length} onClick={() => startPut(r.p.sku, '', false)}>Put away</button>}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>)}
+              </section>
+              <LearnMore topic="racks and bins" />
+            </div>
           </div>
         </main>
       </div>
@@ -325,7 +331,10 @@ export default function Racks() {
                 <div><label className="gc-label" htmlFor="rk-capacity">Each bin holds *</label><input id="rk-capacity" className="gc-input" type="number" min="1" inputMode="numeric" value={rackForm.capacity} onChange={set('capacity')} {...inv('capacity')} /><span className="gc-help">pieces</span></div>
               </div>
               {rackErr ? <p id="rk-rack-err" className="gc-help gc-help--error" role="alert" style={{ margin: 0 }}>{rackErr.error}</p> : sh > 0 && bn > 0 ? <p className="gc-help" style={{ margin: 0 }}>{sh * bn} bins: {code}-1-01 to {code}-{sh}-{String(bn).padStart(2, '0')}.</p> : null}
-              <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setRackForm(null)}>Cancel</button><button type="submit" className="gc-btn gc-btn--solid">{rackForm.id ? 'Save rack' : 'Add rack'}</button></div>
+              <div className="gc-modal__foot rk-foot" style={{ marginTop: 0 }}>
+                {rackForm.id && rackOf(rackForm.id) ? <button type="button" className="gc-btn gc-btn--flat is-end" onClick={() => { const r = rackOf(rackForm.id); setRackForm(null); askRemove(r); }}><Icon name="trash-2" width="16" height="16" aria-hidden="true" /> Remove rack</button> : null}
+                <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setRackForm(null)}>Cancel</button><button type="submit" className="gc-btn gc-btn--solid">{rackForm.id ? 'Save rack' : 'Add rack'}</button>
+              </div>
             </form>
           );
         })() : null}

@@ -1,6 +1,8 @@
 'use client';
-// placeShared — what Warehouses and Branches share: the live data of every place, the place card,
-// the add / edit form, the stock-at-a-place dialog and the checks before a place is switched off.
+// placeShared — what Warehouses and Branches share: the live data of every place, the place list (a Shopify-style
+// index card: Active / All, a compact table, a list on phones), the place's own window (facts, figures, its stock
+// and the actions: edit, new transfer, racks, deactivate, remove), the add / edit form and the checks before a
+// place is switched off.
 //   Places      src/lib/locations.js (getPlaces, savePlace, setPlaceActive, deletePlace)
 //   Stock       src/lib/stock.js (placeStock → on hand, held, value, in transit, low, below zero)
 //   Bins        src/lib/racks.js (placeBinStats, binsFor)
@@ -13,7 +15,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
-import { Dialog, EmptyState } from '@/components/ui';
+import { Dialog, EmptyState, StatusBadge } from '@/components/ui';
+import { IndexTabs, KV } from '@/components/ui/IndexKit';
 import { formatBDT } from '@/lib/format';
 import { getPlaces, savePlace, setPlaceActive, deletePlace, checkPlace, STAFF_NAMES, codeOf } from '@/lib/locations';
 import { CATALOG, getCatalog, getMoves, placeStock, allowNegative, setAllowNegative } from '@/lib/stock';
@@ -74,35 +77,18 @@ export function placeBlockers(pl, d) {
 
 // ---- styles --------------------------------------------------------------------------------------
 export const PLACE_CSS = `
-.pl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:var(--space-4)}
-.pl-card{display:flex;flex-direction:column;gap:var(--space-4);padding:var(--space-5);min-width:0}
-.pl-card.is-off{background:var(--surface-page)}
-.pl-top{display:flex;align-items:flex-start;gap:var(--space-3);min-width:0}
-.pl-code{width:44px;height:44px;flex:none;border-radius:var(--radius-xl);background:var(--fill-primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;font-family:var(--font-data);font-size:var(--text-xs);font-weight:var(--weight-semibold)}
-.pl-card.is-off .pl-code{background:var(--surface-subtle);color:var(--text-muted)}
-.pl-title{flex:1;min-width:0}
-.pl-title h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading);overflow-wrap:anywhere}
-.pl-title p{margin:2px 0 0;font-size:var(--text-xs);color:var(--text-muted);overflow-wrap:anywhere}
-.pl-badges{display:flex;flex-wrap:wrap;gap:var(--space-1);justify-content:flex-end}
-.pl-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-3) var(--space-4);margin:0}
-.pl-stats div{min-width:0}
-.pl-stats dt{font-size:var(--text-xs);color:var(--text-muted)}
-.pl-stats dd{margin:2px 0 0;font-family:var(--font-data);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.pl-stats dd.is-warn{color:var(--text-warning)}
-.pl-stats dd.is-bad{color:var(--text-danger)}
-.pl-cap{display:flex;flex-direction:column;gap:var(--space-2)}
-.pl-cap__row{display:flex;justify-content:space-between;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-muted)}
-.pl-cap__row b{font-weight:var(--weight-medium);color:var(--text-heading)}
-.pl-meta{display:flex;flex-direction:column;gap:var(--space-1);font-size:var(--text-xs);color:var(--text-muted)}
-.pl-meta span{display:flex;align-items:center;gap:var(--space-2);min-width:0;overflow-wrap:anywhere}
-.pl-meta b{font-weight:var(--weight-medium);color:var(--text-body)}
-.pl-flags{display:flex;flex-wrap:wrap;gap:var(--space-1)}
-.pl-actions{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:auto;padding-top:var(--space-3);border-top:1px solid var(--border-subtle)}
+.pl-code{display:grid;flex:none;place-items:center;width:32px;height:32px;border-radius:var(--radius-md);background:var(--fill-primary-soft);color:var(--primary);font-family:var(--font-data);font-size:var(--text-xs);font-weight:var(--weight-semibold)}
+.pl-code.is-off{background:var(--surface-subtle);color:var(--text-muted)}
+.pl-name{display:flex;flex-direction:column;min-width:0}
+.pl-open{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl-warnc{color:var(--text-warning)}.pl-badc{color:var(--text-danger)}
 .pl-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .pl-id{font-family:var(--font-data);font-size:var(--text-xs);color:var(--text-muted)}
 .pl-strong{font-weight:var(--weight-medium);color:var(--text-heading)}
-.pl-num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--font-data)}
 .pl-neg{color:var(--text-danger);font-weight:var(--weight-semibold)}
+.pl-cap{display:flex;flex-direction:column;gap:var(--space-2)}
+.pl-cap__row{display:flex;justify-content:space-between;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-muted)}
+.pl-cap__row b{font-weight:var(--weight-medium);color:var(--text-heading)}
 .pl-form{display:flex;flex-direction:column;gap:var(--space-4)}
 .pl-two{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
 .pl-sw{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) 0;border-top:1px solid var(--border-subtle)}
@@ -115,71 +101,88 @@ export const PLACE_CSS = `
 .pl-block{display:flex;flex-direction:column;gap:var(--space-3)}
 .pl-block__sum{margin:0;padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);background:var(--fill-error-soft);color:var(--text-danger);font-size:var(--text-sm);font-weight:var(--weight-medium)}
 .pl-block__row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-2);padding:var(--space-3) 0;border-bottom:1px solid var(--border-subtle);font-size:var(--text-sm)}
-.pl-search{display:flex;flex-wrap:wrap;gap:var(--space-3);align-items:center;justify-content:space-between}
-.pl-search .gc-input{flex:1;min-width:200px}
-.pl-mini{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:var(--space-3)}
-.pl-mini div{padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
+.pl-search{display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center;justify-content:space-between}
+.pl-search .ix-search{flex:1 1 220px}
+.pl-badges{display:flex;flex-wrap:wrap;gap:6px}
+.pl-facts{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--space-4);align-items:start}
+.pl-mini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2);margin:0}
+.pl-mini div{padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--surface-subtle)}
 .pl-mini dt{font-size:var(--text-xs);color:var(--text-muted)}
 .pl-mini dd{margin:2px 0 0;font-family:var(--font-data);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .pl-dlg{display:flex;flex-direction:column;gap:var(--space-4)}
-.pl-dlg .gc-table-wrap{max-height:52vh;overflow:auto;border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
+.pl-dlg .pl-scroll{max-height:52vh;overflow:auto;border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
+.pl-foot{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:var(--space-2);width:100%}
+.pl-foot .is-end{margin-right:auto}
 .pl-counters{display:flex;flex-direction:column;gap:var(--space-1)}
 .pl-counter{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);font-size:var(--text-xs)}
-@media (max-width:599px){.pl-two{grid-template-columns:1fr}.pl-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.pl-facts{grid-template-columns:minmax(0,1fr)}.pl-mini{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:599px){.pl-two{grid-template-columns:1fr}}
 `;
 
-// ---- the place card ------------------------------------------------------------------------------
+// ---- the place list ---------------------------------------------------------------------------------
 export function StatusOf({ pl }) {
-  if (pl.active === false) return <span className="gc-badge gc-badge--slate">Inactive</span>;
-  if (pl.opening) return <span className="gc-badge gc-badge--warning">Opens {pl.opening}</span>;
-  if (pl.type === 'Branch') return <span className="gc-badge gc-badge--success">Open</span>;
+  if (pl.active === false) return <StatusBadge tone="neutral">Inactive</StatusBadge>;
+  if (pl.opening) return <StatusBadge tone="warning">{`Opens ${pl.opening}`}</StatusBadge>;
+  if (pl.type === 'Branch') return <StatusBadge tone="success">Open</StatusBadge>;
   const role = pl.role || 'Warehouse';
-  return <span className={'gc-badge gc-badge--' + (role === 'Main' ? 'primary' : role === 'Returns' ? 'error' : 'info')}>{role}</span>;
+  return <StatusBadge tone={role === 'Main' ? 'primary' : role === 'Returns' ? 'error' : 'info'} icon="circle">{role}</StatusBadge>;
 }
-export function PlaceCard({ pl, d, extra, onView, onEdit, onToggle, onDelete }) {
-  const st = stockOf(pl, d);
-  const bins = placeBinStats(pl.id, d.racks);
-  const pct = bins.bins ? Math.round((bins.used / bins.bins) * 100) : 0;
-  const neg = d.ready && allowNegative(pl.name);
-  const off = pl.active === false;
+/** The places as one index card: Active / All views, a compact table (name + `cols`), a list on phones.
+ *  nouns: ['warehouse', 'warehouses'] for the count at the foot; mid(pl, st): the phone list's second line.
+ *  cols: [{ h, num, cell(pl, st) }] — st is the place's stock figures (stockOf). A click on a row calls onOpen(pl). */
+export function PlaceList({ label, nouns, all, active, showOff, setShowOff, d, cols, mid, onOpen, empty }) {
+  const shown = showOff ? all : active;
+  const tabs = [
+    { key: 'active', id: 'pl-tab-active', label: 'Active', count: active.length, on: !showOff, onClick: () => setShowOff(false) },
+    { key: 'all', id: 'pl-tab-all', label: 'All', count: all.length, on: showOff, onClick: () => setShowOff(true) },
+  ];
+  const open = (pl) => (e) => { if (e.target.closest && e.target.closest('a,button,input,select,label')) return; onOpen(pl); };
   return (
-    <article className={'gc-card pl-card' + (off ? ' is-off' : '')} aria-label={pl.name}>
-      <div className="pl-top">
-        <span className="pl-code" aria-hidden="true">{pl.code}</span>
-        <div className="pl-title"><h2>{pl.name}</h2>{pl.area ? <p title={pl.address || undefined}>{pl.area}</p> : null}</div>
-        <div className="pl-badges"><StatusOf pl={pl} /></div>
-      </div>
-      <dl className="pl-stats">
-        <div><dt>Products</dt><dd>{st.products}</dd></div>
-        <div><dt>On hand</dt><dd>{st.onHand.toLocaleString('en-IN')} pcs</dd></div>
-        <div><dt>Stock value</dt><dd>{formatBDT(st.value)}</dd></div>
-        <div><dt>Held</dt><dd className={st.held ? 'is-warn' : ''}>{st.held}</dd></div>
-        <div><dt>On the way</dt><dd title="Coming in · going out">↓{st.transitIn} · ↑{st.transitOut}</dd></div>
-        <div><dt>Low stock</dt><dd className={st.negative.length ? 'is-bad' : st.low ? 'is-warn' : ''}>{st.low}{st.negative.length ? ` · ${st.negative.length} below 0` : ''}</dd></div>
-      </dl>
-      <div className="pl-cap">
-        {bins.bins ? (<>
-          <div className="pl-cap__row"><span>Bins used · {bins.racks} {bins.racks === 1 ? 'rack' : 'racks'}</span><b>{bins.used} of {bins.bins} · {pct}%</b></div>
-          <div className="gc-progress" role="progressbar" aria-label={`Bins used at ${pl.name}`} aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}><div className="gc-progress__fill" style={{ width: pct + '%', background: pct > 85 ? 'var(--warning)' : 'var(--primary)' }} /></div>
-        </>) : <div className="pl-cap__row"><span>No racks set up yet</span><Link href={`/racks?place=${pl.id}`}>Set up racks</Link></div>}
-      </div>
-      <div className="pl-meta">
-        <span><Icon name="user" width="14" height="14" aria-hidden="true" /> Manager: <b>{pl.manager || 'Not set'}</b>{pl.phone ? <> · <span className="pl-id">{pl.phone}</span></> : null}</span>
-        {extra}
-      </div>
-      <div className="pl-flags">
-        {pl.type === 'Branch' ? <span className={'gc-badge gc-badge--' + (pl.counter ? 'info' : 'slate')}>{pl.counter ? 'Sells at a counter' : 'No counter sales'}</span> : null}
-        {pl.receives ? <span className="gc-badge gc-badge--info">Receives deliveries</span> : null}
-        {neg ? <span className="gc-badge gc-badge--error">Negative stock allowed</span> : null}
-      </div>
-      <div className="pl-actions">
-        <button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={onView}><Icon name="boxes" width="16" height="16" aria-hidden="true" /> View stock</button>
-        <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={onEdit}><Icon name="pencil" width="16" height="16" aria-hidden="true" /> Edit</button>
-        {!off && !pl.noSale ? <Link className="gc-btn gc-btn--sm gc-btn--neutral" href={`/new-transfer?from=${encodeURIComponent(pl.name)}`}><Icon name="arrow-left-right" width="16" height="16" aria-hidden="true" /> New transfer</Link> : null}
-        {!pl.fixed ? <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={onToggle}>{off ? 'Activate' : 'Deactivate'}</button> : null}
-        {!pl.builtIn ? <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={onDelete} aria-label={`Remove ${pl.name}`}><Icon name="trash-2" width="16" height="16" aria-hidden="true" /></button> : null}
-      </div>
-    </article>
+    <section className="ix-card" aria-label={label}>
+      <div className="ix-bar"><IndexTabs tabs={tabs} label={label} /></div>
+      {shown.length === 0 ? <div className="ix-empty">{empty}</div> : (<>
+        <ul className="ix-plist" aria-label={label}>
+          {shown.map((pl) => (
+            <li key={pl.id}>
+              <button type="button" className="ix-pitem" onClick={() => onOpen(pl)}>
+                <span className="ix-pitem__top"><b>{pl.name}</b><StatusOf pl={pl} /></span>
+                <span className="ix-pitem__mid">{mid(pl, stockOf(pl, d))}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="ix-table-wrap">
+          <table className="ix-table gc-table--keep">
+            <caption className="sr-only">{label}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{label}</th>
+                <th scope="col">Status</th>
+                {cols.map((c) => <th key={c.h} scope="col" className={c.num ? 'ix-num' : ''}>{c.h}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((pl) => {
+                const st = stockOf(pl, d);
+                return (
+                  <tr key={pl.id} onClick={open(pl)}>
+                    <td>
+                      <span className="ix-prod">
+                        <span className={'pl-code' + (pl.active === false ? ' is-off' : '')} aria-hidden="true">{pl.code}</span>
+                        <span className="pl-name"><button type="button" className="ix-strong pl-open" onClick={() => onOpen(pl)}>{pl.name}</button>{pl.area ? <span className="pl-sub">{pl.area}</span> : null}</span>
+                      </span>
+                    </td>
+                    <td><StatusOf pl={pl} /></td>
+                    {cols.map((c) => <td key={c.h} className={c.num ? 'ix-num' : 'ix-muted'}>{c.cell(pl, st)}</td>)}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </>)}
+      <div className="ix-foot"><span>{shown.length === 1 ? `1 ${nouns[0]}` : `${shown.length} ${nouns[1]}`}</span></div>
+    </section>
   );
 }
 
@@ -315,45 +318,88 @@ export function usePlaceForm(d, reload) {
   return { open, dialog };
 }
 
-// ---- stock at a place ------------------------------------------------------------------------------
-export function PlaceStockDialog({ pl, d, onClose }) {
+// ---- one place: facts, figures, its stock and the actions --------------------------------------------
+/** The place's own window (a click on its row): status and flags, manager and contact, figures, the stock there
+ *  (search, bins), transfers on the way, and the actions — edit, new transfer, racks, deactivate / activate, remove.
+ *  `facts` adds label / value rows (opening hours, sales today); `extra` adds a block under them (counters). */
+export function PlaceDialog({ pl, d, onClose, facts = [], extra, onEdit, onToggle, onDelete }) {
   const [q, setQ] = useState('');
   const st = useMemo(() => (pl ? stockOf(pl, d) : null), [pl, d]);
   if (!pl || !st) return <Dialog open={false} title="" onClose={onClose} />;
   const needle = q.trim().toLowerCase();
   const rows = st.rows.filter((r) => !needle || [r.p.name, r.p.sku, r.p.barcode, r.p.variant].some((x) => String(x || '').toLowerCase().includes(needle)));
   const bins = placeBinStats(pl.id, d.racks);
+  const pct = bins.bins ? Math.round((bins.used / bins.bins) * 100) : 0;
+  const neg = d.ready && allowNegative(pl.name);
+  const off = pl.active === false;
   return (
-    <Dialog open title={`Stock at ${pl.name}`} onClose={onClose} width={900}>
+    <Dialog open title={pl.name} onClose={onClose} width={900} footer={
+      <div className="pl-foot">
+        {!pl.builtIn ? <button type="button" className="gc-btn gc-btn--sm gc-btn--flat is-end" onClick={onDelete} aria-label={`Remove ${pl.name}`}><Icon name="trash-2" width="16" height="16" aria-hidden="true" /> Remove</button> : null}
+        {!pl.fixed ? <button type="button" className={'gc-btn gc-btn--sm gc-btn--neutral' + (pl.builtIn ? ' is-end' : '')} onClick={onToggle}>{off ? 'Activate' : 'Deactivate'}</button> : null}
+        <Link className="gc-btn gc-btn--sm gc-btn--neutral" href={`/racks?place=${pl.id}`}>Racks & bins</Link>
+        {!off && !pl.noSale ? <Link className="gc-btn gc-btn--sm gc-btn--neutral" href={`/new-transfer?from=${encodeURIComponent(pl.name)}`}>New transfer</Link> : null}
+        <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={onEdit}><Icon name="pencil" width="16" height="16" aria-hidden="true" /> Edit</button>
+      </div>
+    }>
       <div className="pl-dlg">
-        <dl className="pl-mini">
-          <div><dt>Products</dt><dd>{st.products}</dd></div>
-          <div><dt>On hand</dt><dd>{st.onHand} pcs</dd></div>
-          <div><dt>Stock value</dt><dd>{formatBDT(st.value)}</dd></div>
-          <div><dt>Held</dt><dd>{st.held}</dd></div>
-          <div><dt>On the way</dt><dd>↓{st.transitIn} · ↑{st.transitOut}</dd></div>
-          <div><dt>In bins</dt><dd>{bins.bins ? `${bins.pieces} pcs` : 'No racks'}</dd></div>
-        </dl>
+        <div className="pl-badges">
+          <StatusOf pl={pl} />
+          {pl.type === 'Branch' ? <StatusBadge tone={pl.counter ? 'info' : 'neutral'} icon="monitor">{pl.counter ? 'Sells at a counter' : 'No counter sales'}</StatusBadge> : null}
+          {pl.receives ? <StatusBadge tone="info" icon="truck">Receives deliveries</StatusBadge> : null}
+          {neg ? <StatusBadge tone="error">Negative stock allowed</StatusBadge> : null}
+        </div>
+        <div className="pl-facts">
+          <div className="pl-dlg">
+            <KV rows={[
+              ['Manager', pl.manager || 'Not set'],
+              pl.phone ? ['Phone', <span key="p" className="pl-id">{pl.phone}</span>] : null,
+              pl.address || pl.area ? ['Address', pl.address && pl.area && !pl.address.includes(pl.area) ? pl.address + ', ' + pl.area : pl.address || pl.area] : null,
+              pl.code ? ['Short code', <span key="c" className="pl-id">{pl.code}</span>] : null,
+              ...facts,
+            ]} />
+            {extra}
+          </div>
+          <div className="pl-dlg">
+            <dl className="pl-mini">
+              <div><dt>Products</dt><dd>{st.products}</dd></div>
+              <div><dt>On hand</dt><dd>{st.onHand} pcs</dd></div>
+              <div><dt>Stock value</dt><dd>{formatBDT(st.value)}</dd></div>
+              <div><dt>Held</dt><dd>{st.held}</dd></div>
+              <div><dt>On the way</dt><dd title="Coming in · going out">↓{st.transitIn} · ↑{st.transitOut}</dd></div>
+              <div><dt>Low stock</dt><dd className={st.negative.length ? 'pl-badc' : st.low ? 'pl-warnc' : ''}>{st.low}{st.negative.length ? ` · ${st.negative.length} below 0` : ''}</dd></div>
+            </dl>
+            <div className="pl-cap">
+              {bins.bins ? (<>
+                <div className="pl-cap__row"><span>Bins used · {bins.racks} {bins.racks === 1 ? 'rack' : 'racks'}</span><b>{bins.used} of {bins.bins} · {pct}%</b></div>
+                <div className="gc-progress" role="progressbar" aria-label={`Bins used at ${pl.name}`} aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}><div className="gc-progress__fill" style={{ width: pct + '%', background: pct > 85 ? 'var(--warning)' : 'var(--primary)' }} /></div>
+              </>) : <div className="pl-cap__row"><span>No racks set up yet</span><Link href={`/racks?place=${pl.id}`}>Set up racks</Link></div>}
+            </div>
+          </div>
+        </div>
         <div className="pl-search">
-          <input className="gc-input" type="search" placeholder="Search product, SKU or barcode" aria-label={`Search stock at ${pl.name}`} value={q} onChange={(e) => setQ(e.target.value)} data-autofocus />
-          <Link className="gc-btn gc-btn--neutral" href={`/racks?place=${pl.id}`}><Icon name="layout-grid" width="16" height="16" aria-hidden="true" /> Racks & bins</Link>
+          <h3 className="ix-section-title">{`Stock at ${pl.name}`}</h3>
+          <label className="ix-search">
+            <Icon name="search" width="16" height="16" aria-hidden="true" />
+            <input type="search" placeholder="Search product, SKU or barcode" aria-label={`Search stock at ${pl.name}`} value={q} onChange={(e) => setQ(e.target.value)} />
+          </label>
         </div>
         {rows.length === 0 ? <EmptyState icon="package-search" title={needle ? 'No product matches' : 'No stock here yet'} body={needle ? 'Try the SKU or barcode.' : 'Stock arrives with a transfer or a supplier delivery.'} /> : (
-          <div className="gc-table-wrap">
-            <table className="gc-table gc-table--compact">
-              <thead><tr><th scope="col">Product</th><th scope="col" className="pl-num">On hand</th><th scope="col" className="pl-num">Held</th><th scope="col" className="pl-num">Free</th><th scope="col" className="pl-num">Coming</th><th scope="col">Bins</th><th scope="col" className="pl-num">Value</th></tr></thead>
+          <div className="pl-scroll">
+            <table className="ix-table ix-table--static gc-table--keep">
+              <thead><tr><th scope="col">Product</th><th scope="col" className="ix-num">On hand</th><th scope="col" className="ix-num">Held</th><th scope="col" className="ix-num">Free</th><th scope="col" className="ix-num">Coming</th><th scope="col">Bins</th><th scope="col" className="ix-num">Value</th></tr></thead>
               <tbody>
                 {rows.map((r) => {
                   const b = binsFor(pl.id, r.p.sku, d.racks);
                   return (
                     <tr key={r.p.sku}>
-                      <td><span className="pl-strong">{r.p.name}</span><span className="pl-sub pl-id">{r.p.sku}</span></td>
-                      <td className={'pl-num' + (r.onHand < 0 ? ' pl-neg' : '')}>{r.onHand}</td>
-                      <td className="pl-num">{r.held || '—'}</td>
-                      <td className="pl-num">{r.available}{r.low ? <span className="pl-sub">low</span> : null}</td>
-                      <td className="pl-num">{r.transit || '—'}</td>
-                      <td>{b.length ? <span className="pl-id">{b.map((x) => `${x.code} (${x.qty})`).join(', ')}</span> : <span className="pl-sub">Not in a bin</span>}</td>
-                      <td className="pl-num">{formatBDT(r.value)}</td>
+                      <td><span className="pl-strong">{r.p.name}</span> <span className="pl-id">{r.p.sku}</span></td>
+                      <td className={'ix-num' + (r.onHand < 0 ? ' pl-neg' : '')}>{r.onHand}</td>
+                      <td className="ix-num">{r.held || '—'}</td>
+                      <td className={'ix-num' + (r.low ? ' pl-warnc' : '')}>{r.available}</td>
+                      <td className="ix-num">{r.transit || '—'}</td>
+                      <td>{b.length ? <span className="pl-id">{b.map((x) => `${x.code} (${x.qty})`).join(', ')}</span> : <span className="ix-muted">Not in a bin</span>}</td>
+                      <td className="ix-num">{formatBDT(r.value)}</td>
                     </tr>
                   );
                 })}
@@ -362,11 +408,11 @@ export function PlaceStockDialog({ pl, d, onClose }) {
           </div>
         )}
         {st.transfersIn.length || st.transfersOut.length ? (
-          <p className="gc-help" style={{ margin: 0 }}>
+          <p className="pl-sub" style={{ margin: 0 }}>
             On the way: {[...st.transfersIn.map((t) => `${t.no} from ${t.from}`), ...st.transfersOut.map((t) => `${t.no} to ${t.to}`)].join(' · ')}. <Link href="/transfers">Transfers</Link>
           </p>
         ) : null}
-        <p className="gc-help" style={{ margin: 0 }}>Value is on-hand pieces × cost (wholesale price where cost is not set).</p>
+        <p className="pl-sub" style={{ margin: 0 }}>Value is on-hand pieces × cost (wholesale price where cost is not set).</p>
       </div>
     </Dialog>
   );

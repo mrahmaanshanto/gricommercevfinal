@@ -17,7 +17,8 @@ import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { Dialog, PageHeader, PhoneActionBar, useIsPhone, InfoTip } from '@/components/ui';
+import { Dialog, PhoneActionBar, useIsPhone, InfoTip, StatusBadge } from '@/components/ui';
+import { ShopHeader } from '@/components/ui/IndexKit';
 import { formatBDT, formatDate } from '@/lib/format';
 import { DAMAGED_PLACE, getReceivingPlaces, placeName } from '@/lib/locations';
 import { usePlaceList } from '@/lib/usePlaces';
@@ -55,106 +56,76 @@ function orderFrom(no) {
 }
 
 const CSS = `
-.rg-steps{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3)}
-.rg-step{display:flex;align-items:center;gap:10px;padding:6px 16px 6px 6px;border-radius:var(--radius-full);background:var(--surface-subtle);color:var(--text-body);font-size:var(--text-sm);font-weight:var(--weight-medium)}
-.rg-step i{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:var(--radius-full);background:var(--border-strong);color:#fff;font-style:normal;font-size:var(--text-xs);font-weight:var(--weight-semibold)}
-.rg-step--on{background:var(--fill-primary-soft);color:var(--primary)}.rg-step--on i{background:var(--primary)}
-.rg-step--done{background:var(--fill-success-soft);color:var(--text-success)}.rg-step--done i{background:var(--fill-success)}
-.rg-step-bar{width:32px;height:2px;background:var(--border-strong)}
-.rg-grid{display:flex;gap:var(--space-5);align-items:flex-start}
-.rg-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--space-4)}
-.rg-side{width:340px;flex:none;display:flex;flex-direction:column;gap:var(--space-4)}
-.rg-pad{padding:var(--space-5)}
-.rg-order{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-4);padding:var(--space-4) var(--space-5)}
-.rg-order__icon{display:flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;border-radius:var(--radius-xl);background:var(--fill-primary-soft);color:var(--primary)}
-.rg-order__text{flex:1;min-width:0}
-.rg-order__no{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
-.rg-order__no b{font-family:var(--font-data);font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.rg-id{font-family:var(--font-data)}
 .rg-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}
-.rg-h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.rg-scan{display:flex;gap:var(--space-5);align-items:stretch}
-.rg-scan__body{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--space-3)}
-.rg-scan__body p{margin:0;font-size:var(--text-sm);color:var(--text-body)}
-.rg-scan__row{display:flex;flex-wrap:wrap;gap:var(--space-3)}
-.rg-scan__field{position:relative;flex:1 1 220px}
-.rg-scan__field svg{position:absolute;left:14px;top:13px;color:var(--primary);pointer-events:none}
-.rg-scan__field input{padding-left:44px;border-color:var(--primary)}
-.rg-count{width:200px;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:var(--space-4);border-radius:var(--radius-xl);background:var(--primary);color:#fff;text-align:center}
-.rg-count small{font-size:var(--text-xs);font-weight:var(--weight-medium);opacity:.8}
-.rg-count b{font-size:var(--text-4xl);line-height:1.1;font-weight:var(--weight-semibold)}
-.rg-count .gc-progress{background:rgba(255,255,255,.2)}
-.rg-count .gc-progress__fill{background:var(--fill-success)}
-.rg-msg{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);background:var(--fill-success-soft);color:var(--text-success);font-size:var(--text-sm);font-weight:var(--weight-medium)}
-.rg-stray{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-4);border:1px solid var(--fill-warning);border-radius:var(--radius-xl);background:var(--fill-warning-soft)}
-.rg-stray__head{display:flex;gap:var(--space-3);align-items:flex-start;color:var(--text-warning)}
+.rg-body{display:flex;flex-direction:column;gap:var(--space-3)}
+.rg-h{display:inline-flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.rg-scan{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.rg-scan__field{position:relative;flex:1 1 220px;min-width:0}
+.rg-scan__field>svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--primary);pointer-events:none}
+.rg-scan__field>input{padding-left:34px;border-color:var(--primary)}
+.rg-count{font-size:var(--text-xs-plus);color:var(--text-muted);white-space:nowrap}
+.rg-count b{font-family:var(--font-data);font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.rg-msg{display:flex;align-items:center;gap:var(--space-2);padding:6px 10px;border-radius:var(--radius-lg);background:var(--fill-success-soft);color:var(--text-success);font-size:var(--text-xs-plus);font-weight:var(--weight-medium)}
+.rg-stray{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3);border:1px solid var(--fill-warning);border-radius:var(--radius-lg);background:var(--fill-warning-soft)}
+.rg-stray__head{display:flex;gap:var(--space-2);align-items:flex-start;color:var(--text-warning)}
+.rg-stray__head>svg{flex:none;margin-top:2px}
 .rg-stray__head b{display:block;font-size:var(--text-sm);font-weight:var(--weight-semibold)}
 .rg-stray__head span{font-size:var(--text-xs);color:var(--text-body)}
 .rg-stray__acts{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--space-2)}
 .rg-stray__note{flex:1 1 220px}
-.rg-card{overflow:hidden}
-.rg-card .gc-table th,.rg-card .gc-table td{padding-left:var(--space-3);padding-right:var(--space-3);white-space:normal}
-.rg-card .gc-table th:first-child,.rg-card .gc-table td:first-child{padding-left:var(--space-5)}
-.rg-card .gc-table th:last-child,.rg-card .gc-table td:last-child{padding-right:var(--space-5)}
-.rg-card .gc-badge,.rg-card .gc-btn,.rg-num{white-space:nowrap}
-.rg-num{text-align:center;font-variant-numeric:tabular-nums}
-.rg-strong{font-weight:var(--weight-medium);color:var(--text-heading)}
-.rg-code{font-family:var(--font-data)}
-.rg-stepper{display:inline-flex;align-items:center;gap:4px}
-.rg-stepper b{min-width:40px;font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--text-heading);text-align:center}
-.rg-check{display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-2)}
+.rg-tw{overflow-x:auto}
+.rg-tw .ix-table tbody tr{cursor:default}
+.rg-tw .ix-table tbody tr:hover td{background:none}
+.rg-tw .ix-table td:first-child{white-space:normal;min-width:180px}
+.rg-stepper{display:inline-flex;align-items:center;gap:2px}
+.rg-stepper b{min-width:32px;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading);text-align:center}
+.rg-check{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 .rg-check .gc-seg{flex-wrap:wrap;gap:var(--space-1)}
-.rg-check .gc-seg__btn{height:32px;padding:0 var(--space-3);border:1px solid var(--border-subtle)}
+.rg-check .gc-seg__btn{height:28px;padding:0 var(--space-2);border:1px solid var(--border-subtle);font-size:var(--text-xs-plus)}
 .rg-check .gc-seg__btn--active{border-color:var(--primary)}
-.rg-row{transition:background-color 200ms}
-.rg-flash{animation:rgFlash 900ms ease-out}
+.rg-flash td{animation:rgFlash 900ms ease-out}
 @keyframes rgFlash{from{background:var(--fill-success-soft)}to{background:transparent}}
-.rg-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:var(--space-3);padding:var(--space-4) var(--space-5)}
-.rg-head p{margin:2px 0 0;font-size:var(--text-xs);color:var(--text-muted)}
-.rg-costs{display:flex;flex-direction:column;gap:var(--space-3);padding:0 var(--space-5) var(--space-5)}
-.rg-cost{display:grid;grid-template-columns:minmax(0,1fr) 160px 36px;gap:var(--space-3);align-items:center}
+.rg-costs{display:flex;flex-direction:column;gap:var(--space-2)}
+.rg-cost{display:grid;grid-template-columns:minmax(0,1fr) 140px 32px;gap:var(--space-2);align-items:center}
 .rg-cost__amt{position:relative}
-.rg-cost__amt span{position:absolute;left:14px;top:12px;font-size:var(--text-sm);color:var(--text-muted)}
-.rg-cost__amt input{padding-left:30px}
-.rg-total{text-align:right}
-.rg-total b{display:block;font-size:var(--text-xl);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.rg-list{list-style:none;margin:0;padding:0 var(--space-5) var(--space-5);display:flex;flex-direction:column;gap:var(--space-2)}
-.rg-list li{display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-sm)}
+.rg-cost__amt>span{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:var(--text-sm);color:var(--text-muted)}
+.rg-cost__amt>input{padding-left:26px}
+.rg-list{display:flex;flex-direction:column;gap:var(--space-2);margin:0;padding:0;list-style:none}
+.rg-list li{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}
 .rg-list li>span{flex:1;min-width:0}
-.rg-side .gc-card{display:flex;flex-direction:column;gap:var(--space-4)}
+.rg-list li>svg{flex:none;color:var(--text-muted)}
 .rg-field{display:flex;flex-direction:column;gap:6px}
 .rg-inwrap{position:relative}
-.rg-inwrap input{padding-right:48px}
-.rg-inwrap .gc-iconbtn{position:absolute;right:4px;top:4px}
-.rg-box{display:flex;flex-direction:column;gap:6px;padding:var(--space-3);border-radius:var(--radius-lg);font-size:var(--text-xs)}
+.rg-inwrap>input{padding-right:40px}
+.rg-inwrap>.ix-btn{position:absolute;right:2px;top:50%;transform:translateY(-50%)}
+.rg-box{display:flex;flex-direction:column;gap:4px;padding:var(--space-3);border-radius:var(--radius-lg);font-size:var(--text-xs)}
 .rg-box b{font-size:var(--text-sm);font-weight:var(--weight-medium)}
 .rg-box--warn{background:var(--fill-warning-soft);color:var(--text-warning)}
 .rg-box--info{background:var(--surface-subtle);color:var(--text-body)}
 .rg-box__acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
 .rg-rule{height:1px;background:var(--border-subtle)}
 .rg-note{margin:0;font-size:var(--text-xs);color:var(--text-muted)}
-.rg-done{align-items:center;text-align:center}
-.rg-done__icon{display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:var(--radius-full);background:var(--fill-success-soft);color:var(--text-success)}
-.rg-done h2{margin:0;font-size:var(--text-xl);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.rg-done ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:var(--text-sm);color:var(--text-body);text-align:left;align-self:stretch}
+.rg-done ul{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none;font-size:var(--text-sm);color:var(--text-body)}
 .rg-done li{display:flex;gap:var(--space-2)}
-.rg-done li svg{flex:none;margin-top:2px}
-.rg-grn{padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);font-family:var(--font-data);font-size:var(--text-xs);color:var(--text-body)}
+.rg-done li>svg{flex:none;margin-top:2px}
+.rg-grn{align-self:center;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);font-family:var(--font-data);font-size:var(--text-xs);color:var(--text-body);text-align:center}
 .rg-grn svg{display:block}
-.rg-wrong{display:flex;gap:var(--space-3);align-items:flex-start;padding:var(--space-4) var(--space-5)}
-.rg-wrong__icon{display:flex;align-items:center;justify-content:center;width:40px;height:40px;flex:none;border-radius:var(--radius-xl);background:var(--fill-error-soft);color:var(--text-danger)}
-.rg-wrong__text{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;font-size:var(--text-sm)}
-.rg-wrong__text p{margin:0}
+.rg-ok{color:var(--text-success)}
+.rg-bad{color:var(--text-danger)}
+.rg-warnc{color:var(--text-warning)}
+.rg-pri{color:var(--primary)}
 .rg-pick{display:flex;flex-direction:column;gap:var(--space-2)}
-.rg-pick button{display:flex;align-items:center;gap:var(--space-3);width:100%;padding:var(--space-3) var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font:inherit;font-size:var(--text-sm);color:var(--text-body);text-align:left;cursor:pointer}
+.rg-pick button{display:flex;align-items:center;gap:var(--space-3);width:100%;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font:inherit;font-size:var(--text-sm);color:var(--text-body);text-align:left;cursor:pointer}
 .rg-pick button:hover{border-color:var(--primary)}
 .rg-pick button[aria-current="true"]{border-color:var(--primary);background:var(--fill-primary-soft)}
 .rg-pick button>span{flex:1;min-width:0}
+.rg-pick button>svg{flex:none;color:var(--primary)}
 .rg-form{display:flex;flex-direction:column;gap:var(--space-4)}
-.rg-qty{width:80px}
-@media (max-width:767px){.rg-scan{flex-direction:column}.rg-count{width:auto}.rg-cost{grid-template-columns:minmax(0,1fr) 120px 36px}}
-/* phones: the step chips wrap, so the connector lines would point at nothing */
-@media (max-width:640px){.rg-steps{gap:var(--space-2)}.rg-step-bar{display:none}}
-@media (prefers-reduced-motion:reduce){.rg-flash{animation:none}}
+.rg-two{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+.rg-qty{width:72px}
+@media (max-width:640px){.rg-cost{grid-template-columns:minmax(0,1fr) 110px 36px}.rg-two{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:reduce){.rg-flash td{animation:none}}
 `;
 
 // a simple printed barcode for the goods received note
@@ -357,7 +328,6 @@ export default function ReceiveGoods() {
   };
   const choices = [...getPOs().filter((p) => p.status !== 'Received'), null];
 
-  const step = (k) => (k === 2 ? (done ? 'rg-step rg-step--done' : 'rg-step rg-step--on') : done ? 'rg-step rg-step--done' : 'rg-step');
   const pct = pend ? Math.min(100, Math.round((total / pend) * 100)) : 100;
 
   return (
@@ -365,218 +335,210 @@ export default function ReceiveGoods() {
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="gc-shell">
         <Sidebar sticky="" active="po-receive" />
-        <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
+        <main className="gc-shell__main">
           <Topbar crumb="Purchase" page="Receive goods" placeholder="Search or scan any barcode" />
-          <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-            <PageHeader title="Receive goods" about="Scan what the supplier delivered. Saving adds it to stock where you receive it." />
+          <div className="gc-shell__content">
+            <div className="ix-page">
+              <ShopHeader icon="scan-barcode" title="Receive goods" about="Scan what the supplier delivered. Saving adds it to stock where you receive it."
+                more={[{ label: 'Purchase orders', href: '/purchase-orders' }, { label: 'Return to supplier', href: '/supplier-return' }, { label: 'See in stock holds', href: '/stock-holds?tab=damaged' }]} />
 
-            <div className="rg-steps" aria-label="Steps">
-              <span className="rg-step rg-step--done"><i><Icon name="check" width="16" height="16" aria-hidden="true" /></i>Order chosen</span>
-              <span className="rg-step-bar" />
-              <span className={step(2)}><i>{done ? <Icon name="check" width="16" height="16" aria-hidden="true" /> : '2'}</i>Scan the items</span>
-              <span className="rg-step-bar" />
-              <span className={step(3)}><i>{done ? <Icon name="check" width="16" height="16" aria-hidden="true" /> : '3'}</i>Save and update stock</span>
-            </div>
-
-            <div className="rg-grid">
-              <div className="rg-main">
-                <section className="gc-card rg-order">
-                  <span className="rg-order__icon"><Icon name="file-text" width="22" height="22" aria-hidden="true" /></span>
-                  <div className="rg-order__text">
-                    <div className="rg-order__no"><b>{order.no}</b><span className={'gc-badge gc-badge--' + (PO_STATUS_TONE[order.status] || 'warning')}>{order.status}</span></div>
-                    <span className="rg-sub">{order.supplier} · deliver to {order.place} · {plural(pend, 'piece')} still coming</span>
-                  </div>
-                  <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setPicking(true)}>Choose another order</button>
-                </section>
-
-                <section className="gc-card rg-pad rg-scan">
-                  <div className="rg-scan__body">
-                    <h2 className="rg-h2">Scan each item as you unpack it</h2>
-                    <p>Each scan adds one piece. Use + and − for more.</p>
-                    <div className="rg-scan__row">
-                      <label className="rg-scan__field">
-                        <Icon name="scan-barcode" width="20" height="20" aria-hidden="true" />
-                        <input className="gc-input" type="text" inputMode="numeric" placeholder={phone ? 'Scan or type a barcode' : 'Ready · scan or type a barcode and press Enter'} aria-label="Scan a barcode" value={code} disabled={!!done} onChange={(e) => setCode(e.target.value)} onKeyDown={onCodeKey} />
-                      </label>
-                      <button type="button" className="gc-btn gc-btn--solid" onClick={scan} disabled={!!done}><Icon name="camera" width="18" height="18" aria-hidden="true" /> Scan with camera</button>
+              <div className="ix-record">
+                <div className="ix-main">
+                  <section className="ix-card" aria-labelledby="rg-order">
+                    <div className="ix-card__head">
+                      <h2 id="rg-order" className="rg-h"><span className="rg-id">{order.no}</span><StatusBadge tone={PO_STATUS_TONE[order.status] || 'warning'}>{order.status}</StatusBadge></h2>
+                      <button type="button" className="ix-btn ix-btn--sm" onClick={() => setPicking(true)}>Choose another order</button>
                     </div>
-                    {msg && !stray ? <div className="rg-msg" role="status"><Icon name="scan-barcode" width="18" height="18" aria-hidden="true" /><span>{msg}</span></div> : null}
-                    {stray ? (
-                      <div className="rg-stray" role="alert">
-                        <div className="rg-stray__head">
-                          <Icon name="triangle-alert" width="20" height="20" aria-hidden="true" />
-                          <div><b>Barcode <span className="rg-code">{stray.code}</span> is not on this order</b><span>{stray.name ? `${stray.name}. ` : ''}Add it to {order.no} if the supplier sent it for you, or set it aside and tell the manager.</span></div>
-                        </div>
-                        <div className="rg-stray__acts">
-                          <div className="rg-stray__note"><label className="gc-label" htmlFor="rg-stray-note">Note if you set it aside</label><input id="rg-stray-note" className="gc-input" value={stray.note} onChange={(e) => setStray({ ...stray, note: e.target.value })} /></div>
-                          <button type="button" className="gc-btn gc-btn--soft" onClick={addStray}><Icon name="package-plus" width="18" height="18" aria-hidden="true" /> Add to this order</button>
-                          <button type="button" className="gc-btn gc-btn--neutral" onClick={setStrayAside}><Icon name="archive" width="18" height="18" aria-hidden="true" /> Set aside</button>
-                        </div>
+                    <div className="ix-card__body"><span className="ix-muted">{order.supplier} · deliver to {order.place} · {plural(pend, 'piece')} still coming</span></div>
+                  </section>
+
+                  <section className="ix-card" aria-labelledby="rg-scan">
+                    <div className="ix-card__head">
+                      <h2 id="rg-scan">Scan each item as you unpack it <InfoTip text="Each scan adds one piece. Use + and − for more." /></h2>
+                      <span className="rg-count"><b>{total}</b> of {pend} pieces still coming</span>
+                    </div>
+                    <div className="ix-card__body rg-body">
+                      <div className="gc-progress" role="progressbar" aria-label="Pieces scanned" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}><div className="gc-progress__fill" style={{ width: pct + '%' }} /></div>
+                      <div className="rg-scan">
+                        <label className="rg-scan__field">
+                          <Icon name="scan-barcode" width="16" height="16" aria-hidden="true" />
+                          <input className="gc-input" type="text" inputMode="numeric" placeholder={phone ? 'Scan or type a barcode' : 'Ready · scan or type a barcode and press Enter'} aria-label="Scan a barcode" value={code} disabled={!!done} onChange={(e) => setCode(e.target.value)} onKeyDown={onCodeKey} />
+                        </label>
+                        <button type="button" className="ix-btn" onClick={scan} disabled={!!done}><Icon name="camera" width="16" height="16" aria-hidden="true" /><span>Scan with camera</span></button>
                       </div>
-                    ) : null}
-                  </div>
-                  <div className="rg-count gc-on-dark">
-                    <small>THIS DELIVERY</small>
-                    <b>{total}</b>
-                    <small>of {pend} pieces still coming</small>
-                    <div className="gc-progress" role="progressbar" aria-label="Pieces scanned" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}><div className="gc-progress__fill" style={{ width: pct + '%' }} /></div>
-                  </div>
-                </section>
-
-                <section className="gc-card rg-card">
-                  <div className="gc-table-wrap">
-                    <table className="gc-table gc-table--compact">
-                      <thead><tr><th scope="col">Product</th><th scope="col" className="rg-num">Still coming</th><th scope="col" className="rg-num">In this delivery</th><th scope="col">Check</th></tr></thead>
-                      <tbody>
-                        {rows.map((r) => (
-                          <tr key={r.code + r.i} className={'rg-row' + (flash === r.i ? ' rg-flash' : '')}>
-                            <td><span className="rg-strong">{r.name}</span><span className="rg-sub rg-code">{r.code}</span></td>
-                            <td className="rg-num">{r.added ? '—' : r.pending}</td>
-                            <td className="rg-num">
-                              <span className="rg-stepper">
-                                <button type="button" className="gc-iconbtn" aria-label={`One less ${r.name}`} disabled={!!done} onClick={() => change(r.i, -1)}><Icon name="minus" width="18" height="18" /></button>
-                                <b>{r.got}</b>
-                                <button type="button" className="gc-iconbtn" aria-label={`One more ${r.name}`} disabled={!!done} onClick={() => change(r.i, 1)}><Icon name="plus" width="18" height="18" /></button>
-                              </span>
-                            </td>
-                            <td>
-                              <div className="rg-check">
-                                <span className={'gc-badge gc-badge--' + r.state[1]}>{r.state[0]}</span>
-                                {r.over ? (
-                                  <div className="gc-seg" role="group" aria-label={`What to do with the ${r.over} extra ${r.name}`}>
-                                    <button type="button" className={'gc-seg__btn' + (extra[r.i] !== 'return' ? ' gc-seg__btn--active' : '')} aria-pressed={extra[r.i] !== 'return'} disabled={!!done} onClick={() => setExtra({ ...extra, [r.i]: 'keep' })}>Keep the extra</button>
-                                    <button type="button" className={'gc-seg__btn' + (extra[r.i] === 'return' ? ' gc-seg__btn--active' : '')} aria-pressed={extra[r.i] === 'return'} disabled={!!done} onClick={() => setExtra({ ...extra, [r.i]: 'return' })}>Return to supplier</button>
-                                  </div>
-                                ) : null}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-
-                {report && report.nw ? (
-                  <section className="gc-card rg-wrong" aria-label="Wrong items">
-                    <span className="rg-wrong__icon"><Icon name="package-x" width="20" height="20" aria-hidden="true" /></span>
-                    <div className="rg-wrong__text">
-                      <h2 className="rg-h2">Wrong items</h2>
-                      <p><b className="rg-strong">{plural(report.nw, 'piece')}</b> kept at {DAMAGED_PLACE}, to go back to {order.supplier}.</p>
-                      {rows.filter((r) => report.wrong[r.i]).map((r) => <span key={r.i} className="rg-sub">{report.wrong[r.i]} × {r.name}</span>)}
-                      <span className="rg-sub">Asked the supplier to: {report.ask.toLowerCase()}</span>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                      <Link href="/supplier-return" className="gc-btn gc-btn--sm gc-btn--soft"><Icon name="undo-2" width="16" height="16" aria-hidden="true" /> Return to supplier</Link>
-                      <Link href="/stock-holds?tab=damaged" className="gc-btn gc-btn--sm gc-btn--neutral">See in stock holds</Link>
+                      {msg && !stray ? <div className="rg-msg" role="status"><Icon name="scan-barcode" width="16" height="16" aria-hidden="true" /><span>{msg}</span></div> : null}
+                      {stray ? (
+                        <div className="rg-stray" role="alert">
+                          <div className="rg-stray__head">
+                            <Icon name="triangle-alert" width="16" height="16" aria-hidden="true" />
+                            <div><b>Barcode <span className="rg-id">{stray.code}</span> is not on this order</b><span>{stray.name ? `${stray.name}. ` : ''}Add it to {order.no} if the supplier sent it for you, or set it aside and tell the manager.</span></div>
+                          </div>
+                          <div className="rg-stray__acts">
+                            <div className="rg-stray__note"><label className="gc-label" htmlFor="rg-stray-note">Note if you set it aside</label><input id="rg-stray-note" className="gc-input" value={stray.note} onChange={(e) => setStray({ ...stray, note: e.target.value })} /></div>
+                            <button type="button" className="ix-btn" onClick={addStray}><Icon name="package-plus" width="16" height="16" aria-hidden="true" /><span>Add to this order</span></button>
+                            <button type="button" className="ix-btn" onClick={setStrayAside}><Icon name="archive" width="16" height="16" aria-hidden="true" /><span>Set aside</span></button>
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
                   </section>
-                ) : null}
 
-                {aside.length ? (
-                  <section className="gc-card rg-card" aria-label="Set aside">
-                    <div className="rg-head"><div><h2 className="rg-h2">Set aside</h2><p>Items that are not on this order. They are not added to stock.</p></div></div>
-                    <ul className="rg-list">
-                      {aside.map((a) => (
-                        <li key={a.code}>
-                          <Icon name="archive" width="18" height="18" aria-hidden="true" style={{ color: 'var(--text-muted)' }} />
-                          <span><span className="rg-strong">{a.qty} × {a.name}</span><span className="rg-sub"><span className="rg-code">{a.code}</span>{a.note ? ' · ' + a.note : ''}</span></span>
-                          <button type="button" className="gc-iconbtn" aria-label={`Take ${a.name} off the set-aside list`} disabled={!!done} onClick={() => { setAside(aside.filter((x) => x !== a)); toast(`${a.name} taken off the set-aside list`); }}><Icon name="x" width="18" height="18" /></button>
-                        </li>
+                  <section className="ix-card" aria-label="Products on this order">
+                    <div className="rg-tw">
+                      <table className="ix-table">
+                        <caption className="sr-only">Products on {order.no}</caption>
+                        <thead><tr><th scope="col">Product</th><th scope="col" className="ix-num">Still coming</th><th scope="col">In this delivery</th><th scope="col">Check</th></tr></thead>
+                        <tbody>
+                          {rows.map((r) => (
+                            <tr key={r.code + r.i} className={flash === r.i ? 'rg-flash' : ''}>
+                              <td><span className="ix-strong">{r.name}</span><span className="rg-sub rg-id">{r.code}</span></td>
+                              <td className="ix-num">{r.added ? '—' : r.pending}</td>
+                              <td>
+                                <span className="rg-stepper">
+                                  <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label={`One less ${r.name}`} disabled={!!done} onClick={() => change(r.i, -1)}><Icon name="minus" width="16" height="16" aria-hidden="true" /></button>
+                                  <b>{r.got}</b>
+                                  <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label={`One more ${r.name}`} disabled={!!done} onClick={() => change(r.i, 1)}><Icon name="plus" width="16" height="16" aria-hidden="true" /></button>
+                                </span>
+                              </td>
+                              <td>
+                                <div className="rg-check">
+                                  <StatusBadge tone={r.state[1]}>{r.state[0]}</StatusBadge>
+                                  {r.over ? (
+                                    <div className="gc-seg" role="group" aria-label={`What to do with the ${r.over} extra ${r.name}`}>
+                                      <button type="button" className={'gc-seg__btn' + (extra[r.i] !== 'return' ? ' gc-seg__btn--active' : '')} aria-pressed={extra[r.i] !== 'return'} disabled={!!done} onClick={() => setExtra({ ...extra, [r.i]: 'keep' })}>Keep the extra</button>
+                                      <button type="button" className={'gc-seg__btn' + (extra[r.i] === 'return' ? ' gc-seg__btn--active' : '')} aria-pressed={extra[r.i] === 'return'} disabled={!!done} onClick={() => setExtra({ ...extra, [r.i]: 'return' })}>Return to supplier</button>
+                                    </div>
+                                  ) : null}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+
+                  {report && report.nw ? (
+                    <section className="ix-card" aria-labelledby="rg-wrong">
+                      <div className="ix-card__head"><h2 id="rg-wrong">Wrong items</h2><Link href="/supplier-return">Return to supplier</Link></div>
+                      <div className="ix-card__body rg-body">
+                        <p className="rg-note" style={{ color: 'var(--text-body)', fontSize: 'var(--text-sm)' }}><b className="ix-strong">{plural(report.nw, 'piece')}</b> kept at {DAMAGED_PLACE}, to go back to {order.supplier}.</p>
+                        <ul className="rg-list">{rows.filter((r) => report.wrong[r.i]).map((r) => <li key={r.i}><Icon name="package-x" width="16" height="16" aria-hidden="true" /><span>{report.wrong[r.i]} × {r.name}</span></li>)}</ul>
+                        <span className="rg-sub">Asked the supplier to: {report.ask.toLowerCase()}</span>
+                      </div>
+                    </section>
+                  ) : null}
+
+                  {aside.length ? (
+                    <section className="ix-card" aria-labelledby="rg-aside">
+                      <div className="ix-card__head"><h2 id="rg-aside">Set aside <InfoTip text="Items that are not on this order. They are not added to stock." /></h2></div>
+                      <div className="ix-card__body">
+                        <ul className="rg-list">
+                          {aside.map((a) => (
+                            <li key={a.code}>
+                              <Icon name="archive" width="16" height="16" aria-hidden="true" />
+                              <span><span className="ix-strong">{a.qty} × {a.name}</span><span className="rg-sub"><span className="rg-id">{a.code}</span>{a.note ? ' · ' + a.note : ''}</span></span>
+                              <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label={`Take ${a.name} off the set-aside list`} disabled={!!done} onClick={() => { setAside(aside.filter((x) => x !== a)); toast(`${a.name} taken off the set-aside list`); }}><Icon name="x" width="16" height="16" aria-hidden="true" /></button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </section>
+                  ) : null}
+
+                  <section className="ix-card" aria-labelledby="rg-costs">
+                    <div className="ix-card__head">
+                      <h2 id="rg-costs">Extra costs for this delivery <InfoTip text="Transport, labour or anything you paid to bring these goods in. It is added to the real cost of each piece." /></h2>
+                      <span className="rg-count"><b>{formatBDT(ctot)}</b> {kept ? `+৳${(ctot / kept).toFixed(2)} per piece` : 'Scan items first'}</span>
+                    </div>
+                    <div className="ix-card__body rg-costs">
+                      {costs.map((c, i) => (
+                        <div key={i} className="rg-cost">
+                          <input className="gc-input" type="text" value={c.label} onChange={(e) => setCost(i, { label: e.target.value, hint: '' })} aria-label="Cost name" placeholder="What was it for? e.g. Van rent" />
+                          <div className="rg-cost__amt"><span>৳</span><input className="gc-input" type="text" inputMode="numeric" value={c.amt} onChange={(e) => { const v = e.target.value.replace(/[^0-9]/g, ''); setCost(i, { amt: v === '' ? 0 : +v }); }} aria-label={`Amount for ${c.label || 'this cost'}`} /></div>
+                          <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Remove this cost" onClick={() => setCosts(costs.filter((_, k) => k !== i))}><Icon name="x" width="16" height="16" aria-hidden="true" /></button>
+                        </div>
                       ))}
-                    </ul>
+                      <button type="button" className="ix-btn ix-btn--sm" style={{ alignSelf: 'flex-start' }} onClick={() => setCosts([...costs, { label: '', amt: 0, hint: '' }])}><Icon name="plus" width="16" height="16" aria-hidden="true" /><span>Add another cost</span></button>
+                    </div>
                   </section>
-                ) : null}
+                </div>
 
-                <section className="gc-card rg-card">
-                  <div className="rg-head">
-                    <div><h2 className="rg-h2">Extra costs for this delivery <InfoTip text="Transport, labour or anything you paid to bring these goods in. It is added to the real cost of each piece." /></h2></div>
-                    <div className="rg-total"><b>{formatBDT(ctot)}</b><span className="rg-sub">{kept ? `+৳${(ctot / kept).toFixed(2)} per piece` : 'Scan items first'}</span></div>
-                  </div>
-                  <div className="rg-costs">
-                    {costs.map((c, i) => (
-                      <div key={i} className="rg-cost">
-                        <input className="gc-input" type="text" value={c.label} onChange={(e) => setCost(i, { label: e.target.value, hint: '' })} aria-label="Cost name" placeholder="What was it for? e.g. Van rent" />
-                        <div className="rg-cost__amt"><span>৳</span><input className="gc-input" type="text" inputMode="numeric" value={c.amt} onChange={(e) => { const v = e.target.value.replace(/[^0-9]/g, ''); setCost(i, { amt: v === '' ? 0 : +v }); }} aria-label={`Amount for ${c.label || 'this cost'}`} /></div>
-                        <button type="button" className="gc-iconbtn" aria-label="Remove this cost" onClick={() => setCosts(costs.filter((_, k) => k !== i))}><Icon name="x" width="18" height="18" /></button>
+                <div className="ix-side">
+                  {!done ? (
+                    <section className="ix-card" aria-labelledby="rg-details">
+                      <div className="ix-card__head"><h2 id="rg-details">Delivery details</h2></div>
+                      <div className="ix-card__body rg-body">
+                        <div className="rg-field">
+                          <label className="gc-label" htmlFor="rg-place">Receiving at</label>
+                          <select id="rg-place" className="gc-input gc-select" value={place} onChange={(e) => setPlace(e.target.value)}>{places.map((x) => <option key={x}>{x}</option>)}</select>
+                          {place !== order.place ? <span className="gc-help">The order said {order.place}.</span> : null}
+                        </div>
+                        <div className="rg-field">
+                          <label className="gc-label" htmlFor="rg-ch">Supplier challan / invoice no.</label>
+                          <div className="rg-inwrap">
+                            <input id="rg-ch" className="gc-input" type="text" value={challan} onChange={(e) => setChallan(e.target.value)} />
+                            <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Scan challan" onClick={() => { const c = challan || 'CH-' + order.no.slice(-4) + '-A'; setChallan(c); toast(`Challan ${c} read`); }}><Icon name="scan-barcode" width="16" height="16" aria-hidden="true" /></button>
+                          </div>
+                        </div>
+                        <div className="rg-field">
+                          <span className="gc-label">Photo of challan</span>
+                          <button type="button" className="ix-btn" onClick={() => { setPhoto(true); toast('Challan photo attached'); }}><Icon name="camera" width="16" height="16" aria-hidden="true" /><span>{photo ? 'Photo attached · take again' : 'Take photo'}</span></button>
+                        </div>
+                        <div className="rg-field">
+                          <label className="gc-label" htmlFor="rg-by">Received by</label>
+                          <select id="rg-by" className="gc-input gc-select" value={by} onChange={(e) => setBy(e.target.value)}>{RECEIVERS.map((x) => <option key={x}>{x}</option>)}</select>
+                        </div>
+                        {report ? (
+                          <div className="rg-box rg-box--warn" role="status">
+                            <b>Report {report.id} · {report.nd} damaged, {report.nw} wrong</b>
+                            {report.items.map((x) => <span key={x}>{x}</span>)}
+                            <span>Kept at {DAMAGED_PLACE}, not for sale.</span>
+                            <span>Asked the supplier to: {report.ask.toLowerCase()}{report.photo ? ' · photo attached' : ''}</span>
+                            <span className="rg-box__acts">
+                              <button type="button" className="ix-btn ix-btn--sm" onClick={() => toast(`Report ${report.id} sent to ${order.supplier} by SMS and email`)}>Send to supplier</button>
+                              <button type="button" className="ix-btn ix-btn--sm" onClick={openReport}>Edit</button>
+                              <button type="button" className="ix-btn ix-btn--sm ix-btn--danger" onClick={removeReport}>Remove</button>
+                            </span>
+                          </div>
+                        ) : (
+                          <button type="button" className="ix-btn ix-btn--sm" style={{ alignSelf: 'flex-start' }} onClick={openReport}><Icon name="triangle-alert" width="16" height="16" aria-hidden="true" /><span>Report damaged or wrong items</span></button>
+                        )}
+                        {goingBack.length ? (
+                          <div className="rg-box rg-box--info">
+                            <b>Going back to {order.supplier}</b>
+                            {goingBack.map((r) => <span key={r.i}>{r.returned} extra × {r.name}</span>)}
+                          </div>
+                        ) : null}
+                        <div className="rg-rule" />
+                        <p className="rg-note">{plural(toStock, 'piece')} will be added to {place} stock.{shortBy > 0 ? ` ${plural(shortBy, 'piece')} are still missing. You can save now; the order stays “Partly received” until the rest arrive.` : ''}</p>
+                        <button type="button" className="gc-btn gc-btn--solid gc-btn--block" onClick={save}><Icon name="check" width="16" height="16" aria-hidden="true" /> Save delivery</button>
+                        <PhoneActionBar note={plural(toStock, 'piece') + ' to stock'}><button type="button" className="gc-btn gc-btn--solid" onClick={save}><Icon name="check" width="16" height="16" aria-hidden="true" /> Save delivery</button></PhoneActionBar>
                       </div>
-                    ))}
-                    <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" style={{ alignSelf: 'flex-start' }} onClick={() => setCosts([...costs, { label: '', amt: 0, hint: '' }])}><Icon name="plus" width="16" height="16" aria-hidden="true" /> Add another cost</button>
-                  </div>
-                </section>
+                    </section>
+                  ) : (
+                    <section className="ix-card rg-done" role="status" aria-labelledby="rg-saved">
+                      <div className="ix-card__head"><h2 id="rg-saved" className="rg-h"><Icon name="circle-check" width="16" height="16" aria-hidden="true" className="rg-ok" />Delivery saved</h2></div>
+                      <div className="ix-card__body rg-body">
+                        <ul>
+                          <li><Icon name="package-check" width="16" height="16" aria-hidden="true" className="rg-ok" /><span>{plural(done.toStock, 'piece')} added to {done.place} stock.</span></li>
+                          {done.nd + done.nw ? <li><Icon name="package-x" width="16" height="16" aria-hidden="true" className="rg-bad" /><span>{plural(done.nd + done.nw, 'reported piece')} kept at {DAMAGED_PLACE}{done.nw ? `; ${done.nw} wrong to go back to the supplier` : ''}.</span></li> : null}
+                          {done.back.map((b) => <li key={b.name}><Icon name="undo-2" width="16" height="16" aria-hidden="true" className="ix-muted" /><span>{b.qty} extra × {b.name} going back to {order.supplier}.</span></li>)}
+                          {done.aside.length ? <li><Icon name="archive" width="16" height="16" aria-hidden="true" className="ix-muted" /><span>{plural(sum(done.aside.map((a) => a.qty)), 'item')} set aside, not in stock.</span></li> : null}
+                          <li><Icon name="receipt" width="16" height="16" aria-hidden="true" className="ix-muted" /><span>Real cost updated with {formatBDT(done.ctot)} extra costs.</span></li>
+                          {done.bill ? <li><Icon name="file-text" width="16" height="16" aria-hidden="true" className="rg-pri" /><span>Bill {done.bill.no} for {formatBDT(done.bill.amount)} added to {order.supplier}’s payables, due {formatDate(done.bill.due)}.</span></li> : null}
+                          {done.short ? <li><Icon name="truck" width="16" height="16" aria-hidden="true" className="rg-warnc" /><span>{plural(done.short, 'piece')} still to come.</span></li> : null}
+                        </ul>
+                        <div className="rg-grn"><Barcode /><div>{done.grn}</div></div>
+                        <button type="button" className="gc-btn gc-btn--solid gc-btn--block" onClick={() => toast(`${plural(done.toStock, 'barcode label')} sent to the printer`)}><Icon name="printer" width="16" height="16" aria-hidden="true" /> Print barcode labels ({done.toStock})</button>
+                        <button type="button" className="gc-btn gc-btn--neutral gc-btn--block" onClick={() => load(order.no)}>Receive another delivery</button>
+                        {done.supId ? <Link href={`/supplier-detail?id=${encodeURIComponent(done.supId)}`} className="gc-btn gc-btn--neutral gc-btn--block">Open supplier ledger</Link> : null}
+                        <Link href={`/po-detail?no=${encodeURIComponent(order.no)}`} className="gc-btn gc-btn--neutral gc-btn--block">Back to order</Link>
+                      </div>
+                    </section>
+                  )}
+                </div>
               </div>
-
-              <aside className="gc-side rg-side">
-                {!done ? (
-                  <section className="gc-card rg-pad">
-                    <h2 className="rg-h2">Delivery details</h2>
-                    <div className="rg-field">
-                      <label className="gc-label" htmlFor="rg-place">Receiving at</label>
-                      <select id="rg-place" className="gc-input gc-select" value={place} onChange={(e) => setPlace(e.target.value)}>{places.map((x) => <option key={x}>{x}</option>)}</select>
-                      {place !== order.place ? <span className="gc-help">The order said {order.place}.</span> : null}
-                    </div>
-                    <div className="rg-field">
-                      <label className="gc-label" htmlFor="rg-ch">Supplier challan / invoice no.</label>
-                      <div className="rg-inwrap">
-                        <input id="rg-ch" className="gc-input" type="text" value={challan} onChange={(e) => setChallan(e.target.value)} />
-                        <button type="button" className="gc-iconbtn" aria-label="Scan challan" onClick={() => { const c = challan || 'CH-' + order.no.slice(-4) + '-A'; setChallan(c); toast(`Challan ${c} read`); }}><Icon name="scan-barcode" width="18" height="18" /></button>
-                      </div>
-                    </div>
-                    <div className="rg-field">
-                      <span className="gc-label">Photo of challan</span>
-                      <button type="button" className="gc-btn gc-btn--neutral gc-btn--block" onClick={() => { setPhoto(true); toast('Challan photo attached'); }}><Icon name="camera" width="18" height="18" aria-hidden="true" /> {photo ? 'Photo attached · take again' : 'Take photo'}</button>
-                    </div>
-                    <div className="rg-field">
-                      <label className="gc-label" htmlFor="rg-by">Received by</label>
-                      <select id="rg-by" className="gc-input gc-select" value={by} onChange={(e) => setBy(e.target.value)}>{RECEIVERS.map((x) => <option key={x}>{x}</option>)}</select>
-                    </div>
-                    {report ? (
-                      <div className="rg-box rg-box--warn" role="status">
-                        <b>Report {report.id} · {report.nd} damaged, {report.nw} wrong</b>
-                        {report.items.map((x) => <span key={x}>{x}</span>)}
-                        <span>Kept at {DAMAGED_PLACE}, not for sale.</span>
-                        <span>Asked the supplier to: {report.ask.toLowerCase()}{report.photo ? ' · photo attached' : ''}</span>
-                        <span className="rg-box__acts">
-                          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => toast(`Report ${report.id} sent to ${order.supplier} by SMS and email`)}>Send to supplier</button>
-                          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={openReport}>Edit</button>
-                          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={removeReport}>Remove</button>
-                        </span>
-                      </div>
-                    ) : (
-                      <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" style={{ alignSelf: 'flex-start' }} onClick={openReport}><Icon name="triangle-alert" width="16" height="16" aria-hidden="true" /> Report damaged or wrong items</button>
-                    )}
-                    {goingBack.length ? (
-                      <div className="rg-box rg-box--info">
-                        <b>Going back to {order.supplier}</b>
-                        {goingBack.map((r) => <span key={r.i}>{r.returned} extra × {r.name}</span>)}
-                      </div>
-                    ) : null}
-                    <div className="rg-rule" />
-                    <p className="rg-note">{plural(toStock, 'piece')} will be added to {place} stock.{shortBy > 0 ? ` ${plural(shortBy, 'piece')} are still missing. You can save now; the order stays “Partly received” until the rest arrive.` : ''}</p>
-                    <button type="button" className="gc-btn gc-btn--solid gc-btn--lg gc-btn--block" onClick={save}><Icon name="check" width="20" height="20" aria-hidden="true" /> Save delivery</button>
-                    <PhoneActionBar note={plural(toStock, 'piece') + ' to stock'}><button type="button" className="gc-btn gc-btn--solid" onClick={save}><Icon name="check" width="18" height="18" aria-hidden="true" /> Save delivery</button></PhoneActionBar>
-                  </section>
-                ) : (
-                  <section className="gc-card rg-pad rg-done" role="status">
-                    <span className="rg-done__icon"><Icon name="check" width="28" height="28" aria-hidden="true" /></span>
-                    <h2>Delivery saved</h2>
-                    <ul>
-                      <li><Icon name="package-check" width="16" height="16" aria-hidden="true" style={{ color: 'var(--text-success)' }} /><span>{plural(done.toStock, 'piece')} added to {done.place} stock.</span></li>
-                      {done.nd + done.nw ? <li><Icon name="package-x" width="16" height="16" aria-hidden="true" style={{ color: 'var(--text-danger)' }} /><span>{plural(done.nd + done.nw, 'reported piece')} kept at {DAMAGED_PLACE}{done.nw ? `; ${done.nw} wrong to go back to the supplier` : ''}.</span></li> : null}
-                      {done.back.map((b) => <li key={b.name}><Icon name="undo-2" width="16" height="16" aria-hidden="true" style={{ color: 'var(--text-muted)' }} /><span>{b.qty} extra × {b.name} going back to {order.supplier}.</span></li>)}
-                      {done.aside.length ? <li><Icon name="archive" width="16" height="16" aria-hidden="true" style={{ color: 'var(--text-muted)' }} /><span>{plural(sum(done.aside.map((a) => a.qty)), 'item')} set aside, not in stock.</span></li> : null}
-                      <li><Icon name="receipt" width="16" height="16" aria-hidden="true" style={{ color: 'var(--text-muted)' }} /><span>Real cost updated with {formatBDT(done.ctot)} extra costs.</span></li>
-                      {done.bill ? <li><Icon name="file-text" width="16" height="16" aria-hidden="true" style={{ color: 'var(--primary)' }} /><span>Bill {done.bill.no} for {formatBDT(done.bill.amount)} added to {order.supplier}’s payables, due {formatDate(done.bill.due)}.</span></li> : null}
-                      {done.short ? <li><Icon name="truck" width="16" height="16" aria-hidden="true" style={{ color: 'var(--text-warning)' }} /><span>{plural(done.short, 'piece')} still to come.</span></li> : null}
-                    </ul>
-                    <div className="rg-grn"><Barcode /><div>{done.grn}</div></div>
-                    <button type="button" className="gc-btn gc-btn--solid gc-btn--block" onClick={() => toast(`${plural(done.toStock, 'barcode label')} sent to the printer`)}><Icon name="printer" width="18" height="18" aria-hidden="true" /> Print barcode labels ({done.toStock})</button>
-                    <button type="button" className="gc-btn gc-btn--neutral gc-btn--block" onClick={() => load(order.no)}>Receive another delivery</button>
-                    {done.supId ? <Link href={`/supplier-detail?id=${encodeURIComponent(done.supId)}`} className="gc-btn gc-btn--neutral gc-btn--block">Open supplier ledger</Link> : null}
-                    <Link href={order.stored ? `/po-detail?no=${order.no}` : '/po-detail'} className="gc-btn gc-btn--neutral gc-btn--block">Back to order</Link>
-                  </section>
-                )}
-              </aside>
             </div>
           </div>
         </main>
@@ -588,9 +550,9 @@ export default function ReceiveGoods() {
             const o = p ? { no: p.no, supplier: p.supplier, place: p.place, status: p.status, coming: sum(p.lines.map((l) => Math.max(0, l.qty - (l.received || 0)))) } : { ...DEMO, coming: sum(DEMO.lines.map((l) => l.pending)) };
             return (
               <button key={o.no} type="button" aria-current={o.no === order.no} onClick={() => pick(o.no)}>
-                <Icon name="file-text" width="18" height="18" aria-hidden="true" style={{ color: 'var(--primary)' }} />
-                <span><span className="rg-strong rg-code">{o.no}</span><span className="rg-sub">{o.supplier} · {o.place} · {plural(o.coming, 'piece')} still coming</span></span>
-                <span className={'gc-badge gc-badge--' + (PO_STATUS_TONE[o.status] || 'warning')} style={{ flex: 'none' }}>{o.status}</span>
+                <Icon name="file-text" width="16" height="16" aria-hidden="true" />
+                <span><span className="ix-strong rg-id">{o.no}</span><span className="rg-sub">{o.supplier} · {o.place} · {plural(o.coming, 'piece')} still coming</span></span>
+                <StatusBadge tone={PO_STATUS_TONE[o.status] || 'warning'}>{o.status}</StatusBadge>
               </button>
             );
           })}
@@ -601,24 +563,24 @@ export default function ReceiveGoods() {
         {rep ? (
           <form className="rg-form" onSubmit={saveReport}>
             <p className="gc-help" style={{ margin: 0 }}>{order.no} · {order.supplier}. Count only pieces scanned in this delivery. Reported pieces are kept at {DAMAGED_PLACE} and not added to the stock that can be sold.</p>
-            <div className="rg-card"><div className="gc-table-wrap">
+            <div className="gc-table-wrap">
               <table className="gc-table gc-table--compact">
-                <thead><tr><th scope="col">Product</th><th scope="col" className="rg-num">Received</th><th scope="col">Damaged</th><th scope="col">Wrong item</th></tr></thead>
+                <thead><tr><th scope="col">Product</th><th scope="col" className="ix-num">Received</th><th scope="col">Damaged</th><th scope="col">Wrong item</th></tr></thead>
                 <tbody>
                   {order.lines.map((l, i) => (
                     <tr key={l.code + i}>
                       <td>{l.name}</td>
-                      <td className="rg-num">{got[i] || 0}</td>
+                      <td className="ix-num">{got[i] || 0}</td>
                       <td><input className="gc-input rg-qty" type="number" min="0" max={got[i] || 0} inputMode="numeric" disabled={!got[i]} aria-label={'Damaged pieces of ' + l.name} value={rep.dmg[i] || 0} onChange={(e) => setRepCount('dmg', i, e.target.value)} /></td>
                       <td><input className="gc-input rg-qty" type="number" min="0" max={got[i] || 0} inputMode="numeric" disabled={!got[i]} aria-label={'Wrong pieces of ' + l.name} value={rep.wrong[i] || 0} onChange={(e) => setRepCount('wrong', i, e.target.value)} /></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div></div>
-            <div className="gc-cols-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+            </div>
+            <div className="rg-two">
               <div><label className="gc-label" htmlFor="rp-ask">What should the supplier do?</label><select id="rp-ask" className="gc-input gc-select" value={rep.ask} onChange={(e) => setRep({ ...rep, ask: e.target.value })}>{ASKS.map((x) => <option key={x}>{x}</option>)}</select></div>
-              <div><span className="gc-label">Photo of the problem</span><button type="button" className="gc-btn gc-btn--neutral gc-btn--block" onClick={() => { setRep({ ...rep, photo: true }); toast('Photo attached to the report'); }}><Icon name="camera" width="18" height="18" aria-hidden="true" />{rep.photo ? 'Photo attached' : 'Take photo'}</button></div>
+              <div><span className="gc-label">Photo of the problem</span><button type="button" className="gc-btn gc-btn--neutral gc-btn--block" onClick={() => { setRep({ ...rep, photo: true }); toast('Photo attached to the report'); }}><Icon name="camera" width="16" height="16" aria-hidden="true" />{rep.photo ? 'Photo attached' : 'Take photo'}</button></div>
             </div>
             <div><label className="gc-label" htmlFor="rp-note">What is wrong</label><textarea id="rp-note" className="gc-input" rows="2" placeholder="For example: 3 shirts torn at the seam, 2 jeans are size 36 instead of 34" value={rep.note} onChange={(e) => setRep({ ...rep, note: e.target.value })} /></div>
             <div className="gc-modal__foot" style={{ marginTop: 0 }}>

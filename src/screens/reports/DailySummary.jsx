@@ -1,8 +1,9 @@
 'use client';
-// DailySummary — the owner's end-of-day pack for one day (/daily-summary?day=YYYY-MM-DD, default today):
-//   sales by channel and by branch · online orders placed, delivered, returned · cash, banks and wallets
-//   at closing · payouts that arrived and those running late · low stock · dues collected · expenses ·
-//   the day's top 5 products. Each block opens the full report or page behind it.
+// DailySummary — the owner's end-of-day pack for one day (/daily-summary?day=YYYY-MM-DD, default today), laid out
+// like Shopify's Analytics: the day picker, one strip of key figures, then small cards (at most five rows each on
+// screen; the PDF carries every row): sales by channel and by branch · online orders · cash, banks and wallets at
+// closing · payouts · low stock · dues collected · expenses · the day's top 5 products. Each card opens the page
+// behind it.
 // Actions: Download PDF, Download CSV. Sending it every evening is set up in Automation › Scheduled reports.
 // The figures come from src/lib/reports/dailySummary.js (also used by Scheduled reports).
 
@@ -10,74 +11,56 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
+import { MetricStrip } from '@/components/ui/IndexKit';
 import { ReportsShell, useDataTick } from '@/components/reports/ReportsShell';
 import { PrintLetterhead, PrintSignOff, LETTERHEAD_CSS, savePdf } from '@/components/reports/PrintLetterhead';
 import { dailySummary } from '@/lib/reports/dailySummary';
 import { fmt, downloadCsv, csvValue, clockNow, dayKey, fromKey, addDays, startOfDay } from '@/lib/reports/period';
 
-const REPORT = { id: 'daily-summary', title: 'Daily summary' };
+const LIMIT = 5;   // rows a card shows on screen; the rest print (the PDF carries every row) and open from the card's link
 const CSS = `
-.ds-day{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);padding:var(--space-4) var(--space-5)}
-.ds-day .gc-input{width:auto;min-width:0;max-width:200px;font-family:var(--font-data)}
-.ds-day p{flex:1 1 220px;margin:0;font-size:var(--text-xs);color:var(--text-muted)}
-.ds-day p b{display:block;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.ds-iconbtn{display:inline-grid;place-items:center;width:44px;height:44px;flex:none;border:1px solid var(--border-subtle);border-radius:var(--radius-full);background:var(--surface-card);color:var(--text-body);cursor:pointer}
-.ds-iconbtn:hover:not(:disabled){background:var(--surface-subtle)}
-.ds-iconbtn:disabled{opacity:.45;cursor:not-allowed}
-.ds-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(180px,100%),1fr));gap:var(--space-3)}
-.ds-kpi{display:flex;flex-direction:column;gap:2px;min-width:0;padding:var(--space-3) var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card)}
-.ds-kpi span{font-size:var(--text-xs);color:var(--text-muted)}
-.ds-kpi b{font-family:var(--font-data);font-size:var(--text-xl);font-weight:var(--weight-semibold);color:var(--text-heading);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ds-kpi small{font-size:var(--text-xs);color:var(--text-muted)}
-.ds-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(360px,100%),1fr));gap:var(--space-5);align-items:start}
-.ds-card{display:flex;flex-direction:column;min-width:0;overflow:hidden}
-.ds-card .rp-head{padding:var(--space-4) var(--space-5) var(--space-3)}
-.ds-card .rp-head > div{display:flex;align-items:center;gap:var(--space-3);min-width:0}
-.ds-more{display:inline-flex;align-items:center;gap:4px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-link);text-decoration:none;white-space:nowrap}
-.ds-more:hover{text-decoration:underline}
-.ds-list{margin:0;padding:0 var(--space-5) var(--space-4);list-style:none;display:flex;flex-direction:column}
-.ds-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:var(--space-3);padding:var(--space-2) 0;border-top:1px solid var(--border-subtle);font-size:var(--text-sm);color:var(--text-body)}
+.ds-day{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
+.ds-when{flex:1 1 220px;font-size:var(--text-xs);color:var(--text-muted)}
+.ds-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-4);align-items:start}
+.ds-note{margin:0 0 var(--space-2);font-size:var(--text-xs);color:var(--text-muted)}
+.ds-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column}
+.ds-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:var(--space-3);min-height:40px;padding:6px 0;border-top:1px solid var(--border-subtle);font-size:var(--text-sm);color:var(--text-body)}
 .ds-list li:first-child{border-top:0}
+.ds-list li.is-extra{display:none}
 .ds-list li > span{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .ds-list li small{display:block;font-size:var(--text-xs);color:var(--text-muted);white-space:normal}
-.ds-list li b{font-family:var(--font-data);font-weight:var(--weight-medium);color:var(--text-heading);text-align:right;white-space:nowrap}
+.ds-list li b{font-family:var(--font-data);font-weight:var(--weight-medium);color:var(--text-heading);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .ds-list li.is-total b,.ds-list li.is-total > span{font-weight:var(--weight-semibold);color:var(--text-heading)}
 .ds-list li.is-warn b{color:var(--text-danger)}
-.ds-sub{margin:0;padding:var(--space-2) var(--space-5) var(--space-1);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
-.ds-none{margin:0;padding:0 var(--space-5) var(--space-4);font-size:var(--text-sm);color:var(--text-muted)}
+.ds-sub{margin:var(--space-2) 0 0;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
+.ds-sub:first-child{margin-top:0}
+.ds-none{margin:0;padding:var(--space-2) 0;font-size:var(--text-sm);color:var(--text-muted)}
 .ds-cash{width:100%;border-collapse:collapse;font-size:var(--text-sm)}
-.ds-cash th{padding:var(--space-2) var(--space-3);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted);text-align:right;white-space:nowrap}
-.ds-cash td{padding:var(--space-2) var(--space-3);border-top:1px solid var(--border-subtle);text-align:right;font-family:var(--font-data);color:var(--text-body);white-space:nowrap}
-.ds-cash th:first-child,.ds-cash td:first-child{text-align:left;font-family:var(--font-sans);padding-left:var(--space-5)}
-.ds-cash th:last-child,.ds-cash td:last-child{padding-right:var(--space-5)}
+.ds-cash th{height:32px;padding:0 var(--space-2);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted);text-align:right;white-space:nowrap}
+.ds-cash td{height:40px;padding:0 var(--space-2);border-top:1px solid var(--border-subtle);text-align:right;font-family:var(--font-data);color:var(--text-body);white-space:nowrap;font-variant-numeric:tabular-nums}
+.ds-cash th:first-child,.ds-cash td:first-child{padding-left:0;text-align:left;font-family:var(--font-sans)}
+.ds-cash th:last-child,.ds-cash td:last-child{padding-right:0}
 .ds-cash td:last-child,.ds-cash tfoot td{font-weight:var(--weight-semibold);color:var(--text-heading)}
-.ds-cash-wrap{padding-bottom:var(--space-3)}
-@media (max-width:640px){
-  /* five figures: two to a row, the first (sales) across the top */
-  .ds-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2)}
-  .ds-kpi:first-child{grid-column:1 / -1}
-  .ds-kpi{padding:var(--space-2-5) var(--space-3)}
-  .ds-kpi b{font-size:var(--text-lg)}
-}
-@media print{section[aria-label="Day"],.ds-day{display:none!important}.ds-grid{display:block}.ds-grid > *{margin-bottom:var(--space-4)}}
+@media (max-width:1023px){.ds-grid{grid-template-columns:minmax(0,1fr)}}
+@media print{.ds-day{display:none!important}.ds-grid{display:block}.ds-grid > *{margin-bottom:var(--space-4)}.ds-list li.is-extra{display:grid}.ix-head{display:none!important}}
 `;
 
 const money = (n) => fmt(n, 'money0');
 const longDay = (t) => new Date(t).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 const readDay = () => { try { const v = new URLSearchParams(window.location.search).get('day'); return v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? fromKey(v) : null; } catch { return null; } };
 
-function Block({ icon, title, sub, href, more = 'Full report', children }) {
+/** One compact card: a title, one link to the page behind it, and its rows. */
+function Block({ title, href, more = 'Full report', children }) {
   return (
-    <section className="gc-card ds-card" aria-label={title}>
-      <div className="rp-head">
-        <div><span className="rp-tile" aria-hidden="true"><Icon name={icon} width="18" height="18" /></span><div><h2>{title}</h2>{sub ? <p>{sub}</p> : null}</div></div>
-        {href ? <Link className="ds-more rp-noprint" href={href}>{more} <Icon name="arrow-right" width="14" height="14" aria-hidden="true" /></Link> : null}
-      </div>
-      {children}
+    <section className="ix-card" aria-label={title}>
+      <header className="ix-card__head"><h2>{title}</h2>{href ? <Link className="rp-noprint" href={href}>{more}</Link> : null}</header>
+      <div className="ix-card__body">{children}</div>
     </section>
   );
 }
 const Row = ({ label, note, value, cls }) => <li className={cls || undefined}><span>{label}{note ? <small>{note}</small> : null}</span><b>{value}</b></li>;
+/** Rows past the first five are kept for the PDF and hidden on screen. */
+const extra = (i, cls) => [cls, i >= LIMIT ? 'is-extra' : ''].filter(Boolean).join(' ');
 
 export default function DailySummary() {
   const tick = useDataTick();
@@ -123,63 +106,58 @@ export default function DailySummary() {
     toast('CSV downloaded');
   };
 
-  const actions = (
-    <span className="rp-noprint" style={{ display: 'contents' }}>
-      <button type="button" className="gc-btn gc-btn--neutral" onClick={csv} disabled={!s}><Icon name="sheet" width="18" height="18" aria-hidden="true" /> Download CSV</button>
-      <button type="button" className="gc-btn gc-btn--solid" onClick={() => savePdf('Daily summary - ' + longDay(day))} disabled={!s}><Icon name="file-down" width="18" height="18" aria-hidden="true" /> Download PDF</button>
-    </span>
-  );
-
   return (
-    <ReportsShell screen="DailySummary" active="rep-daily" page="Daily summary" title="Daily summary" about="The day in one page: sales, orders, money at closing, payouts, stock, dues and expenses." actions={actions} css={CSS + LETTERHEAD_CSS}>
+    <ReportsShell screen="DailySummary" active="rep-daily" page="Daily summary" css={CSS + LETTERHEAD_CSS} narrow
+      icon="sun" title="Daily summary" about="The day in one page: sales, orders, money at closing, payouts, stock, dues and expenses."
+      secondary={[{ label: 'Download CSV', onClick: csv, disabled: !s }]}
+      more={[{ label: 'Scheduled reports', href: '/scheduled-reports' }, { label: 'All reports', href: '/reports-centre' }]}
+      primary={{ label: 'Download PDF', onClick: () => savePdf('Daily summary - ' + longDay(day)), disabled: !s }}>
       {day != null ? <PrintLetterhead kind="Daily report" title="Daily summary" meta={[['Day', longDay(day)], ['Prepared', fmt(clockNow(), 'datetime')], ['Prepared by', 'Mehedi Rahman · Owner']]} /> : null}
-      <section className="gc-card" aria-label="Day">
-        <div className="ds-day">
-          <button type="button" className="ds-iconbtn rp-noprint" aria-label="Day before" onClick={() => pick(addDays(day, -1))} disabled={day == null}><Icon name="chevron-left" width="18" height="18" aria-hidden="true" /></button>
-          <label className="sr-only" htmlFor="ds-date">Day</label>
-          <input id="ds-date" type="date" className="gc-input" value={day == null ? '' : dayKey(day)} max={dayKey(today)} onChange={(e) => { if (e.target.value) pick(fromKey(e.target.value)); }} />
-          <button type="button" className="ds-iconbtn rp-noprint" aria-label="Next day" onClick={() => pick(addDays(day, 1))} disabled={day == null || day >= today}><Icon name="chevron-right" width="18" height="18" aria-hidden="true" /></button>
-          {day != null && !isToday ? <button type="button" className="gc-btn gc-btn--neutral rp-noprint" onClick={() => pick(today)}>Today</button> : null}
-          <p aria-live="polite">{day != null ? <><b>{longDay(day)}</b>{isToday ? `So far today, as of ${fmt(clockNow(), 'datetime').split(', ')[1]}` : 'The whole day'}{s && s.sales.est ? ' · demo September figures' : ''}</> : null}</p>
-        </div>
-      </section>
+      <div className="ds-day rp-noprint" role="group" aria-label="Day">
+        <button type="button" className="ix-btn ix-btn--icon" aria-label="Day before" onClick={() => pick(addDays(day, -1))} disabled={day == null}><Icon name="chevron-left" width="16" height="16" aria-hidden="true" /></button>
+        <input id="ds-date" type="date" className="ix-date" aria-label="Day" value={day == null ? '' : dayKey(day)} max={dayKey(today)} onChange={(e) => { if (e.target.value) pick(fromKey(e.target.value)); }} />
+        <button type="button" className="ix-btn ix-btn--icon" aria-label="Next day" onClick={() => pick(addDays(day, 1))} disabled={day == null || day >= today}><Icon name="chevron-right" width="16" height="16" aria-hidden="true" /></button>
+        {day != null && !isToday ? <button type="button" className="ix-btn" onClick={() => pick(today)}>Today</button> : null}
+        <span className="ds-when" aria-live="polite">{day != null ? <>{isToday ? `So far today, as of ${fmt(clockNow(), 'datetime').split(', ')[1]}` : 'The whole day'}{s && s.sales.est ? ' · demo September figures' : ''}</> : null}</span>
+      </div>
 
       {s ? (
         <>
-          <div className="ds-kpis">
-            <div className="ds-kpi"><span>Sales</span><b>{money(s.sales.total)}</b><small>{s.sales.orders} bills and orders</small></div>
-            <div className="ds-kpi"><span>Online orders placed</span><b>{s.orders.placed}</b><small>{s.orders.delivered} delivered · {s.orders.returned} returned</small></div>
-            <div className="ds-kpi"><span>Money at closing</span><b>{money(s.cashTotal)}</b><small>Cash, banks and wallets</small></div>
-            <div className="ds-kpi"><span>Dues collected</span><b>{money(s.dues.collected)}</b><small>{s.dues.count} payment{s.dues.count === 1 ? '' : 's'}</small></div>
-            <div className="ds-kpi"><span>Expenses</span><b>{money(s.expenses.total)}</b><small>{s.expenses.count} payment{s.expenses.count === 1 ? '' : 's'}</small></div>
-          </div>
+          <MetricStrip label="Key figures" items={[
+            { label: 'Sales', value: money(s.sales.total), href: '/sales-profit' },
+            { label: 'Online orders placed', value: String(s.orders.placed), href: '/merchant-orders' },
+            { label: 'Money at closing', value: money(s.cashTotal), href: '/money-book' },
+            { label: 'Dues collected', value: money(s.dues.collected), href: '/dues' },
+            { label: 'Expenses', value: money(s.expenses.total), href: '/report?id=expenses-by-category' + range },
+          ]} />
 
           <div className="ds-grid">
-            <Block icon="chart-column" title="Sales by channel" sub={`${money(s.sales.net)} after returns · gross profit ${money(s.sales.gross)}`} href="/sales-profit">
+            <Block title="Sales by channel" href="/sales-profit">
               <ul className="ds-list">
                 {s.sales.byChannel.map((c) => <Row key={c.channel} label={c.channel} note={`${c.orders} ${c.channel === 'Online' ? 'orders' : 'bills'}${c.returns ? ` · ${money(c.returns)} returned` : ''}`} value={money(c.revenue)} />)}
-                <Row cls="is-total" label="All channels" value={money(s.sales.total)} />
+                <Row cls="is-total" label="All channels" note={`${money(s.sales.net)} after returns · gross profit ${money(s.sales.gross)}`} value={money(s.sales.total)} />
               </ul>
             </Block>
 
-            <Block icon="store" title="Sales by branch" sub="Where the goods left from" href="/sales-book" more="Sales book">
-              {s.sales.byPlace.length ? (
-                <ul className="ds-list">{s.sales.byPlace.map((p) => <Row key={p.place} label={p.place} note={`${p.bills} bill${p.bills === 1 ? '' : 's'} · ${p.channels}`} value={money(p.revenue)} />)}</ul>
-              ) : <p className="ds-none">{s.sales.total ? 'This day’s sales were not kept per branch.' : 'No sales on this day.'}</p>}
-            </Block>
-
-            <Block icon="truck" title="Online orders" sub={`${s.orders.waiting} waiting to be approved now`} href="/merchant-orders" more="Orders">
+            <Block title="Online orders" href="/merchant-orders" more="Orders">
               <ul className="ds-list">
                 <Row label="Placed" value={s.orders.placed} />
                 <Row label="Delivered" value={s.orders.delivered} />
                 <Row label="Returned by the courier" value={s.orders.returned} cls={s.orders.returned ? 'is-warn' : ''} />
                 <Row label="Cancelled" value={s.orders.cancelled} />
+                <Row label="Waiting to approve (now)" value={s.orders.waiting} />
               </ul>
             </Block>
 
-            <Block icon="wallet" title="Money at closing" sub={`${money(s.cashTotal)} in the shop’s own accounts`} href="/money-book" more="Money book">
-              <div className="gc-table-wrap ds-cash-wrap">
-                <table className="ds-cash">
+            <Block title="Sales by branch" href="/sales-book" more="Sales book">
+              {s.sales.byPlace.length ? (
+                <ul className="ds-list">{s.sales.byPlace.map((p, i) => <Row key={p.place} cls={extra(i)} label={p.place} note={`${p.bills} bill${p.bills === 1 ? '' : 's'} · ${p.channels}`} value={money(p.revenue)} />)}</ul>
+              ) : <p className="ds-none">{s.sales.total ? 'This day’s sales were not kept per branch.' : 'No sales on this day.'}</p>}
+            </Block>
+
+            <Block title="Money at closing" href="/money-book" more="Money book">
+              <div className="gc-table-wrap">
+                <table className="ds-cash gc-table--keep">
                   <thead><tr><th scope="col">Where</th><th scope="col">Opening</th><th scope="col">In</th><th scope="col">Out</th><th scope="col">Closing</th></tr></thead>
                   <tbody>{s.cash.map((c) => <tr key={c.type}><td>{c.label}</td><td>{money(c.opening)}</td><td>{c.in ? '+' + money(c.in) : '—'}</td><td>{c.out ? '−' + money(c.out) : '—'}</td><td>{money(c.closing)}</td></tr>)}</tbody>
                   <tfoot><tr><td>Total</td><td>{money(s.cash.reduce((a, c) => a + c.opening, 0))}</td><td /><td /><td>{money(s.cashTotal)}</td></tr></tfoot>
@@ -187,26 +165,29 @@ export default function DailySummary() {
               </div>
             </Block>
 
-            <Block icon="hourglass" title="Payouts" sub={`${money(s.payouts.arrivedTotal)} arrived${s.payouts.late.length ? ` · ${s.payouts.late.length} late` : ''}`} href="/settlements" more="Settlements">
-              {s.payouts.arrived.length ? <><p className="ds-sub">Arrived</p><ul className="ds-list">{s.payouts.arrived.map((p) => <Row key={p.id} label={p.partner} note={p.short ? `Expected ${money(p.expected)} · needs a look` : ''} value={money(p.amount)} cls={p.short ? 'is-warn' : ''} />)}</ul></> : null}
-              {s.payouts.late.length ? <><p className="ds-sub">Running late</p><ul className="ds-list">{s.payouts.late.map((p) => <Row key={p.id} label={p.partner} note={`Was due ${fmt(p.due, 'date')}`} value={money(p.amount)} cls="is-warn" />)}</ul></> : null}
-              {s.payouts.dueToday.length ? <><p className="ds-sub">Expected this day</p><ul className="ds-list">{s.payouts.dueToday.map((p) => <Row key={p.id} label={p.partner} value={money(p.amount)} />)}</ul></> : null}
+            <Block title="Payouts" href="/settlements" more="Settlements">
+              {s.payouts.arrived.length ? <><p className="ds-sub">Arrived</p><ul className="ds-list">{s.payouts.arrived.map((p, i) => <Row key={p.id} label={p.partner} note={p.short ? `Expected ${money(p.expected)} · needs a look` : ''} value={money(p.amount)} cls={extra(i, p.short ? 'is-warn' : '')} />)}</ul></> : null}
+              {s.payouts.late.length ? <><p className="ds-sub">Running late</p><ul className="ds-list">{s.payouts.late.map((p, i) => <Row key={p.id} label={p.partner} note={`Was due ${fmt(p.due, 'date')}`} value={money(p.amount)} cls={extra(i, 'is-warn')} />)}</ul></> : null}
+              {s.payouts.dueToday.length ? <><p className="ds-sub">Expected this day</p><ul className="ds-list">{s.payouts.dueToday.map((p, i) => <Row key={p.id} cls={extra(i)} label={p.partner} value={money(p.amount)} />)}</ul></> : null}
               {!s.payouts.arrived.length && !s.payouts.late.length && !s.payouts.dueToday.length ? <p className="ds-none">No payouts arrived or were due on this day.</p> : null}
             </Block>
 
-            <Block icon="package-minus" title="Low stock" sub={`${s.low.count} product${s.low.count === 1 ? '' : 's'} at 5 or fewer free to sell · as of now`} href="/stock" more="Stock list">
-              {s.low.items.length ? <ul className="ds-list">{s.low.items.map((x) => <Row key={x.sku + x.place} label={x.name} note={x.place} value={`${x.available} left`} cls={x.available <= 0 ? 'is-warn' : ''} />)}</ul> : <p className="ds-none">Nothing is running low.</p>}
+            <Block title="Low stock" href="/stock" more="Stock list">
+              {s.low.items.length ? <>
+                <p className="ds-note">{`${s.low.count} product${s.low.count === 1 ? '' : 's'} at 5 or fewer free to sell · as of now`}</p>
+                <ul className="ds-list">{s.low.items.map((x, i) => <Row key={x.sku + x.place} label={x.name} note={x.place} value={`${x.available} left`} cls={extra(i, x.available <= 0 ? 'is-warn' : '')} />)}</ul>
+              </> : <p className="ds-none">Nothing is running low.</p>}
             </Block>
 
-            <Block icon="hand-coins" title="Dues collected" sub="Payments received on unpaid invoices" href="/dues" more="Dues">
-              {s.dues.list.length ? <ul className="ds-list">{s.dues.list.map((d, i) => <Row key={d.ref + i} label={d.party || d.ref} note={d.ref} value={money(d.amount)} />)}<Row cls="is-total" label="Collected" value={money(s.dues.collected)} /></ul> : <p className="ds-none">No dues were collected on this day.</p>}
+            <Block title="Dues collected" href="/dues" more="Dues">
+              {s.dues.list.length ? <ul className="ds-list">{s.dues.list.map((d, i) => <Row key={d.ref + i} cls={extra(i)} label={d.party || d.ref} note={d.ref} value={money(d.amount)} />)}<Row cls="is-total" label="Collected" value={money(s.dues.collected)} /></ul> : <p className="ds-none">No dues were collected on this day.</p>}
             </Block>
 
-            <Block icon="receipt" title="Expenses" sub="Paid out of the shop’s accounts" href={'/report?id=expenses-by-category' + range}>
-              {s.expenses.byCat.length ? <ul className="ds-list">{s.expenses.byCat.map((e) => <Row key={e.cat} label={e.cat} value={money(e.amount)} />)}<Row cls="is-total" label="Spent" value={money(s.expenses.total)} /></ul> : <p className="ds-none">No expenses on this day.</p>}
+            <Block title="Expenses" href={'/report?id=expenses-by-category' + range}>
+              {s.expenses.byCat.length ? <ul className="ds-list">{s.expenses.byCat.map((e, i) => <Row key={e.cat} cls={extra(i)} label={e.cat} value={money(e.amount)} />)}<Row cls="is-total" label="Spent" value={money(s.expenses.total)} /></ul> : <p className="ds-none">No expenses on this day.</p>}
             </Block>
 
-            <Block icon="trophy" title="Top 5 products" sub="By sales on this day" href="/reports-centre?group=sales" more="Sales reports">
+            <Block title="Top 5 products" href="/reports-centre?group=sales" more="Sales reports">
               {s.top.length ? <ul className="ds-list">{s.top.map((p, i) => <Row key={p.sku + p.name} label={`${i + 1}. ${p.name}`} note={`${p.qty} sold`} value={money(p.revenue)} />)}</ul> : <p className="ds-none">{s.sales.total ? 'This day’s sales were not kept per product.' : 'No sales on this day.'}</p>}
             </Block>
           </div>

@@ -1,690 +1,237 @@
 'use client';
-// Generated from design/templates/accounts/Vat.dc.html by scripts/convert-design.mjs.
-// VAT — Accounts — VAT. Imported from Retail Commerce and merged.
-// Edit freely: this file is now the source for the screen.
+// Vat — Accounts › Setup › VAT: what the shop collected on sales, what it paid on purchases and what it owes
+// the government this month, the VAT rate per category, and the monthly return (Mushak-9.1). A setup page in the
+// Shopify style (docs/shopify-style.md): a back arrow to Accounts setup, the month, four figures, the rates
+// card and the return card; the sample VAT invoice (Mushak-6.3) opens from the header. A shop that is not
+// VAT-registered sees the turnover-tax rules instead.
+// The rates and the "not registered" switch are kept (lib/vat.js), and the POS register charges VAT from them.
+// Front end only: the sales, purchases and return are demo figures for July–September 2026.
 
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Icon } from '@/runtime/dc';
+import { toast } from '@/runtime/ui';
+import { Dialog, InfoTip, StatusBadge } from '@/components/ui';
+import { MetricStrip, Menu } from '@/components/ui/IndexKit';
 import { loadVat, saveVat } from '@/lib/vat';
-import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+import { AccPage } from './accShared';
 
-// ---- logic (from the design's <script type="text/x-dc">) ----
-
-var BND = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
-function dg(s, bn) { s = String(s); return bn ? s.replace(/[0-9]/g, function (d) { return BND[+d]; }) : s; }
-function money(n, bn) { var s = String(Math.round(Math.abs(n))); var last = s.slice(-3), rest = s.slice(0, -3); if (rest) s = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + last; else s = last; return dg((n < 0 ? '−' : '') + '৳' + s, bn); }
-function num(x) { return +(String(x).replace(/[^\d.]/g, '').replace(/^$/, '0')) || 0; }
-function unbn(x) { return String(x).replace(/[০-৯]/g, function (d) { return BND.indexOf(d); }); }
-function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-function toast(self, m) { clearTimeout(self.t); self.setState({ msg: m }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 3200); }
-function seg(self, opts, cur, key, i, base) { return opts.map(function (o) { var on = o[0] === cur; return { k: o[0], l: o[1 + i], on: on, cls: (base || 'sgb') + (on ? ' on' : ''), pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
-function sw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
-var T = {"menu": ["মেনু", "Menu"], "shop": ["রহমান স্টোর", "GridShop"], "shopInitial": ["র", "R"], "branch": ["মিরপুর শাখা", "Mirpur branch"], "newSale": ["নতুন বেচা", "New sale"], "gDaily": ["প্রতিদিনের কাজ", "Daily work"], "gGoods": ["মাল ও স্টক", "Goods & stock"], "gPeople": ["মানুষজন", "People"], "gAccounts": ["হিসাব", "Accounts"], "nHome": ["হোম", "Home"], "nSalesBook": ["বেচার খাতা", "Sales book"], "nInvoices": ["পাইকারি ও ইনভয়েস", "Wholesale & invoices"], "nReturn": ["ফেরত ও বদল", "Return & exchange"], "nPurchase": ["মাল কেনা", "Purchase"], "nMoney": ["টাকা আসা-যাওয়া", "Money in & out"], "nProducts": ["প্রোডাক্ট", "Products"], "nCategories": ["ক্যাটাগরি", "Categories"], "nBarcode": ["বারকোড", "Barcodes"], "nStock": ["স্টক ও গুদাম", "Stock & warehouses"], "nDamage": ["ড্যামেজ ও মেয়াদ শেষ", "Damaged & expired"], "nWarranty": ["ওয়ারেন্টি", "Warranty"], "nCatalog": ["ক্যাটালগ", "Catalogue"], "nCustomers": ["কাস্টমার ও বাকি", "Customers & dues"], "nSuppliers": ["সাপ্লায়ার ও দেনা", "Suppliers & payables"], "nStaff": ["স্টাফ", "Staff"], "nBook": ["হিসাব খাতা ও খরচ", "Cash book & expenses"], "nVat": ["ভ্যাট", "VAT"], "nReports": ["রিপোর্ট", "Reports"], "nPos": ["POS খুলুন", "Open POS"], "nSettings": ["সেটিংস", "Settings"], "search": ["প্রোডাক্ট, কাস্টমার বা মেমো নম্বর খুঁজুন", "Search products, customers or memo no."], "voiceSearch": ["কথা বলে খুঁজুন", "Search by voice"], "notif": ["নোটিফিকেশন", "Notifications"], "owner": ["মোস্তাফিজ", "Mostafiz"], "ownerInitial": ["মো", "M"], "role": ["মালিক", "Owner"], "aiAsk": ["কথা বলুন", "Ask by voice"], "aiTitle": ["গ্রিড সহকারী", "Grid assistant"], "aiSub": ["বাংলায় বলুন বা লিখুন — যেকোনো স্ক্রিন থেকে", "Speak or type — from any screen"], "close": ["বন্ধ করুন", "Close"], "aiType": ["এখানে লিখুন…", "Type here…"], "aiSpeak": ["কথা বলুন", "Speak"], "back": ["পেছনে", "Back"], "tHome": ["হোম", "Home"], "tSales": ["বেচা", "Sales"], "tStock": ["স্টক", "Stock"], "tMore": ["আরও", "More"], "save": ["সেভ করুন", "Save"], "cancel": ["বাতিল", "Cancel"], "seeAll": ["সব দেখুন", "See all"], "h": ["ভ্যাট", "VAT"], "hsub": ["কাস্টমারের কাছ থেকে কত পেলেন, সাপ্লায়ারকে কত দিলেন, সরকারকে কত জমা দিতে হবে", "What you collected, what you paid suppliers, and what you owe the government"], "month": ["মাস", "Month"], "notReg": ["আমার দোকান ভ্যাট নিবন্ধিত নয়", "My shop is not VAT-registered"], "kOut": ["বেচায় ভ্যাট পেয়েছেন", "VAT collected on sales"], "kOutH": ["কাস্টমারের কাছ থেকে নেওয়া", "Taken from customers"], "kIn": ["কেনায় ভ্যাট দিয়েছেন", "VAT paid on purchases"], "kInH": ["সাপ্লায়ারের চালানে দেওয়া — এটা বাদ যাবে", "On supplier invoices — this is deducted"], "kPay": ["এই মাসে দিতে হবে", "To pay this month"], "kPayH": ["পেয়েছেন − দিয়েছেন", "Collected − paid"], "kDue": ["দেওয়ার শেষ তারিখ", "Last date to pay"], "rates": ["ক্যাটাগরি অনুযায়ী ভ্যাট হার", "VAT rate by category"], "ratesH": ["হার বা \"দামে ধরা আছে\" বদলালে উপরের হিসাব সাথে সাথে বদলাবে", "Change a rate or the \"included\" switch and the totals above update"], "cCat": ["ক্যাটাগরি", "Category"], "cRate": ["ভ্যাট হার", "Rate"], "cInc": ["দামে ভ্যাট ধরা আছে?", "VAT in price?"], "cSales": ["বেচা", "Sales"], "cVat": ["ভ্যাট", "VAT"], "total": ["মোট", "Total"], "inv": ["ভ্যাট চালান (মূসক-৬.৩)", "VAT invoice (Mushak-6.3)"], "invSub": ["মেমো #১০৪২ · রফিক মিয়া · আজ সকাল ১০:৪২", "Memo #1042 · Rafiq Mia · today 10:42 AM"], "printInv": ["প্রিন্ট", "Print"], "rForm": ["মূসক-৬.৩", "Mushak-6.3"], "rTitle": ["কর চালান", "Tax invoice"], "rAddr": ["বাড়ি ১২, রোড ৩, মিরপুর-১০, ঢাকা", "House 12, Road 3, Mirpur-10, Dhaka"], "rBin": ["বিআইএন (BIN): ০০০১২৩৪৫৬-০১০১", "BIN: 000123456-0101"], "rNo": ["চালান নং", "Invoice no."], "rNoV": ["#১০৪২", "#1042"], "rDate": ["তারিখ ও সময়", "Date & time"], "rDateV": ["২৯/০৯/২০২৬, সকাল ১০:৪২", "29/09/2026, 10:42 AM"], "rBuyer": ["ক্রেতা", "Buyer"], "rBuyerV": ["রফিক মিয়া · ০১৮১২-৩৪৫৬৭৮", "Rafiq Mia · 01812-345678"], "rItem": ["পণ্য", "Item"], "rQty": ["পরিমাণ", "Qty"], "rPrice": ["দাম", "Price"], "rVat": ["ভ্যাট", "VAT"], "rNet": ["ভ্যাট ছাড়া দাম", "Price without VAT"], "rVatT": ["মোট ভ্যাট", "Total VAT"], "rGrand": ["সর্বমোট", "Grand total"], "rFoot": ["দামে ভ্যাট ধরা আছে", "Prices include VAT"], "rSign": ["বিক্রেতার সই", "Seller’s signature"], "ret": ["মাসিক রিটার্ন (মূসক-৯.১)", "Monthly return (Mushak-9.1)"], "c1": ["বেচার হিসাব", "Sales records"], "c2": ["কেনার হিসাব", "Purchase records"], "c3": ["ট্রেজারি চালান", "Treasury challan"], "c3H": ["ব্যাংকে বা অনলাইনে টাকা জমা দিয়ে চালান নম্বর লিখুন", "Pay at the bank or online, then enter the challan number"], "markPaid": ["জমা হয়েছে", "Mark as paid"], "ready": ["তৈরি", "Ready"], "left": ["বাকি", "Pending"], "dl": ["রিপোর্ট নামান", "Download report"], "consult": ["এই হিসাব আপনার খাতা থেকে বানানো। রিটার্ন জমা দেওয়ার আগে একজন ভ্যাট পরামর্শকের সাথে মিলিয়ে নিন।", "These figures come from your own records. Check them with a VAT consultant before you file the return."], "nrH": ["ভ্যাট নিবন্ধন না থাকলে", "If your shop is not VAT-registered"], "nrP": ["তাহলে কাস্টমারের কাছ থেকে ভ্যাট নেবেন না — মেমোতেও ভ্যাট দেখাবে না। বছরে কত বেচেন, তার উপর নিয়ম নির্ভর করে:", "Then do not charge customers VAT — memos will not show VAT either. What applies depends on your yearly sales:"], "nrYou": ["আপনার দোকান", "Your shop"], "nrCalc": ["টার্নওভার ট্যাক্স কত হতে পারে", "What turnover tax could be"], "nrTot": ["টার্নওভার ট্যাক্সের হিসাব রাখুন", "Keep turnover tax records"], "nrTotH": ["প্রতি ৩ মাসে কত দিতে হবে, এখানে দেখাবে", "Shows what is due every 3 months"], "nrConsult": ["নিয়ম বদলাতে পারে। আপনার দোকানে কোনটা খাটে, একজন ভ্যাট পরামর্শকের কাছ থেকে জেনে নিন।", "Rules can change. Ask a VAT consultant which one applies to your shop."], "pageTitle": ["ভ্যাট", "VAT"]};
-var AI = [["এই মাসে কত ভ্যাট দিতে হবে?", "How much VAT do I owe this month?", "সেপ্টেম্বরে বেচায় ভ্যাট পেয়েছেন ৳৫৪,৫০০, কেনায় দিয়েছেন ৳৩১,২৪০। জমা দিতে হবে ৳২৩,২৬০ — ১৫ অক্টোবরের মধ্যে।", "In September you collected ৳54,500 and paid ৳31,240. You owe ৳23,260 — by 15 October."], ["মেমো ১০৪২-এর ভ্যাট চালান প্রিন্ট করো", "Print the VAT invoice for memo 1042", "মূসক-৬.৩ চালান প্রিন্ট করছি — রফিক মিয়া, মোট ৳২,৪৫০, ভ্যাট ৳১০৯.০৫।", "Printing the Mushak-6.3 invoice — Rafiq Mia, total ৳2,450, VAT ৳109.05."], ["রিটার্ন জমা দিতে আর কী বাকি?", "What is left before I file the return?", "বেচা আর কেনার হিসাব তৈরি। শুধু ট্রেজারি চালানে টাকা জমা দেওয়া বাকি।", "Sales and purchase records are ready. Only the treasury challan payment is pending."]];
-var NAVC = {"stock": "7", "customers": "12", "suppliers": "3"};
-
-class Component extends DCLogic {
-  componentWillUnmount() { clearTimeout(this.t); }
-  // the rates and the "not registered" switch are kept, and the POS register charges VAT from them
-  componentDidMount() { if (super.componentDidMount) super.componentDidMount(); const saved = loadVat(); this.setState({ rates: saved.rates, nr: saved.notReg }); }
-  componentDidUpdate(pp, ps) { if (super.componentDidUpdate) super.componentDidUpdate(pp, ps); const s = this.state || {}, o = ps || {}; if (s.rates !== o.rates || s.nr !== o.nr) saveVat({ rates: s.rates || {}, notReg: !!s.nr }); }
-  renderVals() {
-    var self = this, s = this.state || {};
-    var lang = 'en', bn = false, i = bn ? 0 : 1;
-    var t = {}; Object.keys(T).forEach(function (k) { t[k] = T[k][i]; });
-    var L = function (a, b) { return bn ? a : b; };
-    var c = {}; Object.keys(NAVC).forEach(function (k) { c[k] = dg(NAVC[k], bn); });
-    var ak = s.aiKey == null ? 0 : s.aiKey;
-    var base = {
-      t: t, c: c, rootCls: bn ? 'fbn' : 'fen', isBn: bn, isEn: !bn,
-      bnCls: bn ? 'sgb on' : 'sgb', enCls: bn ? 'sgb' : 'sgb on', bnPill: bn ? 'on' : '', enPill: bn ? '' : 'on',
-      setBn: function () { self.setState({ lang: 'bn' }); }, setEn: function () { self.setState({ lang: 'en' }); },
-      aiOpen: !!s.aiOpen, aiClosed: !s.aiOpen,
-      openAi: function () { self.setState({ aiOpen: true, listening: true }); },
-      closeAi: function () { self.setState({ aiOpen: false, listening: false }); },
-      listening: !!s.listening, micBg: s.listening ? '#e0431b' : '#003087', micFg: s.listening ? '#e0431b' : '#475569',
-      micLbl: s.listening ? L('শুনছি… বলুন', 'Listening… go ahead') : L('চাপ দিয়ে বলুন', 'Tap and speak'),
-      toggleListen: function () { self.setState({ listening: !s.listening }); },
-      aiQ: AI[ak][i], aiA: AI[ak][2 + i],
-      sugg: AI.map(function (q, j) { return { l: q[i], pick: function () { self.setState({ aiKey: j, listening: false }); } }; }),
-      hasMsg: !!s.msg, msg: s.msg || ''
-    };
-    var extra = (function () {
-
-var MON = [['jul', 'জুলাই', 'July', 1162800 / 1286400, 28900, 'দেওয়া হয়েছে · ১৪ আগস্ট', 'Paid · 14 Aug', '১৫ আগস্ট', '15 Aug'], ['aug', 'আগস্ট', 'August', 1244100 / 1286400, 30100, 'দেওয়া হয়েছে · ১৩ সেপ্টেম্বর', 'Paid · 13 Sep', '১৫ সেপ্টেম্বর', '15 Sep'], ['sep', 'সেপ্টেম্বর', 'September', 1, 31240, '', '', '১৫ অক্টোবর', '15 Oct']];
-var CATS = [
-  ['rice', 'চাল-ডাল-চিনি', 'Cables & chargers', 0, true, 482000, 'M7 8h10l2 12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1zM8 8 7 4h10l-1 4M9 13h6', '#fff4e0', '#a14f06'],
-  ['oil', 'তেল-মসলা', 'Cases & covers', 5, true, 246500, 'M10 2h4v3h-4zM9 5h6l1 3v12a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V8zM8 12h8', '#fef9c3', '#a16207'],
-  ['soap', 'সাবান-শ্যাম্পু', 'Screen care', 7.5, true, 158400, 'M4 13h16v5a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3zM7 7a2 2 0 1 0 4 0 2 2 0 1 0-4 0M14 5.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 1 0-3 0', '#e6f6f9', '#0e7490'],
-  ['snack', 'বিস্কুট-চানাচুর', 'Audio', 5, true, 112300, 'M3 12a9 9 0 1 0 18 0 9 9 0 1 0-18 0M9 9h.01M15 10h.01M11 15h.01M8 13h.01M15 15h.01', '#fdf0e3', '#9a3412'],
-  ['drink', 'পানীয়', 'Power banks', 5, true, 64900, 'M6 3h12l-1.5 17a1.5 1.5 0 0 1-1.5 1.4H9a1.5 1.5 0 0 1-1.5-1.4zM6.5 9h11', '#eef3fb', '#003087'],
-  ['cloth', 'জামাকাপড়', 'Clothing', 7.5, false, 134300, 'M8 3 3 6l2 4 2-1v12h10V9l2 1 2-4-5-3a4 4 0 0 1-8 0z', '#fdecef', '#be123c'],
-  ['elec', 'ইলেকট্রনিক্স', 'Electronics', 15, false, 88000, 'M3 5h18v12H3zM8 21h8M12 17v4', '#f1edfc', '#6d28d9']
-];
-var RATES = [0, 5, 7.5, 15];
-var ITEMS = [
-  ['সয়াবিন তেল ৫ লি.', '20W USB-C fast charger', 1, 890, 5],
-  ['চিনি ১ কেজি', 'Lightning cable 1 m', 2, 135, 0],
-  ['মসুর ডাল ১ কেজি', 'Micro-USB cable 1 m', 2, 145, 0],
-  ['লাক্স সাবান ১০০ গ্রাম', 'Screen cleaning wipes', 4, 65, 7.5],
-  ['ডিটারজেন্ট ১ কেজি', 'Shockproof case A15', 2, 180, 7.5],
-  ['শ্যাম্পু ১৮০ মি.লি.', 'Cleaning spray 100 ml', 1, 240, 7.5],
-  ['পানি ২ লি.', 'Cable protector pack', 4, 35, 5]
-];
-function m2(n) { var x = Math.round(n * 100); var ip = Math.floor(x / 100), dp = x % 100; return money(ip, bn) + dg('.' + (dp < 10 ? '0' : '') + dp, bn); }
-function pct(r) { return dg(String(r), bn) + '%'; }
-var nr = sw(self, 'nr', false);
-var mk = s.mon || 'sep';
-var mi = MON.map(function (m) { return m[0]; }).indexOf(mk), M = MON[mi];
-var rates = s.rates || {}, inc = s.inc || {};
-var rateOf = function (c2) { return rates[c2[0]] == null ? c2[3] : rates[c2[0]]; };
-var incOf = function (c2) { return inc[c2[0]] == null ? c2[4] : inc[c2[0]]; };
-var totSales = 0, out = 0;
-var rows = CATS.map(function (c2) {
-  var r = rateOf(c2), ic = incOf(c2), sales = Math.round(c2[5] * M[3]);
-  var v = Math.round(ic ? sales * r / (100 + r) : sales * r / 100);
-  totSales += sales; out += v;
-  return {
-    l: c2[1 + i], icon: c2[6], tint: c2[7], fg: c2[8], rate: String(r), sales: money(sales, bn), vat: v ? money(v, bn) : '—', vfg: v ? '#0f172a' : '#94a3b8',
-    opts: RATES.map(function (x) { return { v: String(x), l: pct(x) }; }),
-    setRate: function (e) { var o = assign({}, rates); o[c2[0]] = parseFloat(e.target.value) || 0; self.setState({ rates: o }); },
-    inc: ic, incCls: ic ? 'sw on' : 'sw', incL: ic ? L('হ্যাঁ', 'Yes') : L('না, উপরে যোগ হবে', 'No, added on top'),
-    toggleInc: function () { var o = assign({}, inc); o[c2[0]] = !ic; self.setState({ inc: o }); }
-  };
-});
-var inp = M[4], pay = Math.max(0, out - inp);
-var isCur = mk === 'sep';
-var paidCh = !!s.paidCh || !isCur;
-var rcVat = 0, rcTot = 0;
-var items = ITEMS.map(function (x) { var amt = x[2] * x[3], v = amt * x[4] / (100 + x[4]); rcVat += v; rcTot += amt; return { l: x[i], rate: pct(x[4]), q: dg(x[2], bn), amt: money(amt, bn), vat: x[4] ? m2(v) : '—' }; });
-var CHECK = [
-  [t.c1, L(dg(1688, true) + 'টা মেমো থেকে তৈরি', 'Built from 1,688 memos'), true, false],
-  [t.c2, L(dg(42, true) + 'টা সাপ্লায়ার চালান থেকে', 'From 42 supplier invoices'), true, false],
-  [t.c3, paidCh ? (isCur ? L('চালান নং ২৬১০-০০৪৮৭৩ · ' + money(pay, true), 'Challan no. 2610-004873 · ' + money(pay)) : L('জমা হয়েছে · ' + money(pay, true), 'Paid · ' + money(pay))) : t.c3H, paidCh, !paidCh]
-];
-var q3 = 1162800 + 1244100 + 1286400;
-return {
-  nr: nr, isReg: !nr.on, notReg: nr.on,
-  months: seg(self, MON.map(function (m) { return [m[0], m[1], m[2]]; }), mk, 'mon', i),
-  k: {
-    out: money(out, bn), inp: money(inp, bn), pay: money(pay, bn), sales: money(totSales, bn),
-    dueDate: M[7 + i],
-    dueNote: isCur ? L('আর ' + dg(16, true) + ' দিন বাকি', '16 days left') : M[5 + i],
-    dueCls: isCur ? 'pill p-warn' : 'pill p-ok'
-  },
-  rows: rows,
-  items: items,
-  rc: { net: m2(rcTot - rcVat), vat: m2(rcVat), grand: m2(rcTot) },
-  printInv: function () { toast(self, L('মূসক-৬.৩ চালান প্রিন্ট হচ্ছে — মেমো #১০৪২', 'Printing Mushak-6.3 invoice for memo #1042')); },
-  retSub: L(M[1] + ' মাসের রিটার্ন · জমার শেষ তারিখ ' + M[7], 'Return for ' + M[2] + ' · file by ' + M[8]),
-  dlXls: function () { toast(self, L('মূসক-৯.১ রিপোর্ট Excel ফাইলে নামছে…', 'Downloading the Mushak-9.1 report as Excel…')); },
-  dlPdf: function () { toast(self, L('মূসক-৯.১ রিপোর্ট PDF ফাইলে নামছে…', 'Downloading the Mushak-9.1 report as PDF…')); },
-  checks: CHECK.map(function (x, j) { var ok = x[2]; return { i0: j === 0, i1: j === 1, i2: j === 2, l: x[0], s: x[1], st: ok ? t.ready : t.left, pcls: ok ? 'pill p-ok' : 'pill p-warn', ic: ok ? '✓' : '!', ibg: ok ? '#047857' : '#d97706', bd: ok ? '#cdeede' : '#fde3b5', bg: ok ? '#f5fbf8' : '#fffcf5', canMark: x[3], mark: function () { self.setState({ paidCh: true }); toast(self, L('ট্রেজারি চালান জমা হয়েছে বলে লেখা হলো। রিটার্ন এখন তৈরি।', 'Treasury challan marked as paid. The return is ready.')); } }; }),
-  tiers: [
-    [L('বছরে ৫০ লাখ টাকার কম', 'Under ৳50 lakh a year'), L('সাধারণত ভ্যাট বা টার্নওভার ট্যাক্স লাগে না', 'Usually no VAT or turnover tax'), false],
-    [L('৫০ লাখ থেকে ৩ কোটি টাকা', '৳50 lakh to ৳3 crore'), L('টার্নওভার ট্যাক্স — বেচার ৪%, প্রতি ৩ মাসে রিটার্ন (মূসক-৯.২)', 'Turnover tax — 4% of sales, return every 3 months (Mushak-9.2)'), true],
-    [L('৩ কোটি টাকার বেশি', 'Over ৳3 crore'), L('ভ্যাট নিবন্ধন নিতে হবে', 'VAT registration is required'), false]
-  ].map(function (x) { return { range: x[0], rule: x[1], you: x[2], bd: x[2] ? '#003087' : '#e6eaf0', bg: x[2] ? '#eef3fb' : '#fff' }; }),
-  tot: { line: L('গত ৩ মাসের বেচা ' + money(q3, true) + ' × ৪%', 'Sales in the last 3 months ' + money(q3) + ' × 4%'), amt: L('প্রায় ', 'About ') + money(q3 * 0.04, bn) },
-  totSw: sw(self, 'totSw', true)
-};
-
-    })();
-    return assign(base, extra || {});
-  }
-}
-
-// ---- styles (from the design's <helmet>) ----
+// ---- demo figures ---------------------------------------------------------------------------------
+function money(n) { let s = String(Math.round(Math.abs(n))); const last = s.slice(-3), rest = s.slice(0, -3); if (rest) s = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + last; else s = last; return (n < 0 ? '−' : '') + '৳' + s; }
+function m2(n) { const x = Math.round(n * 100); const ip = Math.floor(x / 100), dp = x % 100; return money(ip) + '.' + (dp < 10 ? '0' : '') + dp; }
+const pct = (r) => String(r) + '%';
+// month: key, name, share of September's sales, VAT paid on purchases, paid note, last date to pay
+const MON = [['jul', 'July', 1162800 / 1286400, 28900, 'Paid · 14 Aug', '15 Aug'], ['aug', 'August', 1244100 / 1286400, 30100, 'Paid · 13 Sep', '15 Sep'], ['sep', 'September', 1, 31240, '', '15 Oct']];
+// category: key, name, default rate, VAT included in the price, September sales
+const CATS = [['rice', 'Cables & chargers', 0, true, 482000], ['oil', 'Cases & covers', 5, true, 246500], ['soap', 'Screen care', 7.5, true, 158400], ['snack', 'Audio', 5, true, 112300], ['drink', 'Power banks', 5, true, 64900], ['cloth', 'Clothing', 7.5, false, 134300], ['elec', 'Electronics', 15, false, 88000]];
+const RATES = [0, 5, 7.5, 15];
+// the sample memo on the VAT invoice: item, qty, price, VAT rate
+const ITEMS = [['20W USB-C fast charger', 1, 890, 5], ['Lightning cable 1 m', 2, 135, 0], ['Micro-USB cable 1 m', 2, 145, 0], ['Screen cleaning wipes', 4, 65, 7.5], ['Shockproof case A15', 2, 180, 7.5], ['Cleaning spray 100 ml', 1, 240, 7.5], ['Cable protector pack', 4, 35, 5]];
+const TIERS = [['Under ৳50 lakh a year', 'Usually no VAT or turnover tax', false], ['৳50 lakh to ৳3 crore', 'Turnover tax — 4% of sales, return every 3 months (Mushak-9.2)', true], ['Over ৳3 crore', 'VAT registration is required', false]];
+const Q3 = 1162800 + 1244100 + 1286400;
+const ABOUT = 'What you collected, what you paid suppliers, and what you owe the government';
 
 const CSS = `
-*{box-sizing:border-box}
-body{margin:0;background:#e9eef5;color:#0f172a;-webkit-font-smoothing:antialiased;font-family:var(--font-bn)}
-a{color:#003087;text-decoration:none}
-button{font:inherit;color:inherit}
-.fbn{font-family:var(--font-bn)}
-.fen{font-family:var(--font-sans)}
-.num{font-variant-numeric:tabular-nums}
-.mono{font-family:var(--font-data)}
-.card{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 10px 28px -18px rgba(15,23,42,.14)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;white-space:nowrap;text-decoration:none;transition:background-color 200ms,border-color 200ms}
-.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
-.line{background:#fff;color:#0f172a;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#0f172a}
-.soft{background:#eef3fb;color:#003087}.soft:hover{background:#e0e9f7;color:#003087}
-.okb{background:#047857;color:#fff}.okb:hover{background:#065f46;color:#fff}
-.dang{background:#fff;color:#b83210;border:1px solid #f3b7a5}.dang:hover{background:#fff4f0;color:#b83210}
-.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus);border-radius:var(--radius-lg)}
-.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus);border-radius:var(--radius-lg)}
-.ib{width:36px;height:36px;border-radius:var(--radius-full);border:1px solid #e2e8f0;background:#fff;color:#334155;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-shrink:0}
-.ib:hover{background:#f1f5f9}
-.seg{display:inline-flex;padding:4px;gap:2px;border-radius:var(--radius-xl);background:#e9eef5}
-.sgb{height:36px;padding:0 14px;border:0;border-radius:var(--radius-lg);background:transparent;font-size:var(--text-sm);font-weight:var(--weight-medium);color:#475569;cursor:pointer;white-space:nowrap}
-.sgb.on{background:#fff;color:#003087;font-weight:var(--weight-semibold);box-shadow:0 1px 3px rgba(15,23,42,.14)}
-.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
-.chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:#eef3fb;color:#003087;font-weight:var(--weight-medium)}
-.pill{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--radius-full);font-size:var(--text-xs-plus);font-weight:var(--weight-medium);white-space:nowrap}
-.p-ok{background:#e7f8f1;color:#047857}.p-due{background:#ffece6;color:#b83210}.p-warn{background:#fff4e0;color:#a14f06}.p-info{background:#eef3fb;color:#003087}.p-grey{background:#eef2f6;color:#475569}.p-bk{background:#fdecf5;color:#a3195b}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#0f172a}
-.inp:focus{outline:none;border-color:#003087;box-shadow:0 0 0 3px rgba(0,48,135,.12)}
-.inp::placeholder{color:var(--text-muted)}
-.lbl{font-size:var(--text-sm);font-weight:var(--weight-medium);color:#334155}
-.fld{display:flex;flex-direction:column;gap:6px;min-width:0}
-.hint{font-size:var(--text-xs-plus);line-height:18px;color:var(--text-muted)}
-.req{color:#b83210}
-.th{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted);text-align:left;padding:10px 14px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:12px 14px;border-bottom:1px solid #f1f5f9;font-size:var(--text-sm);vertical-align:middle}
-.trow:hover{background:#f8fafc}
-.h1{margin:0;font-size:var(--text-2xl);line-height:34px;font-weight:var(--weight-semibold)}
-.h2{margin:0;font-size:var(--text-lg);line-height:24px;font-weight:var(--weight-semibold)}
-.sub{font-size:var(--text-sm-plus);color:var(--text-muted)}
-.kpi{padding:18px 20px;display:flex;flex-direction:column;gap:4px}
-.kpi .k{font-size:var(--text-sm-plus);color:#475569;font-weight:var(--weight-medium)}
-.kpi .v{font-size:var(--text-3xl);line-height:36px;font-weight:var(--weight-semibold);font-variant-numeric:tabular-nums}
-.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms}
-.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
-.tabl{display:flex;gap:4px;border-bottom:1px solid #e2e8f0}
-.tl{position:relative;height:44px;padding:0 14px;border:0;background:transparent;font-size:var(--text-sm-plus);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;white-space:nowrap}
-.tl.on{color:#003087;font-weight:var(--weight-semibold)}.tl.on::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:#003087}
-.row{display:flex;align-items:center;gap:12px;padding:14px 16px}
-.row + .row{border-top:1px solid #eef2f6}
-.bar{height:8px;border-radius:var(--radius-full);background:#eef2f6;overflow:hidden;display:block}.bar>span{display:block;height:8px;border-radius:var(--radius-full)}
-.note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:var(--radius-xl);font-size:var(--text-sm);line-height:20px}
-.n-info{background:#eef3fb;color:#1e3a6e}.n-warn{background:#fff8eb;color:#7a3b04;border:1px solid #fde3b5}.n-ok{background:#e7f8f1;color:#065f46}.n-due{background:#fff4f0;color:#8a2a0d;border:1px solid #f7c9bb}
-.chipq{height:36px;padding:0 12px;border-radius:var(--radius-full);border:1px solid #d6e0ef;background:#f5f8ff;color:#003087;font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;white-space:nowrap}
-.wave span{display:inline-block;width:4px;margin:0 2px;border-radius:var(--radius-sm);background:#003087;animation:wv 900ms ease-in-out infinite}
-.wave span:nth-child(2){animation-delay:.15s}.wave span:nth-child(3){animation-delay:.3s}.wave span:nth-child(4){animation-delay:.45s}.wave span:nth-child(5){animation-delay:.6s}
-@keyframes wv{0%,100%{height:8px}50%{height:26px}}
-.fade{animation:fd 240ms cubic-bezier(0,0,.2,1)}
-@keyframes fd{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.btn:focus-visible,.ib:focus-visible,.sgb:focus-visible,.chip:focus-visible,.tl:focus-visible,.sw:focus-visible,.chipq:focus-visible,a:focus-visible,button:focus-visible{outline:3px solid rgba(0,48,135,.45);outline-offset:2px}
-@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-
-.nav{display:flex;align-items:center;gap:11px;height:38px;padding:0 10px;border-radius:var(--radius-lg);color:#334155;font-size:var(--text-sm-plus);font-weight:var(--weight-medium);text-decoration:none;transition:background-color 200ms,color 200ms}
-.nav:hover{background:#f1f5f9;color:#0f172a}
-.nav.on{background:rgba(0,48,135,.09);color:#003087;font-weight:var(--weight-semibold)}
-.nav .cnt{margin-left:auto;min-width:24px;height:21px;padding:0 7px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
-.navh{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:.04em;color:var(--text-muted);padding:12px 10px 2px}
-.act{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:16px;border-radius:var(--radius-xl);border:1px solid #e6eaf0;background:#fff;cursor:pointer;text-align:left;text-decoration:none;color:#0f172a;transition:border-color 200ms,box-shadow 200ms}
-.act:hover{border-color:#003087;box-shadow:0 8px 20px -12px rgba(0,48,135,.35);color:#0f172a}
-.act .ic{width:44px;height:44px;border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center}
-.alert{display:flex;align-items:center;gap:14px;padding:12px 16px;border-top:1px solid #eef2f6}
-.abtn{height:36px;padding:0 14px;border-radius:var(--radius-lg);border:1px solid #cbd5e1;background:#fff;font-size:var(--text-sm);font-weight:var(--weight-medium);color:#003087;cursor:pointer;white-space:nowrap}
-.abtn:hover{background:#f1f5f9}
-.mic{position:absolute;right:28px;bottom:28px;height:60px;padding:0 22px 0 8px;border-radius:var(--radius-full);border:0;background:#003087;color:#fff;display:flex;align-items:center;gap:12px;font-size:var(--text-base);font-weight:var(--weight-semibold);cursor:pointer;box-shadow:0 16px 32px -12px rgba(0,48,135,.6);z-index:20}
-.mic .dotc{width:44px;height:44px;border-radius:var(--radius-full);background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center}
-.scrim{position:absolute;inset:0;background:rgba(15,23,42,.42);z-index:15}
-.drawer{position:absolute;top:0;right:0;bottom:0;width:520px;background:#fff;z-index:16;display:flex;flex-direction:column;box-shadow:-20px 0 50px -20px rgba(15,23,42,.35)}
-.modal{position:absolute;left:50%;top:120px;transform:translateX(-50%);width:560px;background:#fff;border-radius:var(--radius-xl);z-index:16;box-shadow:0 30px 70px -20px rgba(15,23,42,.45)}
-
-/* merged: English, compact controls, GridAI button */
-body{font-family:var(--font-sans)}
-.btn{height:44px;padding:0 18px;font-size:var(--text-sm);border-radius:var(--radius-lg)}
-.btn.sm,.sm{height:34px;padding:0 12px;font-size:var(--text-xs-plus);border-radius:var(--radius-lg)}
-.btn.big,.big{height:48px;padding:0 22px;font-size:var(--text-sm-plus);border-radius:var(--radius-xl)}
-.ib{width:36px;height:36px;border-radius:var(--radius-full)}
-.chip{height:36px;padding:0 14px;font-size:var(--text-xs-plus)}
-.sgb{height:32px;padding:0 12px;font-size:var(--text-xs-plus)}
-.gfab{position:absolute;right:28px;bottom:28px;z-index:20;display:inline-flex;align-items:center;gap:10px;height:52px;padding:0 20px 0 16px;border-radius:var(--radius-full);background:#003087;color:#fff;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);text-decoration:none;box-shadow:0 14px 30px -12px rgba(0,48,135,.6)}
-.gfab:hover{background:#002a77;color:#fff}
-.gfab:focus-visible{outline:3px solid rgba(0,48,135,.45);outline-offset:3px}
-.th,.td{white-space:normal}
-.th,.td{padding-left:10px!important;padding-right:10px!important}
-@media (max-width:900px){
-  /* rates and the sample VAT invoice stack instead of squeezing the rates table */
-  .vat-pair{flex-direction:column;align-items:stretch!important}
-  .vat-inv{width:auto!important;max-width:100%;min-width:0}
-}
-@media (max-width:640px){
-  .vat-icon{display:none!important} /* the page icon would sit alone above the title */
-  .vat-inv{padding:var(--space-3) var(--space-3) var(--space-4)!important}
-  .vat-inv__head{flex-wrap:wrap}
-  .vat-inv__head > svg{flex:none}
-  .vat-inv__head > div{flex:1 1 0!important;min-width:0}
-  .vat-inv__head .h2{font-size:var(--text-base)}
-  .vat-rcpt{padding:var(--space-3)!important;min-width:0}
-  .vat-rcpt__items th,.vat-rcpt__items td{padding-left:var(--space-1)!important}
-  .vat-rcpt__items th:first-child,.vat-rcpt__items td:first-child{padding-left:0!important}
-  .vat-rcpt__items td:not(:first-child){white-space:nowrap}
-  .vat-rate{width:96px!important;min-width:96px;max-width:none!important}
-}
+.vt-fig{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+.vt-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3)}
+.vt-switch{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);cursor:pointer}
+.vt-inc{display:inline-flex;align-items:center;gap:var(--space-2);color:var(--text-body)}
+.vt-rate{width:96px}
+.vt-checks{list-style:none;margin:0;padding:0}
+.vt-check{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);min-height:44px;padding:var(--space-2) var(--space-4);border-top:1px solid var(--border-subtle)}
+.vt-check>span:first-child{flex:1 1 220px;min-width:0}
+.vt-check b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.vt-check small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
+.vt-warn{display:flex;gap:var(--space-2);align-items:flex-start;margin:0;padding:var(--space-3) var(--space-4);border-top:1px solid var(--border-subtle);font-size:var(--text-xs);color:var(--text-warning)}
+.vt-warn svg{flex:none;margin-top:1px}
+.vt-tiers{list-style:none;margin:0;padding:0}
+.vt-tier{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4);min-height:44px;padding:var(--space-2) 0;border-top:1px solid var(--border-subtle);font-size:var(--text-sm)}
+.vt-tier:first-child{border-top:0}
+.vt-tier b{flex:0 0 200px;font-weight:var(--weight-semibold);color:var(--text-heading)}
+.vt-tier span{flex:1 1 240px;min-width:0;color:var(--text-body)}
+.vt-tier.is-you b{color:var(--primary)}
+.vt-calc{display:flex;flex-direction:column;gap:4px;padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);background:var(--surface-subtle)}
+.vt-calc span{font-size:var(--text-xs);color:var(--text-muted)}
+.vt-calc b{font-family:var(--font-data);font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-warning)}
+.vt-row{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3)}
+.vt-row b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.vt-row small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
+.vt-body{display:flex;flex-direction:column;gap:var(--space-3)}
+.vt-rcpt{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) var(--space-4);border:1px solid var(--border-strong);border-radius:var(--radius-md);background:var(--surface-card);font-size:var(--text-sm);color:var(--text-heading)}
+.vt-rcpt__c{text-align:center;line-height:1.5}
+.vt-rcpt__c small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
+.vt-rcpt__shop{padding-bottom:var(--space-2);border-bottom:1px dashed var(--border-strong)}
+.vt-rcpt__facts{display:grid;grid-template-columns:auto 1fr;gap:2px var(--space-3);margin:0}
+.vt-rcpt__facts dt{color:var(--text-muted)}
+.vt-rcpt__facts dd{margin:0}
+.vt-rcpt table{width:100%;border-collapse:collapse}
+.vt-rcpt th{padding:4px 0;border-top:1px solid var(--text-heading);border-bottom:1px solid var(--text-heading);font-size:var(--text-xs);font-weight:var(--weight-semibold);text-align:left}
+.vt-rcpt td{padding:3px 0}
+.vt-rcpt .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.vt-rcpt__tot{gap:2px var(--space-3);padding-top:var(--space-2);border-top:1px solid var(--text-heading)}
+.vt-rcpt__foot{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-3);padding-top:var(--space-2);font-size:var(--text-xs);color:var(--text-muted)}
+.vt-rcpt__foot span:last-child{min-width:120px;padding-top:2px;border-top:1px solid var(--border-strong);text-align:center}
+@media (max-width:640px){.vt-tier b{flex-basis:100%}.vt-rate{width:84px}}
 `;
 
-// ---- markup ----
+export default function Vat() {
+  const [rates, setRates] = useState({});
+  const [nr, setNr] = useState(false);
+  const [inc, setInc] = useState({});
+  const [mon, setMon] = useState('sep');
+  const [paidCh, setPaidCh] = useState(false);
+  const [totSw, setTotSw] = useState(true);
+  const [receipt, setReceipt] = useState(false);
+  const loaded = useRef(false);
 
-export default class VatScreen extends Component {
-  render() {
-    const v = this.renderVals() || {};
-    return (
-      <div className="dc-screen ds" data-screen="Vat">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className={"gc-shell " + (v.rootCls || "")} style={{ position: "relative", background: "#e9eef5", padding: "12px", display: "flex", gap: "12px" }}>
-          <__Sidebar sticky="" active="acc-setup" />
-          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f6f8fb", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", position: "relative" }}>
-            <__Topbar crumb="Accounts" page="VAT" placeholder="Search products, customers or memo no." />
-            <div className="gc-shell__content" style={{ flexGrow: "1", minHeight: "0", padding: "22px 28px 28px", display: "flex", flexDirection: "column", gap: "18px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                <span className="vat-icon" style={{ width: "52px", height: "52px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#fff", border: "1px solid #e6eaf0", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(15,23,42,.06)" }}>
-                  <svg width="38" height="38" viewBox="0 0 48 48" aria-hidden="true">
-                    <path d="M10 5L38 5L38 42L34 39L30 42L26 39L22 42L18 39L14 42L10 39Z" fill="#e0f2fe" />
-                    <path d="M14.7 16a3.8 3.8 0 1 0 7.6 0a3.8 3.8 0 1 0 -7.6 0Z" fill="#0ea5e9" />
-                    <path d="M25.7 27a3.8 3.8 0 1 0 7.6 0a3.8 3.8 0 1 0 -7.6 0Z" fill="#0ea5e9" />
-                    <path d="M31 13L17 30" fill="none" stroke="#0ea5e9" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M15.2 34H32.8A1.2 1.2 0 0 1 34 35.2V35.199999999999996A1.2 1.2 0 0 1 32.8 36.4H15.2A1.2 1.2 0 0 1 14 35.199999999999996V35.2A1.2 1.2 0 0 1 15.2 34Z" fill="#7dd3fc" />
-                  </svg>
-                </span>
-                <div style={{ flexGrow: "1", minWidth: "0" }}>
-                  <h1 className="h1">{v.t?.h}</h1>
-                  <div className="sub">{v.t?.hsub}</div>
-                </div>
-                {v.isReg ? (<>
-                  <div className="seg" role="group" aria-label={v.t?.month}>
-                    {__list(v.months).map((m, $index) => (<React.Fragment key={$index}>
-                        <button type="button" className={m?.cls} aria-pressed={m?.on} onClick={m?.pick}>{m?.l}</button>
-                      </React.Fragment>))}
-                  </div>
-                </>) : null}
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", height: "48px", padding: "0 12px 0 16px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true">
-  <path d="M9 18H39A1 1 0 0 1 40 19V41A1 1 0 0 1 39 42H9A1 1 0 0 1 8 41V19A1 1 0 0 1 9 18Z" fill="#e0f2fe" />
-  <path d="M7 9H41A2 2 0 0 1 43 11V17A2 2 0 0 1 41 19H7A2 2 0 0 1 5 17V11A2 2 0 0 1 7 9Z" fill="#0ea5e9" />
-  <path d="M11 9h6v10h-6Z" fill="#ffffff" />
-  <path d="M23 9h6v10h-6Z" fill="#ffffff" />
-  <path d="M35 9h5v10h-5Z" fill="#ffffff" />
-  <path d="M21 28H28A1 1 0 0 1 29 29V41A1 1 0 0 1 28 42H21A1 1 0 0 1 20 41V29A1 1 0 0 1 21 28Z" fill="#0ea5e9" />
-  <path d="M12.5 23H17.0A1 1 0 0 1 18.0 24V28A1 1 0 0 1 17.0 29H12.5A1 1 0 0 1 11.5 28V24A1 1 0 0 1 12.5 23Z" fill="#7dd3fc" />
-  <path d="M32 23H36.5A1 1 0 0 1 37.5 24V28A1 1 0 0 1 36.5 29H32A1 1 0 0 1 31 28V24A1 1 0 0 1 32 23Z" fill="#7dd3fc" />
-</svg>{v.t?.notReg}<button type="button" className={v.nr?.cls} aria-pressed={v.nr?.on} aria-label={v.t?.notReg} onClick={v.nr?.toggle} /></div>
-              </div>
-              {v.isReg ? (<>
-                <div className="fade" style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-                  <div className="gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "14px" }}>
-                    <div className="card kpi">
-                      <span className="k" style={{ display: "flex", alignItems: "center", gap: "10px" }}><svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true">
-  <path d="M14 16H34A5 5 0 0 1 39 21V38A5 5 0 0 1 34 43H14A5 5 0 0 1 9 38V21A5 5 0 0 1 14 16Z" fill="#0ea5e9" />
-  <path d="M12 16H36A3 3 0 0 1 39 19V19A3 3 0 0 1 36 22H12A3 3 0 0 1 9 19V19A3 3 0 0 1 12 16Z" fill="#003087" />
-  <path d="M17 17V13a7 7 0 0 1 14 0V17" fill="none" stroke="#003087" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-  <path d="M26 33a7 7 0 1 0 14 0a7 7 0 1 0 -14 0Z" fill="#0ea5e9" />
-  <path d="M28.5 33a4.5 4.5 0 1 0 9.0 0a4.5 4.5 0 1 0 -9.0 0Z" fill="#7dd3fc" />
-  <path d="M33.0 29.5H33.0A1.2 1.2 0 0 1 34.2 30.7V35.3A1.2 1.2 0 0 1 33.0 36.5H33.0A1.2 1.2 0 0 1 31.8 35.3V30.7A1.2 1.2 0 0 1 33.0 29.5Z" fill="#0ea5e9" />
-</svg>{v.t?.kOut}</span>
-                      <span className="v">{v.k?.out}</span>
-                      <span className="hint">{v.t?.kOutH}</span>
-                    </div>
-                    <div className="card kpi">
-                      <span className="k" style={{ display: "flex", alignItems: "center", gap: "10px" }}><svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true">
-  <path d="M18.5 6H27.5A1.5 1.5 0 0 1 29 7.5V15.5A1.5 1.5 0 0 1 27.5 17H18.5A1.5 1.5 0 0 1 17 15.5V7.5A1.5 1.5 0 0 1 18.5 6Z" fill="#7dd3fc" />
-  <path d="M21.5 6h3v5h-3Z" fill="#e0f2fe" />
-  <path d="M29.5 10H37.5A1.5 1.5 0 0 1 39 11.5V16.5A1.5 1.5 0 0 1 37.5 18H29.5A1.5 1.5 0 0 1 28 16.5V11.5A1.5 1.5 0 0 1 29.5 10Z" fill="#0ea5e9" />
-  <path d="M32 10h3v4h-3Z" fill="#e0f2fe" />
-  <path d="M8 18L42 18L38.5 32L13 32Z" fill="#0ea5e9" />
-  <path d="M15.1 22H37.9A1.1 1.1 0 0 1 39 23.1V23.099999999999998A1.1 1.1 0 0 1 37.9 24.2H15.1A1.1 1.1 0 0 1 14 23.099999999999998V23.1A1.1 1.1 0 0 1 15.1 22Z" fill="#7dd3fc" />
-  <path d="M16.1 26.5H35.9A1.1 1.1 0 0 1 37 27.6V27.599999999999998A1.1 1.1 0 0 1 35.9 28.7H16.1A1.1 1.1 0 0 1 15 27.599999999999998V27.6A1.1 1.1 0 0 1 16.1 26.5Z" fill="#7dd3fc" />
-  <path d="M3 11H8L13 32H38" fill="none" stroke="#003087" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-  <path d="M12.2 38.5a3.8 3.8 0 1 0 7.6 0a3.8 3.8 0 1 0 -7.6 0Z" fill="#003087" />
-  <path d="M31.2 38.5a3.8 3.8 0 1 0 7.6 0a3.8 3.8 0 1 0 -7.6 0Z" fill="#003087" />
-  <path d="M14.6 38.5a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0Z" fill="#ffffff" />
-  <path d="M33.6 38.5a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0Z" fill="#ffffff" />
-</svg>{v.t?.kIn}</span>
-                      <span className="v">{v.k?.inp}</span>
-                      <span className="hint">{v.t?.kInH}</span>
-                    </div>
-                    <div className="card kpi" style={{ background: "#fff4e0", borderColor: "#fde3b5" }}>
-                      <span className="k" style={{ color: "#7a3b04", display: "flex", alignItems: "center", gap: "10px" }}><span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-  <svg width="32" height="32" viewBox="0 0 48 48" aria-hidden="true">
-    <path d="M10 5L38 5L38 42L34 39L30 42L26 39L22 42L18 39L14 42L10 39Z" fill="#e0f2fe" />
-    <path d="M14.7 16a3.8 3.8 0 1 0 7.6 0a3.8 3.8 0 1 0 -7.6 0Z" fill="#0ea5e9" />
-    <path d="M25.7 27a3.8 3.8 0 1 0 7.6 0a3.8 3.8 0 1 0 -7.6 0Z" fill="#0ea5e9" />
-    <path d="M31 13L17 30" fill="none" stroke="#0ea5e9" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M15.2 34H32.8A1.2 1.2 0 0 1 34 35.2V35.199999999999996A1.2 1.2 0 0 1 32.8 36.4H15.2A1.2 1.2 0 0 1 14 35.199999999999996V35.2A1.2 1.2 0 0 1 15.2 34Z" fill="#7dd3fc" />
-  </svg>
-</span>{v.t?.kPay}</span>
-                      <span className="v" style={{ color: "#a14f06", fontSize: "var(--text-3xl)" }}>{v.k?.pay}</span>
-                      <span className="hint" style={{ color: "#7a3b04" }}>{v.t?.kPayH}</span>
-                    </div>
-                    <div className="card kpi">
-                      <span className="k" style={{ display: "flex", alignItems: "center", gap: "10px" }}><svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true">
-  <path d="M10 8H38A5 5 0 0 1 43 13V37A5 5 0 0 1 38 42H10A5 5 0 0 1 5 37V13A5 5 0 0 1 10 8Z" fill="#e0f2fe" />
-  <path d="M10.5 9.5H37.5A4 4 0 0 1 41.5 13.5V36.5A4 4 0 0 1 37.5 40.5H10.5A4 4 0 0 1 6.5 36.5V13.5A4 4 0 0 1 10.5 9.5Z" fill="#ffffff" />
-  <path d="M10 8H38A5 5 0 0 1 43 13V14A5 5 0 0 1 38 19H10A5 5 0 0 1 5 14V13A5 5 0 0 1 10 8Z" fill="#0ea5e9" />
-  <path d="M5 14h38v5h-38Z" fill="#0ea5e9" />
-  <path d="M14.7 4H14.7A1.7 1.7 0 0 1 16.4 5.7V11.3A1.7 1.7 0 0 1 14.7 13H14.7A1.7 1.7 0 0 1 13 11.3V5.7A1.7 1.7 0 0 1 14.7 4Z" fill="#003087" />
-  <path d="M33.7 4H33.699999999999996A1.7 1.7 0 0 1 35.4 5.7V11.3A1.7 1.7 0 0 1 33.699999999999996 13H33.7A1.7 1.7 0 0 1 32 11.3V5.7A1.7 1.7 0 0 1 33.7 4Z" fill="#003087" />
-  <path d="M12.2 23H15.8A1.2 1.2 0 0 1 17 24.2V26.8A1.2 1.2 0 0 1 15.8 28H12.2A1.2 1.2 0 0 1 11 26.8V24.2A1.2 1.2 0 0 1 12.2 23Z" fill="#e0f2fe" />
-  <path d="M22.2 23H25.8A1.2 1.2 0 0 1 27 24.2V26.8A1.2 1.2 0 0 1 25.8 28H22.2A1.2 1.2 0 0 1 21 26.8V24.2A1.2 1.2 0 0 1 22.2 23Z" fill="#e0f2fe" />
-  <path d="M32.2 23H35.8A1.2 1.2 0 0 1 37 24.2V26.8A1.2 1.2 0 0 1 35.8 28H32.2A1.2 1.2 0 0 1 31 26.8V24.2A1.2 1.2 0 0 1 32.2 23Z" fill="#0ea5e9" />
-  <path d="M12.2 32H15.8A1.2 1.2 0 0 1 17 33.2V35.8A1.2 1.2 0 0 1 15.8 37H12.2A1.2 1.2 0 0 1 11 35.8V33.2A1.2 1.2 0 0 1 12.2 32Z" fill="#e0f2fe" />
-  <path d="M22.2 32H25.8A1.2 1.2 0 0 1 27 33.2V35.8A1.2 1.2 0 0 1 25.8 37H22.2A1.2 1.2 0 0 1 21 35.8V33.2A1.2 1.2 0 0 1 22.2 32Z" fill="#e0f2fe" />
-  <path d="M32.2 32H35.8A1.2 1.2 0 0 1 37 33.2V35.8A1.2 1.2 0 0 1 35.8 37H32.2A1.2 1.2 0 0 1 31 35.8V33.2A1.2 1.2 0 0 1 32.2 32Z" fill="#e0f2fe" />
-</svg>{v.t?.kDue}</span>
-                      <span className="v" style={{ fontSize: "var(--text-2xl)" }}>{v.k?.dueDate}</span>
-                      <span style={{ display: "flex" }}>
-                        <span className={v.k?.dueCls}>{v.k?.dueNote}</span>
-                      </span>
-                    </div>
-                  </div>
-                  <div className="vat-pair" style={{ display: "flex", gap: "18px", alignItems: "flex-start" }}>
-                    <section className="card" style={{ flexGrow: "1", minWidth: "0", overflow: "hidden" }}>
-                      <div style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: "12px" }}>
-                        <svg width="30" height="30" viewBox="0 0 48 48" aria-hidden="true">
-                          <path d="M10 6H18A4 4 0 0 1 22 10V18A4 4 0 0 1 18 22H10A4 4 0 0 1 6 18V10A4 4 0 0 1 10 6Z" fill="#0ea5e9" />
-                          <path d="M25 14a8 8 0 1 0 16 0a8 8 0 1 0 -16 0Z" fill="#0ea5e9" />
-                          <path d="M14 26L22.5 41.5L5.5 41.5Z" fill="#0ea5e9" />
-                          <path d="M30 26H38A4 4 0 0 1 42 30V38A4 4 0 0 1 38 42H30A4 4 0 0 1 26 38V30A4 4 0 0 1 30 26Z" fill="#0ea5e9" />
-                        </svg>
-                        <div>
-                          <h2 className="h2">{v.t?.rates}</h2>
-                          <div className="hint">{v.t?.ratesH}</div>
-                        </div>
-                      </div>
-                      <div className="gc-table-wrap">
-                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                          <thead>
-                            <tr style={{ background: "#f8fafc" }}>
-                              <th className="th">{v.t?.cCat}</th>
-                              <th className="th">{v.t?.cRate}</th>
-                              <th className="th">{v.t?.cInc}</th>
-                              <th className="th" style={{ textAlign: "right" }}>{v.t?.cSales}</th>
-                              <th className="th" style={{ textAlign: "right" }}>{v.t?.cVat}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {__list(v.rows).map((r, $index) => (<React.Fragment key={$index}>
-                                <tr className="trow">
-                                  <td className="td" style={{ padding: "8px 14px", fontWeight: "var(--weight-medium)" }}>
-                                    <span style={{ display: "flex", alignItems: "center", gap: "10px" }}><span style={__sx(`width: 34px; height: 34px; flex-shrink: 0; border-radius: var(--radius-lg); background: ${r?.tint ?? ""}; color: ${r?.fg ?? ""}; display: flex; align-items: center; justify-content: center;`)}>
-    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d={r?.icon} />
-    </svg>
-  </span>{r?.l}</span>
-                                  </td>
-                                  <td className="td" style={{ padding: "8px 14px" }}>
-                                    <select className="inp num vat-rate" value={r?.rate} onInput={r?.setRate} onChange={r?.setRate} aria-label={`${v.t?.cRate ?? ""} ${r?.l ?? ""}`} style={{ width: "96px", height: "40px", padding: "0 10px", fontWeight: "var(--weight-semibold)" }}>
-                                      {__list(r?.opts).map((o, $index) => (<React.Fragment key={$index}>
-                                          <option value={o?.v}>{o?.l}</option>
-                                        </React.Fragment>))}
-                                    </select>
-                                  </td>
-                                  <td className="td" style={{ padding: "8px 14px" }}>
-                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "var(--text-sm)", color: "#475569" }}><button type="button" className={r?.incCls} aria-pressed={r?.inc} aria-label={`${v.t?.cInc ?? ""} ${r?.l ?? ""}`} onClick={r?.toggleInc} />{r?.incL}</span>
-                                  </td>
-                                  <td className="td num" style={{ padding: "8px 14px", textAlign: "right" }}>{r?.sales}</td>
-                                  <td className="td num" style={__sx(`padding: 8px 14px; text-align: right; font-weight: var(--weight-semibold); color: ${r?.vfg ?? ""};`)}>{r?.vat}</td>
-                                </tr>
-                              </React.Fragment>))}
-                            <tr style={{ background: "#f8fafc" }}>
-                              <td className="td" style={{ fontWeight: "var(--weight-semibold)" }}>{v.t?.total}</td>
-                              <td className="td" />
-                              <td className="td" />
-                              <td className="td num" style={{ textAlign: "right", fontWeight: "var(--weight-semibold)" }}>{v.k?.sales}</td>
-                              <td className="td num" style={{ textAlign: "right", fontWeight: "var(--weight-semibold)", color: "#003087" }}>{v.k?.out}</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    </section>
-                    <section className="card vat-inv" style={{ width: "440px", flexShrink: "0", padding: "14px 18px 18px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                      <div className="vat-inv__head" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <svg width="30" height="30" viewBox="0 0 48 48" aria-hidden="true">
-                          <path d="M11 4H33A3 3 0 0 1 36 7V39A3 3 0 0 1 33 42H11A3 3 0 0 1 8 39V7A3 3 0 0 1 11 4Z" fill="#e0f2fe" />
-                          <path d="M11.5 5.5H32.5A2 2 0 0 1 34.5 7.5V38.5A2 2 0 0 1 32.5 40.5H11.5A2 2 0 0 1 9.5 38.5V7.5A2 2 0 0 1 11.5 5.5Z" fill="#ffffff" />
-                          <path d="M14.6 10H23.4A1.6 1.6 0 0 1 25 11.6V11.6A1.6 1.6 0 0 1 23.4 13.2H14.6A1.6 1.6 0 0 1 13 11.6V11.6A1.6 1.6 0 0 1 14.6 10Z" fill="#0ea5e9" />
-                          <path d="M14.1 17H29.9A1.1 1.1 0 0 1 31 18.1V18.099999999999998A1.1 1.1 0 0 1 29.9 19.2H14.1A1.1 1.1 0 0 1 13 18.099999999999998V18.1A1.1 1.1 0 0 1 14.1 17Z" fill="#e0f2fe" />
-                          <path d="M14.1 22H29.9A1.1 1.1 0 0 1 31 23.1V23.099999999999998A1.1 1.1 0 0 1 29.9 24.2H14.1A1.1 1.1 0 0 1 13 23.099999999999998V23.1A1.1 1.1 0 0 1 14.1 22Z" fill="#e0f2fe" />
-                          <path d="M14.1 27H23.9A1.1 1.1 0 0 1 25 28.1V28.099999999999998A1.1 1.1 0 0 1 23.9 29.2H14.1A1.1 1.1 0 0 1 13 28.099999999999998V28.1A1.1 1.1 0 0 1 14.1 27Z" fill="#e0f2fe" />
-                          <path d="M27 35a8 8 0 1 0 16 0a8 8 0 1 0 -16 0Z" fill="#e0f2fe" />
-                          <path d="M28.7 35a6.3 6.3 0 1 0 12.6 0a6.3 6.3 0 1 0 -12.6 0Z" fill="none" stroke="#0ea5e9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          <path d="M32.6 34H37.4A1.1 1.1 0 0 1 38.5 35.1V35.1A1.1 1.1 0 0 1 37.4 36.2H32.6A1.1 1.1 0 0 1 31.5 35.1V35.1A1.1 1.1 0 0 1 32.6 34Z" fill="#0ea5e9" />
-                        </svg>
-                        <div style={{ flexGrow: "1" }}>
-                          <h2 className="h2">{v.t?.inv}</h2>
-                          <div className="hint num">{v.t?.invSub}</div>
-                        </div>
-                        <button type="button" className="btn solid sm" onClick={v.printInv}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z" />
-</svg>{v.t?.printInv}</button>
-                      </div>
-                      <div className="vat-rcpt" style={{ border: "1.5px solid #94a3b8", borderRadius: "var(--radius-md)", padding: "14px 16px", background: "#fff", display: "flex", flexDirection: "column", gap: "8px", fontSize: "var(--text-sm)" }}>
-                        <div style={{ textAlign: "center", lineHeight: "20px" }}>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "#475569", fontWeight: "var(--weight-medium)" }}>{v.t?.rForm}</div>
-                          <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>{v.t?.rTitle}</div>
-                        </div>
-                        <div style={{ textAlign: "center", lineHeight: "20px", paddingBottom: "8px", borderBottom: "1px dashed #94a3b8" }}>
-                          <div style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>{v.t?.shop}</div>
-                          <div style={{ color: "#475569" }}>{v.t?.rAddr}</div>
-                          <div className="num" style={{ fontWeight: "var(--weight-medium)" }}>{v.t?.rBin}</div>
-                        </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "2px 10px", lineHeight: "20px" }}>
-                          <span style={{ color: "var(--text-muted)" }}>{v.t?.rNo}</span>
-                          <span className="num" style={{ fontWeight: "var(--weight-medium)" }}>{v.t?.rNoV}</span>
-                          <span style={{ color: "var(--text-muted)" }}>{v.t?.rDate}</span>
-                          <span className="num">{v.t?.rDateV}</span>
-                          <span style={{ color: "var(--text-muted)" }}>{v.t?.rBuyer}</span>
-                          <span className="num">{v.t?.rBuyerV}</span>
-                        </div>
-                        <div className="gc-table-wrap">
-                          <table data-keep="" className="vat-rcpt__items" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
-                            <thead>
-                              <tr>
-                                <th style={{ textAlign: "left", padding: "5px 0", borderTop: "1px solid #0f172a", borderBottom: "1px solid #0f172a", fontWeight: "var(--weight-semibold)" }}>{v.t?.rItem}</th>
-                                <th style={{ textAlign: "right", padding: "5px 0", borderTop: "1px solid #0f172a", borderBottom: "1px solid #0f172a", fontWeight: "var(--weight-semibold)" }}>{v.t?.rQty}</th>
-                                <th style={{ textAlign: "right", padding: "5px 0", borderTop: "1px solid #0f172a", borderBottom: "1px solid #0f172a", fontWeight: "var(--weight-semibold)" }}>{v.t?.rPrice}</th>
-                                <th style={{ textAlign: "right", padding: "5px 0", borderTop: "1px solid #0f172a", borderBottom: "1px solid #0f172a", fontWeight: "var(--weight-semibold)" }}>{v.t?.rVat}</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {__list(v.items).map((it, $index) => (<React.Fragment key={$index}>
-                                  <tr>
-                                    <td style={{ padding: "3px 0" }}>{it?.l} <span style={{ color: "var(--text-muted)", fontSize: "var(--text-xs-plus)" }}>{it?.rate}</span></td>
-                                    <td className="num" style={{ padding: "3px 0", textAlign: "right" }}>{it?.q}</td>
-                                    <td className="num" style={{ padding: "3px 0", textAlign: "right" }}>{it?.amt}</td>
-                                    <td className="num" style={{ padding: "3px 0", textAlign: "right", color: "#475569" }}>{it?.vat}</td>
-                                  </tr>
-                                </React.Fragment>))}
-                            </tbody>
-                          </table>
-                        </div>
-                        <div style={{ borderTop: "1px solid #0f172a", paddingTop: "6px", display: "flex", flexDirection: "column", gap: "2px" }}>
-                          <div style={{ display: "flex" }}>
-                            <span style={{ flexGrow: "1", color: "#475569" }}>{v.t?.rNet}</span>
-                            <span className="num">{v.rc?.net}</span>
-                          </div>
-                          <div style={{ display: "flex" }}>
-                            <span style={{ flexGrow: "1", color: "#475569" }}>{v.t?.rVatT}</span>
-                            <span className="num">{v.rc?.vat}</span>
-                          </div>
-                          <div style={{ display: "flex", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>
-                            <span style={{ flexGrow: "1" }}>{v.t?.rGrand}</span>
-                            <span className="num">{v.rc?.grand}</span>
-                          </div>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "flex-end", paddingTop: "10px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>
-                          <span style={{ flexGrow: "1" }}>{v.t?.rFoot}</span>
-                          <span style={{ borderTop: "1px solid #94a3b8", paddingTop: "2px", minWidth: "120px", textAlign: "center" }}>{v.t?.rSign}</span>
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                  <section className="card" style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <svg width="30" height="30" viewBox="0 0 48 48" aria-hidden="true">
-                        <path d="M11 4H33A3 3 0 0 1 36 7V39A3 3 0 0 1 33 42H11A3 3 0 0 1 8 39V7A3 3 0 0 1 11 4Z" fill="#e0f2fe" />
-                        <path d="M11.5 5.5H32.5A2 2 0 0 1 34.5 7.5V38.5A2 2 0 0 1 32.5 40.5H11.5A2 2 0 0 1 9.5 38.5V7.5A2 2 0 0 1 11.5 5.5Z" fill="#ffffff" />
-                        <path d="M14 27H16.5A1 1 0 0 1 17.5 28V36A1 1 0 0 1 16.5 37H14A1 1 0 0 1 13 36V28A1 1 0 0 1 14 27Z" fill="#7dd3fc" />
-                        <path d="M20.5 21H23.0A1 1 0 0 1 24.0 22V36A1 1 0 0 1 23.0 37H20.5A1 1 0 0 1 19.5 36V22A1 1 0 0 1 20.5 21Z" fill="#0ea5e9" />
-                        <path d="M27 15H29.5A1 1 0 0 1 30.5 16V36A1 1 0 0 1 29.5 37H27A1 1 0 0 1 26 36V16A1 1 0 0 1 27 15Z" fill="#0ea5e9" />
-                        <path d="M28 34a7 7 0 1 0 14 0a7 7 0 1 0 -14 0Z" fill="#e0f2fe" />
-                        <path d="M29 34a6 6 0 1 0 12 0a6 6 0 1 0 -12 0Z" fill="none" stroke="#0ea5e9" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M39.5 38.5L44 43" fill="none" stroke="#0ea5e9" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      <div style={{ flexGrow: "1" }}>
-                        <h2 className="h2">{v.t?.ret}</h2>
-                        <div className="hint num">{v.retSub}</div>
-                      </div>
-                      <span style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", color: "#334155" }}>{v.t?.dl}</span>
-                      <button type="button" className="btn line sm" onClick={v.dlXls}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M12 5v14M5 12l7 7 7-7" />
-</svg>Excel</button>
-                      <button type="button" className="btn line sm" onClick={v.dlPdf}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M12 5v14M5 12l7 7 7-7" />
-</svg>PDF</button>
-                    </div>
-                    <div className="gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px" }}>
-                      {__list(v.checks).map((x, $index) => (<React.Fragment key={$index}>
-                          <div style={__sx(`display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-radius: var(--radius-xl); border: 1px solid ${x?.bd ?? ""}; background: ${x?.bg ?? ""};`)}>
-                            <span style={__sx(`width: 34px; height: 34px; flex-shrink: 0; border-radius: var(--radius-full); background: ${x?.ibg ?? ""}; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: var(--weight-semibold);`)}>{x?.ic}</span>
-                            <div style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "4px" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                {x?.i0 ? (<>
-                                  <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true">
-                                    <path d="M12 5H32A3 3 0 0 1 35 8V39A3 3 0 0 1 32 42H12A3 3 0 0 1 9 39V8A3 3 0 0 1 12 5Z" fill="#0ea5e9" />
-                                    <path d="M11.5 5H12.5A2.5 2.5 0 0 1 15 7.5V39.5A2.5 2.5 0 0 1 12.5 42H11.5A2.5 2.5 0 0 1 9 39.5V7.5A2.5 2.5 0 0 1 11.5 5Z" fill="#003087" />
-                                    <path d="M16.5 8H31.5A1.5 1.5 0 0 1 33 9.5V37.5A1.5 1.5 0 0 1 31.5 39H16.5A1.5 1.5 0 0 1 15 37.5V9.5A1.5 1.5 0 0 1 16.5 8Z" fill="#ffffff" />
-                                    <path d="M19.1 13H28.9A1.1 1.1 0 0 1 30 14.1V14.1A1.1 1.1 0 0 1 28.9 15.2H19.1A1.1 1.1 0 0 1 18 14.1V14.1A1.1 1.1 0 0 1 19.1 13Z" fill="#e0f2fe" />
-                                    <path d="M19.1 18H28.9A1.1 1.1 0 0 1 30 19.1V19.099999999999998A1.1 1.1 0 0 1 28.9 20.2H19.1A1.1 1.1 0 0 1 18 19.099999999999998V19.1A1.1 1.1 0 0 1 19.1 18Z" fill="#e0f2fe" />
-                                    <path d="M19.1 23H25.9A1.1 1.1 0 0 1 27 24.1V24.099999999999998A1.1 1.1 0 0 1 25.9 25.2H19.1A1.1 1.1 0 0 1 18 24.099999999999998V24.1A1.1 1.1 0 0 1 19.1 23Z" fill="#e0f2fe" />
-                                    <path d="M26 35a9 9 0 1 0 18 0a9 9 0 1 0 -18 0Z" fill="#ffffff" />
-                                    <path d="M27.5 35a7.5 7.5 0 1 0 15.0 0a7.5 7.5 0 1 0 -15.0 0Z" fill="#0ea5e9" />
-                                    <path d="M35 39.5V30.5M31 34.5l4 -4 4 4" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-                                  </svg>
-                                </>) : null}
-                                {x?.i1 ? (<>
-                                  <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true">
-                                    <path d="M12 5H32A3 3 0 0 1 35 8V39A3 3 0 0 1 32 42H12A3 3 0 0 1 9 39V8A3 3 0 0 1 12 5Z" fill="#0ea5e9" />
-                                    <path d="M11.5 5H12.5A2.5 2.5 0 0 1 15 7.5V39.5A2.5 2.5 0 0 1 12.5 42H11.5A2.5 2.5 0 0 1 9 39.5V7.5A2.5 2.5 0 0 1 11.5 5Z" fill="#003087" />
-                                    <path d="M16.5 8H31.5A1.5 1.5 0 0 1 33 9.5V37.5A1.5 1.5 0 0 1 31.5 39H16.5A1.5 1.5 0 0 1 15 37.5V9.5A1.5 1.5 0 0 1 16.5 8Z" fill="#ffffff" />
-                                    <path d="M19.1 13H28.9A1.1 1.1 0 0 1 30 14.1V14.1A1.1 1.1 0 0 1 28.9 15.2H19.1A1.1 1.1 0 0 1 18 14.1V14.1A1.1 1.1 0 0 1 19.1 13Z" fill="#e0f2fe" />
-                                    <path d="M19.1 18H28.9A1.1 1.1 0 0 1 30 19.1V19.099999999999998A1.1 1.1 0 0 1 28.9 20.2H19.1A1.1 1.1 0 0 1 18 19.099999999999998V19.1A1.1 1.1 0 0 1 19.1 18Z" fill="#e0f2fe" />
-                                    <path d="M19.1 23H25.9A1.1 1.1 0 0 1 27 24.1V24.099999999999998A1.1 1.1 0 0 1 25.9 25.2H19.1A1.1 1.1 0 0 1 18 24.099999999999998V24.1A1.1 1.1 0 0 1 19.1 23Z" fill="#e0f2fe" />
-                                    <path d="M26 35a9 9 0 1 0 18 0a9 9 0 1 0 -18 0Z" fill="#ffffff" />
-                                    <path d="M27.5 35a7.5 7.5 0 1 0 15.0 0a7.5 7.5 0 1 0 -15.0 0Z" fill="#0ea5e9" />
-                                    <path d="M35 30.5V39.5M31 35.5l4 4 4 -4" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-                                  </svg>
-                                </>) : null}
-                                {x?.i2 ? (<>
-                                  <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true">
-                                    <path d="M4 17L24 5L44 17Z" fill="#0ea5e9" />
-                                    <path d="M7 16H41A1 1 0 0 1 42 17V19A1 1 0 0 1 41 20H7A1 1 0 0 1 6 19V17A1 1 0 0 1 7 16Z" fill="#003087" />
-                                    <path d="M9 21h4.5v14h-4.5Z" fill="#7dd3fc" />
-                                    <path d="M17 21h4.5v14h-4.5Z" fill="#7dd3fc" />
-                                    <path d="M26.5 21h4.5v14h-4.5Z" fill="#7dd3fc" />
-                                    <path d="M34.5 21h4.5v14h-4.5Z" fill="#7dd3fc" />
-                                    <path d="M6.5 35H41.5A1.5 1.5 0 0 1 43 36.5V39.5A1.5 1.5 0 0 1 41.5 41H6.5A1.5 1.5 0 0 1 5 39.5V36.5A1.5 1.5 0 0 1 6.5 35Z" fill="#003087" />
-                                    <path d="M21.8 12.5a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0 -4.4 0Z" fill="#7dd3fc" />
-                                  </svg>
-                                </>) : null}
-                                <span style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", flexGrow: "1" }}>{x?.l}</span>
-                                <span className={x?.pcls}>{x?.st}</span>
-                              </div>
-                              <span className="hint num">{x?.s}</span>
-                              {x?.canMark ? (<>
-                                <button type="button" className="btn okb sm" onClick={x?.mark} style={{ alignSelf: "flex-start", marginTop: "4px" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M20 6 9 17l-5-5" />
-</svg>{v.t?.markPaid}</button>
-                              </>) : null}
-                            </div>
-                          </div>
-                        </React.Fragment>))}
-                    </div>
-                    <div className="note n-warn" style={{ alignItems: "center" }}>
-                      <svg width="40" height="40" viewBox="0 0 48 48" aria-hidden="true">
-                        <path d="M12 7H27A8 8 0 0 1 35 15V22A8 8 0 0 1 27 30H12A8 8 0 0 1 4 22V15A8 8 0 0 1 12 7Z" fill="#0ea5e9" />
-                        <path d="M11 28L9 37L19 29.5Z" fill="#0ea5e9" />
-                        <path d="M10.7 18.5a2.3 2.3 0 1 0 4.6 0a2.3 2.3 0 1 0 -4.6 0Z" fill="#ffffff" />
-                        <path d="M17.7 18.5a2.3 2.3 0 1 0 4.6 0a2.3 2.3 0 1 0 -4.6 0Z" fill="#ffffff" />
-                        <path d="M24.7 18.5a2.3 2.3 0 1 0 4.6 0a2.3 2.3 0 1 0 -4.6 0Z" fill="#ffffff" />
-                        <path d="M29 22H37A7 7 0 0 1 44 29V32A7 7 0 0 1 37 39H29A7 7 0 0 1 22 32V29A7 7 0 0 1 29 22Z" fill="#0ea5e9" />
-                        <path d="M37.5 37L41 43L32.5 38Z" fill="#0ea5e9" />
-                        <path d="M28.3 29H37.7A1.3 1.3 0 0 1 39 30.3V30.3A1.3 1.3 0 0 1 37.7 31.6H28.3A1.3 1.3 0 0 1 27 30.3V30.3A1.3 1.3 0 0 1 28.3 29Z" fill="#ffffff" />
-                      </svg>
-                      <span>{v.t?.consult}</span>
-                    </div>
-                  </section>
-                </div>
-              </>) : null}
-              {v.notReg ? (<>
-                <section className="card fade" style={{ padding: "22px 26px", display: "flex", flexDirection: "column", gap: "16px", maxWidth: "860px" }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "14px" }}>
-                    <span style={{ width: "52px", height: "52px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#f5f8ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <svg width="38" height="38" viewBox="0 0 48 48" aria-hidden="true">
-                        <path d="M9 18H39A1 1 0 0 1 40 19V41A1 1 0 0 1 39 42H9A1 1 0 0 1 8 41V19A1 1 0 0 1 9 18Z" fill="#e0f2fe" />
-                        <path d="M7 9H41A2 2 0 0 1 43 11V17A2 2 0 0 1 41 19H7A2 2 0 0 1 5 17V11A2 2 0 0 1 7 9Z" fill="#0ea5e9" />
-                        <path d="M11 9h6v10h-6Z" fill="#ffffff" />
-                        <path d="M23 9h6v10h-6Z" fill="#ffffff" />
-                        <path d="M35 9h5v10h-5Z" fill="#ffffff" />
-                        <path d="M21 28H28A1 1 0 0 1 29 29V41A1 1 0 0 1 28 42H21A1 1 0 0 1 20 41V29A1 1 0 0 1 21 28Z" fill="#0ea5e9" />
-                        <path d="M12.5 23H17.0A1 1 0 0 1 18.0 24V28A1 1 0 0 1 17.0 29H12.5A1 1 0 0 1 11.5 28V24A1 1 0 0 1 12.5 23Z" fill="#7dd3fc" />
-                        <path d="M32 23H36.5A1 1 0 0 1 37.5 24V28A1 1 0 0 1 36.5 29H32A1 1 0 0 1 31 28V24A1 1 0 0 1 32 23Z" fill="#7dd3fc" />
-                      </svg>
-                    </span>
-                    <div>
-                      <h2 className="h2" style={{ fontSize: "var(--text-xl)" }}>{v.t?.nrH}</h2>
-                      <p style={{ margin: "6px 0 0", fontSize: "var(--text-base)", lineHeight: "24px", color: "#334155" }}>{v.t?.nrP}</p>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                    {__list(v.tiers).map((x, $index) => (<React.Fragment key={$index}>
-                        <div style={__sx(`display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: var(--radius-xl); border: 2px solid ${x?.bd ?? ""}; background: ${x?.bg ?? ""};`)}>
-                          <span className="num" style={{ width: "210px", flexShrink: "0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)" }}>{x?.range}</span>
-                          <span style={{ flexGrow: "1", fontSize: "var(--text-sm-plus)", color: "#334155" }}>{x?.rule}</span>
-                          {x?.you ? (<>
-                            <span className="pill p-info">{v.t?.nrYou}</span>
-                          </>) : null}
-                        </div>
-                      </React.Fragment>))}
-                  </div>
-                  <div style={{ padding: "16px 18px", borderRadius: "var(--radius-xl)", background: "#f8fafc", border: "1px solid #e6eaf0", display: "flex", flexDirection: "column", gap: "6px" }}>
-                    <span className="lbl" style={{ display: "flex", alignItems: "center", gap: "8px" }}><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true">
-  <path d="M10 5L38 5L38 42L34 39L30 42L26 39L22 42L18 39L14 42L10 39Z" fill="#e0f2fe" />
-  <path d="M14.7 16a3.8 3.8 0 1 0 7.6 0a3.8 3.8 0 1 0 -7.6 0Z" fill="#0ea5e9" />
-  <path d="M25.7 27a3.8 3.8 0 1 0 7.6 0a3.8 3.8 0 1 0 -7.6 0Z" fill="#0ea5e9" />
-  <path d="M31 13L17 30" fill="none" stroke="#0ea5e9" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
-  <path d="M15.2 34H32.8A1.2 1.2 0 0 1 34 35.2V35.199999999999996A1.2 1.2 0 0 1 32.8 36.4H15.2A1.2 1.2 0 0 1 14 35.199999999999996V35.2A1.2 1.2 0 0 1 15.2 34Z" fill="#7dd3fc" />
-</svg>{v.t?.nrCalc}</span>
-                    <span className="num" style={{ fontSize: "var(--text-base)" }}>{v.tot?.line}</span>
-                    <span className="num" style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", color: "#a14f06" }}>{v.tot?.amt}</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <div style={{ flexGrow: "1" }}>
-                      <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>{v.t?.nrTot}</div>
-                      <div className="hint">{v.t?.nrTotH}</div>
-                    </div>
-                    <button type="button" className={v.totSw?.cls} aria-pressed={v.totSw?.on} aria-label={v.t?.nrTot} onClick={v.totSw?.toggle} />
-                  </div>
-                  <div className="note n-warn" style={{ alignItems: "center" }}>
-                    <svg width="40" height="40" viewBox="0 0 48 48" aria-hidden="true">
-                      <path d="M12 7H27A8 8 0 0 1 35 15V22A8 8 0 0 1 27 30H12A8 8 0 0 1 4 22V15A8 8 0 0 1 12 7Z" fill="#0ea5e9" />
-                      <path d="M11 28L9 37L19 29.5Z" fill="#0ea5e9" />
-                      <path d="M10.7 18.5a2.3 2.3 0 1 0 4.6 0a2.3 2.3 0 1 0 -4.6 0Z" fill="#ffffff" />
-                      <path d="M17.7 18.5a2.3 2.3 0 1 0 4.6 0a2.3 2.3 0 1 0 -4.6 0Z" fill="#ffffff" />
-                      <path d="M24.7 18.5a2.3 2.3 0 1 0 4.6 0a2.3 2.3 0 1 0 -4.6 0Z" fill="#ffffff" />
-                      <path d="M29 22H37A7 7 0 0 1 44 29V32A7 7 0 0 1 37 39H29A7 7 0 0 1 22 32V29A7 7 0 0 1 29 22Z" fill="#0ea5e9" />
-                      <path d="M37.5 37L41 43L32.5 38Z" fill="#0ea5e9" />
-                      <path d="M28.3 29H37.7A1.3 1.3 0 0 1 39 30.3V30.3A1.3 1.3 0 0 1 37.7 31.6H28.3A1.3 1.3 0 0 1 27 30.3V30.3A1.3 1.3 0 0 1 28.3 29Z" fill="#ffffff" />
-                    </svg>
-                    <span>{v.t?.nrConsult}</span>
-                  </div>
-                </section>
-              </>) : null}
-            </div>
-          </main>
-          {v.hasMsg ? (<>
-            <div className="fade gc-on-dark" role="status" style={{ position: "absolute", top: "90px", left: "50%", transform: "translateX(-50%)", zIndex: "30", display: "flex", alignItems: "center", gap: "10px", padding: "12px 18px", borderRadius: "var(--radius-xl)", background: "#0f172a", color: "#fff", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-medium)", boxShadow: "0 16px 36px -14px rgba(15,23,42,.6)", maxWidth: "640px" }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M20 6 9 17l-5-5" />
-              </svg>
-              <span>{v.msg}</span>
-            </div>
-          </>) : null}
-          <__Link href="/grid-ai" className="gfab" aria-label="Open GridAI">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />
-              <path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z" />
-            </svg>
-            <span>GridAI</span>
-          </__Link>
-        </div>
+  // the rates and the "not registered" switch are kept, and the POS register charges VAT from them
+  useEffect(() => { const saved = loadVat(); setRates(saved.rates || {}); setNr(!!saved.notReg); loaded.current = true; }, []);
+  useEffect(() => { if (loaded.current) saveVat({ rates: rates || {}, notReg: !!nr }); }, [rates, nr]);
+
+  const M = MON.find((m) => m[0] === mon) || MON[2];
+  const isCur = mon === 'sep';
+  const paid = paidCh || !isCur;
+  let totSales = 0, out = 0;
+  const rows = CATS.map((c) => {
+    const r = rates[c[0]] == null ? c[2] : rates[c[0]];
+    const ic = inc[c[0]] == null ? c[3] : inc[c[0]];
+    const sales = Math.round(c[4] * M[2]);
+    const v = Math.round(ic ? sales * r / (100 + r) : sales * r / 100);
+    totSales += sales; out += v;
+    return { key: c[0], label: c[1], rate: r, inc: ic, sales, vat: v };
+  });
+  const inp = M[3], pay = Math.max(0, out - inp);
+  let rcVat = 0, rcTot = 0;
+  const items = ITEMS.map((x) => { const amt = x[1] * x[2], v = amt * x[3] / (100 + x[3]); rcVat += v; rcTot += amt; return { label: x[0], rate: pct(x[3]), qty: x[1], amt: money(amt), vat: x[3] ? m2(v) : '—' }; });
+  const checks = [
+    ['Sales records', 'Built from 1,688 memos', true, false],
+    ['Purchase records', 'From 42 supplier invoices', true, false],
+    ['Treasury challan', paid ? (isCur ? 'Challan no. 2610-004873 · ' + money(pay) : 'Paid · ' + money(pay)) : 'Pay at the bank or online, then enter the challan number', paid, !paid],
+  ];
+
+  const printInv = () => toast('Printing Mushak-6.3 invoice for memo #1042', { tone: 'info' });
+  const dlXls = () => toast('Downloading the Mushak-9.1 report as Excel…', { tone: 'info' });
+  const dlPdf = () => toast('Downloading the Mushak-9.1 report as PDF…', { tone: 'info' });
+  const markPaid = () => { setPaidCh(true); toast('Treasury challan marked as paid. The return is ready.'); };
+
+  return (
+    <AccPage screen="Vat" active="acc-setup" page="VAT" title="VAT" css={CSS} back="/account-setup?tab=advanced" backLabel="Accounts setup" narrow about={ABOUT}
+      placeholder="Search products, customers or memo no."
+      secondary={nr ? [] : [{ label: 'VAT invoice (Mushak-6.3)', onClick: () => setReceipt(true) }]}
+      more={nr ? [] : [{ label: 'Download report · Excel', onClick: dlXls }, { label: 'Download report · PDF', onClick: dlPdf }]}>
+
+      <div className="vt-bar">
+        {nr ? <span /> : (
+          <select className="ix-pick" aria-label="Month" value={mon} onChange={(e) => setMon(e.target.value)}>
+            {MON.map((m) => <option key={m[0]} value={m[0]}>{m[1]}</option>)}
+          </select>
+        )}
+        <label className="vt-switch" htmlFor="vt-notreg">
+          <button id="vt-notreg" type="button" role="switch" aria-checked={nr} className="gc-switch" onClick={() => setNr(!nr)}><span className="gc-switch__knob" /></button>
+          <span>My shop is not VAT-registered</span>
+        </label>
       </div>
-    );
-  }
+
+      {!nr ? (<>
+        <MetricStrip label={'VAT · ' + M[1]} items={[
+          { label: 'VAT collected on sales', value: money(out), sub: 'Taken from customers' },
+          { label: 'VAT paid on purchases', value: money(inp), sub: 'Deducted' },
+          { label: 'To pay this month', value: money(pay), sub: 'Collected − paid' },
+          { label: 'Last date to pay', value: M[5], sub: isCur ? '16 days left' : M[4] },
+        ]} />
+
+        <section className="ix-card" aria-labelledby="vt-rates">
+          <header className="ix-card__head"><h2 id="vt-rates">VAT rate by category <InfoTip text={'Change a rate or the "included" switch and the totals above update. VAT paid on supplier invoices is deducted from what you collected.'} /></h2></header>
+          <div className="ix-table-wrap ix-table-wrap--show" style={{ marginTop: 'var(--space-3)' }}>
+            <table className="ix-table ix-table--static gc-table--keep">
+              <caption className="sr-only">VAT rate by category, {M[1]}</caption>
+              <thead><tr><th scope="col">Category</th><th scope="col">Rate</th><th scope="col">VAT in price?</th><th scope="col" className="ix-num">Sales</th><th scope="col" className="ix-num">VAT</th></tr></thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.key}>
+                    <td className="ix-strong">{r.label}</td>
+                    <td>
+                      <select className="ix-pick vt-rate" value={String(r.rate)} aria-label={`Rate ${r.label}`} onChange={(e) => setRates({ ...rates, [r.key]: parseFloat(e.target.value) || 0 })}>
+                        {RATES.map((x) => <option key={x} value={String(x)}>{pct(x)}</option>)}
+                      </select>
+                    </td>
+                    <td>
+                      <span className="vt-inc"><button type="button" role="switch" aria-checked={r.inc} aria-label={`VAT in price? ${r.label}`} className="gc-switch" onClick={() => setInc({ ...inc, [r.key]: !r.inc })}><span className="gc-switch__knob" /></button>{r.inc ? 'Yes' : 'No, added on top'}</span>
+                    </td>
+                    <td className="ix-num vt-fig">{money(r.sales)}</td>
+                    <td className={'ix-num vt-fig' + (r.vat ? ' ix-strong' : ' ix-muted')}>{r.vat ? money(r.vat) : '—'}</td>
+                  </tr>
+                ))}
+                <tr className="ac-grp"><th scope="row" colSpan={3}>Total</th><td className="ix-num vt-fig">{money(totSales)}</td><td className="ix-num vt-fig">{money(out)}</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="ix-card" aria-labelledby="vt-return">
+          <header className="ix-card__head">
+            <div><h2 id="vt-return">Monthly return (Mushak-9.1)</h2><p className="ix-card__sub">Return for {M[1]} · file by {M[5]}</p></div>
+            <Menu label="Download report" cls="ix-btn ix-btn--sm" items={[{ label: 'Excel', onClick: dlXls }, { label: 'PDF', onClick: dlPdf }]} />
+          </header>
+          <div style={{ height: 'var(--space-3)' }} />
+          <ul className="vt-checks">
+            {checks.map(([label, sub, ok, canMark]) => (
+              <li key={label} className="vt-check">
+                <span><b>{label}</b><small className="vt-fig">{sub}</small></span>
+                <StatusBadge tone={ok ? 'success' : 'warning'}>{ok ? 'Ready' : 'Pending'}</StatusBadge>
+                {canMark ? <button type="button" className="ix-btn ix-btn--sm" onClick={markPaid}><Icon name="check" width="16" height="16" aria-hidden="true" />Mark as paid</button> : null}
+              </li>
+            ))}
+          </ul>
+          <p className="vt-warn"><Icon name="triangle-alert" width="16" height="16" aria-hidden="true" /><span>These figures come from your own records. Check them with a VAT consultant before you file the return.</span></p>
+        </section>
+      </>) : (
+        <section className="ix-card" aria-labelledby="vt-nr">
+          <header className="ix-card__head"><h2 id="vt-nr">If your shop is not VAT-registered <InfoTip text="Then do not charge customers VAT — memos will not show VAT either. What applies depends on your yearly sales." /></h2></header>
+          <div className="ix-card__body vt-body">
+            <ul className="vt-tiers">
+              {TIERS.map(([range, rule, you]) => (
+                <li key={range} className={'vt-tier' + (you ? ' is-you' : '')}>
+                  <b className="vt-fig">{range}</b><span>{rule}</span>{you ? <StatusBadge tone="info" icon="store">Your shop</StatusBadge> : null}
+                </li>
+              ))}
+            </ul>
+            <div className="vt-calc">
+              <span>What turnover tax could be</span>
+              <span className="vt-fig">Sales in the last 3 months {money(Q3)} × 4%</span>
+              <b>About {money(Q3 * 0.04)}</b>
+            </div>
+            <div className="vt-row">
+              <span><b>Keep turnover tax records</b><small>Shows what is due every 3 months</small></span>
+              <button type="button" role="switch" aria-checked={totSw} aria-label="Keep turnover tax records" className="gc-switch" onClick={() => setTotSw(!totSw)}><span className="gc-switch__knob" /></button>
+            </div>
+          </div>
+          <p className="vt-warn"><Icon name="triangle-alert" width="16" height="16" aria-hidden="true" /><span>Rules can change. Ask a VAT consultant which one applies to your shop.</span></p>
+        </section>
+      )}
+
+      <Dialog open={receipt} title="VAT invoice (Mushak-6.3)" onClose={() => setReceipt(false)} width={460}
+        footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setReceipt(false)}>Close</button><button type="button" className="gc-btn gc-btn--solid" onClick={printInv}><Icon name="printer" width="16" height="16" aria-hidden="true" /> Print</button></>}>
+        <p className="gc-help" style={{ margin: '0 0 var(--space-3)' }}>Memo #1042 · Rafiq Mia · today 10:42 AM</p>
+        <div className="vt-rcpt">
+          <div className="vt-rcpt__c"><small>Mushak-6.3</small><b>Tax invoice</b></div>
+          <div className="vt-rcpt__c vt-rcpt__shop"><b>GridShop</b><small>House 12, Road 3, Mirpur-10, Dhaka</small><small className="vt-fig">BIN: 000123456-0101</small></div>
+          <dl className="vt-rcpt__facts">
+            <dt>Invoice no.</dt><dd className="vt-fig">#1042</dd>
+            <dt>Date & time</dt><dd className="vt-fig">29/09/2026, 10:42 AM</dd>
+            <dt>Buyer</dt><dd className="vt-fig">Rafiq Mia · 01812-345678</dd>
+          </dl>
+          <table>
+            <thead><tr><th scope="col">Item</th><th scope="col" className="r">Qty</th><th scope="col" className="r">Price</th><th scope="col" className="r">VAT</th></tr></thead>
+            <tbody>{items.map((it) => <tr key={it.label}><td>{it.label} <span className="ix-muted">{it.rate}</span></td><td className="r">{it.qty}</td><td className="r">{it.amt}</td><td className="r ix-muted">{it.vat}</td></tr>)}</tbody>
+          </table>
+          <dl className="ix-sum vt-rcpt__tot">
+            <dt>Price without VAT</dt><dd className="vt-fig">{m2(rcTot - rcVat)}</dd>
+            <dt>Total VAT</dt><dd className="vt-fig">{m2(rcVat)}</dd>
+            <dt className="is-total">Grand total</dt><dd className="is-total vt-fig">{m2(rcTot)}</dd>
+          </dl>
+          <div className="vt-rcpt__foot"><span>Prices include VAT</span><span>Seller’s signature</span></div>
+        </div>
+      </Dialog>
+    </AccPage>
+  );
 }

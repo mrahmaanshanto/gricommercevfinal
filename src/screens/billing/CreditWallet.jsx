@@ -1,38 +1,26 @@
 'use client';
 // Generated from design/templates/billing/CreditWallet.dc.html by scripts/convert-design.mjs.
-// Wallet & credits — Settings — wallet and credits for AI calls, SMS and WhatsApp, top-up through SSLCOMMERZ.
+// Wallet & credits — Settings — wallet and credits for AI calls, SMS and WhatsApp, top-up through SSLCOMMERZ. Laid out
+// like a Shopify settings record: the balance on one line, four key figures, then Add money and the wallet history
+// (views by kind), with balance alerts and the price list in the side column.
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
-import __Link from 'next/link';
 import { PaymentLogo } from '@/components/PaymentLogo';
 import { SERVICES, costOf, CREDITS_ACCOUNT } from '@/lib/platformCosts';
 import { usageThisMonth, creditsLeft } from '@/lib/platformUsage';
 import { transferBetween } from '@/lib/ledger';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+import { DCLogic } from '@/runtime/dc';
+import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
+import { toast as __toast } from '@/runtime/ui';
+import { InfoTip as __InfoTip } from '@/components/ui';
+import { RecordHeader, MetricStrip, IndexTabs } from '@/components/ui/IndexKit';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
 function bdt(n) { var neg = n < 0; var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return (neg ? '−' : '') + '৳' + s; }
-var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
-function mkTabs(self, list, cur, key, counts) { return list.map(function (x) { var on = x.k === cur; var c = counts ? counts[x.k] : null; return { label: x.label, on: on, cls: on ? 'tab on' : 'tab', hasCount: c != null, count: c, countBg: on ? 'rgba(255,255,255,0.2)' : '#e9eef5', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-function mkChips(self, list, cur, key) { return list.map(function (x) { var on = x.k === cur; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-function pTabs(self, list, cur, key, counts) { return mkTabs(self, list, cur, key, counts).map(function (x) { x.pcls = x.on ? 'ptab on' : 'ptab'; return x; }); }
 function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
-function stepN(self, key, def, step, min, max) { var s = self.state || {}; var v = s[key] == null ? def : s[key]; return { v: v, dec: function () { var p = {}; p[key] = Math.max(min, +(v - step).toFixed(2)); self.setState(p); }, inc: function () { var p = {}; p[key] = Math.min(max, +(v + step).toFixed(2)); self.setState(p); } }; }
-function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-function toast(self, m, bad) { clearTimeout(self.t); self.setState({ msg: m, bad: !!bad }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 2800); }
-function msgV(s) { return { hasMsg: !!s.msg, msg: s.msg || '', msgBg: s.bad ? '#fff4e0' : '#e7f8f1', msgFg: s.bad ? '#7a3b04' : '#065f46' }; }
-function segv(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#0b1733' : 'transparent', fg: on ? '#fff' : '#475569', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
-function lseg(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#fff' : 'transparent', fg: on ? '#0b1733' : '#64748b', sh: on ? '0 1px 2px rgba(15,23,42,.08), 0 1px 1px rgba(15,23,42,.04)' : 'none', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
-function ring(pctv, r) { var C = 2 * Math.PI * r; return { da: (C * pctv / 100).toFixed(1) + ' ' + C.toFixed(1) }; }
-function curve(pts) { if (!pts.length) return ''; var d = 'M' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1); for (var i = 0; i < pts.length - 1; i++) { var p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2; var c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6, c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6; d += ' C' + c1x.toFixed(1) + ' ' + c1y.toFixed(1) + ' ' + c2x.toFixed(1) + ' ' + c2y.toFixed(1) + ' ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1); } return d; }
-function pts(vals, w, h, max, min, padT, padB) { padT = padT || 2; padB = padB || 2; min = min == null ? 0 : min; max = max || Math.max.apply(null, vals) || 1; var n = vals.length; return vals.map(function (v, i) { return [n === 1 ? w / 2 : i * w / (n - 1), padT + (h - padT - padB) * (1 - (v - min) / (max - min || 1))]; }); }
-function sparkP(vals, w, h) { w = w || 160; h = h || 30; var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals); var p = pts(vals, w, h, mx + (mx - mn) * .1, mn - (mx - mn) * .15, 3, 2); var l = curve(p); return { line: l, area: l + ' L' + w + ' ' + h + ' L0 ' + h + ' Z' }; }
-function series(n, base, amp, seed, trend) { var out = []; for (var i = 0; i < n; i++) { var s = Math.sin((i + seed) * 1.7) * .5 + Math.sin((i * 3 + seed) * .9) * .3 + Math.cos(i * .45 + seed) * .2; out.push(Math.max(0, base * (1 + (trend || 0) * (i / n - .5)) + amp * s)); } return out; }
-
+function toast(self, m, bad) { __toast(m, bad ? { tone: 'error' } : undefined); }
 function val(e) { return e && e.target ? e.target.value : e; }
 
 var PRICES = [['AI auto-call', 'call up to 1 minute', 4, 212], ['AI call, extra time', 'each extra 30 seconds', 1, 64], ['SMS, masking', 'SMS (160 characters)', 0.6, 1480], ['WhatsApp message', 'message delivered', 1.1, 390], ['GridAI voice', 'minute', 2, 38]];
@@ -51,7 +39,6 @@ class Component extends DCLogic {
   // the balance and this month's usage come from the books (platformCosts.js / platformUsage.js); a top-up moves
   // money from bKash into the GridCommerce credits account
   componentDidMount() { this.setState({ bal: creditsLeft(), use: usageThisMonth() }); }
-  componentWillUnmount() { clearTimeout(this.t); }
   renderVals() {
     var self = this, s = this.state || {};
     var bal = s.bal == null ? 2340.5 : s.bal, amt = s.amt == null ? '1000' : s.amt, lowAt = s.lowAt == null ? '500' : s.lowAt, f = s.f || 'all';
@@ -63,179 +50,61 @@ class Component extends DCLogic {
     var v = {
       headline: tk(bal) + ' available',
       tiles: [
-        { l: 'Balance', v: tk(bal), s: 'about ' + days + ' days at this month’s rate', c: low ? '#fb7185' : '#34d399' },
-        { l: s.use ? 'Spent this month' : 'Spent in September', v: tk(Math.round(spent)), s: 'billed to expenses when the month closes', c: '#60a5fa' },
-        { l: 'AI calls', v: String(s.use ? use['ai-call'] : 212), s: tk(Math.round((s.use ? use['ai-call'] : 212) * 4)) + ' this month', c: '#a78bfa' },
-        { l: 'Messages', v: ((s.use ? use.sms + use.whatsapp : 1870)).toLocaleString('en-IN'), s: (s.use ? use.sms : 1480).toLocaleString('en-IN') + ' SMS · ' + (s.use ? use.whatsapp : 390) + ' WhatsApp', c: '#fbbf24' }
+        { l: 'Balance', v: tk(bal), s: 'about ' + days + ' days' },
+        { l: s.use ? 'Spent this month' : 'Spent in September', v: tk(Math.round(spent)) },
+        { l: 'AI calls', v: String(s.use ? use['ai-call'] : 212), s: tk(Math.round((s.use ? use['ai-call'] : 212) * 4)) },
+        { l: 'Messages', v: ((s.use ? use.sms + use.whatsapp : 1870)).toLocaleString('en-IN'), s: (s.use ? use.sms : 1480).toLocaleString('en-IN') + ' SMS · ' + (s.use ? use.whatsapp : 390) + ' WhatsApp' }
       ],
       low: low, lowMsg: 'Balance is below ' + tk(+lowAt) + '. AI calls pause at ৳0.',
-      amts: ['500', '1000', '2000', '5000'].map(function (a) { var on = a === amt; return { l: bdt(+a), on: on, cls: on ? 'amt on' : 'amt', pick: function () { self.setState({ amt: a }); } }; }),
+      amts: ['500', '1000', '2000', '5000'].map(function (a) { var on = a === amt; return { l: bdt(+a), on: on, pick: function () { self.setState({ amt: a }); } }; }),
       amt: amt, onAmt: function (e) { self.setState({ amt: String(val(e) || '').replace(/\D/g, '') }); },
-      amtBd: ok ? '#cbd5e1' : '#e11d48', amtNc: ok ? '#64748b' : '#b83210', amtNote: ok ? 'Minimum ৳100, maximum ৳1,00,000 per payment.' : 'Enter an amount between ৳100 and ৳1,00,000.',
+      amtOk: ok, amtNote: ok ? 'Minimum ৳100, maximum ৳1,00,000 per payment.' : 'Enter an amount between ৳100 and ৳1,00,000.',
       amtLabel: ok ? bdt(n) : '',
       covers: ok ? [Math.floor(n / 4) + ' AI calls', 'or ' + Math.floor(n / 0.6).toLocaleString('en-IN') + ' SMS', 'or ' + Math.floor(n / 1.1).toLocaleString('en-IN') + ' WhatsApp messages'] : ['—'],
       payNow: function () { if (!ok) { toast(self, 'Enter an amount between ৳100 and ৳1,00,000.', true); return; } transferBetween('bkash', CREDITS_ACCOUNT, n, { ref: 'Credits top-up', party: 'GridCommerce', note: 'Top-up via SSLCOMMERZ' }); self.setState({ bal: bal + n, adds: [['Just now', 'Top-up via SSLCOMMERZ', 'top', 'Payment confirmed · receipt sent', n]].concat(s.adds || []) }); toast(self, 'SSLCOMMERZ payment of ' + bdt(n) + ' received. New balance ' + tk(bal + n) + '. Receipt sent by SMS.'); },
       lowAt: lowAt, onLowAt: function (e) { self.setState({ lowAt: String(val(e) || '').replace(/\D/g, '') }); },
       autoTop: mkSw(self, 'autoTop', false), pauseCall: mkSw(self, 'pauseCall', true),
       prices: s.use ? SERVICES.map(function (p) { var q = use[p.key] || 0; return { s: p.label, u: p.note, p: tk(p.price), m: q.toLocaleString('en-IN') + ' · ' + tk(Math.round(p.price * q)) }; }) : PRICES.map(function (p) { return { s: p[0], u: p[1], p: tk(p[2]), m: p[3].toLocaleString('en-IN') + ' · ' + tk(Math.round(p[2] * p[3])) }; }),
-      chips: CH.map(function (c) { var on = c.k === f; return { label: c.label, cls: on ? 'chip on' : 'chip', pick: function () { self.setState({ f: c.k }); } }; }),
-      hist: (function () { var b = bal, out = []; (s.adds || []).concat(HIST).forEach(function (h) { out.push({ h: h, b: b }); b -= h[4]; }); return out; })().filter(function (x) { return f === 'all' || x.h[2] === f; }).map(function (x) { var h = x.h; return { t: h[0], d: h[1], m: h[3], a: (h[4] > 0 ? '+' : '') + tk(h[4]), c: h[4] > 0 ? '#047857' : '#0f172a', b: tk(x.b) }; })
+      chips: CH.map(function (c) { return { key: c.k, label: c.label, id: 'cw-tab-' + c.k, on: c.k === f, onClick: function () { self.setState({ f: c.k }); } }; }),
+      hist: (function () { var b = bal, out = []; (s.adds || []).concat(HIST).forEach(function (h) { out.push({ h: h, b: b }); b -= h[4]; }); return out; })().filter(function (x) { return f === 'all' || x.h[2] === f; }).map(function (x) { var h = x.h; return { t: h[0], d: h[1], m: h[3], a: (h[4] > 0 ? '+' : '') + tk(h[4]), up: h[4] > 0, b: tk(x.b) }; })
     };
-    return assign(v, msgV(s));
+    return v;
   }
 }
 
-// ---- styles (from the design's <helmet>) ----
+// ---- styles ----
 
 const CSS = `
-body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
-*{box-sizing:border-box}
-a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
-.nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
-.nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
-.btn:hover{text-decoration:none}
-.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
-.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
-.line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
-.warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
-.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
-.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
-.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:var(--text-muted)}
-.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
-.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
-.tab:hover{background:#f1f5f9;color:#0f172a}
-.tab.on{background:#003087;color:#fff}
-.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
-.chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
-.row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
-.b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
-.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
-.b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:var(--font-data);letter-spacing:.02em}
-.fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
-@keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.flash{animation:gcFlash 900ms ease-out}
-@keyframes gcFlash{from{background:#e7f8f1}to{background:transparent}}
-.scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
-@keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
-
-.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
-.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
-.sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
-.t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
-.actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:var(--font-bn)}
-.pulse{animation:gcPulse 1.6s ease-in-out infinite}
-@keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
-@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
-.psec{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
-.num{font-variant-numeric:tabular-nums}
-.ai{height:28px;padding:0 10px;border-radius:var(--radius-lg);border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
-.ai:hover{border-color:#a78bfa;box-shadow:0 4px 12px -6px rgba(91,33,182,.5)}
-.ai:focus-visible{outline:3px solid rgba(124,58,237,.4);outline-offset:2px}
-.abtn{height:32px;padding:0 12px;border-radius:var(--radius-lg);border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-.abtn:hover{background:#f1f5f9}
-.ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0}
-.ptab{position:relative;height:52px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:var(--weight-medium)}
-.ptab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2.5px;border-radius:3px 3px 0 0;background:#003087}
-.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
-.ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
-.thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
-
-.tc{background:#fff;border:1px solid #e7ebf2;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px -20px rgba(15,23,42,.18)}
-.ey{font-size:var(--text-xs);line-height:17px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
-.ey-d{color:rgba(203,216,238,.7)}
-.tn{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;letter-spacing:0}
-.dl{display:inline-flex;align-items:center;gap:3px;height:22px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums}
-.hero{position:relative;overflow:hidden;border-radius:var(--radius-xl);background:#0b1733;color:#fff;padding:24px 26px;--accent-text:#7fcff0;--text-success:#6ee7b7;--text-warning:#fcd34d;--text-danger:#fda4af;--text-info:#7dd3fc}
-.hero::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:32px 32px;pointer-events:none}
-.hero>*{position:relative}
-.ht{border-radius:var(--radius-xl);background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
-.dseg{display:inline-flex;padding:3px;border-radius:var(--radius-full);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1)}
-.dseg button{height:32px;padding:0 14px;border:0;border-radius:var(--radius-full);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
-.lseg{display:inline-flex;padding:3px;border-radius:var(--radius-xl);background:#f1f4f9;border:1px solid #e7ebf2}
-.lseg button{height:32px;padding:0 13px;border:0;border-radius:var(--radius-lg);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease,box-shadow 200ms ease}
-button:active,.btn:active,.abtn:active{transform:scale(.97)}
-.btn,.abtn{transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
-.st>*{animation:taUp 420ms cubic-bezier(.23,1,.32,1) both}
-.st>*:nth-child(2){animation-delay:40ms}.st>*:nth-child(3){animation-delay:80ms}.st>*:nth-child(4){animation-delay:120ms}.st>*:nth-child(5){animation-delay:160ms}.st>*:nth-child(6){animation-delay:200ms}.st>*:nth-child(7){animation-delay:240ms}.st>*:nth-child(8){animation-delay:280ms}
-@keyframes taUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.gr{transform-origin:left center;animation:taGrow 700ms cubic-bezier(.23,1,.32,1) both}
-@keyframes taGrow{from{transform:scaleX(.35);opacity:0}to{transform:none;opacity:1}}
-.draw{stroke-dasharray:1600;stroke-dashoffset:0;animation:taDraw 1100ms cubic-bezier(.77,0,.175,1) both}
-@keyframes taDraw{from{stroke-dashoffset:1600}to{stroke-dashoffset:0}}
-.fadein{animation:taFade 600ms ease both 200ms}@keyframes taFade{from{opacity:0}to{opacity:1}}
-.tt{position:relative}
-.tt .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px) scale(.97);transform-origin:bottom center;opacity:0;pointer-events:none;transition:opacity 125ms ease-out,transform 125ms ease-out;background:#0b1733;color:#fff;border-radius:var(--radius-lg);padding:8px 10px;font-size:var(--text-xs);white-space:nowrap;box-shadow:0 10px 24px -8px rgba(15,23,42,.45);z-index:5}
-.col{position:relative;flex:1;height:100%;border-radius:var(--radius-md);transition:background-color 150ms ease}
-.col .tip{bottom:auto;top:6px}
-.col .cl{position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(15,23,42,.18);opacity:0;transition:opacity 125ms ease}
-@media (hover:hover) and (pointer:fine){.tt:hover .tip,.col:hover .tip{opacity:1;transform:translate(-50%,0) scale(1)}.col:hover .cl{opacity:1}.row:hover{background:#f7f9fd}.tc.lift{transition:box-shadow 200ms ease,transform 200ms cubic-bezier(.23,1,.32,1)}.tc.lift:hover{box-shadow:0 1px 2px rgba(15,23,42,.05),0 18px 40px -20px rgba(15,23,42,.3)}}
-.tb{width:100%;border-collapse:separate;border-spacing:0}
-.tb th{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #eef1f6;background:#fbfcfe;white-space:nowrap}
-.tb td{padding:13px 16px;border-bottom:1px solid #f1f4f8;font-size:var(--text-sm);vertical-align:middle}
-.tb tr:last-child td{border-bottom:0}
-.tb .r{text-align:right}
-@media (prefers-reduced-motion:reduce){.st>*,.gr,.draw,.fadein{animation:none}}
-
-.sec{display:flex;flex-direction:column;gap:14px;padding:20px 22px}
-.h2{margin:0;font-size:var(--text-base);line-height:22px;font-weight:var(--weight-semibold);color:#0f172a;letter-spacing:0}
-.sub{margin:2px 0 0;font-size:var(--text-xs-plus);line-height:18px;color:var(--text-muted)}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.chk{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid #f1f4f8}
-.chk:last-child{border-bottom:0}
-.pill{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:var(--radius-full);background:#f1f4f9;font-size:var(--text-xs);color:#334155;white-space:nowrap}
-.amt{height:36px;padding:0 16px;border-radius:var(--radius-lg);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:#1e293b;cursor:pointer;font-variant-numeric:tabular-nums}
-.amt.on{border-color:#003087;background:rgba(0,48,135,.06);color:#003087}
-.amt:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.stp2{display:inline-flex;align-items:center;border:1px solid #cbd5e1;border-radius:var(--radius-lg);overflow:hidden;height:40px}
-.stp2 button{width:38px;height:100%;border:0;background:#f8fafc;font:inherit;font-size:var(--text-base);cursor:pointer;color:#334155}
-.stp2 span{min-width:64px;text-align:center;font-size:var(--text-sm);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums}
-.sel{height:44px;padding:0 12px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;width:100%}
-.msgb{max-width:78%;padding:10px 14px;border-radius:var(--radius-xl);font-size:var(--text-sm);line-height:20px}
-.code{margin:0;padding:12px 14px;border-radius:var(--radius-lg);background:#0b1733;color:#cbd8ee;font-size:var(--text-xs);line-height:18px;white-space:pre-wrap;--text-muted:#94a3b8}
-.lrow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 16px;border:0;border-bottom:1px solid #f1f4f8;background:transparent;font:inherit;text-align:left;cursor:pointer}
-.lrow:hover{background:#f7f9fd}.lrow.on{background:rgba(0,48,135,.05)}
-.lrow:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:-3px}
-.pgc>*{flex-shrink:0}.tb th{white-space:normal}.stp2{flex-shrink:0}.pgc>.fill{flex-shrink:1;min-height:0}
-/* phones: every card takes the full width (gc-split stacks the card pairs below 1024px); fields stack,
-   the logo, the pay button and the chip rows stay inside their card */
-@media (max-width:640px){
-  .sec{padding:16px}
-  .row2{grid-template-columns:minmax(0,1fr)}
-  .chk{gap:12px;padding:12px}
-  .chk>div:first-child{flex:1 1 0!important;min-width:0}
-  .chk>.sw{flex:none}
-  .cw-addhead{flex-wrap:wrap;gap:var(--space-2) var(--space-4)!important}
-  .cw-addhead>div:first-child{flex:1 1 180px;min-width:0}
-  .cw-pay{flex-wrap:wrap;gap:var(--space-2) var(--space-3)!important}
-  .cw-pay>.btn{flex:1 1 100%}
-  .cw-pay>span{flex-wrap:wrap;min-width:0}
-  /* payment logos: readable chips sized to each wordmark instead of 22px squares */
-  .cw-pay>span>span[role="img"]{width:auto!important;height:36px!important;padding:3px 6px!important;border-radius:var(--radius-lg)!important}
-  .cw-pay>span>span[role="img"]>img{height:28px!important;width:auto!important;max-width:none!important;max-height:none!important}
-  .cw-chips{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;padding:0 16px 12px!important}
-  .cw-chips::-webkit-scrollbar{display:none}
-  .cw-chips>*{flex:none}
-}
+/* a figure's note wraps under the value instead of running into the next figure */
+[data-screen="CreditWallet"] .ix-metric__value{flex-wrap:wrap;row-gap:0}
+.cw-alert{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-2) var(--space-2) var(--space-4);border-radius:var(--radius-xl);background:var(--fill-warning-soft);color:var(--text-warning);font-size:var(--text-sm);font-weight:var(--weight-medium)}
+.cw-alert>span{flex:1;min-width:0}
+.cw-row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--space-4)}
+.cw-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.cw-money{position:relative}
+.cw-money>span{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted)}
+.cw-money>.gc-input{padding-left:28px;font-family:var(--font-data)}
+.cw-money>.gc-input[aria-invalid="true"]{border-color:var(--text-danger)}
+.cw-help{font-size:var(--text-xs);color:var(--text-muted)}
+.cw-help.is-bad{color:var(--text-danger)}
+.cw-covers{display:flex;flex-direction:column;gap:2px;padding:8px 12px;border-radius:var(--radius-lg);background:var(--surface-subtle);font-size:var(--text-sm);color:var(--text-body)}
+.cw-pay{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3)}
+.cw-logos{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-xs);color:var(--text-muted)}
+.cw-up{color:var(--text-success)}
+.cw-sw{display:flex;align-items:center;gap:var(--space-3);padding:10px 0;border-top:1px solid var(--border-subtle)}
+.cw-sw>span{flex:1;min-width:0;font-size:var(--text-sm);color:var(--text-heading)}
+.cw-sw small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
+.cw-pills{display:flex;flex-wrap:wrap;gap:6px}
+.cw-pill{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:var(--radius-full);background:var(--surface-subtle);font-size:var(--text-xs);color:var(--text-body);white-space:nowrap}
+.cw-prices{margin:0;padding:0;list-style:none}
+.cw-prices li{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-height:40px;padding:6px 0;border-top:1px solid var(--border-subtle);font-size:var(--text-sm)}
+.cw-prices li:first-child{border-top:0}
+.cw-prices li>span{min-width:0}
+.cw-prices b{display:block;font-weight:var(--weight-medium);color:var(--text-heading)}
+.cw-prices small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
+.cw-prices li>span:last-child{flex:none;text-align:right;font-family:var(--font-data);color:var(--text-heading);font-variant-numeric:tabular-nums}
+.cw-detail{display:block;max-width:320px;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:640px){.cw-row2{grid-template-columns:minmax(0,1fr)}.cw-alert{flex-wrap:wrap}}
 `;
 
 // ---- markup ----
@@ -243,199 +112,125 @@ button:active,.btn:active,.abtn:active{transform:scale(.97)}
 export default class CreditWalletScreen extends Component {
   render() {
     const v = this.renderVals() || {};
+    const sw = (k, label, help) => (
+      <div className="cw-sw">
+        <span>{label}<small>{help}</small></span>
+        <button type="button" role="switch" className="gc-switch" aria-checked={!!(v[k] && v[k].on)} aria-label={label} onClick={v[k] && v[k].toggle}><span className="gc-switch__knob" /></button>
+      </div>
+    );
     return (
       <div className="dc-screen ds" data-screen="CreditWallet">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
+        <div className="gc-shell">
           <__Sidebar sticky="" active="set-wallet" />
-          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
+          <main className="gc-shell__main">
             <__Topbar crumb="Settings" page={"Wallet & credits"} placeholder="Search" />
-            <div className="pgc gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "22px" }}>
-              <section className="hero st">
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "20px" }}>
-                  <div style={{ flexGrow: "1", minWidth: "0" }}>
-                    <div className="ey ey-d">{"Settings · Wallet & credits"}</div>
-                    <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.headline}</h1>
+            <div className="gc-shell__content">
+              <div className="ix-page">
+                <RecordHeader title="Wallet & credits" meta={v.headline}
+                  about="The prepaid GridCommerce credits that pay for AI calls, SMS, WhatsApp and GridAI voice. Top up through SSLCOMMERZ; the balance updates as soon as the payment is confirmed. Paid services pause at ৳0 and restart after the next top-up. What the month used is billed to expenses when the month closes."
+                  secondary={[{ label: 'Subscription & billing', href: '/subscription' }]} />
+                <MetricStrip label="Wallet" items={(v.tiles || []).map((t) => ({ label: t.l, value: t.v, sub: t.s }))} />
+                {v.low ? (
+                  <div className="cw-alert" role="alert">
+                    <span>{v.lowMsg}</span>
+                    <button type="button" className="ix-btn ix-btn--sm" onClick={v.payNow}>Top up now</button>
                   </div>
-                  <__Link href="/subscription" className="btn sm" style={{ background: "#fff", color: "#0b1733", height: "38px", flexShrink: "0" }}>{"Subscription & billing"}</__Link>
-                </div>
-                <div className="st gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px", marginTop: "20px" }}>
-                  {__list(v.tiles).map((ht, $index) => (<React.Fragment key={$index}>
-                      <div className="ht">
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <span style={__sx(`width: 7px; height: 7px; border-radius: var(--radius-full); background: ${ht?.c ?? ""};`)} />
-                          <span style={{ fontSize: "var(--text-xs)", color: "rgba(203,216,238,.85)" }}>{ht?.l}</span>
+                ) : null}
+
+                <div className="ix-record">
+                  <div className="ix-main">
+                    <section className="ix-card" aria-label="Add money">
+                      <header className="ix-card__head"><h2>Add money</h2><PaymentLogo provider="sslcommerz" variant="full" size={20} /></header>
+                      <div className="ix-card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                        <div className="ix-chips" role="group" aria-label="Amount">
+                          {(v.amts || []).map((a) => <button key={a.l} type="button" className="ix-chip" aria-pressed={a.on} onClick={a.pick}>{a.l}</button>)}
                         </div>
-                        <div className="tn" style={{ fontSize: "var(--text-2xl)", lineHeight: "30px", fontWeight: "var(--weight-semibold)", color: "#fff" }}>{ht?.v}</div>
-                        <div style={{ fontSize: "var(--text-xs)", color: "rgba(203,216,238,.7)" }}>{ht?.s}</div>
+                        <div className="cw-row2">
+                          <div className="cw-field">
+                            <label className="gc-label" htmlFor="amt">Amount</label>
+                            <div className="cw-money"><span>৳</span><input id="amt" className="gc-input" inputMode="numeric" value={v.amt} onChange={v.onAmt} aria-invalid={v.amtOk ? undefined : 'true'} aria-describedby="amt-note" /></div>
+                            <span id="amt-note" className={'cw-help' + (v.amtOk ? '' : ' is-bad')}>{v.amtNote}</span>
+                          </div>
+                          <div className="cw-field">
+                            <span className="gc-label">This covers about</span>
+                            <div className="cw-covers">{(v.covers || []).map((cv) => <span key={cv}>{cv}</span>)}</div>
+                          </div>
+                        </div>
+                        <div className="cw-pay">
+                          <button type="button" className="ix-btn ix-btn--primary" onClick={v.payNow}>Pay {v.amtLabel} with SSLCOMMERZ</button>
+                          <span className="cw-logos">
+                            <PaymentLogo provider="bkash" size={20} radius={6} />
+                            <PaymentLogo provider="nagad" size={20} radius={6} />
+                            <PaymentLogo provider="rocket" size={20} radius={6} />
+                            <span>+ Visa, Mastercard, Amex, net banking</span>
+                          </span>
+                        </div>
                       </div>
-                    </React.Fragment>))}
+                    </section>
+
+                    <section className="ix-card" aria-label="Wallet history">
+                      <header className="ix-card__head"><h2>Wallet history</h2></header>
+                      <div className="ix-bar"><IndexTabs tabs={v.chips || []} label="Wallet history" /></div>
+                      <ul className="ix-plist" aria-label="Wallet history">
+                        {(v.hist || []).map((h, i) => (
+                          <li key={h.t + i}>
+                            <div className="ix-pitem">
+                              <span className="ix-pitem__top"><b>{h.d}</b><span className={h.up ? 'cw-up' : ''}>{h.a}</span></span>
+                              <span className="ix-pitem__mid">{h.t} · {h.m}</span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="ix-table-wrap">
+                        <table className="ix-table ix-table--static gc-table--keep">
+                          <caption className="sr-only">Every top-up and charge, newest first. Times in Dhaka time.</caption>
+                          <thead><tr><th scope="col">When</th><th scope="col">Detail</th><th scope="col" className="ix-num">Amount</th><th scope="col" className="ix-num">Balance</th></tr></thead>
+                          <tbody>
+                            {(v.hist || []).map((h, i) => (
+                              <tr key={h.t + i}>
+                                <td className="ix-muted">{h.t}</td>
+                                <td className="ix-nowrap"><span className="cw-detail" title={h.m}><span className="ix-strong">{h.d}</span> <span className="ix-muted">· {h.m}</span></span></td>
+                                <td className={'ix-num' + (h.up ? ' cw-up' : '')}>{h.a}</td>
+                                <td className="ix-num ix-muted">{h.b}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  </div>
+
+                  <div className="ix-side">
+                    <section className="ix-card" aria-label="Balance alerts">
+                      <header className="ix-card__head"><h2>Balance alerts</h2><__InfoTip text="Paid services pause when the balance reaches ৳0 and restart after the next top-up." /></header>
+                      <div className="ix-card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                        <div className="cw-field">
+                          <label className="gc-label" htmlFor="lowat">Warn me when balance falls below</label>
+                          <div className="cw-money"><span>৳</span><input id="lowat" className="gc-input" inputMode="numeric" value={v.lowAt} onChange={v.onLowAt} /></div>
+                        </div>
+                        <div className="cw-field">
+                          <span className="gc-label">Send the warning to</span>
+                          <div className="cw-pills"><span className="cw-pill">SMS · 01711-482093</span><span className="cw-pill">Email</span><span className="cw-pill">App notification</span></div>
+                        </div>
+                        <div>
+                          {sw('autoTop', 'Top up automatically', 'Adds ৳2,000 from the saved SSLCOMMERZ card when the warning level is reached.')}
+                          {sw('pauseCall', 'Pause AI calls before SMS', 'Keeps order SMS running longest when the balance is low.')}
+                        </div>
+                      </div>
+                    </section>
+                    <section className="ix-card" aria-label="Price list">
+                      <header className="ix-card__head"><h2>Price list</h2><__InfoTip text="Charged per use from the wallet. Prices include VAT." /></header>
+                      <div className="ix-card__body">
+                        <ul className="cw-prices">
+                          {(v.prices || []).map((p) => (
+                            <li key={p.s}><span><b>{p.s}</b><small>{p.u}</small></span><span>{p.p}<small title="This month">{p.m}</small></span></li>
+                          ))}
+                        </ul>
+                      </div>
+                    </section>
+                  </div>
                 </div>
-              </section>
-              {v.hasMsg ? (<>
-                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-lg); background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: var(--text-sm); font-weight: var(--weight-medium);`)}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="m9 12 2 2 4-4" />
-                  </svg>
-                  <span>{v.msg}</span>
-                </div>
-              </>) : null}
-              {v.low ? (<>
-                <div role="alert" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", borderRadius: "var(--radius-lg)", background: "#fff4e0", color: "#7a3b04", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>
-                  <span style={{ flexGrow: "1" }}>{v.lowMsg}</span>
-                  <button type="button" className="btn warnbtn sm" onClick={v.payNow}>Top up now</button>
-                </div>
-              </>) : null}
-              <div className="gc-split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 7fr) minmax(0, 5fr)", gap: "16px", alignItems: "start" }}>
-                <section className="tc sec">
-                  <div className="cw-addhead" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px" }}>
-                    <div>
-                      <h2 className="h2">Add money</h2>
-                      <p className="sub">Paid through SSLCOMMERZ. The balance updates as soon as the payment is confirmed.</p>
-                    </div>
-                    <PaymentLogo provider="sslcommerz" variant="full" size={24} />
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                    {__list(v.amts).map((a, $index) => (<React.Fragment key={$index}>
-                        <button type="button" className={a?.cls} aria-pressed={a?.on} onClick={a?.pick}>{a?.l}</button>
-                      </React.Fragment>))}
-                  </div>
-                  <div className="row2">
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                      <label className="lbl" htmlFor="amt">Amount</label>
-                      <div style={{ position: "relative" }}>
-                        <span style={{ position: "absolute", left: "14px", top: "12px", color: "var(--text-muted)" }}>৳</span>
-                        <input id="amt" className="inp" inputMode="numeric" value={v.amt} onChange={v.onAmt} style={__sx(`padding-left: 32px; border-color: ${v.amtBd ?? ""};`)} />
-                      </div>
-                      <span style={__sx(`font-size: var(--text-xs-plus); color: ${v.amtNc ?? ""};`)}>{v.amtNote}</span>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                      <span className="lbl">This covers about</span>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "10px 12px", borderRadius: "var(--radius-lg)", background: "#f7f9fc", fontSize: "var(--text-xs-plus)", color: "#334155" }}>
-                        {__list(v.covers).map((cv, $index) => (<React.Fragment key={$index}>
-                            <span>{cv}</span>
-                          </React.Fragment>))}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="cw-pay" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <button type="button" className="btn solid" onClick={v.payNow}>Pay {v.amtLabel} with SSLCOMMERZ</button>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>
-                      <PaymentLogo provider="bkash" size={22} radius={6} />
-                      <PaymentLogo provider="nagad" size={22} radius={6} />
-                      <PaymentLogo provider="rocket" size={22} radius={6} />
-                      <span style={{ marginLeft: "2px" }}>+ Visa, Mastercard, Amex, net banking</span>
-                    </span>
-                  </div>
-                </section>
-                <section className="tc sec">
-                  <div>
-                    <h2 className="h2">Balance alerts</h2>
-                    <p className="sub">Paid services pause when the balance reaches ৳0 and restart after the next top-up.</p>
-                  </div>
-                  <div className="row2">
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                      <label className="lbl" htmlFor="lowat">Warn me when balance falls below</label>
-                      <div style={{ position: "relative" }}>
-                        <span style={{ position: "absolute", left: "14px", top: "12px", color: "var(--text-muted)" }}>৳</span>
-                        <input id="lowat" className="inp" inputMode="numeric" value={v.lowAt} onChange={v.onLowAt} style={{ paddingLeft: "32px" }} />
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                      <span className="lbl">Send the warning to</span>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                        <span className="pill">SMS · 01711-482093</span>
-                        <span className="pill">Email</span>
-                        <span className="pill">App notification</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ border: "1px solid #eef1f6", borderRadius: "var(--radius-xl)" }}>
-                    <div className="chk">
-                      <div style={{ flexGrow: "1", minWidth: "0" }}>
-                        <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Top up automatically</div>
-                        <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Adds ৳2,000 from the saved SSLCOMMERZ card when the warning level is reached.</div>
-                      </div>
-                      <button type="button" className={v.autoTop?.cls} role="switch" aria-checked={v.autoTop?.on} aria-label="Top up automatically" onClick={v.autoTop?.toggle} />
-                    </div>
-                    <div className="chk">
-                      <div style={{ flexGrow: "1", minWidth: "0" }}>
-                        <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Pause AI calls before SMS</div>
-                        <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Keeps order SMS running longest when the balance is low.</div>
-                      </div>
-                      <button type="button" className={v.pauseCall?.cls} role="switch" aria-checked={v.pauseCall?.on} aria-label="Pause AI calls before SMS" onClick={v.pauseCall?.toggle} />
-                    </div>
-                  </div>
-                </section>
-              </div>
-              <div className="gc-split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 5fr) minmax(0, 7fr)", gap: "16px", alignItems: "start" }}>
-                <section className="tc sec" style={{ paddingBottom: "8px" }}>
-                  <div>
-                    <h2 className="h2">Price list</h2>
-                    <p className="sub">Charged per use from the wallet. Prices include VAT.</p>
-                  </div>
-                  <div className="gc-table-wrap">
-                    <table className="tb">
-                      <thead>
-                        <tr>
-                          <th>Service</th>
-                          <th>Charged per</th>
-                          <th className="r">Price</th>
-                          <th className="r">This month</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {__list(v.prices).map((p, $index) => (<React.Fragment key={$index}>
-                            <tr className="row">
-                              <td style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{p?.s}</td>
-                              <td style={{ color: "#475569" }}>{p?.u}</td>
-                              <td className="r tn">{p?.p}</td>
-                              <td className="r tn">{p?.m}</td>
-                            </tr>
-                          </React.Fragment>))}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-                <section className="tc" style={{ overflow: "hidden" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "18px 20px 12px" }}>
-                    <div style={{ flexGrow: "1" }}>
-                      <h2 className="h2">Wallet history</h2>
-                      <p className="sub">Every top-up and charge, newest first. Times in Dhaka time.</p>
-                    </div>
-                  </div>
-                  <div className="cw-chips" style={{ display: "flex", gap: "8px", padding: "0 20px 12px" }}>
-                    {__list(v.chips).map((ch, $index) => (<React.Fragment key={$index}>
-                        <button type="button" className={ch?.cls} onClick={ch?.pick}>{ch?.label}</button>
-                      </React.Fragment>))}
-                  </div>
-                  <div className="gc-table-wrap">
-                    <table className="tb">
-                      <thead>
-                        <tr>
-                          <th>When</th>
-                          <th>Detail</th>
-                          <th className="r">Amount</th>
-                          <th className="r">Balance</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {__list(v.hist).map((h, $index) => (<React.Fragment key={$index}>
-                            <tr className="row">
-                              <td style={{ color: "var(--text-muted)", whiteSpace: "nowrap" }}>{h?.t}</td>
-                              <td>
-                                <div style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{h?.d}</div>
-                                <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{h?.m}</div>
-                              </td>
-                              <td className="r tn" style={__sx(`font-weight: var(--weight-medium); color: ${h?.c ?? ""};`)}>{h?.a}</td>
-                              <td className="r tn" style={{ color: "#334155" }}>{h?.b}</td>
-                            </tr>
-                          </React.Fragment>))}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
               </div>
             </div>
           </main>

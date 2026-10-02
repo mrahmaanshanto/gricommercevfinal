@@ -1,41 +1,22 @@
 'use client';
-// Generated from design/templates/accounts/ChartOfAccounts.dc.html by scripts/convert-design.mjs.
-// Chart of accounts — Accounts — chart of accounts grouped by type with balances, auto-posting sources and a live trial balance.
-// Edit freely: this file is now the source for the screen.
+// ChartOfAccounts — Accounts › Setup › Chart of accounts: every account the books use, grouped as assets,
+// liabilities, equity, income and expenses, with balances, the source that posts to it automatically, and a
+// live trial balance. A list in the Shopify style (docs/shopify-style.md): a back arrow to Accounts setup, the
+// group totals and the trial balance as figures, then one card with a view per group, search and the table;
+// "Add account" opens the form (the code is suggested from the group's range).
+// ?group=<group> · ?q=<text> pick the view and the search. Front end only: demo books (March–September 2026).
 
-import React from 'react';
-import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { toast as __toast } from '@/runtime/ui';
-import { EmptyState as __EmptyState } from '@/components/ui';
-import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+import React, { useEffect, useState } from 'react';
+import { Icon } from '@/runtime/dc';
+import { toast } from '@/runtime/ui';
+import { Dialog, EmptyState, StatusBadge } from '@/components/ui';
+import { MetricStrip, IndexTabs, SearchField, LearnMore } from '@/components/ui/IndexKit';
+import { AccPage } from './accShared';
 
-// ---- logic (from the design's <script type="text/x-dc">) ----
+// ---- demo books ----------------------------------------------------------------------------------
 
 function bdt(n) { var neg = n < 0; var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return (neg ? '−' : '') + '৳' + s; }
-var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
-function mkTabs(self, list, cur, key, counts) { return list.map(function (x) { var on = x.k === cur; var c = counts ? counts[x.k] : null; return { label: x.label, on: on, cls: on ? 'tab on' : 'tab', hasCount: c != null, count: c, countBg: on ? 'rgba(255,255,255,0.2)' : '#e9eef5', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-function mkChips(self, list, cur, key) { return list.map(function (x) { var on = x.k === cur; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-function pTabs(self, list, cur, key, counts) { return mkTabs(self, list, cur, key, counts).map(function (x) { x.pcls = x.on ? 'ptab on' : 'ptab'; return x; }); }
-function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
-function stepN(self, key, def, step, min, max) { var s = self.state || {}; var v = s[key] == null ? def : s[key]; return { v: v, dec: function () { var p = {}; p[key] = Math.max(min, +(v - step).toFixed(2)); self.setState(p); }, inc: function () { var p = {}; p[key] = Math.min(max, +(v + step).toFixed(2)); self.setState(p); } }; }
-function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-function toast(self, m, bad) { __toast(m, { tone: bad ? 'error' : 'success' }); }
-function setQuery(key, value) { if (typeof window === 'undefined') return; var u = new URL(window.location.href); if (value) u.searchParams.set(key, value); else u.searchParams.delete(key); window.history.replaceState(window.history.state, '', u.pathname + u.search + u.hash); }
-function getQuery(key) { if (typeof window === 'undefined') return ''; return new URLSearchParams(window.location.search).get(key) || ''; }
-function focusField(id) { setTimeout(function () { var el = document.getElementById(id); if (!el) return; var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); el.focus({ preventScroll: true }); }, 0); }
-function msgV(s) { return { hasMsg: !!s.msg, msg: s.msg || '', msgBg: s.bad ? '#fff4e0' : '#e7f8f1', msgFg: s.bad ? '#7a3b04' : '#065f46' }; }
-function segv(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#0b1733' : 'transparent', fg: on ? '#fff' : '#475569', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
-function lseg(self, opts, cur, key) { return opts.map(function (o) { var on = o[0] === cur; return { l: o[1], on: on, bg: on ? '#fff' : 'transparent', fg: on ? '#0b1733' : '#64748b', sh: on ? '0 1px 2px rgba(15,23,42,.08), 0 1px 1px rgba(15,23,42,.04)' : 'none', pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
-function ring(pctv, r) { var C = 2 * Math.PI * r; return { da: (C * pctv / 100).toFixed(1) + ' ' + C.toFixed(1) }; }
-function curve(pts) { if (!pts.length) return ''; var d = 'M' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1); for (var i = 0; i < pts.length - 1; i++) { var p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2; var c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6, c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6; d += ' C' + c1x.toFixed(1) + ' ' + c1y.toFixed(1) + ' ' + c2x.toFixed(1) + ' ' + c2y.toFixed(1) + ' ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1); } return d; }
-function pts(vals, w, h, max, min, padT, padB) { padT = padT || 2; padB = padB || 2; min = min == null ? 0 : min; max = max || Math.max.apply(null, vals) || 1; var n = vals.length; return vals.map(function (v, i) { return [n === 1 ? w / 2 : i * w / (n - 1), padT + (h - padT - padB) * (1 - (v - min) / (max - min || 1))]; }); }
-function sparkP(vals, w, h) { w = w || 160; h = h || 30; var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals); var p = pts(vals, w, h, mx + (mx - mn) * .1, mn - (mx - mn) * .15, 3, 2); var l = curve(p); return { line: l, area: l + ' L' + w + ' ' + h + ' L0 ' + h + ' Z' }; }
-function series(n, base, amp, seed, trend) { var out = []; for (var i = 0; i < n; i++) { var s = Math.sin((i + seed) * 1.7) * .5 + Math.sin((i * 3 + seed) * .9) * .3 + Math.cos(i * .45 + seed) * .2; out.push(Math.max(0, base * (1 + (trend || 0) * (i / n - .5)) + amp * s)); } return out; }
-
-function val(e) { return e && e.target ? e.target.value : e; }
-
+function setQuery(key, value) { if (typeof window === 'undefined') return; const u = new URL(window.location.href); if (value) u.searchParams.set(key, value); else u.searchParams.delete(key); window.history.replaceState(window.history.state, '', u.pathname + u.search + u.hash); }
 // Chart of accounts: code, name, group, normal side (D/C), opening balance, auto-posted note
 var COA = [
   [1010, 'Cash in hand · Dhanmondi drawer', 'Assets', 'D', 18450, 'POS sessions'], [1011, 'Cash in hand · Mirpur drawer', 'Assets', 'D', 9820, 'POS sessions'],
@@ -59,343 +40,158 @@ var COA = [
 })();
 function acct(code) { return COA.filter(function (a) { return a[0] === code; })[0]; }
 function aName(code) { var a = acct(code); return a ? a[1] : String(code); }
-var MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function fmtD(d) { var x = new Date(d + 'T00:00:00'); return isNaN(x) ? d : x.getDate() + ' ' + MONS[x.getMonth()]; }
-function num(x) { var n = parseFloat(String(x || '').replace(/[^\d.]/g, '')); return isNaN(n) ? 0 : n; }
 function tk2(n) { n = Math.round(n * 100) / 100; var neg = n < 0; n = Math.abs(n); var p = n.toFixed(2).split('.'); return (neg ? '−' : '') + bdt(+p[0]) + (p[1] !== '00' ? '.' + p[1] : ''); }
-function linesView(lines) { var d = 0, c = 0; var rows = lines.filter(function (l) { return l[1] || l[2]; }).map(function (l) { d += l[1] || 0; c += l[2] || 0; return { code: typeof l[0] === 'number' ? String(l[0]) : 'new', n: aName(l[0]), d: l[1] ? tk2(l[1]) : '', c: l[2] ? tk2(l[2]) : '' }; });
-  var ok = Math.abs(d - c) < 0.005 && d > 0; return { rows: rows, td: tk2(d), tc: tk2(c), ok: ok, okL: ok ? 'Balanced' : d === 0 ? 'Enter an amount' : 'Out by ' + tk2(Math.abs(d - c)), okBg: ok ? '#e7f8f1' : '#fff4e0', okFg: ok ? '#047857' : '#a14f06' }; }
-var CASHLIKE = [1010, 1011, 1020, 1021, 1030, 1031, 1032];
-function shortName(code) { return { 1010: 'Cash · Dhanmondi', 1011: 'Cash · Mirpur', 1020: 'BRAC Bank', 1021: 'Dutch-Bangla Bank', 1030: 'bKash', 1031: 'Nagad', 1032: 'Rocket', 1040: 'Courier COD', 1050: 'SSLCOMMERZ', 2010: 'Supplier payables', 2020: 'Salaries payable', 2030: 'VAT payable', 2040: 'BRAC SME loan', 2060: 'Commissions payable' }[code] || aName(code); }
 
 var GROUPS = ['Assets', 'Liabilities', 'Equity', 'Income', 'Expenses'];
 var RANGE = { Assets: [1000, 1999, 'D'], Liabilities: [2000, 2999, 'C'], Equity: [3000, 3999, 'C'], Income: [4000, 4999, 'C'], Expenses: [5000, 6999, 'D'] };
-class Component extends DCLogic {
-  componentDidMount() { var g = getQuery('group'), q = getQuery('q'), p = {}; if (GROUPS.indexOf(g) >= 0) p.g = g; if (q) p.q = q; if (Object.keys(p).length) this.setState(p); }
-  componentWillUnmount() { clearTimeout(this.t); }
-  renderVals() {
-    var self = this, s = this.state || {};
-    var list = COA.concat(s.added || []), gsel = s.g || 'all', q = (s.q || '').toLowerCase(), ng = s.ng || 'Assets';
-    var sum = function (g) { return list.filter(function (a) { return a[2] === g; }).reduce(function (x, a) { return x + (a[3] === RANGE[g][2] ? a[4] : -a[4]); }, 0); };
-    var dr = 0, cr = 0; list.forEach(function (a) { if (a[3] === 'D') dr += a[4]; else cr += a[4]; });
-    var profit = sum('Income') - sum('Expenses');
-    var used = list.filter(function (a) { return a[2] === ng; }).map(function (a) { return a[0]; }), r = RANGE[ng], nc = r[0] + 10;
-    while (used.indexOf(nc) >= 0 && nc < r[1]) nc += 10; if (used.indexOf(nc) >= 0) { nc = r[0] + 1; while (used.indexOf(nc) >= 0) nc++; }
-    var codeTxt = s.code == null ? String(nc) : s.code, er = s.err || {};
-    var v = {
-      headline: 'Books balance · ' + tk2(dr) + ' on each side',
-      tiles: [{ l: 'Assets', v: tk2(sum('Assets')), s: 'cash, bank, stock, receivables', c: '#34d399' }, { l: 'Liabilities', v: tk2(sum('Liabilities')), s: 'suppliers, loan, VAT', c: '#fb7185' }, { l: 'Owner’s equity', v: tk2(3000000 - 180000 + profit), s: 'capital less drawings plus profit', c: '#60a5fa' }, { l: 'Profit since March', v: tk2(profit), s: tk2(sum('Income')) + ' income', c: '#fbbf24' }],
-      chips: [['all', 'All']].concat(GROUPS.map(function (g) { return [g, g]; })).map(function (c) { var on = c[0] === gsel; return { label: c[1], on: on, cls: on ? 'chip on' : 'chip', pick: function () { self.setState({ g: c[0] }); setQuery('group', c[0] === 'all' ? '' : c[0]); } }; }),
-      q: s.q || '', onQ: function (e) { var x = val(e); self.setState({ q: x }); setQuery('q', String(x || '').trim()); },
-      clearFilters: function () { self.setState({ q: '', g: 'all' }); setQuery('q', ''); setQuery('group', ''); },
-      groups: GROUPS.filter(function (g) { return gsel === 'all' || g === gsel; }).map(function (g) { var rows = list.filter(function (a) { return a[2] === g && (!q || (a[0] + ' ' + a[1]).toLowerCase().indexOf(q) >= 0); });
-        return { n: g, cnt: rows.length, total: tk2(sum(g)), rows: rows.map(function (a) { var contra = (g === 'Equity' && a[3] === 'D'); return { code: String(a[0]), n: a[1], auto: !!a[5], manual: !a[5], src: a[5], side: a[3] === 'D' ? 'Debit' : 'Credit', bal: (contra ? '−' : '') + tk2(a[4]), c: a[4] === 0 ? 'var(--text-muted)' : contra ? '#b83210' : '#0f172a' }; }) }; }).filter(function (g) { return g.rows.length; }),
-      tb: [{ l: 'Total debits', v: tk2(dr) }, { l: 'Total credits', v: tk2(cr) }, { l: 'Difference', v: tk2(Math.abs(dr - cr)) }],
-      tbL: Math.abs(dr - cr) < .005 ? 'Balanced' : 'Out of balance', tbBg: Math.abs(dr - cr) < .005 ? '#e7f8f1' : '#ffece6', tbFg: Math.abs(dr - cr) < .005 ? '#047857' : '#b83210',
-      gOpts: GROUPS.map(function (g) { var on = g === ng; return { l: g, on: on, cls: on ? 'chip on fch' : 'chip fch', pick: function () { self.setState({ ng: g, code: null, err: {} }); } }; }),
-      nm: s.nm || '', onNm: function (e) { self.setState({ nm: val(e), err: assign(assign({}, er), { nm: '' }) }); }, nextCode: String(nc), nextSide: r[2] === 'D' ? 'debit' : 'credit',
-      code: codeTxt, onCode: function (e) { self.setState({ code: String(val(e) || '').replace(/[^\d]/g, '').slice(0, 4), err: assign(assign({}, er), { code: '' }) }); },
-      codeHint: ng + ' use codes ' + r[0] + ' to ' + r[1] + '. Normal balance: ' + (r[2] === 'D' ? 'debit' : 'credit') + '.',
-      errNm: er.nm || '', errCode: er.code || '', badNm: !!er.nm, badCode: !!er.code,
-      formBd: s.pulse ? '#003087' : 'transparent', focusForm: function () { self.setState({ pulse: true }); focusField('an'); },
-      noRows: false,
-      addAcct: function (e) { if (e && e.preventDefault) e.preventDefault();
-        var n = (s.nm || '').trim(), cd = parseInt(codeTxt, 10), errs = {};
-        if (!n) errs.nm = 'Enter the account name.'; else if (list.some(function (a) { return a[1].toLowerCase() === n.toLowerCase(); })) errs.nm = 'An account with that name already exists.';
-        if (!codeTxt) errs.code = 'Enter the account code.'; else if (isNaN(cd) || cd < r[0] || cd > r[1]) errs.code = ng + ' codes run from ' + r[0] + ' to ' + r[1] + '.'; else if (list.some(function (a) { return a[0] === cd; })) errs.code = 'Code ' + cd + ' is already used by ' + aName(cd) + '.';
-        if (errs.nm || errs.code) { self.setState({ err: errs }); focusField(errs.nm ? 'an' : 'ac'); toast(self, errs.nm || errs.code, true); return; }
-        self.setState({ added: (s.added || []).concat([[cd, n, ng, r[2], 0, '']]), nm: '', code: null, err: {}, g: ng, pulse: false }); setQuery('group', ng); toast(self, 'Account ' + cd + ' · ' + n + ' added to ' + ng + '.'); }
-    };
-    v.noRows = v.groups.length === 0;
-    return assign(v, { hasMsg: false, msg: '' });
-  }
-}
-
-// ---- styles (from the design's <helmet>) ----
+const ABOUT = 'Every account the books use, grouped as assets (cash, bank, stock, receivables), liabilities (suppliers, loan, VAT), owner’s equity (capital less drawings plus profit), income and expenses, with the balance of each, what posts to it automatically, and a trial balance checked on every change.';
 
 const CSS = `
-body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
-*{box-sizing:border-box}
-a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
-.nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
-.nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
-.btn:hover{text-decoration:none}
-.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
-.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
-.line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
-.warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
-.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
-.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
-.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:var(--text-muted)}
-.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
-.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
-.tab:hover{background:#f1f5f9;color:#0f172a}
-.tab.on{background:#003087;color:#fff}
-.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
-.chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
-.row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
-.b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
-.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
-.b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:var(--font-data);letter-spacing:.02em}
-.fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
-@keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.flash{animation:gcFlash 900ms ease-out}
-@keyframes gcFlash{from{background:#e7f8f1}to{background:transparent}}
-.scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
-@keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
+.coa-code{font-family:var(--font-data);color:var(--text-muted)}
+.coa-fig{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+.coa-neg{color:var(--text-danger)}
+`;
 
-.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
-.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
-.sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
-.t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
-.actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:var(--font-bn)}
-.pulse{animation:gcPulse 1.6s ease-in-out infinite}
-@keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
-@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
-.psec{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
-.num{font-variant-numeric:tabular-nums}
-.ai{height:28px;padding:0 10px;border-radius:var(--radius-lg);border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
-.ai:hover{border-color:#a78bfa;box-shadow:0 4px 12px -6px rgba(91,33,182,.5)}
-.ai:focus-visible{outline:3px solid rgba(124,58,237,.4);outline-offset:2px}
-.abtn{height:32px;padding:0 12px;border-radius:var(--radius-lg);border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-.abtn:hover{background:#f1f5f9}
-.ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0}
-.ptab{position:relative;height:52px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:var(--weight-medium)}
-.ptab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2.5px;border-radius:3px 3px 0 0;background:#003087}
-.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
-.ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
-.thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
+export default function ChartOfAccounts() {
+  const [gsel, setG] = useState('all');
+  const [q, setQ] = useState('');
+  const [find, setFind] = useState(false);
+  const [added, setAdded] = useState([]);
+  const [adding, setAdding] = useState(false);
+  const [ng, setNg] = useState('Assets');
+  const [nm, setNm] = useState('');
+  const [code, setCode] = useState(null);
+  const [err, setErr] = useState({});
 
-.tc{background:#fff;border:1px solid #e7ebf2;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px -20px rgba(15,23,42,.18)}
-.ey{font-size:var(--text-xs);line-height:17px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
-.ey-d{color:rgba(203,216,238,.7)}
-.tn{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;letter-spacing:0}
-.dl{display:inline-flex;align-items:center;gap:3px;height:22px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums}
-.hero{position:relative;overflow:hidden;border-radius:var(--radius-xl);background:#0b1733;color:#fff;padding:24px 26px;--accent-text:#7fcff0;--text-success:#6ee7b7;--text-warning:#fcd34d;--text-danger:#fda4af;--text-info:#7dd3fc}
-.hero::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:32px 32px;pointer-events:none}
-.hero>*{position:relative}
-.ht{border-radius:var(--radius-xl);background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
-.dseg{display:inline-flex;padding:3px;border-radius:var(--radius-full);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1)}
-.dseg button{height:32px;padding:0 14px;border:0;border-radius:var(--radius-full);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
-.lseg{display:inline-flex;padding:3px;border-radius:var(--radius-xl);background:#f1f4f9;border:1px solid #e7ebf2}
-.lseg button{height:32px;padding:0 13px;border:0;border-radius:var(--radius-lg);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease,box-shadow 200ms ease}
-button:active,.btn:active,.abtn:active{transform:scale(.97)}
-.btn,.abtn{transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}
-.st>*{animation:taUp 420ms cubic-bezier(.23,1,.32,1) both}
-.st>*:nth-child(2){animation-delay:40ms}.st>*:nth-child(3){animation-delay:80ms}.st>*:nth-child(4){animation-delay:120ms}.st>*:nth-child(5){animation-delay:160ms}.st>*:nth-child(6){animation-delay:200ms}.st>*:nth-child(7){animation-delay:240ms}.st>*:nth-child(8){animation-delay:280ms}
-@keyframes taUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.gr{transform-origin:left center;animation:taGrow 700ms cubic-bezier(.23,1,.32,1) both}
-@keyframes taGrow{from{transform:scaleX(.35);opacity:0}to{transform:none;opacity:1}}
-.draw{stroke-dasharray:1600;stroke-dashoffset:0;animation:taDraw 1100ms cubic-bezier(.77,0,.175,1) both}
-@keyframes taDraw{from{stroke-dashoffset:1600}to{stroke-dashoffset:0}}
-.fadein{animation:taFade 600ms ease both 200ms}@keyframes taFade{from{opacity:0}to{opacity:1}}
-.tt{position:relative}
-.tt .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px) scale(.97);transform-origin:bottom center;opacity:0;pointer-events:none;transition:opacity 125ms ease-out,transform 125ms ease-out;background:#0b1733;color:#fff;border-radius:var(--radius-lg);padding:8px 10px;font-size:var(--text-xs);white-space:nowrap;box-shadow:0 10px 24px -8px rgba(15,23,42,.45);z-index:5}
-.col{position:relative;flex:1;height:100%;border-radius:var(--radius-md);transition:background-color 150ms ease}
-.col .tip{bottom:auto;top:6px}
-.col .cl{position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(15,23,42,.18);opacity:0;transition:opacity 125ms ease}
-@media (hover:hover) and (pointer:fine){.tt:hover .tip,.col:hover .tip{opacity:1;transform:translate(-50%,0) scale(1)}.col:hover .cl{opacity:1}.row:hover{background:#f7f9fd}.tc.lift{transition:box-shadow 200ms ease,transform 200ms cubic-bezier(.23,1,.32,1)}.tc.lift:hover{box-shadow:0 1px 2px rgba(15,23,42,.05),0 18px 40px -20px rgba(15,23,42,.3)}}
-.tb{width:100%;border-collapse:separate;border-spacing:0}
-.tb th{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #eef1f6;background:#fbfcfe;white-space:nowrap}
-.tb td{padding:13px 16px;border-bottom:1px solid #f1f4f8;font-size:var(--text-sm);vertical-align:middle}
-.tb tr:last-child td{border-bottom:0}
-.tb .r{text-align:right}
-@media (prefers-reduced-motion:reduce){.st>*,.gr,.draw,.fadein{animation:none}}
+  useEffect(() => {
+    const u = new URLSearchParams(window.location.search);
+    const g = u.get('group'), text = u.get('q');
+    if (GROUPS.indexOf(g) >= 0) setG(g);
+    if (text) { setQ(text); setFind(true); }
+  }, []);
 
-.pgc>*{flex-shrink:0}.tb th{white-space:normal}.stp2{flex-shrink:0}.pgc>.fill{flex-shrink:1;min-height:0}
-.sec{display:flex;flex-direction:column;gap:14px;padding:20px 22px}
-.h2{margin:0;font-size:var(--text-base);line-height:22px;font-weight:var(--weight-semibold);color:#0f172a;letter-spacing:0}
-.sub{margin:2px 0 0;font-size:var(--text-xs-plus);line-height:18px;color:var(--text-muted)}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.chk{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid #f1f4f8}
-.chk:last-child{border-bottom:0}
-.pill{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:var(--radius-full);background:#f1f4f9;font-size:var(--text-xs);color:#334155;white-space:nowrap}
-.amt{height:36px;padding:0 16px;border-radius:var(--radius-lg);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:#1e293b;cursor:pointer;font-variant-numeric:tabular-nums}
-.amt.on{border-color:#003087;background:rgba(0,48,135,.06);color:#003087}
-.amt:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.stp2{display:inline-flex;align-items:center;border:1px solid #cbd5e1;border-radius:var(--radius-lg);overflow:hidden;height:40px}
-.stp2 button{width:38px;height:100%;border:0;background:#f8fafc;font:inherit;font-size:var(--text-base);cursor:pointer;color:#334155}
-.stp2 span{min-width:64px;text-align:center;font-size:var(--text-sm);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums}
-.sel{height:44px;padding:0 12px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;width:100%}
-.msgb{max-width:78%;padding:10px 14px;border-radius:var(--radius-xl);font-size:var(--text-sm);line-height:20px}
-.code{margin:0;padding:12px 14px;border-radius:var(--radius-lg);background:#0b1733;color:#cbd8ee;font-size:var(--text-xs);line-height:18px;white-space:pre-wrap;--text-muted:#94a3b8}
-.lrow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 16px;border:0;border-bottom:1px solid #f1f4f8;background:transparent;font:inherit;text-align:left;cursor:pointer}
-.lrow:hover{background:#f7f9fd}.lrow.on{background:rgba(0,48,135,.05)}
-.lrow:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:-3px}
-@media (max-width:640px){
-  /* the search takes the whole row under the group chips */
-  .coa-bar > input.inp{flex:1 1 100%;max-width:none!important}
-  /* phone table-cards: a group row ("Assets · 13 accounts  ৳…") is a section label, not a card */
-  table.gc-cards-on>tbody>tr.coa-grp{flex-wrap:nowrap;align-items:baseline;margin-top:var(--space-2);padding:var(--space-2) var(--space-1) 0!important;border:0!important;background:none!important}
-  table.gc-cards-on>tbody>tr.coa-grp>td{flex:1 1 auto;padding:0!important;text-align:left!important;font-size:var(--text-xs);text-transform:uppercase;letter-spacing:var(--tracking-label);color:var(--text-muted)}
-  table.gc-cards-on>tbody>tr.coa-grp>td::before{display:none!important}
-  table.gc-cards-on>tbody>tr.coa-grp>td:last-child{flex:none;text-align:right!important;text-transform:none;letter-spacing:0;font-size:var(--text-sm)}
-}
-.jt td{padding:9px 14px;font-size:var(--text-xs-plus);border-bottom:1px solid #f1f4f8}.jt th{padding:9px 14px;font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted);text-align:left;border-bottom:1px solid #eef1f6;background:#fbfcfe}.jt{width:100%;border-collapse:collapse}.jt .r{text-align:right}.fch{height:32px;font-size:var(--text-xs-plus);padding:0 11px}`;
+  const list = COA.concat(added);
+  const needle = q.toLowerCase();
+  const sum = (g) => list.filter((a) => a[2] === g).reduce((x, a) => x + (a[3] === RANGE[g][2] ? a[4] : -a[4]), 0);
+  let dr = 0, cr = 0; list.forEach((a) => { if (a[3] === 'D') dr += a[4]; else cr += a[4]; });
+  const balanced = Math.abs(dr - cr) < 0.005;
+  const profit = sum('Income') - sum('Expenses');
+  const used = list.filter((a) => a[2] === ng).map((a) => a[0]), r = RANGE[ng];
+  let nc = r[0] + 10;
+  while (used.indexOf(nc) >= 0 && nc < r[1]) nc += 10;
+  if (used.indexOf(nc) >= 0) { nc = r[0] + 1; while (used.indexOf(nc) >= 0) nc++; }
+  const codeTxt = code == null ? String(nc) : code;
+  const groups = GROUPS.filter((g) => gsel === 'all' || g === gsel).map((g) => {
+    const rows = list.filter((a) => a[2] === g && (!needle || (a[0] + ' ' + a[1]).toLowerCase().indexOf(needle) >= 0));
+    return { n: g, total: tk2(sum(g)), rows: rows.map((a) => { const contra = g === 'Equity' && a[3] === 'D'; return { code: String(a[0]), n: a[1], src: a[5], side: a[3] === 'D' ? 'Debit' : 'Credit', bal: (contra ? '−' : '') + tk2(a[4]), zero: a[4] === 0, contra }; }) };
+  }).filter((g) => g.rows.length);
+  const tabs = [['all', 'All'], ...GROUPS.map((g) => [g, g])].map(([k, label]) => ({ key: k, id: 'coa-tab-' + k, label, count: k === 'all' ? list.length : list.filter((a) => a[2] === k).length, on: gsel === k, onClick: () => { setG(k); setQuery('group', k === 'all' ? '' : k); } }));
+  const onQ = (e) => { const x = e.target.value; setQ(x); setQuery('q', String(x || '').trim()); };
+  const closeFind = () => { setQ(''); setQuery('q', ''); setFind(false); };
+  const clearFilters = () => { setQ(''); setG('all'); setQuery('q', ''); setQuery('group', ''); };
+  const findOn = find || !!q;
 
-// ---- markup ----
+  const openAdd = () => { setErr({}); setAdding(true); };
+  const pickGroup = (g) => { setNg(g); setCode(null); setErr({}); };
+  const addAcct = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const n = nm.trim(), cd = parseInt(codeTxt, 10), errs = {};
+    if (!n) errs.nm = 'Enter the account name.'; else if (list.some((a) => a[1].toLowerCase() === n.toLowerCase())) errs.nm = 'An account with that name already exists.';
+    if (!codeTxt) errs.code = 'Enter the account code.'; else if (isNaN(cd) || cd < r[0] || cd > r[1]) errs.code = ng + ' codes run from ' + r[0] + ' to ' + r[1] + '.'; else if (list.some((a) => a[0] === cd)) errs.code = 'Code ' + cd + ' is already used by ' + aName(cd) + '.';
+    if (errs.nm || errs.code) { setErr(errs); toast(errs.nm || errs.code, { tone: 'error' }); return; }
+    setAdded([...added, [cd, n, ng, r[2], 0, '']]); setNm(''); setCode(null); setErr({}); setG(ng); setQuery('group', ng); setAdding(false);
+    toast('Account ' + cd + ' · ' + n + ' added to ' + ng + '.');
+  };
 
-export default class ChartOfAccountsScreen extends Component {
-  render() {
-    const v = this.renderVals() || {};
-    return (
-      <div className="dc-screen ds" data-screen="ChartOfAccounts">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
-          <__Sidebar sticky="" active="acc-setup" />
-          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
-            <__Topbar crumb="Accounts" page="Chart of accounts" placeholder="Search" />
-            <div className="pgc gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "22px" }}>
-              <section className="hero st">
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "20px" }}>
-                  <div style={{ flexGrow: "1", minWidth: "0" }}>
-                    <div className="ey ey-d">Accounts · Chart of accounts</div>
-                    <h1 style={{ margin: "6px 0 0", fontSize: "var(--text-2xl)", lineHeight: "32px", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)" }}>{v.headline}</h1>
-                  </div>
-                  <button type="button" className="btn sm" onClick={v.focusForm} style={{ background: "#fff", color: "#0b1733", height: "36px", flexShrink: "0" }}>Add account</button>
-                </div>
-                <div className="st gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px", marginTop: "20px" }}>
-                  {__list(v.tiles).map((ht, $index) => (<React.Fragment key={$index}>
-                      <div className="ht">
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <span style={__sx(`width: 7px; height: 7px; border-radius: var(--radius-full); background: ${ht?.c ?? ""};`)} />
-                          <span style={{ fontSize: "var(--text-xs)", color: "rgba(203,216,238,.85)" }}>{ht?.l}</span>
-                        </div>
-                        <div className="tn" style={{ fontSize: "var(--text-2xl)", lineHeight: "30px", fontWeight: "var(--weight-semibold)", color: "#fff" }}>{ht?.v}</div>
-                        <div style={{ fontSize: "var(--text-xs)", color: "rgba(203,216,238,.7)" }}>{ht?.s}</div>
-                      </div>
-                    </React.Fragment>))}
-                </div>
-              </section>
-              {v.hasMsg ? (<>
-                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-lg); background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: var(--text-sm); font-weight: var(--weight-medium);`)}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="m9 12 2 2 4-4" />
-                  </svg>
-                  <span>{v.msg}</span>
-                </div>
-              </>) : null}
-              <div className="gc-split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 380px", gap: "16px", alignItems: "start" }}>
-                <section className="tc" style={{ overflow: "hidden" }}>
-                  <div className="coa-bar" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px", padding: "14px 16px", borderBottom: "1px solid #eef1f6" }}>
-                    <div role="group" aria-label="Account group" style={{ display: "contents" }}>
-                      {__list(v.chips).map((ch, $index) => (<React.Fragment key={$index}>
-                          <button type="button" className={ch?.cls} aria-pressed={ch?.on} onClick={ch?.pick} style={{ height: "36px" }}>{ch?.label}</button>
-                        </React.Fragment>))}
-                    </div>
-                    <span style={{ flexGrow: "1" }} />
-                    <input className="inp" aria-label="Search accounts" placeholder="Search code or name" value={v.q} onChange={v.onQ} style={{ maxWidth: "220px", height: "38px" }} />
-                  </div>
-                  <div className="gc-table-wrap">
-                    <table className="tb">
-                      <thead>
-                        <tr>
-                          <th style={{ width: "80px" }}>Code</th>
-                          <th>Account</th>
-                          <th>Posted by</th>
-                          <th>Side</th>
-                          <th className="r">Balance</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {__list(v.groups).map((g, $index) => (<React.Fragment key={$index}>
-                            <tr className="coa-grp" style={{ background: "#f7f9fc" }}>
-                              <td colSpan="4" style={{ fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{g?.n} <span style={{ fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>· {g?.cnt} accounts</span></td>
-                              <td className="r tn" style={{ fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{g?.total}</td>
-                            </tr>
-                            {__list(g?.rows).map((a, $index) => (<React.Fragment key={$index}>
-                                <tr className="row">
-                                  <td className="mono" style={{ color: "#475569" }}>{a?.code}</td>
-                                  <td style={{ color: "#0f172a", fontWeight: "var(--weight-medium)" }}>{a?.n}</td>
-                                  <td>
-                                    {a?.auto ? (<>
-                                      <span className="pill" style={{ background: "#e0f2fe", color: "#075985" }}>Auto · {a?.src}</span>
-                                    </>) : null}
-                                    {a?.manual ? (<>
-                                      <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Entries</span>
-                                    </>) : null}
-                                  </td>
-                                  <td style={{ color: "var(--text-muted)" }}>{a?.side}</td>
-                                  <td className="r tn" style={__sx(`color: ${a?.c ?? ""};`)}>{a?.bal}</td>
-                                </tr>
-                              </React.Fragment>))}
-                          </React.Fragment>))}
-                      </tbody>
-                    </table>
-                  </div>
-                  {v.noRows ? (
-                    <__EmptyState title="No accounts match" body="Check the code or name, or show every group." actionLabel="Clear filters" onAction={v.clearFilters} />
-                  ) : null}
-                </section>
-                <aside style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
-                  <section className="tc sec">
-                    <div>
-                      <h2 className="h2">Trial balance</h2>
-                      <p className="sub">Every debit has a matching credit. Checked on every change.</p>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", borderTop: "1px solid #f1f4f8" }}>
-                      {__list(v.tb).map((t, $index) => (<React.Fragment key={$index}>
-                          <div style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid #f1f4f8", fontSize: "var(--text-xs-plus)" }}>
-                            <span style={{ color: "#475569" }}>{t?.l}</span>
-                            <span className="tn" style={{ fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{t?.v}</span>
-                          </div>
-                        </React.Fragment>))}
-                    </div>
-                    <span className="badge" style={__sx(`align-self: flex-start; background: ${v.tbBg ?? ""}; color: ${v.tbFg ?? ""};`)}>{v.tbL}</span>
-                  </section>
-                  <form className="tc sec" noValidate onSubmit={v.addAcct} aria-labelledby="coa-add-h" style={__sx(`border: 1.5px solid ${v.formBd ?? ""}; scroll-margin-top: 96px;`)}>
-                    <div>
-                      <h2 className="h2" id="coa-add-h">Add an account</h2>
-                      <p className="sub">The code is suggested from the group’s range. System accounts cannot be renamed.</p>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
-                      <span className="lbl" id="coa-grp-l">Group</span>
-                      <div role="group" aria-labelledby="coa-grp-l" style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                        {__list(v.gOpts).map((o, $index) => (<React.Fragment key={$index}>
-                            <button type="button" className={o?.cls} aria-pressed={o?.on} onClick={o?.pick}>{o?.l}</button>
-                          </React.Fragment>))}
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
-                      <label className="lbl" htmlFor="an">Account name <span aria-hidden="true" style={{ color: "var(--text-danger)" }}>*</span></label>
-                      <input id="an" className="inp" placeholder="e.g. Upay merchant" value={v.nm} onChange={v.onNm} required aria-required="true" aria-invalid={v.badNm} aria-describedby={v.badNm ? "an-err" : undefined} style={v.badNm ? { borderColor: "var(--text-danger)" } : undefined} />
-                      {v.badNm ? (<span id="an-err" className="gc-help gc-help--error">{v.errNm}</span>) : null}
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
-                      <label className="lbl" htmlFor="ac">Account code <span aria-hidden="true" style={{ color: "var(--text-danger)" }}>*</span></label>
-                      <input id="ac" className="inp mono" inputMode="numeric" value={v.code} onChange={v.onCode} required aria-required="true" aria-invalid={v.badCode} aria-describedby={v.badCode ? "ac-err ac-hint" : "ac-hint"} style={v.badCode ? { borderColor: "var(--text-danger)" } : undefined} />
-                      {v.badCode ? (<span id="ac-err" className="gc-help gc-help--error">{v.errCode}</span>) : null}
-                      <span id="ac-hint" style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>{v.codeHint} Next free code: {v.nextCode}.</span>
-                    </div>
-                    <button type="submit" className="btn solid">Add account</button>
-                  </form>
-                </aside>
-              </div>
-            </div>
-          </main>
+  return (
+    <AccPage screen="ChartOfAccounts" active="acc-setup" page="Chart of accounts" title="Chart of accounts" css={CSS} back="/account-setup?tab=advanced" backLabel="Accounts setup" about={ABOUT}
+      placeholder="Search" primary={{ label: 'Add account', onClick: openAdd }}>
+      <MetricStrip label="Books" items={[
+        { label: 'Assets', value: tk2(sum('Assets')) },
+        { label: 'Liabilities', value: tk2(sum('Liabilities')) },
+        { label: 'Owner’s equity', value: tk2(3000000 - 180000 + profit) },
+        { label: 'Profit since March', value: tk2(profit) },
+        { label: 'Trial balance', value: <span className={balanced ? '' : 'coa-neg'}>{balanced ? 'Balanced' : 'Out of balance'}</span>, sub: balanced ? '' : 'Out by ' + tk2(Math.abs(dr - cr)) },
+      ]} />
+
+      <section className="ix-card" aria-label="Chart of accounts">
+        <div className="ix-bar">
+          {findOn ? (<>
+            <SearchField value={q} onChange={onQ} placeholder="Search code or name" onDone={closeFind} autoFocus={find} />
+            <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={closeFind}>Cancel</button>
+          </>) : (<>
+            <IndexTabs tabs={tabs} label="Account group" />
+            <span className="ix-tools">
+              <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search and filter" onClick={() => setFind(true)}><Icon name="search" width="16" height="16" aria-hidden="true" /></button>
+            </span>
+          </>)}
         </div>
-      </div>
-    );
-  }
+        {groups.length === 0 ? (
+          <div className="ix-empty"><EmptyState title="No accounts match" actionLabel="Clear filters" onAction={clearFilters} /></div>
+        ) : (<>
+          <ul className="ix-plist" aria-label="Accounts">
+            {groups.map((g) => (
+              <React.Fragment key={g.n}>
+                <li className="ac-plh">{g.n}<small>{g.total}</small></li>
+                {g.rows.map((a) => (
+                  <li key={a.code}>
+                    <div className="ix-pitem">
+                      <span className="ix-pitem__top"><b><span className="coa-code">{a.code}</span> {a.n}</b><span className={'coa-fig' + (a.contra ? ' coa-neg' : a.zero ? ' ix-muted' : '')}>{a.bal}</span></span>
+                      <span className="ix-pitem__mid">{a.side}{a.src ? ' · Auto · ' + a.src : ''}</span>
+                    </div>
+                  </li>
+                ))}
+              </React.Fragment>
+            ))}
+          </ul>
+          <div className="ix-table-wrap">
+            <table className="ix-table ix-table--static gc-table--keep">
+              <caption className="sr-only">Chart of accounts</caption>
+              <thead><tr><th scope="col" style={{ width: 80 }}>Code</th><th scope="col">Account</th><th scope="col">Posted by</th><th scope="col">Side</th><th scope="col" className="ix-num">Balance</th></tr></thead>
+              {groups.map((g) => (
+                <tbody key={g.n}>
+                  <tr className="ac-grp"><th scope="rowgroup" colSpan={4}>{g.n}<small>{g.rows.length} accounts</small></th><td className="ix-num coa-fig">{g.total}</td></tr>
+                  {g.rows.map((a) => (
+                    <tr key={a.code}>
+                      <td className="coa-code">{a.code}</td>
+                      <td className="ix-strong">{a.n}</td>
+                      <td>{a.src ? <StatusBadge tone="info" icon="zap">Auto · {a.src}</StatusBadge> : <span className="ix-muted">Entries</span>}</td>
+                      <td className="ix-muted">{a.side}</td>
+                      <td className={'ix-num coa-fig' + (a.contra ? ' coa-neg' : a.zero ? ' ix-muted' : '')}>{a.bal}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              ))}
+            </table>
+          </div>
+        </>)}
+        <div className="ix-foot"><span>{list.length} accounts · {tk2(dr)} on each side</span></div>
+      </section>
+      <LearnMore topic="the chart of accounts" />
+
+      <Dialog open={adding} title="Add an account" onClose={() => setAdding(false)} width={480}
+        footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setAdding(false)}>Cancel</button><button type="submit" form="coa-add" className="gc-btn gc-btn--solid">Add account</button></>}>
+        <form id="coa-add" className="ac-form" noValidate onSubmit={addAcct}>
+          <p className="gc-help" style={{ margin: 0 }}>The code is suggested from the group’s range. System accounts cannot be renamed.</p>
+          <div>
+            <span className="gc-label" id="coa-grp-l">Group</span>
+            <div className="ix-chips" role="group" aria-labelledby="coa-grp-l">
+              {GROUPS.map((g) => <button key={g} type="button" className="ix-chip" aria-pressed={g === ng} onClick={() => pickGroup(g)}>{g}</button>)}
+            </div>
+          </div>
+          <div>
+            <label className="gc-label" htmlFor="an">Account name *</label>
+            <input id="an" className={'gc-input' + (err.nm ? ' gc-input--error' : '')} placeholder="e.g. Upay merchant" value={nm} onChange={(e) => { setNm(e.target.value); setErr({ ...err, nm: '' }); }} required aria-required="true" aria-invalid={!!err.nm} aria-describedby={err.nm ? 'an-err' : undefined} data-autofocus />
+            {err.nm ? <span id="an-err" className="gc-help gc-help--error">{err.nm}</span> : null}
+          </div>
+          <div>
+            <label className="gc-label" htmlFor="ac">Account code *</label>
+            <input id="ac" className={'gc-input coa-fig' + (err.code ? ' gc-input--error' : '')} inputMode="numeric" value={codeTxt} onChange={(e) => { setCode(String(e.target.value || '').replace(/[^\d]/g, '').slice(0, 4)); setErr({ ...err, code: '' }); }} required aria-required="true" aria-invalid={!!err.code} aria-describedby={err.code ? 'ac-err ac-hint' : 'ac-hint'} />
+            {err.code ? <span id="ac-err" className="gc-help gc-help--error">{err.code}</span> : null}
+            <span id="ac-hint" className="gc-help" style={{ display: 'block', margin: 'var(--space-1) 0 0' }}>{ng} use codes {r[0]} to {r[1]}. Normal balance: {r[2] === 'D' ? 'debit' : 'credit'}. Next free code: {nc}.</span>
+          </div>
+        </form>
+      </Dialog>
+    </AccPage>
+  );
 }

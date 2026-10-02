@@ -1,7 +1,8 @@
 'use client';
 // Generated from design/templates/settings-console/SetChrome.dc.html by scripts/convert-design.mjs.
-// SetChrome — the frame every settings screen sits in: the main menu, the fluid page layout,
-// and the form kit (fields, switches, save bar) the settings screens share.
+// SetChrome — the frame every settings screen sits in (Shopify's Settings: a settings list on the left, one narrow
+// column of cards): the main menu, the page layout, and the form kit (fields, switches, save bar) the settings
+// screens share.
 // Edit freely: this file is now the source for the screen.
 
 import React, { useEffect, useState } from 'react';
@@ -258,16 +259,14 @@ export function SetSaveBar({ f, note }) {
   let status;
   if (errors) status = <><span className="set-bar__dot set-bar__dot--bad"><__Icon name="triangle-alert" strokeWidth="1.75" width="13" height="13" aria-hidden="true" /></span>{'Could not save: ' + errors + (errors === 1 ? ' field needs' : ' fields need') + ' attention'}</>;
   else if (dirty) status = <><span className="set-bar__dot"><__Icon name="pencil" strokeWidth="1.75" width="13" height="13" aria-hidden="true" /></span>{changed + (changed === 1 ? ' unsaved change' : ' unsaved changes')}</>;
-  else status = <><__Icon name="circle-check" strokeWidth="1.75" width="17" height="17" aria-hidden="true" style={{ color: 'var(--text-success)' }} />All changes saved<span className="set-bar__note">{at ? '· ' + at + ' by you' : note || ''}</span></>;
+  else status = <><__Icon name="circle-check" strokeWidth="1.75" width="16" height="16" aria-hidden="true" style={{ color: 'var(--text-success)' }} />All changes saved<span className="set-bar__note">{at ? '· ' + at + ' by you' : note || ''}</span></>;
   return (
     <div className="set-bar" data-dirty={dirty ? 'true' : 'false'}>
       <span className="set-bar__status" role="status">{status}</span>
       <span style={{ flex: '1' }} />
       {dirty ? <span className="set-bar__hint">Ctrl or ⌘ + S also saves</span> : null}
-      <button type="button" className="set-bar__discard" aria-disabled={dirty ? undefined : 'true'} onClick={dirty ? f.discard : undefined}>Discard</button>
-      <button type="submit" className="set-bar__save" aria-disabled={dirty ? undefined : 'true'}>
-        {dirty ? <__Icon name="check" strokeWidth="1.75" width="16" height="16" aria-hidden="true" /> : null}Save changes
-      </button>
+      <button type="button" className="ix-btn set-bar__discard" aria-disabled={dirty ? undefined : 'true'} onClick={dirty ? f.discard : undefined}>Discard</button>
+      <button type="submit" className="ix-btn ix-btn--primary set-bar__save" aria-disabled={dirty ? undefined : 'true'}>Save changes</button>
     </div>
   );
 }
@@ -303,34 +302,40 @@ export function SetFragment({ name, children }) {
 
 class Component extends DCLogic { renderVals() { return {}; } }
 
-// ---- styles (from the design's <helmet>) ----
-// The settings pages are fluid: the page fills the window and scrolls as one document.
-//   >= 1440  main menu · settings nav · form · "On this page"
-//   >= 1024  main menu · settings nav · form
-//   <  1024  main menu in the top bar's drawer · settings nav as a scrolling strip · form
+// ---- styles ----
+// Settings look like Shopify's Settings (docs/shopify-style.md): the app frame (main menu, top bar), the settings
+// list on the left, and one narrow column of cards (ix-card) with a sticky save bar.
+//   >= 1024  main menu · settings list · cards
+//   <  1024  main menu in the top bar's drawer · settings list as a scrolling strip · cards
 //   <   768  edge to edge, single column
 
 const CSS = `
-.set-shell{display:flex;gap:12px;width:100%;min-height:var(--set-vh,100dvh);padding:12px;background:#eef2f7;font-family:var(--font-sans);color:#475569;box-sizing:border-box}
+.set-shell{display:flex;gap:var(--shell-inset);width:100%;min-height:var(--set-vh,100dvh);padding:var(--shell-inset);background:var(--surface-desk);font-family:var(--font-sans);color:var(--text-body);box-sizing:border-box}
 .set-shell *,.set-shell *::before,.set-shell *::after{box-sizing:border-box}
 .set-shell__rail{flex:none;display:flex}
-.set-shell__main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:clip;border:1px solid #e2e8f0;border-radius:var(--radius-xl);background:#f8fafc}
+.set-shell__main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:clip;border:1px solid var(--border-subtle);border-radius:var(--radius-2xl);background:var(--surface-page)}
 .set-shell__body{flex:1;min-width:0;display:flex;align-items:stretch}
 .set-shell__col{flex:1;min-width:0;margin:0;display:flex;flex-direction:column;container-type:inline-size;container-name:setcol}
-.set-content{flex:1;min-width:0;display:flex;align-items:flex-start;gap:26px;padding:22px 24px 26px}
-.set-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:16px}
+.set-content{flex:1;min-width:0;display:flex;align-items:flex-start;justify-content:center;gap:var(--space-4);padding:20px 24px 32px}
+.set-main{flex:1;min-width:0;max-width:840px;display:flex;flex-direction:column;gap:var(--space-4)}
 html:not([data-set-tips]) .set-main .set-help:not(.set-help--keep){display:none}
-.set-tips{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0;border:0;background:none;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-link);cursor:pointer}
+.set-tips{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:0;border:0;background:none;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-link);cursor:pointer}
 .set-tips:hover{text-decoration:underline}
+/* the title row: the page title (20px) with "Show field tips" under it, the page's status on the right */
+.set-pagehead{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-2) var(--space-4)}
+.set-pagehead__text{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0}
+.set-pagehead .ix-head__title{flex:none}
 .set-main>header{flex-wrap:wrap}
 .set-main>section{min-width:0;max-width:100%}
 .set-main section[id]{scroll-margin-top:calc(var(--header-height,64px) + 16px)}
-.set-toc{position:sticky;top:calc(var(--header-height,64px) + 16px);width:186px;flex:none;display:flex;flex-direction:column;gap:8px}
+/* a card: the title row (an h2 and its count or actions), then the fields */
+.set-head{display:flex;align-items:center;gap:var(--space-3);min-height:44px;padding:var(--space-3) var(--space-4) 0}
+.set-head--top{align-items:flex-start}
+.set-title{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .set-side{position:sticky;top:calc(var(--header-height,64px) + 16px)}
-@media (max-width:1439px){.set-toc{display:none!important}}
-@container setcol (max-width:903px){.set-toc{display:none!important}}
 @container setcol (max-width:1099px){
   .set-content:has(.set-side){flex-direction:column;align-items:stretch}
+  .set-content:has(.set-side) .set-main{max-width:none}
   .set-side{position:static!important;width:100%!important;max-width:none!important}
 }
 @container setcol (max-width:759px){
@@ -377,11 +382,11 @@ input[type="time"].set-in{min-width:96px}
 .set-sw[aria-checked="true"]{background:#003087}
 .set-sw[aria-checked="true"]>span{transform:translateX(16px)}
 .set-sw:disabled{opacity:.55;cursor:not-allowed}
-.set-sw:focus-visible,.set-seg button:focus-visible,.set-disc:focus-visible,.set-bar button:focus-visible{outline:3px solid var(--focus-ring,rgba(0,48,135,.5));outline-offset:2px}
+.set-sw:focus-visible,.set-seg button:focus-visible,.set-disc:focus-visible{outline:3px solid var(--focus-ring,rgba(0,48,135,.5));outline-offset:2px}
 @media (prefers-reduced-motion:reduce){.set-sw,.set-sw>span,.set-box{transition:none}}
 
-.set-seg{flex:none;display:inline-flex;align-items:center;gap:2px;height:36px;padding:3px;border:1px solid #e2e8f0;border-radius:var(--radius-lg);background:#f8fafc}
-.set-seg button{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border:0;border-radius:var(--radius-md);background:none;font-size:var(--text-xs);color:var(--text-muted);cursor:pointer;white-space:nowrap}
+.set-seg{flex:none;display:inline-flex;align-items:center;gap:2px;height:32px;padding:3px;border:1px solid #e2e8f0;border-radius:var(--radius-lg);background:#f8fafc}
+.set-seg button{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border:0;border-radius:var(--radius-md);background:none;font-size:var(--text-xs);color:var(--text-muted);cursor:pointer;white-space:nowrap}
 .set-seg button[aria-pressed="true"]{background:#fff;font-weight:var(--weight-medium);color:#1e293b;box-shadow:0 1px 2px 0 rgba(48,46,56,.1)}
 .set-seg--warn{background:#fff}
 .set-seg--warn button[aria-pressed="true"]{background:#8a5200;color:#fff;box-shadow:none}
@@ -412,24 +417,17 @@ input[type="time"].set-in{min-width:96px}
 @container setcol (max-width:559px){.set-row__text{flex:1 1 170px!important}}
 [data-disc][hidden]{display:none!important}
 
-/* save bar: a status line when nothing changed, a sticky bar once something did */
-.set-bar{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;min-height:64px;padding:10px 24px;border-top:1px solid #e2e8f0;background:#fff}
+/* save bar: a status line when nothing changed, a sticky bar once something did (Shopify's contextual save bar) */
+.set-bar{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;min-height:52px;padding:8px 24px;border-top:1px solid var(--border-subtle);background:var(--surface-card)}
 .set-bar[data-dirty="true"]{position:sticky;bottom:0;z-index:20;box-shadow:0 -8px 22px -14px rgba(15,23,42,.25)}
-.set-bar__status{display:inline-flex;align-items:center;gap:8px;font-size:var(--text-xs-plus);color:#475569}
-.set-bar[data-dirty="true"] .set-bar__status{font-size:var(--text-sm);font-weight:var(--weight-medium);color:#1e293b}
+.set-bar__status{display:inline-flex;align-items:center;gap:8px;font-size:var(--text-xs);color:var(--text-body)}
+.set-bar[data-dirty="true"] .set-bar__status{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 .set-bar__note{color:var(--text-muted);font-weight:var(--weight-regular)}
-.set-bar__dot{display:grid;place-items:center;width:22px;height:22px;border-radius:var(--radius-full);background:rgba(0,156,222,.16);color:var(--accent-text)}
-.set-bar__dot--bad{background:rgba(255,87,36,.14);color:var(--text-danger,#c2380f)}
+.set-bar__dot{display:grid;place-items:center;width:20px;height:20px;border-radius:var(--radius-full);background:var(--fill-info-soft);color:var(--text-info)}
+.set-bar__dot--bad{background:var(--fill-error-soft);color:var(--text-danger)}
 .set-bar__hint{font-size:var(--text-xs);color:var(--text-muted)}
-.set-bar button{display:inline-flex;align-items:center;gap:8px;height:44px;border-radius:var(--radius-lg);font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer}
-.set-bar__discard{padding:0 14px;border:1px solid #cbd5e1;background:#fff;color:#475569}
-.set-bar__discard:hover{background:#f8fafc;color:#1e293b}
-.set-bar__save{padding:0 18px;border:0;background:#003087;color:#fff;letter-spacing:.02em}
-.set-bar__save:hover{background:#002a77}
-.set-bar button[aria-disabled="true"]{cursor:not-allowed;box-shadow:none}
-.set-bar__discard[aria-disabled="true"],.set-bar__discard[aria-disabled="true"]:hover{border-color:transparent;background:none;color:var(--text-muted)}
-.set-bar__save[aria-disabled="true"],.set-bar__save[aria-disabled="true"]:hover{background:#e2e8f0;color:#475569}
-@media (max-width:767px){.set-bar{padding:10px 16px}.set-bar__hint{display:none}}
+.set-bar button[aria-disabled="true"]{cursor:not-allowed;box-shadow:none;opacity:.55}
+@media (max-width:767px){.set-bar{padding:8px 16px}.set-bar__hint{display:none}.set-bar .ix-btn{height:44px}.set-seg{height:40px}.set-seg button{height:32px}}
 
 /* phone layout (desktop unchanged). Hooks the settings screens carry:
    .set-head   card head: title + description, then the actions (chips, selects, buttons)

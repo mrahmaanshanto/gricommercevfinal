@@ -5,24 +5,16 @@
 // Add, edit (name, code, address, area, phone, manager, receives deliveries, negative stock) and
 // deactivate a warehouse. A warehouse with stock, holds, transfers on the way or counters switched on
 // cannot be deactivated: the dialog says what blocks it and links to the fix (placeShared.jsx).
+// Laid out like a Shopify list (components/ui/IndexKit.jsx): key figures, then Active / All and a compact table;
+// a click on a warehouse opens it (manager, contact, figures, its stock, and edit / transfer / deactivate).
 
 import React, { useState } from 'react';
-import Link from 'next/link';
-import { Icon } from '@/runtime/dc';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { PageHeader, EmptyState } from '@/components/ui';
+import { EmptyState } from '@/components/ui';
+import { ShopHeader, MetricStrip, LearnMore } from '@/components/ui/IndexKit';
 import { formatBDT } from '@/lib/format';
 import { placeBinStats } from '@/lib/racks';
-import { usePlaceData, stockOf, PLACE_CSS, PlaceCard, PlaceStockDialog, usePlaceForm, usePlaceToggle } from './placeShared';
-
-const WH_CSS = `
-@media (max-width:640px){
-  /* page title + "More" + main button share one row: the title keeps whole words (never split mid-word),
-     the main button is a little narrower; if they still do not fit, the row wraps */
-  [data-screen="Warehouses"] .gc-shell__content .gc-pagehead>.gc-pagehead__text{flex-basis:0!important;min-width:min-content!important}
-  [data-screen="Warehouses"] .gc-pagehead__actions .gc-btn--solid{padding:0 var(--space-3)}
-}
-`;
+import { usePlaceData, stockOf, PLACE_CSS, PlaceList, PlaceDialog, usePlaceForm, usePlaceToggle } from './placeShared';
 
 export default function Warehouses() {
   const [d, reload] = usePlaceData();
@@ -34,61 +26,57 @@ export default function Warehouses() {
   const all = d.places.filter((p) => p.type === 'Warehouse');
   const active = all.filter((p) => p.active !== false);
   const inactive = all.filter((p) => p.active === false);
-  const shown = showOff ? all : active;
   const figs = active.map((p) => stockOf(p, d));
   const total = (k) => figs.reduce((a, f) => a + f[k], 0);
   const bins = active.reduce((a, p) => { const b = placeBinStats(p.id, d.racks); return { used: a.used + b.used, all: a.all + b.bins }; }, { used: 0, all: 0 });
   const viewing = view ? d.places.find((p) => p.id === view) : null;
+  const add = () => form.open(null, 'Warehouse');
+  const binsOf = (pl) => { const b = placeBinStats(pl.id, d.racks); return b.bins ? `${Math.round((b.used / b.bins) * 100)}%` : '—'; };
 
   return (
     <div className="dc-screen ds" data-screen="Warehouses">
-      <style dangerouslySetInnerHTML={{ __html: PLACE_CSS + WH_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: PLACE_CSS }} />
       <div className="gc-shell">
         <Sidebar sticky="" active="stock-wh" />
-        <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
+        <main className="gc-shell__main">
           <Topbar crumb="Products & stock" page="Warehouses" />
-          <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-            <PageHeader
-              title="Warehouses"
-              about="Where stock is kept in bulk and sent to your branches. Figures come from the stock list."
-              actions={<>
-                <Link href="/racks" className="gc-btn gc-btn--neutral"><Icon name="layout-grid" width="18" height="18" aria-hidden="true" /> Racks & bins</Link>
-                <button type="button" className="gc-btn gc-btn--solid" onClick={() => form.open(null, 'Warehouse')}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Add warehouse</button>
-              </>}
-            />
+          <div className="gc-shell__content">
+            <div className="ix-page">
+              <ShopHeader icon="warehouse" title="Warehouses"
+                about="Where stock is kept in bulk and sent to your branches. Figures come from the stock list. A warehouse can only be deactivated when it is empty: no stock on hand, nothing held, no transfer on the way and no POS counter switched on."
+                secondary={[{ label: 'Racks & bins', href: '/racks' }]}
+                more={[{ label: 'Transfers', href: '/transfers' }, { label: 'Branches', href: '/branches' }]}
+                primary={{ label: 'Add warehouse', onClick: add }} />
 
-            <div className="gc-kpis">
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="warehouse" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Warehouses</p><p className="gc-kpi__value">{active.length}<small>active{inactive.length ? ` · ${inactive.length} inactive` : ''}</small></p></div></div>
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="banknote" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Stock value</p><p className="gc-kpi__value">{formatBDT(total('value'))}<small>{total('onHand').toLocaleString('en-IN')} pcs</small></p></div></div>
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-info-soft)', color: 'var(--text-info)' }}><Icon name="truck" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">On the way</p><p className="gc-kpi__value">{total('transitOut')}<small>pcs out · {total('transitIn')} in</small></p></div></div>
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-warning-soft)', color: 'var(--text-warning)' }}><Icon name="layout-grid" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Bins used</p><p className="gc-kpi__value">{bins.all ? Math.round((bins.used / bins.all) * 100) + '%' : '—'}<small>{bins.all ? `${bins.used} of ${bins.all} bins` : 'no racks yet'}</small></p></div></div>
+              <MetricStrip label="Warehouse figures" items={[
+                { label: 'Warehouses', value: String(active.length), sub: `active${inactive.length ? ` · ${inactive.length} inactive` : ''}` },
+                { label: 'Stock value', value: formatBDT(total('value')), sub: `${total('onHand').toLocaleString('en-IN')} pcs` },
+                { label: 'On the way', value: String(total('transitOut')), sub: `pcs out · ${total('transitIn')} in`, href: '/transfers' },
+                { label: 'Bins used', value: bins.all ? Math.round((bins.used / bins.all) * 100) + '%' : '—', sub: bins.all ? `${bins.used} of ${bins.all} bins` : 'no racks yet', href: '/racks' },
+              ]} />
+
+              <PlaceList label="Warehouses" nouns={['warehouse', 'warehouses']} all={all} active={active} showOff={showOff} setShowOff={setShowOff} d={d}
+                onOpen={(pl) => setView(pl.id)}
+                mid={(pl, st) => [pl.area, `${st.onHand.toLocaleString('en-IN')} pcs`, formatBDT(st.value)].filter(Boolean).join(' · ')}
+                cols={[
+                  { h: 'Products', num: true, cell: (pl, st) => st.products },
+                  { h: 'On hand', num: true, cell: (pl, st) => st.onHand.toLocaleString('en-IN') },
+                  { h: 'Stock value', num: true, cell: (pl, st) => formatBDT(st.value) },
+                  { h: 'Low stock', num: true, cell: (pl, st) => <span className={st.negative.length ? 'pl-badc' : st.low ? 'pl-warnc' : ''}>{st.low}{st.negative.length ? ` · ${st.negative.length} below 0` : ''}</span> },
+                  { h: 'Bins used', num: true, cell: (pl) => binsOf(pl) },
+                ]}
+                empty={<EmptyState icon="warehouse" title="No warehouses yet" body="Add the first place where you keep stock in bulk." actionLabel="Add warehouse" onAction={add} />} />
+              <LearnMore topic="warehouses" />
             </div>
-
-            {inactive.length ? (
-              <div className="gc-seg" role="group" aria-label="Which warehouses" style={{ alignSelf: 'flex-start' }}>
-                <button type="button" className={'gc-seg__btn' + (!showOff ? ' gc-seg__btn--active' : '')} aria-pressed={!showOff} onClick={() => setShowOff(false)}>Active · {active.length}</button>
-                <button type="button" className={'gc-seg__btn' + (showOff ? ' gc-seg__btn--active' : '')} aria-pressed={showOff} onClick={() => setShowOff(true)}>All · {all.length}</button>
-              </div>
-            ) : null}
-
-            {shown.length === 0 ? (
-              <section className="gc-card"><EmptyState icon="warehouse" title="No warehouses yet" body="Add the first place where you keep stock in bulk." actionLabel="Add warehouse" onAction={() => form.open(null, 'Warehouse')} /></section>
-            ) : (
-              <div className="pl-grid">
-                {shown.map((pl) => (
-                  <PlaceCard key={pl.id} pl={pl} d={d}
-                    onView={() => setView(pl.id)} onEdit={() => form.open(pl)}
-                    onToggle={() => toggle.ask(pl, pl.active === false ? 'on' : 'off')} onDelete={() => toggle.ask(pl, 'delete')} />
-                ))}
-              </div>
-            )}
-            <p className="gc-help" style={{ margin: 0 }}>A warehouse can only be deactivated when it is empty: no stock on hand, nothing held, no transfer on the way and no POS counter switched on.</p>
           </div>
         </main>
       </div>
       {form.dialog}
       {toggle.dialog}
-      {viewing ? <PlaceStockDialog pl={viewing} d={d} onClose={() => setView(null)} /> : null}
+      {viewing ? <PlaceDialog pl={viewing} d={d} onClose={() => setView(null)}
+        onEdit={() => { setView(null); form.open(viewing); }}
+        onToggle={() => { setView(null); toggle.ask(viewing, viewing.active === false ? 'on' : 'off'); }}
+        onDelete={() => { setView(null); toggle.ask(viewing, 'delete'); }} /> : null}
     </div>
   );
 }

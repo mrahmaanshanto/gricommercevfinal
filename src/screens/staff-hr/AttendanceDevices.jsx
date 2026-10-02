@@ -1,36 +1,37 @@
 'use client';
 // Attendance devices (/attendance-devices) — the fingerprint / face machines at each place (src/lib/hr.js › devices):
 // connection, last sync, punches today; who is enrolled on which machine (fingerprints, face, card); today's punch
-// log; and adding a machine. Front end only: syncing pretends the machine answered.
+// log; and adding a machine. Front end only: syncing pretends the machine answered. A machine is a small card with
+// Sync / Edit / Remove (there is no machine page); a person in the enrolment list opens the enrolment dialog.
 
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
-import { Dialog, EmptyState } from '@/components/ui';
+import { Dialog, EmptyState, StatusBadge, InfoTip } from '@/components/ui';
+import { MetricStrip, KV, LearnMore } from '@/components/ui/IndexKit';
 import { formatDate, formatTime } from '@/lib/format';
 import {
   DEVICE_KINDS, HR_PLACES, saveDevice, removeDevice, syncDevice, saveEnrolment, enrolmentOf, punchesOn, todayKey, t12, devicesAt,
 } from '@/lib/hr';
-import { HrPage, useHr, Person } from './hrShared';
+import { HrPage, useHr, Person, rowGo } from './hrShared';
 import { FORM_CSS, Seg } from '@/screens/staff-profile/staffForm';
 
 const CSS = `
-.ad-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(320px,100%),1fr));gap:var(--space-3);padding:var(--space-4) var(--space-5) var(--space-5)}
-.ad-dev{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-xl)}
-.ad-dev.is-off{border-color:var(--text-danger);background:var(--fill-error-soft)}
+.ad-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:var(--space-3);padding:var(--space-3) var(--space-4) var(--space-4)}
+.ad-dev{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-xl)}
+.ad-dev.is-off{border-color:var(--text-danger)}
 .ad-dev header{display:flex;align-items:flex-start;gap:var(--space-3)}
 .ad-dev header b{display:block;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.ad-dl{display:grid;grid-template-columns:auto 1fr;gap:4px var(--space-3);margin:0;font-size:var(--text-xs)}
-.ad-dl dt{color:var(--text-muted)}
-.ad-dl dd{margin:0;color:var(--text-heading);font-family:var(--font-data);overflow-wrap:anywhere}
-.ad-dot{display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:var(--radius-full);background:var(--text-success)}
-.ad-dot.is-off{background:var(--text-danger)}
+.ad-dev .ix-kv{font-size:var(--text-xs)}
+.ad-dev .ix-kv dd{font-family:var(--font-data)}
+.ad-acts{display:flex;flex-wrap:wrap;gap:var(--space-2)}
 .ad-split{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:var(--space-4);align-items:start}
-.ad-log{display:flex;flex-direction:column;max-height:560px;overflow:auto}
-.ad-log > div{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-5);border-bottom:1px solid var(--border-subtle);font-size:var(--text-sm)}
-.ad-log time{width:72px;flex:none;font-family:var(--font-data);color:var(--text-heading)}
-.ad-steps{margin:0;padding:0 var(--space-5) var(--space-5) calc(var(--space-5) + 18px);font-size:var(--text-sm);line-height:1.7;color:var(--text-body)}
+.ad-log{display:flex;flex-direction:column;max-height:520px;overflow:auto}
+.ad-log > div{display:flex;align-items:center;gap:var(--space-3);min-height:40px;padding:4px var(--space-4);border-top:1px solid var(--border-subtle);font-size:var(--text-sm)}
+.ad-log > div:first-child{border-top:0}
+.ad-log time{width:68px;flex:none;font-family:var(--font-data);color:var(--text-heading)}
+.ad-steps{margin:0;padding:0 var(--space-4) var(--space-4) calc(var(--space-4) + 18px);font-size:var(--text-sm);line-height:1.7;color:var(--text-body)}
 @media (max-width:1500px){.ad-split{grid-template-columns:minmax(0,1fr)}}
 `;
 const BRANDS = ['ZKTeco', 'Hikvision', 'Suprema', 'Dahua', 'Other'];
@@ -72,83 +73,91 @@ export default function AttendanceDevices() {
     setEnrol(null);
   };
 
-  return (
-    <HrPage screen="AttendanceDevices" active="hr-devices" page="Attendance devices" title="Attendance devices" css={FORM_CSS + CSS}
-      about="Fingerprint and face machines at each place, who is enrolled on them, and today’s punches."
-      actions={<button type="button" className="gc-btn gc-btn--solid" onClick={() => setEdit({ name: '', place: HR_PLACES[1] || HR_PLACES[0], kind: 'finger', brand: 'ZKTeco', model: '', serial: '', ip: '192.168.', port: 4370 })}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Add machine</button>}>
-      <div className="gc-kpis">
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: off.length ? 'var(--fill-error-soft)' : 'var(--fill-success-soft)', color: off.length ? 'var(--text-danger)' : 'var(--text-success)' }}><Icon name="fingerprint" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Machines</p><p className="gc-kpi__value">{devs.length}<small>{off.length ? `${off.length} offline` : 'all online'}</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="log-in" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Punches today</p><p className="gc-kpi__value">{punches.length}<small>{punches.filter((p) => p.device).length} from machines</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: missing.length ? 'var(--fill-warning-soft)' : 'var(--fill-success-soft)', color: missing.length ? 'var(--text-warning)' : 'var(--text-success)' }}><Icon name="user-check" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Enrolled</p><p className="gc-kpi__value">{atMachines.length - missing.length} of {atMachines.length}<small>{missing.length ? `${missing.map((s) => s.name.split(' ')[0]).join(', ')} not yet` : 'everyone at a machine'}</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-info-soft)', color: 'var(--text-info)' }}><Icon name="refresh-cw" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Last sync</p><p className="gc-kpi__value">{devs.length ? formatTime(Math.max(...devs.map((d) => d.lastSync || 0))) : '—'}<small>machines push every 5 minutes</small></p></div></div>
-      </div>
+  const openEnrol = (s, en) => { const b = s.bio || {}; setEnrol({ s, device: en.device, fingers: b.fingers || 0, face: !!b.face, card: b.card || '' }); };
 
-      <section className="gc-card hr-card">
-        <div className="hr-head"><div><h2>Machines</h2><p>Each machine sends its punches to GridCommerce over the internet.</p></div></div>
+  return (
+    <HrPage screen="AttendanceDevices" active="hr-devices" page="Attendance devices" title="Attendance devices" icon="fingerprint" css={FORM_CSS + CSS}
+      about="Fingerprint and face machines at each place, who is enrolled on them, and today’s punches. Each machine sends its punches to GridCommerce over the internet."
+      more={[{ label: 'Attendance', href: '/attendance' }, { label: 'Attendance rules', href: '/hr-setup?sec=att' }]}
+      primary={{ label: 'Add machine', onClick: () => setEdit({ name: '', place: HR_PLACES[1] || HR_PLACES[0], kind: 'finger', brand: 'ZKTeco', model: '', serial: '', ip: '192.168.', port: 4370 }) }}>
+      <MetricStrip label="Machines" items={[
+        { label: 'Machines', value: String(devs.length), sub: off.length ? `${off.length} offline` : 'all online' },
+        { label: 'Punches today', value: String(punches.length), sub: `${punches.filter((p) => p.device).length} from machines`, href: '/attendance' },
+        { label: 'Enrolled', value: `${atMachines.length - missing.length} of ${atMachines.length}`, sub: missing.length ? `${missing.length} not yet` : null },
+        { label: 'Last sync', value: devs.length ? formatTime(Math.max(...devs.map((d) => d.lastSync || 0))) : '—', sub: 'every 5 minutes' },
+      ]} />
+
+      <section className="ix-card" aria-labelledby="ad-machines">
+        <header className="ix-card__head"><h2 id="ad-machines">Machines</h2></header>
         {devs.length ? (
           <div className="ad-grid">
             {devs.map((d) => {
               const isOff = d.status !== 'online';
-              const [kind, icon] = DEVICE_KINDS[d.kind] || DEVICE_KINDS.finger;
+              const [kind] = DEVICE_KINDS[d.kind] || DEVICE_KINDS.finger;
               const people = S.staff.filter((s) => s.status !== 'left' && s.branch === d.place);
               return (
                 <div key={d.id} className={'ad-dev' + (isOff ? ' is-off' : '')}>
                   <header>
-                    <span className="rp-tile"><Icon name={icon} width="18" height="18" aria-hidden="true" /></span>
                     <div style={{ flex: 1, minWidth: 0 }}><b>{d.name}</b><span className="hr-sub">{d.place} · {kind}</span></div>
-                    <span className={'gc-badge gc-badge--' + (isOff ? 'error' : 'success')}><span className={'ad-dot' + (isOff ? ' is-off' : '')} aria-hidden="true" />{isOff ? 'Offline' : 'Online'}</span>
+                    <StatusBadge tone={isOff ? 'error' : 'success'}>{isOff ? 'Offline' : 'Online'}</StatusBadge>
                   </header>
-                  <dl className="ad-dl">
-                    <dt>Model</dt><dd>{d.brand} {d.model || '—'}</dd>
-                    <dt>Serial</dt><dd>{d.serial || '—'}</dd>
-                    <dt>Address</dt><dd>{d.ip}:{d.port}</dd>
-                    <dt>Last sync</dt><dd>{d.lastSync ? `${formatDate(d.lastSync)} ${formatTime(d.lastSync)}` : '—'}</dd>
-                    <dt>People</dt><dd>{people.filter((s) => enrolmentOf(S, s).ok).length} of {people.length} enrolled</dd>
-                  </dl>
+                  <KV rows={[['Model', `${d.brand} ${d.model || '—'}`], ['Serial', d.serial || '—'], ['Address', `${d.ip}:${d.port}`], ['Last sync', d.lastSync ? `${formatDate(d.lastSync)} ${formatTime(d.lastSync)}` : '—'], ['People', `${people.filter((s) => enrolmentOf(S, s).ok).length} of ${people.length} enrolled`]]} />
                   {isOff && d.note ? <div className="hr-note hr-note--error"><Icon name="wifi-off" width="16" height="16" aria-hidden="true" /><span>{d.note}</span></div> : null}
-                  <div className="hr-actions" style={{ justifyContent: 'flex-start' }}>
-                    <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => sync(d)}><Icon name="refresh-cw" width="14" height="14" aria-hidden="true" /> {isOff ? 'Try again' : 'Sync now'}</button>
-                    <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setEdit({ ...d })}>Edit</button>
-                    <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" aria-label={`Remove ${d.name}`} onClick={() => remove(d)}><Icon name="trash-2" width="14" height="14" aria-hidden="true" /></button>
+                  <div className="ad-acts">
+                    <button type="button" className="ix-btn ix-btn--sm" onClick={() => sync(d)}><Icon name="refresh-cw" width="16" height="16" aria-hidden="true" />{isOff ? 'Try again' : 'Sync now'}</button>
+                    <button type="button" className="ix-btn ix-btn--sm" onClick={() => setEdit({ ...d })}>Edit</button>
+                    <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label={`Remove ${d.name}`} onClick={() => remove(d)}><Icon name="trash-2" width="16" height="16" aria-hidden="true" /></button>
                   </div>
                 </div>
               );
             })}
           </div>
-        ) : <EmptyState icon="fingerprint" title="No machines yet" body="Add the fingerprint or face machine at each place so punches come in on their own." />}
+        ) : <div className="ix-empty"><EmptyState icon="fingerprint" title="No machines yet" /></div>}
       </section>
 
       <div className="ad-split">
-        <section className="gc-card hr-card">
-          <div className="hr-bar">
-            <div><b className="hr-strong">Enrolment</b><span className="hr-sub">Save a person’s fingerprint or face on the machine, then mark it here.</span></div>
-            <select className="gc-input gc-select" style={{ width: 'auto' }} aria-label="Place" value={place} onChange={(e) => setPlace(e.target.value)}><option value="">All places</option>{[...new Set(devs.map((d) => d.place))].map((p) => <option key={p}>{p}</option>)}</select>
-          </div>
+        <section className="ix-card" aria-labelledby="ad-enrol">
+          <header className="ix-card__head">
+            <h2 id="ad-enrol">Enrolment <InfoTip text="Save a person’s fingerprint or face on the machine, then mark it here." /></h2>
+            <select className={'ix-filter' + (place ? ' is-set' : '')} aria-label="Place" value={place} onChange={(e) => setPlace(e.target.value)}><option value="">All places</option>{[...new Set(devs.map((d) => d.place))].map((p) => <option key={p}>{p}</option>)}</select>
+          </header>
           {rows.length ? (
-            <div className="gc-table-wrap">
-              <table className="gc-table gc-table--compact">
-                <thead><tr><th scope="col">Staff</th><th scope="col">Machine</th><th scope="col" className="hr-num">User no.</th><th scope="col">Saved</th><th scope="col">Status</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
-                <tbody>{rows.map(({ s, en }) => {
-                  const b = s.bio || {};
-                  return (
-                    <tr key={s.code}>
-                      <td><Person st={s} sub={`${s.code} · clocks in with ${s.checkIn || '—'}`} /></td>
-                      <td>{en.device ? en.device.name : '—'}</td>
-                      <td className="hr-num hr-fig">{b.uid || Number(s.code.replace(/\D/g, ''))}</td>
-                      <td>{[b.fingers ? `${b.fingers} finger${b.fingers > 1 ? 's' : ''}` : '', b.face ? 'face' : '', b.card ? 'card' : ''].filter(Boolean).join(' · ') || <span className="hr-sub">Nothing</span>}</td>
-                      <td>{en.ok ? <span className="gc-badge gc-badge--success">Enrolled</span> : <span className="gc-badge gc-badge--warning">{en.needs} needed</span>}</td>
-                      <td><div className="hr-actions"><button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setEnrol({ s, device: en.device, fingers: b.fingers || 0, face: !!b.face, card: b.card || '' })}>{en.ok ? 'Change' : 'Enrol'}</button></div></td>
-                    </tr>
-                  );
-                })}</tbody>
-              </table>
-            </div>
-          ) : <EmptyState icon="users" title="No one here" body="People at places with a machine show here." />}
+            <>
+              <ul className="ix-plist" aria-label="Enrolment">
+                {rows.map(({ s, en }) => (
+                  <li key={s.code}>
+                    <button type="button" className="ix-pitem" onClick={() => openEnrol(s, en)}>
+                      <span className="ix-pitem__top"><b>{s.name}</b>{en.ok ? <StatusBadge tone="success">Enrolled</StatusBadge> : <StatusBadge tone="warning">{en.needs} needed</StatusBadge>}</span>
+                      <span className="ix-pitem__mid">{en.device ? en.device.name : '—'} · user {(s.bio || {}).uid || Number(s.code.replace(/\D/g, ''))}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <div className="ix-table-wrap" style={{ marginTop: 'var(--space-2)' }}>
+                <table className="ix-table gc-table--keep">
+                  <caption className="sr-only">Enrolment</caption>
+                  <thead><tr><th scope="col">Staff</th><th scope="col">Machine</th><th scope="col" className="ix-num">User no.</th><th scope="col">Saved</th><th scope="col">Status</th></tr></thead>
+                  <tbody>{rows.map(({ s, en }) => {
+                    const b = s.bio || {};
+                    return (
+                      <tr key={s.code} onClick={rowGo(() => openEnrol(s, en))}>
+                        <td><Person st={s} sub={`clocks in with ${s.checkIn || '—'}`} /></td>
+                        <td className="ix-muted">{en.device ? en.device.name : '—'}</td>
+                        <td className="ix-num hr-fig">{b.uid || Number(s.code.replace(/\D/g, ''))}</td>
+                        <td>{[b.fingers ? `${b.fingers} finger${b.fingers > 1 ? 's' : ''}` : '', b.face ? 'face' : '', b.card ? 'card' : ''].filter(Boolean).join(' · ') || <span className="ix-muted">Nothing</span>}</td>
+                        <td>{en.ok ? <StatusBadge tone="success">Enrolled</StatusBadge> : <button type="button" className="ix-btn ix-btn--sm" onClick={() => openEnrol(s, en)}>Enrol · {en.needs}</button>}</td>
+                      </tr>
+                    );
+                  })}</tbody>
+                </table>
+              </div>
+            </>
+          ) : <div className="ix-empty"><EmptyState icon="users" title="No one here" /></div>}
         </section>
-        <section className="gc-card hr-card">
-          <div className="hr-head"><div><h2>Today’s punches</h2><p>Newest first, from the machines, the staff app and POS log-ins.</p></div><Link href="/attendance" className="gc-btn gc-btn--sm gc-btn--neutral">Attendance</Link></div>
+        <section className="ix-card" aria-labelledby="ad-log">
+          <header className="ix-card__head"><h2 id="ad-log">Today’s punches <InfoTip text="Newest first, from the machines, the staff app and POS log-ins." /></h2><Link href="/attendance">Attendance</Link></header>
           {punches.length ? (
-            <div className="ad-log">
+            <div className="ad-log" style={{ paddingTop: 'var(--space-2)' }}>
               {punches.map((p, i) => (
                 <div key={i}>
                   <time>{t12(p.time)}</time>
@@ -157,11 +166,11 @@ export default function AttendanceDevices() {
                 </div>
               ))}
             </div>
-          ) : <EmptyState icon="clock" title="No punches yet today" body="They show as soon as people clock in." />}
+          ) : <p className="hr-empty">No punches yet today.</p>}
         </section>
       </div>
 
-      <details className="gc-card hr-card gc-disclose">
+      <details className="ix-card gc-disclose">
         <summary>How to connect a new machine</summary>
         <ol className="ad-steps">
           <li>On the machine: Menu › Comm. › Cloud Server Setting. Server address <b className="hr-fig">push.gridcommerce.com.bd</b>, port <b className="hr-fig">8081</b>, HTTPS on.</li>
@@ -170,6 +179,7 @@ export default function AttendanceDevices() {
           <li>Punches show in Attendance within 5 minutes. If a machine stops answering for 30 minutes, the HR dashboard says so.</li>
         </ol>
       </details>
+      <LearnMore topic="attendance devices" />
 
       <Dialog open={!!edit} title={edit && edit.id ? `Edit · ${edit.name}` : 'Add a machine'} onClose={() => setEdit(null)} width={620}
         footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setEdit(null)}>Cancel</button><button type="submit" form="ad-form" className="gc-btn gc-btn--solid">{edit && edit.id ? 'Save' : 'Add machine'}</button></>}>

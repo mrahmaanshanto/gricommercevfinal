@@ -1,521 +1,304 @@
 'use client';
 // Generated from design/templates/products/CatalogSetup.dc.html by scripts/convert-design.mjs.
-// CatalogSetup — Products — Catalog setup.
+// CatalogSetup — Products — Catalog setup, a Shopify-style settings page (docs/shopify-style.md).
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
 import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
-import { PageHeader as __PageHeader } from '@/components/ui';
+import { DCLogic, Icon as __Icon, list as __list } from '@/runtime/dc';
+import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
+import { Dialog as __Dialog, InfoTip as __InfoTip } from '@/components/ui';
+import { ShopHeader, IndexTabs, LearnMore } from '@/components/ui/IndexKit';
+import { toast as __toast } from '@/runtime/ui';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
-function bdt(n) { var neg = n < 0; var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return (neg ? '−' : '') + '৳' + s; }
-var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
-function mkTabs(self, list, cur, key, counts) { return list.map(function (x) { var on = x.k === cur; var c = counts ? counts[x.k] : null; return { label: x.label, on: on, cls: on ? 'tab on' : 'tab', hasCount: c != null, count: c, countBg: on ? 'rgba(255,255,255,0.2)' : '#e9eef5', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-function mkChips(self, list, cur, key) { return list.map(function (x) { var on = x.k === cur; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
-var CHN = { sms: ['SMS', '#e7f8f1', '#047857'], wa: ['WhatsApp', '#dcfce7', '#166534'], email: ['Email', '#e0f2fe', '#075985'] };
 function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-function toast(self, m, bad) { clearTimeout(self.t); self.setState({ msg: m, bad: !!bad }); self.t = setTimeout(function () { self.setState({ msg: '' }); }, 2800); }
-function msgV(s) { return { hasMsg: !!s.msg, msg: s.msg || '', msgBg: s.bad ? '#fff4e0' : '#e7f8f1', msgFg: s.bad ? '#7a3b04' : '#065f46' }; }
+function toast(self, m) { __toast(m); }
 var SECS = [['fields', 'Custom fields', 14], ['attrs', 'Attributes and values', 5], ['brands', 'Brands', 38], ['units', 'Units', 6], ['tax', 'Tax rates', 3], ['size', 'Size charts', 4], ['warranty', 'Warranty policies', 4]];
 var CF = [['RAM', 'Dropdown', '4 GB, 6 GB, 8 GB, 12 GB', 'Phones, Laptops', 'Yes', 'Yes', 'No'], ['Network', 'Dropdown', '4G, 5G', 'Phones', 'Yes', 'Yes', 'No'], ['PTA approved', 'Yes / no', '—', 'Phones', 'Yes', 'Yes', 'No'], ['Display size', 'Number · inch', '—', 'Electronics', 'No', 'Yes', 'Yes'], ['Skin type', 'Checkboxes', 'Dry, Oily, Combination, Sensitive, All', 'Skin care', 'Yes', 'Yes', 'Yes'], ['Key ingredients', 'Text', '—', 'Skin care', 'No', 'Yes', 'Yes'], ['Expiry date', 'Date', '—', 'Skin care, Grocery', 'Yes', 'Yes', 'No'], ['Material', 'Text', '—', 'Clothing', 'Yes', 'Yes', 'Yes'], ['Country of origin', 'Dropdown', 'Bangladesh, China, South Korea, Vietnam…', 'All categories', 'No', 'Yes', 'Yes']];
 var ATTR = [['Colour', [['Black', '#111827'], ['White', '#ffffff'], ['Navy', '#1e3a8a'], ['Red', '#dc2626'], ['Silver', '#cbd5e1']], 'used by 186 products'], ['Size', [['S'], ['M'], ['L'], ['XL'], ['XXL']], 'used by 118 products'], ['Storage', [['128 GB'], ['256 GB'], ['512 GB']], 'used by 24 products'], ['Volume', [['50 ml'], ['100 ml'], ['150 ml'], ['300 ml']], 'used by 42 products'], ['Shoe size', [['39'], ['40'], ['41'], ['42'], ['43']], 'used by 30 products']];
 var CH = { shirt: ['Men’s shirts and polos', 'Clothing › Men', ['Size', 'Chest', 'Length', 'Shoulder', 'Sleeve'], [['S', 38, 27, 17, 8], ['M', 40, 28, 18, 8.5], ['L', 42, 29, 19, 9], ['XL', 44, 30, 20, 9.5]]], kurti: ['Women’s kurti', 'Clothing › Women', ['Size', 'Bust', 'Length', 'Waist', 'Hip'], [['S', 34, 42, 30, 38], ['M', 36, 43, 32, 40], ['L', 38, 44, 34, 42], ['XL', 40, 45, 36, 44]]], jeans: ['Jeans', 'Clothing › Men › Jeans', ['Size', 'Waist', 'Hip', 'Length', 'Thigh'], [['30', 30, 38, 40, 22], ['32', 32, 40, 41, 23], ['34', 34, 42, 41, 24], ['36', 36, 44, 42, 25]]], shoe: ['Shoes (BD / EU / UK)', 'Shoes', ['BD', 'EU', 'UK', 'Foot length', 'Width'], [['39', 39, 6, 24.5, 'Regular'], ['40', 40, 6.5, 25.1, 'Regular'], ['41', 41, 7.5, 25.8, 'Regular'], ['42', 42, 8, 26.4, 'Wide']]] };
 class Component extends DCLogic {
-  componentWillUnmount() { clearTimeout(this.t); }
   renderVals() {
     var self = this, s = this.state || {}, sec = s.sec || 'fields', ch = s.ch || 'shirt', unit = s.unit || 'in';
     var C = CH[ch];
     var conv = function (x) { return typeof x === 'number' && unit === 'cm' && ch !== 'shoe' ? (x * 2.54).toFixed(1) : x; };
     var v = {
-      secs: SECS.map(function (x) { var on = x[0] === sec; return { l: x[1], c: x[2], on: on, bg: on ? '#0b1733' : 'transparent', fg: on ? '#fff' : '#334155', fw: on ? 600 : 500, pick: function () { self.setState({ sec: x[0] }); } }; }),
+      secs: SECS.map(function (x) { var on = x[0] === sec; return { l: x[1], c: x[2], on: on, pick: function () { self.setState({ sec: x[0] }); } }; }),
       cf: CF.map(function (r) { return { l: r[0], t: r[1], o: r[2], c: r[3], req: r[4], show: r[5], ai: r[6] }; }),
       cfOpen: !!s.cfOpen, openCf: function () { self.setState({ cfOpen: true }); }, closeCf: function () { self.setState({ cfOpen: false }); }, saveCf: function () { self.setState({ cfOpen: false }); toast(self, 'Field added. Every Electronics product now asks for it.'); },
       attrs: ATTR.map(function (a) { return { l: a[0], used: a[2], v: a[1].map(function (x) { return { t: x[0], c: x[1] || '', sw: !!x[1] }; }) }; }),
       brands: [['Samsung', 18, '#1428a0'], ['Beauty of Joseon', 22, '#a16207'], ['GridShop', 96, '#003087'], ['Xiaomi', 9, '#ea580c'], ['ASUS', 7, '#0f172a'], ['Nature Republic', 14, '#047857'], ['Chashi', 11, '#65a30d'], ['SoundMax', 6, '#6d28d9']].map(function (b) { return { l: b[0], n: b[1], bg: b[2], i: b[0].charAt(0) }; }),
       units: [['Piece', 'pc', 'No', 312], ['Kilogram', 'kg', 'Yes', 48], ['Gram', 'g', 'Yes', 16], ['Litre', 'L', 'Yes', 21], ['Pack', 'pack', 'No', 12], ['Dozen', 'dz', 'No', 3]].map(function (u) { return { l: u[0], s: u[1], d: u[2], n: u[3] }; }),
       taxes: [['Standard VAT', '15%', 'Yes', 'Skin care, Clothing, Electronics', 298], ['Reduced VAT', '7.5%', 'Yes', '—', 25], ['No VAT', '0%', '—', 'Grocery', 89]].map(function (t) { return { l: t[0], r: t[1], inc: t[2], c: t[3], n: t[4] }; }),
-      charts: Object.keys(CH).map(function (k) { var on = k === ch; return { l: CH[k][0], u: CH[k][1], border: on ? '#003087' : '#e6eaf0', bg: on ? '#f2f6fc' : '#fff', pick: function () { self.setState({ ch: k }); } }; }),
-      units2: [['in', 'Inches'], ['cm', 'Centimetres']].map(function (m) { var on = m[0] === unit; return { l: m[1], bg: on ? '#0b1733' : 'transparent', fg: on ? '#fff' : '#475569', pick: function () { self.setState({ unit: m[0] }); } }; }),
+      charts: Object.keys(CH).map(function (k) { var on = k === ch; return { l: CH[k][0], u: CH[k][1], on: on, pick: function () { self.setState({ ch: k }); } }; }),
+      units2: [['in', 'Inches'], ['cm', 'Centimetres']].map(function (m) { var on = m[0] === unit; return { l: m[1], on: on, pick: function () { self.setState({ unit: m[0] }); } }; }),
       chHead: C[2].map(function (t, i) { return { t: i && ch !== 'shoe' ? t + ' (' + unit + ')' : t }; }), chRows: C[3].map(function (r) { return { c: r.map(function (x) { return { t: conv(x) }; }) }; }), chUsed: C[1] + ' · 24 products',
       wps: [['1 year official brand warranty', '1 year', 'Brand', 'Brand service centre', 31], ['6 months shop service warranty', '6 months', 'Shop service', 'Your shop', 12], ['7-day replacement only', '7 days', 'Replacement', 'Your shop', 64], ['2 years parts, 1 year service', '2 years', 'Parts + service', 'Brand centre', 7]].map(function (w) { return { l: w[0], p: w[1], t: w[2], c: w[3], n: w[4] }; }),
       addItem: function () { toast(self, 'A new row is ready to fill in.'); }
     };
     SECS.forEach(function (x) { v['is_' + x[0]] = x[0] === sec; });
-    return assign(v, msgV(s));
+    return v;
   }
 }
-
-// ---- styles (from the design's <helmet>) ----
+// ---- styles ----
 
 const CSS = `
-body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
-*{box-sizing:border-box}
-a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
-.nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
-.nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
-.btn:hover{text-decoration:none}
-.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
-.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
-.line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
-.warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
-.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
-.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
-.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:var(--text-muted)}
-.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
-.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
-.tab:hover{background:#f1f5f9;color:#0f172a}
-.tab.on{background:#003087;color:#fff}
-.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
-.chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
-.row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
-.b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
-.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
-.b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:var(--font-data);letter-spacing:.02em}
-.fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
-@keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.flash{animation:gcFlash 900ms ease-out}
-@keyframes gcFlash{from{background:#e7f8f1}to{background:transparent}}
-.scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
-@keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
-
-.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
-.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
-.sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
-.t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
-.actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:var(--font-bn)}
-.pulse{animation:gcPulse 1.6s ease-in-out infinite}
-@keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
-@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
-.psec{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
-.num{font-variant-numeric:tabular-nums}
-.ai{height:28px;padding:0 10px;border-radius:var(--radius-lg);border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
-.ai:hover{border-color:#a78bfa;box-shadow:0 4px 12px -6px rgba(91,33,182,.5)}
-.ai:focus-visible{outline:3px solid rgba(124,58,237,.4);outline-offset:2px}
-.abtn{height:32px;padding:0 12px;border-radius:var(--radius-lg);border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-.abtn:hover{background:#f1f5f9}
-.ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0}
-.ptab{position:relative;height:52px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:var(--weight-medium)}
-.ptab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2.5px;border-radius:3px 3px 0 0;background:#003087}
-.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
-.ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
-.thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
-/* phones and tablets: the section list becomes one scrolling row above the content */
-@media (max-width:1023px){
-  .cs-layout{flex-direction:column!important;align-items:stretch!important;gap:var(--space-3)!important}
-  .cs-nav{width:100%!important;flex-direction:row!important;overflow-x:auto;scrollbar-width:none;padding:6px!important;gap:4px!important}
-  .cs-nav::-webkit-scrollbar{display:none}
-  .cs-nav>button{flex:none;height:40px!important;white-space:nowrap}
-  .cs-body{width:100%}
-}
+.cs-wrap{overflow-x:auto}
+.cs-tools{gap:var(--space-2)}
+.cs-pill{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--radius-full);background:var(--surface-subtle);font-size:var(--text-xs);color:var(--text-body);white-space:nowrap}
+.cs-mono{font-family:var(--font-data)}
+.cs-rows{display:flex;flex-direction:column}
+.cs-attr{display:flex;align-items:center;gap:var(--space-3);min-height:44px;padding:8px 12px;border-top:1px solid var(--border-subtle)}
+.cs-attr:first-child{border-top:0}
+.cs-attr>b{width:110px;flex:none;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.cs-attr>div{display:flex;flex:1;flex-wrap:wrap;align-items:center;gap:6px;min-width:0}
+.cs-attr>small{flex:none;font-size:var(--text-xs);color:var(--text-muted)}
+.cs-val{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);background:var(--surface-subtle);font-size:var(--text-xs-plus)}
+.cs-sw{width:12px;height:12px;border:1px solid var(--border-strong);border-radius:var(--radius-full)}
+.cs-brand{display:flex;align-items:center;gap:10px}
+.cs-brand>span:first-child{display:grid;flex:none;place-items:center;width:28px;height:28px;border-radius:var(--radius-md);color:#fff;font-size:var(--text-xs);font-weight:var(--weight-semibold)}
+.cs-size{display:grid;grid-template-columns:220px minmax(0,1fr);gap:var(--space-4);padding:var(--space-4)}
+.cs-charts{display:flex;flex-direction:column;gap:6px}
+.cs-charts>button{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font:inherit;text-align:left;cursor:pointer}
+.cs-charts>button[aria-pressed="true"]{border-color:var(--primary);background:var(--fill-primary-soft)}
+.cs-charts b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.cs-charts small{font-size:var(--text-xs);color:var(--text-muted)}
+.cs-grid{display:flex;flex-direction:column;gap:var(--space-3);min-width:0}
+.cs-gridbar{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
+.cs-gridbar>.gc-label{margin:0}
+.cs-sizegrid{border-collapse:collapse}
+.cs-sizegrid th{padding:0 4px 6px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted);text-align:left;white-space:nowrap}
+.cs-sizegrid td{padding:2px 4px}
+.cs-sizegrid .gc-input{width:72px;height:28px;padding:0 8px;font-variant-numeric:tabular-nums}
+.cs-note{margin:0;font-size:var(--text-xs-plus);color:var(--text-muted)}
+.cs-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.cs-field .gc-label{margin:0}
+.cs-checks{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-5);font-size:var(--text-sm)}
+.cs-checks label{display:flex;align-items:center;gap:var(--space-2);cursor:pointer}
 @media (max-width:640px){
-  .cs-body>section{padding:16px!important}
-  .cs-head{flex-wrap:wrap;align-items:flex-start!important}
-  .cs-head>div:first-child{flex:1 1 100%!important;min-width:0}
-  .cs-checks{flex-wrap:wrap;gap:12px 20px!important}
-  .cs-attr{flex-wrap:wrap;gap:8px 12px!important}
-  .cs-attr__name{width:auto!important;flex:1 1 auto}
-  .cs-attr>div{order:3;flex:1 1 100%!important}
-  .cs-size{flex-direction:column}
-  .cs-size__list{width:100%!important;flex-direction:row!important;overflow-x:auto;scrollbar-width:none}
-  .cs-size__list::-webkit-scrollbar{display:none}
-  .cs-size__list>button{flex:none;white-space:nowrap}
-  .cs-size__bar{flex-wrap:wrap}
-  .cs-sizegrid .inp{min-width:64px}
+  .cs-size{grid-template-columns:minmax(0,1fr);padding:var(--space-3)}
+  .cs-charts{flex-direction:row;overflow-x:auto;scrollbar-width:none}
+  .cs-charts>button{flex:none}
+  .cs-attr{flex-wrap:wrap}
+  .cs-attr>div{order:3;flex:1 1 100%}
 }
 `;
 
 // ---- markup ----
 
+// Shopify-style settings page (components/ui/IndexKit.jsx): one card whose tabs are the catalog's lists — custom
+// fields, attributes, brands, units, tax rates, size charts, warranty policies — with the list's Add button beside
+// them. A new custom field is made in a dialog.
+const SEC = [['fields', 'Add field'], ['attrs', 'Add attribute'], ['brands', 'Add brand'], ['units', 'Add unit'], ['tax', 'Add tax rate'], ['size', 'New size chart']];
+const NOTE = { attrs: 'Used to make variants — pick them when you add colours or sizes to a product.', brands: 'Shown on product pages and used in filters.', units: 'How a product is counted and sold.', tax: 'VAT added to prices. Each category has a default; a product can change it.', size: 'Show customers the right size. Fewer returns.', warranty: 'Made in Settings. Pick one on any product.' };
+
 export default class CatalogSetupScreen extends Component {
   render() {
     const v = this.renderVals() || {};
+    const keys = ['fields', 'attrs', 'brands', 'units', 'tax', 'size', 'warranty'];
+    const cur = keys.find((k) => v['is_' + k]) || 'fields';
+    const add = SEC.find((x) => x[0] === cur);
+    const tabs = __list(v.secs).map((n, i) => ({ key: keys[i], id: 'cs-tab-' + keys[i], label: n.l, count: n.c, on: n.on, onClick: n.pick }));
     return (
       <div className="dc-screen ds" data-screen="CatalogSetup">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
+        <div className="gc-shell">
           <__Sidebar sticky="" active="products-setup" />
-          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
+          <main className="gc-shell__main">
             <__Topbar crumb="Products" page="Catalog setup" placeholder="Search products, SKU or barcode" />
-            <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <__PageHeader title="Catalog setup" />
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ flexGrow: "1", fontSize: "var(--text-sm)", lineHeight: "20px", color: "#475569" }}></div>
-              </div>
-              {v.hasMsg ? (<>
-                <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-lg); background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: var(--text-sm); font-weight: var(--weight-medium);`)}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="m9 12 2 2 4-4" />
-                  </svg>
-                  <span>{v.msg}</span>
-                </div>
-              </>) : null}
-              <div className="cs-layout" style={{ display: "flex", gap: "20px", alignItems: "flex-start" }}>
-                <nav className="pcard cs-nav" aria-label="Catalog setup" style={{ width: "260px", flexShrink: "0", padding: "10px", display: "flex", flexDirection: "column", gap: "2px", alignSelf: "flex-start" }}>
-                  {__list(v.secs).map((n, $index) => (<React.Fragment key={$index}>
-                      <button type="button" onClick={n?.pick} aria-current={n?.on} style={__sx(`height: 46px; padding: 0 12px; border: 0; border-radius: var(--radius-lg); background: ${n?.bg ?? ""}; color: ${n?.fg ?? ""}; font: inherit; font-size: var(--text-sm); font-weight: ${n?.fw ?? ""}; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 10px;`)}>
-                        <span style={{ flexGrow: "1" }}>{n?.l}</span>
-                        <span className="pcnt">{n?.c}</span>
-                      </button>
-                    </React.Fragment>))}
-                </nav>
-                <div className="cs-body" style={{ flexGrow: "1", minWidth: "0" }}>
-                  {v.is_fields ? (<>
-                    <section className="pcard fade" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div className="cs-head" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>Custom fields</h2>
-                          
-                        </div>
-                        <button type="button" className="btn solid sm" onClick={v.openCf}>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M5 12h14" />
-                            <path d="M12 5v14" />
-                          </svg>
-                          <span>Add field</span>
-                        </button>
-                      </div>
-                      <div className="gc-table-wrap">
-                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                          <thead>
-                            <tr>
-                              <th className="th">Field</th>
-                              <th className="th">Type</th>
-                              <th className="th">Choices</th>
-                              <th className="th">Categories</th>
-                              <th className="th">Required</th>
-                              <th className="th">Shown to customers</th>
-                              <th className="th">AI can fill</th>
+            <div className="gc-shell__content">
+              <div className="ix-page ix-page--narrow">
+                <ShopHeader icon="settings-2" title="Catalog setup"
+                  about="Custom fields, attributes, brands, units, tax rates, size charts and warranty policies that every product uses."
+                  more={[{ label: 'Categories', href: '/categories' }, { label: 'Warranty policies', href: '/warranty-policies' }, { label: 'All products', href: '/all-products' }]} />
+
+                <section className="ix-card cs-card" aria-label="Catalog setup">
+                  <div className="ix-bar">
+                    <IndexTabs tabs={tabs} label="Catalog setup" />
+                    <span className="ix-tools cs-tools">
+                      {NOTE[cur] ? <__InfoTip text={NOTE[cur]} /> : null}
+                      {add ? (
+                        <button type="button" className="ix-btn ix-btn--sm" onClick={cur === 'fields' ? v.openCf : v.addItem} aria-haspopup={cur === 'fields' ? 'dialog' : undefined}><__Icon name="plus" width="16" height="16" aria-hidden="true" />{add[1]}</button>
+                      ) : (
+                        <__Link href="/warranty-policies" className="ix-btn ix-btn--sm">Manage policies</__Link>
+                      )}
+                    </span>
+                  </div>
+
+                  {v.is_fields ? (
+                    <div className="ix-table-wrap ix-table-wrap--show" role="tabpanel" aria-labelledby="cs-tab-fields">
+                      <table className="ix-table ix-table--static">
+                        <thead>
+                          <tr><th scope="col">Field</th><th scope="col">Type</th><th scope="col">Choices</th><th scope="col">Categories</th><th scope="col">Required</th><th scope="col">Shown to customers</th><th scope="col">AI can fill</th></tr>
+                        </thead>
+                        <tbody>
+                          {__list(v.cf).map((r, i) => (
+                            <tr key={i}>
+                              <td className="ix-strong">{r.l}</td>
+                              <td><span className="cs-pill">{r.t}</span></td>
+                              <td className="ix-muted" style={{ maxWidth: "220px" }}>{r.o}</td>
+                              <td>{r.c}</td>
+                              <td>{r.req}</td>
+                              <td>{r.show}</td>
+                              <td>{r.ai}</td>
                             </tr>
-                          </thead>
-                          <tbody>
-                            {__list(v.cf).map((r, $index) => (<React.Fragment key={$index}>
-                                <tr className="row">
-                                  <td className="td" style={{ fontWeight: "var(--weight-medium)" }}>{r?.l}</td>
-                                  <td className="td">
-                                    <span className="badge b-draft">{r?.t}</span>
-                                  </td>
-                                  <td className="td" style={{ fontSize: "var(--text-xs-plus)", color: "#475569", maxWidth: "220px" }}>{r?.o}</td>
-                                  <td className="td" style={{ fontSize: "var(--text-xs-plus)" }}>{r?.c}</td>
-                                  <td className="td">{r?.req}</td>
-                                  <td className="td">{r?.show}</td>
-                                  <td className="td">{r?.ai}</td>
-                                </tr>
-                              </React.Fragment>))}
-                          </tbody>
-                        </table>
-                      </div>
-                      {v.cfOpen ? (<>
-                        <div className="fade" style={{ padding: "18px", borderRadius: "var(--radius-xl)", border: "1.5px solid #003087", background: "#fbfcfe", display: "flex", flexDirection: "column", gap: "14px" }}>
-                          <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>New custom field</div>
-                          <div className="gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "14px" }}>
-                            <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                              <span className="lbl">Field name</span>
-                              <input className="inp" defaultValue="Warranty card included" aria-label="Field name" />
-                            </label>
-                            <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                              <span className="lbl">Type</span>
-                              <select className="inp" aria-label="Field type">
-                                <option>Yes / no</option>
-                                <option>Text</option>
-                                <option>Number with unit</option>
-                                <option>Date</option>
-                                <option>Dropdown (one choice)</option>
-                                <option>Checkboxes (many)</option>
-                                <option>Colour</option>
-                                <option>File or PDF</option>
-                              </select>
-                            </label>
-                            <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                              <span className="lbl">Categories</span>
-                              <select className="inp" aria-label="Categories">
-                                <option>Electronics (and all inside)</option>
-                                <option>All categories</option>
-                              </select>
-                            </label>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : null}
+
+                  {v.is_attrs ? (
+                    <div className="cs-rows" role="tabpanel" aria-labelledby="cs-tab-attrs">
+                      {__list(v.attrs).map((a, i) => (
+                        <div key={i} className="cs-attr">
+                          <b>{a.l}</b>
+                          <div>
+                            {__list(a.v).map((x, j) => (
+                              <span key={j} className="cs-val">{x.sw ? <span className="cs-sw" style={{ background: x.c }} /> : null}{x.t}</span>
+                            ))}
+                            <button type="button" className="ix-btn ix-btn--sm ix-btn--plain">+ value</button>
                           </div>
-                          <div className="cs-checks" style={{ display: "flex", gap: "24px", fontSize: "var(--text-sm)" }}>
-                            <label style={{ display: "flex", gap: "8px", alignItems: "center" }}><input type="checkbox" style={{ width: "16px", height: "16px" }} />Required</label>
-                            <label style={{ display: "flex", gap: "8px", alignItems: "center" }}><input type="checkbox" defaultChecked={true} style={{ width: "16px", height: "16px" }} />Show on product page</label>
-                            <label style={{ display: "flex", gap: "8px", alignItems: "center" }}><input type="checkbox" defaultChecked={true} style={{ width: "16px", height: "16px" }} />Use in shop filters</label>
-                            <label style={{ display: "flex", gap: "8px", alignItems: "center" }}><input type="checkbox" style={{ width: "16px", height: "16px" }} />AI can fill it</label>
-                          </div>
-                          <div style={{ display: "flex", gap: "10px" }}>
-                            <button type="button" className="btn solid sm" onClick={v.saveCf}>Add field</button>
-                            <button type="button" className="btn line sm" onClick={v.closeCf}>Cancel</button>
-                          </div>
+                          <small>{a.used}</small>
                         </div>
-                      </>) : null}
-                    </section>
-                  </>) : null}
-                  {v.is_attrs ? (<>
-                    <section className="pcard fade" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div className="cs-head" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>Attributes and values</h2>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Used to make variants — pick them when you add colours or sizes to a product.</div>
-                        </div>
-                        <button type="button" className="btn solid sm" onClick={v.addItem}>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M5 12h14" />
-                            <path d="M12 5v14" />
-                          </svg>
-                          <span>Add attribute</span>
-                        </button>
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                        {__list(v.attrs).map((a, $index) => (<React.Fragment key={$index}>
-                            <div className="cs-attr" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px", borderRadius: "var(--radius-xl)", border: "1px solid #e6eaf0" }}>
-                              <span className="cs-attr__name" style={{ width: "120px", fontWeight: "var(--weight-medium)" }}>{a?.l}</span>
-                              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", flexGrow: "1" }}>
-                                {__list(a?.v).map((x, $index) => (<React.Fragment key={$index}>
-                                    <span style={{ height: "28px", padding: "0 10px", borderRadius: "var(--radius-full)", background: "#eef2f6", fontSize: "var(--text-xs-plus)", display: "inline-flex", alignItems: "center", gap: "6px" }}>{x?.sw ? (<>
-  <span style={__sx(`width: 12px; height: 12px; border-radius: var(--radius-full); background: ${x?.c ?? ""}; border: 1px solid #cbd5e1;`)} />
-</>) : null}{x?.t}</span>
-                                  </React.Fragment>))}
-                                <button type="button" className="abtn" style={{ height: "28px" }}>+ value</button>
-                              </div>
-                              <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{a?.used}</span>
-                            </div>
-                          </React.Fragment>))}
-                      </div>
-                    </section>
-                  </>) : null}
-                  {v.is_brands ? (<>
-                    <section className="pcard fade" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div className="cs-head" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>Brands</h2>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Shown on product pages and used in filters.</div>
-                        </div>
-                        <button type="button" className="btn solid sm" onClick={v.addItem}>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M5 12h14" />
-                            <path d="M12 5v14" />
-                          </svg>
-                          <span>Add brand</span>
-                        </button>
-                      </div>
-                      <div className="gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "12px" }}>
-                        {__list(v.brands).map((b, $index) => (<React.Fragment key={$index}>
-                            <div style={{ padding: "14px", borderRadius: "var(--radius-xl)", border: "1px solid #e6eaf0", display: "flex", alignItems: "center", gap: "12px" }}>
-                              <span style={__sx(`width: 42px; height: 42px; border-radius: var(--radius-lg); background: ${b?.bg ?? ""}; color: #fff; font-weight: var(--weight-semibold); display: flex; align-items: center; justify-content: center;`)}>{b?.i}</span>
-                              <div>
-                                <div style={{ fontWeight: "var(--weight-medium)" }}>{b?.l}</div>
-                                <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{b?.n} products</div>
-                              </div>
-                            </div>
-                          </React.Fragment>))}
-                      </div>
-                    </section>
-                  </>) : null}
-                  {v.is_units ? (<>
-                    <section className="pcard fade" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div className="cs-head" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>Units</h2>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>How a product is counted and sold.</div>
-                        </div>
-                        <button type="button" className="btn solid sm" onClick={v.addItem}>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M5 12h14" />
-                            <path d="M12 5v14" />
-                          </svg>
-                          <span>Add unit</span>
-                        </button>
-                      </div>
-                      <div className="gc-table-wrap">
-                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                          <thead>
-                            <tr>
-                              <th className="th">Unit</th>
-                              <th className="th">Short</th>
-                              <th className="th">Half units allowed</th>
-                              <th className="th" style={{ textAlign: "right" }}>Products</th>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {v.is_brands ? (
+                    <div className="ix-table-wrap ix-table-wrap--show" role="tabpanel" aria-labelledby="cs-tab-brands">
+                      <table className="ix-table ix-table--static">
+                        <thead><tr><th scope="col">Brand</th><th scope="col" className="ix-num">Products</th></tr></thead>
+                        <tbody>
+                          {__list(v.brands).map((b, i) => (
+                            <tr key={i}>
+                              <td><span className="cs-brand"><span style={{ background: b.bg }} aria-hidden="true">{b.i}</span><span className="ix-strong">{b.l}</span></span></td>
+                              <td className="ix-num">{b.n}</td>
                             </tr>
-                          </thead>
-                          <tbody>
-                            {__list(v.units).map((u, $index) => (<React.Fragment key={$index}>
-                                <tr className="row">
-                                  <td className="td" style={{ fontWeight: "var(--weight-medium)" }}>{u?.l}</td>
-                                  <td className="td mono">{u?.s}</td>
-                                  <td className="td">{u?.d}</td>
-                                  <td className="td num" style={{ textAlign: "right" }}>{u?.n}</td>
-                                </tr>
-                              </React.Fragment>))}
-                          </tbody>
-                        </table>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : null}
+
+                  {v.is_units ? (
+                    <div className="ix-table-wrap ix-table-wrap--show" role="tabpanel" aria-labelledby="cs-tab-units">
+                      <table className="ix-table ix-table--static">
+                        <thead><tr><th scope="col">Unit</th><th scope="col">Short</th><th scope="col">Half units allowed</th><th scope="col" className="ix-num">Products</th></tr></thead>
+                        <tbody>
+                          {__list(v.units).map((u, i) => (
+                            <tr key={i}><td className="ix-strong">{u.l}</td><td className="cs-mono">{u.s}</td><td>{u.d}</td><td className="ix-num">{u.n}</td></tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : null}
+
+                  {v.is_tax ? (
+                    <div className="ix-table-wrap ix-table-wrap--show" role="tabpanel" aria-labelledby="cs-tab-tax">
+                      <table className="ix-table ix-table--static">
+                        <thead><tr><th scope="col">Name</th><th scope="col" className="ix-num">Rate</th><th scope="col">Price includes VAT?</th><th scope="col">Default for</th><th scope="col" className="ix-num">Products</th></tr></thead>
+                        <tbody>
+                          {__list(v.taxes).map((t, i) => (
+                            <tr key={i}><td className="ix-strong">{t.l}</td><td className="ix-num ix-strong">{t.r}</td><td>{t.inc}</td><td className="ix-muted">{t.c}</td><td className="ix-num">{t.n}</td></tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : null}
+
+                  {v.is_size ? (
+                    <div className="cs-size" role="tabpanel" aria-labelledby="cs-tab-size">
+                      <div className="cs-charts">
+                        {__list(v.charts).map((c, i) => (
+                          <button key={i} type="button" onClick={c.pick} aria-pressed={!!c.on}><b>{c.l}</b><small>{c.u}</small></button>
+                        ))}
                       </div>
-                    </section>
-                  </>) : null}
-                  {v.is_tax ? (<>
-                    <section className="pcard fade" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div className="cs-head" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>Tax rates</h2>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>VAT added to prices. Each category has a default; a product can change it.</div>
-                        </div>
-                        <button type="button" className="btn solid sm" onClick={v.addItem}>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M5 12h14" />
-                            <path d="M12 5v14" />
-                          </svg>
-                          <span>Add tax rate</span>
-                        </button>
-                      </div>
-                      <div className="gc-table-wrap">
-                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                          <thead>
-                            <tr>
-                              <th className="th">Name</th>
-                              <th className="th" style={{ textAlign: "right" }}>Rate</th>
-                              <th className="th">Price includes VAT?</th>
-                              <th className="th">Default for</th>
-                              <th className="th" style={{ textAlign: "right" }}>Products</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {__list(v.taxes).map((t, $index) => (<React.Fragment key={$index}>
-                                <tr className="row">
-                                  <td className="td" style={{ fontWeight: "var(--weight-medium)" }}>{t?.l}</td>
-                                  <td className="td num" style={{ textAlign: "right", fontWeight: "var(--weight-semibold)" }}>{t?.r}</td>
-                                  <td className="td">{t?.inc}</td>
-                                  <td className="td" style={{ color: "#475569" }}>{t?.c}</td>
-                                  <td className="td num" style={{ textAlign: "right" }}>{t?.n}</td>
-                                </tr>
-                              </React.Fragment>))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </section>
-                  </>) : null}
-                  {v.is_size ? (<>
-                    <section className="pcard fade" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div className="cs-head" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>Size charts</h2>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Show customers the right size. Fewer returns.</div>
-                        </div>
-                        <button type="button" className="btn solid sm" onClick={v.addItem}>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M5 12h14" />
-                            <path d="M12 5v14" />
-                          </svg>
-                          <span>New size chart</span>
-                        </button>
-                      </div>
-                      <div className="cs-size" style={{ display: "flex", gap: "16px" }}>
-                        <div className="cs-size__list" style={{ width: "220px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "6px" }}>
-                          {__list(v.charts).map((c, $index) => (<React.Fragment key={$index}>
-                              <button type="button" onClick={c?.pick} style={__sx(`text-align: left; padding: 12px; border-radius: var(--radius-lg); border: 1.5px solid ${c?.border ?? ""}; background: ${c?.bg ?? ""}; font: inherit; cursor: pointer;`)}>
-                                <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>{c?.l}</div>
-                                <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{c?.u}</div>
-                              </button>
-                            </React.Fragment>))}
-                        </div>
-                        <div style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "12px" }}>
-                          <div className="cs-size__bar" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                            <span className="lbl">Measure in</span>
-                            <div style={{ display: "inline-flex", padding: "3px", borderRadius: "var(--radius-full)", background: "#eef2f6" }}>
-                              {__list(v.units2).map((m, $index) => (<React.Fragment key={$index}>
-                                  <button type="button" onClick={m?.pick} style={__sx(`height: 30px; padding: 0 14px; border: 0; border-radius: var(--radius-full); font: inherit; font-size: var(--text-xs); font-weight: var(--weight-medium); cursor: pointer; background: ${m?.bg ?? ""}; color: ${m?.fg ?? ""};`)}>{m?.l}</button>
-                                </React.Fragment>))}
-                            </div>
-                            <span style={{ flexGrow: "1" }} />
-                            <button type="button" className="abtn">+ Row</button>
-                            <button type="button" className="abtn">+ Column</button>
+                      <div className="cs-grid">
+                        <div className="cs-gridbar">
+                          <span className="gc-label">Measure in</span>
+                          <div className="gc-seg" role="group" aria-label="Measure in">
+                            {__list(v.units2).map((m, i) => (
+                              <button key={i} type="button" className={'gc-seg__btn' + (m.on ? ' gc-seg__btn--active' : '')} aria-pressed={!!m.on} onClick={m.pick}>{m.l}</button>
+                            ))}
                           </div>
-                          <div className="gc-table-wrap">
-                            <table className="gc-table--keep cs-sizegrid" style={{ width: "100%%", borderCollapse: "collapse" }}>
-                              <thead>
-                                <tr>
-                                  {__list(v.chHead).map((h, $index) => (<React.Fragment key={$index}>
-                                      <th className="th">{h?.t}</th>
-                                    </React.Fragment>))}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {__list(v.chRows).map((cr, $index) => (<React.Fragment key={$index}>
-                                    <tr>
-                                      {__list(cr?.c).map((cx, $index) => (<React.Fragment key={$index}>
-                                          <td className="td" style={{ padding: "6px" }}>
-                                            <input className="inp num" defaultValue={cx?.t} aria-label="Size value" style={{ height: "36px" }} />
-                                          </td>
-                                        </React.Fragment>))}
-                                    </tr>
-                                  </React.Fragment>))}
-                              </tbody>
-                            </table>
-                          </div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}>Used by <b>{v.chUsed}</b></div>
+                          <span style={{ flex: 1 }} />
+                          <button type="button" className="ix-btn ix-btn--sm">+ Row</button>
+                          <button type="button" className="ix-btn ix-btn--sm">+ Column</button>
                         </div>
-                      </div>
-                    </section>
-                  </>) : null}
-                  {v.is_warranty ? (<>
-                    <section className="pcard fade" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div className="cs-head" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <div style={{ flexGrow: "1" }}>
-                          <h2 style={{ margin: "0", fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>Warranty policies</h2>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Made in Settings. Pick one on any product.</div>
+                        <div className="cs-wrap">
+                          <table className="cs-sizegrid gc-table--keep">
+                            <thead><tr>{__list(v.chHead).map((h, i) => <th key={i} scope="col">{h.t}</th>)}</tr></thead>
+                            <tbody>
+                              {__list(v.chRows).map((cr, i) => (
+                                <tr key={i}>{__list(cr.c).map((cx, j) => <td key={j}><input className="gc-input" defaultValue={cx.t} aria-label="Size value" /></td>)}</tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
-                        <__Link href="/dev/storyboards/settings-console" className="btn line sm">Manage in Settings</__Link>
+                        <p className="cs-note">Used by <b>{v.chUsed}</b></p>
                       </div>
-                      <div className="gc-table-wrap">
-                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                          <thead>
-                            <tr>
-                              <th className="th">Policy</th>
-                              <th className="th">Period</th>
-                              <th className="th">Type</th>
-                              <th className="th">Claim at</th>
-                              <th className="th" style={{ textAlign: "right" }}>Products</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {__list(v.wps).map((w, $index) => (<React.Fragment key={$index}>
-                                <tr className="row">
-                                  <td className="td" style={{ fontWeight: "var(--weight-medium)" }}>{w?.l}</td>
-                                  <td className="td">{w?.p}</td>
-                                  <td className="td">{w?.t}</td>
-                                  <td className="td" style={{ color: "#475569" }}>{w?.c}</td>
-                                  <td className="td num" style={{ textAlign: "right" }}>{w?.n}</td>
-                                </tr>
-                              </React.Fragment>))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </section>
-                  </>) : null}
-                </div>
+                    </div>
+                  ) : null}
+
+                  {v.is_warranty ? (
+                    <div className="ix-table-wrap ix-table-wrap--show" role="tabpanel" aria-labelledby="cs-tab-warranty">
+                      <table className="ix-table ix-table--static">
+                        <thead><tr><th scope="col">Policy</th><th scope="col">Period</th><th scope="col">Type</th><th scope="col">Claim at</th><th scope="col" className="ix-num">Products</th></tr></thead>
+                        <tbody>
+                          {__list(v.wps).map((w, i) => (
+                            <tr key={i}><td className="ix-strong">{w.l}</td><td>{w.p}</td><td>{w.t}</td><td className="ix-muted">{w.c}</td><td className="ix-num">{w.n}</td></tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : null}
+                </section>
+                <LearnMore topic="catalog setup" />
               </div>
             </div>
           </main>
         </div>
+
+        <__Dialog open={!!v.cfOpen} title="New custom field" onClose={v.closeCf} width={560} footer={<>
+          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.closeCf}>Cancel</button>
+          <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.saveCf}>Add field</button>
+        </>}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+            <label className="cs-field">
+              <span className="gc-label">Field name</span>
+              <input className="gc-input" defaultValue="Warranty card included" aria-label="Field name" data-autofocus="" />
+            </label>
+            <label className="cs-field">
+              <span className="gc-label">Type</span>
+              <select className="gc-input gc-select" aria-label="Field type">
+                <option>Yes / no</option>
+                <option>Text</option>
+                <option>Number with unit</option>
+                <option>Date</option>
+                <option>Dropdown (one choice)</option>
+                <option>Checkboxes (many)</option>
+                <option>Colour</option>
+                <option>File or PDF</option>
+              </select>
+            </label>
+            <label className="cs-field">
+              <span className="gc-label">Categories</span>
+              <select className="gc-input gc-select" aria-label="Categories">
+                <option>Electronics (and all inside)</option>
+                <option>All categories</option>
+              </select>
+            </label>
+            <div className="cs-checks">
+              <label><input type="checkbox" className="gc-check" />Required</label>
+              <label><input type="checkbox" className="gc-check" defaultChecked={true} />Show on product page</label>
+              <label><input type="checkbox" className="gc-check" defaultChecked={true} />Use in shop filters</label>
+              <label><input type="checkbox" className="gc-check" />AI can fill it</label>
+            </div>
+          </div>
+        </__Dialog>
       </div>
     );
   }

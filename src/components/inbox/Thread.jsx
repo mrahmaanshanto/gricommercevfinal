@@ -13,6 +13,7 @@ import { formatBDT } from '@/lib/format';
 import { ORDER_STATUSES } from '@/lib/orderStatus';
 import { orderHref } from '@/lib/orders';
 import { productBy, stockAt, getCatalog } from '@/lib/stock';
+import { isStatusSellable } from '@/lib/sellable';
 import { CHANNELS, channelName, staffName, STAFF, ME, statusOf, dayLabel, sameDay, clock, fmtDur, suggestions, fillReply, countReplyUse, snoozeChoices, whenText, samePhone } from '@/lib/inbox';
 import { Avatar, StaffAvatar, Menu, MenuItem } from './parts';
 import { TagMenu } from './CustomerPanel';
@@ -31,7 +32,7 @@ function guessPrice(conv) {
   const last = [...conv.messages].reverse().find((m) => m.from === 'customer' && m.text);
   if (!last) return 0;
   const words = last.text.toLowerCase();
-  const hit = getCatalog().find((p) => p.name.toLowerCase().split(/[\s·]+/).some((w) => w.length > 4 && words.includes(w)));
+  const hit = getCatalog().filter(isStatusSellable).find((p) => p.name.toLowerCase().split(/[\s·]+/).some((w) => w.length > 4 && words.includes(w)));
   return hit ? hit.price : 0;
 }
 

@@ -1,28 +1,31 @@
 'use client';
 // Generated from design/templates/merchant-orders/MerchantOrders.dc.html by scripts/convert-design.mjs.
-// MerchantOrders — All-orders workspace — status tabs with live counts, filter bar, bulk actions, dense order table with courier and payment columns, pagination.
+// MerchantOrders — All orders, laid out like Shopify's order list (components/ui/IndexKit.jsx): title row, today's
+// figures, then one card with the status views, search and filters, bulk actions and a compact table. The list shows
+// what you act on (order, date, customer, channel, total, payment, status, items); courier, phone and the rest are
+// on the order page.
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
 import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import { DCLogic, Icon as __Icon } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { navigate } from '@/runtime/routes';
 import { formatBDT } from '@/lib/format';
-import { Dialog as __Dialog, EmptyState as __EmptyState, StatusBadge as __StatusBadge, PhoneMore as __PhoneMore } from '@/components/ui';
-import { MobileFilters as __MobileFilters } from '@/components/ui/FilterBar';
+import { Dialog as __Dialog, EmptyState as __EmptyState, StatusBadge as __StatusBadge } from '@/components/ui';
+import { ShopHeader, MetricStrip, IndexTabs, SearchField, Pager, LearnMore, Menu } from '@/components/ui/IndexKit';
 import { ORDER_STATUSES, ORDER_TOTAL, orderStatus } from '@/lib/orderStatus';
 import { getStockPlaces, onlinePlace } from '@/lib/locations';
 import { holdsFor } from '@/lib/stockHolds';
 import { demoOrders, getOrders, duplicatesOf, orderHref, invoiceHref, availability, approveOrder, cancelOrder, heldText, CAN_APPROVE, CAN_CANCEL, DEFAULT_HOLD_PLACE } from '@/lib/orders';
 import { sendToCourier, syncCourier } from '@/lib/orderFlow';
 import { holdsStock } from '@/lib/edition';
+import { orderStates } from '@/lib/orderStates';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
-const PAGE_SIZE = 5;
-const RANGES = ['Today', 'Last 7 days', 'Last 30 days', 'This month'];
+const PAGE_SIZE = 20;
 // The tabs are the shared status list, so labels, order and counts match the sidebar.
 const TABS = [{ key: 'all', label: 'All', count: ORDER_TOTAL }, ...ORDER_STATUSES];
 const PAYMENTS = {
@@ -39,7 +42,7 @@ const digits = (t) => String(t).replace(/[^0-9]/g, '');
 const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many || one + 's');
 
 class Component extends DCLogic {
-  state = { all: DEMO_ORDERS, status: 'all', q: '', courier: '', payment: '', zone: '', page: 1, sel: {}, range: 'Last 30 days', rangeOpen: false, filtersOpen: false, extra: NO_EXTRA, draft: NO_EXTRA, approve: null };
+  state = { all: DEMO_ORDERS, status: 'all', q: '', courier: '', payment: '', zone: '', page: 1, sel: {}, find: false, filtersOpen: false, extra: NO_EXTRA, draft: NO_EXTRA, approve: null };
   componentDidMount() {
     this.paint();
     this.readUrl();
@@ -67,10 +70,10 @@ class Component extends DCLogic {
   doApprove() {
     const { ids, place } = this.state.approve;
     const list = this.state.all.filter(o => ids.includes(o.id));
-    list.forEach(o => approveOrder(o, place));
+    const done = list.filter(o => approveOrder(o, place)).length;
     this.setState({ approve: null, sel: {} });
     this.reload();
-    toast(plural(list.length, 'order') + ' approved');
+    toast(plural(done, 'order') + ' approved');
   }
   async bulkCancel() {
     const { valid, skipped } = this.pick(CAN_CANCEL);
@@ -170,9 +173,10 @@ class Component extends DCLogic {
   }
   exportCsv(rows) {
     if (!rows.length) { toast('Nothing to export: no orders match these filters', { tone: 'info' }); return; }
-    const head = ['Order', 'Placed', 'Channel', 'Customer', 'Phone', 'Zone', 'Items', 'Courier', 'Tracking', 'Status', 'Payment', 'Total (BDT)'];
+    // the order's separate states (orderStates.js) go out with it, so a sheet can filter by what is waiting
+    const head = ['Order', 'Placed', 'Channel', 'Customer', 'Phone', 'Zone', 'Items', 'Courier', 'Tracking', 'Status', 'Payment', 'Total (BDT)', 'Confirmation', 'Payment state', 'Fulfilment', 'Delivery', 'Due (BDT)', 'Next step'];
     const cell = (c) => '"' + String(c).replace(/"/g, '""') + '"';
-    const lines = [head, ...rows.map(o => [o.id, o.placed, o.channel, o.customer, o.phone, o.zone, o.itemTitle + ' (' + o.itemMeta + ')', o.courier, o.consignment, o.status, o.payment, o.amount])];
+    const lines = [head, ...rows.map(o => { const st = orderStates(o, { held: holdsFor(o.id).length > 0 }) || {}; return [o.id, o.placed, o.channel, o.customer, o.phone, o.zone, o.itemTitle + ' (' + o.itemMeta + ')', o.courier, o.consignment, o.status, o.payment, o.amount, st.confirmation, st.payment, st.fulfilment, st.delivery, st.due, (st.next || {}).label]; })];
     const blob = new Blob(['﻿' + lines.map(l => l.map(cell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -180,9 +184,6 @@ class Component extends DCLogic {
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     toast('Exported ' + rows.length + (rows.length === 1 ? ' order' : ' orders') + ' to ' + a.download);
-  }
-  closeRange(refocus) {
-    this.setState({ rangeOpen: false }, () => { if (refocus) { const b = document.getElementById('orders-range-btn'); if (b) b.focus(); } });
   }
   renderVals() {
     const st = this.state;
@@ -203,7 +204,6 @@ class Component extends DCLogic {
     const dayFrom = new Date(); dayFrom.setHours(0, 0, 0, 0);
     const extraCount = (st.extra.channel ? 1 : 0) + (st.extra.assigned ? 1 : 0) + (Number(st.extra.minTotal) > 0 ? 1 : 0);
     const hasFilters = !!(st.q || st.courier || st.payment || st.zone || extraCount);
-    const focusTab = (key) => setTimeout(() => { const el = document.getElementById('orders-tab-' + key); if (el) el.focus(); }, 0);
     const setDraft = (k) => (e) => { const value = e.target.value; this.setState(s => ({ draft: { ...s.draft, [k]: value } })); };
     // bulk approve: one hold place for every selected Pending order, with free stock per product there
     let approveVals = null;
@@ -224,19 +224,15 @@ class Component extends DCLogic {
     }
     return {
       tabs: TABS.map(t => ({ ...t, count: counts[t.key] || 0, id: 'orders-tab-' + t.key, on: st.status === t.key, onClick: () => this.view({ status: t.key }) })),
-      activeTabId: 'orders-tab-' + st.status,
-      onTabKey: (e) => {
-        const i = TABS.findIndex(t => t.key === st.status);
-        const next = e.key === 'ArrowRight' ? (i + 1) % TABS.length : e.key === 'ArrowLeft' ? (i - 1 + TABS.length) % TABS.length : e.key === 'Home' ? 0 : e.key === 'End' ? TABS.length - 1 : -1;
-        if (next < 0) return;
-        e.preventDefault();
-        this.view({ status: TABS[next].key });
-        focusTab(TABS[next].key);
-      },
       tabLabel,
       kpiPending: counts.pending,
-      pageTitle: { pos: 'Retail orders', online: 'Online orders', wholesale: 'Wholesale orders' }[st.extra.channel] || 'All orders',
+      pageTitle: { pos: 'Retail orders', online: 'Online orders', wholesale: 'Wholesale orders' }[st.extra.channel] || 'Orders',
       newOrderHref: st.extra.channel === 'pos' || st.extra.channel === 'wholesale' ? '/pos' : '/new-order',
+      sparkOrders: Array.from({ length: 7 }, (_, i) => { const a = dayFrom.getTime() - (6 - i) * 864e5; return inView.filter(o => (o.at || 0) >= a && (o.at || 0) < a + 864e5).length; }),
+      sparkValue: Array.from({ length: 7 }, (_, i) => { const a = dayFrom.getTime() - (6 - i) * 864e5; return inView.filter(o => (o.at || 0) >= a && (o.at || 0) < a + 864e5).reduce((n, o) => n + (o.amount || 0), 0); }),
+      find: !!(st.find || st.q || st.courier || st.payment || st.zone || extraCount),
+      openFind: () => this.setState({ find: true }),
+      closeFind: () => { this.setState({ find: false, extra: NO_EXTRA, draft: NO_EXTRA }); this.view({ q: '', courier: '', payment: '', zone: '' }); },
       kpiToday: inView.filter(o => (o.at || 0) >= dayFrom.getTime()).length,
       kpiTodayValue: formatBDT(inView.filter(o => (o.at || 0) >= dayFrom.getTime()).reduce((a, o) => a + (o.amount || 0), 0)),
       kpiCod: formatBDT(inView.filter(o => o.payment === 'COD' && ['approved', 'ready', 'shipped'].includes(o.statusKey)).reduce((a, o) => a + (o.amount || 0), 0)),
@@ -249,22 +245,6 @@ class Component extends DCLogic {
       onCourier: (e) => this.view({ courier: e.target.value }),
       onPayment: (e) => this.view({ payment: e.target.value }),
       onZone: (e) => this.view({ zone: e.target.value }),
-      // date range menu
-      range: st.range, rangeOpen: st.rangeOpen,
-      ranges: RANGES.map(r => ({ label: r, on: r === st.range, onClick: () => { this.setState({ range: r }); this.closeRange(true); toast('Showing orders for: ' + r.toLowerCase(), { tone: 'info' }); } })),
-      toggleRange: () => this.setState(s => ({ rangeOpen: !s.rangeOpen }), () => {
-        if (this.state.rangeOpen) { const el = document.querySelector('#orders-range-menu [aria-checked="true"]'); if (el) el.focus(); }
-      }),
-      closeRange: () => this.closeRange(false),
-      onRangeKey: (e) => {
-        if (e.key === 'Escape') { e.preventDefault(); this.closeRange(true); return; }
-        if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-        e.preventDefault();
-        const items = Array.from(document.querySelectorAll('#orders-range-menu [role="menuitemradio"]'));
-        const i = items.indexOf(document.activeElement);
-        const el = items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length];
-        if (el) el.focus();
-      },
       exportCsv: () => this.exportCsv(found),
       // more filters
       filtersOpen: st.filtersOpen, draft: st.draft, extraCount,
@@ -320,290 +300,155 @@ class Component extends DCLogic {
   }
 }
 
-// ---- styles (from the design's <helmet>) ----
+// ---- styles ----
 
-const CSS = `/* order KPI strip: icon tile + label over value, two lines, compact */
-.mo-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
-.mo-kpi{display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card)}
-.mo-kpi__icon{flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:var(--radius-lg)}
-.mo-kpi__text{min-width:0}
-.mo-kpi__label{margin:0;font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mo-kpi__value{margin:2px 0 0;font-size:var(--text-xl);line-height:26px;font-weight:var(--weight-semibold);color:var(--text-heading);font-variant-numeric:tabular-nums}
-@media (max-width:640px){
-  .mo-kpis{display:flex;gap:8px;overflow-x:auto;margin-inline:-14px;padding:0 14px 2px;scrollbar-width:none;scroll-snap-type:x proximity}
-  .mo-kpis::-webkit-scrollbar{display:none}
-  .mo-kpi{flex:0 0 auto;min-width:150px;padding:10px 12px;gap:10px;scroll-snap-align:start}
-  .mo-kpi__icon{width:32px;height:32px}
-  .mo-kpi__icon svg{width:18px;height:18px}
-  .mo-kpi__value{font-size:var(--text-lg);line-height:24px}
-  .mo-search{flex:1 1 0!important;max-width:none!important}
-  .mo-bulk:not(:has(button)){display:none!important}
-  .mo-tabs{display:none!important}
-  .mo-statussel{display:block!important;padding:12px 16px 0}
-}
-.mo-statussel{display:none}
-body{margin:0;background:#eef2f7;font-family:var(--font-sans);color:#475569}a{color:#003087;text-decoration:none}a:hover{color:#002a77}table{border-collapse:collapse}
-.dc-h213:hover{background:#002a77 !important}
-.dc-h214:hover{border-color:#94a3b8 !important}
-.dc-h215:hover{border-color:#94a3b8 !important}
-.dc-h216:hover{background:rgba(203,213,225,.25) !important}
-.dc-h217:hover{border-color:#94a3b8 !important}
-.dc-h218:hover{background:#f1f5f9 !important}
-.dc-h219:hover{background:rgba(203,213,225,.3) !important;color:#003087 !important}
-.dc-h220:hover{background:rgba(203,213,225,.3) !important;color:#475569 !important}
-.mo-menuitem:hover,.mo-menuitem:focus-visible{background:#f1f5f9 !important}
-.mo-page[disabled]{opacity:.5;cursor:not-allowed !important}
-.mo-items{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
-.mo-bulk{min-width:380px;flex-wrap:wrap}
-.mo-row{cursor:pointer}
-.mo-inv{display:block;margin-top:2px;font-family:var(--font-data);font-size:var(--text-xs);color:var(--primary)}
-.mo-inv--none{color:var(--text-muted);font-family:var(--font-sans)}
-.mo-dup{margin-top:4px;cursor:help}
+const CSS = `
+.mo-id{font-family:var(--font-data)}
+.mo-dup{margin-left:6px;vertical-align:middle;cursor:help}
+.mo-cust{display:block;max-width:220px;overflow:hidden;text-overflow:ellipsis}
 .mo-stock{width:100%;border-collapse:collapse;font-size:var(--text-sm)}
 .mo-stock th{padding:0 0 var(--space-2);border-bottom:1px solid var(--border-subtle);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted);text-align:left}
 .mo-stock td{padding:var(--space-2) 0;border-bottom:1px solid var(--border-subtle);white-space:normal}
 .mo-stock .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .mo-short{color:var(--text-danger);font-weight:var(--weight-medium)}
-@media (max-width:640px){.mo-bulk{min-width:0;width:100%;justify-content:flex-start !important}}
-/* phones: a wholesale invoice with the same number as its order isn't listed twice on the card */
-@media (max-width:640px){.mo-inv--same{display:none}}
-/* phones: Open and More on an order card are 40px round buttons with an outline, not bare glyphs */
-@media (max-width:640px){
-  .gc-shell__content .mo-ic{width:40px!important;height:40px!important;border:1px solid var(--border-field)!important;border-radius:var(--radius-full)!important;color:var(--text-body)!important}
-  .mo-ic svg{width:18px;height:18px}
-  .mo-ic+.mo-ic{margin-left:var(--space-1-5)}
-}`;
-
-const TH = { background: "#e2e8f0", padding: "10px 12px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "#1e293b", whiteSpace: "nowrap" };
-const TD = { padding: "14px 12px", borderBottom: "1px solid #e2e8f0" };
-const OUTLINE_BTN = { display: "inline-flex", height: "36px", alignItems: "center", gap: "8px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 14px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#475569", cursor: "pointer", whiteSpace: "nowrap" };
-const FILTER_SELECT = { height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", color: "#475569" };
-const PAGE_BTN = { minWidth: "32px", height: "32px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#475569", cursor: "pointer" };
+.mo-today{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);white-space:nowrap}
+.mo-today svg{color:var(--text-muted)}
+`;
 
 // ---- markup ----
+
+const items = (o) => String(o.itemMeta || '').split(' · ')[0];
 
 export default class MerchantOrdersScreen extends Component {
   render() {
     const v = this.renderVals() || {};
+    const bulk = [
+      { label: 'Approve', icon: 'check', onClick: v.bulkApprove },
+      { label: 'Send to courier', icon: 'truck', onClick: v.sendToCourier },
+      { label: 'Print labels', icon: 'printer', onClick: v.printLabels },
+    ];
     return (
       <div className="dc-screen ds" data-screen="MerchantOrders">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell" style={{ display: "flex", gap: "12px", padding: "12px", background: "#eef2f7" }}>
+        <div className="gc-shell">
           <__Sidebar sticky="" active="orders-all" />
-          <div className="gc-shell__main" style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#f8fafc" }}>
-            <__Topbar crumb="Orders" page="All orders" />
-            <main className="gc-shell__content" style={{ padding: "28px 32px 40px", display: "grid", gridTemplateColumns: "minmax(0,1fr)", gap: "16px" }}>
-              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: "16px", justifyContent: "space-between" }}>
-                <div>
-                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px" }}>
-                    <h1 style={{ margin: "0", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>{v.pageTitle}</h1>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.1)", padding: "5px 12px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-success)" }}><span aria-hidden="true" style={{ width: "7px", height: "7px", borderRadius: "var(--radius-full)", background: "#10b981" }} />Live</span>
-                  </div>
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px" }}>
-                  <span style={{ position: "relative", display: "inline-block" }}>
-                    <button id="orders-range-btn" type="button" className="dc-h214" aria-haspopup="menu" aria-expanded={v.rangeOpen ? "true" : "false"} aria-controls="orders-range-menu" onClick={v.toggleRange} style={OUTLINE_BTN}><__Icon name="calendar" strokeWidth="1.75" width="18" height="18" aria-hidden="true" /><span className="sr-only">Date range: </span>{v.range}<__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" aria-hidden="true" /></button>
-                    {v.rangeOpen ? (<>
-                      <span aria-hidden="true" onClick={v.closeRange} style={{ position: "fixed", inset: "0", zIndex: "95" }} />
-                      <div id="orders-range-menu" role="menu" aria-label="Date range" onKeyDown={v.onRangeKey} style={{ position: "absolute", top: "calc(100% + 6px)", left: "0", zIndex: "96", minWidth: "190px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 10px 30px rgba(15,23,42,.14)", padding: "6px" }}>
-                        {__list(v.ranges).map((r) => (
-                          <button key={r.label} type="button" role="menuitemradio" aria-checked={r.on ? "true" : "false"} className="mo-menuitem" onClick={r.onClick} style={{ display: "flex", width: "100%", height: "36px", alignItems: "center", justifyContent: "space-between", gap: "12px", border: "none", borderRadius: "var(--radius-md)", background: "none", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: r.on ? "var(--weight-semibold)" : "var(--weight-regular)", color: r.on ? "#003087" : "#475569", cursor: "pointer", textAlign: "left" }}>{r.label}{r.on ? <__Icon name="check" strokeWidth="2" width="16" height="16" aria-hidden="true" /> : null}</button>
-                        ))}
-                      </div>
-                    </>) : null}
-                  </span>
-                  <__PhoneMore>
-                    <button type="button" className="dc-h215" onClick={v.exportCsv} style={OUTLINE_BTN}><__Icon name="download" strokeWidth="1.75" width="18" height="18" aria-hidden="true" />Export CSV</button>
-                  <__Link href="/courier-returns" className="dc-h215" style={{ ...OUTLINE_BTN, textDecoration: "none" }}><__Icon name="package-x" strokeWidth="1.75" width="18" height="18" aria-hidden="true" />Courier returns</__Link>
-                  </__PhoneMore>
-                  <__Link href={v.newOrderHref} className="dc-h213" style={{ display: "inline-flex", height: "36px", alignItems: "center", gap: "8px", border: "none", textDecoration: "none", borderRadius: "var(--radius-lg)", background: "#003087", padding: "0 14px", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: "#fff", cursor: "pointer", whiteSpace: "nowrap" }}><__Icon name="plus" strokeWidth="1.75" width="18" height="18" aria-hidden="true" />New order</__Link>
-                </div>
-              </div>
-              <div className="mo-kpis">
-                <div className="mo-kpi">
-                  <span className="mo-kpi__icon" style={{ background: "var(--fill-primary-soft)", color: "var(--primary)" }}>
-                    <__Icon name="shopping-cart" strokeWidth="1.75" width="24" height="24" aria-hidden="true" />
-                  </span>
-                  <div className="mo-kpi__text">
-                    <p className="mo-kpi__label">Orders today</p>
-                    <p className="mo-kpi__value">{v.kpiToday}</p>
-                  </div>
-                </div>
-                <div className="mo-kpi">
-                  <span className="mo-kpi__icon" style={{ background: "var(--fill-success-soft)", color: "var(--text-success)" }}>
-                    <__Icon name="banknote" strokeWidth="1.75" width="24" height="24" aria-hidden="true" />
-                  </span>
-                  <div className="mo-kpi__text">
-                    <p className="mo-kpi__label">Order value today</p>
-                    <p className="mo-kpi__value">{v.kpiTodayValue}</p>
-                  </div>
-                </div>
-                <div className="mo-kpi">
-                  <span className="mo-kpi__icon" style={{ background: "var(--fill-accent-soft)", color: "var(--accent-text)" }}>
-                    <__Icon name="hand-coins" strokeWidth="1.75" width="24" height="24" aria-hidden="true" />
-                  </span>
-                  <div className="mo-kpi__text">
-                    <p className="mo-kpi__label">Cash on delivery to collect · {v.kpiCodCount}</p>
-                    <p className="mo-kpi__value">{v.kpiCod}</p>
-                  </div>
-                </div>
-                <div className="mo-kpi">
-                  <span className="mo-kpi__icon" style={{ background: "var(--fill-warning-soft)", color: "var(--text-warning)" }}>
-                    <__Icon name="undo-2" strokeWidth="1.75" width="24" height="24" aria-hidden="true" />
-                  </span>
-                  <div className="mo-kpi__text">
-                    <p className="mo-kpi__label">Return rate</p>
-                    <p className="mo-kpi__value">{v.kpiReturnRate}</p>
-                  </div>
-                </div>
-              </div>
-              <div style={{ borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)" }}>
-                <div className="mo-statussel">
-                  <select className="gc-input gc-select" aria-label="Order status" value={(__list(v.tabs).find((t) => t.on) || {}).key || ''} onChange={(e) => { const t = __list(v.tabs).find((x) => x.key === e.target.value); if (t) t.onClick(); }}>
-                    {__list(v.tabs).map((t) => <option key={t.key} value={t.key}>{t.label} ({t.count})</option>)}
-                  </select>
-                </div>
-                <div className="mo-tabs" role="tablist" aria-label="Order status" onKeyDown={v.onTabKey} style={{ display: "flex", flexWrap: "wrap", gap: "4px", padding: "10px 16px", borderBottom: "1px solid #e2e8f0" }}>
-                  {__list(v.tabs).map((t) => (
-                    <button key={t.key} id={t.id} type="button" role="tab" aria-selected={t.on ? "true" : "false"} aria-controls="orders-panel" tabIndex={t.on ? 0 : -1} className={t.on ? undefined : "dc-h216"} onClick={t.onClick} style={{ display: "inline-flex", height: "36px", alignItems: "center", gap: "8px", border: "none", borderRadius: "var(--radius-full)", background: t.on ? "rgba(0,48,135,.1)" : "none", boxShadow: t.on ? "inset 0 0 0 1.5px #003087" : "none", padding: "0 14px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: t.on ? "var(--weight-semibold)" : "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", color: t.on ? "#003087" : "#475569", cursor: "pointer", whiteSpace: "nowrap" }}>{t.on ? <__Icon name="check" strokeWidth="2" width="14" height="14" aria-hidden="true" /> : null}{t.label}<span style={{ fontVariantNumeric: "tabular-nums", color: t.on ? "#003087" : "var(--text-muted)" }}>{t.count}</span></button>
-                  ))}
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px", padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>
-                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px", flex: "1 1 320px", minWidth: "0" }}>
-                    <span className="mo-search" style={{ position: "relative", display: "inline-block", flex: "1 1 220px", minWidth: "0", maxWidth: "320px" }}>
-                      <input aria-label="Search orders by ID, phone or customer" type="search" value={v.q} onChange={v.onSearch} placeholder="Order ID, phone or name" style={{ width: "100%", boxSizing: "border-box", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 12px 0 36px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", color: "#1e293b" }} />
-                      <span aria-hidden="true" style={{ position: "absolute", left: "0", top: "0", display: "flex", width: "36px", height: "100%", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", pointerEvents: "none" }}>
-                        <__Icon name="search" strokeWidth="1.75" width="16" height="16" />
-                      </span>
-                    </span>
-                    <__MobileFilters label="Filter orders" count={v.filterCount} onClear={v.clearFilters}>
-                    <select aria-label="Filter by courier" value={v.courier} onChange={v.onCourier} style={FILTER_SELECT}>
-                      <option value="">All couriers</option>
-                      <option>Steadfast</option>
-                      <option>Pathao</option>
-                      <option>Carrybee</option>
-                      <option>RedX</option>
-                    </select>
-                    <select aria-label="Filter by payment" value={v.payment} onChange={v.onPayment} style={FILTER_SELECT}>
-                      <option value="">Any payment</option>
-                      <option value="Paid">Paid</option>
-                      <option value="Unpaid">Unpaid</option>
-                      <option value="Partial">Partly paid</option>
-                      <option value="COD">Cash on delivery</option>
-                    </select>
-                    <select aria-label="Filter by delivery zone" value={v.zone} onChange={v.onZone} style={FILTER_SELECT}>
-                      <option value="">All zones</option>
-                      <option>Inside Dhaka</option>
-                      <option>Sub-Dhaka</option>
-                      <option>Outside Dhaka</option>
-                    </select>
-                    <button type="button" className="dc-h217" onClick={v.openFilters} data-sheet-close="" aria-haspopup="dialog" style={{ ...OUTLINE_BTN, padding: "0 12px", fontSize: "var(--text-xs-plus)" }}><__Icon name="sliders-horizontal" strokeWidth="1.75" width="15" height="15" aria-hidden="true" />More filters{v.extraCount ? <span style={{ display: "inline-grid", minWidth: "18px", height: "18px", placeItems: "center", borderRadius: "var(--radius-full)", background: "#003087", padding: "0 5px", fontSize: "var(--text-xs)", color: "#fff" }}><span className="sr-only">active: </span>{v.extraCount}</span> : null}</button>
-                    </__MobileFilters>
-                  </div>
-                  <div className="mo-bulk" aria-live="polite" style={{ marginLeft: "auto", display: "flex", minHeight: "36px", alignItems: "center", justifyContent: "flex-end", gap: "8px" }}>
-                    {v.hasSelection ? (<>
-                      <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#334155", whiteSpace: "nowrap" }}>{v.selectionLabel}</span>
-                      <button type="button" onClick={v.bulkApprove} style={{ height: "36px", border: "none", borderRadius: "var(--radius-lg)", background: "var(--primary)", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#fff", cursor: "pointer", whiteSpace: "nowrap" }}>Approve</button>
-                      <button type="button" onClick={v.bulkCancel} style={{ height: "36px", border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-lg)", background: "var(--surface-card)", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--text-danger)", cursor: "pointer", whiteSpace: "nowrap" }}>Cancel orders</button>
-                      <button type="button" onClick={v.sendToCourier} style={{ height: "36px", border: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.1)", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087", cursor: "pointer", whiteSpace: "nowrap" }}>Send to courier</button>
-                      <button type="button" onClick={v.printLabels} style={{ height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#475569", cursor: "pointer", whiteSpace: "nowrap" }}>Print labels</button>
-                      <button type="button" onClick={v.clearSelection} aria-label="Clear selection" style={{ height: "36px", border: "none", borderRadius: "var(--radius-lg)", background: "none", padding: "0 8px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", cursor: "pointer" }}>Clear</button>
-                    </>) : (
-                      <span className="mo-bulk__hint" style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Select rows for bulk actions</span>
-                    )}
-                  </div>
-                </div>
-                <div id="orders-panel" role="tabpanel" aria-labelledby={v.activeTabId}>
-                  {v.empty ? (
-                    <__EmptyState title={v.emptyTitle} body={v.emptyBody} actionLabel={v.hasFilters ? "Clear filters" : undefined} onAction={v.clearFilters} />
+          <div className="gc-shell__main">
+            <__Topbar crumb="Orders" page={v.pageTitle} />
+            <main className="gc-shell__content">
+              <div className="ix-page">
+                <ShopHeader icon="inbox" title={v.pageTitle}
+                  about="Every order in one list: online, counter and wholesale. Open an order to verify, approve, pack and send it."
+                  secondary={[{ label: 'Export', onClick: v.exportCsv }]}
+                  more={[{ label: 'Courier returns', href: '/courier-returns' }, { label: 'Wholesale orders', href: '/wholesale-orders' }, { label: 'Order notifications', href: '/set-notifications' }]}
+                  primary={{ label: 'Create order', href: v.newOrderHref }} />
+
+                <MetricStrip label="Today's orders"
+                  lead={<span className="mo-today"><__Icon name="calendar" width="16" height="16" aria-hidden="true" />Today</span>}
+                  items={[
+                    { label: 'Orders', value: String(v.kpiToday), spark: v.sparkOrders },
+                    { label: 'Order value', value: v.kpiTodayValue, spark: v.sparkValue },
+                    { label: 'COD to collect', value: v.kpiCod, sub: v.kpiCodCount + ' orders' },
+                    { label: 'With courier', value: String(v.kpiCourier), href: '/merchant-orders?status=shipped' },
+                    { label: 'Return rate', value: v.kpiReturnRate },
+                  ]} />
+
+                <section className="ix-card" aria-label={v.tabLabel}>
+                  {v.hasSelection ? (
+                    <div className="ix-bulk" role="toolbar" aria-label="Selected orders">
+                      <input type="checkbox" checked={v.allChecked} onChange={v.toggleAll} aria-label="Select every order on this page" style={{ width: 16, height: 16, margin: '0 6px', accentColor: 'var(--primary)' }} />
+                      <span className="ix-bulk__n">{v.selectionLabel}</span>
+                      {bulk.map((a) => <button key={a.label} type="button" className="ix-btn ix-btn--sm" onClick={a.onClick}><__Icon name={a.icon} width="16" height="16" aria-hidden="true" />{a.label}</button>)}
+                      <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" align="start" items={[{ label: 'Cancel orders', onClick: v.bulkCancel, tone: 'danger' }, { label: 'Clear selection', onClick: v.clearSelection }]} />
+                    </div>
                   ) : (
-                    <div className="gc-table-wrap" style={{ minWidth: "0", overflowX: "auto" }}>
-                      <table style={{ width: "100%", minWidth: "1100px", textAlign: "left", fontSize: "var(--text-sm)" }}>
+                    <div className="ix-bar">
+                      {v.find ? (<>
+                        <SearchField value={v.q} onChange={v.onSearch} placeholder="Search order, customer, phone or tracking ID" onDone={v.closeFind} autoFocus />
+                        <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={v.closeFind}>Cancel</button>
+                      </>) : (<>
+                        <IndexTabs tabs={v.tabs.map((t) => ({ ...t, onClick: t.onClick }))} label="Order status" />
+                        <span className="ix-tools">
+                          <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search and filter" onClick={v.openFind}><__Icon name="search" width="16" height="16" aria-hidden="true" /></button>
+                        </span>
+                      </>)}
+                    </div>
+                  )}
+                  {v.find && !v.hasSelection ? (
+                    <div className="ix-filters" role="group" aria-label="Filters">
+                      <select aria-label="Courier" className={'ix-filter' + (v.courier ? ' is-set' : '')} value={v.courier} onChange={v.onCourier}>
+                        <option value="">Courier</option><option>Steadfast</option><option>Pathao</option><option>Carrybee</option><option>RedX</option>
+                      </select>
+                      <select aria-label="Payment" className={'ix-filter' + (v.payment ? ' is-set' : '')} value={v.payment} onChange={v.onPayment}>
+                        <option value="">Payment</option><option value="Paid">Paid</option><option value="Unpaid">Unpaid</option><option value="Partial">Partly paid</option><option value="COD">Cash on delivery</option>
+                      </select>
+                      <select aria-label="Delivery zone" className={'ix-filter' + (v.zone ? ' is-set' : '')} value={v.zone} onChange={v.onZone}>
+                        <option value="">Delivery zone</option><option>Inside Dhaka</option><option>Sub-Dhaka</option><option>Outside Dhaka</option>
+                      </select>
+                      <button type="button" className={'ix-filter' + (v.extraCount ? ' is-set' : '')} onClick={v.openFilters} aria-haspopup="dialog" style={{ backgroundImage: 'none', paddingRight: 10 }}>{v.extraCount ? 'More filters · ' + v.extraCount : 'More filters'}</button>
+                      {v.hasFilters ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={v.clearFilters}>Clear all</button> : null}
+                    </div>
+                  ) : null}
+
+                  {v.empty ? (
+                    <div className="ix-empty"><__EmptyState icon="inbox" title={v.emptyTitle} actionLabel={v.hasFilters ? 'Clear filters' : undefined} onAction={v.hasFilters ? v.clearFilters : undefined} /></div>
+                  ) : (
+                    <>
+                    <ul className="ix-plist" aria-label={v.caption}>
+                      {v.rows.map((o) => (
+                        <li key={o.id}>
+                          <__Link href={o.href} className="ix-pitem">
+                            <span className="ix-pitem__top"><b className="mo-id">{o.id}</b><span>{o.total}</span></span>
+                            <span className="ix-pitem__mid">{o.customer} · {o.placed}</span>
+                            <span className="ix-pitem__tags">
+                              <__StatusBadge tone={o.statusInfo ? o.statusInfo.tone : 'neutral'}>{o.statusInfo ? o.statusInfo.label : o.status}</__StatusBadge>
+                              <__StatusBadge tone={o.pay.tone} icon={o.pay.icon}>{o.payment === 'Partial' ? 'Partly paid' : o.payment}</__StatusBadge>
+                            </span>
+                          </__Link>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="ix-table-wrap">
+                      <table className="ix-table gc-table--keep">
                         <caption className="sr-only">{v.caption}</caption>
                         <thead>
                           <tr>
-                            <th scope="col" style={{ ...TH, width: "36px" }}>
-                              <input aria-label="Select all orders" type="checkbox" checked={v.allChecked} onChange={v.toggleAll} style={{ width: "15px", height: "15px", accentColor: "#003087" }} />
-                            </th>
-                            <th scope="col" style={{ ...TH, minWidth: "150px" }}>Order</th>
-                            <th scope="col" style={{ ...TH, minWidth: "200px" }}>Customer</th>
-                            <th scope="col" style={{ ...TH, minWidth: "200px" }}>Items</th>
-                            <th scope="col" style={{ ...TH, minWidth: "130px" }}>Courier</th>
-                            <th scope="col" style={{ ...TH, minWidth: "130px" }}>Status</th>
-                            <th scope="col" style={{ ...TH, minWidth: "100px" }}>Payment</th>
-                            <th scope="col" style={{ ...TH, minWidth: "100px", textAlign: "right" }}>Total</th>
-                            <th scope="col" style={{ ...TH, width: "64px" }}><span className="sr-only">Actions</span></th>
+                            <th scope="col" className="ix-check"><input type="checkbox" checked={v.allChecked} onChange={v.toggleAll} aria-label="Select every order on this page" /></th>
+                            <th scope="col">Order</th>
+                            <th scope="col">Date</th>
+                            <th scope="col">Customer</th>
+                            <th scope="col">Channel</th>
+                            <th scope="col" className="ix-num">Total</th>
+                            <th scope="col">Payment</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Items</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {__list(v.rows).map((o) => (
-                            <tr key={o.id} className="dc-h218 mo-row" onClick={o.onRowClick}>
-                              <td className="mo-sel" style={TD}>
-                                <input aria-label={"Select order " + o.id} type="checkbox" checked={o.checked} onChange={o.onToggle} style={{ width: "15px", height: "15px", accentColor: "#003087" }} />
+                          {v.rows.map((o) => (
+                            <tr key={o.id} className={o.checked ? 'is-sel' : ''} onClick={o.onRowClick}>
+                              <td className="ix-check"><input type="checkbox" checked={o.checked} onChange={o.onToggle} aria-label={'Select ' + o.id} /></td>
+                              <td>
+                                <__Link href={o.href} className="ix-strong mo-id">{o.id}</__Link>
+                                {o.dups.length ? <span className="gc-badge gc-badge--warning mo-dup" title={'Possible duplicate of ' + o.dups.join(', ')}>Duplicate?</span> : null}
                               </td>
-                              <td style={{ ...TD, whiteSpace: "nowrap" }}>
-                                <__Link href={o.href} style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087" }}>{o.id}</__Link>
-                                {o.invoiceHref
-                                  ? <__Link href={o.invoiceHref} className={"mo-inv" + (o.invoiceId === o.id ? " mo-inv--same" : "")} aria-label={o.invoiceKind + " " + o.invoiceId + " for order " + o.id}>{o.invoiceKind} {o.invoiceId}</__Link>
-                                  : <span className="mo-inv mo-inv--none">No invoice yet</span>}
-                                <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{o.placed} · {o.channel}</p>
-                                {o.dups.length ? <span className="gc-badge gc-badge--warning mo-dup" title={"Same phone and product as " + o.dups.join(", ") + " within 48 hours"}><__Icon name="copy" strokeWidth="1.75" width="12" height="12" aria-hidden="true" />Possible duplicate<span className="sr-only"> of {o.dups.join(", ")}</span></span> : null}
-                              </td>
-                              <td style={TD}>
-                                <span style={{ display: "inline-flex", alignItems: "center", gap: "10px" }}>
-                                  <span aria-hidden="true" style={{ width: "30px", height: "30px", flex: "none", borderRadius: "var(--radius-full)", background: "rgba(0,48,135,.1)", color: "#003087", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>{o.initials}</span>
-                                  <span>
-                                    <span style={{ display: "block", color: "#1e293b", whiteSpace: "nowrap" }}>{o.customer}</span>
-                                    <span style={{ display: "block", fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "var(--text-muted)", whiteSpace: "nowrap" }}>{o.phone} · {o.zone}</span>
-                                  </span>
-                                </span>
-                              </td>
-                              <td style={{ ...TD, maxWidth: "280px" }}>
-                                <span className="mo-items" title={o.itemTitle} style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}>{o.itemTitle}</span>
-                                <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)", whiteSpace: "nowrap" }}>{o.itemMeta}</span>
-                              </td>
-                              <td style={{ ...TD, whiteSpace: "nowrap" }}>
-                                <span style={{ display: "block", fontSize: "var(--text-xs-plus)", color: "#475569" }}>{o.courier}</span>
-                                {o.tracked
-                                  ? <span style={{ display: "block", fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "var(--text-muted)", whiteSpace: "nowrap" }}>{o.consignment}</span>
-                                  : <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>No tracking ID</span>}
-                              </td>
-                              <td style={{ ...TD, whiteSpace: "nowrap" }}>
-                                <__StatusBadge tone={o.statusInfo ? o.statusInfo.tone : "neutral"} icon={o.statusInfo ? o.statusInfo.icon : undefined}>{o.status}</__StatusBadge>
-                              </td>
-                              <td style={{ ...TD, whiteSpace: "nowrap" }}>
-                                <__StatusBadge tone={o.pay.tone} icon={o.pay.icon}>{o.payment}</__StatusBadge>
-                              </td>
-                              <td style={{ ...TD, textAlign: "right", fontWeight: "var(--weight-medium)", color: "#334155", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{o.total}</td>
-                              <td style={{ ...TD, textAlign: "right" }}>
-                                <span style={{ display: "inline-flex", gap: "2px" }}>
-                                  <__Link className="dc-h219 mo-ic" href={o.href} style={{ width: "28px", height: "28px", display: "grid", placeItems: "center", borderRadius: "var(--radius-lg)", color: "var(--text-muted)" }} aria-label={"Open order " + o.id}>
-                                    <__Icon name="eye" strokeWidth="1.75" width="16" height="16" aria-hidden="true" />
-                                  </__Link>
-                                  <button type="button" className="dc-h220 mo-ic" onClick={o.onMore} style={{ width: "28px", height: "28px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-lg)", background: "none", color: "var(--text-muted)", cursor: "pointer" }} aria-label={"More actions for order " + o.id}>
-                                    <__Icon name="more-vertical" strokeWidth="1.75" width="16" height="16" aria-hidden="true" />
-                                  </button>
-                                </span>
-                              </td>
+                              <td className="ix-muted">{o.placed}</td>
+                              <td><span className="mo-cust">{o.customer}</span></td>
+                              <td className="ix-muted">{o.channel}</td>
+                              <td className="ix-num">{o.total}</td>
+                              <td><__StatusBadge tone={o.pay.tone} icon={o.pay.icon}>{o.payment === 'Partial' ? 'Partly paid' : o.payment}</__StatusBadge></td>
+                              <td><__StatusBadge tone={o.statusInfo ? o.statusInfo.tone : 'neutral'}>{o.statusInfo ? o.statusInfo.label : o.status}</__StatusBadge></td>
+                              <td className="ix-muted">{items(o)}</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
+                    </>
                   )}
-                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "12px", padding: "14px 16px" }}>
-                    <span role="status" style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.countLabel}<span> · tab counts are store totals</span></span>
-                    <nav aria-label="Orders pages" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                      <button type="button" className="mo-page" onClick={v.prev} disabled={v.atStart} style={PAGE_BTN}>Previous</button>
-                      {__list(v.pageList).map((p) => (
-                        <button key={p.n} type="button" onClick={p.onClick} aria-label={"Page " + p.n} aria-current={p.on ? "page" : undefined} style={p.on ? { ...PAGE_BTN, border: "1px solid #003087", background: "#003087", color: "#fff", textDecoration: "underline" } : PAGE_BTN}>{p.n}</button>
-                      ))}
-                      <button type="button" className="mo-page" onClick={v.next} disabled={v.atEnd} style={PAGE_BTN}>Next</button>
-                    </nav>
-                  </div>
-                </div>
+                  <Pager label={v.countLabel} atStart={v.atStart} atEnd={v.atEnd} prev={v.prev} next={v.next} />
+                </section>
+                <LearnMore topic="orders" />
               </div>
-              <p style={{ margin: "0", textAlign: "center", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>GridCommerce · All Together. More Commerce.</p>
             </main>
           </div>
         </div>

@@ -3,6 +3,10 @@
 // Verification → Approved → Ready for courier → In transit → Delivered), the next step's card (verify by call,
 // approve / take advance + approve / cancel, prepare the parcel, send to courier, courier updates), courier
 // tracking, the order's messages (notifications.js), items, stock held, activity.
+// Laid out like Shopify's order page (IndexKit RecordHeader + ix-record): on the left the work — the steps with the
+// next step's card, items, payment, tracking, stock, notifications, activity; on the right the facts — notes,
+// customer (contact and shipping address), verification, order and invoice, tags, visit details. Return and Print
+// invoice are in the title row; Print POS receipt, Add a comment, Block customer and Cancel order under More actions.
 // Front end only: the order comes from src/lib/orders.js; the steps are src/lib/orderFlow.js.
 // Text stays short and plain (Shopify style).
 
@@ -13,16 +17,17 @@ import { toast, confirmDialog } from '@/runtime/ui';
 import { navigate } from '@/runtime/routes';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { Dialog, EmptyState, StatusBadge } from '@/components/ui';
+import { RecordHeader, KV } from '@/components/ui/IndexKit';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
-import { ORDER_STEPS, STEP_LABEL, NEW_KEYS, orderStatus, isNewOrder } from '@/lib/orderStatus';
+import { ORDER_STEPS, STEP_LABEL, orderStatus, isNewOrder } from '@/lib/orderStatus';
 import { usePlaceList } from '@/lib/usePlaces';
 import { holdsStock } from '@/lib/edition';
 import { productBy } from '@/lib/stock';
 import { holdsFor } from '@/lib/stockHolds';
 import { courierHistory } from '@/lib/orderLinks';
 import {
-  getOrders, findOrder, duplicatesOf, holdsOfOrder, heldText, availability, approveOrder, holdOrderStock, cancelOrder, mergeInto,
-  logOrder, logOf, rtoState, invoiceHref, orderHref, isCounterSale, holdPlaceOf,
+  getOrders, findOrder, duplicatesOf, holdsOfOrder, availability, approveOrder, holdOrderStock, cancelOrder, mergeInto,
+  logOrder, logOf, rtoState, invoiceHref, orderHref, isCounterSale, holdPlaceOf, patchOrder,
   CAN_CANCEL, DEFAULT_HOLD_PLACE,
 } from '@/lib/orders';
 import {
@@ -48,89 +53,64 @@ const minutesApart = (a, b) => {
 };
 
 const CSS = `
-.od-bar{position:sticky;top:64px;z-index:90;display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-6);background:var(--surface-header);backdrop-filter:blur(8px);border-bottom:1px solid var(--border-subtle)}
-.od-back{display:grid;place-items:center;width:44px;height:44px;flex:none;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);color:var(--text-body)}
-.od-title{margin:0;font-size:var(--text-xl);font-weight:var(--weight-semibold);color:var(--text-heading);font-family:var(--font-data)}
-.od-meta{font-size:var(--text-xs);color:var(--text-muted)}
-.od-bar__actions{margin-left:auto;display:flex;flex-wrap:wrap;gap:var(--space-2)}
-.od-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:var(--space-5);align-items:start}
-.od-col{display:flex;flex-direction:column;gap:var(--space-5);min-width:0}
-.od-card{overflow:hidden}
-.od-card__head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-4) var(--space-5) var(--space-3)}
-.od-card__head h2{margin:0;display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.od-card__head p{margin:2px 0 0;font-size:var(--text-xs);color:var(--text-muted)}
-.od-card__body{display:flex;flex-direction:column;gap:var(--space-4);padding:0 var(--space-5) var(--space-5)}
-.od-card .gc-table th,.od-card .gc-table td{padding-left:var(--space-3);padding-right:var(--space-3);white-space:normal}
-.od-card .gc-table th:first-child,.od-card .gc-table td:first-child{padding-left:var(--space-5)}
-.od-card .gc-table th:last-child,.od-card .gc-table td:last-child{padding-right:var(--space-5)}
+.od-head-sub{margin:2px 0 0;font-size:var(--text-xs);font-weight:var(--weight-regular);color:var(--text-muted)}
+.od-body{display:flex;flex-direction:column;gap:var(--space-4)}
+.od-card .gc-table th,.od-card .gc-table td{white-space:normal}
+.od-card .gc-table th:first-child,.od-card .gc-table td:first-child{padding-left:var(--space-4)}
+.od-card .gc-table th:last-child,.od-card .gc-table td:last-child{padding-right:var(--space-4)}
+.od-card .ix-card__head+.gc-table-wrap{margin-top:var(--space-2)}
 .od-card .gc-badge,.od-num{white-space:nowrap}
 .od-num{text-align:right;font-variant-numeric:tabular-nums}
 .od-strong{font-weight:var(--weight-medium);color:var(--text-heading)}
 .od-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .od-id{font-family:var(--font-data)}
-.od-sum{display:grid;grid-template-columns:1fr auto;gap:6px var(--space-5);margin:0 0 0 auto;padding:var(--space-4) var(--space-5);width:min(100%,340px);font-size:var(--text-sm);font-variant-numeric:tabular-nums}
+.od-sum{display:grid;grid-template-columns:1fr auto;gap:6px var(--space-5);margin:0;font-size:var(--text-sm);font-variant-numeric:tabular-nums}
 .od-sum dt{color:var(--text-body)}
 .od-sum dd{margin:0;text-align:right;color:var(--text-heading)}
-.od-sum .is-total{padding-top:6px;border-top:1px solid var(--border-strong);font-weight:var(--weight-semibold);color:var(--primary)}
-.od-dup{display:flex;flex-direction:column;gap:var(--space-3);align-items:stretch}
+.od-sum .is-total{padding-top:6px;border-top:1px solid var(--border-subtle);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.od-sum .is-due{font-weight:var(--weight-semibold);color:var(--primary)}
+.od-dup{display:flex;flex-direction:column;gap:var(--space-2);align-items:stretch}
 .od-dup__row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
 .od-dup__row p{margin:0 auto 0 0;color:var(--text-heading)}
 .od-place{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden}
-.od-place__head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-2) var(--space-4);background:var(--surface-subtle);font-size:var(--text-sm)}
-.od-place .gc-table th:first-child,.od-place .gc-table td:first-child{padding-left:var(--space-4)}
-.od-seg{display:flex;flex-wrap:wrap;gap:6px;padding:5px;border-radius:var(--radius-xl);background:var(--surface-subtle)}
-.od-seg button{flex:1 1 110px;height:36px;border:0;border-radius:var(--radius-lg);background:none;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer}
-.od-seg button[aria-pressed="true"]{background:var(--surface-card);color:var(--primary);box-shadow:var(--shadow-soft)}
-.od-panel{display:flex;flex-direction:column;gap:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-4)}
-.od-panel h3{margin:0;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
-.od-panel p{margin:0;font-size:var(--text-xs-plus);color:var(--text-muted)}
+.od-place__head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-2) var(--space-3);background:var(--surface-subtle);font-size:var(--text-sm)}
+.od-place .gc-table th:first-child,.od-place .gc-table td:first-child{padding-left:var(--space-3)}
 .od-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--space-3)}
 .od-short{color:var(--text-danger);font-weight:var(--weight-medium)}
-.od-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:var(--space-2)}
-.od-stat{padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--surface-subtle)}
-.od-stat span{display:block;font-size:var(--text-xs);color:var(--text-muted)}
-.od-stat b{display:block;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading);font-variant-numeric:tabular-nums}
-.od-kv{display:grid;grid-template-columns:auto 1fr;gap:6px var(--space-4);margin:0;font-size:var(--text-sm)}
-.od-kv dt{color:var(--text-muted)}
-.od-kv dd{margin:0;text-align:right;color:var(--text-heading);overflow-wrap:anywhere}
-.od-kvs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:var(--space-3)}
-.od-box{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-3) var(--space-4)}
-.od-box h3{margin:0 0 var(--space-2);font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--text-heading)}
-.od-who{display:flex;align-items:center;gap:var(--space-3)}
-.od-avatar{display:grid;place-items:center;width:44px;height:44px;flex:none;border-radius:var(--radius-full);background:var(--fill-primary-soft);color:var(--primary);font-weight:var(--weight-semibold)}
-.od-contact{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2)}
-.od-addr{margin:0;padding:var(--space-3);border-radius:var(--radius-lg);background:var(--surface-subtle);font-size:var(--text-sm);line-height:1.6;color:var(--text-body)}
+.od-contact{display:flex;gap:var(--space-2);margin-top:var(--space-2)}
+.od-contact .ix-btn{flex:1}
+.od-section{margin:var(--space-3) 0 0;padding-top:var(--space-3);border-top:1px solid var(--border-subtle)}
+.od-section h3{margin:0 0 4px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
+.od-section p{margin:0;font-size:var(--text-sm);line-height:1.5;color:var(--text-heading)}
 .od-log{display:flex;flex-direction:column}
-.od-log__row{display:flex;gap:var(--space-3);padding:var(--space-3) 0;border-bottom:1px solid var(--border-subtle)}
+.od-log__row{display:flex;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid var(--border-subtle)}
 .od-log__row:last-child{border-bottom:0}
-.od-log__icon{display:grid;place-items:center;width:30px;height:30px;flex:none;border-radius:var(--radius-full);background:var(--surface-subtle);color:var(--text-body)}
+.od-log__icon{display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:var(--radius-full);background:var(--surface-subtle);color:var(--text-body)}
 .od-tags{display:flex;flex-wrap:wrap;gap:6px}
 .od-tag{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 4px 0 10px;border-radius:var(--radius-full);background:var(--surface-subtle);font-size:var(--text-xs);color:var(--text-body)}
-.od-tag button{display:grid;place-items:center;width:22px;height:22px;border:0;border-radius:var(--radius-full);background:none;color:var(--text-muted);cursor:pointer}
+.od-tag button{display:grid;place-items:center;width:20px;height:20px;border:0;border-radius:var(--radius-full);background:none;color:var(--text-muted);cursor:pointer}
 .od-linkbtn{border:0;background:none;padding:0;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--primary);cursor:pointer}
 .od-steps{display:grid;grid-template-columns:repeat(var(--steps),minmax(0,1fr));gap:8px;margin:0;padding:0;list-style:none}
 .od-step{position:relative;min-width:0;text-align:center}
-.od-step__dot{position:relative;z-index:1;width:32px;height:32px;margin:0 auto;border-radius:var(--radius-full);display:grid;place-items:center;background:var(--surface-subtle);color:var(--text-muted);border:1.5px solid transparent}
+.od-step__dot{position:relative;z-index:1;width:24px;height:24px;margin:0 auto;border-radius:var(--radius-full);display:grid;place-items:center;background:var(--surface-subtle);color:var(--text-muted);border:1.5px solid transparent}
 .od-step--done .od-step__dot{background:var(--fill-success);color:#fff}
 .od-step--current .od-step__dot{background:var(--surface-card);color:var(--text-warning);border-color:currentColor;box-shadow:0 0 0 3px var(--fill-warning-soft)}
-.od-step::after{content:"";position:absolute;top:15px;left:calc(50% + 22px);width:calc(100% - 36px);height:3px;border-radius:var(--radius-full);background:var(--border-subtle)}
+.od-step::after{content:"";position:absolute;top:11px;left:calc(50% + 18px);width:calc(100% - 28px);height:2px;border-radius:var(--radius-full);background:var(--border-subtle)}
 .od-step--done::after{background:var(--fill-success)}
 .od-step:last-child::after{display:none}
-.od-step__label{margin:8px 0 0;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--text-muted)}
+.od-step__label{margin:6px 0 0;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
 .od-step--done .od-step__label{color:var(--text-heading)}
 .od-step--current .od-step__label{color:var(--text-heading);font-weight:var(--weight-semibold)}
 .od-step__note{margin:1px 0 0;font-size:var(--text-xs);color:var(--text-muted)}
-.od-next{border-color:var(--primary);box-shadow:0 0 0 3px var(--fill-primary-soft)}
 .od-line{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin:0;font-size:var(--text-sm);color:var(--text-body)}
 .od-line b{font-weight:var(--weight-medium);color:var(--text-heading)}
 .od-acts{display:flex;flex-wrap:wrap;gap:var(--space-2)}
-.od-acts .gc-btn{flex:0 1 auto}
 .od-hr{height:1px;margin:0;border:0;background:var(--border-subtle)}
 .od-checks{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
-.od-checks li{display:flex;align-items:center;gap:var(--space-3);min-height:52px;padding:var(--space-2) 0;border-top:1px solid var(--border-subtle)}
+.od-checks li{display:flex;align-items:center;gap:var(--space-3);min-height:44px;padding:6px 0;border-top:1px solid var(--border-subtle)}
 .od-checks li:first-child{border-top:0}
 .od-checks label{display:flex;align-items:center;gap:var(--space-3);flex:1;min-width:0;cursor:pointer}
-.od-checks input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--primary)}
+.od-checks input[type=checkbox]{width:16px;height:16px;flex:none;accent-color:var(--primary)}
 .od-checks label>span{display:flex;flex-direction:column;min-width:0}
 .od-checks b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 .od-checks small{font-size:var(--text-xs);color:var(--text-muted);overflow-wrap:anywhere}
@@ -140,7 +120,7 @@ const CSS = `
 .od-money b{display:block;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading);font-variant-numeric:tabular-nums}
 .od-money .is-cod{background:var(--fill-primary-soft)}
 .od-time{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
-.od-time li{position:relative;display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:var(--space-3);align-items:baseline;padding:0 0 var(--space-4)}
+.od-time li{position:relative;display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:var(--space-3);align-items:baseline;padding:0 0 var(--space-3)}
 .od-time li::before{content:"";position:absolute;left:5px;top:16px;bottom:0;width:2px;background:var(--border-subtle)}
 .od-time li:last-child{padding-bottom:0}
 .od-time li:last-child::before{display:none}
@@ -149,9 +129,9 @@ const CSS = `
 .od-time b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 .od-time span{font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap}
 .od-msgs{display:flex;flex-direction:column}
-.od-msg{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:var(--space-3);align-items:center;padding:var(--space-3) 0;border-top:1px solid var(--border-subtle)}
+.od-msg{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:var(--space-3);align-items:center;padding:var(--space-2) 0;border-top:1px solid var(--border-subtle)}
 .od-msg:first-child{border-top:0}
-.od-msg__ic{display:grid;place-items:center;width:32px;height:32px;border-radius:var(--radius-full);background:var(--surface-subtle);color:var(--text-body)}
+.od-msg__ic{display:grid;place-items:center;width:28px;height:28px;border-radius:var(--radius-full);background:var(--surface-subtle);color:var(--text-body)}
 .od-msg__main{display:flex;flex-direction:column;min-width:0}
 .od-msg__main b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 .od-msg__main span{font-size:var(--text-xs);color:var(--text-muted);overflow-wrap:anywhere}
@@ -162,36 +142,34 @@ const CSS = `
 .od-slip{display:none}
 .od-item{display:flex;align-items:center;gap:var(--space-3);min-width:0}
 .od-item>span{display:flex;flex-direction:column;min-width:0}
-.od-thumb{position:relative;display:grid;place-items:center;width:52px;height:52px;flex:none;padding:0;border:1px dashed var(--border-strong);border-radius:var(--radius-lg);background:var(--surface-subtle);color:var(--text-muted);cursor:pointer;overflow:hidden;transition:border-color 150ms ease,color 150ms ease}
+.od-thumb{position:relative;display:grid;place-items:center;width:40px;height:40px;flex:none;padding:0;border:1px dashed var(--border-strong);border-radius:var(--radius-md);background:var(--surface-subtle);color:var(--text-muted);cursor:pointer;overflow:hidden;transition:border-color 150ms ease,color 150ms ease}
 .od-thumb.has-photo{border:1px solid var(--border-subtle);background:var(--surface-card)}
 .od-thumb img{width:100%;height:100%;object-fit:cover}
 @media (hover:hover) and (pointer:fine){.od-thumb:hover{border-color:var(--primary);color:var(--primary)}}
 .od-thumb:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
 .od-photo{display:block;width:100%;max-height:60vh;object-fit:contain;border-radius:var(--radius-lg);background:var(--surface-subtle)}
-.od-couriers{display:flex;flex-direction:column;gap:var(--space-3);margin:0;padding:0;list-style:none}
+.od-couriers{display:flex;flex-direction:column;gap:var(--space-2);margin:var(--space-3) 0 0;padding:0;list-style:none}
 .od-couriers li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px var(--space-3);font-size:var(--text-sm)}
 .od-couriers b{font-weight:var(--weight-medium);color:var(--text-heading)}
 .od-couriers span{color:var(--text-muted);font-size:var(--text-xs);text-align:right;white-space:nowrap}
-.od-couriers i{grid-column:1 / -1;display:flex;height:6px;border-radius:var(--radius-full);overflow:hidden;background:var(--fill-error-soft)}
+.od-couriers i{grid-column:1 / -1;display:flex;height:4px;border-radius:var(--radius-full);overflow:hidden;background:var(--fill-error-soft)}
 .od-couriers i em{display:block;height:100%;background:var(--fill-success)}
-@media (max-width:1100px){.od-grid{grid-template-columns:minmax(0,1fr)}}
+.od-visit{display:flex;flex-direction:column;gap:var(--space-3)}
+.od-visit h3{margin:0 0 4px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
 @media (max-width:767px){
-.od-bar{padding:var(--space-3) 16px;top:56px}
 .od-steps{grid-template-columns:minmax(0,1fr);gap:0}
-.od-step{display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:12px;text-align:left;padding-bottom:18px}
+.od-step{display:grid;grid-template-columns:24px minmax(0,1fr);column-gap:12px;text-align:left;padding-bottom:14px}
 .od-step:last-child{padding-bottom:0}
 .od-step__dot{grid-row:1 / span 2;margin:0}
 .od-step__label{margin:0;align-self:end}
-.od-step::after{top:36px;bottom:4px;left:15px;width:3px;height:auto}
+.od-step::after{top:28px;bottom:2px;left:11px;width:2px;height:auto}
 }
 @media (max-width:640px){
 .od-money{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 .od-money .is-cod{grid-column:1 / -1}
-.od-msg{grid-template-columns:32px minmax(0,1fr)}
+.od-msg{grid-template-columns:28px minmax(0,1fr)}
 .od-msg__end{grid-column:2;justify-content:flex-start}
-/* totals: the line above Total runs across both columns */
-.od-sum{column-gap:0}
-.od-sum dt{padding-right:var(--space-5)}
+.od-checks input[type=checkbox]{width:20px;height:20px}
 /* held stock: the place is a plain heading over its item cards (no box around the cards) */
 .od-place{border:0;border-radius:0;overflow:visible}
 .od-place__head{flex-wrap:wrap;padding:0 0 var(--space-2);background:none}
@@ -210,7 +188,7 @@ function Shell({ children, page }) {
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="gc-shell">
         <Sidebar sticky="" active="orders-all" />
-        <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
+        <main className="gc-shell__main">
           <Topbar crumb="Orders / All orders" page={page} />
           {children}
         </main>
@@ -285,8 +263,8 @@ export default function OrderDetail() {
   if (!ready || !o) {
     return (
       <Shell page="Order">
-        <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px' }}>
-          {ready ? <><h1 className="sr-only">Order not found</h1><EmptyState icon="file-x" title="Order not found" body={`There is no order ${id}.`} /><p style={{ textAlign: 'center' }}><Link href={back} className="gc-btn gc-btn--soft">Back to orders</Link></p></> : null}
+        <div className="gc-shell__content">
+          {ready ? <div className="ix-page ix-page--narrow"><h1 className="sr-only">Order not found</h1><EmptyState icon="file-x" title="Order not found" body={`There is no order ${id}.`} /><p style={{ textAlign: 'center', margin: 0 }}><Link href={back} className="ix-btn">Back to orders</Link></p></div> : null}
         </div>
       </Shell>
     );
@@ -303,7 +281,6 @@ export default function OrderDetail() {
   const short = stock.filter((x) => x.short);
   const record = courierHistory(o.phone);
   const samePhone = digitsOf(o.phone).length >= 10 ? all.filter((x) => digitsOf(x.phone) === digitsOf(o.phone)) : [o];
-  const openOrders = samePhone.filter((x) => [...NEW_KEYS, 'approved', 'ready'].includes(x.statusKey)).length;
   const adj = o.amount - o.subtotal - (o.shipping || 0);
   const due = o.paid == null ? null : Math.max(0, o.amount - o.paid);
   const paid = o.paid || 0;
@@ -344,6 +321,15 @@ export default function OrderDetail() {
 
   // ---- actions -------------------------------------------------------------------------------
   const autoCall = () => { startAutoCall(o); refresh(); toast('Calling ' + o.customer + '…', { tone: 'info' }); };
+  // the order note (courier and invoice) and the internal note are kept with the order when the field is left
+  const saveNote = (field, value) => {
+    const text = String(value || '').trim();
+    if (text === String(o[field] || '').trim()) return;
+    patchOrder(o, { [field]: text });
+    logOrder(o.id, 'sticky-note', field === 'note' ? 'Order note changed' : 'Internal note changed', text ? (text.length > 60 ? text.slice(0, 60) + '…' : text) : 'Removed');
+    refresh();
+    toast('Note saved');
+  };
   const saveCall = (e) => {
     e.preventDefault();
     recordCall(o, call.result, call.note.trim());
@@ -352,8 +338,9 @@ export default function OrderDetail() {
   };
   const approve = (e) => {
     if (e) e.preventDefault();
-    approveOrder(o, place);
+    const done = approveOrder(o, place);
     setDlg(null); refresh();
+    if (!done) { toast('This order was already approved', { tone: 'info' }); return; }
     toast(`Order ${o.id} approved`);
   };
   const askAdvance = () => {
@@ -477,353 +464,334 @@ export default function OrderDetail() {
       <b>{v.state === 'calling' ? 'Calling…' : callResultLabel(v.state)}</b><span className="od-sub">{v.method === 'auto' ? 'Auto call' : 'Call'}{v.at ? ' · ' + formatTime(v.at) : ''}{v.note ? ' · ' + v.note : ''}</span></p>
   ) : <p className="od-line"><Icon name="phone" width="16" height="16" aria-hidden="true" /><span>Not verified yet</span></p>;
   const recordLine = record && record.total ? <p className="od-line"><Icon name="truck" width="16" height="16" aria-hidden="true" /><span>{record.total} past parcels · {record.rate}% delivered</span></p> : null;
+  const courierPick = (blank) => (
+    <div className="od-two"><div><label className="gc-label" htmlFor="od-courier">Courier</label><select id="od-courier" className="gc-input gc-select" value={prep.courier} onChange={(e) => setPrep(blank ? { courier: e.target.value, slipPrinted: false, slipAttached: false } : { courier: e.target.value })}>{blank ? <option value="">Choose courier</option> : null}{COURIERS.map((x) => <option key={x} value={x}>{x} · {formatBDT(courierCharge(x, o.zone))}</option>)}</select></div></div>
+  );
 
-  let next = null;
-  if (counter) next = null;
-  else if (isNew) next = (
-    <section className="gc-card od-card od-next" aria-labelledby="od-next">
-      <div className="od-card__head"><div><h2 id="od-next">{v && v.state === 'confirmed' ? 'Approve order' : 'Verify order'}</h2><p>{o.advance && o.advance.state === 'requested' ? `Advance ${formatBDT(o.advance.amount)} requested` : status.hint}</p></div></div>
-      <div className="od-card__body">
-        {verifyLine}
-        {recordLine}
-        <div className="od-acts">
-          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={autoCall} disabled={v && v.state === 'calling'}><Icon name="phone-outgoing" width="16" height="16" aria-hidden="true" /> Auto call</button>
-          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setDlg('call')}><Icon name="phone" width="16" height="16" aria-hidden="true" /> Log call</button>
-        </div>
-        <hr className="od-hr" />
-        <div className="od-acts">
-          <button type="button" className="gc-btn gc-btn--solid" onClick={() => setDlg('approve')}><Icon name="check" width="18" height="18" aria-hidden="true" /> Approve</button>
-          {o.payment !== 'Paid' ? <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setDlg('advance')}><Icon name="hand-coins" width="18" height="18" aria-hidden="true" /> Take advance + approve</button> : null}
-          <button type="button" className="gc-btn gc-btn--neutral" style={{ color: 'var(--text-danger)' }} onClick={() => setDlg('cancel')}>Cancel order</button>
-        </div>
+  // the first card: where the order is (the steps) and what to do next. { title, sub, link, body }
+  let step = { title: 'Order status', sub: o.statusKey === 'cancelled' ? 'Cancelled' : o.statusKey === 'returned' ? 'Returned' : nextStep ? 'Next: ' + STEP_LABEL[nextStep] : 'Complete' };
+  if (counter) { /* a counter sale only shows its steps */ }
+  else if (isNew) step = {
+    title: v && v.state === 'confirmed' ? 'Approve order' : 'Verify order',
+    sub: o.advance && o.advance.state === 'requested' ? `Advance ${formatBDT(o.advance.amount)} requested` : status.hint,
+    body: (<>
+      {verifyLine}
+      {recordLine}
+      <div className="od-acts">
+        <button type="button" className="ix-btn ix-btn--sm" onClick={autoCall} disabled={v && v.state === 'calling'}><Icon name="phone-outgoing" width="16" height="16" aria-hidden="true" />Auto call</button>
+        <button type="button" className="ix-btn ix-btn--sm" onClick={() => setDlg('call')}><Icon name="phone" width="16" height="16" aria-hidden="true" />Log call</button>
       </div>
-    </section>
-  );
-  else if (o.statusKey === 'approved') next = (
-    <section className="gc-card od-card od-next" aria-labelledby="od-next">
-      <div className="od-card__head"><div><h2 id="od-next">Prepare parcel</h2><p>Pack it, print the slip, attach it.</p></div></div>
-      <div className="od-card__body">
-        <div className="od-two">
-          <div><label className="gc-label" htmlFor="od-courier">Courier</label><select id="od-courier" className="gc-input gc-select" value={prep.courier} onChange={(e) => setPrep({ courier: e.target.value, slipPrinted: false, slipAttached: false })}><option value="">Choose courier</option>{COURIERS.map((x) => <option key={x} value={x}>{x} · {formatBDT(courierCharge(x, o.zone))}</option>)}</select></div>
-        </div>
-        <div className="od-money"><div><span>Total</span><b>{formatBDT(o.amount)}</b></div><div><span>Paid</span><b>{formatBDT(paid)}</b></div><div className="is-cod"><span>COD to collect</span><b>{formatBDT(cod)}</b></div></div>
-        <ul className="od-checks">
-          <li><label><input type="checkbox" checked={!!prep.addressOk} onChange={(e) => setPrep({ addressOk: e.target.checked })} /><span><b>Shipping info checked</b><small>{o.customer} · {o.phone} · {o.address || 'No address'}</small></span></label></li>
-          <li><label><input type="checkbox" checked={!!prep.amountsOk} onChange={(e) => setPrep({ amountsOk: e.target.checked })} /><span><b>Amounts confirmed</b><small>COD {formatBDT(cod)}</small></span></label></li>
-          <li><label><input type="checkbox" checked={!!prep.slipPrinted} onChange={(e) => setPrep({ slipPrinted: e.target.checked })} disabled={!prep.courier} /><span><b>Slip printed</b><small>{prep.courier ? prep.courier + ' label' : 'Choose a courier first'}</small></span></label><button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={printSlip}><Icon name="printer" width="16" height="16" aria-hidden="true" /> Print slip</button></li>
-          <li><label><input type="checkbox" checked={!!prep.packed} onChange={(e) => setPrep({ packed: e.target.checked })} /><span><b>Packed</b></span></label></li>
-          <li><label><input type="checkbox" checked={!!prep.slipAttached} onChange={(e) => setPrep({ slipAttached: e.target.checked })} disabled={!prep.slipPrinted} /><span><b>Slip attached</b></span></label></li>
-        </ul>
-        <div className="od-acts">
-          <button type="button" className="gc-btn gc-btn--solid" disabled={!prepDone(prep)} onClick={ready2}><Icon name="package-check" width="18" height="18" aria-hidden="true" /> Mark as ready for courier</button>
-          <button type="button" className="gc-btn gc-btn--neutral" style={{ color: 'var(--text-danger)' }} onClick={() => setDlg('cancel')}>Cancel order</button>
-        </div>
+      <hr className="od-hr" />
+      <div className="od-acts">
+        <button type="button" className="gc-btn gc-btn--solid" onClick={() => setDlg('approve')}><Icon name="check" width="16" height="16" aria-hidden="true" /> Approve</button>
+        {o.payment !== 'Paid' ? <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setDlg('advance')}><Icon name="hand-coins" width="16" height="16" aria-hidden="true" /> Take advance + approve</button> : null}
       </div>
-    </section>
-  );
-  else if (o.statusKey === 'ready') next = (
-    <section className="gc-card od-card od-next" aria-labelledby="od-next">
-      <div className="od-card__head"><div><h2 id="od-next">Send to courier</h2><p>Packed and labelled.</p></div></div>
-      <div className="od-card__body">
-        <div className="od-two"><div><label className="gc-label" htmlFor="od-courier">Courier</label><select id="od-courier" className="gc-input gc-select" value={prep.courier} onChange={(e) => setPrep({ courier: e.target.value })}>{COURIERS.map((x) => <option key={x} value={x}>{x} · {formatBDT(courierCharge(x, o.zone))}</option>)}</select></div></div>
-        <div className="od-money"><div><span>Total</span><b>{formatBDT(o.amount)}</b></div><div><span>Paid</span><b>{formatBDT(paid)}</b></div><div className="is-cod"><span>COD to collect</span><b>{formatBDT(cod)}</b></div></div>
-        <div className="od-acts">
-          <button type="button" className="gc-btn gc-btn--solid" onClick={send}><Icon name="truck" width="18" height="18" aria-hidden="true" /> Send to courier</button>
-          <button type="button" className="gc-btn gc-btn--neutral" style={{ color: 'var(--text-danger)' }} onClick={() => setDlg('cancel')}>Cancel order</button>
+    </>),
+  };
+  else if (o.statusKey === 'approved') step = {
+    title: 'Prepare parcel', sub: 'Pack it, print the slip, attach it.',
+    body: (<>
+      {courierPick(true)}
+      <ul className="od-checks">
+        <li><label><input type="checkbox" checked={!!prep.addressOk} onChange={(e) => setPrep({ addressOk: e.target.checked })} /><span><b>Shipping info checked</b><small>{o.customer} · {o.phone} · {o.address || 'No address'}</small></span></label></li>
+        <li><label><input type="checkbox" checked={!!prep.amountsOk} onChange={(e) => setPrep({ amountsOk: e.target.checked })} /><span><b>Amounts confirmed</b><small>COD {formatBDT(cod)}</small></span></label></li>
+        <li><label><input type="checkbox" checked={!!prep.slipPrinted} onChange={(e) => setPrep({ slipPrinted: e.target.checked })} disabled={!prep.courier} /><span><b>Slip printed</b><small>{prep.courier ? prep.courier + ' label' : 'Choose a courier first'}</small></span></label><button type="button" className="ix-btn ix-btn--sm" onClick={printSlip}><Icon name="printer" width="16" height="16" aria-hidden="true" />Print slip</button></li>
+        <li><label><input type="checkbox" checked={!!prep.packed} onChange={(e) => setPrep({ packed: e.target.checked })} /><span><b>Packed</b></span></label></li>
+        <li><label><input type="checkbox" checked={!!prep.slipAttached} onChange={(e) => setPrep({ slipAttached: e.target.checked })} disabled={!prep.slipPrinted} /><span><b>Slip attached</b></span></label></li>
+      </ul>
+      <div className="od-acts"><button type="button" className="gc-btn gc-btn--solid" disabled={!prepDone(prep)} onClick={ready2}><Icon name="package-check" width="16" height="16" aria-hidden="true" /> Mark as ready for courier</button></div>
+    </>),
+  };
+  else if (o.statusKey === 'ready') step = {
+    title: 'Send to courier', sub: 'Packed and labelled.',
+    body: (<>
+      {courierPick(false)}
+      <p className="od-line"><Icon name="banknote" width="16" height="16" aria-hidden="true" /><span>COD to collect</span><b>{formatBDT(cod)}</b></p>
+      <div className="od-acts"><button type="button" className="gc-btn gc-btn--solid" onClick={send}><Icon name="truck" width="16" height="16" aria-hidden="true" /> Send to courier</button></div>
+    </>),
+  };
+  else if (o.statusKey === 'shipped') step = {
+    title: 'In transit', sub: `${o.courier} · ${o.consignment}`, link: o.trackingUrl ? <a className="od-linkbtn" href={o.trackingUrl} target="_blank" rel="noreferrer">Track</a> : null,
+    body: (
+      <div className="od-demo">
+        <p>Courier updates (demo)</p>
+        <div className="od-hooks">
+          {['out', 'delivered', 'failed', 'return'].map((k) => <button key={k} type="button" className="ix-btn ix-btn--sm" onClick={() => hook(k)}>{HOOK_LABEL[k]}</button>)}
+          {lastHook ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => hook(lastHook.code, true)}>Send again</button> : null}
         </div>
       </div>
-    </section>
-  );
-  else if (o.statusKey === 'shipped') next = (
-    <section className="gc-card od-card" aria-labelledby="od-next">
-      <div className="od-card__head"><div><h2 id="od-next">In transit</h2><p>{o.courier} · {o.consignment}</p></div>{o.trackingUrl ? <a className="od-linkbtn" href={o.trackingUrl} target="_blank" rel="noreferrer">Track</a> : null}</div>
-      <div className="od-card__body">
-        <div className="od-money"><div><span>Total</span><b>{formatBDT(o.amount)}</b></div><div><span>Paid</span><b>{formatBDT(paid)}</b></div><div className="is-cod"><span>COD to collect</span><b>{formatBDT(cod)}</b></div></div>
-        <div className="od-demo">
-          <p>Courier updates (demo)</p>
-          <div className="od-hooks">
-            {['out', 'delivered', 'failed', 'return'].map((k) => <button key={k} type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => hook(k)}>{HOOK_LABEL[k]}</button>)}
-            {lastHook ? <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => hook(lastHook.code, true)}>Send again</button> : null}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-  else if (o.statusKey === 'delivered') next = (
-    <section className="gc-card od-card" aria-labelledby="od-next">
-      <div className="od-card__head"><div><h2 id="od-next">Delivered</h2><p>{when(t.delivered)}</p></div></div>
-      <div className="od-card__body">
-        {o.codCollected ? <p className="od-line"><Icon name="hand-coins" width="16" height="16" aria-hidden="true" /><b>{formatBDT(o.codCollected)}</b><span>COD with {o.courier} · settlement pending</span><Link href="/settlements" className="od-linkbtn">Settlements</Link></p>
-          : <p className="od-line"><Icon name="circle-check" width="16" height="16" aria-hidden="true" style={{ color: 'var(--text-success)' }} /><span>Complete</span></p>}
-      </div>
-    </section>
-  );
-  else if (rto) next = (
-    <section className="gc-card od-card" aria-labelledby="od-next">
-      <div className="od-card__head"><div><h2 id="od-next">Returned</h2><p>{o.rtoReason || 'Brought back by the courier'}</p></div></div>
-      <div className="od-card__body">
-        <p className="od-line">{rto.left ? `${rto.left} of ${rto.sent} pcs still with ${o.courier}` : 'All items back'}</p>
-        <Link href={'/courier-returns?id=' + encodeURIComponent(o.id)} className="gc-btn gc-btn--solid"><Icon name="package-open" width="18" height="18" aria-hidden="true" /> {rto.left ? 'Receive parcel' : 'View return'}</Link>
-      </div>
-    </section>
-  );
-  else if (o.statusKey === 'cancelled') next = (
-    <section className="gc-card od-card" aria-labelledby="od-next">
-      <div className="od-card__head"><div><h2 id="od-next">Cancelled</h2><p>{o.cancelReason || when(t.cancelled) || 'This order was cancelled'}</p></div></div>
-    </section>
-  );
+    ),
+  };
+  else if (o.statusKey === 'delivered') step = {
+    title: 'Delivered', sub: when(t.delivered),
+    body: o.codCollected ? <p className="od-line"><Icon name="hand-coins" width="16" height="16" aria-hidden="true" /><b>{formatBDT(o.codCollected)}</b><span>COD with {o.courier} · settlement pending</span><Link href="/settlements" className="od-linkbtn">Settlements</Link></p>
+      : <p className="od-line"><Icon name="circle-check" width="16" height="16" aria-hidden="true" style={{ color: 'var(--text-success)' }} /><span>Complete</span></p>,
+  };
+  else if (rto) step = {
+    title: 'Returned', sub: o.rtoReason || 'Brought back by the courier',
+    body: (<>
+      <p className="od-line">{rto.left ? `${rto.left} of ${rto.sent} pcs still with ${o.courier}` : 'All items back'}</p>
+      <div className="od-acts"><Link href={'/courier-returns?id=' + encodeURIComponent(o.id)} className="gc-btn gc-btn--solid"><Icon name="package-open" width="16" height="16" aria-hidden="true" /> {rto.left ? 'Receive parcel' : 'View return'}</Link></div>
+    </>),
+  };
+  else if (o.statusKey === 'cancelled') step = { title: 'Cancelled', sub: o.cancelReason || when(t.cancelled) || 'This order was cancelled' };
+
+  const canCancel = !counter && CAN_CANCEL.includes(o.statusKey);
+  const heldAt = [...new Set(open.map((h) => h.place))].join(', ');
 
   return (
     <Shell page={'Order ' + o.id}>
-      <div className="od-bar">
-        <Link href={back} className="od-back" aria-label="Back to all orders"><Icon name="arrow-left" width="18" height="18" /></Link>
-        <h1 className="od-title">Order {o.id}</h1>
-        <StatusBadge tone={status.tone} icon={status.icon}>{status.label}</StatusBadge>
-        <StatusBadge tone={pay[0]} icon={pay[1]}>{o.payment}</StatusBadge>
-        {dups.length ? <span className="gc-badge gc-badge--warning">Possible duplicate</span> : null}
-        {blocked ? <StatusBadge tone="error" icon="ban">Customer blocked</StatusBadge> : null}
-        <span className="od-meta">{o.placed} · {o.channel}</span>
-        <div className="od-bar__actions">
-          <Link href={'/return-exchange?ref=' + encodeURIComponent(returnRef)} className="gc-btn gc-btn--sm gc-btn--neutral"><Icon name="undo-2" width="16" height="16" aria-hidden="true" /> Return</Link>
-          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => toast('Invoice for order ' + o.id + ' sent to the printer', { tone: 'info' })}><Icon name="printer" width="16" height="16" aria-hidden="true" /> Print invoice</button>
-          <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => toast('POS receipt for order ' + o.id + ' sent to the printer', { tone: 'info' })}><Icon name="receipt" width="16" height="16" aria-hidden="true" /> Print POS</button>
-        </div>
-      </div>
+      <div className="gc-shell__content">
+        <div className="ix-page">
+          <RecordHeader back={back} backLabel="Back to all orders" title={o.id} meta={`${o.placed} · ${o.channel}`}
+            badges={<>
+              <StatusBadge tone={status.tone} icon={status.icon}>{status.label}</StatusBadge>
+              <StatusBadge tone={pay[0]} icon={pay[1]}>{o.payment === 'Partial' ? 'Partly paid' : o.payment}</StatusBadge>
+              {dups.length ? <StatusBadge tone="warning" icon="copy">Possible duplicate</StatusBadge> : blocked ? <StatusBadge tone="error" icon="ban">Customer blocked</StatusBadge> : null}
+            </>}
+            secondary={[{ label: 'Return', href: '/return-exchange?ref=' + encodeURIComponent(returnRef) }, { label: 'Print invoice', onClick: () => toast('Invoice for order ' + o.id + ' sent to the printer', { tone: 'info' }) }]}
+            more={[
+              { label: 'Print POS receipt', onClick: () => toast('POS receipt for order ' + o.id + ' sent to the printer', { tone: 'info' }) },
+              { label: 'Add a comment', onClick: () => setComment('') },
+              { label: blocked ? 'Unblock customer' : 'Block customer', onClick: toggleBlock },
+              canCancel ? { label: 'Cancel order', onClick: () => setDlg('cancel'), tone: 'danger' } : null,
+            ].filter(Boolean)} />
 
-      <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-        {dups.length ? (
-          <div className="gc-alert gc-alert--soft gc-alert--warning od-dup" role="alert">
-            {dups.map((d) => {
-              const same = o.lines.filter((l) => d.lines.some((x) => x.name === l.name)).map((l) => l.name);
-              const canMerge = CAN_CANCEL.includes(o.statusKey) && CAN_CANCEL.includes(d.statusKey) && !isCounterSale(d) && !d.isInvoice;
-              return (
-                <div key={d.id} className="od-dup__row">
-                  <Icon name="copy" width="18" height="18" aria-hidden="true" />
-                  <p><b>Possible duplicate of <Link href={orderHref(d.id, encodeURIComponent(back))} className="od-id">{d.id}</Link></b> · same phone and {same.join(', ')} · {minutesApart(o.at, d.at)}</p>
-                  {CAN_CANCEL.includes(o.statusKey) ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => askCancelDuplicate('Duplicate of ' + d.id)}>Cancel as duplicate</button> : null}
-                  {canMerge ? <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => askMerge(d)}>Merge into {d.id}</button> : null}
-                </div>
-              );
-            })}
-          </div>
-        ) : null}
+          {dups.length ? (
+            <div className="gc-alert gc-alert--soft gc-alert--warning od-dup" role="alert">
+              {dups.map((d) => {
+                const same = o.lines.filter((l) => d.lines.some((x) => x.name === l.name)).map((l) => l.name);
+                const canMerge = CAN_CANCEL.includes(o.statusKey) && CAN_CANCEL.includes(d.statusKey) && !isCounterSale(d) && !d.isInvoice;
+                return (
+                  <div key={d.id} className="od-dup__row">
+                    <Icon name="copy" width="16" height="16" aria-hidden="true" />
+                    <p><b>Possible duplicate of <Link href={orderHref(d.id, encodeURIComponent(back))} className="od-id">{d.id}</Link></b> · same phone and {same.join(', ')} · {minutesApart(o.at, d.at)}</p>
+                    {CAN_CANCEL.includes(o.statusKey) ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => askCancelDuplicate('Duplicate of ' + d.id)}>Cancel as duplicate</button> : null}
+                    {canMerge ? <button type="button" className="ix-btn ix-btn--sm ix-btn--primary" onClick={() => askMerge(d)}>Merge into {d.id}</button> : null}
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
 
-        <div className="od-grid">
-          <div className="od-col">
-            <section className="gc-card od-card">
-              <div className="od-card__head">
-                <div><h2>Order status</h2><p>{o.statusKey === 'cancelled' ? 'Cancelled' : o.statusKey === 'returned' ? 'Returned' : nextStep ? 'Next: ' + STEP_LABEL[nextStep] : 'Complete'}</p></div>
-                <button type="button" className={'gc-btn gc-btn--sm ' + (blocked ? 'gc-btn--solid gc-btn--error' : 'gc-btn--neutral')} onClick={toggleBlock} aria-pressed={blocked}><Icon name="ban" width="15" height="15" aria-hidden="true" /> {blocked ? 'Unblock' : 'Block'}</button>
-              </div>
-              <div className="od-card__body">
-                <ol className="od-steps" aria-label="Order progress" style={{ '--steps': ORDER_STEPS.length }}>
-                  {ORDER_STEPS.map((key) => {
-                    const state = reached[key] ? 'done' : key === nextStep ? 'current' : 'todo';
-                    const icon = { new: 'shopping-bag', verified: 'phone', approved: 'circle-check', ready: 'package', shipped: 'truck', delivered: 'package-check' }[key];
-                    return (
-                      <li key={key} className={'od-step od-step--' + state} aria-current={state === 'current' ? 'step' : undefined}>
-                        <span className="od-step__dot"><Icon name={state === 'done' ? 'check' : icon} width="16" height="16" aria-hidden="true" /></span>
-                        <p className="od-step__label">{key === 'new' ? (isNew ? status.label : STEP_LABEL.new) : STEP_LABEL[key]}<span className="sr-only"> ({state === 'done' ? 'done' : state === 'current' ? 'next' : 'not yet'})</span></p>
-                        <p className="od-step__note">{stepNote[key] || (state === 'current' ? 'Next' : '')}</p>
-                      </li>
-                    );
-                  })}
-                </ol>
-              </div>
-            </section>
-
-            {next}
-
-            {track.length ? (
-              <section className="gc-card od-card" aria-labelledby="od-track">
-                <div className="od-card__head"><div><h2 id="od-track"><Icon name="map-pin" width="17" height="17" aria-hidden="true" />Tracking</h2><p>{o.courier} · {o.consignment}</p></div>{o.trackingUrl ? <a className="od-linkbtn" href={o.trackingUrl} target="_blank" rel="noreferrer">Open tracking</a> : null}</div>
-                <div className="od-card__body">
-                  <ol className="od-time">
-                    {track.map((e, i) => <li key={e.code + e.at + i}><i aria-hidden="true" /><b>{e.text}</b><span>{formatTime(e.at)}, {formatDate(e.at)}</span></li>)}
+          <div className="ix-record">
+            <div className="ix-main">
+              <section className="ix-card od-card" aria-labelledby="od-next">
+                <header className="ix-card__head"><div><h2 id="od-next">{step.title}</h2>{step.sub ? <p className="od-head-sub">{step.sub}</p> : null}</div>{step.link || null}</header>
+                <div className="ix-card__body od-body">
+                  <ol className="od-steps" aria-label="Order progress" style={{ '--steps': ORDER_STEPS.length }}>
+                    {ORDER_STEPS.map((key) => {
+                      const state = reached[key] ? 'done' : key === nextStep ? 'current' : 'todo';
+                      const icon = { new: 'shopping-bag', verified: 'phone', approved: 'circle-check', ready: 'package', shipped: 'truck', delivered: 'package-check' }[key];
+                      return (
+                        <li key={key} className={'od-step od-step--' + state} aria-current={state === 'current' ? 'step' : undefined}>
+                          <span className="od-step__dot"><Icon name={state === 'done' ? 'check' : icon} width="14" height="14" aria-hidden="true" /></span>
+                          <p className="od-step__label">{key === 'new' ? (isNew ? status.label : STEP_LABEL.new) : STEP_LABEL[key]}<span className="sr-only"> ({state === 'done' ? 'done' : state === 'current' ? 'next' : 'not yet'})</span></p>
+                          <p className="od-step__note">{stepNote[key] || (state === 'current' ? 'Next' : '')}</p>
+                        </li>
+                      );
+                    })}
                   </ol>
+                  {step.body ? <><hr className="od-hr" />{step.body}</> : null}
                 </div>
               </section>
-            ) : null}
 
-            <section className="gc-card od-card">
-              <div className="od-card__head">
-                <h2>Order items <span className="gc-badge gc-badge--primary">{o.units} {o.units === 1 ? 'item' : 'items'}</span></h2>
-                <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => toast('Changing the items of a placed order is not in this demo. Cancel it and create a new order instead.', { tone: 'info' })}><Icon name="pencil" width="15" height="15" aria-hidden="true" /> Update items</button>
-              </div>
-              <div className="gc-table-wrap">
-                <table className="gc-table gc-table--compact">
-                  <thead><tr><th scope="col">Item</th><th scope="col" className="od-num">Qty</th><th scope="col" className="od-num">Unit price</th><th scope="col" className="od-num">Amount</th></tr></thead>
-                  <tbody>{o.lines.map((l, i) => { const p = productBy(l.name); const ph = photos[i]; return <tr key={l.name + i}><td className="od-strong"><div className="od-item"><button type="button" className={'od-thumb' + (ph ? ' has-photo' : '')} onClick={() => (ph ? setViewPhoto(i) : pickPhoto(i))} aria-label={(ph ? 'View photo: ' : 'Add photo: ') + l.name} title={ph ? 'View photo' : 'Add photo'}>{ph ? <img src={ph} alt="" /> : <Icon name="image-plus" width="20" height="20" aria-hidden="true" />}</button><span>{l.name}<span className="od-sub">{[l.variant || (p && p.variant), p && p.sku].filter(Boolean).join(' · ') || 'Custom item'}</span></span></div></td><td className="od-num">{l.qty}</td><td className="od-num">{formatBDT(l.price)}</td><td className="od-num od-strong">{formatBDT(l.price * l.qty)}</td></tr>; })}</tbody>
-                </table>
-              </div>
-              <dl className="od-sum">
-                <dt>Products ({o.units} {o.units === 1 ? 'item' : 'items'})</dt><dd>{formatBDT(o.subtotal)}</dd>
-                {o.shipping ? <><dt>Delivery · {o.zone}</dt><dd>{formatBDT(o.shipping)}</dd></> : null}
-                {adj > 0 ? <><dt>VAT and charges</dt><dd>{formatBDT(adj)}</dd></> : adj < 0 ? <><dt>Discount</dt><dd>−{formatBDT(-adj)}</dd></> : null}
-                <dt>Paid by customer</dt><dd>{o.paid == null ? 'Partly paid' : formatBDT(o.paid)}</dd>
-                <dt className="is-total">{due === 0 ? 'Total' : 'Total due'}</dt><dd className="is-total">{formatBDT(due == null || due === 0 ? o.amount : due)}</dd>
-              </dl>
-            </section>
-
-            <section className="gc-card od-card" aria-labelledby="od-holds">
-              <div className="od-card__head">
-                <div><h2 id="od-holds"><Icon name={holds2 ? 'lock' : 'package-minus'} width="17" height="17" aria-hidden="true" />{holds2 ? 'Stock held for this order' : 'Stock'}</h2><p>{!holds2 ? (o.stockOut ? `${o.units} pcs taken from ${o.stockOut.place}` : isNew ? 'Taken out when approved' : 'Not taken out') : open.length ? `${units(open)} pcs on hold at ${[...new Set(open.map((h) => h.place))].join(', ')}` : 'Nothing is on hold right now'}</p></div>
-                <span style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                  {holds2 && !open.length && ['approved', 'ready'].includes(o.statusKey) && !counter ? <button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={() => setHoldOpen(true)}><Icon name="lock" width="15" height="15" aria-hidden="true" /> Hold stock</button> : null}
-                  {holds2 ? <Link href="/stock-holds" className="gc-btn gc-btn--sm gc-btn--neutral">Stock holds</Link> : <Link href="/stock" className="gc-btn gc-btn--sm gc-btn--neutral">Stock</Link>}
-                </span>
-              </div>
-              <div className="od-card__body">
-                {places.length === 0 ? (holds2 ? <p className="od-sub" style={{ margin: 0 }}>{isNew ? 'Held when the order is approved.' : 'No stock held.'}</p> : null) : places.map((g) => (
-                  <div key={g.place} className="od-place">
-                    <div className="od-place__head"><span className="od-strong">{g.place}</span><span className="od-sub">{g.held ? `${g.held} pcs on hold` : 'Nothing on hold now'}</span></div>
-                    <div className="gc-table-wrap">
-                      <table className="gc-table gc-table--compact">
-                        <thead><tr><th scope="col">Item</th><th scope="col" className="od-num">Pcs</th><th scope="col">Status</th><th scope="col">Since</th></tr></thead>
-                        <tbody>{g.list.map((h) => (
-                          <tr key={h.id}>
-                            <td className="od-strong">{h.product}<span className="od-sub od-id">{h.id}</span></td>
-                            <td className="od-num od-strong">{h.qty}</td>
-                            <td><span className={'gc-badge gc-badge--' + HOLD_STATUS[h.status][1]}>{HOLD_STATUS[h.status][0]}</span>{h.note ? <span className="od-sub">{h.note}</span> : null}</td>
-                            <td>{formatDate(h.at)}<span className="od-sub">{formatTime(h.at)} · {h.by}</span></td>
-                          </tr>
-                        ))}</tbody>
-                      </table>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {!counter ? (
-              <section className="gc-card od-card" aria-labelledby="od-msgs">
-                <div className="od-card__head"><div><h2 id="od-msgs"><Icon name="send" width="17" height="17" aria-hidden="true" />Notifications</h2><p>{msgs.length ? `${msgs.length} sent` : 'None yet'}</p></div><Link href="/set-notifications" className="od-linkbtn">Settings</Link></div>
-                {msgs.length ? (
-                  <div className="od-card__body">
-                    <div className="od-msgs">
-                      {msgs.map((m) => (
-                        <div key={m.id} className="od-msg">
-                          <span className="od-msg__ic" aria-hidden="true"><Icon name={m.channel === 'Email' ? 'mail' : 'message-square'} width="15" height="15" /></span>
-                          <span className="od-msg__main"><b>{m.label}</b><span>{m.channel} · {m.recipient}{m.to ? ' · ' + m.to : ''} · {formatTime(m.at)}, {formatDate(m.at)}</span>{m.error ? <span>{m.error}</span> : null}</span>
-                          <span className="od-msg__end">
-                            <span className={'gc-badge gc-badge--' + (SEND_STATUS[m.status] || 'slate')}>{m.status}{m.retries ? ` · retried ${m.retries}` : ''}</span>
-                            {m.status === 'Failed' && !m.demo ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => retry(m.id)}>Retry</button> : null}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-              </section>
-            ) : null}
-
-            <section className="gc-card od-card">
-              <div className="od-card__head"><h2><Icon name="activity" width="17" height="17" aria-hidden="true" />Visit details</h2><button type="button" className="od-linkbtn" aria-expanded={tracking} onClick={() => setTracking(!tracking)}>{tracking ? 'Hide' : 'Show'}</button></div>
-              {tracking ? (
-                <div className="od-card__body">
-                  {counter ? <p className="od-sub" style={{ margin: 0 }}>Counter sale · no storefront session.</p> : (
-                    <div className="od-kvs">
-                      {[['Attribution & campaign', ATTRIBUTION], ['Session', SESSION], ['Device & browser', DEVICE], ['Location', LOCATION]].map(([title, rows]) => (
-                        <div key={title} className="od-box"><h3>{title}</h3><dl className="od-kv">{rows.map(([k, v]) => <React.Fragment key={k}><dt>{k}</dt><dd>{v}</dd></React.Fragment>)}</dl></div>
-                      ))}
-                    </div>
-                  )}
+              <section className="ix-card od-card" aria-labelledby="od-items">
+                <header className="ix-card__head">
+                  <h2 id="od-items">Items</h2>
+                  <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => toast('Changing the items of a placed order is not in this demo. Cancel it and create a new order instead.', { tone: 'info' })}><Icon name="pencil" width="16" height="16" aria-hidden="true" />Update items</button>
+                </header>
+                <div className="gc-table-wrap">
+                  <table className="gc-table gc-table--compact">
+                    <thead><tr><th scope="col">Item</th><th scope="col" className="od-num">Qty</th><th scope="col" className="od-num">Unit price</th><th scope="col" className="od-num">Amount</th></tr></thead>
+                    <tbody>{o.lines.map((l, i) => { const p = productBy(l.name); const ph = photos[i]; return <tr key={l.name + i}><td className="od-strong"><div className="od-item"><button type="button" className={'od-thumb' + (ph ? ' has-photo' : '')} onClick={() => (ph ? setViewPhoto(i) : pickPhoto(i))} aria-label={(ph ? 'View photo: ' : 'Add photo: ') + l.name} title={ph ? 'View photo' : 'Add photo'}>{ph ? <img src={ph} alt="" /> : <Icon name="image-plus" width="16" height="16" aria-hidden="true" />}</button><span>{l.name}<span className="od-sub">{[l.variant || (p && p.variant), p && p.sku].filter(Boolean).join(' · ') || 'Custom item'}</span></span></div></td><td className="od-num">{l.qty}</td><td className="od-num">{formatBDT(l.price)}</td><td className="od-num od-strong">{formatBDT(l.price * l.qty)}</td></tr>; })}</tbody>
+                  </table>
                 </div>
+              </section>
+
+              <section className="ix-card od-card" aria-labelledby="od-pay">
+                <header className="ix-card__head"><h2 id="od-pay">Payment</h2></header>
+                <div className="ix-card__body">
+                  <dl className="od-sum">
+                    <dt>Products ({o.units} {o.units === 1 ? 'item' : 'items'})</dt><dd>{formatBDT(o.subtotal)}</dd>
+                    {o.shipping ? <><dt>Delivery · {o.zone}</dt><dd>{formatBDT(o.shipping)}</dd></> : null}
+                    {adj > 0 ? <><dt>VAT and charges</dt><dd>{formatBDT(adj)}</dd></> : adj < 0 ? <><dt>Discount</dt><dd>−{formatBDT(-adj)}</dd></> : null}
+                    <dt className="is-total">Total</dt><dd className="is-total">{formatBDT(o.amount)}</dd>
+                    <dt>Paid by customer</dt><dd>{o.paid == null ? 'Partly paid' : formatBDT(o.paid)}</dd>
+                    {due ? <><dt className="is-due">Due</dt><dd className="is-due">{formatBDT(due)}</dd></> : null}
+                    {!counter && cod > 0 && !['delivered', 'cancelled', 'returned'].includes(o.statusKey) ? <><dt>COD to collect</dt><dd>{formatBDT(cod)}</dd></> : null}
+                  </dl>
+                </div>
+              </section>
+
+              {track.length ? (
+                <section className="ix-card od-card" aria-labelledby="od-track">
+                  <header className="ix-card__head"><div><h2 id="od-track">Tracking</h2><p className="od-head-sub">{o.courier} · {o.consignment}</p></div>{o.trackingUrl ? <a className="od-linkbtn" href={o.trackingUrl} target="_blank" rel="noreferrer">Open tracking</a> : null}</header>
+                  <div className="ix-card__body">
+                    <ol className="od-time">
+                      {track.map((e, i) => <li key={e.code + e.at + i}><i aria-hidden="true" /><b>{e.text}</b><span>{formatTime(e.at)}, {formatDate(e.at)}</span></li>)}
+                    </ol>
+                  </div>
+                </section>
               ) : null}
-            </section>
 
-            <section className="gc-card od-card">
-              <div className="od-card__head"><h2><Icon name="history" width="17" height="17" aria-hidden="true" />Activity</h2><button type="button" className="od-linkbtn" onClick={() => setComment('')}>Add a comment</button></div>
-              <div className="od-card__body">
-                <div className="od-log">
-                  {activity.map((e, i) => (
-                    <div key={i} className="od-log__row">
-                      <span className="od-log__icon"><Icon name={e.icon} width="15" height="15" aria-hidden="true" /></span>
-                      <span style={{ minWidth: 0 }}><span className="od-strong" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>{e.title}</span><span className="od-sub">{formatDate(e.at)}, {formatTime(e.at)}{e.meta ? ' · ' + e.meta : ''}</span></span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-          </div>
-
-          <aside className="od-col">
-            <section className="gc-card od-card">
-              <div className="od-card__head"><h2>Customer</h2>{blocked ? <StatusBadge tone="error" icon="ban">Blocked</StatusBadge> : null}</div>
-              <div className="od-card__body">
-                <div className="od-who">
-                  <span className="od-avatar" aria-hidden="true">{o.initials}</span>
-                  <span style={{ minWidth: 0 }}><span className="od-strong" style={{ display: 'block' }}>{o.customer}</span><span className="od-sub od-id">{o.phone}</span><span className="od-sub">{samePhone.length > 1 ? `${samePhone.length} orders from this number` : 'First order from this number'}</span></span>
-                </div>
-                {digitsOf(o.phone).length >= 10 ? (
-                  <div className="od-contact">
-                    <a className="gc-btn gc-btn--sm gc-btn--neutral" href={'tel:' + digitsOf(o.phone)}>Call</a>
-                    <a className="gc-btn gc-btn--sm gc-btn--neutral" href={'https://wa.me/88' + digitsOf(o.phone)} target="_blank" rel="noreferrer">WhatsApp</a>
-                    <a className="gc-btn gc-btn--sm gc-btn--neutral" href={'sms:' + digitsOf(o.phone)}>SMS</a>
+              <section className="ix-card od-card" aria-labelledby="od-holds">
+                <header className="ix-card__head">
+                  <div><h2 id="od-holds">{holds2 ? 'Stock held for this order' : 'Stock'}</h2><p className="od-head-sub">{!holds2 ? (o.stockOut ? `${o.units} pcs taken from ${o.stockOut.place}` : isNew ? 'Taken out when approved' : 'Not taken out') : open.length ? `${units(open)} pcs on hold at ${heldAt}` : 'Nothing is on hold right now'}</p></div>
+                  {holds2 && !open.length && ['approved', 'ready'].includes(o.statusKey) && !counter ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => setHoldOpen(true)}><Icon name="lock" width="16" height="16" aria-hidden="true" />Hold stock</button>
+                    : holds2 ? <Link href="/stock-holds">Stock holds</Link> : <Link href="/stock">Stock</Link>}
+                </header>
+                {places.length || holds2 ? (
+                  <div className="ix-card__body od-body">
+                    {places.length === 0 ? <p className="od-sub" style={{ margin: 0 }}>{isNew ? 'Held when the order is approved.' : 'No stock held.'}</p> : places.map((g) => (
+                      <div key={g.place} className="od-place">
+                        <div className="od-place__head"><span className="od-strong">{g.place}</span><span className="od-sub">{g.held ? `${g.held} pcs on hold` : 'Nothing on hold now'}</span></div>
+                        <div className="gc-table-wrap">
+                          <table className="gc-table gc-table--compact">
+                            <thead><tr><th scope="col">Item</th><th scope="col" className="od-num">Pcs</th><th scope="col">Status</th><th scope="col">Since</th></tr></thead>
+                            <tbody>{g.list.map((h) => (
+                              <tr key={h.id}>
+                                <td className="od-strong">{h.product}<span className="od-sub od-id">{h.id}</span></td>
+                                <td className="od-num od-strong">{h.qty}</td>
+                                <td><span className={'gc-badge gc-badge--' + HOLD_STATUS[h.status][1]}>{HOLD_STATUS[h.status][0]}</span>{h.note ? <span className="od-sub">{h.note}</span> : null}</td>
+                                <td>{formatDate(h.at)}<span className="od-sub">{formatTime(h.at)} · {h.by}</span></td>
+                              </tr>
+                            ))}</tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ) : <p className="od-sub" style={{ margin: 0 }}>No mobile number on this order.</p>}
-              </div>
-            </section>
+                ) : <div className="ix-card__body" style={{ paddingTop: 0 }} />}
+              </section>
 
-            <section className="gc-card od-card">
-              <div className="od-card__head"><h2><Icon name="file-text" width="16" height="16" aria-hidden="true" />Order and invoice</h2></div>
-              <div className="od-card__body">
-                <dl className="od-kv">
-                  <dt>Order no.</dt><dd className="od-id">{o.id}</dd>
-                  <dt>{o.invoiceKind || 'Invoice'}</dt><dd>{o.invoiceId ? <Link href={invoiceHref(o.invoiceId)} className="od-id">{o.invoiceId}</Link> : 'Not made yet'}</dd>
-                  <dt>Channel</dt><dd>{o.channel}</dd>
-                  <dt>Courier</dt><dd>{o.courier}{o.consignment !== '—' ? <span className="od-sub od-id">{o.consignment}</span> : null}</dd>
-                  <dt>Stock</dt><dd>{open.length ? `Held at ${[...new Set(open.map((h) => h.place))].join(', ')}` : 'Not held'}</dd>
-                </dl>
-                <Link href={'/return-exchange?ref=' + encodeURIComponent(returnRef)} className="gc-btn gc-btn--sm gc-btn--neutral gc-btn--block"><Icon name="undo-2" width="16" height="16" aria-hidden="true" /> Return or exchange items</Link>
-                {rto ? <Link href={'/courier-returns?id=' + encodeURIComponent(o.id)} className="gc-btn gc-btn--sm gc-btn--soft gc-btn--block"><Icon name="package-open" width="16" height="16" aria-hidden="true" /> Courier return · {rto.left ? `${rto.left} pcs still with courier` : 'all back'}</Link> : null}
-              </div>
-            </section>
-
-            <section className="gc-card od-card">
-              <div className="od-card__head"><h2><Icon name="map-pin" width="16" height="16" aria-hidden="true" />Shipping address</h2><span className="gc-badge gc-badge--success">{o.zone}</span></div>
-              <div className="od-card__body"><p className="od-addr">{o.address || (counter ? 'Counter sale · no delivery' : 'No address on this order')}</p></div>
-            </section>
-
-            {!counter ? (
-              <section className="gc-card od-card">
-                <div className="od-card__head"><h2><Icon name="shield-check" width="16" height="16" aria-hidden="true" />Order verification</h2><span className={'gc-badge gc-badge--' + risk[1]}>{risk[0]}</span></div>
-                <div className="od-card__body">
-                  {record && record.total ? (<>
-                    <div className="od-stats" aria-label="Courier record for this number">
-                      <div className="od-stat"><span>Parcels</span><b>{record.total}</b></div>
-                      <div className="od-stat"><span>Delivered</span><b>{record.delivered}</b></div>
-                      <div className="od-stat"><span>Returned</span><b>{record.returned}</b></div>
-                      <div className="od-stat"><span>Success</span><b>{record.rate}%</b></div>
+              {!counter ? (
+                <section className="ix-card od-card" aria-labelledby="od-msgs">
+                  <header className="ix-card__head"><div><h2 id="od-msgs">Notifications</h2><p className="od-head-sub">{msgs.length ? `${msgs.length} sent` : 'None yet'}</p></div><Link href="/set-notifications">Settings</Link></header>
+                  {msgs.length ? (
+                    <div className="ix-card__body">
+                      <div className="od-msgs">
+                        {msgs.map((m) => (
+                          <div key={m.id} className="od-msg">
+                            <span className="od-msg__ic" aria-hidden="true"><Icon name={m.channel === 'Email' ? 'mail' : 'message-square'} width="14" height="14" /></span>
+                            <span className="od-msg__main"><b>{m.label}</b><span>{m.channel} · {m.recipient}{m.to ? ' · ' + m.to : ''} · {formatTime(m.at)}, {formatDate(m.at)}</span>{m.error ? <span>{m.error}</span> : null}</span>
+                            <span className="od-msg__end">
+                              <span className={'gc-badge gc-badge--' + (SEND_STATUS[m.status] || 'slate')}>{m.status}{m.retries ? ` · retried ${m.retries}` : ''}</span>
+                              {m.status === 'Failed' && !m.demo ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => retry(m.id)}>Retry</button> : null}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <ul className="od-couriers">
-                      {record.couriers.map((c) => (
-                        <li key={c.name}><b>{c.name}</b><span>{c.delivered} of {c.total} delivered{c.returned ? ` · ${c.returned} returned` : ''}</span><i aria-hidden="true"><em style={{ width: `${c.total ? (c.delivered / c.total) * 100 : 0}%` }} /></i></li>
-                      ))}
-                    </ul>
-                  </>) : <p className="od-sub" style={{ margin: 0 }}>{record ? 'No courier record for this number.' : 'No mobile number to check.'}</p>}
-                  <p className="od-addr">Dhaka, Dhaka Division, BD<span className="od-sub od-id">104.28.117.2 · Cloudflare AS13335</span></p>
-                  <div className="od-tags"><span className="gc-badge gc-badge--slate">Desktop</span><span className="gc-badge gc-badge--slate">Direct</span><span className="gc-badge gc-badge--warning">1 min session</span><span className="gc-badge gc-badge--slate">Returning</span></div>
+                  ) : <div className="ix-card__body" style={{ paddingTop: 0 }} />}
+                </section>
+              ) : null}
+
+              <section className="ix-card od-card" aria-labelledby="od-activity">
+                <header className="ix-card__head"><h2 id="od-activity">Activity</h2><button type="button" className="od-linkbtn" onClick={() => setComment('')}>Add a comment</button></header>
+                <div className="ix-card__body">
+                  <div className="od-log">
+                    {activity.map((e, i) => (
+                      <div key={i} className="od-log__row">
+                        <span className="od-log__icon"><Icon name={e.icon} width="14" height="14" aria-hidden="true" /></span>
+                        <span style={{ minWidth: 0 }}><span className="od-strong" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>{e.title}</span><span className="od-sub">{formatDate(e.at)}, {formatTime(e.at)}{e.meta ? ' · ' + e.meta : ''}</span></span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </section>
-            ) : null}
+            </div>
 
-            <section className="gc-card od-card">
-              <div className="od-card__head"><h2><Icon name="sticky-note" width="16" height="16" aria-hidden="true" />Notes</h2></div>
-              <div className="od-card__body">
-                <div><label className="gc-label" htmlFor="od-note">Order note</label><textarea id="od-note" className="gc-input" rows="2" placeholder="Visible to courier and on the invoice" /></div>
-                <div><label className="gc-label" htmlFor="od-inote">Internal note</label><textarea id="od-inote" className="gc-input" rows="2" placeholder="Only staff can read this" /></div>
-              </div>
-            </section>
+            <aside className="ix-side">
+              <section className="ix-card" aria-labelledby="od-notes">
+                <header className="ix-card__head"><h2 id="od-notes">Notes</h2></header>
+                <div className="ix-card__body od-body" style={{ gap: 'var(--space-3)' }}>
+                  <div><label className="gc-label" htmlFor="od-note">Order note</label><textarea id="od-note" key={'note-' + o.id} className="gc-input" rows="2" placeholder="Visible to courier and on the invoice" defaultValue={o.note || ''} onBlur={(e) => saveNote('note', e.target.value)} /></div>
+                  <div><label className="gc-label" htmlFor="od-inote">Internal note</label><textarea id="od-inote" key={'inote-' + o.id} className="gc-input" rows="2" placeholder="Only staff can read this" defaultValue={o.internalNote || ''} onBlur={(e) => saveNote('internalNote', e.target.value)} /></div>
+                </div>
+              </section>
 
-            <section className="gc-card od-card">
-              <div className="od-card__head"><h2><Icon name="tag" width="16" height="16" aria-hidden="true" />Tags</h2></div>
-              <div className="od-card__body">
-                {tags.length ? <div className="od-tags">{tags.map((t) => <span key={t} className="od-tag">{t}<button type="button" aria-label={'Remove tag ' + t} onClick={() => setTags(tags.filter((x) => x !== t))}><Icon name="x" width="12" height="12" /></button></span>)}</div> : null}
-                <input className="gc-input" aria-label="Type a tag and press Enter" placeholder="Type a tag and press Enter" value={tagText} onChange={(e) => setTagText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }} />
-              </div>
-            </section>
-          </aside>
+              <section className="ix-card" aria-labelledby="od-cust">
+                <header className="ix-card__head"><h2 id="od-cust">Customer</h2>{blocked ? <StatusBadge tone="error" icon="ban">Blocked</StatusBadge> : null}</header>
+                <div className="ix-card__body">
+                  <span className="od-strong" style={{ display: 'block' }}>{o.customer}</span>
+                  <span className="od-sub">{samePhone.length > 1 ? `${samePhone.length} orders from this number` : 'First order from this number'}</span>
+                  <div className="od-section">
+                    <h3>Contact</h3>
+                    <p className="od-id">{o.phone}</p>
+                    {digitsOf(o.phone).length >= 10 ? (
+                      <div className="od-contact">
+                        <a className="ix-btn ix-btn--sm" href={'tel:' + digitsOf(o.phone)}>Call</a>
+                        <a className="ix-btn ix-btn--sm" href={'https://wa.me/88' + digitsOf(o.phone)} target="_blank" rel="noreferrer">WhatsApp</a>
+                        <a className="ix-btn ix-btn--sm" href={'sms:' + digitsOf(o.phone)}>SMS</a>
+                      </div>
+                    ) : <p className="od-sub">No mobile number on this order.</p>}
+                  </div>
+                  <div className="od-section">
+                    <h3>Shipping address</h3>
+                    <p>{o.address || (counter ? 'Counter sale · no delivery' : 'No address on this order')}</p>
+                    {o.zone ? <p className="od-sub">{o.zone}</p> : null}
+                  </div>
+                </div>
+              </section>
+
+              {!counter ? (
+                <section className="ix-card" aria-labelledby="od-verify">
+                  <header className="ix-card__head"><h2 id="od-verify">Order verification</h2><StatusBadge tone={risk[1] === 'slate' ? 'neutral' : risk[1]} icon="shield-check">{risk[0]}</StatusBadge></header>
+                  <div className="ix-card__body">
+                    {record && record.total ? (<>
+                      <KV rows={[['Parcels', String(record.total)], ['Delivered', String(record.delivered)], ['Returned', String(record.returned)], ['Success', record.rate + '%']]} />
+                      <ul className="od-couriers">
+                        {record.couriers.map((c) => (
+                          <li key={c.name}><b>{c.name}</b><span>{c.delivered} of {c.total} delivered{c.returned ? ` · ${c.returned} returned` : ''}</span><i aria-hidden="true"><em style={{ width: `${c.total ? (c.delivered / c.total) * 100 : 0}%` }} /></i></li>
+                        ))}
+                      </ul>
+                    </>) : <p className="od-sub" style={{ margin: 0 }}>{record ? 'No courier record for this number.' : 'No mobile number to check.'}</p>}
+                    <div className="od-section">
+                      <h3>Location</h3>
+                      <p>Dhaka, Dhaka Division, BD</p>
+                      <p className="od-sub od-id">104.28.117.2 · Cloudflare AS13335</p>
+                    </div>
+                  </div>
+                </section>
+              ) : null}
+
+              <section className="ix-card" aria-labelledby="od-inv">
+                <header className="ix-card__head"><h2 id="od-inv">Order and invoice</h2></header>
+                <div className="ix-card__body od-body" style={{ gap: 'var(--space-3)' }}>
+                  <KV rows={[
+                    ['Order no.', <span key="id" className="od-id">{o.id}</span>],
+                    [o.invoiceKind || 'Invoice', o.invoiceId ? <Link key="inv" href={invoiceHref(o.invoiceId)} className="od-id">{o.invoiceId}</Link> : 'Not made yet'],
+                    ['Channel', o.channel],
+                    ['Courier', <span key="c">{o.courier}{o.consignment !== '—' ? <span className="od-sub od-id">{o.consignment}</span> : null}</span>],
+                    ['Stock', open.length ? `Held at ${heldAt}` : 'Not held'],
+                  ]} />
+                  {rto ? <Link href={'/courier-returns?id=' + encodeURIComponent(o.id)} className="ix-btn ix-btn--sm"><Icon name="package-open" width="16" height="16" aria-hidden="true" />Courier return · {rto.left ? `${rto.left} pcs still with courier` : 'all back'}</Link> : null}
+                </div>
+              </section>
+
+              <section className="ix-card" aria-labelledby="od-tags">
+                <header className="ix-card__head"><h2 id="od-tags">Tags</h2></header>
+                <div className="ix-card__body od-body" style={{ gap: 'var(--space-2)' }}>
+                  {tags.length ? <div className="od-tags">{tags.map((x) => <span key={x} className="od-tag">{x}<button type="button" aria-label={'Remove tag ' + x} onClick={() => setTags(tags.filter((y) => y !== x))}><Icon name="x" width="12" height="12" /></button></span>)}</div> : null}
+                  <input className="gc-input" aria-label="Type a tag and press Enter" placeholder="Type a tag and press Enter" value={tagText} onChange={(e) => setTagText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }} />
+                </div>
+              </section>
+
+              <section className="ix-card" aria-labelledby="od-visit">
+                <header className="ix-card__head"><h2 id="od-visit">Visit details</h2><button type="button" className="od-linkbtn" aria-expanded={tracking} onClick={() => setTracking(!tracking)}>{tracking ? 'Hide' : 'Show'}</button></header>
+                <div className="ix-card__body" style={tracking ? undefined : { paddingTop: 0 }}>
+                  {tracking ? (counter ? <p className="od-sub" style={{ margin: 0 }}>Counter sale · no storefront session.</p> : (
+                    <div className="od-visit">
+                      {[['Attribution & campaign', ATTRIBUTION], ['Session', SESSION], ['Device & browser', DEVICE], ['Location', LOCATION]].map(([title, rows]) => (
+                        <div key={title}><h3>{title}</h3><KV rows={rows} /></div>
+                      ))}
+                    </div>
+                  )) : null}
+                </div>
+              </section>
+            </aside>
+          </div>
         </div>
       </div>
 

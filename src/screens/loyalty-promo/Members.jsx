@@ -2,7 +2,7 @@
 // Members — every loyalty member with points, their ৳ value, wallet money and buying.
 //   Top      points customers hold (and their ৳ value), points expiring within a month, new members,
 //            money in wallets.
-//   List     level tabs, search by name or phone, quick filters; Open goes to the member.
+//   List     level tabs, search by name or phone and a filter (IndexKit); a row opens the member.
 //   Add      a member by mobile number; Download saves the list as a CSV file.
 // Front end only: src/lib/loyalty.js (POS points included).
 
@@ -10,11 +10,13 @@ import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
+import { useRouter } from 'next/navigation';
 import { Dialog, EmptyState } from '@/components/ui';
+import { MetricStrip, IndexTabs, SearchField, Pager, LearnMore } from '@/components/ui/IndexKit';
 import { formatDate } from '@/lib/format';
 import { getMembers, pointsLiability, walletLiability, getLoyaltySettings, addMember, monthRange } from '@/lib/loyalty';
 import { clockNow } from '@/lib/settlements';
-import { LoyPage, Kpi, TierBadge, useLoyalty, money, pts, plural } from './loyShared';
+import { LoyPage, TierBadge, useLoyalty, money, pts, plural } from './loyShared';
 
 const FILTERS = [['any', 'Any'], ['exp', 'Points expiring soon'], ['idle', 'Not bought in 30 days'], ['wallet', 'Has wallet money']];
 const PAGE = 20;
@@ -26,6 +28,8 @@ export default function Members() {
   const [q, setQ] = useState('');
   const [page, setPage] = useState(0);
   const [adding, setAdding] = useState(false);
+  const [find, setFind] = useState(false);
+  const router = useRouter();
 
   const data = useMemo(() => {
     if (!tick) return null;
@@ -58,68 +62,79 @@ export default function Members() {
     toast(`${plural(shown.length, 'member')} saved to loyalty-members.csv`);
   };
 
-  return (
-    <LoyPage screen="Members" active="loy-members" title="Members"
-      about="Every customer who buys becomes a member. Find a customer by name or phone to see or change their points and wallet."
-      actions={<>
-        <button type="button" className="gc-btn gc-btn--neutral" onClick={download} disabled={!data}><Icon name="download" width="18" height="18" aria-hidden="true" /> Download list</button>
-        <button type="button" className="gc-btn gc-btn--solid" onClick={() => setAdding(true)}><Icon name="user-plus" width="18" height="18" aria-hidden="true" /> Add member</button>
-      </>}>
-      <div className="gc-kpis gc-kpis--tight">
-        <Kpi icon="star" label="Points customers hold" value={data ? pts(data.liab.points) : '—'} sub={data ? `worth ${money(data.liab.value)} as discount` : ''} />
-        <Kpi icon="clock-alert" tone="warning" label="Expiring in 30 days" value={data ? (data.s.expireOn ? pts(expiring) : 'Off') : '—'} sub={data ? (data.s.expireOn ? `in ${plural(members.filter((m) => m.expiring > 0).length, 'customer')}` : 'points do not expire') : ''} />
-        <Kpi icon="user-plus" tone="success" label="New members" value={data ? pts(data.joined) : '—'} sub="this month" />
-        <Kpi icon="wallet" tone="info" label="Money in wallets" value={data ? money(data.wallets.wallets) : '—'} sub={data ? plural(members.filter((m) => m.wallet > 0).length, 'customer') : ''} />
-      </div>
+  const tabs = [['all', 'All'], ...tiers.slice().reverse().map((t) => [t.k, t.name])].map(([k, label]) => ({ key: k, id: 'mb-tab-' + k, label, count: counts[k] || 0, on: tab === k, onClick: () => { setTab(k); setPage(0); } }));
+  const searching = find || !!q || filter !== 'any';
+  const closeFind = () => { setFind(false); setQ(''); setFilter('any'); setPage(0); };
+  const open = (m) => (e) => { if (e.target.closest('a,button,input,label,select')) return; router.push(`/member-detail?phone=${m.phone}`); };
 
-      <section className="gc-card ly-card" aria-label="Members">
-        <div className="ly-bar">
-          <div className="gc-tabs" role="tablist" aria-label="Level">
-            {[['all', 'All'], ...tiers.slice().reverse().map((t) => [t.k, t.name])].map(([k, label]) => (
-              <button key={k} type="button" role="tab" aria-selected={tab === k} className={'gc-tab ly-tab' + (tab === k ? ' gc-tab--active' : '')} onClick={() => { setTab(k); setPage(0); }}>{label}<b>{counts[k] || 0}</b></button>
+  return (
+    <LoyPage screen="Members" active="loy-members" title="Members" icon="users"
+      about="Every customer who buys becomes a member. Find a customer by name or phone to see or change their points and wallet."
+      secondary={[{ label: 'Download list', onClick: download, disabled: !data }]}
+      more={[{ label: 'Loyalty rules', href: '/loyalty' }, { label: 'Customer wallet', href: '/wallet' }]}
+      primary={{ label: 'Add member', onClick: () => setAdding(true) }}>
+      <MetricStrip items={[
+        { label: 'Points customers hold', value: data ? pts(data.liab.points) : '—', sub: data ? `worth ${money(data.liab.value)}` : '' },
+        { label: 'Expiring in 30 days', value: data ? (data.s.expireOn ? pts(expiring) : 'Off') : '—', sub: data && data.s.expireOn ? plural(members.filter((m) => m.expiring > 0).length, 'customer') : '', on: filter === 'exp', onClick: data && data.s.expireOn ? () => { setFilter(filter === 'exp' ? 'any' : 'exp'); setPage(0); } : undefined },
+        { label: 'New members', value: data ? pts(data.joined) : '—', sub: 'this month' },
+        { label: 'Money in wallets', value: data ? money(data.wallets.wallets) : '—', sub: data ? plural(members.filter((m) => m.wallet > 0).length, 'customer') : '', href: '/wallet' },
+      ]} />
+
+      <section className="ix-card" aria-label="Members">
+        <div className="ix-bar">
+          {searching ? (<>
+            <SearchField value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Phone number or name" onDone={closeFind} autoFocus />
+            <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={closeFind}>Cancel</button>
+          </>) : (<>
+            <IndexTabs tabs={tabs} label="Level" />
+            <span className="ix-tools"><button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search and filter" onClick={() => setFind(true)}><Icon name="search" width="16" height="16" aria-hidden="true" /></button></span>
+          </>)}
+        </div>
+        {searching ? (
+          <div className="ix-filters" role="group" aria-label="Filters">
+            <select aria-label="Filter" className={'ix-filter' + (filter !== 'any' ? ' is-set' : '')} value={filter} onChange={(e) => { setFilter(e.target.value); setPage(0); }}>
+              {FILTERS.map(([k, label]) => <option key={k} value={k}>{k === 'any' ? 'Filter' : label}</option>)}
+            </select>
+            {filter !== 'any' || q ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => { setQ(''); setFilter('any'); setPage(0); }}>Clear all</button> : null}
+          </div>
+        ) : null}
+        {!data ? <div className="ix-empty"><EmptyState icon="loader" title="Reading members" /></div> : rows.length === 0 ? (
+          <div className="ix-empty"><EmptyState icon="users" title="No members here" body={q ? 'No member matches this name or phone.' : 'Nobody matches this filter yet.'} actionLabel="Add member" onAction={() => setAdding(true)} /></div>
+        ) : (<>
+          <ul className="ix-plist" aria-label="Members">
+            {rows.map((m) => (
+              <li key={m.phone}>
+                <Link href={`/member-detail?phone=${m.phone}`} className="ix-pitem">
+                  <span className="ix-pitem__top"><b>{m.name}</b><span>{pts(m.points)} points</span></span>
+                  <span className="ix-pitem__mid">{m.tierObj.name} · {m.wallet ? 'wallet ' + money(m.wallet) : 'bought ' + money(m.bought)}</span>
+                </Link>
+              </li>
             ))}
-          </div>
-        </div>
-        <div className="ly-tools">
-          <input className="gc-input" type="search" placeholder="Phone number or name" aria-label="Search members" value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} />
-          <div className="ly-chips" role="group" aria-label="Filter">
-            {FILTERS.map(([k, label]) => <button key={k} type="button" className="ly-chip" aria-pressed={filter === k} onClick={() => { setFilter(k); setPage(0); }}>{label}</button>)}
-          </div>
-        </div>
-        {!data ? <EmptyState icon="loader" title="Reading members" /> : rows.length === 0 ? (
-          <EmptyState icon="users" title="No members here" body={q ? 'No member matches this name or phone.' : 'Nobody matches this filter yet.'} actionLabel="Add member" onAction={() => setAdding(true)} />
-        ) : (
-          <div className="gc-table-wrap">
-            <table className="gc-table gc-table--compact gc-table--hoverable">
-              <thead><tr><th scope="col">Customer</th><th scope="col">Level</th><th scope="col" className="ac-num">Points now</th><th scope="col" className="ac-num">Wallet</th><th scope="col" className="ac-num">Total bought</th><th scope="col" className="ac-num">Earned</th><th scope="col" className="ac-num">Used</th><th scope="col">Last buy</th><th scope="col"><span className="sr-only">Open</span></th></tr></thead>
+          </ul>
+          <div className="ix-table-wrap">
+            <table className="ix-table gc-table--keep">
+              <caption className="sr-only">Members, {shown.length} shown</caption>
+              <thead><tr><th scope="col">Customer</th><th scope="col">Level</th><th scope="col" className="ix-num">Points now</th><th scope="col" className="ix-num">Wallet</th><th scope="col" className="ix-num">Total bought</th><th scope="col">Last buy</th></tr></thead>
               <tbody>
                 {rows.map((m) => (
-                  <tr key={m.phone}>
-                    <td><div className="ly-who"><span className="ly-ava" aria-hidden="true">{m.name.charAt(0)}</span><span><b>{m.name}</b><small>{m.phone}</small></span></div></td>
+                  <tr key={m.phone} onClick={open(m)}>
+                    <td><Link href={`/member-detail?phone=${m.phone}`} className="ix-strong">{m.name}</Link></td>
                     <td><TierBadge m={m} /></td>
-                    <td className="ac-num"><span className="ac-fig ac-strong">{pts(m.points)}</span><span className={'ac-sub' + (m.expiring ? ' ly-out' : '')}>{m.expiring ? `${pts(m.expiring)} expire soon` : '= ' + money(m.value)}</span></td>
-                    <td className="ac-num ac-fig">{m.wallet ? money(m.wallet) : '—'}</td>
-                    <td className="ac-num ac-fig">{money(m.bought)}</td>
-                    <td className="ac-num ac-fig ly-in">+{pts(m.earned)}</td>
-                    <td className="ac-num ac-fig">−{pts(m.used)}</td>
-                    <td>{m.last ? formatDate(m.last) : '—'}</td>
-                    <td><div className="ac-row-actions"><Link href={`/member-detail?phone=${m.phone}`} className="gc-btn gc-btn--sm gc-btn--soft" aria-label={`Open ${m.name}`}>Open</Link></div></td>
+                    <td className="ix-num">{pts(m.points)}{m.expiring ? <span className="ix-warn"> · {pts(m.expiring)} expire soon</span> : null}</td>
+                    <td className="ix-num">{m.wallet ? money(m.wallet) : '—'}</td>
+                    <td className="ix-num">{money(m.bought)}</td>
+                    <td className="ix-muted">{m.last ? formatDate(m.last) : '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        )}
-        {data && shown.length > PAGE ? (
-          <div className="ac-head" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-            <p style={{ margin: 0 }}>{cur * PAGE + 1}–{Math.min(shown.length, cur * PAGE + PAGE)} of {pts(shown.length)}</p>
-            <div className="ac-row-actions">
-              <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" disabled={cur === 0} onClick={() => setPage(cur - 1)}>Back</button>
-              <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" disabled={cur >= pages - 1} onClick={() => setPage(cur + 1)}>Next</button>
-            </div>
-          </div>
-        ) : null}
+        </>)}
+        {data && shown.length > PAGE
+          ? <Pager label={`${cur * PAGE + 1}–${Math.min(shown.length, cur * PAGE + PAGE)} of ${pts(shown.length)}`} atStart={cur === 0} atEnd={cur >= pages - 1} prev={() => setPage(cur - 1)} next={() => setPage(cur + 1)} />
+          : <div className="ix-foot"><span>{plural(shown.length, 'member')}</span></div>}
       </section>
+      <LearnMore topic="members" />
 
       {adding ? <AddMemberDialog onClose={() => setAdding(false)} /> : null}
     </LoyPage>

@@ -1,20 +1,21 @@
 'use client';
-// Blog posts — every post on the storefront blog (gridshop.com.bd/blog), with its status, category,
-// author, views and SEO score.
-//   KPIs       published, drafts, scheduled (next one), views this month
-//   Filters    status tabs with counts, category (a parent includes its sub-categories), author, search, sort
-//   Views      table or cards; tick posts for bulk actions: publish (only posts that pass the publish
-//              checks), move to a category, archive (with undo), delete (asks first)
-//   Links      New post → /blog-editor, a title → /blog-editor?id=, an author → /author-profile?id=,
-//              Categories → /blog-categories, Authors → /blog-authors, WordPress sync → /woo-sync
-// ?tab=published|draft|scheduled|archived opens that tab; ?cat=<categoryId> and ?author=<authorId> filter. Front end only: data from src/lib/blog.js.
+// Blog posts — every post on the storefront blog (gridshop.com.bd/blog), laid out like Shopify's Blog posts list:
+//   Header     New post; Categories, Authors and WordPress sync under More actions
+//   Figures    views this month and the next scheduled post
+//   The list   status views with counts, sort, table or cards, search with category and author filters; tick posts
+//              for bulk actions: publish (only posts that pass the publish checks), move to a category, archive (with
+//              undo), delete (asks first). A row opens the post in the editor, where its address, excerpt and the rest are.
+// ?tab=published|draft|scheduled|archived opens that tab; ?cat=<categoryId> and ?author=<authorId> filter.
+// Front end only: data from src/lib/blog.js.
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
-import { PageHeader, EmptyState } from '@/components/ui';
-import { formatDate, formatTime } from '@/lib/format';
+import { navigate } from '@/runtime/routes';
+import { EmptyState } from '@/components/ui';
+import { ShopHeader, MetricStrip, IndexTabs, SearchField, Menu, LearnMore } from '@/components/ui/IndexKit';
+import { formatDate } from '@/lib/format';
 import { STATUSES, categoryTree, updatePosts, deletePosts, publishProblems, seoScore, postDate, BLOG_BASE } from '@/lib/blog';
 import { BlogFrame, useBlog, Cover, Avatar, CatChip, PostStatus, SeoDot, queryParam } from './blogShared';
 
@@ -23,45 +24,35 @@ const SORTS = [['new', 'Newest first'], ['views', 'Most viewed'], ['seo', 'Lowes
 const n = (x) => Number(x || 0).toLocaleString('en-IN');
 
 const CSS = `
-.bp-bar{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle)}
-.bp-bar .gc-input{height:40px}
-.bp-search{position:relative;flex:1 1 220px;min-width:0}
-.bp-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none}
-.bp-search .gc-input{padding-left:38px}
-.bp-filter{flex:0 1 190px;min-width:150px}
-.bp-tab b{margin-left:6px;font-weight:var(--weight-medium);color:var(--text-muted);font-variant-numeric:tabular-nums}
-.bp-bulk{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-5);background:var(--fill-primary-soft);border-top:1px solid var(--border-subtle)}
-.bp-bulk b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--primary);margin-right:auto}
-.bp-bulk .gc-input{height:36px;width:auto;min-width:170px}
-.bp-title{display:block;font-weight:var(--weight-medium);color:var(--text-heading);text-decoration:none;line-height:1.4;min-width:180px;white-space:normal}
-.bp-title:hover{color:var(--text-link);text-decoration:underline}
-.bp-card .gc-table th,.bp-card .gc-table td{padding-left:var(--space-3);padding-right:var(--space-3)}
-.bp-card .gc-table th:first-child,.bp-card .gc-table td:first-child{padding-left:var(--space-5)}
+.bp-sort{height:28px;font-size:var(--text-xs-plus)}
+.bp-post{display:flex;align-items:center;gap:10px;min-width:0;max-width:260px}
+.bp-post>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.bp-post .bl-cover--thumb{width:32px;border-radius:var(--radius-md)}
+.bp-post .bl-cover--thumb svg{width:16px;height:16px}
+.bp-flag{display:inline-flex;margin-left:6px;color:var(--text-warning);vertical-align:-1px}
 .bp-author{display:inline-flex;align-items:center;gap:var(--space-2);color:var(--text-body);text-decoration:none;white-space:nowrap}
 .bp-author:hover span{color:var(--text-link);text-decoration:underline}
-.bp-flag{display:inline-flex;align-items:center;gap:4px;margin-left:6px;color:var(--text-warning);font-size:var(--text-xs);vertical-align:middle}
-.bp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:var(--space-4);padding:var(--space-4) var(--space-5) var(--space-5)}
-.bp-tile{position:relative;display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card)}
+.bp-more{margin-left:4px;font-size:var(--text-xs);color:var(--text-muted)}
+.bp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:var(--space-3);padding:var(--space-4)}
+.bp-tile{position:relative;display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card)}
 .bp-tile.is-on{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
-.bp-tile .bp-pick{position:absolute;top:var(--space-5);left:var(--space-5);z-index:1;background:var(--surface-card)}
-.bp-tile .bp-title{min-width:0;font-size:var(--text-sm-plus)}
-.bp-foot{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);margin-top:auto;font-size:var(--text-xs);color:var(--text-muted)}
-.bp-note{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle);font-size:var(--text-xs);color:var(--text-muted)}
-@media (max-width:599px){.bp-filter{flex:1 1 140px}.bp-bulk .gc-input{flex:1 1 100%}}
-/* phones: the table already shows as cards, so the Table / Cards switch is hidden */
-@media (max-width:640px){.bp-layout{display:none!important}}
+.bp-tile .bp-pick{position:absolute;top:var(--space-4);left:var(--space-4);z-index:1;background:var(--surface-card)}
+.bp-title{font-weight:var(--weight-semibold);color:var(--text-heading);text-decoration:none;line-height:1.4}
+.bp-title:hover{color:var(--text-link);text-decoration:underline}
+.bp-foot{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-3);margin-top:auto;font-size:var(--text-xs);color:var(--text-muted)}
+@media (max-width:640px){.bp-layout{display:none!important}.bp-grid{display:none}}
 `;
 
 export default function BlogPosts() {
   const db = useBlog();
   const [tab, setTab] = useState('all');
   const [q, setQ] = useState('');
+  const [find, setFind] = useState(false);
   const [cat, setCat] = useState('');
   const [author, setAuthor] = useState('');
   const [sort, setSort] = useState('new');
   const [view, setView] = useState('table');
   const [sel, setSel] = useState([]);
-  const [moveTo, setMoveTo] = useState('');
 
   useEffect(() => {
     const t = queryParam('tab');
@@ -102,11 +93,9 @@ export default function BlogPosts() {
     return list.slice().sort(by);
   }, [base, tab, sort]);
 
-  // KPIs over every post
+  // figures over every post
   const all = db.posts;
-  const published = all.filter((p) => p.status === 'published').length;
-  const drafts = all.filter((p) => p.status === 'draft').length;
-  const scheduled = all.filter((p) => p.status === 'scheduled').sort((a, b) => new Date(a.publishAt) - new Date(b.publishAt));
+  const next = all.filter((p) => p.status === 'scheduled').sort((a, b) => new Date(a.publishAt) - new Date(b.publishAt))[0];
   const monthViews = all.reduce((s, p) => s + (p.viewsMonth || 0), 0);
 
   const shownIds = shown.map((p) => p.id);
@@ -128,12 +117,12 @@ export default function BlogPosts() {
     else toast(`${ok.length} post${ok.length === 1 ? '' : 's'} published${blocked ? ` · ${blocked} still need details before they can go live` : ''}`);
     setSel([]);
   };
-  const bulkMove = () => {
-    const c = catById[moveTo];
+  const bulkMove = (id) => {
+    const c = catById[id];
     if (!c) { toast('Choose a category to move the posts to.', { tone: 'error' }); return; }
     updatePosts(picked, { categoryIds: [c.id] });
     toast(`${picked.length} post${picked.length === 1 ? '' : 's'} moved to ${c.name}`);
-    setSel([]); setMoveTo('');
+    setSel([]);
   };
   const bulkArchive = () => {
     const before = all.filter((p) => picked.includes(p.id)).map((p) => [p.id, p.status]);
@@ -152,134 +141,139 @@ export default function BlogPosts() {
     toast(`${count} post${count === 1 ? '' : 's'} deleted`);
   };
 
-  const dateCell = (p) => {
-    const d = postDate(p);
-    const lead = p.status === 'scheduled' ? 'Publishes' : p.status === 'published' ? (p.autoPublishedAt ? 'Published automatically' : 'Published') : p.status === 'archived' ? 'Was published' : 'Saved';
-    return <>{formatDate(d)}<span className="bl-sub">{lead} · {formatTime(d)}</span></>;
-  };
   const cats = (p) => (p.categoryIds || []).map((id) => catById[id]).filter(Boolean);
   const authorLink = (p) => {
     const a = authorById[p.authorId];
-    if (!a) return <span className="bl-sub">No author</span>;
-    return <Link href={`/author-profile?id=${a.id}`} className="bp-author"><Avatar author={a} size={28} /><span>{a.name}</span></Link>;
+    if (!a) return <span className="ix-muted">No author</span>;
+    return <Link href={`/author-profile?id=${a.id}`} className="bp-author"><Avatar author={a} size={20} /><span>{a.name}</span></Link>;
   };
+  const views = (p) => (p.status === 'draft' || p.status === 'scheduled' ? '—' : n(p.views));
+  const edit = (p) => `/blog-editor?id=${p.id}`;
+  const filtered = !!(q || cat || author);
   const clearFilters = () => { setQ(''); setCat(''); setAuthor(''); setTab('all'); };
+  const closeFind = () => { setFind(false); setQ(''); setCat(''); setAuthor(''); };
+  const tabs = TABS.map(([id, label]) => ({ key: id, id: 'bp-tab-' + id, label, count: db.ready ? counts[id] : null, on: tab === id, onClick: () => setTab(id) }));
 
   return (
     <BlogFrame screen="BlogPosts" active="blog-posts" page="Posts" css={CSS}>
-      <PageHeader
-        title="Blog posts"
-        about="Write guides, recipes and offers for the storefront blog. Published posts appear on gridshop.com.bd/blog."
-        actions={<>
-          <Link href="/blog-categories" className="gc-btn gc-btn--neutral"><Icon name="folder-tree" width="18" height="18" aria-hidden="true" /> Categories</Link>
-          <Link href="/blog-authors" className="gc-btn gc-btn--neutral"><Icon name="users" width="18" height="18" aria-hidden="true" /> Authors</Link>
-          <Link href="/blog-editor" className="gc-btn gc-btn--solid"><Icon name="plus" width="18" height="18" aria-hidden="true" /> New post</Link>
-        </>}
-      />
+      <ShopHeader icon="newspaper" title="Blog posts"
+        about={`Write guides, recipes and offers for the storefront blog. Published posts appear on ${BLOG_BASE.replace(/\/$/, '')} and sync to WordPress when a connection is set up.`}
+        more={[{ label: 'Categories', href: '/blog-categories' }, { label: 'Authors', href: '/blog-authors' }, { label: 'WordPress sync', href: '/woo-sync' }]}
+        primary={{ label: 'New post', href: '/blog-editor' }} />
 
-      <div className="gc-kpis">
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="eye" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Views this month</p><p className="gc-kpi__value">{n(monthViews)}<small>all posts</small></p></div></div>
-      </div>
+      <MetricStrip label="Blog at a glance" items={[
+        { label: 'Views this month', value: db.ready ? n(monthViews) : '—' },
+        { label: 'Next scheduled', value: next ? formatDate(next.publishAt) : '—', href: next ? edit(next) : undefined },
+      ]} />
 
-      <section className="gc-card bl-card bp-card" aria-label="Posts">
-        <div className="bl-head" style={{ paddingBottom: 0 }}>
-          <div className="gc-tabs" role="tablist" aria-label="Post status" style={{ borderBottom: 0, flexWrap: 'wrap', overflow: 'visible' }}>
-            {TABS.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={tab === id} className={'gc-tab bp-tab' + (tab === id ? ' gc-tab--active' : '')} onClick={() => setTab(id)}>{label}<b>{db.ready ? counts[id] : ''}</b></button>)}
-          </div>
-          <div className="gc-seg bp-layout" role="group" aria-label="Layout">
-            <button type="button" className={'gc-seg__btn' + (view === 'table' ? ' gc-seg__btn--active' : '')} aria-pressed={view === 'table'} onClick={() => pickView('table')}><Icon name="list" width="16" height="16" aria-hidden="true" style={{ verticalAlign: 'middle' }} /> Table</button>
-            <button type="button" className={'gc-seg__btn' + (view === 'cards' ? ' gc-seg__btn--active' : '')} aria-pressed={view === 'cards'} onClick={() => pickView('cards')}><Icon name="layout-grid" width="16" height="16" aria-hidden="true" style={{ verticalAlign: 'middle' }} /> Cards</button>
-          </div>
-        </div>
-        <div className="bp-bar">
-          <div className="bp-search"><Icon name="search" width="16" height="16" aria-hidden="true" /><input className="gc-input" type="search" placeholder="Search title, tag or keyword" aria-label="Search posts" value={q} onChange={(e) => setQ(e.target.value)} /></div>
-          <select className="gc-input gc-select bp-filter" aria-label="Category" value={cat} onChange={(e) => setCat(e.target.value)}>
-            <option value="">All categories</option>
-            {tree.map((c) => <option key={c.id} value={c.id}>{c.depth ? '— ' : ''}{c.name}</option>)}
-          </select>
-          <select className="gc-input gc-select bp-filter" aria-label="Author" value={author} onChange={(e) => setAuthor(e.target.value)}>
-            <option value="">All authors</option>
-            {db.authors.map((a) => <option key={a.id} value={a.id}>{a.name}{a.active ? '' : ' (inactive)'}</option>)}
-          </select>
-          <select className="gc-input gc-select bp-filter" aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value)}>
-            {SORTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-          </select>
-        </div>
-
+      <section className="ix-card" aria-label="Posts">
         {picked.length ? (
-          <div className="bp-bulk" role="region" aria-label="Bulk actions">
-            <b>{picked.length} selected</b>
-            <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={bulkPublish}><Icon name="send" width="16" height="16" aria-hidden="true" /> Publish</button>
-            <select className="gc-input gc-select" aria-label="Move to category" value={moveTo} onChange={(e) => setMoveTo(e.target.value)}>
-              <option value="">Move to category…</option>
+          <div className="ix-bulk" role="toolbar" aria-label="Selected posts">
+            <input type="checkbox" checked={allOn} onChange={toggleAll} aria-label="Select all shown posts" style={{ width: 16, height: 16, margin: '0 6px', accentColor: 'var(--primary)' }} />
+            <span className="ix-bulk__n">{picked.length} selected</span>
+            <button type="button" className="ix-btn ix-btn--sm" onClick={bulkPublish}><Icon name="send" width="16" height="16" aria-hidden="true" />Publish</button>
+            <Menu label="Move to category" cls="ix-btn ix-btn--sm" align="start" items={tree.map((c) => ({ label: (c.depth ? '— ' : '') + c.name, onClick: () => bulkMove(c.id) }))} />
+            <button type="button" className="ix-btn ix-btn--sm" onClick={bulkArchive}><Icon name="archive" width="16" height="16" aria-hidden="true" />Archive</button>
+            <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" align="start" items={[{ label: 'Delete', onClick: bulkDelete, tone: 'danger' }, { label: 'Clear selection', onClick: () => setSel([]) }]} />
+          </div>
+        ) : (
+          <div className="ix-bar">
+            {find ? (<>
+              <SearchField value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title, tag or keyword" onDone={closeFind} autoFocus />
+              <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={closeFind}>Cancel</button>
+            </>) : (<>
+              <IndexTabs tabs={tabs} label="Post status" />
+              <span className="ix-tools">
+                <select className="ix-pick bp-sort" aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value)}>
+                  {SORTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                </select>
+                <button type="button" className="ix-btn ix-btn--sm ix-btn--icon bp-layout" aria-label={view === 'table' ? 'Show as cards' : 'Show as a table'} title={view === 'table' ? 'Show as cards' : 'Show as a table'} onClick={() => pickView(view === 'table' ? 'cards' : 'table')}><Icon name={view === 'table' ? 'layout-grid' : 'list'} width="16" height="16" aria-hidden="true" /></button>
+                <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search and filter" onClick={() => setFind(true)}><Icon name="search" width="16" height="16" aria-hidden="true" /></button>
+              </span>
+            </>)}
+          </div>
+        )}
+        {(find || cat || author) && !picked.length ? (
+          <div className="ix-filters" role="group" aria-label="Filters">
+            <select aria-label="Category" className={'ix-filter' + (cat ? ' is-set' : '')} value={cat} onChange={(e) => setCat(e.target.value)}>
+              <option value="">Category</option>
               {tree.map((c) => <option key={c.id} value={c.id}>{c.depth ? '— ' : ''}{c.name}</option>)}
             </select>
-            <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={bulkMove} disabled={!moveTo}>Move</button>
-            <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={bulkArchive}><Icon name="archive" width="16" height="16" aria-hidden="true" /> Archive</button>
-            <button type="button" className="gc-btn gc-btn--sm gc-btn--error gc-btn--outlined" onClick={bulkDelete}><Icon name="trash-2" width="16" height="16" aria-hidden="true" /> Delete</button>
-            <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => setSel([])}>Clear</button>
+            <select aria-label="Author" className={'ix-filter' + (author ? ' is-set' : '')} value={author} onChange={(e) => setAuthor(e.target.value)}>
+              <option value="">Author</option>
+              {db.authors.map((a) => <option key={a.id} value={a.id}>{a.name}{a.active ? '' : ' (inactive)'}</option>)}
+            </select>
+            {filtered ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => { setQ(''); setCat(''); setAuthor(''); }}>Clear all</button> : null}
           </div>
         ) : null}
 
         {!db.ready ? <div style={{ minHeight: 240 }} aria-busy="true" /> : shown.length === 0 ? (
-          <EmptyState icon="newspaper" title={db.posts.length ? 'No posts match' : 'No posts yet'} body={db.posts.length ? 'Try another status, category, author or search.' : 'Write the first post for the storefront blog.'} actionLabel={db.posts.length ? 'Clear filters' : undefined} onAction={clearFilters} />
-        ) : view === 'table' ? (
-          <div className="gc-table-wrap">
-            <table className="gc-table gc-table--compact gc-table--hoverable">
-              <thead><tr>
-                <th scope="col" style={{ width: 44 }}><input type="checkbox" className="gc-check" aria-label="Select all shown posts" checked={allOn} onChange={toggleAll} /></th>
-                <th scope="col">Post</th><th scope="col">Category</th><th scope="col">Author</th><th scope="col">Status</th><th scope="col">Date</th><th scope="col" className="bl-num">Views</th><th scope="col">SEO</th><th scope="col"><span className="sr-only">Actions</span></th>
-              </tr></thead>
-              <tbody>
-                {shown.map((p) => (
-                  <tr key={p.id} aria-selected={picked.includes(p.id)}>
-                    <td><input type="checkbox" className="gc-check" aria-label={`Select ${p.title || 'untitled post'}`} checked={picked.includes(p.id)} onChange={() => toggle(p.id)} /></td>
-                    <td>
-                      <div className="bl-row">
-                        <Cover cover={p.cover} thumb />
-                        <div style={{ minWidth: 0 }}>
-                          <Link href={`/blog-editor?id=${p.id}`} className="bp-title">{p.title || 'Untitled post'}{p.featured ? <span className="bp-flag" title="Featured"><Icon name="star" width="12" height="12" aria-hidden="true" /><span className="sr-only">Featured</span></span> : null}</Link>
-                          <span className="bl-id">/{p.slug || '—'}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td><div className="bl-wrap">{cats(p).length ? cats(p).map((c) => <CatChip key={c.id} cat={c} />) : <span className="bl-sub">None</span>}</div></td>
-                    <td>{authorLink(p)}</td>
-                    <td><PostStatus status={p.status} /></td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{dateCell(p)}</td>
-                    <td className="bl-num">{p.status === 'draft' || p.status === 'scheduled' ? '—' : n(p.views)}</td>
-                    <td><SeoDot post={p} /></td>
-                    <td><Link href={`/blog-editor?id=${p.id}`} className="gc-btn gc-btn--xs gc-btn--neutral" aria-label={`Edit ${p.title || 'untitled post'}`}>Edit</Link></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="bp-grid">
+          <div className="ix-empty"><EmptyState icon="newspaper" title={db.posts.length ? 'No posts match' : 'No posts yet'} body={db.posts.length ? 'Try another status, category, author or search.' : 'Write the first post for the storefront blog.'} actionLabel={db.posts.length ? 'Clear filters' : undefined} onAction={clearFilters} /></div>
+        ) : (<>
+          <ul className="ix-plist" aria-label="Posts">
             {shown.map((p) => (
-              <article key={p.id} className={'bp-tile' + (picked.includes(p.id) ? ' is-on' : '')}>
-                <input type="checkbox" className="gc-check bp-pick" aria-label={`Select ${p.title || 'untitled post'}`} checked={picked.includes(p.id)} onChange={() => toggle(p.id)} />
-                <Cover cover={p.cover} />
-                <div className="bl-wrap"><PostStatus status={p.status} />{cats(p).map((c) => <CatChip key={c.id} cat={c} />)}</div>
-                <Link href={`/blog-editor?id=${p.id}`} className="bp-title">{p.title || 'Untitled post'}</Link>
-                {p.excerpt ? <p className="bl-sub" style={{ margin: 0 }}>{p.excerpt}</p> : null}
-                <div className="bp-foot">
-                  {authorLink(p)}
-                  <span>{formatDate(postDate(p))}</span>
-                  {p.status === 'published' || p.status === 'archived' ? <span><Icon name="eye" width="12" height="12" aria-hidden="true" style={{ verticalAlign: 'middle' }} /> {n(p.views)}</span> : null}
-                  <SeoDot post={p} />
-                </div>
-              </article>
+              <li key={p.id}>
+                <Link href={edit(p)} className="ix-pitem">
+                  <span className="ix-pitem__top"><b>{p.title || 'Untitled post'}</b><PostStatus status={p.status} /></span>
+                  <span className="ix-pitem__mid">{[formatDate(postDate(p)), (authorById[p.authorId] || {}).name, p.status === 'published' || p.status === 'archived' ? n(p.views) + ' views' : ''].filter(Boolean).join(' · ')}</span>
+                </Link>
+              </li>
             ))}
-          </div>
-        )}
-        <div className="bp-note">
-          <Icon name="info" width="14" height="14" aria-hidden="true" />
-          <span>Posts live at <span className="bl-id">{BLOG_BASE}…</span> and sync to WordPress when a connection is set up.</span>
-          <Link href="/woo-sync" className="bl-link">WordPress sync</Link>
-        </div>
+          </ul>
+          {view === 'table' ? (
+            <div className="ix-table-wrap">
+              <table className="ix-table gc-table--keep">
+                <caption className="sr-only">{`Blog posts, ${shown.length} shown`}</caption>
+                <thead><tr>
+                  <th scope="col" className="ix-check"><input type="checkbox" aria-label="Select all shown posts" checked={allOn} onChange={toggleAll} /></th>
+                  <th scope="col">Post</th><th scope="col">Status</th><th scope="col">Category</th><th scope="col">Author</th><th scope="col">Date</th><th scope="col" className="ix-num">Views</th><th scope="col">SEO</th>
+                </tr></thead>
+                <tbody>
+                  {shown.map((p) => {
+                    const cs = cats(p);
+                    return (
+                      <tr key={p.id} className={picked.includes(p.id) ? 'is-sel' : ''} onClick={(e) => { if (!e.target.closest('a,button,input,label')) navigate(edit(p)); }}>
+                        <td className="ix-check"><input type="checkbox" aria-label={`Select ${p.title || 'untitled post'}`} checked={picked.includes(p.id)} onChange={() => toggle(p.id)} /></td>
+                        <td>
+                          <span className="bp-post">
+                            <Cover cover={p.cover} thumb />
+                            <span><Link href={edit(p)} className="ix-strong">{p.title || 'Untitled post'}</Link>{p.featured ? <span className="bp-flag" title="Featured"><Icon name="star" width="12" height="12" aria-hidden="true" /><span className="sr-only">Featured</span></span> : null}</span>
+                          </span>
+                        </td>
+                        <td><PostStatus status={p.status} /></td>
+                        <td>{cs.length ? <><CatChip cat={cs[0]} />{cs.length > 1 ? <span className="bp-more">+{cs.length - 1}</span> : null}</> : <span className="ix-muted">None</span>}</td>
+                        <td>{authorLink(p)}</td>
+                        <td className="ix-muted">{formatDate(postDate(p))}</td>
+                        <td className="ix-num">{views(p)}</td>
+                        <td><SeoDot post={p} /></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="bp-grid">
+              {shown.map((p) => (
+                <article key={p.id} className={'bp-tile' + (picked.includes(p.id) ? ' is-on' : '')}>
+                  <input type="checkbox" className="gc-check bp-pick" aria-label={`Select ${p.title || 'untitled post'}`} checked={picked.includes(p.id)} onChange={() => toggle(p.id)} />
+                  <Cover cover={p.cover} />
+                  <div className="bl-wrap"><PostStatus status={p.status} />{cats(p).map((c) => <CatChip key={c.id} cat={c} />)}</div>
+                  <Link href={edit(p)} className="bp-title">{p.title || 'Untitled post'}</Link>
+                  <div className="bp-foot">
+                    {authorLink(p)}
+                    <span>{formatDate(postDate(p))}</span>
+                    {p.status === 'published' || p.status === 'archived' ? <span><Icon name="eye" width="12" height="12" aria-hidden="true" style={{ verticalAlign: 'middle' }} /> {n(p.views)}</span> : null}
+                    <SeoDot post={p} />
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </>)}
+        <div className="ix-foot"><span>{shown.length === 1 ? '1 post' : shown.length + ' posts'}</span></div>
       </section>
+      <LearnMore topic="blog posts" />
     </BlogFrame>
   );
 }

@@ -46,7 +46,15 @@ export function GridAi() {
   const buttonRef = useRef(null);
   const logRef = useRef(null);
 
-  useEffect(() => { setUsage(loadUsage()); }, []);
+  // another part of the page can ask a question: window.dispatchEvent(new CustomEvent('gc:gridai', { detail: { q } }))
+  // (Home's "Ask GridAI" box); the panel opens and asks it
+  const [pending, setPending] = useState('');
+  useEffect(() => {
+    setUsage(loadUsage());
+    const on = (e) => { setOpen(true); setPending(String((e.detail && e.detail.q) || '')); };
+    window.addEventListener('gc:gridai', on);
+    return () => window.removeEventListener('gc:gridai', on);
+  }, []);
   useEffect(() => { if (open && inputRef.current) inputRef.current.focus(); }, [open]);
   useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [chat]);
   useEffect(() => {
@@ -61,6 +69,11 @@ export function GridAi() {
     return () => window.clearInterval(id);
   }, [listening]);
 
+  useEffect(() => {
+    if (!pending || !usage.day) return;
+    ask(pending);
+    setPending('');
+  });
   if (HIDDEN.test(path)) return null;
 
   const questionsLeft = Math.max(0, LIMIT - usage.questions);

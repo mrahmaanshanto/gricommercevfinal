@@ -6,12 +6,16 @@
 // (a switch turns it back on) → scan or type what is on the shelf → post the difference: a manager
 // approves it with their PIN after seeing the summary, then each difference is saved as a stock move
 // of kind 'count'. "Save and continue later" keeps the count in this browser.
+// Laid out like a Shopify record (components/ui/IndexKit.jsx): while counting, the title row carries the actions
+// (Finish and post difference, Save and continue later, Cancel count in "More actions"); the scan box sits beside
+// the count summary, and the lines (by area) run full width below.
 
 import React from 'react';
 import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
-import { PageHeader as __PageHeader } from '@/components/ui';
+import { DCLogic, Icon as __Icon } from '@/runtime/dc';
+import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
+import { StatusBadge as __StatusBadge } from '@/components/ui';
+import { ShopHeader, RecordHeader, IndexTabs, KV, LearnMore } from '@/components/ui/IndexKit';
 import { toast as __toast, confirmDialog as __confirm } from '@/runtime/ui';
 import { ManagerPin } from '@/components/ManagerPin';
 import { STOCK_PLACES, getStockPlaces, placeName } from '@/lib/locations';
@@ -22,14 +26,13 @@ import { formatBDT, formatDateTime } from '@/lib/format';
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
 function flashMsg(self, msg, bad, patch) { clearTimeout(self.t); var p = patch || {}; p.msg = msg; p.bad = !!bad; self.setState(p); self.t = setTimeout(function () { self.setState({ flash: null }); }, 900); }
-function msgVals(s) { return { hasMsg: !!s.msg, msg: s.msg || '', msgBg: s.bad ? '#ffece6' : '#e7f8f1', msgFg: s.bad ? '#8a2a0c' : '#065f46' }; }
+function msgVals(s) { return { hasMsg: !!s.msg, msg: s.msg || '', msgBad: !!s.bad }; }
 function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
 var DRAFT = 'gc.stock.count.draft';
 var COUNTER = 'Karim';
 var RACK = { Grocery: 'G', Clothing: 'C', 'Skin care': 'A', Electronics: 'E', Home: 'H' };
 var CATS = CATALOG.reduce(function (a, p) { if (a.indexOf(p.cat) < 0) a.push(p.cat); return a; }, []);
 var AREAS = [{ k: 'all', label: 'Whole place' }].concat(CATS.map(function (c) { return { k: c, label: c }; }));
-function mkChips(self, list, cur, key) { return list.map(function (x) { var on = x.k === cur; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
 function readDraft() { try { return JSON.parse(window.localStorage.getItem(DRAFT)); } catch (e) { return null; } }
 function writeDraft(d) { try { if (d) window.localStorage.setItem(DRAFT, JSON.stringify(d)); else window.localStorage.removeItem(DRAFT); } catch (e) { /* ignore */ } }
 function cost(p) { return Math.round(p.wholesale * 0.85); }
@@ -51,11 +54,11 @@ class Component extends DCLogic {
       var sys = stockAt(p.sku, place, holds, moves, null).onHand, v = c[p.sku], counted = v !== null && v !== undefined, unit = cost(p);
       var d = counted ? v - sys : 0;
       if (counted) { done++; if (d === 0) match++; else { diffs.push({ p: p, d: d, sys: sys, v: v }); if (d < 0) { shortL++; missP -= d; missV -= d * unit; } else { overL++; exP += d; exV += d * unit; } } }
-      return { name: p.name, code: p.sku + ' · ' + p.variant, initial: p.name.charAt(0), rack: (RACK[p.cat] || 'R') + '-' + (i + 1), sys: sys, qty: v, counted: counted, notCounted: !counted,
+      return { sku: p.sku, name: p.name, code: p.sku + ' · ' + p.variant, initial: p.name.charAt(0), rack: (RACK[p.cat] || 'R') + '-' + (i + 1), sys: sys, qty: v, counted: counted, notCounted: !counted,
         diff: !counted ? '—' : (d === 0 ? 'Match' : (d > 0 ? '+' + d : '−' + Math.abs(d))),
-        dBadge: !counted ? '' : (d === 0 ? 'badge b-received' : (d > 0 ? 'badge b-approved' : 'badge b-cancelled')),
+        dTone: !counted ? '' : (d === 0 ? 'success' : (d > 0 ? 'info' : 'error')),
         value: !counted || d === 0 ? '—' : (d > 0 ? '+' : '−') + formatBDT(Math.abs(d) * unit),
-        vColor: d < 0 ? '#b83210' : (d > 0 ? '#047857' : '#64748b'), rowCls: s.flash === p.sku ? 'row flash' : 'row',
+        vCls: d < 0 ? 'sc-down' : (d > 0 ? 'sc-up' : 'ix-muted'), flash: s.flash === p.sku,
         start: function () { setC(p.sku, 0); }, inc: function () { setC(p.sku, (v || 0) + 1); }, dec: function () { setC(p.sku, Math.max(0, (v || 0) - 1)); },
         type: function (e) { var n = e.target.value; setC(p.sku, n === '' ? 0 : Math.max(0, Math.round(Number(n) || 0))); } };
     });
@@ -65,7 +68,8 @@ class Component extends DCLogic {
     return assign({
       run: run, notRun: !run, place: place, places: s.places || STOCK_PLACES,
       onPlace: function (e) { self.setState({ place: e.target.value, c: {} }); },
-      areas: mkChips(this, AREAS, area, 'area'), areaLabel: AREAS.filter(function (a) { return a.k === area; })[0].label,
+      areas: AREAS.map(function (x) { return { key: x.k, id: 'sc-area-' + x.k.replace(/\W+/g, '-'), label: x.label, on: x.k === area, onClick: function () { self.setState({ area: x.k }); } }; }),
+      areaLabel: AREAS.filter(function (a) { return a.k === area; })[0].label,
       startCount: function () { var t = Date.now(); self.setState({ run: true, pause: true, c: {}, fin: null, started: t, msg: '' }); writeDraft({ place: place, area: area, c: {}, pause: true, started: t }); __toast('Count started at ' + place + ' · selling is paused there'); },
       startedText: s.started ? 'Started ' + formatDateTime(s.started) + ' by ' + COUNTER : '',
       pause: pause, pauseText: pause ? 'Selling is paused at ' + place + ' while counting' : 'Selling is on at ' + place + ' during this count',
@@ -83,7 +87,7 @@ class Component extends DCLogic {
       lines: lines, done: done, all: lines.length, pct: (lines.length ? Math.round(done / lines.length * 100) : 0) + '%',
       scan: function () { if (!lines.length) return; var n = s.n || 0; var p = prods[[0, 0, 1, 2, 0, 3][n % 6] % prods.length]; self.setState({ n: n + 1 }); beep(p); },
       match: match, miss: missP + ' pcs · ' + formatBDT(missV), extra: exP + ' pcs · ' + formatBDT(exV), left: (lines.length - done) + ' products',
-      net: (net < 0 ? '−' : '+') + formatBDT(Math.abs(net)), netColor: net < 0 ? '#b83210' : '#047857',
+      net: (net < 0 ? '−' : '+') + formatBDT(Math.abs(net)), netCls: net < 0 ? 'sc-down' : 'sc-up',
       notFinished: !fin, finished: !!fin,
       finish: function () {
         if (!done) { flashMsg(self, 'Count at least one product first.', true); return; }
@@ -111,78 +115,63 @@ class Component extends DCLogic {
   }
 }
 
-// ---- styles (from the design's <helmet>) ----
+// ---- styles ----
 
-const CSS = `section.card th{white-space:normal}
-
-body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
-*{box-sizing:border-box}
-a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
-.nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
-.nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
-.btn:hover{text-decoration:none}
-.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
-.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
-.line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
-.warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
-.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
-.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
-.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:var(--text-muted)}
-.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
-.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
-.tab:hover{background:#f1f5f9;color:#0f172a}
-.tab.on{background:#003087;color:#fff}
-.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
-.chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
-.row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
-.b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
-.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
-.b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:var(--font-data);letter-spacing:.02em}
-.fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
-@keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.flash{animation:gcFlash 900ms ease-out}
-@keyframes gcFlash{from{background:#e7f8f1}to{background:transparent}}
-.scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
-@keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
-.sc-pause{display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:var(--radius-xl);background:var(--fill-warning-soft);color:var(--text-warning);font-size:var(--text-sm)}
-.sc-pause.is-off{background:var(--surface-subtle);color:var(--text-body)}
+const CSS = `
+.sc-form{display:flex;flex-direction:column;gap:var(--space-4)}
+.sc-form .gc-select{max-width:360px}
+.sc-help{margin:0;font-size:var(--text-xs);color:var(--text-muted)}
+.sc-pause{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);background:var(--fill-warning-soft);color:var(--text-warning);font-size:var(--text-sm)}
+.sc-pause.is-off{background:var(--surface-card);color:var(--text-body)}
+.sc-pause>svg{flex:none}
 .sc-pause b{font-weight:var(--weight-medium)}
 .sc-pause small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .sc-pause__sw{display:flex;align-items:center;gap:10px;margin-left:auto;white-space:nowrap;font-size:var(--text-xs);font-weight:var(--weight-medium)}
-.sc-qty{width:56px;height:36px;border:0;border-left:1px solid #cbd5e1;border-right:1px solid #cbd5e1;text-align:center;font:inherit;font-weight:var(--weight-medium);background:transparent;color:inherit;-moz-appearance:textfield}
+.sc-scan{display:flex;flex-direction:column;gap:var(--space-3)}
+.sc-scan h2{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.sc-scanrow{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.sc-scanrow .ix-search{flex:1 1 240px;border-color:var(--primary)}
+.sc-msg{display:flex;align-items:center;gap:var(--space-2);margin:0;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-success)}
+.sc-msg.is-bad{color:var(--text-danger)}
+.sc-msg svg{flex:none}
+.sc-prog{display:flex;flex-direction:column;gap:6px}
+.sc-prog__row{display:flex;justify-content:space-between;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-muted)}
+.sc-prog__row b{font-family:var(--font-data);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.sc-prog .gc-progress__fill{background:var(--success)}
+.sc-thumb{background:var(--fill-primary-soft);color:var(--primary)}
+.sc-code{display:block;font-family:var(--font-data);font-size:var(--text-xs);font-weight:var(--weight-regular);color:var(--text-muted)}
+.sc-table td{height:44px}
+.sc-step{display:inline-flex;align-items:center;border:1px solid var(--border-field);border-radius:var(--radius-lg);overflow:hidden;background:var(--surface-card)}
+.sc-step button{display:grid;place-items:center;width:28px;height:28px;border:0;background:none;color:var(--text-body);cursor:pointer}
+.sc-step button:hover{background:var(--surface-subtle);color:var(--text-heading)}
+.sc-qty{width:52px;height:28px;border:0;border-left:1px solid var(--border-field);border-right:1px solid var(--border-field);text-align:center;font:inherit;font-weight:var(--weight-medium);background:transparent;color:inherit;-moz-appearance:textfield}
 .sc-qty::-webkit-outer-spin-button,.sc-qty::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .sc-qty:focus{outline:2px solid var(--primary);outline-offset:-2px}
-.sc-sum{display:grid;grid-template-columns:1fr auto;gap:6px 16px;margin:0;font-size:var(--text-sm)}
-.sc-sum dd{margin:0;text-align:right;font-weight:var(--weight-medium)}
-.sc-setup{display:flex;flex-direction:column;gap:18px;max-width:640px}
-.sc-setup .gc-select{max-width:360px}
-section.card .td{white-space:normal}
-section.card .td .badge{white-space:nowrap}
-@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+.sc-up{color:var(--text-success)}.sc-down{color:var(--text-danger)}
+.sc-flash td{animation:scFlash 900ms ease-out}
+@keyframes scFlash{from{background:var(--fill-success-soft)}to{background:transparent}}
+.sc-pitem{cursor:default}
+.sc-pitem__ctl{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);margin-top:2px}
+.sc-done{display:flex;flex-direction:column;gap:var(--space-3)}
+.sc-done h2{display:flex;align-items:center;gap:var(--space-2);margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.sc-done h2 svg{color:var(--text-success)}
+.sc-done p{margin:0;font-size:var(--text-sm);color:var(--text-body)}
+.sc-done__acts{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+@media (prefers-reduced-motion:reduce){.sc-flash td{animation:none}}
+@media (max-width:640px){.sc-pause{flex-wrap:wrap}.sc-pause__sw{margin-left:0}}
 `;
 
 // ---- markup ----
 
-const SCAN_SVG = (size) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M17 3h2a2 2 0 0 1 2 2v2" /><path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path d="M7 21H5a2 2 0 0 1-2-2v-2" /><path d="M8 7v10" /><path d="M12 7v10" /><path d="M17 7v10" />
-  </svg>
-);
+function Stepper({ r }) {
+  return (
+    <span className="sc-step">
+      <button type="button" aria-label={`One less ${r.name}`} onClick={r.dec}><__Icon name="minus" width="16" height="16" aria-hidden="true" /></button>
+      <input className="sc-qty" type="number" min="0" inputMode="numeric" aria-label={`Counted ${r.name}`} value={r.qty} onChange={r.type} />
+      <button type="button" aria-label={`One more ${r.name}`} onClick={r.inc}><__Icon name="plus" width="16" height="16" aria-hidden="true" /></button>
+    </span>
+  );
+}
 
 export default class StockCountScreen extends Component {
   render() {
@@ -190,196 +179,155 @@ export default class StockCountScreen extends Component {
     return (
       <div className="dc-screen ds" data-screen="StockCount">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
+        <div className="gc-shell">
           <__Sidebar sticky="" active="stock-count" />
-          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
+          <main className="gc-shell__main">
             <__Topbar crumb="Stock" page="Stock count" placeholder="Search or scan any barcode" />
-            <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <__PageHeader title="Stock count" actions={<__Link href="/stock-adjustments" className="gc-btn gc-btn--neutral"><__Icon name="sliders-horizontal" width="18" height="18" aria-hidden="true" /> Stock adjustments</__Link>} />
-              {v.notRun && v.notFinished ? (
-                <section className="card sc-setup" style={{ padding: "24px" }} aria-labelledby="sc-setup-h">
-                  <div>
-                    <h2 id="sc-setup-h" style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Start a stock count</h2>
-                    <p style={{ margin: "4px 0 0", fontSize: "var(--text-sm)", color: "#475569" }}>Choose where you are counting. Selling is paused there while you count, so the numbers do not move.</p>
+            <div className="gc-shell__content">
+              {v.run ? (
+                <div className="ix-page">
+                  <RecordHeader title="Stock count"
+                    badges={<__StatusBadge tone="info" icon="clipboard-check">Counting</__StatusBadge>}
+                    meta={[v.place, v.areaLabel, v.startedText].filter(Boolean).join(' · ')}
+                    about="Count what is on the shelf at one place. Selling is paused there while you count; a manager approves the difference with their PIN and it is saved as stock changes."
+                    secondary={[{ label: 'Save and continue later', onClick: v.saveLater }]}
+                    more={[{ label: 'Cancel count', onClick: v.cancel, tone: 'danger' }]}
+                    primary={{ label: 'Finish and post difference', onClick: v.finish }} />
+
+                  <div className={'ix-card sc-pause' + (v.pause ? '' : ' is-off')} role="status">
+                    <__Icon name={v.pause ? 'circle-pause' : 'circle-play'} width="16" height="16" aria-hidden="true" />
+                    <div><b>{v.pauseText}</b><small>{v.pauseHelp}</small></div>
+                    <label className="sc-pause__sw">
+                      <span>Pause selling</span>
+                      <button type="button" role="switch" aria-checked={v.pause} aria-label={`Pause selling at ${v.place}`} className="gc-switch" onClick={v.togglePause}><span className="gc-switch__knob" /></button>
+                    </label>
                   </div>
-                  <div>
-                    <label className="gc-label" htmlFor="sc-place">Where are you counting? *</label>
-                    <select id="sc-place" className="gc-input gc-select" value={v.place} onChange={v.onPlace}>
-                      {__list(v.places).map((x) => (<option key={x}>{x}</option>))}
-                    </select>
-                  </div>
-                  <div>
-                    <span className="gc-label" id="sc-area-l">What are you counting?</span>
-                    <div role="group" aria-labelledby="sc-area-l" style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                      {__list(v.areas).map((a, $index) => (<button key={$index} type="button" className={a?.cls} aria-pressed={a?.on} onClick={a?.pick}>{a?.label}</button>))}
-                    </div>
-                  </div>
-                  <p className="gc-help" style={{ margin: 0 }}>{v.all} products to count at {v.place}.</p>
-                  <div><button type="button" className="gc-btn gc-btn--solid" onClick={v.startCount} disabled={!v.all}><__Icon name="clipboard-check" width="18" height="18" aria-hidden="true" /> Start count</button></div>
-                </section>
-              ) : null}
-              {v.run ? (<>
-              <section className="card" style={{ padding: "20px 24px", display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-                <span className="chip on" style={{ cursor: "default" }}>
-                  <__Icon name="store" width="16" height="16" aria-hidden="true" />
-                  <span>{v.place}</span>
-                </span>
-                {__list(v.areas).map((a, $index) => (<React.Fragment key={$index}>
-                    <button type="button" className={a?.cls} aria-pressed={a?.on} onClick={a?.pick}>{a?.label}</button>
-                  </React.Fragment>))}
-                <div style={{ flexGrow: "1" }} />
-                <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}>{v.startedText}</span>
-                <button type="button" className="btn line sm" onClick={v.cancel}>Cancel count</button>
-              </section>
-              <div className={v.pause ? "sc-pause" : "sc-pause is-off"} role="status">
-                <__Icon name={v.pause ? "circle-pause" : "circle-play"} width="22" height="22" aria-hidden="true" />
-                <div><b>{v.pauseText}</b><small>{v.pauseHelp}</small></div>
-                <label className="sc-pause__sw">
-                  <span>Pause selling</span>
-                  <button type="button" role="switch" aria-checked={v.pause} aria-label={`Pause selling at ${v.place}`} className="gc-switch" onClick={v.togglePause}><span className="gc-switch__knob" /></button>
-                </label>
-              </div>
-              <div style={{ display: "flex", gap: "24px", alignItems: "flex-start" }}>
-                <div style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "20px" }}>
-                  <section className="card" style={{ padding: "24px", display: "flex", gap: "24px", alignItems: "stretch", flexWrap: "wrap" }}>
-                    <div style={{ flexGrow: "1", flexBasis: "320px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                      <h2 style={{ margin: "0", fontSize: "var(--text-xl)", lineHeight: "28px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Scan every item on the shelf</h2>
-                      <p style={{ margin: "0", fontSize: "var(--text-sm)", lineHeight: "22px", color: "#475569" }}>Each beep counts one. For a full box, scan once and type the number. Don’t look at the system number — just count.</p>
-                      <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-                        <label style={{ position: "relative", flexGrow: "1", minWidth: "220px" }}>
-                          <span style={{ position: "absolute", left: "16px", top: "15px", color: "#003087" }}>{SCAN_SVG(22)}</span>
-                          <input className="inp" type="search" placeholder="Scan a barcode or type a SKU, then Enter" aria-label="Scan a barcode or type a SKU" value={v.code} onChange={v.codeIn} onKeyDown={v.codeKey} style={{ height: "54px", paddingLeft: "50px", fontSize: "var(--text-sm-plus)", border: "2px solid #003087" }} />
-                        </label>
-                        <button type="button" className="btn solid big" onClick={v.scan}>
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-                            <circle cx="12" cy="13" r="3" />
-                          </svg>
-                          <span>Scan with camera</span>
-                        </button>
-                      </div>
-                      {v.hasMsg ? (<>
-                        <div className="fade" role="status" style={__sx(`display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-lg); background: ${v.msgBg ?? ""}; color: ${v.msgFg ?? ""}; font-size: var(--text-sm); line-height: 20px; font-weight: var(--weight-medium);`)}>
-                          <span style={{ flexShrink: "0" }}>{SCAN_SVG(20)}</span>
-                          <span>{v.msg}</span>
+
+                  <div className="ix-record">
+                    <div className="ix-main">
+                      <section className="ix-card ix-card--pad sc-scan" aria-labelledby="sc-scan-h">
+                        <h2 id="sc-scan-h">Scan every item on the shelf</h2>
+                        <p className="sc-help">Each beep counts one. For a full box, scan once and type the number. Don’t look at the system number — just count.</p>
+                        <div className="sc-scanrow">
+                          <label className="ix-search">
+                            <__Icon name="scan-barcode" width="16" height="16" aria-hidden="true" />
+                            <input type="search" placeholder="Scan a barcode or type a SKU, then Enter" aria-label="Scan a barcode or type a SKU" value={v.code} onChange={v.codeIn} onKeyDown={v.codeKey} />
+                          </label>
+                          <button type="button" className="ix-btn" onClick={v.scan}><__Icon name="camera" width="16" height="16" aria-hidden="true" />Scan with camera</button>
                         </div>
-                      </>) : null}
+                        {v.hasMsg ? <p className={'sc-msg' + (v.msgBad ? ' is-bad' : '')} role="status"><__Icon name="scan-barcode" width="16" height="16" aria-hidden="true" /><span>{v.msg}</span></p> : null}
+                        <div className="sc-prog">
+                          <div className="sc-prog__row"><span>Products counted</span><b>{`${v.done} / ${v.all}`}</b></div>
+                          <div className="gc-progress" role="progressbar" aria-label="Products counted" aria-valuenow={v.done} aria-valuemin={0} aria-valuemax={v.all}><div className="gc-progress__fill" style={{ width: v.pct }} /></div>
+                        </div>
+                      </section>
                     </div>
-                    <div className="gc-on-dark" style={{ width: "220px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#012169", color: "#ffffff", padding: "20px", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: "6px", textAlign: "center" }}>
-                      <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", color: "#7fcff0" }}>PRODUCTS COUNTED</div>
-                      <div style={{ fontSize: "var(--text-5xl)", lineHeight: "1.12", fontWeight: "var(--weight-semibold)" }}>{v.done}<span style={{ fontSize: "var(--text-2xl)", color: "rgba(255,255,255,.7)" }}>/{v.all}</span></div>
-                      <div style={{ width: "100%", height: "8px", marginTop: "8px", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.16)", overflow: "hidden" }}>
-                        <div style={__sx(`height: 8px; border-radius: var(--radius-full); background: #10b981; width: ${v.pct ?? ""}; transition: width 300ms ease-out;`)} />
-                      </div>
-                    </div>
-                  </section>
-                  <section className="card" style={{ overflow: "hidden" }}>
-                    <div className="gc-table-wrap">
-                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <aside className="ix-side">
+                      <section className="ix-card" aria-labelledby="sc-sum-h">
+                        <div className="ix-card__head"><h2 id="sc-sum-h">Count summary</h2></div>
+                        <div className="ix-card__body sc-form">
+                          <KV rows={[
+                            ['Match', <span key="m" className="sc-up">{`${v.match} products`}</span>],
+                            ['Missing', <span key="x" className="sc-down">{v.miss}</span>],
+                            ['Extra', <span key="e" className="sc-up">{v.extra}</span>],
+                            ['Not counted yet', v.left],
+                            ['Net difference', <b key="n" className={v.netCls}>{v.net}</b>],
+                          ]} />
+                          <p className="sc-help">A manager approves the difference with their PIN. It is then saved as stock changes with the reason “Count difference”. Products not counted stay as they are.</p>
+                        </div>
+                      </section>
+                    </aside>
+                  </div>
+
+                  <section className="ix-card" aria-label="Count lines">
+                    <div className="ix-bar"><IndexTabs tabs={v.areas} label="What are you counting?" /></div>
+                    <ul className="ix-plist" aria-label="Count lines">
+                      {v.lines.map((r) => (
+                        <li key={r.sku}>
+                          <div className="ix-pitem sc-pitem">
+                            <span className="ix-pitem__top"><b>{r.name}</b>{r.dTone ? <__StatusBadge tone={r.dTone}>{r.diff}</__StatusBadge> : null}</span>
+                            <span className="ix-pitem__mid">{r.code} · {r.rack} · {`System ${r.sys}`}</span>
+                            <span className="sc-pitem__ctl">
+                              {r.counted ? <Stepper r={r} /> : <button type="button" className="ix-btn ix-btn--sm" onClick={r.start}>Not counted yet</button>}
+                              <span className={r.vCls}>{r.value}</span>
+                            </span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="ix-table-wrap">
+                      <table className="ix-table ix-table--static gc-table--keep sc-table">
+                        <caption className="sr-only">Count at {v.place}, {v.areaLabel}</caption>
                         <thead>
                           <tr>
-                            <th className="th">Product</th>
-                            <th className="th">Rack</th>
-                            <th className="th" style={{ textAlign: "center" }}>System says</th>
-                            <th className="th" style={{ textAlign: "center" }}>You counted</th>
-                            <th className="th" style={{ textAlign: "center" }}>Difference</th>
-                            <th className="th" style={{ textAlign: "right" }}>Value</th>
+                            <th scope="col">Product</th>
+                            <th scope="col">Rack</th>
+                            <th scope="col" className="ix-num">System says</th>
+                            <th scope="col">You counted</th>
+                            <th scope="col">Difference</th>
+                            <th scope="col" className="ix-num">Value</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {__list(v.lines).map((r, $index) => (<React.Fragment key={$index}>
-                              <tr className={r?.rowCls}>
-                                <td className="td">
-                                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                                    <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "var(--weight-medium)" }}>{r?.initial}</span>
-                                    <div>
-                                      <div style={{ fontWeight: "var(--weight-medium)" }}>{r?.name}</div>
-                                      <div className="mono" style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>{r?.code}</div>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="td">{r?.rack}</td>
-                                <td className="td" style={{ textAlign: "center", color: "#475569" }}>{r?.sys}</td>
-                                <td className="td" style={{ textAlign: "center", whiteSpace: "nowrap" }}>
-                                  {r?.counted ? (<>
-                                    <div style={{ display: "inline-flex", alignItems: "center", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", overflow: "hidden", background: "#fff" }}>
-                                      <button type="button" className="ib" aria-label={`One less ${r?.name ?? ""}`} onClick={r?.dec} style={{ borderRadius: "0" }}>
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14" /></svg>
-                                      </button>
-                                      <input className="sc-qty" type="number" min="0" inputMode="numeric" aria-label={`Counted ${r?.name ?? ""}`} value={r?.qty} onChange={r?.type} />
-                                      <button type="button" className="ib" aria-label={`One more ${r?.name ?? ""}`} onClick={r?.inc} style={{ borderRadius: "0" }}>
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
-                                      </button>
-                                    </div>
-                                  </>) : null}
-                                  {r?.notCounted ? (<>
-                                    <button type="button" className="btn line sm" onClick={r?.start}>Not counted yet</button>
-                                  </>) : null}
-                                </td>
-                                <td className="td" style={{ textAlign: "center" }}>
-                                  <span className={r?.dBadge}>{r?.diff}</span>
-                                </td>
-                                <td className="td" style={__sx(`text-align: right; white-space: nowrap; font-weight: var(--weight-medium); color: ${r?.vColor ?? ""};`)}>{r?.value}</td>
-                              </tr>
-                            </React.Fragment>))}
+                          {v.lines.map((r) => (
+                            <tr key={r.sku} className={r.flash ? 'sc-flash' : ''}>
+                              <td>
+                                <span className="ix-prod">
+                                  <span className="ix-thumb sc-thumb" aria-hidden="true">{r.initial}</span>
+                                  <span className="ix-strong">{r.name}<span className="sc-code">{r.code}</span></span>
+                                </span>
+                              </td>
+                              <td className="ix-muted">{r.rack}</td>
+                              <td className="ix-num ix-muted">{r.sys}</td>
+                              <td>{r.counted ? <Stepper r={r} /> : <button type="button" className="ix-btn ix-btn--sm" onClick={r.start}>Not counted yet</button>}</td>
+                              <td>{r.dTone ? <__StatusBadge tone={r.dTone}>{r.diff}</__StatusBadge> : <span className="ix-muted">{r.diff}</span>}</td>
+                              <td className={'ix-num ' + r.vCls}>{r.value}</td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     </div>
                   </section>
                 </div>
-                <aside className="gc-side" style={{ width: "340px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "16px" }}>
-                  <section className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                    <div>
-                      <h2 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Count summary</h2>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-sm)" }}>
-                      <span style={{ color: "#475569" }}>Match</span>
-                      <span style={{ fontWeight: "var(--weight-medium)", color: "#047857" }}>{v.match} products</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-sm)" }}>
-                      <span style={{ color: "#475569" }}>Missing</span>
-                      <span style={{ fontWeight: "var(--weight-medium)", color: "#b83210" }}>{v.miss}</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-sm)" }}>
-                      <span style={{ color: "#475569" }}>Extra</span>
-                      <span style={{ fontWeight: "var(--weight-medium)", color: "#047857" }}>{v.extra}</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-sm)" }}>
-                      <span style={{ color: "#475569" }}>Not counted yet</span>
-                      <span style={{ fontWeight: "var(--weight-medium)" }}>{v.left}</span>
-                    </div>
-                    <div style={{ height: "1px", background: "#e2e8f0" }} />
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                      <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>Net difference</span>
-                      <span style={__sx(`font-size: var(--text-2xl); line-height: 34px; font-weight: var(--weight-semibold); color: ${v.netColor ?? ""};`)}>{v.net}</span>
-                    </div>
-                    <p style={{ margin: "0", fontSize: "var(--text-xs-plus)", lineHeight: "19px", color: "#475569" }}>A manager approves the difference with their PIN. It is then saved as stock changes with the reason “Count difference”. Products not counted stay as they are.</p>
-                    <button type="button" className="btn solid big" style={{ width: "100%" }} onClick={v.finish}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M20 6 9 17l-5-5" />
-                      </svg>
-                      <span>Finish and post difference</span>
-                    </button>
-                    <button type="button" className="btn line" style={{ width: "100%" }} onClick={v.saveLater}>Save and continue later</button>
-                  </section>
-                </aside>
-              </div>
-              </>) : null}
-              {v.finished ? (<>
-                <section className="card fade" style={{ padding: "28px 24px", display: "flex", flexDirection: "column", gap: "14px", alignItems: "center", textAlign: "center", maxWidth: "520px", alignSelf: "center" }}>
-                  <span style={{ width: "64px", height: "64px", borderRadius: "var(--radius-full)", background: "#e7f8f1", color: "var(--text-success)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M20 6 9 17l-5-5" />
-                    </svg>
-                  </span>
-                  <h2 style={{ margin: "0", fontSize: "var(--text-xl)", lineHeight: "28px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Count posted</h2>
-                  <p style={{ margin: "0", fontSize: "var(--text-sm)", lineHeight: "22px", color: "#475569" }}>{v.doneText}</p>
-                  <div style={{ display: "flex", gap: "12px", width: "100%" }}>
-                    <__Link href="/stock" className="btn line" style={{ flex: "1" }}>Back to stock list</__Link>
-                    <button type="button" className="btn solid" style={{ flex: "1" }} onClick={v.again}>Start another count</button>
-                  </div>
-                </section>
-              </>) : null}
+              ) : (
+                <div className="ix-page ix-page--narrow">
+                  <ShopHeader icon="clipboard-check" title="Stock count"
+                    about="Count what is on the shelf at one place. Selling is paused there while you count; a manager approves the difference with their PIN and it is saved as stock changes."
+                    secondary={[{ label: 'Stock adjustments', href: '/stock-adjustments' }]} />
+                  {v.notFinished ? (
+                    <section className="ix-card" aria-labelledby="sc-setup-h">
+                      <div className="ix-card__head"><h2 id="sc-setup-h">Start a stock count</h2></div>
+                      <div className="ix-card__body sc-form">
+                        <div>
+                          <label className="gc-label" htmlFor="sc-place">Where are you counting? *</label>
+                          <select id="sc-place" className="gc-input gc-select" value={v.place} onChange={v.onPlace}>
+                            {v.places.map((x) => (<option key={x}>{x}</option>))}
+                          </select>
+                          <p className="sc-help" style={{ marginTop: 'var(--space-1)' }}>Choose where you are counting. Selling is paused there while you count, so the numbers do not move.</p>
+                        </div>
+                        <div>
+                          <span className="gc-label" id="sc-area-l">What are you counting?</span>
+                          <div className="ix-chips" role="group" aria-labelledby="sc-area-l">
+                            {v.areas.map((a) => (<button key={a.key} type="button" className="ix-chip" aria-pressed={a.on} onClick={a.onClick}>{a.label}</button>))}
+                          </div>
+                        </div>
+                        <p className="sc-help">{v.all} products to count at {v.place}.</p>
+                        <div><button type="button" className="ix-btn ix-btn--primary" onClick={v.startCount} disabled={!v.all}><__Icon name="clipboard-check" width="16" height="16" aria-hidden="true" />Start count</button></div>
+                      </div>
+                    </section>
+                  ) : (
+                    <section className="ix-card ix-card--pad sc-done" aria-labelledby="sc-done-h">
+                      <h2 id="sc-done-h"><__Icon name="circle-check" width="16" height="16" aria-hidden="true" />Count posted</h2>
+                      <p>{v.doneText}</p>
+                      <div className="sc-done__acts">
+                        <__Link href="/stock" className="ix-btn">Back to stock list</__Link>
+                        <button type="button" className="ix-btn ix-btn--primary" onClick={v.again}>Start another count</button>
+                      </div>
+                    </section>
+                  )}
+                  <LearnMore topic="stock counts" />
+                </div>
+              )}
             </div>
           </main>
         </div>

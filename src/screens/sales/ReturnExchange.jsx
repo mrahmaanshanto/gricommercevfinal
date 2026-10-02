@@ -11,17 +11,18 @@
 // twice, takes money off the due when chosen, and moves the stock (back on sale, or to damaged).
 // Money paid out (cash, bKash, Nagad, card) or collected on an exchange is posted to the ledger, so
 // Accounts shows it; "Cut from due" and store credit move no money.
+// Layout (IndexKit): RecordHeader, the two steps on the left and the summary (or the saved return) on the
+// right. Today's return figures are on Return history.
 // Front end only: sales, invoices and orders come from this browser plus two demo memos.
 
 import React, { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { PageHeader } from '@/components/ui';
+import { RecordHeader, KV } from '@/components/ui/IndexKit';
 import { ManagerPin } from '@/components/ManagerPin';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
-import { addReturn, getReturns, returnedFromHistory, cutFromHistory, storeCreditFor } from '@/lib/returns';
+import { addReturn, returnedFromHistory, cutFromHistory, storeCreditFor } from '@/lib/returns';
 import { POS_KEYS, load, save, getSettings, getCounters, EMPLOYEES } from '@/lib/posStore';
 import { getInvoices, saveInvoice, stockOutAtSale, sentOf } from '@/lib/invoices';
 import { extraOrders, updateOrder } from '@/lib/orderLinks';
@@ -117,39 +118,31 @@ function buildSources() {
 }
 
 const CSS = `
-.re-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:var(--space-4);align-items:start}
-.re-col{display:flex;flex-direction:column;gap:var(--space-4);min-width:0}
-.re-card{padding:var(--space-4);gap:var(--space-3)}
-.re-head{display:flex;align-items:center;gap:var(--space-3)}
-.re-head h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.re-head p{margin:0 0 0 auto;font-size:var(--text-xs);color:var(--text-muted)}
-.re-step{display:grid;place-items:center;width:24px;height:24px;flex:none;border-radius:var(--radius-full);background:var(--primary);color:#fff;font-size:var(--text-xs);font-weight:var(--weight-medium)}
-.re-step.is-off{background:var(--slate-300)}
-.re-find{display:flex;flex-wrap:wrap;gap:var(--space-2);margin:0}
-.re-search{position:relative;flex:1 1 220px;min-width:0}
-.re-search svg{position:absolute;left:12px;top:13px;color:var(--text-muted);pointer-events:none}
-.re-search input{padding-left:38px;font-family:var(--font-data)}
-.re-chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid var(--border-field);border-radius:var(--radius-full);background:var(--surface-card);font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body);white-space:nowrap;cursor:pointer}
+.re-body{display:flex;flex-direction:column;gap:var(--space-3)}
+.re-find{display:flex;gap:var(--space-2);margin:0}
+.re-find .ix-search{flex:1 1 auto}
+.re-find .ix-search input{font-family:var(--font-data)}
+.re-chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border:1px solid var(--border-field);border-radius:var(--radius-full);background:var(--surface-card);font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body);white-space:nowrap;cursor:pointer}
 .re-chip:hover{border-color:var(--border-field-hover)}
 .re-chip.is-on{border-color:var(--primary);background:var(--fill-primary-soft);color:var(--primary)}
 .re-chip:disabled{opacity:.5;cursor:not-allowed}
-.re-memo{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4);padding:var(--space-3);border-radius:var(--radius-lg);background:var(--surface-subtle)}
-.re-memo__ico{display:grid;place-items:center;width:36px;height:36px;flex:none;border-radius:var(--radius-lg);background:var(--surface-card);color:var(--primary)}
+.re-memo{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--surface-subtle)}
+.re-memo__ico{display:grid;place-items:center;width:32px;height:32px;flex:none;border-radius:var(--radius-lg);background:var(--surface-card);color:var(--primary)}
 .re-memo__main{flex:1;min-width:180px}
 .re-strong{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 .re-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}
-.re-memo__total{font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--text-heading);font-variant-numeric:tabular-nums}
+.re-memo__total{font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading);font-variant-numeric:tabular-nums}
 .re-results{display:flex;flex-direction:column;gap:var(--space-1)}
-.re-res{display:grid;grid-template-columns:minmax(120px,1fr) minmax(0,1.3fr) 92px 96px 88px;align-items:center;gap:var(--space-3);min-height:48px;padding:6px var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font:inherit;font-size:var(--text-sm);color:var(--text-body);text-align:left;cursor:pointer}
+.re-res{display:grid;grid-template-columns:minmax(120px,1fr) minmax(0,1.3fr) 92px 96px 88px;align-items:center;gap:var(--space-3);min-height:40px;padding:4px var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font:inherit;font-size:var(--text-sm);color:var(--text-body);text-align:left;cursor:pointer}
 .re-res:hover{border-color:var(--primary);background:var(--fill-primary-soft)}
-.re-res__id{font-family:var(--font-data);font-weight:var(--weight-medium);color:var(--primary);overflow-wrap:anywhere}
+.re-res__id{font-family:var(--font-data);font-weight:var(--weight-medium);color:var(--text-heading);overflow-wrap:anywhere}
 .re-res__who{min-width:0;color:var(--text-heading)}
 .re-res__who small{display:block;font-size:var(--text-xs);color:var(--text-muted);font-family:var(--font-data)}
 .re-res__when{font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap}
 .re-res__total{text-align:right;font-weight:var(--weight-medium);color:var(--text-heading);font-variant-numeric:tabular-nums;white-space:nowrap}
 .re-res .gc-badge{justify-self:end;white-space:nowrap}
 .re-items{margin:0;padding:0;list-style:none;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden}
-.re-item{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);min-height:52px;padding:6px var(--space-3);border-top:1px solid var(--border-subtle)}
+.re-item{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);min-height:44px;padding:4px var(--space-3);border-top:1px solid var(--border-subtle)}
 .re-item:first-child{border-top:0}
 .re-item.is-on{background:var(--fill-primary-soft)}
 .re-item.is-done{background:var(--surface-subtle)}
@@ -159,26 +152,26 @@ const CSS = `
 .re-item__val{flex:none;min-width:64px;margin-left:auto;text-align:right;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);font-variant-numeric:tabular-nums;white-space:nowrap}
 .re-item__val.is-off{font-size:var(--text-xs);font-weight:var(--weight-regular);color:var(--text-muted)}
 .re-stepper{display:flex;align-items:center;gap:2px;flex:none;padding:2px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card)}
-.re-stepper button{display:grid;place-items:center;width:32px;height:32px;border:0;border-radius:var(--radius-md);background:none;color:var(--text-body);cursor:pointer}
+.re-stepper button{display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:var(--radius-md);background:none;color:var(--text-body);cursor:pointer}
 .re-stepper button:hover{background:var(--surface-subtle)}
 .re-stepper button:disabled{opacity:.4;cursor:not-allowed}
 .re-stepper b{min-width:24px;text-align:center;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);font-variant-numeric:tabular-nums}
-.re-cap{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
+.re-cap{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body)}
 .re-block{display:flex;flex-direction:column;gap:var(--space-2)}
 .re-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
-.re-lock{display:flex;flex-direction:column;gap:var(--space-3);min-width:0;margin:0;padding:0;border:0}
-.re-seg{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;border-radius:var(--radius-lg);background:var(--slate-150)}
-.re-seg button{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;border:0;border-radius:var(--radius-md);background:none;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer}
-.re-seg button.is-on{background:#fff;color:var(--primary);box-shadow:0 1px 2px rgba(48,46,56,.12)}
+.re-lock{display:flex;flex-direction:column;gap:var(--space-4);min-width:0;margin:0;padding:0;border:0}
+.re-seg{display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:2px;border-radius:var(--radius-lg);background:var(--surface-subtle)}
+.re-seg button{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:28px;border:0;border-radius:var(--radius-md);background:none;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer}
+.re-seg button.is-on{background:var(--surface-card);color:var(--primary);box-shadow:var(--shadow-xs)}
 .re-seg--sm{display:inline-grid;grid-template-columns:auto auto}
-.re-seg--sm button{height:32px;padding:0 14px}
+.re-seg--sm button{padding:0 12px}
 .re-cands{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2)}
-.re-cand{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-height:52px;padding:4px var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font:inherit;font-size:var(--text-sm);color:var(--text-heading);text-align:left;cursor:pointer}
+.re-cand{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-height:44px;padding:4px var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font:inherit;font-size:var(--text-sm);color:var(--text-heading);text-align:left;cursor:pointer}
 .re-cand.is-on{border-color:var(--primary);background:var(--fill-primary-soft)}
 .re-cand:disabled{opacity:.55;cursor:not-allowed}
 .re-cand small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .re-cand__price{flex:none;font-variant-numeric:tabular-nums;color:var(--text-body)}
-.re-note{display:flex;align-items:flex-start;gap:var(--space-2);padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);font-size:var(--text-xs);line-height:18px}
+.re-note{display:flex;align-items:flex-start;gap:var(--space-2);margin:0;padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);font-size:var(--text-xs);line-height:18px}
 .re-note svg{flex:none;margin-top:1px}
 .re-note--ok{background:var(--fill-success-soft);color:var(--text-success)}
 .re-note--warn{background:var(--fill-warning-soft);color:var(--text-warning)}
@@ -187,37 +180,30 @@ const CSS = `
 .re-sum{display:grid;grid-template-columns:1fr auto;gap:6px var(--space-3);margin:0;font-size:var(--text-sm)}
 .re-sum dt{color:var(--text-body)}
 .re-sum dd{margin:0;text-align:right;font-weight:var(--weight-medium);color:var(--text-heading);font-variant-numeric:tabular-nums}
-.re-facts{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px var(--space-3);margin:0;font-size:var(--text-sm)}
-.re-facts dt{color:var(--text-muted)}
-.re-facts dd{margin:0;text-align:right;color:var(--text-heading);overflow-wrap:anywhere}
 .re-big{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3);border-radius:var(--radius-lg)}
-.re-big__ico{display:grid;place-items:center;width:40px;height:40px;flex:none;border-radius:var(--radius-lg);background:rgba(255,255,255,.7)}
+.re-big__ico{display:grid;place-items:center;width:32px;height:32px;flex:none;border-radius:var(--radius-lg);background:var(--surface-card)}
 .re-big span{display:block;font-size:var(--text-xs);font-weight:var(--weight-medium)}
-.re-big b{display:block;font-size:var(--text-2xl);line-height:30px;font-weight:var(--weight-semibold);font-variant-numeric:tabular-nums}
+.re-big b{display:block;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);font-variant-numeric:tabular-nums}
 .re-big--out{background:var(--fill-warning-soft);color:var(--text-warning)}
 .re-big--in{background:var(--fill-success-soft);color:var(--text-success)}
 .re-big--due{background:var(--fill-primary-soft);color:var(--primary)}
 .re-big--even{background:var(--surface-subtle);color:var(--text-body)}
 .re-switch{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);font-size:var(--text-sm);color:var(--text-body)}
-.re-done__ico{display:grid;place-items:center;width:32px;height:32px;flex:none;border-radius:var(--radius-full);background:var(--fill-success-soft);color:var(--text-success)}
+.re-done{display:grid;place-items:center;width:20px;height:20px;flex:none;border-radius:var(--radius-full);background:var(--fill-success-soft);color:var(--text-success)}
 .re-actions{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2)}
-@media (max-width:1100px){.re-grid{grid-template-columns:minmax(0,1fr)}}
+.re-empty{margin:0;font-size:var(--text-sm);color:var(--text-muted)}
 @media (max-width:760px){.re-res{grid-template-columns:minmax(0,1fr) auto}.re-res__when{grid-column:1}.re-res .gc-badge{grid-column:2;grid-row:1}}
 @media (max-width:599px){.re-cands{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:640px){
-  /* step heads: number + title on one row, the helper line under the title */
-  .re-head{flex-wrap:wrap;row-gap:2px}
-  .re-head h2{flex:1 1 0;min-width:0}
-  .re-head p{flex:1 0 100%;margin:0}
-  .re-head > .re-step ~ p{padding-left:36px}
-  .re-head > .re-done__ico ~ p{padding-left:44px}
+  .re-chip{height:36px}
+  .re-seg button,.re-stepper button{height:36px}
+  .re-stepper button{width:36px}
 }
 `;
 
 export default function ReturnExchange() {
   const [ready, setReady] = useState(false);
   const [sources, setSources] = useState([]);
-  const [hist, setHist] = useState([]);
   const [returnDays, setReturnDays] = useState(7);
   const [q, setQ] = useState('');
   const [selKey, setSelKey] = useState('');
@@ -236,7 +222,7 @@ export default function ReturnExchange() {
   const [saved, setSaved] = useState(null);            // the confirmed return; the form is locked while set
   const [tick, setTick] = useState(0);                 // bumps after a save so stock figures re-read
 
-  const reload = () => { const list = buildSources(); setSources(list); setHist(getReturns()); setTick((n) => n + 1); return list; };
+  const reload = () => { const list = buildSources(); setSources(list); setTick((n) => n + 1); return list; };
   const matchRef = (s, ref) => { const r = String(ref).trim().toLowerCase(); return [s.id, s.ref, s.orderId, s.label].some((x) => x && String(x).toLowerCase() === r); };
 
   useEffect(() => {
@@ -435,10 +421,6 @@ export default function ReturnExchange() {
 
   const newReturn = () => { setSaved(null); setSelKey(''); setQ(''); setPicks({}); setApprovedBy(''); setMethod(''); setMode('ret'); setNewSku(''); setNewQty(1); setNq(''); };
 
-  // today, from the history
-  const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
-  const todays = hist.filter((r) => r.at >= dayStart.getTime());
-  const refundedToday = todays.reduce((a, r) => a + (r.money === 'refunded' || r.money === 'credited' ? r.amount || 0 : 0), 0);
   const lock = !!saved;
 
   return (
@@ -446,213 +428,214 @@ export default function ReturnExchange() {
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="gc-shell">
         <Sidebar sticky="" active="sales-return" />
-        <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
+        <main className="gc-shell__main">
           <Topbar crumb="Sales" page="Return & exchange" />
-          <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-            <PageHeader
-              title="Return & exchange"
-              about="Counter sales, wholesale invoices and online orders. Find the sale, tick what is coming back; money and stock are updated for you."
-              actions={<>
-                <Link href="/return-history" className="gc-btn gc-btn--neutral"><Icon name="history" width="18" height="18" aria-hidden="true" /> Return history</Link>
-                <Link href="/sales-book" className="gc-btn gc-btn--neutral"><Icon name="book-open" width="18" height="18" aria-hidden="true" /> Sales book</Link>
-              </>}
-            />
+          <div className="gc-shell__content">
+            <div className="ix-page">
+              <RecordHeader title="Return & exchange" meta={`${returnDays}-day return window · older sales need a manager`}
+                about="Counter sales, wholesale invoices and online orders. Find the sale, tick what is coming back; money and stock are updated for you."
+                secondary={[{ label: 'Return history', href: '/return-history' }]}
+                more={[{ label: 'Sales book', href: '/sales-book' }]} />
 
-            <div className="gc-kpis gc-kpis--tight">
-              {todays.some((r) => r.type === 'return') ? <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-warning-soft)', color: 'var(--text-warning)' }}><Icon name="undo-2" width="20" height="20" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Returns today</p><p className="gc-kpi__value">{todays.filter((r) => r.type === 'return').length}</p></div></div> : null}
-              {refundedToday ? <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-error-soft)', color: 'var(--text-danger)' }}><Icon name="hand-coins" width="20" height="20" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Given back today</p><p className="gc-kpi__value">{money(refundedToday)}</p></div></div> : null}
-              {todays.some((r) => r.type === 'exchange') ? <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="arrow-left-right" width="20" height="20" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Exchanges today</p><p className="gc-kpi__value">{todays.filter((r) => r.type === 'exchange').length}</p></div></div> : null}
-              <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-info-soft)', color: 'var(--text-info)' }}><Icon name="calendar-clock" width="20" height="20" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Return window</p><p className="gc-kpi__value">{returnDays} days<small>Older sales need a manager</small></p></div></div>
-            </div>
-
-            <div className="re-grid">
-              <div className="re-col">
-                {/* step 1 */}
-                <section className="gc-card re-card">
-                  <div className="re-head"><span className="re-step">1</span><h2>Find the sale</h2></div>
-                  <form className="re-find" onSubmit={find}>
-                    <label className="re-search"><Icon name="search" width="18" height="18" aria-hidden="true" /><input className="gc-input" value={q} disabled={lock} onChange={(e) => { setQ(e.target.value); if (sel) setSelKey(''); }} placeholder="Memo, invoice or mobile" aria-label="Memo, invoice or order number, or customer’s mobile number" /></label>
-                    <button type="submit" className="gc-btn gc-btn--solid" disabled={lock}><Icon name="search" width="18" height="18" aria-hidden="true" /> Find</button>
-                  </form>
-                  {sel ? (
-                    <>
-                      <div className="re-memo" role="status">
-                        <span className="re-memo__ico" aria-hidden="true"><Icon name={sel.channel === 'Online' ? 'package' : sel.kind === 'invoice' ? 'file-text' : 'receipt-text'} width="18" height="18" /></span>
-                        <div className="re-memo__main">
-                          <span className="re-strong">{sel.label} · {custName}</span>
-                          <span className="re-sub">{formatDate(sel.at)}, {formatTime(sel.at)} · {sel.lines.length} {sel.lines.length === 1 ? 'line' : 'lines'}{sel.cashier ? ' · sold by ' + sel.cashier : ''}{phone ? ' · ' + prettyPhone(phone) : ''} · {sel.place}</span>
+              <div className="ix-record">
+                <div className="ix-main">
+                  <section className="ix-card" aria-labelledby="re-find">
+                    <header className="ix-card__head"><h2 id="re-find">Find the sale</h2></header>
+                    <div className="ix-card__body re-body">
+                      <form className="re-find" onSubmit={find}>
+                        <label className="ix-search"><Icon name="search" width="16" height="16" aria-hidden="true" /><input value={q} disabled={lock} onChange={(e) => { setQ(e.target.value); if (sel) setSelKey(''); }} placeholder="Memo, invoice or mobile" aria-label="Memo, invoice or order number, or customer’s mobile number" /></label>
+                        <button type="submit" className="ix-btn ix-btn--primary" disabled={lock}>Find</button>
+                      </form>
+                      {sel ? (
+                        <>
+                          <div className="re-memo" role="status">
+                            <span className="re-memo__ico" aria-hidden="true"><Icon name={sel.channel === 'Online' ? 'package' : sel.kind === 'invoice' ? 'file-text' : 'receipt-text'} width="16" height="16" /></span>
+                            <div className="re-memo__main">
+                              <span className="re-strong">{sel.label} · {custName}</span>
+                              <span className="re-sub">{formatDate(sel.at)}, {formatTime(sel.at)} · {sel.lines.length} {sel.lines.length === 1 ? 'line' : 'lines'}{sel.cashier ? ' · sold by ' + sel.cashier : ''}{phone ? ' · ' + prettyPhone(phone) : ''} · {sel.place}</span>
+                            </div>
+                            <span className={'gc-badge gc-badge--' + CHANNEL_TONE[sel.channel]}>{sel.channel}</span>
+                            <span className={'gc-badge gc-badge--' + (due > 0 ? 'warning' : 'success')}>{due > 0 ? `${money(due)} due` : 'Paid'}</span>
+                            <span className="re-memo__total">{money(sel.totals.total)}</span>
+                            {!lock ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => setSelKey('')}>Change</button> : null}
+                          </div>
+                          {outside ? (
+                            approvedBy
+                              ? <p className="re-note re-note--ok" role="status"><Icon name="shield-check" width="16" height="16" aria-hidden="true" />Outside the {returnDays}-day return window · approved by {approvedBy}</p>
+                              : <p className="re-note re-note--warn" role="status"><Icon name="clock-alert" width="16" height="16" aria-hidden="true" />Outside the {returnDays}-day return window (sold {ageDays} days ago). A manager must approve before you confirm.</p>
+                          ) : null}
+                          {!sel.open && !lock ? <p className="re-note re-note--warn" role="status"><Icon name="circle-slash" width="16" height="16" aria-hidden="true" />Everything on this sale has already come back.</p> : null}
+                        </>
+                      ) : !ready ? null : (
+                        <div className="re-results">
+                          <span className="re-cap">{text ? (matches.length ? `${matches.length} ${matches.length === 1 ? 'sale' : 'sales'} found` : 'Nothing found') : 'Recent sales'}</span>
+                          {matches.map((s) => (
+                            <button key={s.key} type="button" className="re-res" onClick={() => choose(s)} aria-label={`Open ${s.label}, ${s.customer.name || 'Walk-in customer'}`}>
+                              <span className="re-res__id">{s.label}</span>
+                              <span className="re-res__who">{s.customer.name || 'Walk-in customer'}{s.customer.phone ? <small>{prettyPhone(s.customer.phone)}</small> : null}</span>
+                              <span className="re-res__when">{formatDate(s.at)}</span>
+                              <span className="re-res__total">{money(s.totals.total)}</span>
+                              <span className={'gc-badge gc-badge--' + CHANNEL_TONE[s.channel]}>{s.channel}</span>
+                            </button>
+                          ))}
+                          {text && !matches.length ? <p className="re-note re-note--warn" role="status"><Icon name="search-x" width="16" height="16" aria-hidden="true" />No sale matches that. Check the memo, invoice or order number, or the customer’s mobile number.</p> : null}
                         </div>
-                        <span className={'gc-badge gc-badge--' + CHANNEL_TONE[sel.channel]}>{sel.channel}</span>
-                        <span className={'gc-badge gc-badge--' + (due > 0 ? 'warning' : 'success')}>{due > 0 ? `${money(due)} due` : 'Paid'}</span>
-                        <span className="re-memo__total">{money(sel.totals.total)}</span>
-                        {!lock ? <button type="button" className="gc-btn gc-btn--neutral gc-btn--sm" onClick={() => setSelKey('')}>Change</button> : null}
-                      </div>
-                      {outside ? (
-                        approvedBy
-                          ? <div className="re-note re-note--ok" role="status"><Icon name="shield-check" width="16" height="16" aria-hidden="true" />Outside the {returnDays}-day return window · approved by {approvedBy}</div>
-                          : <div className="re-note re-note--warn" role="status"><Icon name="clock-alert" width="16" height="16" aria-hidden="true" />Outside the {returnDays}-day return window (sold {ageDays} days ago). A manager must approve before you confirm.</div>
-                      ) : null}
-                      {!sel.open && !lock ? <div className="re-note re-note--warn" role="status"><Icon name="circle-slash" width="16" height="16" aria-hidden="true" />Everything on this sale has already come back.</div> : null}
-                    </>
-                  ) : !ready ? null : (
-                    <div className="re-results">
-                      <span className="re-cap">{text ? (matches.length ? `${matches.length} ${matches.length === 1 ? 'sale' : 'sales'} found` : 'Nothing found') : 'Recent sales'}</span>
-                      {matches.map((s) => (
-                        <button key={s.key} type="button" className="re-res" onClick={() => choose(s)} aria-label={`Open ${s.label}, ${s.customer.name || 'Walk-in customer'}`}>
-                          <span className="re-res__id">{s.label}</span>
-                          <span className="re-res__who">{s.customer.name || 'Walk-in customer'}{s.customer.phone ? <small>{prettyPhone(s.customer.phone)}</small> : null}</span>
-                          <span className="re-res__when">{formatDate(s.at)}</span>
-                          <span className="re-res__total">{money(s.totals.total)}</span>
-                          <span className={'gc-badge gc-badge--' + CHANNEL_TONE[s.channel]}>{s.channel}</span>
-                        </button>
-                      ))}
-                      {text && !matches.length ? <div className="re-note re-note--warn" role="status"><Icon name="search-x" width="16" height="16" aria-hidden="true" />No sale matches that. Check the memo, invoice or order number, or the customer’s mobile number.</div> : null}
+                      )}
                     </div>
-                  )}
-                </section>
+                  </section>
 
-                {/* step 2 */}
-                {sel ? (<section className="gc-card re-card">
-                  <div className="re-head"><span className={'re-step' + (sel ? '' : ' is-off')}>2</span><h2>What is coming back?</h2></div>
-                  {!sel ? null : (
-                    <fieldset className="re-lock" disabled={lock}>
-                      <legend className="sr-only">Items and how they are settled</legend>
-                      <ul className="re-items">
-                        {sel.lines.map((l) => {
-                          const n = picks[l.id] || 0;
-                          return (
-                            <li key={l.id} className={'re-item' + (n ? ' is-on' : '') + (l.left ? '' : ' is-done')}>
-                              <label>
-                                <input type="checkbox" className="gc-check" disabled={!l.left} checked={n > 0} onChange={() => setPick(l.id, n ? 0 : 1)} />
-                                <span><span className="re-strong">{l.name}</span><span className="re-sub">Sold {l.qty} · {money(l.each)} paid each{l.done ? ` · ${l.done} already returned` : ''}</span></span>
-                              </label>
-                              {!l.left ? <span className="gc-badge gc-badge--slate">Returned</span> : n ? (
-                                <span className="re-stepper">
-                                  <button type="button" aria-label={`One less ${l.name}`} disabled={n <= 1} onClick={() => setPick(l.id, n - 1)}><Icon name="minus" width="16" height="16" /></button>
-                                  <b aria-label={`${n} coming back`}>{n}</b>
-                                  <button type="button" aria-label={`One more ${l.name}`} disabled={n >= l.left} onClick={() => setPick(l.id, n + 1)}><Icon name="plus" width="16" height="16" /></button>
-                                </span>
-                              ) : null}
-                              <span className={'re-item__val' + (n ? '' : ' is-off')}>{n ? money(l.each * n) : l.left ? `${l.left} can come back` : 'Nothing left'}</span>
-                            </li>
-                          );
-                        })}
-                      </ul>
-
-                      <div className="re-block">
-                        <span className="re-cap">Why is it coming back?</span>
-                        <div className="re-row" role="group" aria-label="Reason">
-                          {REASONS.map(([id, label, icon]) => <button key={id} type="button" className={'re-chip' + (reason === id ? ' is-on' : '')} aria-pressed={reason === id} onClick={() => { setReason(id); setResellPick(null); }}><Icon name={icon} width="14" height="14" aria-hidden="true" />{label}</button>)}
-                        </div>
-                      </div>
-
-                      <div className="re-block">
-                        <span className="re-cap">What will you do?</span>
-                        <div className="re-seg" role="group" aria-label="Return or exchange">
-                          <button type="button" aria-pressed={mode === 'ret'} className={mode === 'ret' ? 'is-on' : ''} onClick={() => setMode('ret')}><Icon name="undo-2" width="16" height="16" aria-hidden="true" />Return (refund)</button>
-                          <button type="button" aria-pressed={mode === 'exch'} className={mode === 'exch' ? 'is-on' : ''} onClick={() => setMode('exch')}><Icon name="arrow-left-right" width="16" height="16" aria-hidden="true" />Exchange (other item)</button>
-                        </div>
-                      </div>
-
-                      {mode === 'exch' ? (
-                        <div className="re-block">
-                          <label className="re-search"><Icon name="search" width="18" height="18" aria-hidden="true" /><input className="gc-input" style={{ fontFamily: 'inherit' }} value={nq} onChange={(e) => setNq(e.target.value)} placeholder="Search the item the customer takes instead" aria-label="Search the item the customer takes instead" /></label>
-                          <div className="re-cands">
-                            {cands.map((p) => {
-                              const av = availOf(p);
+                  {sel ? (
+                    <section className="ix-card" aria-labelledby="re-back">
+                      <header className="ix-card__head"><h2 id="re-back">What is coming back?</h2></header>
+                      <div className="ix-card__body">
+                        <fieldset className="re-lock" disabled={lock}>
+                          <legend className="sr-only">Items and how they are settled</legend>
+                          <ul className="re-items">
+                            {sel.lines.map((l) => {
+                              const n = picks[l.id] || 0;
                               return (
-                                <button key={p.sku} type="button" className={'re-cand' + (p.sku === newP.sku ? ' is-on' : '')} aria-pressed={p.sku === newP.sku} disabled={!av} onClick={() => { setNewSku(p.sku); setNewQty(1); }}>
-                                  <span><span>{p.name}</span><small>{av ? `${av} at ${sel.place}` : `Out of stock at ${sel.place}`}</small></span>
-                                  <span className="re-cand__price">{money(unitOf(p))}</span>
-                                </button>
+                                <li key={l.id} className={'re-item' + (n ? ' is-on' : '') + (l.left ? '' : ' is-done')}>
+                                  <label>
+                                    <input type="checkbox" className="gc-check" disabled={!l.left} checked={n > 0} onChange={() => setPick(l.id, n ? 0 : 1)} />
+                                    <span><span className="re-strong">{l.name}</span><span className="re-sub">Sold {l.qty} · {money(l.each)} paid each{l.done ? ` · ${l.done} already returned` : ''}</span></span>
+                                  </label>
+                                  {!l.left ? <span className="gc-badge gc-badge--slate">Returned</span> : n ? (
+                                    <span className="re-stepper">
+                                      <button type="button" aria-label={`One less ${l.name}`} disabled={n <= 1} onClick={() => setPick(l.id, n - 1)}><Icon name="minus" width="16" height="16" /></button>
+                                      <b aria-label={`${n} coming back`}>{n}</b>
+                                      <button type="button" aria-label={`One more ${l.name}`} disabled={n >= l.left} onClick={() => setPick(l.id, n + 1)}><Icon name="plus" width="16" height="16" /></button>
+                                    </span>
+                                  ) : null}
+                                  <span className={'re-item__val' + (n ? '' : ' is-off')}>{n ? money(l.each * n) : l.left ? `${l.left} can come back` : 'Nothing left'}</span>
+                                </li>
                               );
                             })}
-                          </div>
-                          <div className="re-row">
-                            <span className="re-sub">Taking: <b style={{ color: 'var(--text-heading)', fontWeight: 'var(--weight-medium)' }}>{newP.name}</b>{sel.vat ? ' · price includes VAT' : ''}</span>
-                            <span className="re-stepper">
-                              <button type="button" aria-label="One less of the new item" disabled={qtyNew <= 1} onClick={() => setNewQty(qtyNew - 1)}><Icon name="minus" width="16" height="16" /></button>
-                              <b aria-label={`${qtyNew} of the new item`}>{qtyNew}</b>
-                              <button type="button" aria-label="One more of the new item" disabled={qtyNew >= newAvail} onClick={() => setNewQty(qtyNew + 1)}><Icon name="plus" width="16" height="16" /></button>
-                            </span>
-                          </div>
-                        </div>
-                      ) : null}
+                          </ul>
 
-                      {dir !== 'even' ? (
-                        <div className="re-block">
-                          <div className="re-row" role="group" aria-label={dir === 'in' ? 'Customer pays by' : 'Refund by'}>
-                            <span className="re-sub">{dir === 'in' ? 'Customer pays by:' : 'Refund by:'}</span>
-                            {methods.map((id) => {
-                              const off = id === 'Store credit' && !phone;
-                              return <button key={id} type="button" className={'re-chip' + (m === id ? ' is-on' : '')} aria-pressed={m === id} disabled={off} title={off ? 'Store credit needs the customer’s mobile number' : undefined} onClick={() => setMethod(id)}>{id === 'Cut from due' ? `Cut from due (${money(due)})` : id}</button>;
-                            })}
+                          <div className="re-block">
+                            <span className="re-cap">Why is it coming back?</span>
+                            <div className="re-row" role="group" aria-label="Reason">
+                              {REASONS.map(([id, label, icon]) => <button key={id} type="button" className={'re-chip' + (reason === id ? ' is-on' : '')} aria-pressed={reason === id} onClick={() => { setReason(id); setResellPick(null); }}><Icon name={icon} width="14" height="14" aria-hidden="true" />{label}</button>)}
+                            </div>
                           </div>
-                          {m === 'Store credit' ? <p className="gc-help" style={{ margin: 0 }}>{sel && sel.byWallet ? 'The sale was paid from the customer’s wallet, so it goes back to the wallet. ' : ''}{custName} has {money(credits)} store credit now; this adds {money(amt)}.</p> : null}
-                          {!phone && dir === 'out' ? <p className="gc-help" style={{ margin: 0 }}>Store credit needs the customer’s mobile number on the sale.</p> : null}
-                        </div>
-                      ) : null}
 
-                      <div className="re-resell">
-                        <div>
-                          <span className="re-strong">Can the returned item be sold again?</span>
-                          <span className="re-sub" style={{ color: resell ? 'var(--text-success)' : 'var(--text-danger)' }}>{resell ? `It goes back on sale at ${sel.place}` : `It goes to “${DAMAGED_PLACE}”, not back on sale`}</span>
-                          <span className="re-sub">{resellPick == null ? `Suggested for “${reasonLabel}”. Change it if needed.` : `You chose ${resell ? 'Yes' : 'No'}.`}</span>
-                        </div>
-                        <div className="re-seg re-seg--sm" role="group" aria-label="Can it be sold again">
-                          <button type="button" aria-pressed={resell} className={resell ? 'is-on' : ''} onClick={() => setResellPick(true)}>Yes</button>
-                          <button type="button" aria-pressed={!resell} className={resell ? '' : 'is-on'} onClick={() => setResellPick(false)}>No</button>
+                          <div className="re-block">
+                            <span className="re-cap">What will you do?</span>
+                            <div className="re-seg" role="group" aria-label="Return or exchange">
+                              <button type="button" aria-pressed={mode === 'ret'} className={mode === 'ret' ? 'is-on' : ''} onClick={() => setMode('ret')}><Icon name="undo-2" width="16" height="16" aria-hidden="true" />Return (refund)</button>
+                              <button type="button" aria-pressed={mode === 'exch'} className={mode === 'exch' ? 'is-on' : ''} onClick={() => setMode('exch')}><Icon name="arrow-left-right" width="16" height="16" aria-hidden="true" />Exchange (other item)</button>
+                            </div>
+                          </div>
+
+                          {mode === 'exch' ? (
+                            <div className="re-block">
+                              <label className="ix-search"><Icon name="search" width="16" height="16" aria-hidden="true" /><input value={nq} onChange={(e) => setNq(e.target.value)} placeholder="Search the item the customer takes instead" aria-label="Search the item the customer takes instead" /></label>
+                              <div className="re-cands">
+                                {cands.map((p) => {
+                                  const av = availOf(p);
+                                  return (
+                                    <button key={p.sku} type="button" className={'re-cand' + (p.sku === newP.sku ? ' is-on' : '')} aria-pressed={p.sku === newP.sku} disabled={!av} onClick={() => { setNewSku(p.sku); setNewQty(1); }}>
+                                      <span><span>{p.name}</span><small>{av ? `${av} at ${sel.place}` : `Out of stock at ${sel.place}`}</small></span>
+                                      <span className="re-cand__price">{money(unitOf(p))}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              <div className="re-row">
+                                <span className="re-sub">Taking: <b style={{ color: 'var(--text-heading)', fontWeight: 'var(--weight-medium)' }}>{newP.name}</b>{sel.vat ? ' · price includes VAT' : ''}</span>
+                                <span className="re-stepper">
+                                  <button type="button" aria-label="One less of the new item" disabled={qtyNew <= 1} onClick={() => setNewQty(qtyNew - 1)}><Icon name="minus" width="16" height="16" /></button>
+                                  <b aria-label={`${qtyNew} of the new item`}>{qtyNew}</b>
+                                  <button type="button" aria-label="One more of the new item" disabled={qtyNew >= newAvail} onClick={() => setNewQty(qtyNew + 1)}><Icon name="plus" width="16" height="16" /></button>
+                                </span>
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {dir !== 'even' ? (
+                            <div className="re-block">
+                              <div className="re-row" role="group" aria-label={dir === 'in' ? 'Customer pays by' : 'Refund by'}>
+                                <span className="re-sub">{dir === 'in' ? 'Customer pays by:' : 'Refund by:'}</span>
+                                {methods.map((id) => {
+                                  const off = id === 'Store credit' && !phone;
+                                  return <button key={id} type="button" className={'re-chip' + (m === id ? ' is-on' : '')} aria-pressed={m === id} disabled={off} title={off ? 'Store credit needs the customer’s mobile number' : undefined} onClick={() => setMethod(id)}>{id === 'Cut from due' ? `Cut from due (${money(due)})` : id}</button>;
+                                })}
+                              </div>
+                              {m === 'Store credit' ? <p className="gc-help" style={{ margin: 0 }}>{sel && sel.byWallet ? 'The sale was paid from the customer’s wallet, so it goes back to the wallet. ' : ''}{custName} has {money(credits)} store credit now; this adds {money(amt)}.</p> : null}
+                              {!phone && dir === 'out' ? <p className="gc-help" style={{ margin: 0 }}>Store credit needs the customer’s mobile number on the sale.</p> : null}
+                            </div>
+                          ) : null}
+
+                          <div className="re-resell">
+                            <div>
+                              <span className="re-strong">Can the returned item be sold again?</span>
+                              <span className="re-sub" style={{ color: resell ? 'var(--text-success)' : 'var(--text-danger)' }}>{resell ? `It goes back on sale at ${sel.place}` : `It goes to “${DAMAGED_PLACE}”, not back on sale`}</span>
+                              <span className="re-sub">{resellPick == null ? `Suggested for “${reasonLabel}”. Change it if needed.` : `You chose ${resell ? 'Yes' : 'No'}.`}</span>
+                            </div>
+                            <div className="re-seg re-seg--sm" role="group" aria-label="Can it be sold again">
+                              <button type="button" aria-pressed={resell} className={resell ? 'is-on' : ''} onClick={() => setResellPick(true)}>Yes</button>
+                              <button type="button" aria-pressed={!resell} className={resell ? '' : 'is-on'} onClick={() => setResellPick(false)}>No</button>
+                            </div>
+                          </div>
+                        </fieldset>
+                      </div>
+                    </section>
+                  ) : null}
+                </div>
+
+                <aside className="ix-side">
+                  {saved ? (
+                    <section className="ix-card" role="status" aria-live="polite" aria-labelledby="re-saved">
+                      <header className="ix-card__head"><h2 id="re-saved" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}><span className="re-done" aria-hidden="true"><Icon name="check" width="14" height="14" /></span>{saved.exch ? 'Exchange saved' : 'Return saved'}</h2><span className="re-sub">{formatTime(saved.at)}</span></header>
+                      <div className="ix-card__body re-body">
+                        <KV rows={[
+                          ['Return no.', <span key="id" style={{ fontFamily: 'var(--font-data)' }}>{saved.id}</span>],
+                          ['Sale', saved.label],
+                          ['Came back', saved.items],
+                          saved.exch ? ['Given instead', saved.given] : null,
+                          ['Money', saved.moneyText],
+                          ['Stock', saved.stockText],
+                          ['Taken back by', saved.by],
+                          saved.approver ? ['Approved by', saved.approver] : null,
+                        ]} />
+                        <div className="re-actions">
+                          <button type="button" className="gc-btn gc-btn--neutral" onClick={() => toast(`Return slip ${saved.id} sent to the printer`)}><Icon name="printer" width="16" height="16" aria-hidden="true" /> Print return slip</button>
+                          <button type="button" className="gc-btn gc-btn--solid" onClick={newReturn}><Icon name="plus" width="16" height="16" aria-hidden="true" /> New return</button>
                         </div>
                       </div>
-                    </fieldset>
+                    </section>
+                  ) : sel ? (
+                    <section className="ix-card" aria-labelledby="re-sum">
+                      <header className="ix-card__head"><h2 id="re-sum">Summary</h2><span className="re-sub">{sel.label}</span></header>
+                      <div className="ix-card__body re-body">
+                        <dl className="re-sum">
+                          <dt>Items coming back</dt><dd>{pcs} {pcs === 1 ? 'piece' : 'pieces'}</dd>
+                          <dt>Credit for them (paid price{sel.vat ? ', VAT incl.' : ''})</dt><dd>{money(credit)}</dd>
+                          {mode === 'exch' ? <><dt>New item · {newP.name} × {qtyNew}</dt><dd>{money(newVal)}</dd></> : null}
+                        </dl>
+                        <div className={'re-big re-big--' + big[0]} role="status">
+                          <span className="re-big__ico" aria-hidden="true"><Icon name={big[4]} width="16" height="16" /></span>
+                          <div><span>{big[1]}</span><b>{money(big[2])}</b><span style={{ fontWeight: 'var(--weight-regular)' }}>{big[3]}</span></div>
+                        </div>
+                        <p className={'re-note ' + (resell ? 're-note--ok' : 're-note--warn')}><Icon name={resell ? 'package-check' : 'package-x'} width="16" height="16" aria-hidden="true" />{pcs ? back.map((l) => `${l.name} × ${picks[l.id]}`).join(', ') + (resell ? ` — back on sale at ${sel.place}` : ` — goes to ${DAMAGED_PLACE}`) : 'No item ticked yet'}</p>
+                        {mode === 'exch' ? <p className="re-note re-note--info"><Icon name="package-minus" width="16" height="16" aria-hidden="true" />{newP.name} × {qtyNew} will leave stock at {sel.place}</p> : null}
+                        <div>
+                          <label className="gc-label" htmlFor="re-by">Taken back by</label>
+                          <select id="re-by" className="gc-input gc-select" value={staff} onChange={(e) => setBy(e.target.value)}>{EMPLOYEES.map((e) => <option key={e.name} value={e.name}>{e.name} · {e.branch}</option>)}</select>
+                        </div>
+                        <div className="re-switch"><span>Print a return slip</span><button type="button" role="switch" aria-checked={slip} aria-label="Print a return slip" className="gc-switch" onClick={() => setSlip(!slip)}><span className="gc-switch__knob" /></button></div>
+                        <button type="button" className="gc-btn gc-btn--solid gc-btn--block" onClick={confirm} disabled={!sel.open}>
+                          <Icon name={outside && !approvedBy ? 'shield-check' : 'check'} width="16" height="16" aria-hidden="true" /> {outside && !approvedBy ? 'Get manager approval' : mode === 'ret' ? 'Confirm return' : 'Confirm exchange'}
+                        </button>
+                      </div>
+                    </section>
+                  ) : (
+                    <section className="ix-card ix-card--pad" aria-label="Summary">
+                      <p className="re-empty">Find the sale, then tick what is coming back.</p>
+                    </section>
                   )}
-                </section>) : null}
+                </aside>
               </div>
-
-              <aside className="re-col">
-                {saved ? (
-                  <section className="gc-card re-card" role="status" aria-live="polite">
-                    <div className="re-head"><span className="re-done__ico" aria-hidden="true"><Icon name="check" width="18" height="18" /></span><h2>{saved.exch ? 'Exchange saved' : 'Return saved'}</h2><p>{formatTime(saved.at)}</p></div>
-                    <dl className="re-facts">
-                      <dt>Return no.</dt><dd style={{ fontFamily: 'var(--font-data)' }}>{saved.id}</dd>
-                      <dt>Sale</dt><dd>{saved.label}</dd>
-                      <dt>Came back</dt><dd>{saved.items}</dd>
-                      {saved.exch ? <><dt>Given instead</dt><dd>{saved.given}</dd></> : null}
-                      <dt>Money</dt><dd>{saved.moneyText}</dd>
-                      <dt>Stock</dt><dd>{saved.stockText}</dd>
-                      <dt>Taken back by</dt><dd>{saved.by}</dd>
-                      {saved.approver ? <><dt>Approved by</dt><dd>{saved.approver}</dd></> : null}
-                    </dl>
-                    <div className="re-actions">
-                      <button type="button" className="gc-btn gc-btn--neutral" onClick={() => toast(`Return slip ${saved.id} sent to the printer`)}><Icon name="printer" width="18" height="18" aria-hidden="true" /> Print return slip</button>
-                      <button type="button" className="gc-btn gc-btn--solid" onClick={newReturn}><Icon name="plus" width="18" height="18" aria-hidden="true" /> New return</button>
-                    </div>
-                  </section>
-                ) : sel ? (
-                  <section className="gc-card re-card">
-                    <div className="re-head"><h2>Summary</h2><p>{sel.label}</p></div>
-                    <dl className="re-sum">
-                      <dt>Items coming back</dt><dd>{pcs} {pcs === 1 ? 'piece' : 'pieces'}</dd>
-                      <dt>Credit for them (paid price{sel.vat ? ', VAT incl.' : ''})</dt><dd>{money(credit)}</dd>
-                      {mode === 'exch' ? <><dt>New item · {newP.name} × {qtyNew}</dt><dd>{money(newVal)}</dd></> : null}
-                    </dl>
-                    <div className={'re-big re-big--' + big[0]} role="status">
-                      <span className="re-big__ico" aria-hidden="true"><Icon name={big[4]} width="20" height="20" /></span>
-                      <div><span>{big[1]}</span><b>{money(big[2])}</b><span style={{ fontWeight: 'var(--weight-regular)' }}>{big[3]}</span></div>
-                    </div>
-                    <div className={'re-note ' + (resell ? 're-note--ok' : 're-note--warn')}><Icon name={resell ? 'package-check' : 'package-x'} width="16" height="16" aria-hidden="true" />{pcs ? back.map((l) => `${l.name} × ${picks[l.id]}`).join(', ') + (resell ? ` — back on sale at ${sel.place}` : ` — goes to ${DAMAGED_PLACE}`) : 'No item ticked yet'}</div>
-                    {mode === 'exch' ? <div className="re-note re-note--info"><Icon name="package-minus" width="16" height="16" aria-hidden="true" />{newP.name} × {qtyNew} will leave stock at {sel.place}</div> : null}
-                    <div>
-                      <label className="gc-label" htmlFor="re-by">Taken back by</label>
-                      <select id="re-by" className="gc-input gc-select" value={staff} onChange={(e) => setBy(e.target.value)}>{EMPLOYEES.map((e) => <option key={e.name} value={e.name}>{e.name} · {e.branch}</option>)}</select>
-                    </div>
-                    <div className="re-switch"><span>Print a return slip</span><button type="button" role="switch" aria-checked={slip} aria-label="Print a return slip" className="gc-switch" onClick={() => setSlip(!slip)}><span className="gc-switch__knob" /></button></div>
-                    <button type="button" className="gc-btn gc-btn--solid gc-btn--lg gc-btn--block" onClick={confirm} disabled={!sel.open}>
-                      <Icon name={outside && !approvedBy ? 'shield-check' : 'check'} width="18" height="18" aria-hidden="true" /> {outside && !approvedBy ? 'Get manager approval' : mode === 'ret' ? 'Confirm return' : 'Confirm exchange'}
-                    </button>
-                  </section>
-                ) : null}
-              </aside>
             </div>
           </div>
         </main>

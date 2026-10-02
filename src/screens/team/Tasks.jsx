@@ -6,6 +6,8 @@
 // A task has a team, several people, watchers, tags, type (task, IT request, bug, request), start and due dates,
 // estimate and time logged, checklist, files, "blocked by" other tasks, comments, history and "discuss in chat".
 // ?task=TK-101 opens a task; ?new=1 starts one; ?view=it opens the IT desk.
+// Laid out like a Shopify list: whose tasks are the view tabs, the search button opens search and filter pills, the
+// List / Board / Calendar / Workload switch sits under them, and selected tasks get a bulk bar.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -13,9 +15,10 @@ import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { navigate } from '@/runtime/routes';
 import { Dialog, EmptyState } from '@/components/ui';
-import { MobileFilters } from '@/components/ui/FilterBar';
+import { StatusBadge } from '@/components/ui';
+import { IndexTabs, SearchField, Menu, LearnMore } from '@/components/ui/IndexKit';
 import { formatDate, formatTime } from '@/lib/format';
-import { USERS, roleOf, userBy } from '@/lib/team';
+import { USERS, roleOf } from '@/lib/team';
 import {
   STATUSES, PRIORITIES, TYPES, IT_CATS, TONES, statusLabel, statusTone, priorityOf, saveTask, setStatus, toggleCheck, addComment, removeTask,
   dueState, dayKeyOf, getTeams, getTags, teamBy, tagBy, teamsOf, isMine, watching, bulkUpdate, saveTeam, removeTeam, saveTag, removeTag, openBlockers,
@@ -24,54 +27,52 @@ import { send } from '@/lib/teamChat';
 import { TeamPage, useMe, useTasks, UserAvatar, userName } from './teamShared';
 
 const CSS = `
-.tk-views{display:flex;gap:2px;overflow-x:auto;padding:0 var(--space-4);border-bottom:1px solid var(--border-subtle);scrollbar-width:none}
-.tk-views::-webkit-scrollbar{display:none}
-.tk-views button{display:inline-flex;align-items:center;gap:6px;flex:none;height:46px;padding:0 var(--space-3);border:0;border-bottom:2px solid transparent;background:none;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer}
-.tk-views button[aria-selected="true"]{color:var(--primary);border-bottom-color:var(--primary)}
-.tk-views b{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:var(--surface-subtle);font-size:var(--text-2xs);font-weight:var(--weight-semibold);display:inline-grid;place-items:center}
-.tk-group > h3{display:flex;align-items:center;gap:var(--space-2);margin:0;padding:var(--space-2) var(--space-5);font-size:var(--text-xs);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted);background:var(--surface-subtle);border-bottom:1px solid var(--border-subtle)}
-.tk-row{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-5);border-bottom:1px solid var(--border-subtle);cursor:pointer}
+.tk-shows{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);padding:6px 8px 6px 12px;border-bottom:1px solid var(--border-subtle)}
+.tk-shows .ix-pick{height:28px}
+.tk-group > h3{display:flex;align-items:center;gap:var(--space-2);min-height:32px;margin:0;padding:2px 12px 2px var(--space-4);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-body);background:var(--surface-subtle);border-bottom:1px solid var(--border-subtle)}
+.tk-group > h3 input{width:16px;height:16px;accent-color:var(--primary)}
+.tk-row{display:flex;align-items:center;gap:var(--space-3);min-height:44px;padding:6px var(--space-4);border-bottom:1px solid var(--border-subtle);cursor:pointer}
+.tk-row > input{width:16px;height:16px;flex:none;accent-color:var(--primary)}
 .tk-row:hover{background:var(--surface-subtle)}
 .tk-row.is-sel{background:var(--fill-primary-soft)}
 .tk-row.is-done .tk-title{text-decoration:line-through;color:var(--text-muted)}
-.tk-check{position:relative;display:grid;place-items:center;width:36px;height:36px;flex:none;margin:-6px;border:0;border-radius:var(--radius-full);background:none;color:var(--text-on-dark);cursor:pointer;padding:0}
-.tk-check::before{content:'';position:absolute;inset:6px;border:2px solid var(--border-strong, var(--border-field));border-radius:var(--radius-full);background:var(--surface-card)}
+.tk-check{position:relative;display:grid;place-items:center;width:32px;height:32px;flex:none;margin:-6px;border:0;border-radius:var(--radius-full);background:none;color:var(--text-on-dark);cursor:pointer;padding:0}
+.tk-check::before{content:'';position:absolute;inset:7px;border:2px solid var(--border-strong, var(--border-field));border-radius:var(--radius-full);background:var(--surface-card)}
 .tk-check > *{position:relative}
 .tk-check[aria-pressed="true"]::before{background:var(--text-success);border-color:var(--text-success)}
 .tk-main{flex:1;min-width:0}
 .tk-title{display:flex;align-items:center;gap:6px;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
-.tk-meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px var(--space-3);margin-top:4px;font-size:var(--text-xs);color:var(--text-muted)}
+.tk-meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px var(--space-3);margin-top:2px;font-size:var(--text-xs);color:var(--text-muted)}
 .tk-meta > span{display:inline-flex;align-items:center;gap:4px}
 .tk-due--overdue{color:var(--text-danger);font-weight:var(--weight-medium)}
 .tk-due--today{color:var(--text-warning);font-weight:var(--weight-medium)}
-.tk-tag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-2xs);font-weight:var(--weight-medium)}
-.tk-team{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:var(--radius-full);background:var(--surface-subtle);font-size:var(--text-2xs);font-weight:var(--weight-medium);color:var(--text-body)}
+.tk-tag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-2xs);font-weight:var(--weight-medium)}
+.tk-team{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 8px;border-radius:var(--radius-full);background:var(--surface-subtle);font-size:var(--text-2xs);font-weight:var(--weight-medium);color:var(--text-body)}
 .tk-stack{display:flex;flex:none}
 .tk-stack > *{margin-left:-6px;border:2px solid var(--surface-card)}
 .tk-stack > *:first-child{margin-left:0}
-.tk-board{display:grid;grid-auto-columns:minmax(250px,1fr);grid-auto-flow:column;gap:var(--space-3);padding:var(--space-4) var(--space-5) var(--space-5);overflow-x:auto}
-.tk-col{display:flex;flex-direction:column;gap:var(--space-2);min-height:220px;padding:var(--space-3);border-radius:var(--radius-xl);background:var(--surface-subtle)}
+.tk-board{display:grid;grid-auto-columns:minmax(240px,1fr);grid-auto-flow:column;gap:var(--space-3);padding:var(--space-3) var(--space-4) var(--space-4);overflow-x:auto}
+.tk-col{display:flex;flex-direction:column;gap:var(--space-2);min-height:200px;padding:var(--space-2);border-radius:var(--radius-xl);background:var(--surface-subtle)}
 .tk-col.is-over{outline:2px dashed var(--primary);outline-offset:-2px}
 .tk-col > header{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.tk-card{display:flex;flex-direction:column;gap:6px;padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);cursor:grab;text-align:left;font:inherit}
+.tk-card{display:flex;flex-direction:column;gap:6px;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);cursor:grab;text-align:left;font:inherit}
 .tk-card:hover{border-color:var(--primary)}
 .tk-card b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 .tk-prog{height:4px;border-radius:var(--radius-full);background:var(--border-subtle);overflow:hidden}
 .tk-prog i{display:block;height:100%;background:var(--text-success)}
-.tk-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:var(--space-4) var(--space-5) var(--space-5)}
+.tk-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:var(--space-3) var(--space-4) var(--space-4)}
 .tk-cal__h{padding:4px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted);text-align:center}
-.tk-cal__d{display:flex;flex-direction:column;gap:3px;min-height:104px;padding:6px;border:1px solid var(--border-subtle);border-radius:var(--radius-md);min-width:0}
+.tk-cal__d{display:flex;flex-direction:column;gap:3px;min-height:92px;padding:6px;border:1px solid var(--border-subtle);border-radius:var(--radius-md);min-width:0}
 .tk-cal__d.is-today{border-color:var(--primary);background:var(--fill-primary-soft)}
 .tk-cal__d.is-out{opacity:.45}
 .tk-cal__d > span{font-family:var(--font-data);font-size:var(--text-xs);color:var(--text-muted)}
-.tk-cal__t{display:block;width:100%;padding:2px 6px;border:0;border-radius:var(--radius-sm, 4px);font:inherit;font-size:var(--text-2xs);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;min-height:24px}
+.tk-cal__t{display:block;width:100%;padding:2px 6px;border:0;border-radius:var(--radius-sm);font:inherit;font-size:var(--text-2xs);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;min-height:22px}
 .tk-load{display:flex;flex-direction:column}
-.tk-load > div{display:grid;grid-template-columns:minmax(180px,1.2fr) minmax(160px,2fr) repeat(4,80px);align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-5);border-bottom:1px solid var(--border-subtle);font-size:var(--text-sm)}
-.tk-load__bar{display:flex;height:10px;border-radius:var(--radius-full);background:var(--surface-subtle);overflow:hidden}
+.tk-load > div{display:grid;grid-template-columns:minmax(180px,1.2fr) minmax(160px,2fr) repeat(4,80px);align-items:center;gap:var(--space-3);min-height:44px;padding:6px var(--space-4);border-bottom:1px solid var(--border-subtle);font-size:var(--text-sm)}
+.tk-load__head{min-height:36px!important;background:var(--surface-subtle);font-size:var(--text-xs)!important;font-weight:var(--weight-medium);color:var(--text-body)}
+.tk-load__bar{display:flex;height:8px;border-radius:var(--radius-full);background:var(--surface-subtle);overflow:hidden}
 .tk-load__bar i{display:block;height:100%}
-.tk-bulk{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-5);background:var(--fill-primary-soft);border-bottom:1px solid var(--border-subtle)}
-.tk-bulk b{margin-right:auto;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--primary)}
-.tk-bulk .gc-input{height:36px;width:auto}
+.ix-bulk .ix-pick{flex:none;height:28px;font-size:var(--text-xs-plus)}
 .tk-panel{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:var(--space-5)}
 .tk-side{display:flex;flex-direction:column;gap:var(--space-3)}
 .tk-side .gc-input{height:40px}
@@ -93,7 +94,7 @@ const CSS = `
 .tk-mgr{display:flex;flex-direction:column;gap:var(--space-2)}
 .tk-mgr > div{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
 @media (max-width:900px){.tk-panel{grid-template-columns:minmax(0,1fr)}.tk-load > div{grid-template-columns:minmax(140px,1fr) repeat(2,64px)}.tk-load__bar,.tk-load .hide-sm{display:none}}
-@media (max-width:640px){.tk-row{padding:var(--space-3)}.tk-cal{grid-template-columns:repeat(7,minmax(40px,1fr));overflow-x:auto}.tk-cal__d{min-height:64px}.tk-cal__t{font-size:0;padding:0;height:6px;min-height:6px}}
+@media (max-width:640px){.tk-row{padding:6px var(--space-3)}.tk-check{width:36px;height:36px}.tk-cal{grid-template-columns:repeat(7,minmax(40px,1fr));overflow-x:auto}.tk-cal__d{min-height:64px}.tk-cal__t{font-size:0;padding:0;height:6px;min-height:6px}}
 `;
 const GROUPS = [['overdue', 'Overdue'], ['today', 'Today'], ['week', 'This week'], ['later', 'Later'], ['none', 'No date'], ['done', 'Done']];
 const WD = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
@@ -134,6 +135,7 @@ export default function Tasks() {
   const [showDone, setShowDone] = useState(false);
   const [over, setOver] = useState('');
   const [month, setMonth] = useState(today.slice(0, 7));
+  const [find, setFind] = useState(false);
 
   useEffect(() => {
     if (!ready) return;
@@ -214,15 +216,15 @@ export default function Tasks() {
     const isSel = sel.includes(t.id);
     return (
       <div className={'tk-row' + (t.status === 'done' ? ' is-done' : '') + (isSel ? ' is-sel' : '')} onClick={() => setOpenId(t.id)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') setOpenId(t.id); }}>
-        <input type="checkbox" className="gc-check" checked={isSel} onClick={(e) => e.stopPropagation()} onChange={() => pick(t.id)} aria-label={`Select “${t.title}”`} />
+        <input type="checkbox" checked={isSel} onClick={(e) => e.stopPropagation()} onChange={() => pick(t.id)} aria-label={`Select “${t.title}”`} />
         <button type="button" className="tk-check" aria-pressed={t.status === 'done'} aria-label={t.status === 'done' ? `Open “${t.title}” again` : `Mark “${t.title}” done`} onClick={(e) => { e.stopPropagation(); toggleDone(t); }}>{t.status === 'done' ? <Icon name="check" width="14" height="14" aria-hidden="true" /> : null}</button>
         <div className="tk-main">
           <span className="tk-title">{t.type !== 'task' ? <Icon name={TYPES[t.type][1]} width="14" height="14" aria-label={TYPES[t.type][0]} style={{ color: t.type === 'bug' ? 'var(--text-danger)' : 'var(--text-info)', flex: 'none' }} /> : null}{t.title}</span>
           <div className="tk-meta">
             {t.due ? <span className={ds === 'overdue' ? 'tk-due--overdue' : ds === 'today' ? 'tk-due--today' : ''}><Icon name="calendar" width="12" height="12" aria-hidden="true" />{ds === 'today' ? 'Today' : dateText(t.due)}{ds === 'overdue' ? ' · late' : ''}</span> : null}
             <TeamChip id={t.team} teams={teams} />
-            {t.status !== 'todo' && t.status !== 'done' ? <span className={'gc-badge gc-badge--' + statusTone(t.status)}>{statusLabel(t.status)}</span> : null}
-            {t.priority === 'urgent' || t.priority === 'high' ? <span className={'gc-badge gc-badge--' + pr[2]}>{pr[1]}</span> : null}
+            {t.status !== 'todo' && t.status !== 'done' ? <StatusBadge tone={statusTone(t.status) === 'slate' ? 'neutral' : statusTone(t.status)}>{statusLabel(t.status)}</StatusBadge> : null}
+            {t.priority === 'urgent' || t.priority === 'high' ? <StatusBadge tone={pr[2]}>{pr[1]}</StatusBadge> : null}
             {(t.tags || []).map((id) => <Tag key={id} id={id} tags={tags} />)}
             {blockers.length ? <span className="tk-due--overdue"><Icon name="lock" width="12" height="12" aria-hidden="true" />waits for {blockers.map((b) => b.id).join(', ')}</span> : null}
             {cl.length ? <span><Icon name="list-checks" width="12" height="12" aria-hidden="true" />{cl.filter((c) => c.done).length}/{cl.length}</span> : null}
@@ -232,7 +234,7 @@ export default function Tasks() {
             {t.estimate ? <span><Icon name="timer" width="12" height="12" aria-hidden="true" />{t.logged || 0}/{t.estimate} h</span> : null}
           </div>
         </div>
-        {(t.assignees || []).length ? <People ids={t.assignees} /> : <span className="gc-badge gc-badge--slate">Open</span>}
+        {(t.assignees || []).length ? <People ids={t.assignees} size={24} /> : <span className="gc-badge gc-badge--slate">Open</span>}
       </div>
     );
   };
@@ -251,59 +253,64 @@ export default function Tasks() {
   const cells = Array.from({ length: Math.ceil((lead + new Date(cy, cm, 0).getDate()) / 7) * 7 }, (_, i) => dayKeyOf(new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + i).getTime()));
   const shiftMonth = (n) => { const d = new Date(cy, cm - 1 + n, 1); setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`); };
 
+  const searching = find || filtered;
+  const closeFind = () => { setFind(false); setF({ q: '', team: '', who: '', tag: '', type: '', pri: '' }); };
   const views = [['mine', 'My tasks', 'user'], ['teams', 'My teams', 'users'], ['gave', 'I gave', 'send'], ['watch', 'Watching', 'eye'], ['it', 'IT desk', 'monitor-cog'], ['all', 'Everyone', 'globe']];
 
   return (
-    <TeamPage screen="Tasks" active="tasks" crumb="General" page="Tasks" title="Tasks" css={CSS}
-      about="The team’s work: who does what, by when, with which team — and what is waiting on what."
-      actions={<>
-        <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setManage('teams')}><Icon name="users" width="18" height="18" aria-hidden="true" /> Teams & tags</button>
-        <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setAsk({ title: '', itCat: 'Hardware', notes: '', priority: 'normal', place: me.place })}><Icon name="monitor-cog" width="18" height="18" aria-hidden="true" /> Ask IT</button>
-        <button type="button" className="gc-btn gc-btn--solid" onClick={() => setDraft(blank(me, today))}><Icon name="plus" width="18" height="18" aria-hidden="true" /> New task</button>
-      </>}>
+    <TeamPage screen="Tasks" active="tasks" crumb="General" page="Tasks" title="Tasks" icon="list-checks" css={CSS}
+      about="The team’s work: who does what, by when, with which team — and what is waiting on what. Show it as a list, a board, a calendar or each person’s workload."
+      secondary={[{ label: 'Ask IT', onClick: () => setAsk({ title: '', itCat: 'Hardware', notes: '', priority: 'normal', place: me.place }) }]}
+      more={[{ label: 'Teams & tags', onClick: () => setManage('teams') }, { label: 'Team chat', href: '/team-chat' }]}
+      primary={{ label: 'New task', onClick: () => setDraft(blank(me, today)) }}>
 
-      <section className="gc-card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div className="tk-views" role="tablist" aria-label="Whose tasks">
-          {views.map(([k, l, ic]) => <button key={k} type="button" role="tab" aria-selected={scope === k} onClick={() => { setScope(k); setSel([]); }}><Icon name={ic} width="16" height="16" aria-hidden="true" />{l}<b>{count(k)}</b></button>)}
-        </div>
-        <div className="tm-bar">
-          <div className="tm-bar__g">
-            <div className="gc-seg" role="group" aria-label="Show as">
-              {[['list', 'List'], ['board', 'Board'], ['calendar', 'Calendar'], ['load', 'Workload']].map(([k, l]) => <button key={k} type="button" className={'gc-seg__btn' + (view === k ? ' gc-seg__btn--active' : '')} aria-pressed={view === k} onClick={() => setView(k)}>{l}</button>)}
-            </div>
-            {view === 'board' ? <select className="gc-input gc-select" style={{ width: 'auto' }} aria-label="Group the board by" value={groupBy} onChange={(e) => setGroupBy(e.target.value)}><option value="status">By status</option><option value="team">By team</option><option value="person">By person</option><option value="priority">By priority</option></select> : null}
-          </div>
-          <div className="tm-bar__g">
-            <input type="search" className="gc-input" style={{ width: 200 }} placeholder="Search tasks" aria-label="Search tasks" value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} />
-            <MobileFilters label="Filter tasks" count={[f.team, f.who, f.tag, f.type, f.pri].filter(Boolean).length} onClear={() => setF({ ...f, team: '', who: '', tag: '', type: '', pri: '' })}>
-              <select className="gc-input gc-select" style={{ width: 'auto' }} aria-label="Team" value={f.team} onChange={(e) => setF({ ...f, team: e.target.value })}><option value="">All teams</option>{teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
-              <select className="gc-input gc-select" style={{ width: 'auto' }} aria-label="Person" value={f.who} onChange={(e) => setF({ ...f, who: e.target.value })}><option value="">Anyone</option>{USERS.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select>
-              <select className="gc-input gc-select" style={{ width: 'auto' }} aria-label="Tag" value={f.tag} onChange={(e) => setF({ ...f, tag: e.target.value })}><option value="">All tags</option>{tags.map((t) => <option key={t.id} value={t.id}>#{t.name}</option>)}</select>
-              <select className="gc-input gc-select" style={{ width: 'auto' }} aria-label="Type" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}><option value="">All types</option>{Object.entries(TYPES).map(([k, [l]]) => <option key={k} value={k}>{l}</option>)}</select>
-              <select className="gc-input gc-select" style={{ width: 'auto' }} aria-label="Priority" value={f.pri} onChange={(e) => setF({ ...f, pri: e.target.value })}><option value="">Any priority</option>{PRIORITIES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
-            </MobileFilters>
-            {filtered ? <button type="button" className="gc-btn gc-btn--flat gc-btn--sm" onClick={() => setF({ q: '', team: '', who: '', tag: '', type: '', pri: '' })}>Clear</button> : null}
-          </div>
-        </div>
+      <section className="ix-card" aria-label="Tasks">
         {sel.length ? (
-          <div className="tk-bulk" role="group" aria-label="Change the selected tasks">
-            <b>{sel.length} selected</b>
-            <select className="gc-input gc-select" aria-label="Set status" value="" onChange={(e) => e.target.value && bulk({ status: e.target.value }, statusLabel(e.target.value))}><option value="">Status…</option>{STATUSES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
-            <select className="gc-input gc-select" aria-label="Give to" value="" onChange={(e) => e.target.value && bulk({ assignees: e.target.value === '_none' ? [] : [e.target.value] }, e.target.value === '_none' ? 'open for the team' : `given to ${userName(e.target.value)}`)}><option value="">Give to…</option><option value="_none">Nobody (team)</option>{USERS.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select>
-            <select className="gc-input gc-select" aria-label="Move to team" value="" onChange={(e) => e.target.value && bulk({ team: e.target.value }, `moved to ${teamBy(e.target.value, teams).name}`)}><option value="">Team…</option>{teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
-            <select className="gc-input gc-select" aria-label="Add tag" value="" onChange={(e) => e.target.value && bulk({ addTag: e.target.value }, `tagged #${tagBy(e.target.value, tags).name}`)}><option value="">Add tag…</option>{tags.map((t) => <option key={t.id} value={t.id}>#{t.name}</option>)}</select>
-            <select className="gc-input gc-select" aria-label="Priority" value="" onChange={(e) => e.target.value && bulk({ priority: e.target.value }, priorityOf(e.target.value)[1])}><option value="">Priority…</option>{PRIORITIES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
-            <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => bulk({ remove: true })}><Icon name="trash-2" width="14" height="14" aria-hidden="true" /> Delete</button>
-            <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => setSel([])}>Cancel</button>
+          <div className="ix-bulk" role="toolbar" aria-label="Change the selected tasks">
+            <span className="ix-bulk__n">{sel.length} selected</span>
+            <select className="ix-pick" aria-label="Set status" value="" onChange={(e) => e.target.value && bulk({ status: e.target.value }, statusLabel(e.target.value))}><option value="">Status…</option>{STATUSES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+            <select className="ix-pick" aria-label="Give to" value="" onChange={(e) => e.target.value && bulk({ assignees: e.target.value === '_none' ? [] : [e.target.value] }, e.target.value === '_none' ? 'open for the team' : `given to ${userName(e.target.value)}`)}><option value="">Give to…</option><option value="_none">Nobody (team)</option>{USERS.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select>
+            <select className="ix-pick" aria-label="Priority" value="" onChange={(e) => e.target.value && bulk({ priority: e.target.value }, priorityOf(e.target.value)[1])}><option value="">Priority…</option>{PRIORITIES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+            <select className="ix-pick" aria-label="Move to team" value="" onChange={(e) => e.target.value && bulk({ team: e.target.value }, `moved to ${teamBy(e.target.value, teams).name}`)}><option value="">Team…</option>{teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
+            <select className="ix-pick" aria-label="Add tag" value="" onChange={(e) => e.target.value && bulk({ addTag: e.target.value }, `tagged #${tagBy(e.target.value, tags).name}`)}><option value="">Add tag…</option>{tags.map((t) => <option key={t.id} value={t.id}>#{t.name}</option>)}</select>
+            <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" align="start" items={[{ label: 'Delete', onClick: () => bulk({ remove: true }), tone: 'danger' }, { label: 'Clear selection', onClick: () => setSel([]) }]} />
+          </div>
+        ) : (
+          <div className="ix-bar">
+            {searching ? (<>
+              <SearchField value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} placeholder="Search tasks" onDone={closeFind} autoFocus />
+              <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={closeFind}>Cancel</button>
+            </>) : (<>
+              <IndexTabs label="Whose tasks" tabs={views.map(([k, l]) => ({ key: k, id: 'tk-tab-' + k, label: l, count: count(k), on: scope === k, onClick: () => { setScope(k); setSel([]); } }))} />
+              <span className="ix-tools">
+                <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search and filter" onClick={() => setFind(true)}><Icon name="search" width="16" height="16" aria-hidden="true" /></button>
+              </span>
+            </>)}
+          </div>
+        )}
+        {searching && !sel.length ? (
+          <div className="ix-filters" role="group" aria-label="Filters">
+            <select className={'ix-filter' + (f.team ? ' is-set' : '')} aria-label="Team" value={f.team} onChange={(e) => setF({ ...f, team: e.target.value })}><option value="">Team</option>{teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
+            <select className={'ix-filter' + (f.who ? ' is-set' : '')} aria-label="Person" value={f.who} onChange={(e) => setF({ ...f, who: e.target.value })}><option value="">Person</option>{USERS.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select>
+            <select className={'ix-filter' + (f.tag ? ' is-set' : '')} aria-label="Tag" value={f.tag} onChange={(e) => setF({ ...f, tag: e.target.value })}><option value="">Tag</option>{tags.map((t) => <option key={t.id} value={t.id}>#{t.name}</option>)}</select>
+            <select className={'ix-filter' + (f.type ? ' is-set' : '')} aria-label="Type" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}><option value="">Type</option>{Object.entries(TYPES).map(([k, [l]]) => <option key={k} value={k}>{l}</option>)}</select>
+            <select className={'ix-filter' + (f.pri ? ' is-set' : '')} aria-label="Priority" value={f.pri} onChange={(e) => setF({ ...f, pri: e.target.value })}><option value="">Priority</option>{PRIORITIES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+            {filtered ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => setF({ q: '', team: '', who: '', tag: '', type: '', pri: '' })}>Clear all</button> : null}
           </div>
         ) : null}
+        <div className="tk-shows">
+          <div className="gc-seg" role="group" aria-label="Show as">
+            {[['list', 'List'], ['board', 'Board'], ['calendar', 'Calendar'], ['load', 'Workload']].map(([k, l]) => <button key={k} type="button" className={'gc-seg__btn' + (view === k ? ' gc-seg__btn--active' : '')} aria-pressed={view === k} onClick={() => setView(k)}>{l}</button>)}
+          </div>
+          {view === 'board' ? <select className="ix-pick" aria-label="Group the board by" value={groupBy} onChange={(e) => setGroupBy(e.target.value)}><option value="status">By status</option><option value="team">By team</option><option value="person">By person</option><option value="priority">By priority</option></select> : null}
+        </div>
 
-        {!list.length ? <EmptyState icon="list-checks" title={scope === 'mine' ? 'Nothing on your list' : 'No tasks here'} body={filtered ? 'Try clearing the filters.' : 'Add a task, or look at another view.'} actionLabel="New task" onAction={() => setDraft(blank(me, today))} />
+        {!list.length ? <div className="ix-empty"><EmptyState icon="list-checks" title={scope === 'mine' ? 'Nothing on your list' : 'No tasks here'} actionLabel={filtered ? 'Clear filters' : 'New task'} onAction={filtered ? closeFind : () => setDraft(blank(me, today))} /></div>
           : view === 'list' ? GROUPS.map(([g, label]) => {
             const rows = list.filter((t) => dueState(t, today) === g).sort((a, b) => (a.due || '9').localeCompare(b.due || '9') || PRIORITIES.findIndex((p) => p[0] === a.priority) - PRIORITIES.findIndex((p) => p[0] === b.priority));
             if (!rows.length) return null;
-            if (g === 'done') return <div key={g} className="tk-group"><h3><button type="button" className="gc-btn gc-btn--flat gc-btn--sm" onClick={() => setShowDone(!showDone)} aria-expanded={showDone}><Icon name={showDone ? 'chevron-down' : 'chevron-right'} width="14" height="14" aria-hidden="true" />Done · {rows.length}</button></h3>{showDone ? rows.map((t) => <Row key={t.id} t={t} />) : null}</div>;
-            return <div key={g} className="tk-group"><h3>{label} <span className="gc-badge gc-badge--slate">{rows.length}</span><span style={{ marginLeft: 'auto' }}><input type="checkbox" className="gc-check" aria-label={`Select all ${label.toLowerCase()}`} checked={rows.every((r) => sel.includes(r.id))} onChange={(e) => setSel(e.target.checked ? [...new Set([...sel, ...rows.map((r) => r.id)])] : sel.filter((x) => !rows.some((r) => r.id === x)))} /></span></h3>{rows.map((t) => <Row key={t.id} t={t} />)}</div>;
+            if (g === 'done') return <div key={g} className="tk-group"><h3><button type="button" className="ix-btn ix-btn--sm ix-btn--plain" style={{ marginLeft: -10 }} onClick={() => setShowDone(!showDone)} aria-expanded={showDone}><Icon name={showDone ? 'chevron-down' : 'chevron-right'} width="16" height="16" aria-hidden="true" />Done · {rows.length}</button></h3>{showDone ? rows.map((t) => <Row key={t.id} t={t} />) : null}</div>;
+            return <div key={g} className="tk-group"><h3>{label} <span className="ix-tab__n">{rows.length}</span><span style={{ marginLeft: 'auto', display: 'inline-flex' }}><input type="checkbox" aria-label={`Select all ${label.toLowerCase()}`} checked={rows.every((r) => sel.includes(r.id))} onChange={(e) => setSel(e.target.checked ? [...new Set([...sel, ...rows.map((r) => r.id)])] : sel.filter((x) => !rows.some((r) => r.id === x)))} /></span></h3>{rows.map((t) => <Row key={t.id} t={t} />)}</div>;
           })
           : view === 'board' ? (
             <div className="tk-board">
@@ -336,7 +343,7 @@ export default function Tasks() {
             </div>
           ) : view === 'calendar' ? (
             <>
-              <div className="tm-head" style={{ paddingBottom: 0 }}><div><h2>{first.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</h2></div><div className="tm-bar__g"><button type="button" className="gc-iconbtn" aria-label="Previous month" onClick={() => shiftMonth(-1)}><Icon name="chevron-left" width="18" height="18" aria-hidden="true" /></button><button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setMonth(today.slice(0, 7))}>Today</button><button type="button" className="gc-iconbtn" aria-label="Next month" onClick={() => shiftMonth(1)}><Icon name="chevron-right" width="18" height="18" aria-hidden="true" /></button></div></div>
+              <div className="tm-head" style={{ paddingBottom: 0 }}><h2>{first.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</h2><div className="tm-bar__g"><button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Previous month" onClick={() => shiftMonth(-1)}><Icon name="chevron-left" width="16" height="16" aria-hidden="true" /></button><button type="button" className="ix-btn ix-btn--sm" onClick={() => setMonth(today.slice(0, 7))}>Today</button><button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Next month" onClick={() => shiftMonth(1)}><Icon name="chevron-right" width="16" height="16" aria-hidden="true" /></button></div></div>
               <div className="tk-cal">
                 {WD.map((d) => <span key={d} className="tk-cal__h">{d}</span>)}
                 {cells.map((k) => {
@@ -353,14 +360,14 @@ export default function Tasks() {
             </>
           ) : (
             <div className="tk-load">
-              <div className="tm-sub" style={{ fontWeight: 'var(--weight-medium)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}><span>Person</span><span className="tk-load__bar" style={{ background: 'none' }}>Open by priority</span><span>Open</span><span>Late</span><span className="hide-sm">This week</span><span className="hide-sm">Hours</span></div>
+              <div className="tk-load__head"><span>Person</span><span className="tk-load__bar" style={{ background: 'none' }}>Open by priority</span><span>Open</span><span>Late</span><span className="hide-sm">This week</span><span className="hide-sm">Hours</span></div>
               {USERS.map((u) => {
                 const mine = list.filter((t) => (t.assignees || []).includes(u.id) && t.status !== 'done');
                 if (!mine.length && f.who !== u.id) return null;
                 const max = Math.max(1, ...USERS.map((x) => list.filter((t) => (t.assignees || []).includes(x.id) && t.status !== 'done').length));
                 return (
                   <div key={u.id}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}><UserAvatar id={u.id} size={30} /><span style={{ minWidth: 0 }}><span className="tm-strong">{u.name}</span><span className="tm-sub">{roleOf(u).title}</span></span></span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}><UserAvatar id={u.id} size={28} /><span style={{ minWidth: 0 }}><span className="tm-strong">{u.name}</span><span className="tm-sub">{roleOf(u).title}</span></span></span>
                     <span className="tk-load__bar" style={{ width: `${(mine.length / max) * 100}%`, minWidth: 8 }}>{PRIORITIES.map(([k, , tone]) => { const n = mine.filter((t) => t.priority === k).length; return n ? <i key={k} style={{ width: `${(n / mine.length) * 100}%`, background: tone === 'error' ? 'var(--text-danger)' : tone === 'warning' ? 'var(--warning)' : k === 'normal' ? 'var(--primary)' : 'var(--border-strong, var(--text-faint))' }} title={`${n} ${k}`} /> : null; })}</span>
                     <span className="tm-fig tm-strong">{mine.length}</span>
                     <span className={'tm-fig' + (mine.some((t) => dueState(t, today) === 'overdue') ? ' tm-out' : '')}>{mine.filter((t) => dueState(t, today) === 'overdue').length}</span>
@@ -372,6 +379,7 @@ export default function Tasks() {
             </div>
           )}
       </section>
+      <LearnMore topic="tasks" />
 
       {task ? <TaskPanel task={task} me={me} tasks={tasks} teams={teams} tags={tags} onOpen={setOpenId} onClose={() => { setOpenId(''); const u = new URL(window.location.href); if (u.searchParams.has('task')) { u.searchParams.delete('task'); window.history.replaceState(window.history.state, '', u.pathname + u.search); } }} /> : null}
       <Dialog open={!!draft} title="New task" onClose={() => setDraft(null)} width={680}

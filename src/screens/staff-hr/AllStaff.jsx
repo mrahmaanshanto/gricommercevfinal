@@ -1,34 +1,31 @@
 'use client';
-// All staff — the one staff list (src/lib/hr.js). New people join through Add staff (/staff-create, the 7-step
-// flow); each name opens the full profile. Quick edit here changes place, shift, role and status.
-// "Today" comes from Attendance, "On leave" from approved leave.
+// All staff — the one staff list (src/lib/hr.js), laid out like Shopify's staff list: status views, search and a
+// place filter, bulk actions and a compact table (name, position, place, today, salary, status). Phone, shift, login
+// role and pay method are on the profile; a click on a row opens it. New people join through Add staff
+// (/staff-create, the 7-step flow). Quick edit (place, shift, role, status) is in the bulk bar for one person.
 
 import React, { useState } from 'react';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
+import { navigate } from '@/runtime/routes';
 import { Dialog, EmptyState } from '@/components/ui';
+import { MetricStrip, IndexTabs, SearchField, LearnMore, Menu } from '@/components/ui/IndexKit';
 import { formatDate } from '@/lib/format';
 import { fromKey } from '@/lib/settlements';
 import {
   todayKey, cellOf, statusOf, saveStaff, nextStaffCode, shiftBy, t12, HR_PLACES, PAY_METHODS, STAFF_TYPES, LOGIN_ROLES, STAFF_STATUS,
 } from '@/lib/hr';
 import Link from 'next/link';
-import { HrPage, useHr, Person, Avatar, ShiftChip, StaffStatus, money, profileHref } from './hrShared';
+import { HrPage, useHr, Person, Avatar, ShiftChip, StaffStatus, money, profileHref, rowGo } from './hrShared';
 
 const CSS = `
-.as-search{position:relative;min-width:220px;flex:1 1 220px;max-width:320px}
-.as-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted)}
-.as-search input{padding-left:38px}
-.as-place{width:auto;min-width:190px}
-.as-sel{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-5);background:var(--fill-primary-soft);border-bottom:1px solid var(--border-subtle);font-size:var(--text-sm)}
-.as-sel b{font-weight:var(--weight-semibold);color:var(--primary);margin-right:auto}
-.as-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:var(--space-3);padding:var(--space-4) var(--space-5)}
-.as-card{text-decoration:none;color:inherit;display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card);text-align:left;font:inherit;cursor:pointer;min-width:0}
-.as-card:hover{border-color:var(--primary);box-shadow:var(--shadow-sm)}
+.as-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--space-3);padding:var(--space-3) var(--space-4) var(--space-4)}
+.as-card{display:flex;flex-direction:column;gap:6px;min-width:0;padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card);font:inherit;text-align:left;text-decoration:none;color:inherit;cursor:pointer}
+.as-card:hover{border-color:var(--primary)}
 .as-card b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 .as-chips{display:flex;flex-wrap:wrap;gap:6px}
-.as-sec{margin:0;font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
-@media (max-width:640px){.as-search{max-width:none}.as-place{width:100%}.as-view{display:none}}
+.as-sec{margin:0;font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-muted)}
+@media (max-width:640px){.as-view{display:none}}
 `;
 const FILTERS = [['all', 'All'], ['active', 'Active'], ['probation', 'Probation'], ['leave', 'On leave'], ['suspended', 'Suspended']];
 const TODAY = { P: ['Present · on time', 'hr-in'], L: ['Late', 'hr-warn'], A: ['Absent', 'hr-out'], HD: ['Half day', 'hr-warn'], V: ['On leave', ''], U: ['Unpaid leave', ''], W: ['Weekly off', ''], H: ['Holiday', ''], S: ['—', ''], wait: ['Not in yet', ''], '?': ['Not marked', 'hr-warn'], '·': ['—', ''] };
@@ -42,6 +39,7 @@ export default function AllStaff() {
   const [place, setPlace] = useState('');
   const [q, setQ] = useState('');
   const [view, setView] = useState('table');
+  const [find, setFind] = useState(false);
   const [sel, setSel] = useState([]);
   const [form, setForm] = useState(null);
   const [assign, setAssign] = useState(null);
@@ -80,71 +78,104 @@ export default function AllStaff() {
   const edit = (s) => setForm({ ...s, gross: String(s.gross), payTo: s.payTo || '' });
   const tick = (code) => setSel(sel.includes(code) ? sel.filter((c) => c !== code) : [...sel, code]);
 
+  const tabs = FILTERS.map(([k, l]) => ({ key: k, id: 'as-tab-' + k, label: l, count: statusCount(k), on: f === k, onClick: () => setF(k) }));
+  const searching = find || !!q || !!place;
+  const closeFind = () => { setFind(false); setQ(''); setPlace(''); };
+  const allSel = list.length > 0 && list.every((s) => sel.includes(s.code));
+  const one = sel.length === 1 ? S.staff.find((x) => x.code === sel[0]) : null;
+
   return (
-    <HrPage screen="AllStaff" active="hr-staff" page="All staff" title="All staff" css={CSS}
-      about="Everyone who works for the shop: where, which shift, what they earn and how they are paid."
-      actions={<>
-        <button type="button" className="gc-btn gc-btn--neutral" onClick={() => toast('Staff import from a spreadsheet is not in the demo yet. Add people one by one with Add staff.', { tone: 'info' })}><Icon name="upload" width="18" height="18" aria-hidden="true" /> Import</button>
-        <button type="button" className="gc-btn gc-btn--neutral" onClick={() => exportRows(list)}><Icon name="download" width="18" height="18" aria-hidden="true" /> Export</button>
-        <Link href="/staff-create" className="gc-btn gc-btn--solid"><Icon name="user-plus" width="18" height="18" aria-hidden="true" /> Add staff</Link>
-      </>}>
+    <HrPage screen="AllStaff" active="hr-staff" page="All staff" title="All staff" icon="users" css={CSS}
+      about="Everyone who works for the shop: where, which shift, what they earn and how they are paid. Open a person for their profile."
+      secondary={[{ label: 'Export', onClick: () => exportRows(list) }]}
+      more={[
+        { label: 'Import', onClick: () => toast('Staff import from a spreadsheet is not in the demo yet. Add people one by one with Add staff.', { tone: 'info' }) },
+        { label: 'Shifts & roster', href: '/shifts' }, { label: 'Positions & grades', href: '/positions' }, { label: 'ID cards & QR', href: '/id-cards' },
+      ]}
+      primary={{ label: 'Add staff', href: '/staff-create' }}>
 
-      <div className="gc-kpis">
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-warning-soft)', color: 'var(--text-warning)' }}><Icon name="banknote" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Monthly salary</p><p className="gc-kpi__value">{money(payroll)}<small>gross, suspended left out</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-info-soft)', color: 'var(--text-info)' }}><Icon name="key-round" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">With admin login</p><p className="gc-kpi__value">{all.filter((s) => s.role !== 'No login').length}<small>{all.filter((s) => s.role === 'No login').length} without</small></p></div></div>
-      </div>
+      <MetricStrip label="Staff today" items={[
+        { label: 'Here today', value: String(present), sub: `of ${all.length}`, href: '/attendance' },
+        { label: 'Monthly salary', value: money(payroll), sub: 'gross', href: '/payroll' },
+        { label: 'With admin login', value: String(all.filter((s) => s.role !== 'No login').length), sub: `${all.filter((s) => s.role === 'No login').length} without` },
+      ]} />
 
-      <section className="gc-card hr-card">
-        <div className="hr-bar">
-          <div className="gc-seg" role="group" aria-label="Status">
-            {FILTERS.map(([k, l]) => <button key={k} type="button" className={'gc-seg__btn' + (f === k ? ' gc-seg__btn--active' : '')} aria-pressed={f === k} onClick={() => setF(k)}>{l} · {statusCount(k)}</button>)}
-          </div>
-          <div className="hr-bar__group">
-            <select className="gc-input gc-select as-place" aria-label="Location" value={place} onChange={(e) => setPlace(e.target.value)}><option value="">All locations</option>{places.map((p) => <option key={p}>{p}</option>)}</select>
-            <label className="as-search"><Icon name="search" width="16" height="16" aria-hidden="true" /><input className="gc-input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, phone or EMP code" aria-label="Search staff" /></label>
-            <div className="hr-seg as-view" role="group" aria-label="View"><button type="button" aria-pressed={view === 'table'} onClick={() => setView('table')}>Table</button><button type="button" aria-pressed={view === 'cards'} onClick={() => setView('cards')}>Cards</button></div>
-          </div>
-        </div>
+      <section className="ix-card" aria-label="Staff">
         {sel.length ? (
-          <div className="as-sel">
-            <b>{sel.length} selected</b>
-            <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => toast(`SMS drafted for ${sel.length} staff. Sending SMS from here is not in the demo yet.`, { tone: 'info' })}>Send SMS</button>
-            <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setAssign(S.shifts[0].id)}>Assign shift</button>
-            <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => exportRows(S.staff.filter((s) => sel.includes(s.code)))}>Export</button>
-            <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => setSel([])}>Clear</button>
+          <div className="ix-bulk" role="toolbar" aria-label="Selected staff">
+            <input type="checkbox" checked={allSel} onChange={(e) => setSel(e.target.checked ? list.map((s) => s.code) : [])} aria-label="Select all shown" style={{ width: 16, height: 16, margin: '0 6px', accentColor: 'var(--primary)' }} />
+            <span className="ix-bulk__n">{sel.length} selected</span>
+            {one ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => edit(one)}><Icon name="pencil" width="16" height="16" aria-hidden="true" />Quick edit</button> : null}
+            <button type="button" className="ix-btn ix-btn--sm" onClick={() => setAssign(S.shifts[0].id)}><Icon name="clock" width="16" height="16" aria-hidden="true" />Assign shift</button>
+            <button type="button" className="ix-btn ix-btn--sm" onClick={() => toast(`SMS drafted for ${sel.length} staff. Sending SMS from here is not in the demo yet.`, { tone: 'info' })}><Icon name="message-square-text" width="16" height="16" aria-hidden="true" />Send SMS</button>
+            <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" align="start" items={[{ label: 'Export', onClick: () => exportRows(S.staff.filter((s) => sel.includes(s.code))) }, { label: 'Clear selection', onClick: () => setSel([]) }]} />
+          </div>
+        ) : (
+          <div className="ix-bar">
+            {searching ? (<>
+              <SearchField value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, phone or EMP code" onDone={closeFind} autoFocus />
+              <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={closeFind}>Cancel</button>
+            </>) : (<>
+              <IndexTabs tabs={tabs} label="Status" />
+              <span className="ix-tools">
+                <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search and filter" onClick={() => setFind(true)}><Icon name="search" width="16" height="16" aria-hidden="true" /></button>
+                <button type="button" className="ix-btn ix-btn--sm ix-btn--icon as-view" aria-label={view === 'table' ? 'Show as cards' : 'Show as a table'} aria-pressed={view === 'cards'} onClick={() => setView(view === 'table' ? 'cards' : 'table')}><Icon name={view === 'table' ? 'layout-grid' : 'list'} width="16" height="16" aria-hidden="true" /></button>
+              </span>
+            </>)}
+          </div>
+        )}
+        {searching && !sel.length ? (
+          <div className="ix-filters" role="group" aria-label="Filters">
+            <select aria-label="Location" className={'ix-filter' + (place ? ' is-set' : '')} value={place} onChange={(e) => setPlace(e.target.value)}><option value="">Location</option>{places.map((p) => <option key={p}>{p}</option>)}</select>
+            {q || place ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => { setQ(''); setPlace(''); }}>Clear all</button> : null}
           </div>
         ) : null}
-        {!list.length ? <EmptyState icon="users" title="No staff match these filters" body="Try another status or place, or clear the search." /> : view === 'table' ? (
-          <div className="gc-table-wrap">
-            <table className="gc-table gc-table--compact gc-table--hoverable">
-              <thead><tr><th scope="col"><input type="checkbox" className="gc-check" aria-label="Select all shown" checked={list.every((s) => sel.includes(s.code))} onChange={(e) => setSel(e.target.checked ? list.map((s) => s.code) : [])} /></th><th scope="col">Staff</th><th scope="col">Designation</th><th scope="col">Place · shift</th><th scope="col">Today</th><th scope="col">Login role</th><th scope="col" className="hr-num">Salary</th><th scope="col">Status</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
-              <tbody>
-                {list.map((s) => {
-                  const t = todayOf(s);
-                  return (
-                    <tr key={s.code}>
-                      <td><input type="checkbox" className="gc-check" checked={sel.includes(s.code)} onChange={() => tick(s.code)} aria-label={`Select ${s.name}`} /></td>
-                      <td><Person st={s} sub={`${s.code} · ${s.phone}`} /></td>
-                      <td><span className="hr-strong">{s.designation}</span><span className="hr-sub">{s.department} · {s.type}</span></td>
-                      <td>{s.branch}<div style={{ marginTop: 3 }}><ShiftChip S={S} id={s.shift} time /></div></td>
-                      <td className={t.cls}>{t.l}</td>
-                      <td><span className="gc-badge gc-badge--slate">{s.role}</span></td>
-                      <td className="hr-num hr-strong">{money(s.gross)}<span className="hr-sub">{PAY_METHODS[s.payMethod]}</span></td>
-                      <td><StaffStatus S={S} st={s} /></td>
-                      <td><div className="hr-actions"><button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => edit(s)} aria-label={`Quick edit ${s.name}`}>Edit</button><Link href={profileHref(s.code)} className="gc-btn gc-btn--sm gc-btn--neutral" aria-label={`Open ${s.name}’s profile`}>Profile</Link></div></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+
+        {!list.length ? <div className="ix-empty"><EmptyState icon="users" title="No staff match these filters" actionLabel={q || place ? 'Clear filters' : undefined} onAction={q || place ? () => { setQ(''); setPlace(''); } : undefined} /></div> : view === 'table' ? (
+          <>
+            <ul className="ix-plist" aria-label="Staff">
+              {list.map((s) => { const t = todayOf(s); return (
+                <li key={s.code}>
+                  <Link href={profileHref(s.code)} className="ix-pitem">
+                    <span className="ix-pitem__top"><b>{s.name}</b><StaffStatus S={S} st={s} /></span>
+                    <span className="ix-pitem__mid">{s.designation} · {s.branch} · <span className={t.cls}>{t.l}</span></span>
+                  </Link>
+                </li>
+              ); })}
+            </ul>
+            <div className="ix-table-wrap">
+              <table className="ix-table gc-table--keep">
+                <caption className="sr-only">Staff, {list.length} shown</caption>
+                <thead><tr>
+                  <th scope="col" className="ix-check"><input type="checkbox" aria-label="Select all shown" checked={allSel} onChange={(e) => setSel(e.target.checked ? list.map((s) => s.code) : [])} /></th>
+                  <th scope="col">Staff</th><th scope="col">Position</th><th scope="col">Place</th><th scope="col">Today</th><th scope="col" className="ix-num">Salary</th><th scope="col">Status</th>
+                </tr></thead>
+                <tbody>
+                  {list.map((s) => {
+                    const t = todayOf(s);
+                    return (
+                      <tr key={s.code} className={sel.includes(s.code) ? 'is-sel' : ''} onClick={rowGo(() => navigate(profileHref(s.code)))}>
+                        <td className="ix-check"><input type="checkbox" checked={sel.includes(s.code)} onChange={() => tick(s.code)} aria-label={`Select ${s.name}`} /></td>
+                        <td><Person st={s} /></td>
+                        <td>{s.designation}</td>
+                        <td className="ix-muted">{s.branch}</td>
+                        <td className={t.cls || 'ix-muted'}>{t.l}</td>
+                        <td className="ix-num">{money(s.gross)}</td>
+                        <td><StaffStatus S={S} st={s} /></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         ) : (
           <div className="as-cards">
             {list.map((s) => {
               const t = todayOf(s);
               return (
                 <Link key={s.code} href={profileHref(s.code)} className="as-card" aria-label={`Open ${s.name}’s profile`}>
-                  <div className="hr-who"><Avatar st={s} large /><span><b>{s.name}</b><span className="hr-sub">{s.designation}</span></span></div>
+                  <div className="hr-who"><Avatar st={s} /><span><b>{s.name}</b><span className="hr-sub">{s.designation}</span></span></div>
                   <div className="as-chips"><StaffStatus S={S} st={s} /><ShiftChip S={S} id={s.shift} /></div>
                   <span className="hr-sub">{s.branch} · {s.phone}</span>
                   <span className={'hr-sub ' + t.cls} style={{ fontWeight: 'var(--weight-medium)' }}>{t.l}</span>
@@ -153,7 +184,9 @@ export default function AllStaff() {
             })}
           </div>
         )}
+        <div className="ix-foot"><span>{list.length === 1 ? '1 person' : `${list.length} people`}</span></div>
       </section>
+      <LearnMore topic="staff" />
 
       <Dialog open={!!form} title={form ? (form.isNew ? 'Add staff' : `Quick edit · ${form.name}`) : 'Staff'} onClose={() => setForm(null)} width={720}
         footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setForm(null)}>Cancel</button><button type="submit" form="as-form" className="gc-btn gc-btn--solid">{form && form.isNew ? 'Add staff' : 'Save'}</button></>}>

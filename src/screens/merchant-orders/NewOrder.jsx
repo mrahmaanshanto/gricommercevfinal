@@ -1,7 +1,12 @@
 'use client';
 // NewOrder — create an order by hand, in the same order of steps as Shopify's "Create order":
 // add products -> pick or create the customer -> discount, delivery and tax -> take or defer payment.
-// Front end only: products and customers are demo data, "Create order" ends on the order page.
+// Products come from the one product catalogue (sellable.js › orderableItems): only Active products sold
+// retail with a price, with their free stock at the place the order ships from; an out-of-stock product can
+// be added only when its "Keep selling when out of stock (pre-order)" switch is on. Each line keeps the list
+// price, so a price typed in here is recorded on the order (orderLinks.js › addOrder) and in its activity.
+// Layout (IndexKit): RecordHeader with the back arrow (it asks before an unsaved order is thrown away), then the
+// order on the left (products, payment with Create order) and the customer, status, notes and tags on the right.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -10,9 +15,11 @@ import { navigate } from '@/runtime/routes';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { Dialog, PhoneActionBar } from '@/components/ui';
+import { RecordHeader } from '@/components/ui/IndexKit';
 import { formatBDT } from '@/lib/format';
 import { orderStatus, initialStatusKey } from '@/lib/orderStatus';
-import { findOrder, patchOrder, takeOrderStock } from '@/lib/orders';
+import { findOrder, patchOrder, takeOrderStock, logOrder } from '@/lib/orders';
+import { orderableItems, canAdd } from '@/lib/sellable';
 import { holdsStock } from '@/lib/edition';
 import { announceNewOrder } from '@/lib/orderFlow';
 import { notify } from '@/lib/notifications';
@@ -26,16 +33,6 @@ import { onlinePlace } from '@/lib/locations';
 import { productBy, stockAt } from '@/lib/stock';
 import { getCustomers, findCustomer, saveCustomerOnce, ADDED_FROM } from '@/lib/customers';
 
-const PRODUCTS = [
-  { id: 'p1', name: 'Denim Jeans · Blue', variant: 'Size 32', sizes: ['30', '32', '34', '36'], sku: 'CL-JNS', price: 1290, stock: 40 },
-  { id: 'p2', name: 'Men’s Polo Shirt · Navy', variant: 'Size M', sizes: ['S', 'M', 'L', 'XL'], sku: 'CL-POLO', price: 990, stock: 6 },
-  { id: 'p3', name: 'Sunscreen SPF 50 · 50ml', variant: 'Single', sku: 'SK-SUN-50', price: 890, stock: 124 },
-  { id: 'p4', name: 'Hyaluronic Toner 150ml', variant: 'Single', sku: 'SK-TON-150', price: 990, stock: 60 },
-  { id: 'p5', name: 'Wireless Earbuds Pro', variant: 'Black', sku: 'EL-EAR-PRO', price: 3490, stock: 0 },
-  { id: 'p6', name: 'Shockproof Bumper Case — 16 Pro Max', variant: 'Clear', sku: 'EL-CASE-16', price: 1000, stock: 18 },
-  { id: 'p7', name: 'Daily Care Shampoo 400ml', variant: 'Anti-dandruff', sku: 'SK-SHA-400', price: 420, stock: 88 },
-  { id: 'p8', name: 'Kitchen Blender 600W', variant: 'White', sku: 'HM-BLD-600', price: 4200, stock: 9 },
-];
 
 const CUST_TYPES = ['Online', 'Retail', 'Wholesale'];   // how a customer buys; one, two or all three
 
@@ -54,72 +51,62 @@ const TERMS = [
 ];
 
 const CSS = `
-.no-head{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3)}
-.no-back{display:grid;place-items:center;width:36px;height:36px;flex:none;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);color:var(--text-body)}
-.no-back:hover{border-color:var(--border-strong);color:var(--text-heading)}
-.no-title{margin:0;font-size:var(--text-2xl);line-height:var(--text-2xl-lh);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.no-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:var(--space-5);align-items:start}
-.no-col{display:flex;flex-direction:column;gap:var(--space-5);min-width:0}
-.no-card{border-radius:var(--radius-xl);background:var(--surface-card);box-shadow:var(--shadow-soft);padding:var(--space-5)}
-.no-card__title{margin:0 0 var(--space-3);font-size:var(--text-sm-plus);line-height:var(--text-sm-plus-lh);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.no-cardhead{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);margin-bottom:var(--space-3)}
-.no-cardhead .no-card__title{margin:0}
+/* the product and customer cards hold a dropdown that may reach past the card */
+.no-card--products,.no-card--cust{overflow:visible}
 .no-row{display:flex;flex-wrap:wrap;gap:var(--space-2)}
 .no-search{position:relative;flex:1 1 220px;min-width:0}
-.no-search>svg{position:absolute;left:14px;top:13px;color:var(--text-muted);pointer-events:none}
-.no-search .gc-input{padding-left:42px;border-radius:var(--radius-lg)}
-.no-pop{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:20;max-height:280px;overflow:auto;padding:var(--space-1);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card);box-shadow:var(--shadow-lg)}
-.no-opt{display:flex;width:100%;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border:0;border-radius:var(--radius-lg);background:none;text-align:left;cursor:pointer}
+.no-search>svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none}
+.no-search .gc-input{padding-left:34px}
+.no-pop{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:20;max-height:280px;overflow:auto;padding:4px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);box-shadow:var(--shadow-lg)}
+.no-opt{display:flex;width:100%;align-items:center;gap:var(--space-3);min-height:40px;padding:4px var(--space-2);border:0;border-radius:var(--radius-md);background:none;font:inherit;text-align:left;cursor:pointer}
 .no-opt:hover,.no-opt:focus-visible{background:var(--surface-subtle)}
 .no-opt[aria-disabled="true"]{cursor:not-allowed;opacity:.6}
 .no-opt__main{flex:1;min-width:0}
 .no-name{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .no-meta{display:block;font-size:var(--text-xs);color:var(--text-muted)}
-.no-thumb{display:grid;place-items:center;width:40px;height:40px;flex:none;border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary);font-size:var(--text-sm);font-weight:var(--weight-semibold)}
-.no-lines{width:100%;margin-top:var(--space-4);border-collapse:collapse}
-.no-lines th{padding:0 0 var(--space-2);border-bottom:1px solid var(--border-subtle);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted);text-align:left}
-.no-lines td{padding:var(--space-3) 0;border-bottom:1px solid var(--border-subtle);vertical-align:middle}
-.no-lines th.r,.no-lines td.r{text-align:right}
-.no-prod{display:flex;align-items:center;gap:var(--space-3);min-width:220px}
+.no-thumb{display:grid;place-items:center;width:32px;height:32px;flex:none;border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--surface-subtle);color:var(--text-heading);font-size:var(--text-xs);font-weight:var(--weight-semibold)}
+.no-lines{width:100%;margin-top:var(--space-3);border-collapse:collapse}
+.no-lines th{height:32px;padding:0 var(--space-2) 0 0;border-bottom:1px solid var(--border-subtle);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body);text-align:left}
+.no-lines td{padding:var(--space-2) var(--space-2) var(--space-2) 0;border-bottom:1px solid var(--border-subtle);vertical-align:middle}
+.no-lines tr:last-child td{border-bottom:0}
+.no-lines th.r,.no-lines td.r{padding-right:0;text-align:right}
+.no-prod{display:flex;align-items:center;gap:var(--space-3);min-width:200px}
 .no-qty{display:inline-flex;align-items:center;border:1px solid var(--border-field);border-radius:var(--radius-lg)}
-.no-qty button{display:grid;place-items:center;width:32px;height:36px;border:0;background:none;color:var(--text-body);cursor:pointer}
+.no-qty button{display:grid;place-items:center;width:28px;height:28px;border:0;background:none;color:var(--text-body);cursor:pointer}
 .no-qty button:disabled{opacity:.4;cursor:not-allowed}
-.no-qty input{width:40px;height:36px;border:0;background:none;text-align:center;font-size:var(--text-sm);color:var(--text-heading);font-variant-numeric:tabular-nums}
-.no-price{width:96px;height:36px;padding:0 var(--space-2);border:1px solid var(--border-field);border-radius:var(--radius-lg);background:none;text-align:right;font-size:var(--text-sm);color:var(--text-heading);font-variant-numeric:tabular-nums}
+.no-qty input{width:36px;height:28px;border:0;background:none;text-align:center;font-size:var(--text-sm);color:var(--text-heading);font-variant-numeric:tabular-nums}
+.no-price{width:88px;height:30px;padding:0 var(--space-2);border:1px solid var(--border-field);border-radius:var(--radius-lg);background:none;text-align:right;font-size:var(--text-sm);color:var(--text-heading);font-variant-numeric:tabular-nums}
 .no-amt{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);font-variant-numeric:tabular-nums;white-space:nowrap}
-.no-size{display:block;height:28px;margin-top:4px;padding:0 var(--space-2);border:1px solid var(--border-field);border-radius:var(--radius-md);background:var(--surface-card);font-size:var(--text-xs);color:var(--text-body)}
-.no-terms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2);margin-top:var(--space-4);padding-top:var(--space-4);border-top:1px solid var(--border-subtle)}
-.no-terms legend{padding:0;margin-bottom:var(--space-2);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
-.no-link-box{display:flex;gap:var(--space-2);align-items:center;padding:var(--space-2) var(--space-2) var(--space-2) var(--space-3);border:1px solid var(--border-field);border-radius:var(--radius-lg);background:var(--surface-page);font-size:var(--text-sm);color:var(--text-heading)}
+.no-size{display:block;height:26px;margin-top:4px;padding:0 var(--space-2);border:1px solid var(--border-field);border-radius:var(--radius-md);background:var(--surface-card);font-size:var(--text-xs);color:var(--text-body)}
+.no-terms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2);min-width:0;margin:var(--space-4) 0 0;padding:var(--space-4) 0 0;border:0;border-top:1px solid var(--border-subtle)}
+.no-link-box{display:flex;gap:var(--space-2);align-items:center;padding:4px 4px 4px var(--space-3);border:1px solid var(--border-field);border-radius:var(--radius-lg);background:var(--surface-page);font-size:var(--text-sm);color:var(--text-heading)}
 .no-link-box span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media (max-width:560px){.no-terms{grid-template-columns:minmax(0,1fr)}}
-.no-empty{margin-top:var(--space-4);padding:var(--space-6);border:1px dashed var(--border-strong);border-radius:var(--radius-xl);text-align:center;font-size:var(--text-sm);color:var(--text-muted)}
+.no-empty{margin:var(--space-3) 0 0;padding:var(--space-5);border:1px dashed var(--border-strong);border-radius:var(--radius-lg);text-align:center;font-size:var(--text-sm);color:var(--text-muted)}
 .no-pay{display:grid;grid-template-columns:140px minmax(0,1fr) auto;gap:var(--space-2) var(--space-3);align-items:center;font-size:var(--text-sm);color:var(--text-body)}
 .no-pay .v{text-align:right;font-variant-numeric:tabular-nums;color:var(--text-heading)}
 .no-pay .hint{color:var(--text-muted)}
 .no-link{border:0;background:none;padding:0;color:var(--primary);font-size:var(--text-sm);font-weight:var(--weight-medium);text-align:left;cursor:pointer}
 .no-link:hover{text-decoration:underline}
 .no-link:disabled{color:var(--text-muted);cursor:not-allowed;text-decoration:none}
-.no-total{grid-column:1/-1;display:flex;justify-content:space-between;margin-top:var(--space-2);padding-top:var(--space-3);border-top:1px solid var(--border-subtle);font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.no-total span:last-child{font-size:var(--text-lg);font-variant-numeric:tabular-nums}
-.no-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);margin-top:var(--space-4);padding-top:var(--space-4);border-top:1px solid var(--border-subtle)}
+.no-total{grid-column:1/-1;display:flex;justify-content:space-between;margin-top:var(--space-1);padding-top:var(--space-2);border-top:1px solid var(--border-subtle);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.no-total span:last-child{font-size:var(--text-sm-plus);font-variant-numeric:tabular-nums}
+.no-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:var(--space-2);margin-top:var(--space-4);padding-top:var(--space-3);border-top:1px solid var(--border-subtle)}
 .no-check{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-body);cursor:pointer}
 .no-cust{display:flex;flex-direction:column;gap:var(--space-3);font-size:var(--text-sm);color:var(--text-body)}
 .no-cust h3{margin:0 0 2px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
 .no-err{margin:var(--space-2) 0 0;font-size:var(--text-xs);color:var(--text-danger)}
-.no-tags{display:flex;flex-wrap:wrap;gap:var(--space-1-5);margin-top:var(--space-2)}
+.no-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--space-2)}
 .no-tag{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 4px 0 8px;border-radius:var(--radius-full);background:var(--surface-subtle);font-size:var(--text-xs);color:var(--text-body)}
-.no-tag button{display:grid;place-items:center;width:24px;height:24px;margin-right:-4px;border:0;border-radius:var(--radius-full);background:none;color:var(--text-muted);cursor:pointer}
-.no-radio{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);cursor:pointer}
+.no-tag button{display:grid;place-items:center;width:20px;height:20px;border:0;border-radius:var(--radius-full);background:none;color:var(--text-muted);cursor:pointer}
+.no-radio{display:flex;align-items:flex-start;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);cursor:pointer}
 .no-radio:has(input:checked){border-color:var(--primary);background:var(--fill-primary-soft)}
 .no-radio input{margin-top:3px;accent-color:var(--primary)}
-.no-bar{position:sticky;bottom:0;z-index:30;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:var(--space-2);margin:0 calc(var(--margin-x) * -1) -40px;padding:var(--space-3) var(--margin-x);border-top:1px solid var(--border-subtle);background:var(--surface-header);backdrop-filter:blur(8px)}
+.no-bar{position:sticky;bottom:0;z-index:30;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:var(--space-2);margin:var(--space-4) calc(var(--margin-x) * -1) -32px;padding:var(--space-3) var(--margin-x);border-top:1px solid var(--border-subtle);background:var(--surface-header);backdrop-filter:blur(8px)}
 .no-bar__note{margin-right:auto;font-size:var(--text-sm);color:var(--text-muted)}
-@media (max-width:1100px){.no-grid{grid-template-columns:minmax(0,1fr)}}
-@media (max-width:767px){.no-bar{margin:0 -16px -16px;padding:var(--space-3) 16px}.no-pay{grid-template-columns:110px minmax(0,1fr) auto}}
+@media (max-width:767px){.no-bar{margin:var(--space-4) -16px -16px;padding:var(--space-3) 16px}.no-pay{grid-template-columns:110px minmax(0,1fr) auto}}
 /* one column (tablets and phones): the customer comes first and Payment, with the create buttons, comes last */
 @media (max-width:1023px){
-  .no-grid>.no-col{display:contents}
+  .no-rec>.ix-main,.no-rec>.ix-side{display:contents}
   .no-card--cust{order:1}.no-card--products{order:2}.no-card--status{order:3}.no-card--notes{order:4}.no-card--tags{order:5}.no-card--pay{order:6}
 }
 /* phones: Create order / Order link sit in the bottom action bar (PhoneActionBar); Discard and Save as draft
@@ -128,7 +115,10 @@ const CSS = `
   .no-foot{display:none}
   .no-row .no-search{flex:1 1 100%}
   .no-row>.gc-btn{flex:1 1 0;min-width:0}
-  .no-bar{position:static;margin:0 0 var(--space-12);padding:0;border-top:0;background:none;backdrop-filter:none}
+  .no-terms{grid-template-columns:minmax(0,1fr)}
+  .no-qty button{width:36px;height:36px}
+  .no-qty input,.no-price{height:36px}
+  .no-bar{position:static;margin:var(--space-4) 0 var(--space-12);padding:0;border-top:0;background:none;backdrop-filter:none}
 }
 `;
 
@@ -167,6 +157,9 @@ export default function NewOrder() {
   const [book, setBook] = useState([]);                // the customer book (Customers page), read in the browser
   const productRef = useRef(null);
   const customerRef = useRef(null);
+  const creating = useRef(false);                      // one order per click, however fast it is pressed
+  const [catalog, setCatalog] = useState([]);         // the catalogue (read in the browser): orderableItems
+  useEffect(() => { setCatalog(orderableItems({ place: holdPlace })); }, [holdPlace]);
   useEffect(() => { setBook(getCustomers()); }, []);
   // online payment routes: the gateways set up in Settings › Payment Gateway (built-in ones first render)
   const onlineOf = (list) => list.filter((p) => p.kind === 'Gateway' && p.id !== 'card').map((p) => ['gw:' + p.id, p.short + ' online', p.mode === 'direct']);
@@ -175,8 +168,8 @@ export default function NewOrder() {
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return q ? PRODUCTS.filter((p) => (p.name + ' ' + p.sku).toLowerCase().includes(q)) : [];
-  }, [query]);
+    return q ? catalog.filter((p) => (p.name + ' ' + p.sku + ' ' + p.variant + ' ' + p.barcode).toLowerCase().includes(q)).slice(0, 30) : [];
+  }, [query, catalog]);
   const custMatches = useMemo(() => {
     const q = custQuery.trim().toLowerCase();
     // the demo list first, then everyone in the customer book with a number not listed yet
@@ -204,14 +197,14 @@ export default function NewOrder() {
   const addProduct = (p, qty = 1) => {
     setLines((cur) => (cur.some((l) => l.id === p.id)
       ? cur.map((l) => (l.id === p.id ? { ...l, qty: l.qty + qty } : l))
-      : [...cur, { id: p.id, name: p.name, variant: p.variant, sku: p.sku, price: p.price, qty, sizes: p.sizes, size: p.sizes ? p.variant.replace('Size ', '') : undefined }]));
+      : [...cur, { id: p.id, name: p.name, variant: p.variant, sku: p.sku, price: p.price, listPrice: p.listPrice != null ? p.listPrice : p.price, productId: p.productId || '', qty, sizes: p.sizes, size: p.sizes ? p.variant.replace('Size ', '') : undefined }]));
     setErrors((e) => ({ ...e, lines: undefined }));
   };
   const setLine = (id, patch) => setLines((cur) => cur.map((l) => (l.id === id ? { ...l, ...patch } : l)));
   const removeLine = (id) => setLines((cur) => cur.filter((l) => l.id !== id));
 
   const addPicked = () => {
-    PRODUCTS.filter((p) => picked[p.id]).forEach((p) => addProduct(p));
+    catalog.filter((p) => picked[p.id]).forEach((p) => addProduct(p));
     setPicked({});
     setBrowse(false);
   };
@@ -297,11 +290,19 @@ export default function NewOrder() {
     navigate('/merchant-orders');
   };
   const createOrder = () => {
+    if (creating.current) return;
     if (!validate(true)) return;
     const adv = Number(advance);
     if (terms === 'partial' && !(adv > 0 && adv < total)) { setErrors({ advance: `Enter an advance between ৳1 and ${formatBDT(total - 1)}.` }); return; }
+    creating.current = true;
     const label = status === 'approved' ? 'Approved' : 'New';
-    const row = addOrder({ lines, customer: customer.name, phone: customer.phone, zone: delivery ? delivery.label : 'Not set', total, status: label, payment: PAYMENT_LABEL[terms], address: customer.address || '', shipping: deliveryFee, paid: terms === 'full' ? total : terms === 'partial' ? adv : 0 });
+    const row = addOrder({ lines, customer: customer.name, phone: customer.phone, zone: delivery ? delivery.label : 'Not set', total, status: label, payment: PAYMENT_LABEL[terms], address: customer.address || '', shipping: deliveryFee, paid: terms === 'full' ? total : terms === 'partial' ? adv : 0,
+      discount: discountValue, discountReason: discount ? discount.reason : '', vat: tax, vatRate: vat ? VAT_RATE * 100 : 0, note: note.trim(), tags });
+    // the same order pressed twice (or sent twice) is one order: nothing is posted or held again
+    if (row.duplicate) { toast(`Order ${row.id} created`); navigate('/merchant-orders'); return; }
+    // prices typed in by hand and the order discount are written to the order's activity
+    lines.forEach((l) => { if (l.listPrice != null && Number(l.price) !== Number(l.listPrice)) logOrder(row.id, 'tag', 'Price changed', `${l.name}: ${formatBDT(l.listPrice)} → ${formatBDT(l.price)} · Staff`); });
+    if (discountValue > 0) logOrder(row.id, 'percent', 'Discount', `${formatBDT(discountValue)}${discount && discount.reason ? ' · ' + discount.reason : ''} · Staff`);
     // money taken now (advance or full payment) goes into the account for its method
     const takenNow = terms === 'full' ? total : terms === 'partial' ? Number(advance) : 0;
     if (takenNow > 0) postEntry({ account: method.startsWith('gw:') ? accountForPartner(method.slice(3)) : accountForMethod(method, false), amount: takenNow, kind: 'order payment', ref: row.id, party: customer.name, note: terms === 'full' ? 'Paid in full with the order' : 'Advance with the order' });
@@ -338,203 +339,218 @@ export default function NewOrder() {
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="gc-shell">
         <Sidebar sticky="" active="orders-all" />
-        <main className="gc-shell__main" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 'var(--radius-xl)' }}>
+        <main className="gc-shell__main">
           <Topbar crumb="Orders" page="Create order" />
-          <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-            <div className="no-head">
-              <Link href="/merchant-orders" className="no-back" aria-label="Back to all orders" onClick={leave}><Icon name="arrow-left" width="18" height="18" /></Link>
-              <h1 className="no-title">Create order</h1>
-            </div>
+          <div className="gc-shell__content">
+            <div className="ix-page ix-page--narrow">
+              {/* the back arrow asks before an unsaved order is thrown away */}
+              <div onClickCapture={(e) => { if (e.target.closest('a[href="/merchant-orders"]')) leave(e); }}>
+                <RecordHeader back="/merchant-orders" backLabel="Back to all orders" title="Create order"
+                  about="Add products, choose the customer, then discount, delivery and payment. Or make an order link for the customer to fill in." />
+              </div>
 
-            <div className="no-grid">
-              <div className="no-col">
-                {/* 1. Products */}
-                <section className="no-card no-card--products" aria-labelledby="no-products">
-                  <h2 id="no-products" className="no-card__title">Products</h2>
-                  <div className="no-row">
-                    <div className="no-search">
-                      <Icon name="search" width="18" height="18" aria-hidden="true" />
-                      <input ref={productRef} className="gc-input" type="search" placeholder="Product name or SKU" aria-label="Search products" aria-invalid={errors.lines ? 'true' : undefined} aria-describedby={errors.lines ? 'no-lines-err' : undefined} value={query} onChange={(e) => setQuery(e.target.value)} />
-                      {matches.length > 0 && (
-                        <div className="no-pop" role="listbox" aria-label="Matching products">
-                          {matches.map((p) => (
-                            <button key={p.id} type="button" role="option" aria-selected="false" className="no-opt" aria-disabled={p.stock === 0 ? 'true' : undefined} onClick={() => { if (p.stock > 0) { addProduct(p); setQuery(''); } }}>
-                              <span className="no-thumb" aria-hidden="true">{initials(p.name)}</span>
-                              <span className="no-opt__main"><span className="no-name">{p.name}</span><span className="no-meta">{p.variant} · {p.sku} · {p.stock > 0 ? `${p.stock} in stock` : 'Out of stock'}</span></span>
-                              <span className="no-amt">{formatBDT(p.price)}</span>
-                            </button>
-                          ))}
+              <div className="ix-record no-rec">
+                <div className="ix-main">
+                  {/* 1. Products */}
+                  <section className="ix-card no-card--products" aria-labelledby="no-products">
+                    <header className="ix-card__head"><h2 id="no-products">Products</h2></header>
+                    <div className="ix-card__body">
+                      <div className="no-row">
+                        <div className="no-search">
+                          <Icon name="search" width="16" height="16" aria-hidden="true" />
+                          <input ref={productRef} className="gc-input" type="search" placeholder="Product name or SKU" aria-label="Search products" aria-invalid={errors.lines ? 'true' : undefined} aria-describedby={errors.lines ? 'no-lines-err' : undefined} value={query} onChange={(e) => setQuery(e.target.value)} />
+                          {matches.length > 0 && (
+                            <div className="no-pop" role="listbox" aria-label="Matching products">
+                              {matches.map((p) => (
+                                <button key={p.id} type="button" role="option" aria-selected="false" className="no-opt" aria-disabled={!canAdd(p).ok ? 'true' : undefined} onClick={() => { if (canAdd(p).ok) { addProduct(p); setQuery(''); } }}>
+                                  <span className="no-thumb" aria-hidden="true">{initials(p.name)}</span>
+                                  <span className="no-opt__main"><span className="no-name">{p.name}</span><span className="no-meta">{p.variant} · {p.sku} · {p.stock > 0 ? `${p.stock} in stock` : 'Out of stock'}</span></span>
+                                  <span className="no-amt">{formatBDT(p.price)}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setBrowse(true)}>Browse</button>
+                        <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setCustomOpen(true)}>Add custom item</button>
+                      </div>
+                      {errors.lines ? <p id="no-lines-err" className="no-err" role="alert">{errors.lines}</p> : null}
+
+                      {lines.length === 0 ? (
+                        <p className="no-empty">No products yet. Search, browse the catalogue or add a custom item.</p>
+                      ) : (
+                        <div className="gc-table-wrap">
+                          <table className="no-lines">
+                            <caption className="sr-only">Products in this order</caption>
+                            <thead><tr><th scope="col">Product</th><th scope="col">Price</th><th scope="col">Quantity</th><th scope="col" className="r">Total</th><th scope="col"><span className="sr-only">Remove</span></th></tr></thead>
+                            <tbody>
+                              {lines.map((l) => (
+                                <tr key={l.id}>
+                                  <td><div className="no-prod"><span className="no-thumb" aria-hidden="true">{initials(l.name)}</span><span style={{ minWidth: 0 }}><span className="no-name">{l.name}</span><span className="no-meta">{l.sizes ? l.sku : `${l.variant}${l.sku !== '—' ? ` · ${l.sku}` : ''}`}</span>{l.sizes ? <select className="no-size" aria-label={`Size of ${l.name}`} value={l.size} onChange={(e) => setLine(l.id, { size: e.target.value, variant: 'Size ' + e.target.value })}>{l.sizes.map((z) => <option key={z} value={z}>Size {z}</option>)}</select> : null}</span></div></td>
+                                  <td><input className="no-price" type="number" min="0" aria-label={`Price of ${l.name}`} value={l.price} onChange={(e) => setLine(l.id, { price: Math.max(0, Number(e.target.value) || 0) })} /></td>
+                                  <td>
+                                    <span className="no-qty">
+                                      <button type="button" aria-label={`One fewer ${l.name}`} disabled={l.qty <= 1} onClick={() => setLine(l.id, { qty: l.qty - 1 })}><Icon name="minus" width="14" height="14" /></button>
+                                      <input type="text" inputMode="numeric" aria-label={`Quantity of ${l.name}`} value={l.qty} onChange={(e) => setLine(l.id, { qty: Math.max(1, parseInt(e.target.value, 10) || 1) })} />
+                                      <button type="button" aria-label={`One more ${l.name}`} onClick={() => setLine(l.id, { qty: l.qty + 1 })}><Icon name="plus" width="14" height="14" /></button>
+                                    </span>
+                                  </td>
+                                  <td className="r"><span className="no-amt">{formatBDT(l.price * l.qty)}</span></td>
+                                  <td className="r"><button type="button" className="gc-iconbtn" aria-label={`Remove ${l.name}`} onClick={() => removeLine(l.id)}><Icon name="x" width="16" height="16" /></button></td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       )}
                     </div>
-                    <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setBrowse(true)}>Browse</button>
-                    <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setCustomOpen(true)}>Add custom item</button>
-                  </div>
-                  {errors.lines ? <p id="no-lines-err" className="no-err" role="alert">{errors.lines}</p> : null}
+                  </section>
 
-                  {lines.length === 0 ? (
-                    <p className="no-empty">No products yet. Search, browse the catalogue or add a custom item.</p>
-                  ) : (
-                    <div className="gc-table-wrap">
-                      <table className="no-lines">
-                        <caption className="sr-only">Products in this order</caption>
-                        <thead><tr><th scope="col">Product</th><th scope="col">Price</th><th scope="col">Quantity</th><th scope="col" className="r">Total</th><th scope="col"><span className="sr-only">Remove</span></th></tr></thead>
-                        <tbody>
-                          {lines.map((l) => (
-                            <tr key={l.id}>
-                              <td><div className="no-prod"><span className="no-thumb" aria-hidden="true">{initials(l.name)}</span><span style={{ minWidth: 0 }}><span className="no-name">{l.name}</span><span className="no-meta">{l.sizes ? l.sku : `${l.variant}${l.sku !== '—' ? ` · ${l.sku}` : ''}`}</span>{l.sizes ? <select className="no-size" aria-label={`Size of ${l.name}`} value={l.size} onChange={(e) => setLine(l.id, { size: e.target.value, variant: 'Size ' + e.target.value })}>{l.sizes.map((z) => <option key={z} value={z}>Size {z}</option>)}</select> : null}</span></div></td>
-                              <td><input className="no-price" type="number" min="0" aria-label={`Price of ${l.name}`} value={l.price} onChange={(e) => setLine(l.id, { price: Math.max(0, Number(e.target.value) || 0) })} /></td>
-                              <td>
-                                <span className="no-qty">
-                                  <button type="button" aria-label={`One fewer ${l.name}`} disabled={l.qty <= 1} onClick={() => setLine(l.id, { qty: l.qty - 1 })}><Icon name="minus" width="14" height="14" /></button>
-                                  <input type="text" inputMode="numeric" aria-label={`Quantity of ${l.name}`} value={l.qty} onChange={(e) => setLine(l.id, { qty: Math.max(1, parseInt(e.target.value, 10) || 1) })} />
-                                  <button type="button" aria-label={`One more ${l.name}`} onClick={() => setLine(l.id, { qty: l.qty + 1 })}><Icon name="plus" width="14" height="14" /></button>
-                                </span>
-                              </td>
-                              <td className="r"><span className="no-amt">{formatBDT(l.price * l.qty)}</span></td>
-                              <td className="r"><button type="button" className="gc-iconbtn" aria-label={`Remove ${l.name}`} onClick={() => removeLine(l.id)}><Icon name="x" width="16" height="16" /></button></td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </section>
+                  {/* 3. Payment */}
+                  <section className="ix-card no-card--pay" aria-labelledby="no-payment">
+                    <header className="ix-card__head"><h2 id="no-payment">Payment</h2></header>
+                    <div className="ix-card__body">
+                      <div className="no-pay">
+                        <span>Subtotal</span><span className="hint">{items ? `${items} item${items > 1 ? 's' : ''}` : '—'}</span><span className="v">{formatBDT(subtotal)}</span>
 
-                {/* 3. Payment */}
-                <section className="no-card no-card--pay" aria-labelledby="no-payment">
-                  <h2 id="no-payment" className="no-card__title">Payment</h2>
-                  <div className="no-pay">
-                    <span>Subtotal</span><span className="hint">{items ? `${items} item${items > 1 ? 's' : ''}` : '—'}</span><span className="v">{formatBDT(subtotal)}</span>
+                        <button type="button" className="no-link" disabled={!lines.length} onClick={() => { setDiscDraft(discount ? { type: discount.type, value: String(discount.value), reason: discount.reason } : { type: 'amount', value: '', reason: '' }); setDiscOpen(true); }}>{discount ? 'Edit discount' : 'Add discount'}</button>
+                        <span className="hint">{discount ? (discount.reason || (discount.type === 'percent' ? `${discount.value}% off` : 'Custom discount')) : '—'}</span>
+                        <span className="v">{discountValue ? '−' + formatBDT(discountValue) : formatBDT(0)}</span>
 
-                    <button type="button" className="no-link" disabled={!lines.length} onClick={() => { setDiscDraft(discount ? { type: discount.type, value: String(discount.value), reason: discount.reason } : { type: 'amount', value: '', reason: '' }); setDiscOpen(true); }}>{discount ? 'Edit discount' : 'Add discount'}</button>
-                    <span className="hint">{discount ? (discount.reason || (discount.type === 'percent' ? `${discount.value}% off` : 'Custom discount')) : '—'}</span>
-                    <span className="v">{discountValue ? '−' + formatBDT(discountValue) : formatBDT(0)}</span>
+                        <button type="button" className="no-link" disabled={!lines.length} onClick={() => { setDelDraft({ id: delivery ? delivery.id : (customer && customer.zone) || 'dhaka', custom: delivery && delivery.id === 'custom' ? String(delivery.fee) : '' }); setDelOpen(true); }}>{delivery ? 'Edit delivery' : 'Add delivery'}</button>
+                        <span className="hint">{delivery ? delivery.label : '—'}</span>
+                        <span className="v">{formatBDT(deliveryFee)}</span>
 
-                    <button type="button" className="no-link" disabled={!lines.length} onClick={() => { setDelDraft({ id: delivery ? delivery.id : (customer && customer.zone) || 'dhaka', custom: delivery && delivery.id === 'custom' ? String(delivery.fee) : '' }); setDelOpen(true); }}>{delivery ? 'Edit delivery' : 'Add delivery'}</button>
-                    <span className="hint">{delivery ? delivery.label : '—'}</span>
-                    <span className="v">{formatBDT(deliveryFee)}</span>
+                        <label className="no-check"><input type="checkbox" className="gc-check" checked={vat} onChange={(e) => setVat(e.target.checked)} />VAT</label>
+                        <span className="hint">{vat ? '5% on products' : 'Not charged'}</span>
+                        <span className="v">{formatBDT(tax)}</span>
 
-                    <label className="no-check"><input type="checkbox" className="gc-check" checked={vat} onChange={(e) => setVat(e.target.checked)} />VAT</label>
-                    <span className="hint">{vat ? '5% on products' : 'Not charged'}</span>
-                    <span className="v">{formatBDT(tax)}</span>
-
-                    <div className="no-total"><span>Total</span><span>{formatBDT(total)}</span></div>
-                  </div>
-                  <fieldset className="no-terms" style={{ border: 0, borderTop: '1px solid var(--border-subtle)', margin: 'var(--space-4) 0 0', padding: 'var(--space-4) 0 0' }}>
-                    <legend className="sr-only">Payment</legend>
-                    {TERMS.map((t) => (
-                      <label key={t.id} className="no-radio">
-                        <input type="radio" name="no-terms" checked={terms === t.id} onChange={() => { setTerms(t.id); setErrors((e) => ({ ...e, advance: undefined })); }} />
-                        <span className="no-opt__main"><span className="no-name">{t.label}</span><span className="no-meta">{t.note}</span></span>
-                      </label>
-                    ))}
-                  </fieldset>
-                  {terms !== 'cod' ? (
-                    <div className="no-row" style={{ marginTop: 'var(--space-3)', alignItems: 'flex-end' }}>
-                      {terms === 'partial' ? (
-                        <div style={{ flex: '1 1 140px' }}><label className="gc-label" htmlFor="no-advance">Advance received (৳) *</label><input id="no-advance" className={'gc-input' + (errors.advance ? ' gc-input--error' : '')} style={{ borderRadius: 'var(--radius-lg)' }} type="number" min="1" aria-required="true" aria-invalid={errors.advance ? 'true' : undefined} value={advance} onChange={(e) => { setAdvance(e.target.value); setErrors((er) => ({ ...er, advance: undefined })); }} /></div>
-                      ) : null}
-                      <div style={{ flex: '1 1 140px' }}><label className="gc-label" htmlFor="no-method">Paid by</label><select id="no-method" className="gc-input gc-select" style={{ borderRadius: 'var(--radius-lg)' }} value={method} onChange={(e) => setMethod(e.target.value)}><optgroup label="Online payment">{online.map(([v, l, direct]) => <option key={v} value={v}>{l}{direct ? '' : ' · settled later'}</option>)}</optgroup><optgroup label="Straight to your account"><option>bKash</option><option>Nagad</option><option>Cash</option><option>Card</option><option>Bank transfer</option></optgroup></select></div>
-                    </div>
-                  ) : null}
-                  {errors.advance ? <p className="no-err" role="alert">{errors.advance}</p> : null}
-                  {terms === 'partial' && Number(advance) > 0 && Number(advance) < total ? <p className="no-meta" style={{ marginTop: 'var(--space-2)' }}>{formatBDT(total - Number(advance))} will be collected on delivery.</p> : null}
-                  <div className="no-foot">
-                    <button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={makeLink}><Icon name="link" width="16" height="16" aria-hidden="true" />Create order link</button>
-                    <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={createOrder}>Create order</button>
-                  </div>
-                </section>
-              </div>
-
-              <div className="no-col">
-                {/* Status */}
-                <section className="no-card no-card--status">
-                  <label className="no-card__title" htmlFor="no-status" style={{ display: 'block' }}>Order status</label>
-                  <select id="no-status" className="gc-input gc-select" style={{ borderRadius: 'var(--radius-lg)' }} value={status} onChange={(e) => setStatus(e.target.value)}>
-                    <option value="approved">Approved · confirmed on the call</option>
-                    <option value="new">{orderStatus(initialStatusKey(PAYMENT_LABEL[terms])).label} · verify later</option>
-                  </select>
-                  {status === 'approved' ? (
-                    <div style={{ marginTop: 'var(--space-3)' }}>
-                      {holdPlaces.length > 1 ? (<>
-                        <label className="gc-label" htmlFor="no-hold">{holdsStock() ? 'Hold stock from' : 'Take stock from'}</label>
-                        <select id="no-hold" className="gc-input gc-select" style={{ borderRadius: 'var(--radius-lg)' }} value={holdPlace} onChange={(e) => setHoldPlace(e.target.value)}>
-                          {holdPlaces.map((x) => <option key={x}>{x}</option>)}
-                        </select>
-                      </>) : null}
-                      <p className="no-meta" style={{ marginTop: 'var(--space-1-5)' }}>{holdNote}</p>
-                    </div>
-                  ) : null}
-                </section>
-
-                {/* Notes */}
-                <section className="no-card no-card--notes" aria-labelledby="no-notes">
-                  <h2 id="no-notes" className="no-card__title">Notes</h2>
-                  <textarea className="gc-input" rows="3" style={{ borderRadius: 'var(--radius-lg)' }} aria-labelledby="no-notes" placeholder="Visible to staff and printed on the invoice" value={note} onChange={(e) => setNote(e.target.value)} />
-                </section>
-
-                {/* 2. Customer */}
-                <section className="no-card no-card--cust" aria-labelledby="no-customer">
-                  <div className="no-cardhead">
-                    <h2 id="no-customer" className="no-card__title">Customer</h2>
-                    {customer ? <button type="button" className="gc-iconbtn" aria-label="Remove customer from this order" onClick={() => setCustomer(null)}><Icon name="x" width="16" height="16" /></button> : null}
-                  </div>
-                  {customer ? (
-                    <div className="no-cust">
-                      <div><span className="no-name">{customer.name}</span><span className="no-meta">{customer.orders ? `${customer.orders} order${customer.orders > 1 ? 's' : ''}` : 'New customer'}</span></div>
-                      <div><h3>Contact</h3>{customer.phone}<CourierHistory phone={customer.phone} /></div>
-                      <div><h3>Delivery address</h3>{customer.address || 'No address yet'}</div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="no-search">
-                        <Icon name="search" width="18" height="18" aria-hidden="true" />
-                        <input ref={customerRef} className="gc-input" type="search" placeholder="Search by name or phone" aria-label="Search or create a customer" aria-invalid={errors.customer ? 'true' : undefined} aria-describedby={errors.customer ? 'no-cust-err' : undefined} value={custQuery} onChange={(e) => setCustQuery(e.target.value)} onFocus={() => setCustFocus(true)} onBlur={() => setTimeout(() => setCustFocus(false), 150)} />
-                        {custFocus && (
-                          <div className="no-pop" role="listbox" aria-label="Customers">
-                            <button type="button" role="option" aria-selected="false" className="no-opt" onMouseDown={(e) => e.preventDefault()} onClick={openNewCustomer}>
-                              <span className="no-thumb" aria-hidden="true"><Icon name="plus" width="16" height="16" /></span>
-                              <span className="no-opt__main"><span className="no-name">Create a new customer</span></span>
-                            </button>
-                            {custMatches.length === 0 ? <p className="no-meta" style={{ padding: 'var(--space-2) var(--space-3)' }}>No customer matches “{custQuery}”.</p> : null}
-                            {custMatches.map((c) => (
-                              <button key={c.id} type="button" role="option" aria-selected="false" className="no-opt" onMouseDown={(e) => e.preventDefault()} onClick={() => pickCustomer(c)}>
-                                <span className="no-thumb" aria-hidden="true">{initials(c.name)}</span>
-                                <span className="no-opt__main"><span className="no-name">{c.name}</span><span className="no-meta">{c.phone}</span></span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                        <div className="no-total"><span>Total</span><span>{formatBDT(total)}</span></div>
                       </div>
-                      {errors.customer ? <p id="no-cust-err" className="no-err" role="alert">{errors.customer}</p> : null}
-                      {/* always on hand, whether or not a search was made or found anyone */}
-                      <button type="button" className="gc-btn gc-btn--sm gc-btn--soft" style={{ marginTop: 'var(--space-3)', width: '100%' }} onClick={openNewCustomer}><Icon name="user-plus" width="16" height="16" aria-hidden="true" />Add customer</button>
-                    </>
-                  )}
-                </section>
-
-                {/* Tags */}
-                <section className="no-card no-card--tags" aria-labelledby="no-tags">
-                  <h2 id="no-tags" className="no-card__title">Tags</h2>
-                  <input className="gc-input" style={{ borderRadius: 'var(--radius-lg)' }} aria-labelledby="no-tags" placeholder="Type a tag and press Enter" value={tagText} onChange={(e) => setTagText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }} />
-                  {tags.length ? (
-                    <div className="no-tags">
-                      {tags.map((t) => <span key={t} className="no-tag">{t}<button type="button" aria-label={`Remove tag ${t}`} onClick={() => setTags(tags.filter((x) => x !== t))}><Icon name="x" width="12" height="12" /></button></span>)}
+                      <fieldset className="no-terms">
+                        <legend className="sr-only">Payment</legend>
+                        {TERMS.map((t) => (
+                          <label key={t.id} className="no-radio">
+                            <input type="radio" name="no-terms" checked={terms === t.id} onChange={() => { setTerms(t.id); setErrors((e) => ({ ...e, advance: undefined })); }} />
+                            <span className="no-opt__main"><span className="no-name">{t.label}</span><span className="no-meta">{t.note}</span></span>
+                          </label>
+                        ))}
+                      </fieldset>
+                      {terms !== 'cod' ? (
+                        <div className="no-row" style={{ marginTop: 'var(--space-3)', alignItems: 'flex-end' }}>
+                          {terms === 'partial' ? (
+                            <div style={{ flex: '1 1 140px' }}><label className="gc-label" htmlFor="no-advance">Advance received (৳) *</label><input id="no-advance" className={'gc-input' + (errors.advance ? ' gc-input--error' : '')} type="number" min="1" aria-required="true" aria-invalid={errors.advance ? 'true' : undefined} value={advance} onChange={(e) => { setAdvance(e.target.value); setErrors((er) => ({ ...er, advance: undefined })); }} /></div>
+                          ) : null}
+                          <div style={{ flex: '1 1 140px' }}><label className="gc-label" htmlFor="no-method">Paid by</label><select id="no-method" className="gc-input gc-select" value={method} onChange={(e) => setMethod(e.target.value)}><optgroup label="Online payment">{online.map(([v, l, direct]) => <option key={v} value={v}>{l}{direct ? '' : ' · settled later'}</option>)}</optgroup><optgroup label="Straight to your account"><option>bKash</option><option>Nagad</option><option>Cash</option><option>Card</option><option>Bank transfer</option></optgroup></select></div>
+                        </div>
+                      ) : null}
+                      {errors.advance ? <p className="no-err" role="alert">{errors.advance}</p> : null}
+                      {terms === 'partial' && Number(advance) > 0 && Number(advance) < total ? <p className="no-meta" style={{ marginTop: 'var(--space-2)' }}>{formatBDT(total - Number(advance))} will be collected on delivery.</p> : null}
+                      <div className="no-foot">
+                        <button type="button" className="gc-btn gc-btn--neutral" onClick={makeLink}><Icon name="link" width="16" height="16" aria-hidden="true" />Create order link</button>
+                        <button type="button" className="gc-btn gc-btn--solid" onClick={createOrder}>Create order</button>
+                      </div>
                     </div>
-                  ) : null}
-                </section>
+                  </section>
+                </div>
+
+                <div className="ix-side">
+                  {/* 2. Customer */}
+                  <section className="ix-card no-card--cust" aria-labelledby="no-customer">
+                    <header className="ix-card__head">
+                      <h2 id="no-customer">Customer</h2>
+                      {customer ? <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Remove customer from this order" onClick={() => setCustomer(null)}><Icon name="x" width="16" height="16" /></button> : null}
+                    </header>
+                    <div className="ix-card__body">
+                      {customer ? (
+                        <div className="no-cust">
+                          <div><span className="no-name">{customer.name}</span><span className="no-meta">{customer.orders ? `${customer.orders} order${customer.orders > 1 ? 's' : ''}` : 'New customer'}</span></div>
+                          <div><h3>Contact</h3>{customer.phone}<CourierHistory phone={customer.phone} /></div>
+                          <div><h3>Delivery address</h3>{customer.address || 'No address yet'}</div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="no-search">
+                            <Icon name="search" width="16" height="16" aria-hidden="true" />
+                            <input ref={customerRef} className="gc-input" type="search" placeholder="Search by name or phone" aria-label="Search or create a customer" aria-invalid={errors.customer ? 'true' : undefined} aria-describedby={errors.customer ? 'no-cust-err' : undefined} value={custQuery} onChange={(e) => setCustQuery(e.target.value)} onFocus={() => setCustFocus(true)} onBlur={() => setTimeout(() => setCustFocus(false), 150)} />
+                            {custFocus && (
+                              <div className="no-pop" role="listbox" aria-label="Customers">
+                                <button type="button" role="option" aria-selected="false" className="no-opt" onMouseDown={(e) => e.preventDefault()} onClick={openNewCustomer}>
+                                  <span className="no-thumb" aria-hidden="true"><Icon name="plus" width="16" height="16" /></span>
+                                  <span className="no-opt__main"><span className="no-name">Create a new customer</span></span>
+                                </button>
+                                {custMatches.length === 0 ? <p className="no-meta" style={{ padding: 'var(--space-2) var(--space-3)' }}>No customer matches “{custQuery}”.</p> : null}
+                                {custMatches.map((c) => (
+                                  <button key={c.id} type="button" role="option" aria-selected="false" className="no-opt" onMouseDown={(e) => e.preventDefault()} onClick={() => pickCustomer(c)}>
+                                    <span className="no-thumb" aria-hidden="true">{initials(c.name)}</span>
+                                    <span className="no-opt__main"><span className="no-name">{c.name}</span><span className="no-meta">{c.phone}</span></span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          {errors.customer ? <p id="no-cust-err" className="no-err" role="alert">{errors.customer}</p> : null}
+                          {/* always on hand, whether or not a search was made or found anyone */}
+                          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral gc-btn--block" style={{ marginTop: 'var(--space-3)' }} onClick={openNewCustomer}><Icon name="user-plus" width="16" height="16" aria-hidden="true" />Add customer</button>
+                        </>
+                      )}
+                    </div>
+                  </section>
+
+                  {/* Status */}
+                  <section className="ix-card no-card--status" aria-labelledby="no-status-h">
+                    <header className="ix-card__head"><h2 id="no-status-h">Order status</h2></header>
+                    <div className="ix-card__body">
+                      <select id="no-status" className="gc-input gc-select" aria-labelledby="no-status-h" value={status} onChange={(e) => setStatus(e.target.value)}>
+                        <option value="approved">Approved · confirmed on the call</option>
+                        <option value="new">{orderStatus(initialStatusKey(PAYMENT_LABEL[terms])).label} · verify later</option>
+                      </select>
+                      {status === 'approved' ? (
+                        <div style={{ marginTop: 'var(--space-3)' }}>
+                          {holdPlaces.length > 1 ? (<>
+                            <label className="gc-label" htmlFor="no-hold">{holdsStock() ? 'Hold stock from' : 'Take stock from'}</label>
+                            <select id="no-hold" className="gc-input gc-select" value={holdPlace} onChange={(e) => setHoldPlace(e.target.value)}>
+                              {holdPlaces.map((x) => <option key={x}>{x}</option>)}
+                            </select>
+                          </>) : null}
+                          <p className="no-meta" style={{ marginTop: 'var(--space-1-5)' }}>{holdNote}</p>
+                        </div>
+                      ) : null}
+                    </div>
+                  </section>
+
+                  {/* Notes */}
+                  <section className="ix-card no-card--notes" aria-labelledby="no-notes">
+                    <header className="ix-card__head"><h2 id="no-notes">Notes</h2></header>
+                    <div className="ix-card__body">
+                      <textarea className="gc-input" rows="3" aria-labelledby="no-notes" placeholder="Visible to staff and printed on the invoice" value={note} onChange={(e) => setNote(e.target.value)} />
+                    </div>
+                  </section>
+
+                  {/* Tags */}
+                  <section className="ix-card no-card--tags" aria-labelledby="no-tags">
+                    <header className="ix-card__head"><h2 id="no-tags">Tags</h2></header>
+                    <div className="ix-card__body">
+                      <input className="gc-input" aria-labelledby="no-tags" placeholder="Type a tag and press Enter" value={tagText} onChange={(e) => setTagText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }} />
+                      {tags.length ? (
+                        <div className="no-tags">
+                          {tags.map((t) => <span key={t} className="no-tag">{t}<button type="button" aria-label={`Remove tag ${t}`} onClick={() => setTags(tags.filter((x) => x !== t))}><Icon name="x" width="12" height="12" /></button></span>)}
+                        </div>
+                      ) : null}
+                    </div>
+                  </section>
+                </div>
               </div>
             </div>
 
             <div className="no-bar">
               <span className="no-bar__note">{dirty ? 'Unsaved draft order' : 'Nothing added yet'}</span>
-              <Link href="/merchant-orders" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={leave}>Discard</Link>
-              <button type="button" className="gc-btn gc-btn--sm gc-btn--outlined" onClick={saveDraft}>Save as draft</button>
+              <Link href="/merchant-orders" className="gc-btn gc-btn--neutral" onClick={leave}>Discard</Link>
+              <button type="button" className="gc-btn gc-btn--neutral" onClick={saveDraft}>Save as draft</button>
             </div>
             {/* phones only: the main actions stay in reach at the bottom of the screen */}
             <PhoneActionBar note={'Total ' + formatBDT(total)} label="Create order">
-              <button type="button" className="gc-btn gc-btn--soft" onClick={makeLink} aria-label="Create order link"><Icon name="link" width="18" height="18" aria-hidden="true" />Order link</button>
+              <button type="button" className="gc-btn gc-btn--soft" onClick={makeLink} aria-label="Create order link"><Icon name="link" width="16" height="16" aria-hidden="true" />Order link</button>
               <button type="button" className="gc-btn gc-btn--solid" onClick={createOrder}>Create order</button>
             </PhoneActionBar>
           </div>
@@ -545,9 +561,9 @@ export default function NewOrder() {
       <Dialog open={browse} title="All products" onClose={() => setBrowse(false)} width={560}
         footer={<><button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setBrowse(false)}>Cancel</button><button type="button" className="gc-btn gc-btn--sm gc-btn--solid" disabled={!Object.values(picked).some(Boolean)} onClick={addPicked}>Add to order</button></>}>
         <div role="group" aria-label="Products">
-          {PRODUCTS.map((p) => (
-            <label key={p.id} className="no-opt" style={p.stock === 0 ? { opacity: 0.6, cursor: 'not-allowed' } : undefined}>
-              <input type="checkbox" className="gc-check" disabled={p.stock === 0} checked={!!picked[p.id]} onChange={(e) => setPicked({ ...picked, [p.id]: e.target.checked })} />
+          {catalog.map((p) => (
+            <label key={p.id} className="no-opt" style={!canAdd(p).ok ? { opacity: 0.6, cursor: 'not-allowed' } : undefined}>
+              <input type="checkbox" className="gc-check" disabled={!canAdd(p).ok} checked={!!picked[p.id]} onChange={(e) => setPicked({ ...picked, [p.id]: e.target.checked })} />
               <span className="no-opt__main"><span className="no-name">{p.name}</span><span className="no-meta">{p.variant} · {p.stock > 0 ? `${p.stock} in stock` : 'Out of stock'}</span></span>
               <span className="no-amt">{formatBDT(p.price)}</span>
             </label>

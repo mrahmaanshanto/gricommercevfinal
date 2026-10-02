@@ -173,7 +173,7 @@ const sumOn = (on) => Object.values(on || {}).reduce((a, x) => a + (Number(x) ||
 export function channelUniverse() {
   const list = allProducts(getSavedProducts()).filter((p) => p.st !== 'deleted' && p.st !== 'archived' && p.sell !== 'wholesale');
   const skus = new Set(list.map((p) => p.sku).filter(Boolean));
-  const rows = list.map((p) => ({ key: keyOf(p), id: p.id, sku: p.sku || '', barcode: p.barcode || '', name: p.name, cat: p.cat || '', brand: p.brand || '', price: p.price, mrp: p.mrp || null, stock: Number(p.inv) || 0, draft: p.st === 'draft', tbg: p.tbg, variants: (p.variants || []).length, noPhoto: (p.flags || []).includes('No photo'), inList: true }));
+  const rows = list.map((p) => ({ key: keyOf(p), id: p.id, sku: p.sku || '', barcode: p.barcode || '', barcodeType: p.barcodeType || '', name: p.name, cat: p.cat || '', brand: p.brand || '', price: p.price, mrp: p.mrp || null, stock: Number(p.inv) || 0, draft: p.st === 'draft', tbg: p.tbg, variants: (p.variants || []).length, noPhoto: (p.flags || []).includes('No photo'), inList: true }));
   CATALOG.filter((c) => !skus.has(c.sku) && c.sell !== 'wholesale').forEach((c) => rows.push({ key: c.sku, id: 'cat-' + c.sku, sku: c.sku, barcode: c.barcode || '', name: c.name, cat: c.cat, brand: '', price: c.price, mrp: null, stock: sumOn(c.on), draft: false, tbg: '#eef2f6', variants: 0, noPhoto: false, inList: false }));
   return rows;
 }
@@ -225,7 +225,8 @@ function productsOn(s, ch, now) {
     if (p.draft) st = 'unpublished';
     else if (it.removed) st = 'unpublished';
     else {
-      const base = BASE[ch][p.key] || (ch === 'meta' && !p.sku ? 'meta-nosku' : ch === 'gmc' && !p.barcode ? 'gmc-gtin' : null);
+      // a code the shop made for itself (Add product › Make one) is not a GTIN: Google still needs the pack's barcode
+      const base = BASE[ch][p.key] || (ch === 'meta' && !p.sku ? 'meta-nosku' : ch === 'gmc' && (!p.barcode || p.barcodeType === 'internal') ? 'gmc-gtin' : null);
       const fixedBy = base && ISSUES[base] && ISSUES[base].field ? (fixes[p.key] || {})[ISSUES[base].field] : null;
       const added = it.added;                                 // published by the merchant after being off
       if (base === 'unpublished' && !added) st = 'unpublished';

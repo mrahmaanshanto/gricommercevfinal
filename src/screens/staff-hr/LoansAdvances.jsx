@@ -2,13 +2,16 @@
 // Loans & advances — money given to staff ahead of salary. Giving one (or approving a request from
 // the staff app) asks which account the money comes from and posts it to the ledger ('staff loan').
 // The repayment plan (monthly instalment, first month) is cut from payroll by itself; a cash
-// repayment asks which account receives it ('loan repayment'). Data: src/lib/hr.js.
+// repayment asks which account receives it ('loan repayment'). A row opens the loan (plan, history, cash repayment);
+// a request opens the review drawer; a person in By person opens their profile. Data: src/lib/hr.js.
 
 import { HrReview } from './HrReview';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
-import { Dialog, EmptyState } from '@/components/ui';
+import { Dialog, EmptyState, StatusBadge } from '@/components/ui';
+import { MetricStrip, IndexTabs, LearnMore } from '@/components/ui/IndexKit';
+import { navigate } from '@/runtime/routes';
 import { formatDate } from '@/lib/format';
 import { balanceOf } from '@/lib/ledger';
 import { AccountSelect, accName } from '@/screens/accounts/accShared';
@@ -16,7 +19,7 @@ import {
   staffBy, loanLeft, loanPaid, scheduleOf, nextCutOf, advanceLimitOf, basicOf, giveLoan, decideLoan, repayLoan,
   monthLabel, addMonths, monthOf, todayKey, computeLines,
 } from '@/lib/hr';
-import { HrPage, useHr, money, Person } from './hrShared';
+import { HrPage, useHr, money, Person, profileHref, rowGo } from './hrShared';
 
 const TABS = [['run', 'Running'], ['req', 'Requests'], ['closed', 'Paid back · rejected'], ['people', 'By person']];
 const STATUS = { run: ['Running', 'info'], req: ['Pending', 'warning'], done: ['Paid back', 'success'], no: ['Rejected', 'error'] };
@@ -66,78 +69,99 @@ export default function LoansAdvances() {
   };
 
   const rowsOf = (list) => list.map((l) => ({ l, st: staffBy(S, l.code) || { code: l.code, name: l.code } }));
+  const openLoan = (l) => (l.status === 'req' ? setReviewId(l.id) : setOpenId(l.id));
   const table = (list) => (
-    <div className="gc-table-wrap">
-      <table className="gc-table gc-table--compact gc-table--hoverable">
-        <thead><tr><th scope="col">Staff</th><th scope="col">Type</th><th scope="col">{tab === 'req' ? 'Asked' : 'Given'}</th><th scope="col" className="hr-num">Amount</th><th scope="col">Paid back</th><th scope="col" className="hr-num">Per month</th><th scope="col">{tab === 'closed' ? 'Status' : 'Next cut'}</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
-        <tbody>
-          {rowsOf(list).map(({ l, st }) => {
-            const paid = loanPaid(l), nc = nextCutOf(S, l);
-            return (
-              <tr key={l.id}>
-                <td><Person st={st} sub={`${l.id} · ${st.designation || ''}`} /></td>
-                <td>{TYPE[l.type]}</td>
-                <td>{formatDate(l.at)}{l.account ? <span className="hr-sub">from {accName(l.account)}</span> : null}</td>
-                <td className="hr-num hr-strong">{money(l.amount)}</td>
-                <td style={{ minWidth: 140 }}>
-                  <div className="hr-bar-track"><div className="hr-bar-fill" style={{ width: `${Math.min(100, paid / l.amount * 100)}%`, background: 'var(--fill-success)' }} /></div>
-                  <span className="hr-sub">{money(paid)} of {money(l.amount)}</span>
-                </td>
-                <td className="hr-num">{money(l.emi)}<span className="hr-sub">{l.months} month{l.months === 1 ? '' : 's'}</span></td>
-                <td>{tab === 'closed' ? <span className={'gc-badge gc-badge--' + STATUS[l.status][1]}>{STATUS[l.status][0]}</span> : nc ? <>{monthLabel(nc.month, true)}<span className="hr-sub">{money(nc.amount)}{nc.pending ? ' · in the approved run' : ''}</span></> : '—'}</td>
-                <td>
-                  <div className="hr-actions">
-                    {l.status === 'req' ? <button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={() => setReviewId(l.id)} aria-label={`Review ${st.name}’s ${TYPE[l.type].toLowerCase()} of ${money(l.amount)}`}>Review</button> : null}
-                    {l.status === 'run' ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setRepay({ loan: l, amount: String(loanLeft(l)), account: 'cash-shop', note: '' })}>Cash repayment</button> : null}
-                    {l.status !== 'req' ? <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => setOpenId(l.id)} aria-label={`Open ${l.id}`}>Open</button> : null}
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <>
+      <ul className="ix-plist" aria-label="Loans and advances">
+        {rowsOf(list).map(({ l, st }) => (
+          <li key={l.id}>
+            <button type="button" className="ix-pitem" onClick={() => openLoan(l)}>
+              <span className="ix-pitem__top"><b>{st.name}</b><span>{money(l.amount)}</span></span>
+              <span className="ix-pitem__mid">{TYPE[l.type]} · {formatDate(l.at)} · {money(loanPaid(l))} paid back</span>
+              {l.status !== 'run' ? <span className="ix-pitem__tags"><StatusBadge tone={STATUS[l.status][1]}>{STATUS[l.status][0]}</StatusBadge></span> : null}
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="ix-table-wrap">
+        <table className="ix-table gc-table--keep">
+          <caption className="sr-only">Loans and advances</caption>
+          <thead><tr><th scope="col">Staff</th><th scope="col">Type</th><th scope="col">{tab === 'req' ? 'Asked' : 'Given'}</th><th scope="col" className="ix-num">Amount</th><th scope="col">Paid back</th><th scope="col" className="ix-num">Per month</th><th scope="col">{tab === 'closed' ? 'Status' : tab === 'req' ? <span className="sr-only">Actions</span> : 'Next cut'}</th></tr></thead>
+          <tbody>
+            {rowsOf(list).map(({ l, st }) => {
+              const paid = loanPaid(l), nc = nextCutOf(S, l);
+              return (
+                <tr key={l.id} onClick={rowGo(() => openLoan(l))}>
+                  <td><Person st={st} sub={l.id} /></td>
+                  <td>{TYPE[l.type]}</td>
+                  <td className="ix-muted">{formatDate(l.at)}</td>
+                  <td className="ix-num hr-strong">{money(l.amount)}</td>
+                  <td style={{ minWidth: 130 }}>
+                    <div className="hr-bar-track" style={{ width: 110 }}><div className="hr-bar-fill" style={{ width: `${Math.min(100, paid / l.amount * 100)}%`, background: 'var(--fill-success)' }} /></div>
+                    <span className="hr-sub">{money(paid)} of {money(l.amount)}</span>
+                  </td>
+                  <td className="ix-num">{money(l.emi)}<span className="hr-sub">{l.months} month{l.months === 1 ? '' : 's'}</span></td>
+                  <td>{l.status === 'req' ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => setReviewId(l.id)} aria-label={`Review ${st.name}’s ${TYPE[l.type].toLowerCase()} of ${money(l.amount)}`}>Review</button>
+                    : tab === 'closed' ? <StatusBadge tone={STATUS[l.status][1]}>{STATUS[l.status][0]}</StatusBadge>
+                      : nc ? <>{monthLabel(nc.month, true)}<span className="hr-sub">{money(nc.amount)}{nc.pending ? ' · in the approved run' : ''}</span></> : '—'}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="ix-foot"><span>{list.length === 1 ? '1 loan or advance' : `${list.length} loans and advances`}</span></div>
+    </>
   );
+  const tabs = TABS.map(([id, label]) => ({ key: id, id: 'ln-tab-' + id, label, count: id === 'people' ? people.length : groups[id].length, on: tab === id, onClick: () => setTab(id) }));
 
   return (
-    <HrPage screen="LoansAdvances" active="hr-loans" page="Loans & advances" title="Loans & advances"
-      about="Money given to staff ahead of salary. Instalments are cut from payroll by themselves until it is paid back."
-      actions={<button type="button" className="gc-btn gc-btn--solid" onClick={newForm}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Give advance or loan</button>}>
+    <HrPage screen="LoansAdvances" active="hr-loans" page="Loans & advances" title="Loans & advances" icon="hand-coins"
+      about="Money given to staff ahead of salary. Instalments are cut from payroll by themselves until it is paid back. Open one for its plan, history and a cash repayment."
+      more={[{ label: 'Advance limit', href: '/hr-setup?sec=run' }, { label: 'Payroll', href: '/payroll' }]}
+      primary={{ label: 'Give advance or loan', onClick: newForm }}>
 
-      <div className="gc-kpis">
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-error-soft)', color: 'var(--text-danger)' }}><Icon name="wallet" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Outstanding</p><p className="gc-kpi__value">{money(outstanding)}<small>{groups.run.length} running</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="banknote" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Recover in {monthLabel(recover.month)}</p><p className="gc-kpi__value">{money(recover.sum)}<small>from {recover.n} salar{recover.n === 1 ? 'y' : 'ies'}</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-warning-soft)', color: 'var(--text-warning)' }}><Icon name="clock" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Requests waiting</p><p className="gc-kpi__value">{groups.req.length}<small>from the staff app</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-info-soft)', color: 'var(--text-info)' }}><Icon name="shield-check" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Advance limit</p><p className="gc-kpi__value">{S.settings.advanceLimit ? `${S.settings.advanceLimit}% of basic` : 'No limit'}<small>set in HR setup</small></p></div></div>
-      </div>
+      <MetricStrip label="Loans and advances" items={[
+        { label: 'Outstanding', value: money(outstanding), sub: `${groups.run.length} running` },
+        { label: `Recover in ${monthLabel(recover.month)}`, value: money(recover.sum), sub: `from ${recover.n} salar${recover.n === 1 ? 'y' : 'ies'}`, href: '/payroll' },
+        { label: 'Advance limit', value: S.settings.advanceLimit ? `${S.settings.advanceLimit}% of basic` : 'No limit', href: '/hr-setup?sec=run' },
+      ]} />
 
-      <section className="gc-card hr-card">
-        <div className="hr-tabsbar">
-          <div className="gc-tabs" role="tablist" aria-label="Loans and advances">
-            {TABS.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={tab === id} className={'gc-tab hr-tab' + (tab === id ? ' gc-tab--active' : '')} onClick={() => setTab(id)}>{label}<b>{id === 'people' ? people.length : groups[id].length}</b></button>)}
-          </div>
-        </div>
+      <section className="ix-card" aria-label="Loans and advances">
+        <div className="ix-bar"><IndexTabs tabs={tabs} label="Loans and advances" /></div>
         {tab === 'people' ? (
-          <div className="gc-table-wrap">
-            <table className="gc-table gc-table--compact gc-table--hoverable">
-              <thead><tr><th scope="col">Staff</th><th scope="col" className="hr-num">Outstanding</th><th scope="col" className="hr-num">Cut per month</th><th scope="col" className="hr-num">Basic</th><th scope="col">Loans · advances</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
-              <tbody>
-                {people.map((p) => (
-                  <tr key={p.st.code}>
-                    <td><Person st={p.st} sub={`${p.st.designation} · ${p.st.branch}`} /></td>
-                    <td className={'hr-num hr-strong' + (p.left ? ' hr-out' : '')}>{p.left ? money(p.left) : '—'}</td>
-                    <td className="hr-num">{p.emi ? money(p.emi) : '—'}{p.emi ? <span className="hr-sub">{Math.round(p.emi / p.st.gross * 100)}% of gross</span> : null}</td>
-                    <td className="hr-num">{money(basicOf(S, p.st.gross))}</td>
-                    <td>{p.running.length} running · {p.mine.length - p.running.length - p.waiting} closed{p.waiting ? ` · ${p.waiting} waiting` : ''}</td>
-                    <td><div className="hr-actions">{p.mine.map((l) => <button key={l.id} type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => setOpenId(l.id)}>{l.id}</button>)}</div></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : groups[tab].length ? table(groups[tab]) : <EmptyState icon="hand-coins" title={tab === 'req' ? 'No requests waiting' : 'Nothing here'} body={tab === 'req' ? 'Staff ask for advances from the staff app. They show here for you to approve.' : 'Loans and advances show here.'} />}
+          <>
+            <ul className="ix-plist" aria-label="By person">
+              {people.map((p) => (
+                <li key={p.st.code}>
+                  <button type="button" className="ix-pitem" onClick={() => navigate(profileHref(p.st.code, 'salary'))}>
+                    <span className="ix-pitem__top"><b>{p.st.name}</b><span className={p.left ? 'hr-out' : ''}>{p.left ? money(p.left) : '—'}</span></span>
+                    <span className="ix-pitem__mid">{p.running.length} running · {p.mine.length - p.running.length - p.waiting} closed{p.waiting ? ` · ${p.waiting} waiting` : ''}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="ix-table-wrap">
+              <table className="ix-table gc-table--keep">
+                <caption className="sr-only">Loans and advances by person</caption>
+                <thead><tr><th scope="col">Staff</th><th scope="col" className="ix-num">Outstanding</th><th scope="col" className="ix-num">Cut per month</th><th scope="col" className="ix-num">Basic</th><th scope="col">Loans · advances</th></tr></thead>
+                <tbody>
+                  {people.map((p) => (
+                    <tr key={p.st.code} onClick={rowGo(() => navigate(profileHref(p.st.code, 'salary')))}>
+                      <td><Person st={p.st} /></td>
+                      <td className={'ix-num hr-strong' + (p.left ? ' hr-out' : '')}>{p.left ? money(p.left) : '—'}</td>
+                      <td className="ix-num">{p.emi ? money(p.emi) : '—'}{p.emi ? <span className="hr-sub">{Math.round(p.emi / p.st.gross * 100)}% of gross</span> : null}</td>
+                      <td className="ix-num">{money(basicOf(S, p.st.gross))}</td>
+                      <td>{p.mine.map((l, i) => <React.Fragment key={l.id}>{i ? ', ' : ''}<button type="button" className="ix-strong hr-fig" onClick={() => openLoan(l)}>{l.id}</button></React.Fragment>)}<span className="hr-sub">{p.running.length} running · {p.mine.length - p.running.length - p.waiting} closed{p.waiting ? ` · ${p.waiting} waiting` : ''}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : groups[tab].length ? table(groups[tab]) : <div className="ix-empty"><EmptyState icon="hand-coins" title={tab === 'req' ? 'No requests waiting' : 'Nothing here'} /></div>}
       </section>
+      <LearnMore topic="loans and advances" />
 
       {give ? <GiveDialog S={S} give={give} setGive={setGive} /> : null}
       <HrReview S={S} req={reviewId ? { kind: 'loan', id: reviewId } : null} onClose={() => setReviewId(null)} />

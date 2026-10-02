@@ -3663,5 +3663,27 @@ export const SCREENS = [
     "width": 1380,
     "height": 880,
     "interactive": true
+  },
+  {
+    "name": "Proposal",
+    "route": "/dev/proposal",
+    "folder": "dev-reference",
+    "title": "Proposal switches",
+    "description": "Turn parts of Nayeem's proposal on in the running app and compare each with today's build",
+    "canvasPage": "Developer",
+    "width": 1380,
+    "height": 1600,
+    "interactive": true
+  },
+  {
+    "name": "ProposalDoc",
+    "route": "/dev/proposal/doc",
+    "folder": "dev-reference",
+    "title": "Build vs proposal",
+    "description": "docs/proposal-vs-build.md read inside the app; the switches link to its sections",
+    "canvasPage": "Developer",
+    "width": 1280,
+    "height": 2000,
+    "interactive": false
   }
 ];

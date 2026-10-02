@@ -3,10 +3,11 @@
 // not a sale, in one place: expenses, salaries, sales commission, affiliate payouts, promotions,
 // supplier payments, the owner's withdrawals (and money the owner puts in), what gateways and
 // couriers keep as fees, and other income (supplier bonuses, bank interest, scrap sales …).
-//   KPI row      spent this month, other income this month, owed now (liabilities), partner fees
-//   Table        the ledger rows of those kinds, filtered by type, month and a search; each cost
-//                shows the sales channel it counts under (categories.js homeOf)
-//   Side         spend by category (bars, labelled with their channel) and links to Dues / Liabilities
+// Laid out like a Shopify list (docs/shopify-style.md):
+//   Figures      spent this month, other income this month, owed now (→ Bills to pay), partner fees
+//   Card         the ledger rows of those kinds: a view per type, the month, a search, the pager; a cost's
+//                sales channel (categories.js homeOf) is in the row's tooltip and on Spend by category
+//   Below        spend by category (bars, labelled with their channel); Dues and Bills to pay are in More
 //   Dialogs      Record expense (category list from categories.js; posts 'expense' or 'salary'),
 //                Record income (posts 'income'; a supplier bonus can instead be taken as credit on
 //                their bills, supplierBills.js addCredit, with no money moving) and Owner withdraw /
@@ -18,7 +19,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
-import { Dialog, EmptyState } from '@/components/ui';
+import { Dialog, EmptyState, InfoTip } from '@/components/ui';
+import { MetricStrip, IndexTabs, SearchField, Pager, LearnMore } from '@/components/ui/IndexKit';
 import { BrandLogo } from '@/components/BrandLogo';
 import { formatTime } from '@/lib/format';
 import { KIND_LABEL, balanceOf, getEntries, postEntry } from '@/lib/ledger';
@@ -56,7 +58,6 @@ const SPEND_KINDS = new Set(['expense', 'salary', 'commission', 'affiliate payou
 const BONUS_ID = 'supplier-bonus';
 const MONTHS = [['this', 'This month'], ['last', 'Last month'], ['all', 'All time']];
 const PAGE = 50;
-const DAY = 864e5;
 
 const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 const plural = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`;
@@ -82,58 +83,23 @@ const channelText = (ch) => (ch === 'Shared' ? 'Shared by the whole shop' : ch =
 const spentOf = (list) => r2(list.reduce((a, e) => a - e.amount, 0));
 
 const CSS = `
-.eb-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);padding:0 var(--space-5) var(--space-4)}
-.eb-chips{display:flex;flex-wrap:wrap;gap:var(--space-1)}
-.eb-chips .gc-seg__btn b{margin-left:6px;font-weight:var(--weight-medium);color:var(--text-muted);font-variant-numeric:tabular-nums}
-.eb-tools{display:flex;flex-wrap:wrap;gap:var(--space-2);flex:1 1 320px;justify-content:flex-end}
-.eb-tools .gc-select{flex:0 1 170px;min-width:140px}
-.eb-tools .gc-field__wrap{flex:1 1 200px;min-width:0;max-width:320px}
-.eb-what{min-width:180px}
-.eb-what .ac-sub{white-space:normal}
-.eb-acc{display:flex;align-items:center;gap:var(--space-2);white-space:nowrap}
-.eb-more{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle);font-size:var(--text-xs);color:var(--text-muted)}
-.eb-cats{list-style:none;margin:0;padding:0 var(--space-5) var(--space-5);display:flex;flex-direction:column;gap:var(--space-3)}
+.eb-fig{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+.eb-in{color:var(--text-success)}
+.eb-out{color:var(--text-danger)}
+.eb-month{max-width:160px}
+.eb-cats{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--space-3)}
 .eb-cat{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px var(--space-3);font-size:var(--text-sm)}
-.eb-cat span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-body)}
-.eb-cat small{font-size:var(--text-xs);color:var(--text-muted);margin-left:6px}
-.eb-cat em{display:block;font-style:normal;font-size:var(--text-xs);color:var(--text-muted)}
+.eb-cat>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-body)}
+.eb-cat small{margin-left:6px;font-size:var(--text-xs);color:var(--text-muted)}
+.eb-cat em{margin-left:6px;font-style:normal;font-size:var(--text-xs);color:var(--text-muted)}
 .eb-track{grid-column:1 / -1;height:6px;border-radius:var(--radius-full);background:var(--surface-subtle);overflow:hidden}
-.eb-fill{height:100%;border-radius:var(--radius-full);background:var(--primary)}
-.eb-dues{list-style:none;margin:0;padding:0}
-.eb-due{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle);text-decoration:none;color:inherit}
-.eb-due:hover,.eb-due:focus-visible{background:var(--surface-subtle)}
-.eb-due > span:nth-child(2){flex:1;min-width:0}
-.eb-due b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--primary)}
-.eb-due small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
-.eb-due-ico{display:grid;place-items:center;width:36px;height:36px;flex:none;border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary)}
-.eb-kpi-link{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--primary);text-decoration:none;white-space:normal}
-.eb-kpi-link:hover{text-decoration:underline}
+.eb-fill{height:100%;border-radius:var(--radius-full);background:var(--chart-1)}
+.eb-total{font-family:var(--font-data);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .eb-help{margin:var(--space-2) 0 0}
-.eb-wait{padding:var(--space-8) var(--space-5);text-align:center;font-size:var(--text-xs);color:var(--text-muted)}
-@media (max-width:640px){
-  /* category chips: one row that scrolls sideways; month select and search share the next row */
-  .eb-chips{flex-wrap:nowrap;width:100%;max-width:100%;overflow-x:auto;scrollbar-width:none}
-  .eb-chips::-webkit-scrollbar{display:none}
-  .eb-chips > .gc-seg__btn{flex:none}
-  .eb-tools{flex:1 1 100%;flex-wrap:nowrap;justify-content:stretch}
-  .eb-tools .gc-select{flex:0 0 132px;min-width:0}
-  .eb-tools .gc-field__wrap{flex:1 1 0;max-width:none}
-  /* table-cards: the account sits on the right like the other values */
-  .gc-cards-on .eb-acc{justify-content:flex-end;white-space:normal;text-align:right}
-}
-@media (max-width:640px){
-  /* page title + "More" + main button share one row: the title keeps whole words (never split mid-word),
-     the main button is a little narrower; if they still do not fit, the row wraps */
-  [data-screen="ExpensesBills"] .gc-shell__content .gc-pagehead>.gc-pagehead__text{flex-basis:0!important;min-width:min-content!important}
-  [data-screen="ExpensesBills"] .gc-pagehead__actions .gc-btn--solid{padding:0 var(--space-3)}
-}
-@media (max-width:420px){
-  /* the long title gets its own line; More and Record expense fill the row under it */
-  [data-screen="ExpensesBills"] .gc-shell__content .gc-pagehead>.gc-pagehead__text{flex-basis:100%!important}
-  [data-screen="ExpensesBills"] .gc-shell__content .gc-pagehead>.gc-pagehead__actions{flex:1 1 100%!important;margin-left:0}
-  [data-screen="ExpensesBills"] .gc-pagehead__actions>.gc-btn--solid{flex:1 1 auto}
-}
+.eb-link{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--primary);text-decoration:none}
+.eb-link:hover{text-decoration:underline}
 `;
+const ABOUT = 'Every taka that went out and every taka that came in that isn\'t a sale: expenses, salaries, commission, affiliates, promotions, supplier payments, owner, and other income.';
 
 export default function ExpensesBills() {
   const tick = useBooks();
@@ -141,7 +107,8 @@ export default function ExpensesBills() {
   const [group, setGroup] = useState('all');
   const [month, setMonth] = useState('this');
   const [query, setQuery] = useState('');
-  const [limit, setLimit] = useState(PAGE);
+  const [page, setPage] = useState(1);
+  const [find, setFind] = useState(false);
   const [dialog, setDialog] = useState(null);   // 'expense' | 'income' | 'owner'
 
   const data = useMemo(() => {
@@ -191,7 +158,7 @@ export default function ExpensesBills() {
     }
   }, [data]);
 
-  useEffect(() => { setLimit(PAGE); }, [group, month, query]);
+  useEffect(() => { setPage(1); }, [group, month, query]);
 
   const range = data ? (month === 'this' ? data.thisM : month === 'last' ? data.lastM : null) : null;
   const inMonth = useMemo(() => (data ? data.out.filter((e) => !range || inRange(e.at, range)) : []), [data, range]);
@@ -220,142 +187,110 @@ export default function ExpensesBills() {
   const periodText = !data ? '' : month === 'this' ? monthName(data.thisM[0]) : month === 'last' ? monthName(data.lastM[0]) : 'All time';
   const k = data && data.kpi;
   const close = () => setDialog(null);
-
-  const actions = (
-    <>
-      <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setDialog('owner')}><Icon name="hand-coins" width="18" height="18" aria-hidden="true" /> Owner withdraw / investment</button>
-      <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setDialog('income')}><Icon name="arrow-down-left" width="18" height="18" aria-hidden="true" /> Record income</button>
-      <button type="button" className="gc-btn gc-btn--solid" onClick={() => setDialog('expense')}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Record expense</button>
-    </>
+  const findOn = find || !!query;
+  const closeFind = () => { setQuery(''); setFind(false); };
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE));
+  const pg = Math.min(page, pages);
+  const first = (pg - 1) * PAGE;
+  const shown = rows.slice(first, first + PAGE);
+  const whatOf = (e) => e.cat || KIND_LABEL[e.kind] || e.kind;
+  const noteOf = (e) => [e.cat ? KIND_LABEL[e.kind] : '', e.note].filter(Boolean).filter((x) => x !== e.party).join(' · ');
+  const rowTitle = (e) => [SPEND_KINDS.has(e.kind) && e.amount < 0 ? channelText(channelOf(e, data.liabs)) : '', e.by ? 'By ' + e.by : '', formatTime(e.at)].filter(Boolean).join(' · ');
+  const tabs = GROUPS.map(([id, label]) => ({ key: id, id: 'eb-tab-' + id, label, count: data ? counts[id] : null, on: group === id, onClick: () => setGroup(id) }));
+  const monthPick = (
+    <select aria-label="Month" className="ix-filter is-set eb-month" value={month} onChange={(e) => setMonth(e.target.value)}>
+      {MONTHS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+    </select>
   );
 
   return (
-    <AccPage screen="ExpensesBills" active="acc-spend" page="Income & expenses" title="Income & expenses" css={CSS}
-      about="Every taka that went out and every taka that came in that isn't a sale: expenses, salaries, commission, affiliates, promotions, supplier payments, owner, and other income."
-      actions={actions}>
+    <AccPage screen="ExpensesBills" active="acc-spend" page="Income & expenses" title="Income & expenses" css={CSS} icon="receipt" about={ABOUT}
+      secondary={[{ label: 'Record income', onClick: () => setDialog('income') }]}
+      more={[{ label: 'Owner withdraw / investment', onClick: () => setDialog('owner') }, { label: 'Dues', href: '/dues' }, { label: 'Bills to pay', href: '/liabilities' }, { label: 'Expense categories', href: '/account-setup?tab=categories' }]}
+      primary={{ label: 'Record expense', onClick: () => setDialog('expense') }}>
 
-      <div className="gc-kpis gc-kpis--tight">
-        <Kpi icon="receipt" tone="primary" label="Spent this month" value={k ? money(k.spent) : '—'} sub={k ? `Last month ${money(k.spentLast)}` : ''} />
-        <Kpi icon="arrow-down-left" tone="success" label="Other income this month" value={k ? money(k.income) : '—'} sub={k ? `Last month ${money(k.incomeLast)}` : ''} />
-        <Kpi icon="file-clock" tone={k && k.overdue ? 'error' : 'warning'} label="Owed now" value={k ? money(k.owed) : '—'}
-          sub={k ? <Link className="eb-kpi-link" href="/liabilities">{k.overdue ? `${plural(k.overdue, 'item')} overdue` : 'See liabilities'}</Link> : ''} />
-        <Kpi icon="percent" tone="slate" label="Partner fees, this month" value={k ? money(k.fees) : '—'} sub={k ? (k.feePayouts ? `From ${plural(k.feePayouts, 'payout')} received` : `Last month ${money(k.feesLast)}`) : ''} />
-      </div>
+      <MetricStrip label="This month" items={[
+        { label: 'Spent this month', value: k ? money(k.spent) : '—', sub: k ? `Last month ${money(k.spentLast)}` : '' },
+        { label: 'Other income this month', value: k ? money(k.income) : '—', sub: k ? `Last month ${money(k.incomeLast)}` : '' },
+        { label: 'Owed now', value: k ? money(k.owed) : '—', sub: k ? (k.overdue ? `${plural(k.overdue, 'item')} overdue` : plural(k.owedCount, 'item')) : '', href: '/liabilities' },
+        { label: 'Partner fees, this month', value: k ? money(k.fees) : '—', sub: k ? (k.feePayouts ? `From ${plural(k.feePayouts, 'payout')} received` : `Last month ${money(k.feesLast)}`) : '' },
+      ]} />
 
-      <div className="gc-split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(280px,360px)', gap: 'var(--space-5)', alignItems: 'start' }}>
-        {/* ---- money out ---- */}
-        <section className="gc-card ac-card" aria-labelledby="eb-out-title">
-          <div className="ac-head">
-            <div>
-              <h2 id="eb-out-title">Money out and other income</h2>
-              <p>{data ? `${periodText} · ${plural(rows.length, 'entry', 'entries')} · ${rowsTotal < 0 ? '−' : ''}${money(rowsTotal)} net` : 'Loading'}</p>
-            </div>
+      <section className="ix-card" aria-label="Money out and other income">
+        <div className="ix-bar">
+          {findOn ? (<>
+            <SearchField value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search entries" onDone={closeFind} autoFocus />
+            {monthPick}
+            <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={closeFind}>Cancel</button>
+          </>) : (<>
+            <IndexTabs tabs={tabs} label="Show" />
+            <span className="ix-tools">
+              {monthPick}
+              <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search and filter" onClick={() => setFind(true)}><Icon name="search" width="16" height="16" aria-hidden="true" /></button>
+            </span>
+          </>)}
+        </div>
+
+        {!data ? <p className="ac-wait">Loading the books…</p> : rows.length ? (<>
+          <ul className="ix-plist" aria-label={periodText}>
+            {shown.map((e) => (
+              <li key={e.id}>
+                <div className="ix-pitem">
+                  <span className="ix-pitem__top"><b>{whatOf(e)}</b><span className={'eb-fig ' + (e.amount < 0 ? 'eb-out' : 'eb-in')}>{signed(e.amount)}</span></span>
+                  <span className="ix-pitem__mid">{shortDate(e.at)} · {e.party || '—'} · {accName(e.account)}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="ix-table-wrap">
+            <table className="ix-table ix-table--static gc-table--keep">
+              <caption className="sr-only">{periodText}, {plural(rows.length, 'entry', 'entries')}</caption>
+              <thead><tr><th scope="col">Date</th><th scope="col">What</th><th scope="col">Paid to / from</th><th scope="col">Account</th><th scope="col" className="ix-num">Amount</th></tr></thead>
+              <tbody>
+                {shown.map((e) => (
+                  <tr key={e.id} title={rowTitle(e)}>
+                    <td className="ix-nowrap">{shortDate(e.at)}</td>
+                    <td><span className="ac-trunc"><span className="ix-strong">{whatOf(e)}</span>{noteOf(e) ? <span className="ix-muted"> · {noteOf(e)}</span> : null}</span></td>
+                    <td><span className="ac-trunc">{e.party || '—'}</span></td>
+                    <td><span className="ac-logo"><BrandLogo brand={accBrand(e.account)} size={20} decorative /><span className="ix-muted">{accName(e.account)}</span></span></td>
+                    <td className={'ix-num eb-fig ' + (e.amount < 0 ? 'eb-out' : 'eb-in')}>{signed(e.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div className="eb-bar">
-            <div className="gc-seg eb-chips" role="group" aria-label="Show">
-              {GROUPS.map(([id, label]) => (
-                <button key={id} type="button" aria-pressed={group === id} className={'gc-seg__btn' + (group === id ? ' gc-seg__btn--active' : '')} onClick={() => setGroup(id)}>
-                  {label}{data ? <b>{counts[id]}</b> : null}
-                </button>
-              ))}
-            </div>
-            <div className="eb-tools">
-              <label className="sr-only" htmlFor="eb-month">Month</label>
-              <select id="eb-month" className="gc-input gc-select" value={month} onChange={(e) => setMonth(e.target.value)}>
-                {MONTHS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
-              </select>
-              <div className="gc-field__wrap">
-                <span className="gc-field__icon"><Icon name="search" width="18" height="18" aria-hidden="true" /></span>
-                <input type="search" className="gc-input gc-input--with-icon" placeholder="Search entries" aria-label="Search income and expenses by who, what or note" value={query} onChange={(e) => setQuery(e.target.value)} />
-              </div>
-            </div>
-          </div>
-
-          {!data ? <p className="eb-wait">Loading the books…</p> : rows.length ? (
-            <>
-              <div className="gc-table-wrap">
-                <table className="gc-table gc-table--compact gc-table--hoverable">
-                  <thead>
-                    <tr><th scope="col">Date</th><th scope="col">What</th><th scope="col">Account</th><th scope="col" className="ac-num">Amount</th></tr>
-                  </thead>
-                  <tbody>
-                    {rows.slice(0, limit).map((e) => (
-                      <tr key={e.id}>
-                        <td style={{ whiteSpace: 'nowrap' }}><span className="ac-strong">{shortDate(e.at)}</span><span className="ac-sub">{formatTime(e.at)}{e.by ? ' · ' + e.by : ''}</span></td>
-                        <td className="eb-what">
-                          <span className="ac-strong">{e.cat || KIND_LABEL[e.kind] || e.kind}</span>
-                          <span className="ac-sub">{[e.cat ? KIND_LABEL[e.kind] : '', e.party, e.note].filter(Boolean).filter((x, i, a) => a.indexOf(x) === i).join(' · ') || '—'}</span>
-                          {SPEND_KINDS.has(e.kind) && e.amount < 0 ? <span className="ac-sub"><Icon name="store" width="12" height="12" aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} />{channelText(channelOf(e, data.liabs))}</span> : null}
-                        </td>
-                        <td><span className="eb-acc"><BrandLogo brand={accBrand(e.account)} size={24} decorative />{accName(e.account)}</span></td>
-                        <td className={'ac-num ac-fig ' + (e.amount < 0 ? 'ac-out' : 'ac-in')}>{signed(e.amount)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="eb-more">
-                <span>Showing {Math.min(limit, rows.length)} of {rows.length}</span>
-                {rows.length > limit ? <button type="button" className="gc-btn gc-btn--xs gc-btn--neutral" onClick={() => setLimit((n) => n + PAGE)}>Show more</button> : null}
-              </div>
-            </>
-          ) : (
+        </>) : (
+          <div className="ix-empty">
             <EmptyState icon={query ? 'search-x' : 'receipt'}
               title={query ? 'Nothing matches that search' : `Nothing recorded ${month === 'all' ? 'yet' : 'in ' + periodText}`}
-              body={query ? 'Try another word, or clear the search.' : month === 'this' ? 'Nothing has been paid this month yet. Look at last month, or record an expense.' : 'Record an expense when you pay for something.'}
               actionLabel={query ? 'Clear search' : month === 'this' ? 'Show last month' : 'Record expense'}
               onAction={() => (query ? setQuery('') : month === 'this' ? setMonth('last') : setDialog('expense'))} />
-          )}
-        </section>
+          </div>
+        )}
+        <Pager label={data && rows.length ? `Showing ${first + 1}–${first + shown.length} of ${rows.length} · ${rowsTotal < 0 ? '−' : ''}${money(rowsTotal)} net` : periodText} atStart={pg <= 1} atEnd={pg >= pages} prev={() => setPage(pg - 1)} next={() => setPage(pg + 1)} />
+      </section>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)', minWidth: 0 }}>
-          {/* ---- spend by category ---- */}
-          <section className="gc-card ac-card" aria-labelledby="eb-cat-title">
-            <div className="ac-head">
-              <div>
-                <h2 id="eb-cat-title">Spend by category</h2>
-                <p>{data ? `${periodText} · expenses, staff and promotions · ${money(cats.total)}` : 'Loading'}</p>
-              </div>
-            </div>
-            {!data ? null : cats.top.length ? (
-              <ul className="eb-cats">
-                {cats.top.map(([name, amt, home]) => (
-                  <li key={name} className="eb-cat">
-                    <span>{name}<small>{cats.total ? Math.round((amt / cats.total) * 100) : 0}%</small>{home ? <em>{channelText(home)}</em> : null}</span>
-                    <b className="ac-fig ac-strong">{money(amt)}</b>
-                    <div className="eb-track" aria-hidden="true"><div className="eb-fill" style={{ width: `${cats.max ? Math.max(2, Math.min(100, (amt / cats.max) * 100)) : 0}%` }} /></div>
-                  </li>
-                ))}
-              </ul>
-            ) : <EmptyState icon="chart-bar" title="No spending yet" body={`No expenses, salaries or promotions in ${periodText === 'All time' ? 'the books' : periodText}.`} />}
-          </section>
-
-          {/* ---- bills and dues (their own pages) ---- */}
-          <section className="gc-card ac-card" aria-labelledby="eb-dues-title">
-            <div className="ac-head">
-              <div>
-                <h2 id="eb-dues-title">Bills and dues</h2>
-              </div>
-            </div>
-            <ul className="eb-dues">
-              <li>
-                <Link className="eb-due" href="/dues">
-                  <span className="eb-due-ico" aria-hidden="true"><Icon name="file-clock" width="18" height="18" /></span>
-                  <span><b>Supplier bills and customer dues</b><small>Pay suppliers, collect from wholesale customers</small></span>
-                  <Icon name="chevron-right" width="16" height="16" aria-hidden="true" style={{ color: 'var(--text-muted)', flex: 'none' }} />
-                </Link>
-              </li>
-              <li>
-                <Link className="eb-due" href="/liabilities">
-                  <span className="eb-due-ico" aria-hidden="true"><Icon name="users" width="18" height="18" /></span>
-                  <span><b>Salaries, commission, affiliates</b><small>{k ? (k.owedCount ? `${money(k.owed)} owed on ${plural(k.owedCount, 'item')}` : 'Nothing owed right now') : 'Promotions too'}</small></span>
-                  <Icon name="chevron-right" width="16" height="16" aria-hidden="true" style={{ color: 'var(--text-muted)', flex: 'none' }} />
-                </Link>
-              </li>
+      {/* ---- spend by category (the costs of this month, with the channel each counts under) ---- */}
+      <section className="ix-card" aria-labelledby="eb-cat-title">
+        <header className="ix-card__head">
+          <h2 id="eb-cat-title">Spend by category <InfoTip text="Expenses, staff and promotions in the month you picked, and the sales channel each counts under." /></h2>
+          {data ? <span className="eb-total">{money(cats.total)}</span> : null}
+        </header>
+        <div className="ix-card__body">
+          {!data ? null : cats.top.length ? (
+            <ul className="eb-cats">
+              {cats.top.map(([name, amt, home]) => (
+                <li key={name} className="eb-cat">
+                  <span>{name}<small>{cats.total ? Math.round((amt / cats.total) * 100) : 0}%</small>{home ? <em>{channelText(home)}</em> : null}</span>
+                  <b className="eb-fig ix-strong">{money(amt)}</b>
+                  <div className="eb-track" aria-hidden="true"><div className="eb-fill" style={{ width: `${cats.max ? Math.max(2, Math.min(100, (amt / cats.max) * 100)) : 0}%` }} /></div>
+                </li>
+              ))}
             </ul>
-          </section>
+          ) : <p className="ac-wait" style={{ padding: 0, textAlign: 'left' }}>No expenses, salaries or promotions in {periodText === 'All time' ? 'the books' : periodText}.</p>}
         </div>
-      </div>
+      </section>
+      <LearnMore topic="income and expenses" />
 
       {dialog === 'expense' ? <ExpenseDialog onClose={close} /> : null}
       {dialog === 'income' ? <IncomeDialog onClose={close} /> : null}
@@ -365,28 +300,6 @@ export default function ExpensesBills() {
 }
 
 // ---- small pieces --------------------------------------------------------------------------------
-const TONES = {
-  primary: ['var(--fill-primary-soft)', 'var(--primary)'],
-  success: ['var(--fill-success-soft)', 'var(--text-success)'],
-  info: ['var(--fill-info-soft)', 'var(--text-info)'],
-  warning: ['var(--fill-warning-soft)', 'var(--text-warning)'],
-  error: ['var(--fill-error-soft)', 'var(--text-danger)'],
-  slate: ['var(--surface-subtle)', 'var(--text-body)'],
-};
-function Kpi({ icon, tone, label, value, sub }) {
-  const [bg, fg] = TONES[tone] || TONES.slate;
-  return (
-    <div className="gc-kpi">
-      <span className="gc-kpi__icon" style={{ background: bg, color: fg }}><Icon name={icon} width="24" height="24" aria-hidden="true" /></span>
-      <div className="gc-kpi__text">
-        <p className="gc-kpi__label" title={label}>{label}</p>
-        <p className="gc-kpi__value ac-fig">{value}</p>
-        {sub ? <span className="ac-sub" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={typeof sub === 'string' ? sub : undefined}>{sub}</span> : null}
-      </div>
-    </div>
-  );
-}
-
 const cleanAmount = (v) => v.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
 
 // ---- record expense ------------------------------------------------------------------------------
@@ -438,7 +351,7 @@ function ExpenseDialog({ onClose }) {
               {categories.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
             </select>
             {show('cat') ? <p id="eb-cat-err" className="gc-help gc-help--error">{errors.cat}</p>
-              : picked ? <p id="eb-cat-help" className="gc-help eb-help">{channelText(picked.home || 'Shared')} · <Link href="/account-setup?tab=categories" className="eb-kpi-link">Change</Link></p> : null}
+              : picked ? <p id="eb-cat-help" className="gc-help eb-help">{channelText(picked.home || 'Shared')} · <Link href="/account-setup?tab=categories" className="eb-link">Change</Link></p> : null}
           </div>
           <div>
             <label className="gc-label" htmlFor="eb-party">Paid to</label>

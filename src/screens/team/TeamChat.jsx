@@ -10,7 +10,8 @@ import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { navigate } from '@/runtime/routes';
-import { Dialog } from '@/components/ui';
+import { Dialog, StatusBadge } from '@/components/ui';
+import { IndexTabs } from '@/components/ui/IndexKit';
 import { formatDate, formatTime } from '@/lib/format';
 import { USERS, userBy, roleOf } from '@/lib/team';
 import { getTeams, saveTask, teamBy, dayKeyOf, statusLabel, statusTone } from '@/lib/tasks';
@@ -18,24 +19,23 @@ import { getMessages, channelsFor, otherTeams, unread, markRead, send, patchMess
 import { TeamPage, useMe, useTick, useTasks, UserAvatar, userName } from './teamShared';
 
 const CSS = `
-.ch{display:grid;grid-template-columns:270px minmax(0,1fr) 280px;height:calc(100dvh - 210px);min-height:540px;padding:0;overflow:hidden}
-.ch.no-side{grid-template-columns:270px minmax(0,1fr)}
+.ch{display:grid;grid-template-columns:250px minmax(0,1fr) 260px;height:calc(100dvh - 180px);min-height:520px}
 .ch-list{display:flex;flex-direction:column;border-right:1px solid var(--border-subtle);min-height:0}
-.ch-list__top{padding:var(--space-3);border-bottom:1px solid var(--border-subtle)}
+.ch-list__top{padding:8px;border-bottom:1px solid var(--border-subtle)}
 .ch-list__scroll{flex:1;overflow:auto;padding:var(--space-2)}
-.ch-list h3{display:flex;align-items:center;justify-content:space-between;margin:var(--space-3) var(--space-2) 4px;font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
-.ch-item{display:flex;align-items:center;gap:var(--space-2);width:100%;min-height:40px;padding:0 var(--space-2);border:0;border-radius:var(--radius-md);background:none;font:inherit;font-size:var(--text-sm);color:var(--text-body);text-align:left;cursor:pointer}
+.ch-list h3{display:flex;align-items:center;justify-content:space-between;margin:var(--space-3) var(--space-2) 4px;font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-muted)}
+.ch-item{display:flex;align-items:center;gap:var(--space-2);width:100%;min-height:36px;padding:0 var(--space-2);border:0;border-radius:var(--radius-md);background:none;font:inherit;font-size:var(--text-sm);color:var(--text-body);text-align:left;cursor:pointer}
 .ch-item:hover{background:var(--surface-subtle)}
 .ch-item[aria-current="true"]{background:var(--fill-primary-soft);color:var(--primary);font-weight:var(--weight-medium)}
 .ch-item.is-unread{color:var(--text-heading);font-weight:var(--weight-semibold)}
 .ch-item span:nth-child(2){flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ch-badge{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:var(--primary);color:var(--text-on-dark);font-size:var(--text-2xs);font-weight:var(--weight-semibold);display:inline-grid;place-items:center}
 .ch-main{display:flex;flex-direction:column;min-width:0;min-height:0}
-.ch-head{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border-subtle)}
-.ch-head h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ch-head{display:flex;align-items:center;gap:var(--space-3);min-height:52px;padding:6px var(--space-4);border-bottom:1px solid var(--border-subtle)}
+.ch-head h2{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ch-head p{margin:0;font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ch-msgs{flex:1;overflow:auto;padding:var(--space-3) var(--space-4)}
-.ch-day{display:flex;align-items:center;gap:var(--space-3);margin:var(--space-3) 0;font-size:var(--text-2xs);font-weight:var(--weight-semibold);color:var(--text-muted)}
+.ch-day{display:flex;align-items:center;gap:var(--space-3);margin:var(--space-3) 0;font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-muted)}
 .ch-day::before,.ch-day::after{content:'';flex:1;height:1px;background:var(--border-subtle)}
 .ch-msg{position:relative;display:flex;gap:var(--space-3);padding:6px var(--space-2);border-radius:var(--radius-md)}
 .ch-msg:hover,.ch-msg:focus-within{background:var(--surface-subtle)}
@@ -53,29 +53,29 @@ const CSS = `
 .ch-quote{margin:2px 0 4px;padding:4px var(--space-2);border-left:3px solid var(--border-strong, var(--border-field));font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ch-card{display:flex;align-items:center;gap:var(--space-2);margin-top:6px;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);max-width:460px;text-decoration:none;color:inherit}
 .ch-reacts{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
-.ch-react{display:inline-flex;align-items:center;gap:4px;min-height:28px;padding:0 8px;border:1px solid var(--border-subtle);border-radius:var(--radius-full);background:var(--surface-card);font:inherit;font-size:var(--text-xs);cursor:pointer}
+.ch-react{display:inline-flex;align-items:center;gap:4px;min-height:24px;padding:0 8px;border:1px solid var(--border-subtle);border-radius:var(--radius-full);background:var(--surface-card);font:inherit;font-size:var(--text-xs);cursor:pointer}
 .ch-react[aria-pressed="true"]{border-color:var(--primary);background:var(--fill-primary-soft);color:var(--primary)}
 .ch-tools{position:absolute;right:var(--space-2);top:-14px;display:none;gap:2px;padding:2px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);box-shadow:var(--shadow-sm)}
 .ch-msg:hover .ch-tools,.ch-msg:focus-within .ch-tools{display:flex}
 .ch-tools button{display:grid;place-items:center;min-width:32px;height:32px;border:0;border-radius:var(--radius-md);background:none;font:inherit;font-size:var(--text-sm);cursor:pointer;color:var(--text-body)}
 .ch-tools button:hover{background:var(--surface-subtle)}
-.ch-compose{position:relative;padding:var(--space-3) var(--space-4);border-top:1px solid var(--border-subtle)}
-.ch-compose__box{display:flex;align-items:flex-end;gap:var(--space-2);padding:var(--space-2);border:1px solid var(--border-field);border-radius:var(--radius-lg);background:var(--surface-card)}
+.ch-compose{position:relative;padding:8px var(--space-3);border-top:1px solid var(--border-subtle)}
+.ch-compose__box{display:flex;align-items:flex-end;gap:var(--space-2);padding:4px 6px;border:1px solid var(--border-field);border-radius:var(--radius-lg);background:var(--surface-card)}
 .ch-compose__box:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px var(--fill-primary-soft)}
-.ch-compose textarea{flex:1;min-height:40px;max-height:160px;padding:8px;border:0;outline:0;resize:none;font:inherit;font-size:var(--text-sm);background:none;color:var(--text-heading)}
+.ch-compose textarea{flex:1;min-height:32px;max-height:160px;padding:6px;border:0;outline:0;resize:none;font:inherit;font-size:var(--text-sm);background:none;color:var(--text-heading)}
 .ch-replying{display:flex;align-items:center;gap:var(--space-2);margin-bottom:6px;font-size:var(--text-xs);color:var(--text-muted)}
 .ch-suggest{position:absolute;left:var(--space-4);bottom:calc(100% - 6px);z-index:5;min-width:240px;padding:4px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);box-shadow:var(--shadow-lg)}
 .ch-suggest button{display:flex;align-items:center;gap:var(--space-2);width:100%;min-height:36px;padding:0 var(--space-2);border:0;border-radius:var(--radius-md);background:none;font:inherit;font-size:var(--text-sm);text-align:left;cursor:pointer}
 .ch-suggest button:hover,.ch-suggest button.is-on{background:var(--surface-subtle)}
 .ch-side{display:flex;flex-direction:column;border-left:1px solid var(--border-subtle);min-height:0}
-.ch-side__tabs{display:flex;gap:2px;padding:var(--space-2);border-bottom:1px solid var(--border-subtle)}
-.ch-side__body{flex:1;overflow:auto;padding:var(--space-3);display:flex;flex-direction:column;gap:var(--space-2)}
+.ch-side__tabs{display:flex;align-items:center;min-height:44px;padding:6px 8px;border-bottom:1px solid var(--border-subtle)}
+.ch-side__body{flex:1;overflow:auto;padding:var(--space-3) var(--space-3);display:flex;flex-direction:column;gap:var(--space-2)}
 .ch-person{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}
 .ch-person > span:nth-child(2){flex:1;min-width:0}
 .ch-dot{width:8px;height:8px;border-radius:var(--radius-full);background:var(--text-success);flex:none}
 .ch-back{display:none}
 @media (max-width:1200px){.ch{grid-template-columns:240px minmax(0,1fr)}.ch-side{display:none}}
-@media (max-width:767px){.ch,.ch.no-side{grid-template-columns:minmax(0,1fr);height:calc(100dvh - 180px)}.ch-list{border-right:0}.ch.is-open .ch-list{display:none}.ch:not(.is-open) .ch-main{display:none}.ch-back{display:grid}}
+@media (max-width:767px){.ch{grid-template-columns:minmax(0,1fr);height:calc(100dvh - 160px)}.ch-list{border-right:0}.ch.is-open .ch-list{display:none}.ch:not(.is-open) .ch-main{display:none}.ch-back{display:grid}}
 `;
 const sameDay = (a, b) => dayKeyOf(a) === dayKeyOf(b);
 const dayText = (t) => { const k = dayKeyOf(t); const today = dayKeyOf(Date.now()); return k === today ? 'Today' : k === dayKeyOf(Date.now() - 864e5) ? 'Yesterday' : formatDate(t); };
@@ -163,19 +163,21 @@ export default function TeamChat() {
   const pins = here.filter((m) => m.pinned);
 
   return (
-    <TeamPage screen="TeamChat" active="team-chat" crumb="General" page="Team chat" title="Team chat" css={CSS}
+    <TeamPage screen="TeamChat" active="team-chat" crumb="General" page="Team chat" title="Team chat" icon="messages-square" css={CSS}
       about="Talk with your team and the other teams. Mention @someone, link a task with #TK-…, or turn a message into a task."
-      actions={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setAskTeam({ team: (otherTeams(me, teams)[0] || teams[0]).id, title: '', notes: '', due: '' })}><Icon name="send" width="18" height="18" aria-hidden="true" /> Ask another team</button><button type="button" className="gc-btn gc-btn--solid" onClick={() => setNewDm(true)}><Icon name="message-square-plus" width="18" height="18" aria-hidden="true" /> New message</button></>}>
-      <section className={'gc-card ch' + (open ? ' is-open' : '')}>
+      secondary={[{ label: 'Ask another team', onClick: () => setAskTeam({ team: (otherTeams(me, teams)[0] || teams[0]).id, title: '', notes: '', due: '' }) }]}
+      more={[{ label: 'Tasks', href: '/tasks' }]}
+      primary={{ label: 'New message', onClick: () => setNewDm(true) }}>
+      <section className={'ix-card ch' + (open ? ' is-open' : '')}>
         <nav className="ch-list" aria-label="Channels">
           <div className="ch-list__top"><input type="search" className="gc-input" placeholder="Search this chat" aria-label="Search messages" value={q} onChange={(e) => setQ(e.target.value)} /></div>
           <div className="ch-list__scroll">
             {groups.map(([label, list]) => (list.length || label === 'Direct messages') ? (
               <div key={label}>
-                <h3>{label}{label === 'Direct messages' ? <button type="button" className="gc-iconbtn" style={{ width: 28, height: 28 }} aria-label="New direct message" onClick={() => setNewDm(true)}><Icon name="plus" width="14" height="14" aria-hidden="true" /></button> : null}</h3>
+                <h3>{label}{label === 'Direct messages' ? <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="New direct message" onClick={() => setNewDm(true)}><Icon name="plus" width="16" height="16" aria-hidden="true" /></button> : null}</h3>
                 {list.map((c) => { const u = ready ? unread(c.id, me.id, msgs) : 0; return (
                   <button key={c.id} type="button" className={'ch-item' + (u ? ' is-unread' : '')} aria-current={c.id === chId} onClick={() => go(c.id)}>
-                    {c.kind === 'dm' ? <UserAvatar id={c.other} size={24} /> : <Icon name={c.kind === 'channel' ? c.icon : c.icon} width="16" height="16" aria-hidden="true" />}
+                    {c.kind === 'dm' ? <UserAvatar id={c.other} size={22} /> : <Icon name={c.icon} width="16" height="16" aria-hidden="true" />}
                     <span>{c.kind === 'channel' ? `# ${c.name}` : c.name}</span>
                     {u ? <span className="ch-badge" aria-label={`${u} unread`}>{u}</span> : null}
                   </button>
@@ -190,11 +192,11 @@ export default function TeamChat() {
           {current ? (
             <>
               <header className="ch-head">
-                <button type="button" className="gc-iconbtn ch-back" aria-label="Back to channels" onClick={() => setOpen(false)}><Icon name="arrow-left" width="18" height="18" aria-hidden="true" /></button>
-                {current.kind === 'dm' ? <UserAvatar id={current.other} size={34} /> : <span className="tm-tile"><Icon name={current.icon} width="16" height="16" aria-hidden="true" /></span>}
+                <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain ch-back" aria-label="Back to channels" onClick={() => setOpen(false)}><Icon name="arrow-left" width="16" height="16" aria-hidden="true" /></button>
+                {current.kind === 'dm' ? <UserAvatar id={current.other} size={28} /> : <span className="tm-tile"><Icon name={current.icon} width="16" height="16" aria-hidden="true" /></span>}
                 <div style={{ minWidth: 0, flex: 1 }}><h2>{current.kind === 'channel' ? `# ${current.name}` : current.name}</h2><p>{current.kind === 'dm' ? roleOf(userBy(current.other)).title : `${current.members.length} people · ${current.about || ''}`}</p></div>
-                {pins.length ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setSide('pins')}><Icon name="pin" width="14" height="14" aria-hidden="true" /> {pins.length}</button> : null}
-                {teamOfCh ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setSide('tasks')}><Icon name="list-checks" width="14" height="14" aria-hidden="true" /> {teamTasks.length} tasks</button> : null}
+                {pins.length ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => setSide('pins')} aria-label={`Pinned · ${pins.length}`}><Icon name="pin" width="16" height="16" aria-hidden="true" />{pins.length}</button> : null}
+                {teamOfCh ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => setSide('tasks')}><Icon name="list-checks" width="16" height="16" aria-hidden="true" />{teamTasks.length} tasks</button> : null}
               </header>
               <div className="ch-msgs" ref={scroller} aria-live="polite">
                 {!shown.length ? <p className="tm-sub" style={{ textAlign: 'center', marginTop: 'var(--space-6)' }}>{needle ? 'No messages match.' : current.kind === 'dm' ? `This is the start of your messages with ${current.name}.` : 'No messages yet — say hello.'}</p> : null}
@@ -209,12 +211,12 @@ export default function TeamChat() {
                     <React.Fragment key={m.id}>
                       {newDay ? <div className="ch-day">{dayText(m.at)}</div> : null}
                       <div className={'ch-msg' + (cont ? ' is-cont' : '') + (m.pinned ? ' is-pinned' : '')} tabIndex={-1}>
-                        <span className="ch-av"><UserAvatar id={m.by} size={34} /></span>
+                        <span className="ch-av"><UserAvatar id={m.by} size={30} /></span>
                         <div className="ch-body">
                           {!cont ? <div className="ch-who"><b>{userName(m.by)}</b><small>{roleOf(userBy(m.by)).title} · {formatTime(m.at)}{m.edited ? ' · edited' : ''}{m.pinned ? ' · pinned' : ''}</small></div> : null}
                           {quoted ? <div className="ch-quote">↪ {userName(quoted.by).split(' ')[0]}: {quoted.text}</div> : null}
                           <p className="ch-text"><Rich text={m.text} me={me} onTask={openTask} /></p>
-                          {tk ? <Link href={`/tasks?task=${tk.id}`} className="ch-card"><Icon name="square-check" width="16" height="16" aria-hidden="true" style={{ color: 'var(--primary)' }} /><span style={{ flex: 1, minWidth: 0 }}><span className="tm-strong">{tk.title}</span><span className="tm-sub">{tk.id} · {(teamBy(tk.team, teams) || {}).name} · {tk.assignees.map((x) => userName(x).split(' ')[0]).join(', ') || 'not taken'}</span></span><span className={'gc-badge gc-badge--' + statusTone(tk.status)}>{statusLabel(tk.status)}</span></Link> : null}
+                          {tk ? <Link href={`/tasks?task=${tk.id}`} className="ch-card"><Icon name="square-check" width="16" height="16" aria-hidden="true" style={{ color: 'var(--primary)' }} /><span style={{ flex: 1, minWidth: 0 }}><span className="tm-strong">{tk.title}</span><span className="tm-sub">{tk.id} · {(teamBy(tk.team, teams) || {}).name} · {tk.assignees.map((x) => userName(x).split(' ')[0]).join(', ') || 'not taken'}</span></span><StatusBadge tone={statusTone(tk.status) === 'slate' ? 'neutral' : statusTone(tk.status)}>{statusLabel(tk.status)}</StatusBadge></Link> : null}
                           {Object.entries(m.reactions || {}).filter(([, who]) => who.length).length ? <div className="ch-reacts">{Object.entries(m.reactions).filter(([, who]) => who.length).map(([e, who]) => <button key={e} type="button" className="ch-react" aria-pressed={who.includes(me.id)} title={who.map((x) => userName(x).split(' ')[0]).join(', ')} onClick={() => react(m.id, e, me.id)}>{e} {who.length}</button>)}</div> : null}
                         </div>
                         <div className="ch-tools" role="toolbar" aria-label="Message actions">
@@ -235,9 +237,9 @@ export default function TeamChat() {
                 {reply || edit ? <div className="ch-replying"><Icon name={edit ? 'pencil' : 'reply'} width="14" height="14" aria-hidden="true" /><span style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{edit ? 'Editing your message' : `Replying to ${userName(reply.by)}: ${reply.text}`}</span><button type="button" className="gc-btn gc-btn--flat gc-btn--sm" onClick={() => { setReply(null); if (edit) { setEdit(null); setText(''); } }}>Cancel</button></div> : null}
                 {readOnly ? <p className="tm-sub" style={{ margin: 0, textAlign: 'center', padding: 'var(--space-2)' }}>Only the owner and HR post in #announcements. React to show you’ve read it.</p> : (
                   <div className="ch-compose__box">
-                    <button type="button" className="gc-iconbtn" aria-label="Share a task" title="Share a task" onClick={() => setShare(true)}><Icon name="square-check" width="18" height="18" aria-hidden="true" /></button>
+                    <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Share a task" title="Share a task" onClick={() => setShare(true)}><Icon name="square-check" width="16" height="16" aria-hidden="true" /></button>
                     <textarea ref={box} rows={1} aria-label={`Message ${current.kind === 'channel' ? '#' + current.name : current.name}`} placeholder={`Message ${current.kind === 'channel' ? '#' + current.name : current.name.split(' ')[0]}`} title="@ to mention someone, #TK-123 to link a task. Enter sends, Shift+Enter for a new line." value={text} onChange={(e) => { setText(e.target.value); setSugIdx(0); }} onKeyDown={onKey} />
-                    <button type="submit" className="gc-btn gc-btn--solid gc-btn--sm" disabled={!text.trim()} aria-label="Send"><Icon name="send" width="16" height="16" aria-hidden="true" /></button>
+                    <button type="submit" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--primary" disabled={!text.trim()} aria-label="Send"><Icon name="send" width="16" height="16" aria-hidden="true" /></button>
                   </div>
                 )}
               </form>
@@ -246,18 +248,18 @@ export default function TeamChat() {
         </div>
 
         <aside className="ch-side" aria-label="About this chat">
-          <div className="ch-side__tabs" role="tablist">
-            {[['members', 'People'], ['pins', `Pinned · ${pins.length}`], ...(teamOfCh ? [['tasks', 'Tasks']] : [])].map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={side === k} className={'gc-btn gc-btn--sm ' + (side === k ? 'gc-btn--solid' : 'gc-btn--flat')} onClick={() => setSide(k)}>{l}</button>)}
+          <div className="ch-side__tabs">
+            <IndexTabs label="About this chat" tabs={[['members', 'People'], ['pins', 'Pinned', pins.length], ...(teamOfCh ? [['tasks', 'Tasks', teamTasks.length]] : [])].map(([k, l, n]) => ({ key: k, id: 'ch-side-' + k, label: l, count: n, on: side === k, onClick: () => setSide(k) }))} />
           </div>
           <div className="ch-side__body">
             {side === 'members' && current ? current.members.map(userBy).filter(Boolean).map((u) => (
-              <div key={u.id} className="ch-person"><UserAvatar id={u.id} size={30} /><span><span className="tm-strong">{u.name}{teamOfCh && teamOfCh.lead === u.id ? ' · lead' : ''}</span><span className="tm-sub">{roleOf(u).title}</span></span>{u.id !== me.id ? <button type="button" className="gc-iconbtn" aria-label={`Message ${u.name}`} onClick={() => go(dmId(me.id, u.id))}><Icon name="message-circle" width="16" height="16" aria-hidden="true" /></button> : <span className="ch-dot" aria-label="You" />}</div>
+              <div key={u.id} className="ch-person"><UserAvatar id={u.id} size={28} /><span><span className="tm-strong">{u.name}{teamOfCh && teamOfCh.lead === u.id ? ' · lead' : ''}</span><span className="tm-sub">{roleOf(u).title}</span></span>{u.id !== me.id ? <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label={`Message ${u.name}`} onClick={() => go(dmId(me.id, u.id))}><Icon name="message-circle" width="16" height="16" aria-hidden="true" /></button> : <span className="ch-dot" aria-label="You" />}</div>
             )) : null}
             {side === 'pins' ? (pins.length ? pins.map((m) => <div key={m.id} className="ch-card" style={{ flexDirection: 'column', alignItems: 'flex-start' }}><span className="tm-sub">{userName(m.by)} · {formatDate(m.at)}</span><span style={{ fontSize: 'var(--text-sm)' }}>{m.text}</span></div>) : <p className="tm-sub" style={{ margin: 0 }}>Nothing pinned. Hover a message and press the pin.</p>) : null}
             {side === 'tasks' && teamOfCh ? (
               <>
                 {teamTasks.slice(0, 12).map((t) => <Link key={t.id} href={`/tasks?task=${t.id}`} className="ch-card" style={{ maxWidth: 'none' }}><span style={{ flex: 1, minWidth: 0 }}><span className="tm-strong">{t.title}</span><span className="tm-sub">{t.id} · {t.assignees.map((x) => userName(x).split(' ')[0]).join(', ') || 'not taken'}{t.due ? ` · ${formatDate(new Date(t.due + 'T00:00:00').getTime())}` : ''}</span></span></Link>)}
-                <Link href={`/tasks?scope=all&new=1`} className="gc-btn gc-btn--sm gc-btn--neutral">New task</Link>
+                <Link href={`/tasks?scope=all&new=1`} className="ix-btn ix-btn--sm" style={{ alignSelf: 'flex-start' }}>New task</Link>
               </>
             ) : null}
           </div>

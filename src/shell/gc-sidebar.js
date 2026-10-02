@@ -1,6 +1,7 @@
 /* <gc-sidebar> — framework-free twin of the design system's Sidebar component.
    Same markup, same gc-* classes, same behaviour (grouped links, collapsible group headers,
-   count chips, drill-in sub-nav, collapse to a 76px rail). Used by every template so a
+   count chips, collapse to a 76px rail). The rows are business areas (navigation.js); the open
+   area lists its pages under it, as in Shopify's admin. Used by every template so a
    template renders its nav without waiting on React or the compiled bundle.
    Renders into a shadow root so React templates never try to reconcile its children.
    Keep in step with components/navigation/Sidebar.jsx — that file is the source of truth. */
@@ -11,6 +12,7 @@ import { t } from './i18n';
 import { navFor, currentUser, SESSION_EVENT } from '../lib/team';
 import { currentEdition, EDITION_EVENT } from '../lib/edition';
 import { STOCK_SETUP_EVENT, rememberEdition } from '../lib/stockSetup';
+import { PROPOSAL_EVENT } from '../lib/proposal';
 
 export function defineGcSidebar() {
   if (typeof window === 'undefined' || customElements.get('gc-sidebar')) return;
@@ -25,26 +27,26 @@ export function defineGcSidebar() {
 .gc-sidebar__head{display:flex;height:var(--header-height,72px);flex:none;align-items:center;justify-content:space-between;gap:8px;padding:0 var(--nav-pad-x,12px) 0 20px}
 .gc-sidebar--collapsed .gc-sidebar__head{justify-content:center;padding:0}
 .gc-sidebar__ed{font-size:var(--text-xs,12px);font-weight:var(--weight-medium,500);letter-spacing:.02em;color:var(--text-muted,#64748b);white-space:nowrap;padding-left:2px}
-.gc-sidebar__body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;padding:8px 8px 24px 12px}
+.gc-sidebar__body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;padding:4px 8px 16px}
 .gc-sidebar__body::-webkit-scrollbar{width:6px}
 .gc-sidebar__body::-webkit-scrollbar-track{background:transparent}
 .gc-sidebar__body::-webkit-scrollbar-thumb{border-radius:var(--radius-full);background:var(--slate-300,#cbd5e1)}
 .gc-sidebar__group+.gc-sidebar__group{margin-top:var(--nav-group-gap,28px)}
-.gc-sidebar__grouphead{display:flex;width:100%;height:32px;align-items:center;justify-content:space-between;border:none;background:none;padding:0 10px;color:var(--text-muted,#94a3b8);font-family:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;cursor:pointer;transition:color .2s cubic-bezier(0,0,.2,1)}
+.gc-sidebar__grouphead{display:flex;width:100%;height:28px;align-items:center;justify-content:space-between;border:none;background:none;padding:0 10px;color:var(--text-muted,#94a3b8);font-family:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;cursor:pointer;transition:color .2s cubic-bezier(0,0,.2,1)}
 .gc-sidebar__grouphead:hover{color:var(--text-body,#475569)}
 .gc-sidebar__items{display:flex;flex-direction:column;gap:var(--nav-row-gap,2px);margin-top:4px}
 .gc-sidebar__eyebrow{margin:0;padding:16px 10px 4px;font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted,#94a3b8)}
 .gc-sidebar__back{display:inline-flex;height:36px;align-items:center;gap:6px;border:none;border-radius:var(--radius-lg);background:none;padding:0 12px 0 6px;color:var(--text-body,#475569);font-family:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;transition:background .2s cubic-bezier(0,0,.2,1),color .2s}
 .gc-sidebar__back:hover{background:var(--surface-subtle,#f1f5f9);color:var(--text-heading,#1e293b)}
 .gc-sidebar__rule{margin:16px 10px;height:1px;background:var(--border-subtle,#e2e8f0);border:none}
-.gc-navitem{display:flex;width:100%;height:var(--nav-row-height,40px);align-items:center;gap:12px;border:none;border-radius:var(--radius-xl,12px);background:none;padding:0 10px;color:var(--text-body,#475569);font-family:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-align:left;text-decoration:none;cursor:pointer;transition:background-color .2s cubic-bezier(0,0,.2,1),color .2s cubic-bezier(0,0,.2,1)}
+.gc-navitem{display:flex;width:100%;height:var(--nav-row-height,32px);align-items:center;gap:10px;border:none;border-radius:var(--radius-lg,8px);background:none;padding:0 10px;color:var(--text-body,#475569);font-family:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-align:left;text-decoration:none;cursor:pointer;transition:background-color .2s cubic-bezier(0,0,.2,1),color .2s cubic-bezier(0,0,.2,1)}
 .gc-navitem:hover{background:var(--surface-subtle,#f1f5f9);color:var(--text-heading,#1e293b)}
 .gc-navitem--active,.gc-navitem--active:hover{background:var(--fill-primary-soft,rgba(0,48,135,.1));color:var(--primary,#003087)}
 .gc-navitem__icon{flex:none;display:grid;place-items:center;color:currentColor}
 .gc-navitem__label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gc-navitem__chev{flex:none;display:grid;place-items:center;color:var(--text-muted,#94a3b8);transition:transform .2s cubic-bezier(0,0,.2,1)}
 .gc-navitem--active .gc-navitem__chev{color:currentColor}
-.gc-navitem__count{flex:none;display:inline-flex;min-width:24px;height:24px;align-items:center;justify-content:center;border-radius:var(--radius-full);background:var(--surface-subtle,#f1f5f9);padding:0 8px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted,#94a3b8);font-variant-numeric:tabular-nums}
+.gc-navitem__count{flex:none;display:inline-flex;min-width:20px;height:20px;align-items:center;justify-content:center;border-radius:var(--radius-full);background:var(--surface-subtle,#f1f5f9);padding:0 8px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted,#94a3b8);font-variant-numeric:tabular-nums}
 .gc-navitem--active .gc-navitem__count{background:rgba(255,255,255,.65);color:var(--primary,#003087)}
 .gc-sidebar--collapsed .gc-sidebar__body{padding-left:8px;padding-right:8px;scrollbar-width:none}
 .gc-sidebar--collapsed .gc-sidebar__body::-webkit-scrollbar{display:none}
@@ -69,7 +71,7 @@ export function defineGcSidebar() {
 .gc-sub--closing{animation:gc-sub-close .2s cubic-bezier(.4,0,1,1) both}
 @keyframes gc-sub-open{from{grid-template-rows:0fr;opacity:0}to{grid-template-rows:1fr;opacity:1}}
 @keyframes gc-sub-close{from{grid-template-rows:1fr;opacity:1}to{grid-template-rows:0fr;opacity:0}}
-.gc-sub .gc-navitem{height:34px;padding-left:40px;border-radius:var(--radius-lg,8px);font-weight:var(--weight-regular);color:var(--text-body,#475569)}
+.gc-sub .gc-navitem{height:28px;padding-left:36px;border-radius:var(--radius-lg,8px);font-weight:var(--weight-regular);color:var(--text-body,#475569)}
 .gc-sub .gc-navitem--active,.gc-sub .gc-navitem--active:hover{font-weight:var(--weight-medium)}
 .gc-navitem--open{color:var(--text-heading,#1e293b)}
 .gc-navitem--open .gc-navitem__chev{transform:rotate(90deg)}
@@ -143,6 +145,7 @@ nav{display:block}
       window.addEventListener(SESSION_EVENT, this._route);
       window.addEventListener(EDITION_EVENT, this._route);
       window.addEventListener(STOCK_SETUP_EVENT, this._route);
+      window.addEventListener(PROPOSAL_EVENT, this._route);
       rememberEdition();   // the first time the shop is opened, note its edition (Stock setup notices a later change)
       window.addEventListener('popstate', this._route);
       document.addEventListener('keydown', this._key);
@@ -160,6 +163,7 @@ nav{display:block}
       window.removeEventListener(SESSION_EVENT, this._route);
       window.removeEventListener(EDITION_EVENT, this._route);
       window.removeEventListener(STOCK_SETUP_EVENT, this._route);
+      window.removeEventListener(PROPOSAL_EVENT, this._route);
       window.removeEventListener('popstate', this._route);
       document.removeEventListener('keydown', this._key);
     }
@@ -254,28 +258,33 @@ nav{display:block}
     }
     setCollapsed(on) { this.userCollapsed = on; writeFlag(COLLAPSE_KEY, on); }
 
+    /** One menu row. An area (an item with pages) is a link to its first page the role can open; the open area
+     *  lists its pages under it (sub). */
     row(it, active, collapsed, L) {
       const cls = 'gc-navitem' + (active ? ' gc-navitem--active' : '');
       const label = L(it.label) + (it.suffix ? ' ' + L(it.suffix) : '');
-      const inner = `<span class="gc-navitem__icon" aria-hidden="true">${glyph(it.icon, collapsed ? 20 : 18)}</span>`
+      const inner = `<span class="gc-navitem__icon" aria-hidden="true">${glyph(it.icon, collapsed ? 20 : 16)}</span>`
         + (collapsed ? '' : `<span class="gc-navitem__label">${esc(label)}</span>`)
-        + (!collapsed && it.count != null ? `<span class="gc-navitem__count">${it.count}</span>` : '')
-        + (!collapsed && it.children ? `<span class="gc-navitem__chev" aria-hidden="true">${glyph('chevron-right', 16)}</span>` : '');
+        + (!collapsed && it.count != null ? `<span class="gc-navitem__count">${it.count}</span>` : '');
       const name = collapsed ? ` aria-label="${esc(label)}"` : '';
-      if (it.children) return `<button type="button" class="${cls}${!collapsed && this.drill === it.id ? ' gc-navitem--open' : ''}"${name} data-drill="${it.id}" aria-expanded="${this.drill === it.id}">${inner}</button>`;
-      return `<a class="${cls}"${name} href="${hrefOf(it)}"${active ? ' aria-current="page"' : ''}>${inner}</a>`;
+      const to = it.children ? it.children.find((c) => !c.hidden && c.to) || it.children[0] : it;
+      // the open area's page row carries aria-current; the area itself only on the icon rail (no page rows there)
+      return `<a class="${cls}"${name} href="${hrefOf(to)}"${active && (!it.children || collapsed) ? ' aria-current="page"' : ''}>${inner}</a>`;
     }
 
-    /** The sub-menu of a parent: rendered only while open, or while it folds shut. */
+    /** The pages of the open area (the one this page belongs to). A `hidden` page (a create flow) is not listed: it
+     *  lights up the page named in its `under`. */
     sub(p, active, L) {
       if (!p.children) return '';
       const anim = this.subAnim(p.id);
       if (this.drill !== p.id && !anim.includes('closing')) return '';
+      const here = p.children.find((x) => x.id === active);
+      const lit = here && here.hidden ? here.under : active;
       const item = (x) => {
-        const on = x.id === active;
-        return `<a class="gc-navitem${on ? ' gc-navitem--active' : ''}" href="${hrefOf(x)}"${on ? ' aria-current="page"' : ''}><span class="gc-navitem__label">${esc(L(x.label))}</span>${x.count != null ? `<span class="gc-navitem__count">${x.count}</span>` : ''}</a>`;
+        const on = x.id === lit;
+        return `<a class="gc-navitem${on ? ' gc-navitem--active' : ''}" href="${hrefOf(x)}"${on ? ' aria-current="page"' : ''}><span class="gc-navitem__label">${esc(L(x.tab || x.label))}</span>${x.count != null ? `<span class="gc-navitem__count">${x.count}</span>` : ''}</a>`;
       };
-      return `<div class="gc-sub${anim}"><div class="gc-sub__in">${p.children.map(item).join('')}</div></div>`;
+      return `<div class="gc-sub${anim}"><div class="gc-sub__in">${p.children.filter((x) => !x.hidden).map(item).join('')}</div></div>`;
     }
 
     render() {
@@ -315,7 +324,7 @@ nav{display:block}
         body = MENU.map((g) => {
           const shut = !!this.closed[g.label];
           return `<div class="gc-sidebar__group"><button type="button" class="gc-sidebar__grouphead" data-group="${esc(g.label)}" aria-expanded="${!shut}"><span>${esc(L(g.label))}</span><span class="gc-navitem__chev" aria-hidden="true" style="transform:${shut ? 'rotate(-90deg)' : 'none'}">${glyph('chevron-down', 16)}</span></button>`
-            + (shut ? '' : `<div class="gc-sidebar__items">${g.items.map((it) => this.row(it, it.children ? it.id === active : isOn(it), false, L) + this.sub(it, active, L)).join('')}</div>`)
+            + (shut ? '' : `<div class="gc-sidebar__items">${g.items.map((it) => this.row(it, isOn(it), false, L) + this.sub(it, active, L)).join('')}</div>`)
             + '</div>';
         }).join('');
       }

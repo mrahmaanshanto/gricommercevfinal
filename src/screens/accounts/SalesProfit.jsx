@@ -1,12 +1,12 @@
 'use client';
 // SalesProfit — Accounts › Sales & profit: how much each channel (Online, Retail, Wholesale) sold
 // over a period and how much profit each made.
-//   Channel cards   net sales, orders and average order, gross and channel profit with margins,
-//                   returns, what is still due, and the channel's share of all sales.
+// Shopify-style (docs/shopify-style.md): the period, four key figures, then
 //   Sales trend     day-by-day stacked bars per channel (grouped when the period is long).
+//   Insights        two or three plain sentences worked out from the figures ("What stands out").
 //   Statement       profit by channel: sales − returns − cost of goods = gross profit − the channel's
-//                   own costs = channel profit; then shared costs and other income give net profit.
-//   Insights        two or three plain sentences worked out from the figures.
+//                   own costs = channel profit; then shared costs and other income give net profit;
+//                   then each channel's orders, average order, share of sales and what is still due.
 // Counted on the day of the sale (profit.js / salesBook.js). Which channel an expense belongs to is
 // set per category in Setup › Categories. Front end only: demo month September 2026.
 
@@ -14,7 +14,8 @@ import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
-import { EmptyState } from '@/components/ui';
+import { EmptyState, InfoTip } from '@/components/ui';
+import { MetricStrip } from '@/components/ui/IndexKit';
 import { clockNow, dayKey, fromKey, startOfDay } from '@/lib/settlements';
 import { getSales } from '@/lib/salesBook';
 import { profitByChannel } from '@/lib/profit';
@@ -51,9 +52,9 @@ function periodOf(preset, now, custom) {
 
 // ---- channels -----------------------------------------------------------------------------------
 const CH = [
-  { id: 'Online', icon: 'globe', color: 'var(--primary)', soft: 'var(--fill-primary-soft)', ink: 'var(--primary)', help: 'Website, Facebook and phone orders' },
-  { id: 'Retail', icon: 'store', color: 'var(--fill-success)', soft: 'var(--fill-success-soft)', ink: 'var(--text-success)', help: 'Counter sales at the shops' },
-  { id: 'Wholesale', icon: 'warehouse', color: 'var(--fill-warning)', soft: 'var(--fill-warning-soft)', ink: 'var(--text-warning)', help: 'Invoices to wholesale customers' },
+  { id: 'Online', color: 'var(--primary)', help: 'Website, Facebook and phone orders' },
+  { id: 'Retail', color: 'var(--fill-success)', help: 'Counter sales at the shops' },
+  { id: 'Wholesale', color: 'var(--fill-warning)', help: 'Invoices to wholesale customers' },
 ];
 const IDS = CH.map((c) => c.id);
 
@@ -147,54 +148,34 @@ function downloadCsv(name, rows) {
 
 // ---- page ---------------------------------------------------------------------------------------
 const CSS = `
-.sp-bar{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--space-3)}
-.sp-bar .ac-seg{flex-wrap:wrap}
-.sp-custom{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--space-3)}
-.sp-custom > div{min-width:0}
-.sp-custom .gc-input{width:auto;max-width:100%}
-.sp-range{margin:0;font-size:var(--text-xs);color:var(--text-muted)}
-.sp-range b{font-weight:var(--weight-medium);color:var(--text-heading)}
-.sp-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:var(--space-4)}
-.sp-ch{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-4) var(--space-5);min-width:0}
-.sp-ch__head{display:flex;align-items:center;gap:var(--space-3);min-width:0}
-.sp-ch__icon{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:var(--radius-full)}
-.sp-ch__head h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.sp-ch__head p{margin:0;font-size:var(--text-xs);color:var(--text-muted)}
-.sp-ch__head .gc-badge{margin-left:auto}
-.sp-big{margin:0;font-size:var(--text-2xl);line-height:var(--text-2xl-lh);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.sp-big-sub{margin:0;font-size:var(--text-xs);color:var(--text-muted)}
-.sp-share{display:flex;flex-direction:column;gap:4px}
-.sp-share__track{height:6px;border-radius:var(--radius-full);background:var(--surface-subtle);overflow:hidden}
-.sp-share__fill{display:block;height:100%;border-radius:var(--radius-full)}
-.sp-share small{font-size:var(--text-xs);color:var(--text-muted)}
-.sp-dl{display:grid;grid-template-columns:1fr auto;gap:6px var(--space-3);margin:0;padding-top:var(--space-3);border-top:1px solid var(--border-subtle);font-size:var(--text-sm)}
-.sp-dl dt{color:var(--text-muted)}
-.sp-dl dd{margin:0;text-align:right;color:var(--text-heading)}
-.sp-dl dd small{margin-left:6px;font-size:var(--text-xs);color:var(--text-muted)}
-.sp-dl .is-key dt,.sp-dl .is-key dd{font-weight:var(--weight-semibold);color:var(--text-heading)}
-.sp-dl > div{display:contents}
-.sp-chartbox{padding:0 var(--space-5) var(--space-5)}
+.sp-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:var(--space-4);align-items:start}
+.sp-grid--one{grid-template-columns:minmax(0,1fr)}
 .sp-legend{display:flex;flex-wrap:wrap;gap:var(--space-4);font-size:var(--text-xs);color:var(--text-muted)}
 .sp-legend span{display:inline-flex;align-items:center;gap:6px}
 .sp-legend i{display:inline-block;width:10px;height:10px;border-radius:var(--radius-full)}
 .sp-legend b{font-weight:var(--weight-medium);color:var(--text-heading);font-family:var(--font-data)}
-.sp-chart{display:flex;align-items:stretch;gap:3px;height:180px;margin-top:var(--space-3);padding-bottom:1px;border-bottom:1px solid var(--border-subtle)}
+.sp-chart{display:flex;align-items:stretch;gap:3px;height:160px;margin-top:var(--space-3);padding-bottom:1px;border-bottom:1px solid var(--border-subtle)}
 .sp-col{flex:1 1 0;min-width:0;display:flex;flex-direction:column-reverse}
 .sp-col i{display:block;flex:none;min-width:0}
 .sp-col i:last-child{border-radius:var(--radius-sm) var(--radius-sm) 0 0}
 .sp-col:hover i{opacity:.8}
 .sp-axis{display:flex;gap:3px;margin-top:6px}
 .sp-axis span{flex:1 1 0;min-width:0;text-align:center;font-size:var(--text-xs);color:var(--text-muted);font-family:var(--font-data);white-space:nowrap;overflow:visible}
+.sp-notes{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.sp-notes li{display:flex;gap:var(--space-2);padding:var(--space-2) 0;border-top:1px solid var(--border-subtle);font-size:var(--text-sm);line-height:1.5;color:var(--text-body)}
+.sp-notes li:first-child{border-top:0;padding-top:0}
+.sp-notes svg{flex:none;margin-top:2px;color:var(--text-muted)}
+.sp-notes b{font-weight:var(--weight-semibold);color:var(--text-heading)}
 .sp-stmt th,.sp-stmt td{white-space:nowrap}
 .sp-stmt thead th{text-align:right}
 .sp-stmt thead th:first-child{text-align:left}
 .sp-stmt tbody th[scope="row"],.sp-stmt thead th:first-child{position:sticky;left:0;z-index:1;background:var(--surface-card);text-align:left}
-.sp-stmt thead th:first-child{background:var(--surface-table-head)}
-.sp-stmt .is-indent th[scope="row"]{padding-left:calc(var(--space-5) + var(--space-4))}
-.sp-stmt .is-head th{padding-top:var(--space-4);font-size:var(--text-xs);text-transform:uppercase;letter-spacing:var(--tracking-wide);font-weight:var(--weight-semibold);color:var(--text-muted);background:var(--surface-card);text-align:left;border-bottom:1px solid var(--border-subtle)}
-.sp-stmt .is-head th span{margin-left:var(--space-2);text-transform:none;letter-spacing:0;font-weight:var(--weight-regular)}
+.sp-stmt thead th:first-child{background:var(--surface-subtle)}
+.sp-stmt .is-indent th[scope="row"]{padding-left:calc(var(--space-4) + var(--space-4))}
+.sp-stmt .is-head th{padding-top:var(--space-3);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-muted);background:var(--surface-card);text-align:left;border-bottom:1px solid var(--border-subtle)}
+.sp-stmt .is-head th span{margin-left:var(--space-2);font-weight:var(--weight-regular)}
 .sp-stmt .is-sub th,.sp-stmt .is-sub td{font-weight:var(--weight-semibold);color:var(--text-heading);border-top:1px solid var(--border-strong)}
-.sp-stmt .is-total th,.sp-stmt .is-total td{font-weight:var(--weight-semibold);color:var(--text-heading);background:var(--surface-subtle);font-size:var(--text-sm-plus);border-top:1px solid var(--border-strong)}
+.sp-stmt .is-total th,.sp-stmt .is-total td{font-weight:var(--weight-semibold);color:var(--text-heading);background:var(--surface-subtle);border-top:1px solid var(--border-strong)}
 .sp-stmt .is-all{background:var(--surface-subtle)}
 .sp-stmt .is-total .is-all{background:var(--fill-primary-soft)}
 .sp-stmt .sp-m{display:block;font-size:var(--text-xs);font-weight:var(--weight-regular);color:var(--text-muted)}
@@ -202,16 +183,10 @@ const CSS = `
 .sp-est{font-family:var(--font-data);color:var(--text-warning);margin-left:2px}
 .sp-pos{color:var(--text-success)!important}
 .sp-neg{color:var(--text-danger)!important}
-.sp-foot{padding:var(--space-4) var(--space-5);display:flex;flex-direction:column;gap:var(--space-2)}
-.sp-foot p{margin:0;font-size:var(--text-xs);color:var(--text-muted)}
-.sp-foot a{color:var(--text-link);font-weight:var(--weight-medium)}
-.sp-notes{display:flex;flex-direction:column;gap:var(--space-2)}
-@media print{
-  gc-sidebar,gc-topbar,.sp-noprint,.gc-pagehead__actions{display:none!important}
-  [data-screen="SalesProfit"] .gc-shell__main{border:0!important}
-  [data-screen="SalesProfit"] .gc-shell__content{padding:0!important}
-}
+@media (max-width:1023px){.sp-grid{grid-template-columns:minmax(0,1fr)}}
+@media print{[data-screen="SalesProfit"] .gc-shell__content{padding:0!important}}
 `;
+const ABOUT = 'How much each channel sold, and how much profit each one made after its own costs.';
 
 export default function SalesProfit() {
   const tick = useBooks();
@@ -266,75 +241,70 @@ export default function SalesProfit() {
     try { downloadCsv(name, csv); toast(`${name} downloaded`); } catch { toast('Could not make the CSV file in this browser', { tone: 'error' }); }
   };
 
-  const actions = (
-    <>
-      <Link href="/account-setup?tab=categories" className="gc-btn gc-btn--neutral"><Icon name="tags" width="18" height="18" aria-hidden="true" /> Expense categories</Link>
-      <button type="button" className="gc-btn gc-btn--neutral" onClick={() => window.print()}><Icon name="printer" width="18" height="18" aria-hidden="true" /> Print</button>
-      <button type="button" className="gc-btn gc-btn--solid" onClick={exportCsv}><Icon name="download" width="18" height="18" aria-hidden="true" /> Download CSV</button>
-    </>
-  );
-
-  const kpi = (icon, bg, color, label, value, small, valueClass = '') => (
-    <div className="gc-kpi">
-      <span className="gc-kpi__icon" style={{ background: bg, color }}><Icon name={icon} width="24" height="24" aria-hidden="true" /></span>
-      <div className="gc-kpi__text"><p className="gc-kpi__label">{label}</p><p className={'gc-kpi__value ac-fig ' + valueClass}>{value}<small>{small}</small></p></div>
-    </div>
-  );
   const loss = ready && p.net < 0;
+  // orders, average order, share of sales and what is still due: the rest of each channel's numbers
+  const extra = [
+    { key: 'orders', label: 'Orders', cell: (c) => (ready ? c.orders.toLocaleString('en') : '—') },
+    { key: 'avg', label: 'Average order', cell: (c) => (ready ? money(c.avg) : '—') },
+    { key: 'share', label: 'Share of sales', cell: (c, id) => (id === 'all' ? (ready && p.all.net ? pct(1) : '—') : P(p.all.net > 0 ? Math.max(0, c.net / p.all.net) : null)) },
+    { key: 'due', label: 'Still due', cell: (c) => (ready && c.due > 0 ? <Link href="/dues" style={{ color: 'var(--text-warning)' }}>{money(c.due)}</Link> : F(c.due)) },
+  ];
 
   return (
-    <AccPage screen="SalesProfit" active="rep-finance" page="Sales & profit" title="Sales & profit" css={CSS}
-      about="How much each channel sold, and how much profit each one made after its own costs."
-      actions={actions}>
+    <AccPage screen="SalesProfit" active="rep-finance" page="Sales & profit" title="Sales & profit" css={CSS} icon="chart-pie" about={ABOUT}
+      secondary={[{ label: 'Print', onClick: () => window.print() }]}
+      more={[{ label: 'Expense categories', href: '/account-setup?tab=categories' }, { label: 'Reports', href: '/account-reports' }]}
+      primary={{ label: 'Download CSV', onClick: exportCsv }}>
 
-      <div className="sp-bar">
-        <div className="sp-custom">
-          <div className="ac-seg sp-noprint" role="group" aria-label="Period">
-            {PRESETS.map(([id, label]) => <button key={id} type="button" aria-pressed={active === id} onClick={() => pickPreset(id)}>{label}</button>)}
-          </div>
-          {active === 'custom' ? (
-            <>
-              <div className="sp-noprint"><label className="gc-label" htmlFor="sp-from">From</label><input id="sp-from" type="date" className="gc-input" value={customRange.from} max={customRange.to} onChange={(e) => setCustomDay('from', e.target.value)} /></div>
-              <div className="sp-noprint"><label className="gc-label" htmlFor="sp-to">To</label><input id="sp-to" type="date" className="gc-input" value={customRange.to} min={customRange.from} onChange={(e) => setCustomDay('to', e.target.value)} /></div>
-            </>
-          ) : null}
-        </div>
-        <p className="sp-range" aria-live="polite"><b>{ready ? periodText : '—'}</b> · counted on the day of the sale</p>
+      <div className="ac-period">
+        <select className="ix-pick ac-noprint" aria-label="Period" value={active} onChange={(e) => pickPreset(e.target.value)}>
+          {PRESETS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+        </select>
+        {active === 'custom' ? (<>
+          <input type="date" className="ix-date ac-noprint" aria-label="From" value={customRange.from} max={customRange.to} onChange={(e) => setCustomDay('from', e.target.value)} />
+          <input type="date" className="ix-date ac-noprint" aria-label="To" value={customRange.to} min={customRange.from} onChange={(e) => setCustomDay('to', e.target.value)} />
+        </>) : null}
+        <span className="ac-period__text" aria-live="polite"><b>{ready ? periodText : '—'}</b> · counted on the day of the sale</span>
       </div>
 
-      <div className="gc-kpis gc-kpis--tight">
-        {kpi('shopping-bag', 'var(--fill-primary-soft)', 'var(--primary)', 'All channels · net sales', F(p.all.net), ready ? `${p.all.orders.toLocaleString('en')} orders` : '')}
-        {kpi('layers', 'var(--fill-success-soft)', 'var(--text-success)', 'Gross profit', F(p.all.gross), ready ? `${P(p.all.net ? p.all.gross / p.all.net : null)} margin` : '')}
-        {kpi(loss ? 'trending-down' : 'trending-up', loss ? 'var(--fill-error-soft)' : 'var(--fill-success-soft)', loss ? 'var(--text-danger)' : 'var(--text-success)', loss ? 'Net loss' : 'Net profit', F(p.net), ready ? `${P(p.all.net ? p.netMargin : null)} of sales` : '', ready ? (loss ? 'sp-neg' : 'sp-pos') : '')}
-        {kpi('hand-coins', 'var(--fill-warning-soft)', 'var(--text-warning)', 'Still due', F(p.all.due), 'online and wholesale')}
-      </div>
+      <MetricStrip label={periodText} items={[
+        { label: 'All channels · net sales', value: F(p.all.net), sub: ready ? `${p.all.orders.toLocaleString('en')} orders` : '' },
+        { label: 'Gross profit', value: F(p.all.gross), sub: ready ? `${P(p.all.net ? p.all.gross / p.all.net : null)} margin` : '' },
+        { label: loss ? 'Net loss' : 'Net profit', value: <span className={ready ? (loss ? 'sp-neg' : 'sp-pos') : ''}>{F(p.net)}</span>, sub: ready ? `${P(p.all.net ? p.netMargin : null)} of sales` : '' },
+        { label: 'Still due', value: F(p.all.due), sub: 'online and wholesale', href: '/dues' },
+      ]} />
 
       {empty ? (
-        <section className="gc-card ac-card">
-          <EmptyState icon="chart-no-axes-column" title="No sales in this period" body="Pick another period above." />
-        </section>
+        <section className="ix-card"><div className="ix-empty"><EmptyState icon="chart-no-axes-column" title="No sales in this period" body="Pick another period above." /></div></section>
       ) : (
         <>
-          <div className="sp-cards">
-            {CH.map((c) => <ChannelCard key={c.id} c={c} s={p.channels[c.id]} total={p.all.net} ready={ready} F={F} P={P} />)}
+          <div className={'sp-grid' + (insights.length ? '' : ' sp-grid--one')}>
+            <section className="ix-card" aria-labelledby="sp-trend-h">
+              <header className="ix-card__head"><h2 id="sp-trend-h">Sales trend <InfoTip text={`Sales before returns, ${trend.size > 1 ? `${trend.size} days per bar` : 'day by day'}, ${ready ? periodText : ''}.`} /></h2></header>
+              <div className="ix-card__body"><Trend trend={trend} p={p} ready={ready} periodText={periodText} /></div>
+            </section>
+            {insights.length ? (
+              <section className="ix-card" aria-labelledby="sp-notes-h">
+                <header className="ix-card__head"><h2 id="sp-notes-h">What stands out</h2></header>
+                <div className="ix-card__body">
+                  <ul className="sp-notes">{insights.map((x, i) => <li key={i}><Icon name={x.icon} width="16" height="16" aria-hidden="true" /><span>{x.text}</span></li>)}</ul>
+                </div>
+              </section>
+            ) : null}
           </div>
 
-          <section className="gc-card ac-card" aria-labelledby="sp-trend-h">
-            <div className="ac-head"><div><h2 id="sp-trend-h">Sales trend</h2><p>Sales before returns, {trend.size > 1 ? `${trend.size} days per bar` : 'day by day'}, {ready ? periodText : '—'}.</p></div></div>
-            <Trend trend={trend} p={p} ready={ready} periodText={periodText} />
-          </section>
-
-          <section className="gc-card ac-card" aria-labelledby="sp-stmt-h">
-            <div className="ac-head">
-              <div><h2 id="sp-stmt-h">Profit by channel</h2><p>What each channel sold, what its goods and its own costs were, and what it left as profit.</p></div>
-            </div>
-            <div className="gc-table-wrap">
+          <section className="ix-card ac-card" aria-labelledby="sp-stmt-h">
+            <header className="ix-card__head">
+              <h2 id="sp-stmt-h">Profit by channel <InfoTip text={`What each channel sold, what its goods and its own costs were, and what it left as profit. Counted on the day of the sale. Cost of goods is each product’s buying price; days marked ~ use the usual cost share.${anyEst ? ' Channels marked ~ include such days.' : ''} Sales commission, affiliate payouts and promotions count when they are owed, not when they are paid.`} /></h2>
+              <Link href="/account-setup?tab=categories" className="ac-noprint">Expense categories</Link>
+            </header>
+            <div className="gc-table-wrap" style={{ marginTop: 'var(--space-3)' }}>
               <table className="gc-table gc-table--compact sp-stmt">
                 <caption className="sr-only">Profit by channel, {periodText}. Costs and returns are shown with a minus sign.</caption>
                 <thead>
                   <tr>
                     <th scope="col">Item</th>
-                    {CH.map((c) => <th key={c.id} scope="col" className="ac-num">{c.id}{p.channels[c.id].est ? <span className="sp-est" title="Cost of goods partly estimated">~<span className="sr-only"> (cost partly estimated)</span></span> : null}</th>)}
+                    {CH.map((c) => <th key={c.id} scope="col" className="ac-num" title={c.help}>{c.id}{p.channels[c.id].est ? <span className="sp-est" title="Cost of goods partly estimated">~<span className="sr-only"> (cost partly estimated)</span></span> : null}</th>)}
                     <th scope="col" className="ac-num">All</th>
                   </tr>
                 </thead>
@@ -357,20 +327,17 @@ export default function SalesProfit() {
                       })}
                     </tr>
                   )))}
+                  <tr className="is-head"><th scope="colgroup" colSpan={5}>Orders and dues</th></tr>
+                  {extra.map((x) => (
+                    <tr key={x.key} className="is-line is-indent">
+                      <th scope="row">{x.label}</th>
+                      {[...IDS, 'all'].map((id) => <td key={id} className={'ac-num ac-fig' + (id === 'all' ? ' is-all' : '')}>{x.cell(id === 'all' ? p.all : p.channels[id], id)}</td>)}
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
-            <div className="sp-foot">
-              <p>Counted on the day of the sale. Cost of goods is each product’s buying price; days marked ~ use the usual cost share.{anyEst ? ' Channels marked ~ include such days.' : ''}</p>
-              <p className="sp-noprint">Change which channel a cost belongs to in <Link href="/account-setup?tab=categories">Setup › Categories</Link>. Sales commission, affiliate payouts and promotions count when they are owed, not when they are paid.</p>
-            </div>
           </section>
-
-          {insights.length ? (
-            <section className="sp-notes" aria-label="What stands out">
-              {insights.map((x, i) => <div key={i} className="ac-note ac-note--info"><Icon name={x.icon} width="16" height="16" aria-hidden="true" /><span>{x.text}</span></div>)}
-            </section>
-          ) : null}
         </>
       )}
     </AccPage>
@@ -378,41 +345,12 @@ export default function SalesProfit() {
 }
 
 // ---- parts --------------------------------------------------------------------------------------
-function ChannelCard({ c, s, total, ready, F, P }) {
-  const share = ready && total > 0 ? Math.max(0, s.net / total) : 0;
-  const neg = (n) => (!ready ? '—' : n ? '−' + money(n) : money(0));
-  return (
-    <section className="gc-card ac-card sp-ch" aria-labelledby={'sp-ch-' + c.id}>
-      <div className="sp-ch__head">
-        <span className="sp-ch__icon" style={{ background: c.soft, color: c.ink }}><Icon name={c.icon} width="20" height="20" aria-hidden="true" /></span>
-        <div style={{ minWidth: 0 }}><h2 id={'sp-ch-' + c.id}>{c.id}</h2><p>{c.help}</p></div>
-        {ready && s.est ? <span className="gc-badge gc-badge--warning" title="Some days use the usual cost share instead of each product’s buying price">~ estimated</span> : null}
-      </div>
-      <div>
-        <p className="sp-big ac-fig">{F(s.net)}</p>
-        <p className="sp-big-sub">Net sales · {ready ? `${s.orders.toLocaleString('en')} order${s.orders === 1 ? '' : 's'}, average ${money(s.avg)}` : '—'}</p>
-      </div>
-      <div className="sp-share">
-        <div className="sp-share__track" aria-hidden="true"><span className="sp-share__fill" style={{ width: share * 100 + '%', background: c.color }} /></div>
-        <small>{ready ? `${pct(share)} of all sales` : '—'}</small>
-      </div>
-      <dl className="sp-dl">
-        <div><dt>Gross profit</dt><dd className="ac-fig">{F(s.gross)}<small>{P(s.net ? s.margin : null)}</small></dd></div>
-        <div><dt>Own costs</dt><dd className="ac-fig">{neg(s.costsTotal)}</dd></div>
-        <div className="is-key"><dt>Channel profit</dt><dd className={'ac-fig' + (ready && s.profit < 0 ? ' sp-neg' : '')}>{F(s.profit)}<small>{P(s.net ? s.profitMargin : null)}</small></dd></div>
-        <div><dt>Returns</dt><dd className="ac-fig">{neg(s.returns)}</dd></div>
-        <div><dt>Still due</dt><dd className="ac-fig">{ready && s.due > 0 ? <Link href="/dues" style={{ color: 'var(--text-warning)' }}>{money(s.due)}</Link> : F(s.due)}</dd></div>
-      </dl>
-    </section>
-  );
-}
-
 function Trend({ trend, p, ready, periodText }) {
   const { bars, size } = trend;
   const max = Math.max(1, ...bars.map((b) => b.total));
   const every = bars.length > 10 ? 5 : 1;
   return (
-    <div className="sp-chartbox">
+    <div>
       <div className="sp-legend" aria-hidden="true">
         {CH.map((c) => <span key={c.id}><i style={{ background: c.color }} /> {c.id} <b>{ready ? money(p.channels[c.id].revenue) : '—'}</b></span>)}
       </div>

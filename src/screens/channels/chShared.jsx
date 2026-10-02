@@ -1,7 +1,8 @@
 'use client';
-// Shared pieces of the Channels pages (Overview, Meta Commerce, Google Merchant Center, Google Business, Sync issues,
-// Settings, Connect a channel) and the product page's Sales channels card. Built on the app's own parts: the shell,
-// PageHeader, StatusBadge, Sheet, EmptyState, gc-card / gc-table / gc-stattabs / gc-switch / gc-progress / gc-alert.
+// Shared pieces of the Channels pages (Overview, the product channel pages, Google Business, Sync issues, Settings,
+// Connections and the connect flow) and the product page's Sales channels card. The frame is the shell plus one
+// Shopify-style page (docs/shopify-style.md; components/ui/IndexKit.jsx): ChannelFrame wraps its children in
+// ix-page. ConnCard is the connection at the top of a channel page; the sheets are a product's record on a channel.
 // Data and wording: src/lib/channels.js.
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -10,11 +11,12 @@ import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { StatusBadge, Sheet } from '@/components/ui';
+import { KV } from '@/components/ui/IndexKit';
 import { BrandLogo } from '@/components/BrandLogo';
 import { formatBDT } from '@/lib/format';
 import {
-  CHANNELS_EVENT, channelBy, STATUS, ISSUES, FIX_FIELDS, getChannels, syncJob, lastResult, dismissResult, startSync,
-  retryItem, fixItem, setPublished, ago, agoLow, isOk, photoOf, nowMs,
+  channelBy, STATUS, ISSUES, FIX_FIELDS, getChannels, syncJob, lastResult, dismissResult, startSync,
+  retryItem, fixItem, setPublished, ago, agoLow, nowMs, photoOf, CHANNELS_EVENT,
 } from '@/lib/channels';
 
 export const money = (n) => (n == null || n === '' ? '—' : formatBDT(Math.round(Number(n) || 0)));
@@ -23,38 +25,27 @@ export const CH_CSS = `
 .ch-logo{position:relative;display:inline-grid;place-items:center;flex:none;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card)}
 .ch-logo img{display:block;object-fit:contain}
 .ch-logo__mark{position:absolute;right:-4px;bottom:-4px;display:grid;place-items:center;width:18px;height:18px;border-radius:var(--radius-full);background:var(--surface-card);box-shadow:0 0 0 1px var(--border-subtle);color:var(--text-muted)}
-.ch-card{display:flex;flex-direction:column;min-width:0;border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card)}
-.ch-card__head{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-4) var(--space-4) var(--space-4) var(--space-5)}
-.ch-card__name{display:flex;flex-direction:column;min-width:0;flex:1}
-.ch-card__name b{font-size:var(--text-sm);font-weight:var(--weight-semibold);line-height:var(--text-sm-lh);color:var(--text-heading)}
-.ch-card__name small{font-size:var(--text-xs);color:var(--text-muted)}
-.ch-card__body{padding:0 var(--space-5) var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);flex:1}
-/* two equal buttons, then the third action as a quiet full-width link */
-.ch-card__foot{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-top:1px solid var(--border-subtle)}
-.ch-card__foot>:nth-child(3){grid-column:1 / -1}
-.ch-card__head .gc-badge{flex:none;margin-top:2px}
-.ch-facts{display:grid;grid-template-columns:auto 1fr;gap:6px var(--space-4);margin:0;font-size:var(--text-sm)}
-.ch-facts dt{color:var(--text-muted);white-space:nowrap}
-.ch-facts dd{margin:0;min-width:0;text-align:right;color:var(--text-heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ch-facts .n{font-family:var(--font-data);font-variant-numeric:tabular-nums}
-.ch-nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2)}
-.ch-num{display:flex;flex-direction:column;gap:2px;min-width:0;padding:var(--space-2);border-radius:var(--radius-lg);background:var(--surface-subtle)}
-.ch-num b{font-family:var(--font-data);font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--text-heading);font-variant-numeric:tabular-nums}
-.ch-num small{display:flex;align-items:center;gap:4px;min-width:0;font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ch-dot{display:inline-block;width:8px;height:8px;flex:none;border-radius:var(--radius-full)}
-.ch-dot--ok{background:var(--success)}.ch-dot--warn{background:var(--warning)}.ch-dot--bad{background:var(--error)}.ch-dot--info{background:var(--info)}.ch-dot--off{background:var(--slate-300)}
-.ch-bar{display:flex;gap:2px;height:10px;border-radius:var(--radius-full);overflow:hidden;background:var(--slate-150)}
+/* the connection at the top of a channel page: who it is, then its facts in one row */
+.ch-conn{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3) var(--space-6);padding:var(--space-3) var(--space-4)}
+.ch-conn__id{display:flex;align-items:center;gap:var(--space-3);flex:1 1 240px;min-width:0}
+.ch-conn__id>span:not(.ch-logo):not(.gc-badge){display:flex;flex-direction:column;min-width:0}
+.ch-conn__id b{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.ch-conn__id small{font-size:var(--text-xs);color:var(--text-muted)}
+.ch-conn__facts{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-6);margin:0}
+.ch-conn__facts div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ch-conn__facts dt{font-size:var(--text-xs);color:var(--text-muted)}
+.ch-conn__facts dd{max-width:220px;margin:0;overflow:hidden;font-size:var(--text-sm);color:var(--text-heading);text-overflow:ellipsis;white-space:nowrap}
+/* kit gap: a list right under a card head */
+.ix-card__head+.ix-plist,.ix-card__head+.ix-table-wrap,.ix-card__head+.ix-plist+.ix-table-wrap{margin-top:var(--space-2)}
+.ch-bar{display:flex;gap:2px;height:8px;border-radius:var(--radius-full);overflow:hidden;background:var(--slate-150)}
 .ch-bar i{display:block;height:100%;min-width:4px}
 .ch-bar .ok{background:var(--success)}.ch-bar .warn{background:var(--warning)}.ch-bar .bad{background:var(--error)}.ch-bar .info{background:var(--info)}.ch-bar .off{background:var(--slate-300)}
-.ch-legend{display:flex;flex-wrap:wrap;gap:4px var(--space-4);margin:0;padding:0;list-style:none;font-size:var(--text-xs);color:var(--text-muted)}
-.ch-legend li{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
-.ch-legend b{font-family:var(--font-data);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.ch-sync{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-4) var(--space-5);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card)}
+.ch-sync{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-radius:var(--radius-xl);background:var(--surface-card);box-shadow:var(--shadow-card)}
 .ch-sync__top{display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-sm)}
 .ch-sync__top b{font-weight:var(--weight-medium);color:var(--text-heading)}
 .ch-sync__top .n{margin-left:auto;font-family:var(--font-data);color:var(--text-heading);font-variant-numeric:tabular-nums;white-space:nowrap}
 .ch-sync small{font-size:var(--text-xs);color:var(--text-muted)}
-.ch-spin{flex:none;width:18px;height:18px;border-radius:var(--radius-full);border:2px solid var(--slate-200);border-top-color:var(--primary);animation:chSpin 800ms linear infinite}
+.ch-spin{flex:none;width:16px;height:16px;border-radius:var(--radius-full);border:2px solid var(--slate-200);border-top-color:var(--primary);animation:chSpin 800ms linear infinite}
 @keyframes chSpin{to{transform:rotate(360deg)}}
 .ch-result{align-items:flex-start}
 .ch-result>svg{flex:none;margin-top:1px}
@@ -62,77 +53,38 @@ export const CH_CSS = `
 .ch-result__text b{font-weight:var(--weight-medium)}
 .ch-result__text span{opacity:.9}
 .ch-result__act{display:flex;align-items:center;gap:var(--space-2);flex:none}
-.ch-thumb{display:grid;place-items:center;flex:none;width:40px;height:40px;overflow:hidden;border-radius:var(--radius-lg);font-weight:var(--weight-semibold);color:var(--text-heading);font-size:var(--text-sm)}
+.ch-thumb{display:grid;place-items:center;flex:none;width:32px;height:32px;overflow:hidden;border:1px solid var(--border-subtle);border-radius:var(--radius-md);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .ch-thumb img{width:100%;height:100%;object-fit:cover}
-.ch-prod{display:flex;align-items:center;gap:var(--space-3);min-width:0}
-.ch-prod__name{display:flex;flex-direction:column;min-width:150px}
-.ch-prod__name b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);white-space:normal;max-width:260px}
+.ch-prod{display:flex;align-items:center;gap:10px;min-width:0;max-width:360px}
+.ch-prod__name{display:flex;flex-direction:column;min-width:0}
+.ch-prod__name b{overflow:hidden;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading);text-overflow:ellipsis;white-space:nowrap}
 .ch-prod__name small{font-size:var(--text-xs);color:var(--text-muted);font-family:var(--font-data)}
-.ch-issue{display:flex;flex-direction:column;gap:2px;min-width:200px;white-space:normal;max-width:300px}
+.ch-issue{display:flex;flex-direction:column;gap:2px;min-width:0;white-space:normal}
 .ch-issue b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 .ch-issue small{font-size:var(--text-xs);color:var(--text-muted)}
 .ch-muted{color:var(--text-muted)}
-/* channel tables: tighter cells so every column, actions included, fits a laptop screen */
-.ch-table th,.ch-table td{padding-left:var(--space-3);padding-right:var(--space-3)}
-.ch-table th:first-child,.ch-table td:first-child{padding-left:var(--space-5)}
-.ch-table th:last-child,.ch-table td:last-child{padding-right:var(--space-5)}
-.ch-stattabs{grid-template-columns:repeat(auto-fit,minmax(136px,1fr))}
-/* on laptop widths the time column folds into the status cell (ch-narrow-only) */
-.ch-narrow-only{display:none}
-@media (max-width:1599px){.ch-wide-only{display:none!important}.ch-narrow-only{display:block}}
-@media (max-width:640px){.ch-narrow-only{display:none}}
 .ch-data{font-family:var(--font-data);font-variant-numeric:tabular-nums}
-.ch-acts{display:flex;align-items:center;justify-content:flex-end;gap:var(--space-1);white-space:nowrap}
-.ch-menu{position:relative;display:inline-flex}
-.ch-menu .gc-dropdown{right:0;top:100%;margin-top:4px}
-.ch-tools{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);padding:var(--space-4) var(--space-5)}
-.ch-tools .gc-input{max-width:340px}
-.ch-tools__search{position:relative;flex:1 1 240px;max-width:340px}
-.ch-tools__search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none}
-.ch-tools__search .gc-input{padding-left:40px;max-width:none}
-.ch-bulk{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-5);background:var(--fill-primary-soft);font-size:var(--text-sm);color:var(--primary)}
-.ch-bulk b{font-weight:var(--weight-medium);margin-right:auto}
-.ch-box{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-4);border-radius:var(--radius-lg);background:var(--surface-subtle);font-size:var(--text-sm)}
+.ch-box{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);background:var(--surface-subtle);font-size:var(--text-sm)}
 .ch-box--warn{background:var(--fill-warning-soft)}
 .ch-box--bad{background:var(--fill-error-soft)}
 .ch-box b{font-weight:var(--weight-medium);color:var(--text-heading)}
 .ch-box p{margin:0;color:var(--text-body)}
 .ch-tech{font-size:var(--text-xs);color:var(--text-muted)}
-.ch-tech summary{cursor:pointer;font-weight:var(--weight-medium);color:var(--text-body);min-height:36px;display:flex;align-items:center}
+.ch-tech summary{display:flex;align-items:center;min-height:32px;cursor:pointer;font-weight:var(--weight-medium);color:var(--text-body)}
 .ch-tech dl{display:grid;grid-template-columns:auto 1fr;gap:4px var(--space-3);margin:var(--space-2) 0 0}
 .ch-tech dd{margin:0;font-family:var(--font-data);color:var(--text-body);word-break:break-word}
 .ch-sheet{display:flex;flex-direction:column;gap:var(--space-4)}
-.ch-sheet__title{display:flex;align-items:center;gap:var(--space-3)}
 .ch-preview{display:grid;place-items:center;width:120px;height:120px;border:1px dashed var(--border-strong);border-radius:var(--radius-lg);overflow:hidden;background:var(--surface-subtle);color:var(--text-muted)}
 .ch-preview img{width:100%;height:100%;object-fit:cover}
-.ch-section-title{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.ch-head{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--space-4);padding:var(--space-5)}
-.ch-head__id{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);min-width:0;flex:1 1 260px}
-.ch-head__id>span:not(.ch-logo):not(.gc-badge){min-width:0}
-.ch-head__id b{display:block;font-size:var(--text-base);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.ch-head__id small{font-size:var(--text-xs);color:var(--text-muted)}
-.ch-head__facts{display:grid;grid-template-columns:repeat(4,minmax(0,auto));gap:var(--space-2) var(--space-6);margin:0;font-size:var(--text-sm)}
-.ch-head__facts div{display:flex;flex-direction:column;gap:2px;min-width:0}
-.ch-head__facts dt{font-size:var(--text-xs);color:var(--text-muted)}
-.ch-head__facts dd{margin:0;color:var(--text-heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ch-auto{display:inline-flex;align-items:center;gap:var(--space-2);min-height:36px;border:0;background:none;padding:0;font:inherit;font-size:var(--text-sm);color:var(--text-heading);cursor:pointer}
+.ch-section-title{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
 /* a labelled switch: the button is the switch, the gc-switch inside is its look */
+.ch-auto{display:inline-flex;align-items:center;gap:var(--space-2);min-height:24px;border:0;background:none;padding:0;font:inherit;font-size:var(--text-sm);color:var(--text-heading);cursor:pointer}
 .ch-auto[aria-checked="true"] .gc-switch,.gb-toggle[aria-checked="true"] .gc-switch{background:var(--primary)}
 .ch-auto[aria-checked="true"] .gc-switch__knob,.gb-toggle[aria-checked="true"] .gc-switch__knob{transform:translateX(20px)}
 @media (prefers-reduced-motion:reduce){.ch-spin{animation-duration:2.4s}}
-@media (max-width:1100px){.ch-head__facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:640px){
-  .ch-sm-hide{display:none!important}
-  .ch-card__head,.ch-card__body,.ch-card__foot{padding-left:var(--space-4);padding-right:var(--space-4)}
-  .ch-tools{padding:var(--space-3) var(--space-4)}
-  .ch-tools__search{max-width:none}
-  .ch-bulk{padding:var(--space-2) var(--space-4)}
-  .ch-head{padding:var(--space-4)}
-  .ch-head__facts{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3);width:100%}
-  .ch-prod__name{min-width:0}
-  .ch-prod__name b{max-width:none}
-  .ch-issue{max-width:none;min-width:0}
-  .ch-sync{padding:var(--space-3) var(--space-4)}
+  .ch-conn__facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3);width:100%}
+  .ch-conn__facts dd{max-width:none}
   .ch-result{flex-wrap:wrap}
   .ch-result__act{width:100%;justify-content:flex-end}
 }
@@ -160,21 +112,39 @@ export function useChannels() {
   return { ready, v, c: ready ? getChannels() : null };
 }
 
-/** The page frame: side menu, top bar, content. */
-export function ChannelFrame({ screen, active, page, children, css = '', crumb = 'Sales channels' }) {
+/** The page frame: side menu, top bar, and one Shopify-style page (narrow: forms and settings). */
+export function ChannelFrame({ screen, active, page, children, css = '', crumb = 'Sales channels', narrow }) {
   return (
     <div className="dc-screen ds" data-screen={screen}>
       <style dangerouslySetInnerHTML={{ __html: CH_CSS + css }} />
       <div className="gc-shell">
         <Sidebar sticky="" active={active} />
-        <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
+        <main className="gc-shell__main">
           <Topbar crumb={crumb} page={page} />
-          <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-            {children}
+          <div className="gc-shell__content">
+            <div className={'ix-page' + (narrow ? ' ix-page--narrow' : '')}>{children}</div>
           </div>
         </main>
       </div>
     </div>
+  );
+}
+
+/** The connection at the top of a channel page: the logo, what it is, since when, then its facts in one row.
+ *  facts: [[label, value], …]; a falsy entry is skipped. tip: an InfoTip after the title. */
+export function ConnCard({ ch, title, since, tip, facts }) {
+  const meta = channelBy(ch);
+  return (
+    <section className="ix-card ix-card--open ch-conn" aria-label="Connection">
+      <div className="ch-conn__id">
+        <ChannelLogo ch={ch} size={32} />
+        <span><b>{title || meta.sub}{tip}</b>{since ? <small>{since}</small> : null}</span>
+        <ConnBadge on />
+      </div>
+      <dl className="ch-conn__facts">
+        {facts.filter(Boolean).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
+      </dl>
+    </section>
   );
 }
 
@@ -200,13 +170,13 @@ export function StatusTag({ st }) {
   return <StatusBadge tone={s.tone} icon={s.icon}>{s.label}</StatusBadge>;
 }
 
-/** Product tile + name + SKU, the same look as Products › All products. */
-export function ProductCell({ r, sub }) {
+/** Product tile + name + SKU, the same look as Products › All products. compact: the name only (a table row). */
+export function ProductCell({ r, sub, compact }) {
   const photo = photoOf(r.key);
   return (
     <span className="ch-prod">
       <span className="ch-thumb" style={{ background: r.tbg || 'var(--surface-subtle)' }}>{photo ? <img src={photo} alt="" /> : r.name.charAt(0)}</span>
-      <span className="ch-prod__name"><b>{r.name}</b><small>{sub != null ? sub : (r.sku || 'No SKU') + (r.variants ? ` · ${r.variants} variants` : '')}</small></span>
+      <span className="ch-prod__name"><b>{r.name}</b>{compact ? null : <small>{sub != null ? sub : (r.sku || 'No SKU') + (r.variants ? ` · ${r.variants} variants` : '')}</small>}</span>
     </span>
   );
 }
@@ -228,37 +198,6 @@ export function TechDetails({ issue }) {
       <summary>Technical details</summary>
       <dl><dt>Code</dt><dd>{i.tech.code}</dd><dt>Field</dt><dd>{i.tech.field}</dd><dt>Message</dt><dd>{i.tech.msg}</dd></dl>
     </details>
-  );
-}
-
-/** A small "more actions" menu for a table row. items: [{ label, icon, onClick, danger }] */
-export function RowMenu({ label = 'More actions', items }) {
-  const [open, setOpen] = useState(false);
-  const box = useRef(null);
-  useEffect(() => {
-    if (!open) return undefined;
-    const close = (e) => { if (box.current && !box.current.contains(e.target)) setOpen(false); };
-    const esc = (e) => { if (e.key === 'Escape') setOpen(false); };
-    document.addEventListener('mousedown', close);
-    document.addEventListener('keydown', esc);
-    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', esc); };
-  }, [open]);
-  const list = items.filter(Boolean);
-  // keep the row's main button in line with the rows that have a menu
-  if (!list.length) return <span aria-hidden="true" style={{ display: 'inline-block', width: 36, flex: 'none' }} />;
-  return (
-    <span className="ch-menu" ref={box}>
-      <button type="button" className="gc-iconbtn" aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={(e) => { e.stopPropagation(); setOpen(!open); }}><Icon name="ellipsis" width="18" height="18" aria-hidden="true" /></button>
-      {open ? (
-        <div className="gc-dropdown" role="menu">
-          {list.map((it) => (
-            <button key={it.label} type="button" role="menuitem" className={'gc-dropdown__item' + (it.danger ? ' gc-dropdown__item--danger' : '')} onClick={(e) => { e.stopPropagation(); setOpen(false); it.onClick(); }}>
-              {it.icon ? <Icon name={it.icon} width="16" height="16" aria-hidden="true" /> : null}{it.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </span>
   );
 }
 
@@ -447,32 +386,10 @@ export function ItemSheet({ item, c, onClose, onFix }) {
         ) : null}
         <div>
           <h3 className="ch-section-title" style={{ marginBottom: 'var(--space-2)' }}>On {meta.short}</h3>
-          <dl className="ch-facts">
-            <dt>Title</dt><dd style={{ whiteSpace: 'normal' }}>{item.name}</dd>
-            <dt>Price</dt><dd className="n">{money(item.price)}</dd>
-            <dt>Availability</dt><dd>{item.stock > 0 ? 'In stock' : 'Out of stock'}</dd>
-            <dt>Shown on</dt><dd>{meta.sub}</dd>
-          </dl>
+          <KV rows={[['Title', item.name], ['Price', <span className="ch-data">{money(item.price)}</span>], ['Availability', item.stock > 0 ? 'In stock' : 'Out of stock'], ['Shown on', meta.sub]]} />
         </div>
         {issue ? <TechDetails issue={item.issue} /> : null}
       </div>
     </Sheet>
   );
-}
-
-/** The main action of a product row (one button) and the rest in a menu. */
-export function rowActions(r, { onView, onFix }) {
-  const meta = channelBy(r.ch);
-  const issue = r.issue ? ISSUES[r.issue] : null;
-  let main = null;
-  if (issue && issue.kind === 'fix') main = { label: 'Fix', onClick: () => onFix(r) };
-  else if (issue) main = { label: 'Retry', onClick: () => { retryItem(r.ch, r.key); toast('Trying again…'); } };
-  else if (r.st === 'unpublished' && !r.draft) main = { label: 'Publish', onClick: () => { setPublished(r.ch, [r.key], true); toast(`Publishing to ${meta.short}…`); } };
-  else main = { label: 'View', onClick: () => onView(r) };
-  const menu = [
-    main.label !== 'View' ? { label: 'View details', icon: 'eye', onClick: () => onView(r) } : null,
-    !issue && isOk(r.st) ? { label: 'Sync this product', icon: 'refresh-cw', onClick: () => { retryItem(r.ch, r.key); toast('Sending again…'); } } : null,
-    r.st !== 'unpublished' ? { label: `Remove from ${meta.short}`, icon: 'eye-off', danger: true, onClick: () => { setPublished(r.ch, [r.key], false); toast(`Removed from ${meta.short}`); } } : null,
-  ];
-  return { main, menu };
 }

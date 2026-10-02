@@ -7,14 +7,16 @@
 //       Store · What to sync · Review · Done (first sync with progress)
 //   keys     SMS gateway, email sending, Telegram bot: provider and keys, Test · Review · Done
 // Payment gateways and couriers open their own setup (GatewaySetup) on the Connections page; devices and tools go to
-// their page. No app given: choose one from a group (?group=). Data: src/lib/connections.js (+ channels.js).
+// their page. No app given: choose one from a group (?group=). A narrow Shopify-style page: back to Connections, the
+// steps in one card. Data: src/lib/connections.js (+ channels.js).
 
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
-import { PageHeader, PhoneActionBar } from '@/components/ui';
+import { PhoneActionBar } from '@/components/ui';
+import { RecordHeader } from '@/components/ui/IndexKit';
 import { BrandLogo } from '@/components/BrandLogo';
 import { gbpLocations, channelUniverse, channelBy } from '@/lib/channels';
 import { appBy, groupBy, editionApps, statusOf, connectApp } from '@/lib/connections';
@@ -41,45 +43,45 @@ const USE_TEXT = {
 };
 
 const CSS = `
-.cc-steps{display:flex;align-items:flex-start;justify-content:center;margin:0;padding:var(--space-5) var(--space-4) var(--space-2)}
-.cc-phone-step{display:none;flex-direction:column;gap:var(--space-2);padding:var(--space-4) var(--space-4) 0;font-size:var(--text-sm)}
+.cc-steps{display:flex;align-items:flex-start;justify-content:center;margin:0;padding:var(--space-4) var(--space-4) 0}
+.cc-phone-step{display:none;flex-direction:column;gap:var(--space-2);padding:var(--space-3) var(--space-4) 0;font-size:var(--text-sm)}
 .cc-phone-step b{font-weight:var(--weight-medium);color:var(--text-heading)}
-.cc-body{display:flex;flex-direction:column;gap:var(--space-5);width:100%;max-width:720px;margin:0 auto;padding:var(--space-5)}
-.cc-body h2{margin:0;font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.cc-body{display:flex;flex-direction:column;gap:var(--space-4);width:100%;max-width:640px;margin:0 auto;padding:var(--space-4)}
+.cc-body h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .cc-body>p,.cc-lead{margin:0;font-size:var(--text-sm);color:var(--text-muted)}
 .cc-app{display:flex;align-items:center;gap:var(--space-3)}
-.cc-app b{display:block;font-size:var(--text-base);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.cc-app b{display:block;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .cc-app small{font-size:var(--text-xs);color:var(--text-muted)}
-.cc-pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:var(--space-3)}
-.cc-opt{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-3);padding:var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card);font:inherit;text-align:left;color:inherit;cursor:pointer;transition:border-color 150ms ease}
+.cc-pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:var(--space-2)}
+.cc-opt{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-2);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font:inherit;text-align:left;color:inherit;cursor:pointer;transition:border-color 150ms ease}
 .cc-opt[aria-pressed="true"],.cc-opt[aria-checked="true"]{border-color:var(--primary);background:var(--fill-primary-soft);box-shadow:inset 0 0 0 1px var(--primary)}
 .cc-opt:disabled{cursor:default;opacity:.7}
 .cc-opt b{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .cc-opt small{font-size:var(--text-xs);color:var(--text-muted)}
-.cc-opt .gc-badge{position:absolute;top:var(--space-3);right:var(--space-3)}
+.cc-opt .gc-badge{position:absolute;top:var(--space-2);right:var(--space-2)}
 .cc-list{display:flex;flex-direction:column;gap:var(--space-2)}
-.cc-row{display:flex;align-items:center;gap:var(--space-3);min-height:56px;padding:var(--space-3) var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font-size:var(--text-sm);cursor:pointer}
+.cc-row{display:flex;align-items:center;gap:var(--space-3);min-height:44px;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font-size:var(--text-sm);cursor:pointer}
 .cc-row:has(input:checked){border-color:var(--primary);background:var(--fill-primary-soft)}
 .cc-row span{display:flex;flex-direction:column;min-width:0;flex:1}
 .cc-row b{font-weight:var(--weight-medium);color:var(--text-heading)}
 .cc-row small{font-size:var(--text-xs);color:var(--text-muted)}
-.cc-account{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-4);border-radius:var(--radius-lg);background:var(--surface-subtle);font-size:var(--text-sm)}
-.cc-avatar{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:var(--radius-full);background:var(--fill-primary-soft);color:var(--primary);font-weight:var(--weight-semibold)}
-.cc-sign{display:inline-flex;align-items:center;justify-content:center;gap:var(--space-3);align-self:flex-start;min-width:260px}
+.cc-account{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3);border-radius:var(--radius-lg);background:var(--surface-subtle);font-size:var(--text-sm)}
+.cc-avatar{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:var(--radius-full);background:var(--fill-primary-soft);color:var(--primary);font-weight:var(--weight-semibold)}
+.cc-sign{display:inline-flex;align-items:center;justify-content:center;gap:var(--space-2);align-self:flex-start;min-width:240px}
 .cc-safe{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-xs);color:var(--text-muted)}
-.cc-fields{display:flex;flex-direction:column;gap:var(--space-4)}
-.cc-review{display:grid;grid-template-columns:auto 1fr;gap:var(--space-3) var(--space-5);margin:0;font-size:var(--text-sm)}
+.cc-fields{display:flex;flex-direction:column;gap:var(--space-3)}
+.cc-review{display:grid;grid-template-columns:auto 1fr;gap:var(--space-2) var(--space-5);margin:0;font-size:var(--text-sm)}
 .cc-review dt{color:var(--text-muted)}
 .cc-review dd{margin:0;color:var(--text-heading);min-width:0;overflow-wrap:anywhere}
-.cc-foot{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-4) var(--space-5);border-top:1px solid var(--border-subtle)}
+.cc-foot{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-top:1px solid var(--border-subtle)}
 .cc-done{display:flex;flex-direction:column;align-items:center;gap:var(--space-3);text-align:center}
-.cc-done__icon{display:grid;place-items:center;width:56px;height:56px;border-radius:var(--radius-full);background:var(--fill-success-soft);color:var(--text-success)}
+.cc-done__icon{display:grid;place-items:center;width:48px;height:48px;border-radius:var(--radius-full);background:var(--fill-success-soft);color:var(--text-success)}
 .cc-done .ch-sync,.cc-done .gc-alert{width:100%;text-align:left}
 .cc-ok{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-success)}
 /* room under the card so the GridAI button never covers Continue */
 .gc-shell__content:has(.cc-foot){padding-bottom:96px!important}
 @media (max-width:767px){.cc-steps{display:none}.cc-phone-step{display:flex}}
-@media (max-width:640px){.cc-body{padding:var(--space-4)}.cc-foot{display:none}.cc-sign{min-width:0;width:100%}}
+@media (max-width:640px){.cc-foot{display:none}.cc-sign{min-width:0;width:100%}}
 `;
 
 /** "your Facebook Page", "your ad account": brand names keep their capitals. */
@@ -137,8 +139,8 @@ export default function ConnectApp() {
     setLocs(Object.fromEntries(gbpLocations().map((l) => [l.id, true])));
     if (a.providers) setForm({ provider: a.providers[0] });
   }
-  const frame = (body) => <ChannelFrame screen="ConnectApp" active="connections" page="Connect" crumb="Connections" css={CSS}>{body}</ChannelFrame>;
-  if (!ready) return frame(<PageHeader title="Connect" />);
+  const frame = (body) => <ChannelFrame screen="ConnectApp" active="connections" page="Connect" crumb="Connections" css={CSS} narrow>{body}</ChannelFrame>;
+  if (!ready) return frame(<RecordHeader back="/connections" backLabel="Connections" title="Connect" />);
 
   const a = appBy(appId);
   const steps = stepsOf(a, chose);
@@ -196,11 +198,11 @@ export default function ConnectApp() {
     <span style={{ flex: 1 }} />
     <button type="button" className="gc-btn gc-btn--solid" onClick={next} disabled={!canNext}>{name === 'Review' ? `Connect ${a ? a.name : ''}` : 'Continue'}</button>
   </>) : null;
-  const appHead = a ? <div className="cc-app"><BrandLogo brand={a.brand} size={44} decorative /><span><b>{a.name}</b><small>{a.sub}</small></span></div> : null;
+  const appHead = a ? <div className="cc-app"><BrandLogo brand={a.brand} size={36} decorative /><span><b>{a.name}</b><small>{a.sub}</small></span></div> : null;
 
   return frame(<>
-    <PageHeader title={a ? `Connect ${a.name}` : 'Connect an app'} description="A few short steps. You can change everything later." />
-    <section className="gc-card" aria-label="Connect">
+    <RecordHeader back="/connections" backLabel="Connections" title={a ? `Connect ${a.name}` : 'Connect an app'} about="A few short steps. You can change everything later." />
+    <section className="ix-card" aria-label="Connect">
       <ol className="gc-steps cc-steps" aria-label="Steps">
         {steps.map((s, i) => (
           <React.Fragment key={s}>
@@ -218,7 +220,7 @@ export default function ConnectApp() {
       </div>
 
       <div className="cc-body">
-        {a && !done && name !== 'App' && statusOf(a.id).state !== 'off' ? <div className="gc-alert gc-alert--soft gc-alert--info" role="status"><Icon name="info" width="18" height="18" aria-hidden="true" /><span>{a.name} is already connected. Going on replaces the account it uses.</span></div> : null}
+        {a && !done && name !== 'App' && statusOf(a.id).state !== 'off' ? <div className="gc-alert gc-alert--soft gc-alert--info" role="status"><Icon name="info" width="16" height="16" aria-hidden="true" /><span>{a.name} is already connected. Going on replaces the account it uses.</span></div> : null}
         {name === 'App' ? (<>
           <h2 ref={head} tabIndex={-1}>{groupBy(group) ? groupBy(group).label : 'Choose an app'}</h2>
           <div className="cc-pick" role="radiogroup" aria-label="App">
@@ -227,7 +229,7 @@ export default function ConnectApp() {
               return (
                 <button key={x.id} type="button" role="radio" aria-checked={appId === x.id} className="cc-opt" disabled={on} onClick={() => begin(x.id, true)}>
                   {on ? <ConnBadge on /> : null}
-                  <BrandLogo brand={x.brand} size={44} decorative />
+                  <BrandLogo brand={x.brand} size={36} decorative />
                   <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><b>{x.name}</b><small>{x.sub}</small></span>
                 </button>
               );
@@ -248,7 +250,7 @@ export default function ConnectApp() {
             </div>
           ) : (
             <button type="button" className="gc-btn gc-btn--neutral cc-sign" onClick={signIn} disabled={acct === 'busy'}>
-              {acct === 'busy' ? <><span className="ch-spin" aria-hidden="true" /> Connecting…</> : <><BrandLogo brand={a.signin === 'Facebook' ? 'facebook' : a.signin === 'Instagram' ? 'instagram' : a.brand} size={22} decorative /> Continue with {a.signin || a.company || 'Google'}</>}
+              {acct === 'busy' ? <><span className="ch-spin" aria-hidden="true" /> Connecting…</> : <><BrandLogo brand={a.signin === 'Facebook' ? 'facebook' : a.signin === 'Instagram' ? 'instagram' : a.brand} size={18} decorative /> Continue with {a.signin || a.company || 'Google'}</>}
             </button>
           )}
           {acct === 'busy' ? <p className="cc-lead" role="status">Waiting for {a.signin || a.company}. Finish signing in in the window that opened.</p> : null}
@@ -281,7 +283,7 @@ export default function ConnectApp() {
             </div>
           )}
           {a.id === 'meta-catalog' ? (<>
-            <h2 style={{ fontSize: 'var(--text-sm-plus)' }}>Catalog</h2>
+            <h2>Catalog</h2>
             <p className="cc-lead">Where your products are kept on Meta.</p>
             <div className="cc-list" role="radiogroup" aria-label="Catalog">
               {CATALOGS.map(([k, sub]) => (
@@ -306,9 +308,9 @@ export default function ConnectApp() {
             <div><label className="gc-label" htmlFor="cc-url">Store address</label><input id="cc-url" className="gc-input" placeholder="yourstore.myshopify.com" value={form.url || ''} onChange={(e) => { setForm({ ...form, url: e.target.value }); setAcct('idle'); }} /></div>
           </>)}
           {err ? <p className="gc-help gc-help--error" role="alert" style={{ margin: 0 }}>{err}</p> : null}
-          {acct === 'done' ? <p className="cc-ok" role="status"><Icon name="circle-check" width="18" height="18" aria-hidden="true" /> {a.id === 'woocommerce' ? `Connected to ${host(form.url)} · WooCommerce 9.3` : `GridCommerce is installed on ${form.url.trim()}`}</p> : (
+          {acct === 'done' ? <p className="cc-ok" role="status"><Icon name="circle-check" width="16" height="16" aria-hidden="true" /> {a.id === 'woocommerce' ? `Connected to ${host(form.url)} · WooCommerce 9.3` : `GridCommerce is installed on ${form.url.trim()}`}</p> : (
             <button type="button" className="gc-btn gc-btn--neutral cc-sign" onClick={testStore} disabled={acct === 'busy'}>
-              {acct === 'busy' ? <><span className="ch-spin" aria-hidden="true" /> {a.id === 'woocommerce' ? 'Testing…' : 'Waiting for Shopify…'}</> : a.id === 'woocommerce' ? <><Icon name="plug-zap" width="18" height="18" aria-hidden="true" /> Test connection</> : <><BrandLogo brand="shopify" size={22} decorative /> Install on Shopify</>}
+              {acct === 'busy' ? <><span className="ch-spin" aria-hidden="true" /> {a.id === 'woocommerce' ? 'Testing…' : 'Waiting for Shopify…'}</> : a.id === 'woocommerce' ? <><Icon name="plug-zap" width="16" height="16" aria-hidden="true" /> Test connection</> : <><BrandLogo brand="shopify" size={18} decorative /> Install on Shopify</>}
             </button>
           )}
         </>) : null}
@@ -331,8 +333,8 @@ export default function ConnectApp() {
             ))}
           </div>
           {err ? <p className="gc-help gc-help--error" role="alert" style={{ margin: 0 }}>{err}</p> : null}
-          {acct === 'done' ? <p className="cc-ok" role="status"><Icon name="circle-check" width="18" height="18" aria-hidden="true" /> {a.id === 'sms' ? 'Test SMS sent to your phone.' : a.id === 'email' ? 'Test email sent to your inbox.' : 'The bot answered.'}</p> : (
-            <button type="button" className="gc-btn gc-btn--neutral cc-sign" onClick={testKeys} disabled={acct === 'busy'}>{acct === 'busy' ? <><span className="ch-spin" aria-hidden="true" /> Testing…</> : <><Icon name="plug-zap" width="18" height="18" aria-hidden="true" /> {a.id === 'sms' ? 'Send a test SMS' : a.id === 'email' ? 'Send a test email' : 'Test connection'}</>}</button>
+          {acct === 'done' ? <p className="cc-ok" role="status"><Icon name="circle-check" width="16" height="16" aria-hidden="true" /> {a.id === 'sms' ? 'Test SMS sent to your phone.' : a.id === 'email' ? 'Test email sent to your inbox.' : 'The bot answered.'}</p> : (
+            <button type="button" className="gc-btn gc-btn--neutral cc-sign" onClick={testKeys} disabled={acct === 'busy'}>{acct === 'busy' ? <><span className="ch-spin" aria-hidden="true" /> Testing…</> : <><Icon name="plug-zap" width="16" height="16" aria-hidden="true" /> {a.id === 'sms' ? 'Send a test SMS' : a.id === 'email' ? 'Send a test email' : 'Test connection'}</>}</button>
           )}
         </>) : null}
 
@@ -348,7 +350,7 @@ export default function ConnectApp() {
             ))}
           </div>
           {a.group === 'sell' && a.id !== 'gbp' ? (<>
-            <h2 style={{ fontSize: 'var(--text-sm-plus)' }}>Which products</h2>
+            <h2>Which products</h2>
             <div className="cc-list" role="radiogroup" aria-label="Which products">
               <label className="cc-row"><input type="radio" className="gc-check gc-check--radio" name="cc-scope" checked={scope === 'all'} onChange={() => setScope('all')} /><span><b>All active products</b><small>{count} products · new ones are added by themselves</small></span></label>
               <label className="cc-row"><input type="radio" className="gc-check gc-check--radio" name="cc-scope" checked={scope === 'pick'} onChange={() => setScope('pick')} /><span><b>Only some</b><small>Choose them later on the {a.name} page</small></span></label>
@@ -374,7 +376,7 @@ export default function ConnectApp() {
 
         {done && a ? (
           <div className="cc-done">
-            <span className="cc-done__icon"><Icon name="circle-check" width="28" height="28" aria-hidden="true" /></span>
+            <span className="cc-done__icon"><Icon name="circle-check" width="24" height="24" aria-hidden="true" /></span>
             <h2 ref={head} tabIndex={-1}>{a.name} is connected</h2>
             <p className="cc-lead">{a.group === 'sell' ? (a.id === 'gbp' ? 'Your profile details are being sent now.' : 'Your products are being sent now.') : a.group === 'social' ? `${a.uses.filter((u) => u !== 'Posts' && u !== 'Broadcasts').join(' and ')} from ${a.name} now come into the Inbox.` : a.group === 'ads' ? 'Its numbers show in reports within a few hours.' : `${a.name} is ready to use.`}</p>
             {a.kind === 'channel' ? <SyncState ch={a.ch} c={c} /> : null}

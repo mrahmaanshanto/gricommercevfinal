@@ -1,78 +1,44 @@
 'use client';
-// Settlements — money that payment gateways (bKash, Nagad, SSLCOMMERZ, EPS), the card machine and
-// couriers (Pathao, Steadfast, RedX, Carrybee) collected for the shop and pay out later.
-//   Coming in   expected payouts by the working day they should arrive (late ones first), and
-//               wallets you withdraw from yourself (EPS). Tick a payout off when it lands, or give
-//               the new date they promised; a different amount is explained with a reason.
-//   Partners    what each partner holds now, its payout rule and fee
-//   Paid out    payouts that arrived, with any difference
+// Settlements — "Payouts": money that payment gateways (bKash, Nagad, SSLCOMMERZ, EPS), the card machine
+// and couriers (Pathao, Steadfast, RedX, Carrybee) collected for the shop and pay out later. Laid out like
+// Shopify's Payouts (docs/shopify-style.md): the figures, then one card with four views:
+//   Coming in     expected payouts by the working day they should arrive (late ones first), and wallets
+//                 you withdraw from yourself (EPS). A row opens the payout: tick it off when it lands, or
+//                 give the new date they promised; a different amount is explained with a reason.
 //   Needs a look  payouts that arrived with a different amount
-// ?payout=<id> opens that payout · ?tab=partners|paid|review
+//   Paid out      payouts that arrived, with any difference
+//   Partners      what each partner holds now, its payout rule and fee, the next and the last payout
+// ?payout=<id> opens that payout · ?withdraw=<partner> opens its wallet · ?tab=coming|review|paid|partners
 // Front end only: rules and items live in src/lib/settlements.js.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
-import { Icon } from '@/runtime/dc';
-import { EmptyState, InfoTip } from '@/components/ui';
+import { EmptyState, InfoTip, StatusBadge } from '@/components/ui';
+import { MetricStrip, IndexTabs, LearnMore } from '@/components/ui/IndexKit';
 import { BrandLogo } from '@/components/BrandLogo';
 import { getPartners, getPayouts, getWallets, heldBy, clockNow, startOfDay, closedBetween, ruleText, feeText, weekendText } from '@/lib/settlements';
-import { AccPage, PayoutDialog, WithdrawDialog, useBooks, money, dayLabel, dayWords, shortDate, daysText, accName, accBrand } from './accShared';
+import { AccPage, PayoutDialog, WithdrawDialog, useBooks, money, dayLabel, shortDate, daysText, accName } from './accShared';
 
-const TABS = [['partners', 'Partners'], ['paid', 'Paid out'], ['review', 'Needs a look']];
+const TABS = [['coming', 'Coming in'], ['review', 'Needs a look'], ['paid', 'Paid out'], ['partners', 'Partners']];
+const ABOUT = 'Money that payment gateways, the card machine and couriers collected for you and pay out later. See what arrives when, and tick it off when it lands.';
+const REASON = { fee: 'Higher fee', charge: 'Extra charge', later: 'Rest later' };
 const CSS = `
-.st-group + .st-group{border-top:1px solid var(--border-subtle)}
-.st-ghead{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-2) var(--space-3);padding:var(--space-3) var(--space-5);background:var(--surface-subtle)}
-.st-ghead h3{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.st-ghead span{font-size:var(--text-xs);color:var(--text-muted)}
-.st-ghead .st-gsum{margin-left:auto;font-family:var(--font-data);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.st-ghead.is-late{background:var(--fill-error-soft)}
-.st-ghead.is-late h3{color:var(--text-danger)}
-.st-row{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) auto auto;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle)}
-.st-ghead + .st-row{border-top:0}
-.st-name{display:flex;align-items:center;gap:var(--space-3);min-width:0}
-.st-name b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
-.st-name small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
-.st-into{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-body);min-width:0}
-.st-into span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.st-amt{text-align:right;font-family:var(--font-data);font-variant-numeric:tabular-nums;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading);white-space:nowrap}
-.st-amt small{display:block;font-family:var(--font-sans);font-size:var(--text-xs);font-weight:var(--weight-regular);color:var(--text-muted)}
-.st-acts{display:flex;gap:var(--space-2);justify-content:flex-end}
-.st-badges{display:inline-flex;gap:6px;margin-left:6px;vertical-align:middle}
-.st-bar{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--space-3);padding:0 var(--space-4)}
-.st-tab b{margin-left:6px;font-weight:var(--weight-medium);color:var(--text-muted);font-variant-numeric:tabular-nums}
-.st-partners{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:var(--space-3);padding:var(--space-4) var(--space-5) var(--space-5)}
-.st-pcard{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card)}
-.st-pcard dl{display:grid;grid-template-columns:auto 1fr;gap:4px var(--space-3);margin:0;font-size:var(--text-xs)}
-.st-pcard dt{color:var(--text-muted)}
-.st-pcard dd{margin:0;text-align:right;color:var(--text-heading);font-weight:var(--weight-medium)}
-.st-held{font-family:var(--font-data);font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.st-empty{padding:var(--space-6) var(--space-5);text-align:center;font-size:var(--text-sm);color:var(--text-muted)}
-@media (max-width:900px){.st-row{grid-template-columns:minmax(0,1fr) auto;row-gap:var(--space-2)}.st-into{grid-column:1}.st-acts{grid-column:1 / -1;justify-content:flex-start}}
-.st-nw{white-space:nowrap}
-@media (max-width:640px){
-  /* bank and partner logos are mostly wide wordmarks: a wider tile keeps them readable */
-  .st-name > span:first-child,.st-pcard .ac-logo-line > span:first-child{width:60px!important;height:40px!important}
-  .st-into > span:first-child,[data-screen="Settlements"] .ac-who > span:first-child{width:48px!important;height:30px!important}
-}
-@media (max-width:640px){
-  /* page title + "More" + main button share one row: the title keeps whole words (never split mid-word),
-     the main button is a little narrower; if they still do not fit, the row wraps */
-  [data-screen="Settlements"] .gc-shell__content .gc-pagehead>.gc-pagehead__text{flex-basis:0!important;min-width:min-content!important}
-  [data-screen="Settlements"] .gc-pagehead__actions .gc-btn--solid{padding:0 var(--space-3)}
-}
+.st-fig{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+.st-out{color:var(--text-danger)}
+.st-in{color:var(--text-success)}
 `;
 
-function statusBadges(p, now) {
-  const out = [];
-  if (p.late) out.push(<span key="late" className="gc-badge gc-badge--error">Overdue {Math.max(1, Math.round((startOfDay(now) - p.due) / 864e5))}d</span>);
-  if (p.status === 'delayed') out.push(<span key="del" className="gc-badge gc-badge--warning">Delayed · was {shortDate(p.date)}</span>);
-  return out.length ? <span className="st-badges">{out}</span> : null;
+/** Expected · Not yet (past its day, not late yet) · Overdue 2d · Delayed */
+function statusOf(p, now) {
+  if (p.late) return <StatusBadge tone="error">Overdue {Math.max(1, Math.round((startOfDay(now) - p.due) / 864e5))}d</StatusBadge>;
+  if (p.status === 'delayed') return <StatusBadge tone="warning">Delayed</StatusBadge>;
+  if (p.due < startOfDay(now)) return <StatusBadge tone="warning" icon="clock">Not yet</StatusBadge>;
+  return <StatusBadge tone="info" icon="clock">Expected</StatusBadge>;
 }
 
 export default function Settlements() {
   const tick = useBooks();
   const [now, setNow] = useState(0);
-  const [tab, setTab] = useState('partners');
+  const [tab, setTab] = useState('coming');
   const [open, setOpen] = useState(null);      // { pay, mode }
   const [wallet, setWallet] = useState(null);
 
@@ -83,7 +49,7 @@ export default function Settlements() {
   }, [tick]);
   useEffect(() => { if (data.t) setNow(data.t); }, [data.t]);
 
-  // ?payout=<id> and ?tab=, once the books are read
+  // ?payout=<id>, ?withdraw=<partner> and ?tab=, once the books are read
   const booted = useRef(false);
   useEffect(() => {
     if (!tick || booted.current) return;
@@ -93,12 +59,15 @@ export default function Settlements() {
     if (TABS.some((x) => x[0] === want)) setTab(want);
     const id = q.get('payout');
     if (id) { const p = getPayouts().find((x) => x.id === id); if (p && p.status !== 'received') setOpen({ pay: p, mode: 'arrived' }); }
+    const wd = q.get('withdraw');
+    if (wd) { const w = getWallets().find((x) => x.partner === wd); if (w && w.net > 0) setWallet(w); }
   }, [tick]);
   const pickTab = (id) => {
     setTab(id);
-    const u = new URL(window.location.href); u.searchParams.set('tab', id); u.searchParams.delete('payout');
+    const u = new URL(window.location.href); u.searchParams.set('tab', id); u.searchParams.delete('payout'); u.searchParams.delete('withdraw');
     window.history.replaceState(window.history.state, '', u.pathname + u.search);
   };
+  const clean = (key) => { const u = new URL(window.location.href); if (u.searchParams.has(key)) { u.searchParams.delete(key); window.history.replaceState(window.history.state, '', u.pathname + u.search); } };
 
   const today = startOfDay(now || Date.now());
   const openPays = data.pays.filter((p) => p.status === 'expected' || p.status === 'delayed');
@@ -118,130 +87,219 @@ export default function Settlements() {
   });
   const received = data.pays.filter((p) => p.status === 'received').sort((a, b) => (b.at || b.due) - (a.at || a.due));
   const review = data.pays.filter((p) => p.status === 'review');
+  const wallets = data.wallets.filter((w) => w.net > 0);
   const sum = (l) => l.reduce((a, p) => a + p.net, 0);
   const held = data.partners.reduce((a, p) => a + heldBy(p.id), 0);
   const todayList = upcoming.filter((p) => p.due === today);
   const walletNet = data.wallets.reduce((a, w) => a + w.net, 0);
-  const counts = { partners: data.partners.length, paid: received.length, review: review.length };
-  const close = () => { setOpen(null); const u = new URL(window.location.href); if (u.searchParams.has('payout')) { u.searchParams.delete('payout'); window.history.replaceState(window.history.state, '', u.pathname + u.search); } };
+  const counts = { coming: openPays.length + wallets.length, review: review.length, paid: received.length, partners: data.partners.length };
+  const close = () => { setOpen(null); clean('payout'); };
+  const closeWallet = () => { setWallet(null); clean('withdraw'); };
+  const arrive = (p) => setOpen({ pay: p, mode: 'arrived' });
+  const rowClick = (p) => (e) => { if (e.target.closest('a,button')) return; arrive(p); };
 
-  const row = (p) => (
-    <div key={p.id} className="st-row">
-      <div className="st-name">
-        <BrandLogo brand={p.p.brand} size={40} />
-        <span><b>{p.p.short}{statusBadges(p, now)}</b><small>{p.items.length} payment{p.items.length === 1 ? '' : 's'} from <span className="st-nw">{daysText(p.days)}</span>{p.status === 'delayed' ? ' · they said ' + dayWords(p.due, now) : ''}</small></span>
+  const tabs = TABS.map(([id, label]) => ({ key: id, id: 'st-tab-' + id, label, count: tick ? counts[id] : null, on: tab === id, onClick: () => pickTab(id) }));
+
+  // ---- the four views: a table on a desktop and a two-line list on a phone ----
+  const comingView = () => {
+    if (!groups.length && !wallets.length) return <div className="ix-empty"><EmptyState icon="circle-check" title="Nothing on the way" body="Every payout has arrived." /></div>;
+    return (<>
+      <ul className="ix-plist" aria-label="Coming in">
+        {groups.map((g) => (
+          <React.Fragment key={g.key}>
+            <li className="ac-plh">{g.label}<small>{g.sub} · {money(sum(g.list))}</small></li>
+            {g.list.map((p) => (
+              <li key={p.id}>
+                <button type="button" className="ix-pitem" onClick={() => arrive(p)}>
+                  <span className="ix-pitem__top"><b>{p.p.short}</b><span className="st-fig">{money(p.net)}</span></span>
+                  <span className="ix-pitem__mid">into {accName(p.account)} · {p.items.length} payment{p.items.length === 1 ? '' : 's'}</span>
+                  {p.late || p.status === 'delayed' || p.due < today ? <span className="ix-pitem__tags">{statusOf(p, now)}</span> : null}
+                </button>
+              </li>
+            ))}
+          </React.Fragment>
+        ))}
+        {wallets.length ? <li className="ac-plh">Withdraw yourself<small>{money(walletNet)}</small></li> : null}
+        {wallets.map((w) => (
+          <li key={w.partner}>
+            <button type="button" className="ix-pitem" onClick={() => setWallet(w)}>
+              <span className="ix-pitem__top"><b>{w.p.short} wallet</b><span className="st-fig">{money(w.net)}</span></span>
+              <span className="ix-pitem__mid">{w.items.length} payments since {shortDate(w.since)}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="ix-table-wrap">
+        <table className="ix-table gc-table--keep">
+          <caption className="sr-only">Payouts coming in, by the day they should arrive</caption>
+          <thead><tr><th scope="col">Partner</th><th scope="col">Payments</th><th scope="col">Into</th><th scope="col">Status</th><th scope="col" className="ix-num">Amount</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
+          {groups.map((g) => (
+            <tbody key={g.key}>
+              <tr className="ac-grp"><th scope="rowgroup" colSpan={4}>{g.label}<small>{g.sub}{g.note ? ' · ' + g.note : ''}</small></th><td className="ix-num st-fig">{money(sum(g.list))}</td><td /></tr>
+              {g.list.map((p) => (
+                <tr key={p.id} onClick={rowClick(p)}>
+                  <td><span className="ac-logo"><BrandLogo brand={p.p.brand} size={24} decorative /><span className="ix-strong">{p.p.short}</span></span></td>
+                  <td className="ix-muted">{p.items.length} from {daysText(p.days)}</td>
+                  <td className="ix-muted">{accName(p.account)}</td>
+                  <td>{statusOf(p, now)}</td>
+                  <td className="ix-num st-fig ix-strong">{money(p.net)}</td>
+                  <td className="ac-act"><button type="button" className="ix-btn ix-btn--sm" onClick={() => arrive(p)} aria-label={`${p.p.short} ${money(p.net)} arrived`}>Arrived</button></td>
+                </tr>
+              ))}
+            </tbody>
+          ))}
+          {wallets.length ? (
+            <tbody>
+              <tr className="ac-grp"><th scope="rowgroup" colSpan={4}>Withdraw yourself<small>This money stays in the partner’s wallet until you withdraw it</small></th><td className="ix-num st-fig">{money(walletNet)}</td><td /></tr>
+              {wallets.map((w) => (
+                <tr key={w.partner} onClick={(e) => { if (!e.target.closest('button')) setWallet(w); }}>
+                  <td><span className="ac-logo"><BrandLogo brand={w.p.brand} size={24} decorative /><span className="ix-strong">{w.p.short} wallet</span></span></td>
+                  <td className="ix-muted">{w.items.length} since {shortDate(w.since)}</td>
+                  <td className="ix-muted">usually {accName(w.p.to)}</td>
+                  <td><StatusBadge tone="warning" icon="wallet">To withdraw</StatusBadge></td>
+                  <td className="ix-num st-fig ix-strong">{money(w.net)}</td>
+                  <td className="ac-act"><button type="button" className="ix-btn ix-btn--sm" onClick={() => setWallet(w)}>Withdraw</button></td>
+                </tr>
+              ))}
+            </tbody>
+          ) : null}
+        </table>
       </div>
-      <div className="st-into"><BrandLogo brand={accBrand(p.account)} size={24} decorative /><span>into {accName(p.account)}</span></div>
-      <div className="st-amt">{money(p.net)}<small>{money(p.gross)} − {money(p.fee + p.charge)}</small></div>
-      <div className="st-acts">
-        <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => setOpen({ pay: p, mode: 'arrived' })} aria-label={`${p.p.short} ${money(p.net)} arrived`}><Icon name="check" width="16" height="16" aria-hidden="true" /> Arrived</button>
-        <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setOpen({ pay: p, mode: 'later' })} aria-label={`${p.p.short} ${money(p.net)} not arrived yet`}>Not yet</button>
-      </div>
+    </>);
+  };
+
+  const reviewView = () => (review.length ? (<>
+    <ul className="ix-plist" aria-label="Needs a look">
+      {review.map((p) => (
+        <li key={p.id}>
+          <button type="button" className="ix-pitem" onClick={() => arrive(p)}>
+            <span className="ix-pitem__top"><b>{p.p.short} · {shortDate(p.due)}</b><span className="st-fig st-out">{p.net > p.received ? '−' : '+'}{money(p.net - p.received)}</span></span>
+            <span className="ix-pitem__mid">Arrived {money(p.received)}, expected {money(p.net)}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+    <div className="ix-table-wrap">
+      <table className="ix-table gc-table--keep">
+        <caption className="sr-only">Payouts that arrived with a different amount</caption>
+        <thead><tr><th scope="col">Arrived</th><th scope="col">Partner</th><th scope="col">Into</th><th scope="col" className="ix-num">Expected</th><th scope="col" className="ix-num">Arrived</th><th scope="col" className="ix-num">Difference</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
+        <tbody>{review.map((p) => (
+          <tr key={p.id} onClick={rowClick(p)}>
+            <td>{shortDate(p.due)}</td>
+            <td><span className="ac-logo"><BrandLogo brand={p.p.brand} size={24} decorative /><span className="ix-strong">{p.p.short}</span></span></td>
+            <td className="ix-muted">{accName(p.account)}</td>
+            <td className="ix-num st-fig">{money(p.net)}</td>
+            <td className="ix-num st-fig ix-strong">{money(p.received)}</td>
+            <td className="ix-num st-fig st-out">{p.net > p.received ? '−' : '+'}{money(p.net - p.received)}</td>
+            <td className="ac-act"><button type="button" className="ix-btn ix-btn--sm" onClick={() => arrive(p)}>Explain</button></td>
+          </tr>
+        ))}</tbody>
+      </table>
     </div>
-  );
+  </>) : <div className="ix-empty"><EmptyState icon="circle-check" title="Nothing to look at" body="Every payout that arrived matched, or has a reason." /></div>);
+
+  const paidView = () => (received.length ? (<>
+    <ul className="ix-plist" aria-label="Paid out">
+      {received.map((p) => {
+        const diff = Math.round((p.received - p.net) * 100) / 100;
+        return (
+          <li key={p.id}>
+            <div className="ix-pitem">
+              <span className="ix-pitem__top"><b>{p.p.short} · {shortDate(p.at || p.due)}</b><span className="st-fig">{money(p.received)}</span></span>
+              <span className="ix-pitem__mid">into {accName(p.account)}{diff ? ` · ${diff < 0 ? '−' : '+'}${money(diff)}` : ''}</span>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+    <div className="ix-table-wrap">
+      <table className="ix-table ix-table--static gc-table--keep">
+        <caption className="sr-only">Payouts that arrived</caption>
+        <thead><tr><th scope="col">Arrived</th><th scope="col">Partner</th><th scope="col">Into</th><th scope="col">Status</th><th scope="col" className="ix-num">Expected</th><th scope="col" className="ix-num">Arrived</th><th scope="col" className="ix-num">Difference</th></tr></thead>
+        <tbody>{received.map((p) => {
+          const diff = Math.round((p.received - p.net) * 100) / 100;
+          return (
+            <tr key={p.id} title={`${p.items.length} payment${p.items.length === 1 ? '' : 's'} from ${daysText(p.days)}`}>
+              <td>{shortDate(p.at || p.due)}</td>
+              <td><span className="ac-logo"><BrandLogo brand={p.p.brand} size={24} decorative /><span className="ix-strong">{p.p.short}</span></span></td>
+              <td className="ix-muted">{accName(p.account)}</td>
+              <td>{diff ? <StatusBadge tone="warning">{REASON[p.reason] || 'Difference'}</StatusBadge> : <StatusBadge tone="success">Matched</StatusBadge>}</td>
+              <td className="ix-num st-fig">{money(p.net)}</td>
+              <td className="ix-num st-fig ix-strong">{money(p.received)}</td>
+              <td className={'ix-num st-fig' + (diff ? ' st-out' : ' ix-muted')}>{diff ? (diff < 0 ? '−' : '+') + money(diff) : '—'}</td>
+            </tr>
+          );
+        })}</tbody>
+      </table>
+    </div>
+  </>) : <div className="ix-empty"><EmptyState icon="inbox" title="No payouts yet" body="Payouts you tick off as arrived show here." /></div>);
+
+  const partnerRows = data.partners.map((p) => {
+    const next = openPays.filter((x) => x.partner === p.id).sort((a, b) => a.due - b.due)[0];
+    const last = received.find((x) => x.partner === p.id) || review.find((x) => x.partner === p.id);
+    const w = data.wallets.find((x) => x.partner === p.id);
+    const diff = last ? Math.round(((last.received ?? last.net) - last.net) * 100) / 100 : 0;
+    return {
+      p, held: heldBy(p.id),
+      next: w ? (w.net > 0 ? `${money(w.net)} to withdraw` : 'Nothing waiting') : next ? `${money(next.net)} · ${dayLabel(next.due, now)}` : 'Nothing on the way',
+      last: last ? <>{shortDate(last.due)} · {diff === 0 && last.status === 'received' ? <span className="st-in">matched</span> : <span className="st-out">{money(Math.abs(diff))} {diff < 0 ? 'short' : 'extra'}</span>}</> : '—',
+    };
+  });
+  const partnersView = () => (<>
+    <ul className="ix-plist" aria-label="Partners">
+      {partnerRows.map((r) => (
+        <li key={r.p.id}>
+          <div className="ix-pitem">
+            <span className="ix-pitem__top"><b>{r.p.short}</b><span className="st-fig">{money(r.held)}</span></span>
+            <span className="ix-pitem__mid">{ruleText(r.p)} · {feeText(r.p)}</span>
+          </div>
+        </li>
+      ))}
+    </ul>
+    <div className="ix-table-wrap">
+      <table className="ix-table ix-table--static gc-table--keep">
+        <caption className="sr-only">Payment partners</caption>
+        <thead><tr><th scope="col">Partner</th><th scope="col">Pays out</th><th scope="col">Charges</th><th scope="col">Next</th><th scope="col">Last payout</th><th scope="col" className="ix-num">Holding for you</th></tr></thead>
+        <tbody>{partnerRows.map((r) => (
+          <tr key={r.p.id}>
+            <td><span className="ac-logo"><BrandLogo brand={r.p.brand} size={24} decorative /><span><span className="ix-strong">{r.p.short}</span> <span className="ix-muted">{r.p.kind === 'Courier' ? 'Courier' : r.p.id === 'card' ? 'Card machine' : 'Gateway'}</span></span></span></td>
+            <td title={`No payouts on ${weekendText(r.p.weekend)} and holidays`}>{ruleText(r.p)}</td>
+            <td className="ix-muted">{feeText(r.p)}</td>
+            <td>{r.next}</td>
+            <td>{r.last}</td>
+            <td className="ix-num st-fig ix-strong">{money(r.held)}</td>
+          </tr>
+        ))}</tbody>
+      </table>
+    </div>
+  </>);
 
   return (
-    <AccPage screen="Settlements" active="acc-settle" page="Payouts" title="Payouts" css={CSS}
-      about="Money that payment gateways, the card machine and couriers collected for you and pay out later. See what arrives when, and tick it off when it lands."
-      actions={<>
-        <Link href="/account-setup?tab=partners" className="gc-btn gc-btn--neutral"><Icon name="sliders-horizontal" width="18" height="18" aria-hidden="true" /> Payout rules</Link>
-        <button type="button" className="gc-btn gc-btn--solid" onClick={() => window.dispatchEvent(new CustomEvent('gc:check'))}><Icon name="list-checks" width="18" height="18" aria-hidden="true" /> Check today’s payouts</button>
-      </>}>
-      <div className="gc-kpis gc-kpis--tight">
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="hourglass" width="22" height="22" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">With partners now</p><p className="gc-kpi__value">{money(held)}<small>{data.partners.length} partners</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="arrow-down-to-line" width="22" height="22" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Arriving today</p><p className="gc-kpi__value">{money(sum(todayList))}<small>{todayList.length} payout{todayList.length === 1 ? '' : 's'}</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-error-soft)', color: 'var(--text-danger)' }}><Icon name="clock-alert" width="22" height="22" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Late</p><p className="gc-kpi__value">{money(sum(late))}<small>{late.length} payout{late.length === 1 ? '' : 's'}</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-warning-soft)', color: 'var(--text-warning)' }}><Icon name="wallet" width="22" height="22" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Waiting to withdraw</p><p className="gc-kpi__value">{money(walletNet)}<small>{data.wallets.filter((w) => w.net > 0).map((w) => w.p.short).join(', ') || 'Nothing waiting'}</small></p></div></div>
-      </div>
+    <AccPage screen="Settlements" active="acc-settle" page="Payouts" title="Payouts" css={CSS} icon="hourglass" about={ABOUT}
+      secondary={[{ label: 'Payout rules', href: '/account-setup?tab=partners' }]}
+      more={[{ label: 'Money', href: '/money' }, { label: 'Reports', href: '/account-reports' }]}
+      primary={{ label: 'Check today’s payouts', onClick: () => window.dispatchEvent(new CustomEvent('gc:check')) }}>
+      <MetricStrip label="Payouts" items={[
+        { label: 'With partners now', value: money(held), sub: `${data.partners.length} partners` },
+        { label: 'Arriving today', value: money(sum(todayList)), sub: `${todayList.length} payout${todayList.length === 1 ? '' : 's'}` },
+        { label: 'Late', value: money(sum(late)), sub: `${late.length} payout${late.length === 1 ? '' : 's'}` },
+        { label: 'Waiting to withdraw', value: money(walletNet), sub: wallets.map((w) => w.p.short).join(', ') || 'Nothing waiting' },
+      ]} />
 
-      <section className="gc-card ac-card" aria-labelledby="st-coming">
-        <div className="ac-head"><div><h2 id="st-coming">Coming in <InfoTip text="By the day it should reach your account. Friday, Saturday and holidays are skipped, so their money arrives on the next working day." /></h2></div></div>
-        {groups.length === 0 && !data.wallets.some((w) => w.net > 0) ? <EmptyState icon="circle-check" title="Nothing on the way" body="Every payout has arrived." /> : null}
-        {groups.map((g) => (
-          <div key={g.key} className="st-group">
-            <div className={'st-ghead' + (g.key === 'late' ? ' is-late' : '')}><h3>{g.label}</h3><span>{g.sub}{g.note ? ' · ' + g.note : ''}</span><span className="st-gsum">{money(sum(g.list))}</span></div>
-            {g.list.map(row)}
-          </div>
-        ))}
-        {data.wallets.filter((w) => w.net > 0).length ? (
-          <div className="st-group">
-            <div className="st-ghead"><h3>Withdraw yourself</h3><span>This money stays in the partner’s wallet until you withdraw it</span><span className="st-gsum">{money(walletNet)}</span></div>
-            {data.wallets.filter((w) => w.net > 0).map((w) => (
-              <div key={w.partner} className="st-row">
-                <div className="st-name"><BrandLogo brand={w.p.brand} size={40} /><span><b>{w.p.short} wallet</b><small>{w.items.length} payments since <span className="st-nw">{shortDate(w.since)}</span> · {feeText(w.p)}</small></span></div>
-                <div className="st-into"><BrandLogo brand={accBrand(w.p.to)} size={24} decorative /><span>usually to {accName(w.p.to)}</span></div>
-                <div className="st-amt">{money(w.net)}<small>{money(w.gross)} − {money(w.fee)}</small></div>
-                <div className="st-acts"><button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => setWallet(w)}><Icon name="arrow-down-to-line" width="16" height="16" aria-hidden="true" /> Withdraw</button></div>
-              </div>
-            ))}
-          </div>
-        ) : null}
-      </section>
-
-      <section className="gc-card ac-card" aria-label="Partners and past payouts">
-        <div className="st-bar">
-          <div className="gc-tabs" role="tablist" aria-label="Settlements" style={{ borderBottom: 0, overflow: 'visible', flexWrap: 'wrap' }}>
-            {TABS.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={tab === id} className={'gc-tab st-tab' + (tab === id ? ' gc-tab--active' : '')} onClick={() => pickTab(id)}>{label}<b>{counts[id]}</b></button>)}
-          </div>
+      <section className="ix-card" aria-label="Payouts">
+        <div className="ix-bar">
+          <IndexTabs tabs={tabs} label="Payouts" />
+          {tab === 'coming' ? <span className="ix-tools"><InfoTip text="By the day it should reach your account. Friday, Saturday and holidays are skipped, so their money arrives on the next working day." /></span> : null}
         </div>
-        <div style={{ borderTop: '1px solid var(--border-subtle)' }} role="tabpanel">
-          {tab === 'partners' ? (
-            <div className="st-partners">
-              {data.partners.map((p) => {
-                const next = openPays.filter((x) => x.partner === p.id).sort((a, b) => a.due - b.due)[0];
-                const last = received.find((x) => x.partner === p.id) || review.find((x) => x.partner === p.id);
-                const w = data.wallets.find((x) => x.partner === p.id);
-                const diff = last ? Math.round(((last.received ?? last.net) - last.net) * 100) / 100 : 0;
-                return (
-                  <article key={p.id} className="st-pcard">
-                    <div className="ac-logo-line"><BrandLogo brand={p.brand} size={40} /><span><b>{p.short}</b><small>{p.kind === 'Courier' ? 'Courier · cash on delivery' : p.id === 'card' ? 'Card machine' : 'Payment gateway'}</small></span></div>
-                    <div><span className="ac-sub">Holding for you</span><span className="st-held">{money(heldBy(p.id))}</span></div>
-                    <dl>
-                      <dt>Pays out</dt><dd>{ruleText(p)}</dd>
-                      <dt>Charges</dt><dd>{feeText(p)}</dd>
-                      <dt>No payouts on</dt><dd>{weekendText(p.weekend)} and holidays</dd>
-                      <dt>Next</dt><dd>{w ? (w.net > 0 ? `${money(w.net)} to withdraw` : 'Nothing waiting') : next ? `${money(next.net)} · ${dayLabel(next.due, now)}` : 'Nothing on the way'}</dd>
-                      <dt>Last payout</dt><dd>{last ? <>{shortDate(last.due)} · {diff === 0 && last.status === 'received' ? <span className="ac-in">matched</span> : <span className="ac-out">{money(Math.abs(diff))} {diff < 0 ? 'short' : 'extra'}</span>}</> : '—'}</dd>
-                    </dl>
-                  </article>
-                );
-              })}
-            </div>
-          ) : null}
-          {tab === 'paid' ? (received.length ? (
-            <div className="gc-table-wrap">
-              <table className="gc-table gc-table--compact gc-table--hoverable">
-                <thead><tr><th scope="col">Arrived</th><th scope="col">Partner</th><th scope="col" className="ac-num">Expected</th><th scope="col" className="ac-num">Arrived</th><th scope="col" className="ac-num">Difference</th><th scope="col">Into</th><th scope="col">Status</th></tr></thead>
-                <tbody>{received.map((p) => {
-                  const diff = Math.round((p.received - p.net) * 100) / 100;
-                  return (
-                    <tr key={p.id}>
-                      <td>{shortDate(p.at || p.due)}<span className="ac-sub">payments {daysText(p.days)}</span></td>
-                      <td><div className="ac-who"><BrandLogo brand={p.p.brand} size={28} /><span><span className="ac-strong">{p.p.short}</span><span className="ac-sub">{p.items.length} payment{p.items.length === 1 ? '' : 's'}</span></span></div></td>
-                      <td className="ac-num">{money(p.net)}</td>
-                      <td className="ac-num ac-strong">{money(p.received)}</td>
-                      <td className={'ac-num ' + (diff ? 'ac-out' : '')}>{diff ? (diff < 0 ? '−' : '+') + money(diff) : '—'}</td>
-                      <td>{accName(p.account)}</td>
-                      <td>{diff ? <span className="gc-badge gc-badge--warning">{p.reason === 'fee' ? 'Higher fee' : p.reason === 'charge' ? 'Extra charge' : p.reason === 'later' ? 'Rest later' : 'Difference'}</span> : <span className="gc-badge gc-badge--success">Matched</span>}</td>
-                    </tr>
-                  );
-                })}</tbody>
-              </table>
-            </div>
-          ) : <EmptyState icon="inbox" title="No payouts yet" body="Payouts you tick off as arrived show here." />) : null}
-          {tab === 'review' ? (review.length ? review.map((p) => (
-            <div key={p.id} className="st-row">
-              <div className="st-name"><BrandLogo brand={p.p.brand} size={40} /><span><b>{p.p.short} · {shortDate(p.due)}</b><small>Arrived {money(p.received)}, expected {money(p.net)}</small></span></div>
-              <div className="st-into"><BrandLogo brand={accBrand(p.account)} size={24} decorative /><span>into {accName(p.account)}</span></div>
-              <div className="st-amt ac-out">−{money(p.net - p.received)}<small>{p.net > p.received ? 'came short' : 'came extra'}</small></div>
-              <div className="st-acts"><button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => setOpen({ pay: p, mode: 'arrived' })}>Explain</button></div>
-            </div>
-          )) : <EmptyState icon="circle-check" title="Nothing to look at" body="Every payout that arrived matched, or has a reason." />) : null}
+        <div role="tabpanel" aria-labelledby={'st-tab-' + tab}>
+          {!tick ? <p className="ac-wait">Reading the books…</p>
+            : tab === 'coming' ? comingView() : tab === 'review' ? reviewView() : tab === 'paid' ? paidView() : partnersView()}
         </div>
       </section>
+      <LearnMore topic="payouts" />
 
       {open ? <PayoutDialog key={open.pay.id + open.mode} pay={open.pay} startWith={open.mode} onClose={close} /> : null}
-      {wallet ? <WithdrawDialog wallet={wallet} onClose={() => setWallet(null)} /> : null}
+      {wallet ? <WithdrawDialog wallet={wallet} onClose={closeWallet} /> : null}
     </AccPage>
   );
 }

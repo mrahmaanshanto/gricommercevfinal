@@ -9,10 +9,13 @@ import { getLocale, setLocale, toast } from '../runtime/ui';
 import { t } from './i18n';
 import { NAV, NAV_ALIAS } from './navigation';
 import { currentEdition, EDITION_EVENT } from '../lib/edition';
+import { onKeys as proposalsOn, PROPOSAL_EVENT } from '../lib/proposal';
 
 // The crumb follows the menu: the page's menu group (or its parent item), found from the side menu's active id
 // or the address. Screens still pass their old crumb; it is only used when the page is not in the menu.
-const OLD_CRUMB = { 'Stocks & Inventory': 'Products & stock', Stock: 'Products & stock', Purchase: 'Products & stock', Accounts: 'Money', General: 'Home', Promo: 'Marketing', Communication: 'Customer support', Management: 'Online store & settings' };
+const OLD_CRUMB = { 'Stocks & Inventory': 'Inventory', Stock: 'Inventory', Purchase: 'Purchasing', Accounts: 'Finances', General: 'Home', Promo: 'Marketing', Communication: 'Communications', Management: 'Settings',
+  // the menu's old group names (areas since Oct 2026, navigation.js)
+  'Products & stock': 'Products', Money: 'Finances', Sales: 'Orders', 'Customer support': 'Communications', 'Online store & settings': 'Settings', Automation: 'Communications', Reports: 'Analytics', Recovery: 'Marketing' };
 function menuCrumb(fallback) {
   if (typeof document === 'undefined') return fallback;
   const sb = document.querySelector('gc-sidebar');
@@ -61,7 +64,8 @@ export function defineGcTopbar() {
     camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
     x: '<path d="M18 6 6 18M6 6l12 12"/>',
     menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
-    help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/>'
+    help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/>',
+    flask: '<path d="M10 2v7.53a2 2 0 0 1-.21.9L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.07-10.12a2 2 0 0 1-.21-.9V2M8.5 2h7M7 16h10"/>'
   };
   const ic = (n, s = 18, w = 1.75) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]}</svg>`;
   const esc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -69,42 +73,45 @@ export function defineGcTopbar() {
   const CSS = `*,*::before,*::after{box-sizing:border-box}
 :host{display:block;flex:none;position:sticky;top:0;z-index:100;container-type:inline-size;font-family:var(--font-sans)}
 .bar{--bg:#fff;--line:#e2e8f0;--ink:#0f172a;--body:#475569;--muted:var(--text-muted);--soft:#f1f5f9;--field:#f5f7fa;--navy:#003087;--pop:#fff;--hover:#f1f5f9;
-  display:flex;align-items:center;gap:10px;height:var(--h,64px);padding:0 16px 0 24px;background:var(--bg);border-bottom:1px solid var(--line);border-radius:var(--radius-xl) var(--radius-xl) 0 0}
+  display:flex;align-items:center;gap:8px;height:var(--h,var(--header-height,56px));padding:0 12px 0 20px;background:var(--bg);border-bottom:1px solid var(--line);border-radius:var(--radius-xl) var(--radius-xl) 0 0}
 .bar.dark{--bg:#0f1b33;--line:#1f2d4a;--ink:#e8eef8;--body:#b6c3d9;--muted:#8a9bb8;--soft:#18264a;--field:#16233f;--navy:#7fb8ff;--pop:#13213d;--hover:#1b2a4d}
 .ib.menu{display:none;flex:none}
 .id{flex:0 1 auto;min-width:0;display:flex;align-items:center;gap:6px;max-width:34%;font-size:var(--text-sm);white-space:nowrap}
 .id .crumb{color:var(--muted);overflow:hidden;text-overflow:ellipsis}
 .id .sl{color:var(--muted);flex:none}
 .id .here{color:var(--ink);font-weight:var(--weight-medium);overflow:hidden;text-overflow:ellipsis}
-.helpbtn{flex:none;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border:1px solid var(--line);border-radius:var(--radius-full,999px);background:var(--bg);font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--ink);cursor:pointer}
+.helpbtn{flex:none;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid var(--line);border-radius:var(--radius-full,999px);background:var(--bg);font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--ink);cursor:pointer}
 .helpbtn:hover{border-color:var(--navy);color:var(--navy)}
 .helpbtn:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+.pchip{flex:none;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid var(--warning);border-radius:var(--radius-full);background:var(--fill-warning-soft);color:var(--text-warning);font-size:var(--text-xs);font-weight:var(--weight-medium);text-decoration:none;white-space:nowrap}
+.pchip:hover{background:var(--warning);color:#fff}
+.pchip .pn{display:none}
 button,input,select{font:inherit}
 .search{position:relative;flex:1 1 320px;max-width:540px;min-width:200px}
-.field{display:flex;align-items:center;height:42px;border:1px solid var(--line);border-radius:var(--radius-xl);background:var(--field);transition:border-color .2s,box-shadow .2s,background-color .2s}
+.field{display:flex;align-items:center;height:36px;border:1px solid var(--line);border-radius:var(--radius-xl);background:var(--field);transition:border-color .2s,box-shadow .2s,background-color .2s}
 .field:focus-within{border-color:var(--navy);background:var(--bg);box-shadow:0 0 0 3px rgba(0,48,135,.14)}
-.scope{flex:none;width:78px;height:28px;margin-left:6px;padding:0 6px 0 10px;border:0;border-radius:var(--radius-lg);background:var(--bg);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--body);cursor:pointer;box-shadow:0 0 0 1px var(--line)}
+.scope{flex:none;width:72px;height:26px;margin-left:6px;padding:0 6px 0 10px;border:0;border-radius:var(--radius-lg);background:var(--bg);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--body);cursor:pointer;box-shadow:0 0 0 1px var(--line)}
 .sic{flex:none;display:flex;padding:0 8px 0 10px;color:var(--muted)}
 input{flex:1;min-width:0;height:100%;border:0;background:transparent;font:inherit;font-size:var(--text-sm);color:var(--ink);outline:none}
 input::placeholder{color:var(--muted)}
 .kbd{flex:none;margin-right:6px;padding:2px 6px;border:1px solid var(--line);border-radius:var(--radius-md);font-family:var(--font-data);font-size:var(--text-xs);color:var(--muted);background:var(--bg)}
-.scanbtn{flex:none;display:inline-flex;align-items:center;gap:6px;height:32px;margin-right:5px;padding:0 10px;border:0;border-radius:var(--radius-lg);background:var(--navy);color:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer}
+.scanbtn{flex:none;display:inline-flex;align-items:center;gap:6px;height:28px;margin-right:4px;padding:0 10px;border:0;border-radius:var(--radius-lg);background:var(--navy);color:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer}
 .dark .scanbtn{color:#0f1b33}
 .grp{display:flex;align-items:center;gap:2px;padding:3px;border-radius:var(--radius-xl);background:var(--soft)}
-.ib{position:relative;width:36px;height:36px;border:0;border-radius:var(--radius-full);background:transparent;color:var(--body);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;transition:background-color .2s,color .2s}
+.ib{position:relative;width:32px;height:32px;border:0;border-radius:var(--radius-full);background:transparent;color:var(--body);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;transition:background-color .2s,color .2s}
 .ib:hover,.ib[aria-expanded="true"]{background:var(--bg);color:var(--ink);box-shadow:0 1px 2px rgba(15,23,42,.08)}
 .bar>.ib:hover,.bar>.ib[aria-expanded="true"]{background:var(--hover);box-shadow:none}
 .tip{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);padding:4px 8px;border-radius:var(--radius-md);background:#0f172a;color:#fff;font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s .3s}
 .ib:hover .tip,.ib:focus-visible .tip{opacity:1}
 .sep{width:1px;height:28px;background:var(--line);margin:0 4px}
-.store{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--bg);color:var(--ink);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);text-decoration:none;white-space:nowrap;cursor:pointer}
+.store{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--bg);color:var(--ink);font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);text-decoration:none;white-space:nowrap;cursor:pointer}
 .store:hover{border-color:var(--navy);color:var(--navy)}
 .badge{position:absolute;top:4px;right:4px;min-width:17px;height:17px;padding:0 4px;border-radius:var(--radius-full);background:#c2380f;color:#fff;font-size:var(--text-2xs);font-weight:var(--weight-medium);line-height:17px;text-align:center;border:2px solid var(--bg)}
 .spin{animation:sp .8s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
 .ok{color:var(--text-success)}
-.me{display:flex;align-items:center;gap:10px;height:44px;margin-left:4px;padding:0 8px 0 4px;border:0;border-radius:var(--radius-xl);background:transparent;font:inherit;cursor:pointer;text-align:left}
+.me{display:flex;align-items:center;gap:8px;height:40px;margin-left:4px;padding:0 8px 0 4px;border:0;border-radius:var(--radius-xl);background:transparent;font:inherit;cursor:pointer;text-align:left}
 .me:hover,.me[aria-expanded="true"]{background:var(--hover)}
-.av{position:relative;flex:none;width:36px;height:36px;border-radius:var(--radius-lg);background:linear-gradient(145deg,#2eaee4,#003087);color:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--text-xs-plus);font-weight:var(--weight-semibold)}
+.av{position:relative;flex:none;width:30px;height:30px;border-radius:var(--radius-lg);background:linear-gradient(145deg,#2eaee4,#003087);color:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--text-xs-plus);font-weight:var(--weight-semibold)}
 .av i{position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:var(--radius-full);background:#10b981;border:2px solid var(--bg)}
 .mn{font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--ink);white-space:nowrap}.mr{font-size:var(--text-xs);color:var(--muted);white-space:nowrap}
 .me .chev{color:var(--muted)}
@@ -138,7 +145,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
 @container (max-width:1180px){.mnm,.kbd{display:none}.me{padding-right:4px}}
 @container (max-width:1060px){.store span,.scanbtn .lbl{display:none}.store{width:38px;padding:0;justify-content:center}.store svg+svg{display:none}}
 @container (max-width:900px){.grp,.sep,.store{display:none}.only-narrow{display:flex}}
-@container (max-width:640px){.helpbtn{width:40px;padding:0;justify-content:center}.helpbtn span{display:none}.bar{padding:0 8px 0 12px;gap:6px}.id{display:none}.scope{display:none}.search{min-width:0;flex:1 1 80px}.pop{position:fixed;left:12px!important;right:12px!important;top:72px;width:auto!important}}
+@container (max-width:640px){.helpbtn{width:40px;padding:0;justify-content:center}.helpbtn span{display:none}.pchip{padding:0 10px;gap:4px}.pchip .pl{display:none}.pchip .pn{display:inline}.bar{padding:0 8px 0 12px;gap:6px}.id{display:none}.scope{display:none}.search{min-width:0;flex:1 1 80px}.pop{position:fixed;left:12px!important;right:12px!important;top:72px;width:auto!important}}
 @media (max-width:1023px){.ib.menu{display:inline-flex}.bar{border-radius:0}}
 @media (prefers-reduced-motion:reduce){.pop{animation:none}.scanbox::before{animation:none;top:58px}.spin{animation:none}}`;
 
@@ -161,6 +168,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       window.addEventListener('gc:settle', this._loc);
       window.addEventListener(SESSION_EVENT, this._loc);
       window.addEventListener(EDITION_EVENT, this._loc);
+      window.addEventListener(PROPOSAL_EVENT, this._loc);
       this._key = (e) => {
         if (e.key === 'Escape' && this._open) { this.close(true); }
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); const i = this.root.querySelector('input'); if (i) i.focus(); }
@@ -168,7 +176,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       if (!this._navBound) { this._navBound = true; this.root.addEventListener('click', (e) => { const a = e.composedPath().find((el) => el.matches && el.matches('a[href^="/"]')); if (a && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) { e.preventDefault(); this._open = ''; navigate(a.getAttribute('href')); } }); }
       document.addEventListener('pointerdown', this._doc); document.addEventListener('keydown', this._key);
     }
-    disconnectedCallback() { document.removeEventListener('pointerdown', this._doc); document.removeEventListener('keydown', this._key); window.removeEventListener('gc:locale', this._loc); window.removeEventListener(EDITION_EVENT, this._loc); window.removeEventListener('gc:settle', this._loc); window.removeEventListener(SESSION_EVENT, this._loc); }
+    disconnectedCallback() { document.removeEventListener('pointerdown', this._doc); document.removeEventListener('keydown', this._key); window.removeEventListener('gc:locale', this._loc); window.removeEventListener(EDITION_EVENT, this._loc); window.removeEventListener(PROPOSAL_EVENT, this._loc); window.removeEventListener('gc:settle', this._loc); window.removeEventListener(SESSION_EVENT, this._loc); }
     /** Closes the open popover; from the keyboard, focus goes back to the button that opened it. */
     close(refocus) { const k = this._open; this._open = ''; this.render(); if (refocus && k) { const el = this.root.querySelector(k === 'search' ? 'input' : `[data-act="${k}"]`); if (el) el.focus(); } }
     attributeChangedCallback() { if (this.isConnected) this.render(); }
@@ -208,6 +216,10 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       const notePop = `<div class="ph">${L('Notifications')} <button data-act="readall">${L('Mark all read')}</button></div>
         ${settleNote}${NOTES.map((n, i) => { const un = n.u && i < this._unread; return `<a class="it note${un ? ' unread' : ''}" href="${routeOf(has('commerce') ? 'merchant-orders/MerchantOrders.dc.html' : 'merchant-inbox/MerchantInbox.dc.html')}"><span class="ico">${ic(n.i, 16)}</span><span><b>${n.t}</b><small>${n.d}</small></span><span class="t">${n.w}</span><i class="dot"${un ? ' role="img" aria-label="Unread"' : ' aria-hidden="true"'}></i></a>`; }).join('')}
         <a class="foot" href="${routeOf('merchant-inbox/MerchantInbox.dc.html')}">${L('View all notifications')}</a>`;
+      // parts of Nayeem's proposal switched on (src/lib/proposal.js): say so, so a screenshot is never taken for today's build
+      const pOn = proposalsOn().length;
+      const pText = L('Proposal: {n} on').replace('{n}', pOn);
+      const pChip = pOn ? `<a class="pchip" href="/dev/proposal" aria-label="${esc(pText)}" title="${L('Proposal switches')}">${ic('flask', 15)}<span class="pl">${esc(pText)}</span><span class="pn" aria-hidden="true">${pOn}</span></a>` : '';
       const me = currentUser(), myRole = roleOf(me);
       const mePop = `<div style="display:flex;align-items:center;gap:10px;padding:8px"><span class="av">${esc(me.initials)}<i></i></span><span><span class="mn" style="display:block">${esc(me.name)}</span><span class="mr">${esc(myRole.title)} · ${esc(me.email)}</span></span></div>
         <div class="hr"></div>
@@ -225,10 +237,11 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
         <div class="hr"></div>
         <button class="it" data-act="signout" style="width:100%;text-align:left"><span class="ico" style="color:#c2410c">${ic('out', 16)}</span><span><b>${L('Sign out')}</b></span></button>`;
       this.root.innerHTML = `<style>${CSS}</style>
-<div class="bar${dark ? ' dark' : ''}" role="banner" style="--h:${esc(a('height', '64'))}px">
+<div class="bar${dark ? ' dark' : ''}" role="banner" style="--h:${esc(a('height', '56'))}px">
   <button class="ib menu" data-act="nav" aria-label="${L('Open menu')}" aria-controls="gc-nav">${ic('menu', 20)}</button>
   <nav class="id" aria-label="Breadcrumb">${crumb ? `<span class="crumb">${esc(L(crumb))}</span><span class="sl" aria-hidden="true">/</span>` : ''}${title ? `<span class="here" aria-current="page">${esc(L(title))}</span>` : ''}</nav>
   <button class="helpbtn" data-act="help" aria-label="${L('Help for this page')}" title="${L('Help for this page')} (?)">${ic('help', 17)}<span>${L('Help')}</span></button>
+  ${pChip}
   <div class="search wrap">
     <div class="field"><select class="scope" aria-label="${L('Search in')}"><option>${L('All')}</option><option>${L('Orders')}</option><option>${L('Products')}</option><option>${L('Customers')}</option><option>${L('Invoices')}</option></select>
       <span class="sic">${ic('search', 17)}</span><input type="search" placeholder="${esc(ph)}" aria-label="${L('Search')}" data-act="sfocus"><span class="kbd">⌘K</span>

@@ -3,13 +3,14 @@
 // departments, salary split (the payslip lines), leave types and yearly quota, attendance rules
 // (weekly off, late rule, half day, overtime), public holidays (shared with Accounts through
 // src/lib/settlements.js), roles, and payroll settings (pay day, rounding, bonus, advance limit,
-// default pay accounts).
+// default pay accounts). Laid out like Shopify settings: a section list on the left and one card per section; field
+// help hides behind "Show field tips" (the same switch as Settings, gc.set.tips).
 
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
-import { Dialog } from '@/components/ui';
+import { Dialog, StatusBadge } from '@/components/ui';
 import { formatDate } from '@/lib/format';
 import { getConfig, saveConfig, HOLIDAYS_2026, fromKey } from '@/lib/settlements';
 import { AccountSelect } from '@/screens/accounts/accShared';
@@ -17,28 +18,32 @@ import { saveSettings, WEEKDAYS, WEEK_ORDER, dowOf, todayKey } from '@/lib/hr';
 import { HrPage, useHr } from './hrShared';
 
 const CSS = `
-.su-wrap{display:grid;grid-template-columns:minmax(200px,240px) minmax(0,1fr);gap:var(--space-5);align-items:start}
+.su-wrap{display:grid;grid-template-columns:minmax(180px,220px) minmax(0,1fr);gap:var(--space-4);align-items:start}
 .su-nav{display:flex;flex-direction:column;gap:2px;padding:var(--space-2)}
-.su-nav button{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);height:40px;padding:0 var(--space-3);border:0;border-radius:var(--radius-lg);background:none;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer;text-align:left}
+.su-nav button{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-height:32px;padding:4px var(--space-3);border:0;border-radius:var(--radius-lg);background:none;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer;text-align:left}
 .su-nav button:hover{background:var(--surface-subtle)}
 .su-nav button[aria-current="true"]{background:var(--fill-primary-soft);color:var(--primary)}
 .su-nav small{font-size:var(--text-xs);color:var(--text-muted);font-variant-numeric:tabular-nums}
-.su-body{display:flex;flex-direction:column;gap:var(--space-4);padding:var(--space-4) var(--space-5) var(--space-5)}
+.su-body{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-3) var(--space-4) var(--space-4)}
+.su-help{display:block;margin:0;font-size:var(--text-xs);color:var(--text-muted)}
+.su-intro{padding:var(--space-1) var(--space-4) 0}
+html:not([data-set-tips]) [data-screen="HrSetup"] .su-help{display:none}
 .su-rows{display:flex;flex-direction:column}
-.su-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(200px,280px);align-items:center;gap:var(--space-4);padding:var(--space-3) 0;border-bottom:1px solid var(--border-subtle)}
+.su-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(200px,260px);align-items:center;gap:var(--space-4);min-height:48px;padding:var(--space-2) 0;border-bottom:1px solid var(--border-subtle)}
 .su-row:last-child{border-bottom:0}
 .su-row b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 .su-days{display:flex;flex-wrap:wrap;gap:6px}
-.su-day{height:36px;min-width:48px;padding:0 var(--space-3);border:1px solid var(--border-field);border-radius:var(--radius-full);background:var(--surface-card);font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer}
+.su-day{height:28px;min-width:44px;padding:0 var(--space-3);border:1px solid var(--border-field);border-radius:var(--radius-full);background:var(--surface-card);font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer}
 .su-day[aria-pressed="true"]{border-color:var(--primary);background:var(--fill-primary-soft);color:var(--primary)}
 .su-split{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--space-3)}
-.su-dept{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:var(--space-3)}
-.su-deptcard{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);text-align:left;font:inherit;background:var(--surface-card);cursor:pointer}
+.su-dept{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--space-3)}
+.su-deptcard{display:flex;flex-direction:column;gap:6px;padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);text-align:left;font:inherit;background:var(--surface-card);cursor:pointer}
 .su-deptcard:hover{border-color:var(--primary)}
 .su-deptcard b{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .su-tags{display:flex;flex-wrap:wrap;gap:6px}
+.su-acts{display:flex;flex-wrap:wrap;gap:var(--space-2)}
 @media (max-width:1023px){.su-wrap{grid-template-columns:minmax(0,1fr)}.su-nav{flex-direction:row;overflow-x:auto}.su-nav button{flex:none}}
-@media (max-width:640px){.su-row{grid-template-columns:minmax(0,1fr)}.su-split{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.su-row{grid-template-columns:minmax(0,1fr);gap:var(--space-2)}.su-split{grid-template-columns:repeat(2,minmax(0,1fr))}}
 `;
 const SECS = [['dept', 'Departments'], ['ids', 'Employee numbers & ID cards'], ['docs', 'Documents'], ['pay', 'Salary components'], ['leave', 'Leave types'], ['att', 'Attendance rules'], ['hol', 'Holidays'], ['roles', 'Roles and permissions'], ['run', 'Payroll settings']];
 const ROLES = [['Owner', 'Everything', '—'], ['Manager', 'Orders, stock, staff attendance, approve leave', 'Salary of others, delete data'], ['Cashier', 'POS, returns up to ৳2,000, own attendance', 'Discounts over 10%, reports'], ['Sales staff', 'POS, customers', 'Refunds, cash drawer'], ['Stock staff', 'Receive goods, stock count, transfers', 'Prices, orders'], ['Rider', 'Rider app, own deliveries', 'Admin panel'], ['Accounts', 'Payroll, accounting, reports', 'Change products'], ['Support', 'Inbox, tickets, orders (view)', 'Refunds, stock'], ['Marketing', 'Campaigns, social posts, reviews', 'Orders, money']];
@@ -56,7 +61,10 @@ export default function HrSetup() {
   const [lt, setLt] = useState(null);
   const [hol, setHol] = useState(null);
   const [cfg, setCfg] = useState(null);
-  useEffect(() => { const s = new URLSearchParams(window.location.search).get('sec'); if (SECS.some((x) => x[0] === s)) setSec(s); setCfg(getConfig()); }, []);
+  const [tips, setTips] = useState(false);
+  useEffect(() => { const s = new URLSearchParams(window.location.search).get('sec'); if (SECS.some((x) => x[0] === s)) setSec(s); setCfg(getConfig()); try { setTips(window.localStorage.getItem('gc.set.tips') === '1'); } catch { /* ignore */ } }, []);
+  useEffect(() => { document.documentElement.toggleAttribute('data-set-tips', tips); }, [tips]);
+  const flipTips = () => { const n = !tips; setTips(n); try { window.localStorage.setItem('gc.set.tips', n ? '1' : '0'); } catch { /* ignore */ } };
   // below 1024px the section list is one row that scrolls sideways: keep the open section in view
   const navRef = useRef(null);
   useEffect(() => {
@@ -115,25 +123,27 @@ export default function HrSetup() {
   });
   const toggleOff = (d) => { const next = set.weeklyOff.includes(d) ? set.weeklyOff.filter((x) => x !== d) : [...set.weeklyOff, d]; put({ weeklyOff: next }, next.length ? `Weekly off: ${next.map((x) => WEEKDAYS[x]).join(', ')}. The roster follows it.` : 'No fixed weekly off — plan days off on the roster.'); };
 
-  const head = (title, text, action) => <div className="hr-head" style={{ borderBottom: '1px solid var(--border-subtle)' }}><div><h2>{title}</h2><p>{text}</p></div>{action}</div>;
-  const row = (title, text, control) => <div className="su-row"><span><b>{title}</b><span className="hr-sub">{text}</span></span><div>{control}</div></div>;
+  const head = (title, text, action) => <><header className="ix-card__head"><h2>{title}</h2>{action}</header>{text ? <p className="su-help su-intro">{text}</p> : null}</>;
+  const row = (title, text, control) => <div className="su-row"><span><b>{title}</b><span className="su-help">{text}</span></span><div>{control}</div></div>;
   const select = (id, value, opts, onChange) => <select id={id} className="gc-input gc-select" value={String(value)} onChange={(e) => onChange(e.target.value)}>{opts.map(([v, l]) => <option key={v} value={String(v)}>{l}</option>)}</select>;
 
   return (
-    <HrPage screen="HrSetup" active="hr-setup" page="HR setup" title="HR setup" css={CSS}
-      description="Changes apply from the next payroll." about="The rules attendance, the roster, leave and payroll use. Changes apply from the next payroll — approved months stay as they were.">
+    <HrPage screen="HrSetup" active="hr-setup" page="HR setup" title="HR setup" css={CSS} narrow back="/hr-dashboard" backLabel="HR dashboard"
+      meta="Changes apply from the next payroll."
+      about="The rules attendance, the roster, leave and payroll use. Changes apply from the next payroll — approved months stay as they were."
+      secondary={[{ label: tips ? 'Hide field tips' : 'Show field tips', onClick: flipTips }]}>
       <div className="su-wrap">
-        <nav ref={navRef} className="gc-card su-nav" aria-label="HR setup sections">
+        <nav ref={navRef} className="ix-card su-nav" aria-label="HR setup sections">
           {SECS.map(([k, l]) => <button key={k} type="button" aria-current={sec === k} onClick={() => setSec(k)}>{l}{count(k) != null ? <small>{count(k)}</small> : null}</button>)}
         </nav>
-        <section className="gc-card hr-card">
+        <section className="ix-card">
           {sec === 'dept' ? <>
-            {head('Departments and designations', 'Used on the staff profile, reports and payroll groups. Grades and salary bands are in Positions & grades.', <div className="hr-actions"><Link href="/positions" className="gc-btn gc-btn--sm gc-btn--neutral"><Icon name="network" width="14" height="14" aria-hidden="true" /> Positions & grades</Link><button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => setDept({ name: '', titles: '', head: 'Owner' })}><Icon name="plus" width="14" height="14" aria-hidden="true" /> Department</button></div>)}
+            {head('Departments and designations', 'Used on the staff profile, reports and payroll groups. Grades and salary bands are in Positions & grades.', <div className="su-acts"><Link href="/positions" className="ix-btn ix-btn--sm">Positions & grades</Link><button type="button" className="ix-btn ix-btn--sm ix-btn--primary" onClick={() => setDept({ name: '', titles: '', head: 'Owner' })}><Icon name="plus" width="16" height="16" aria-hidden="true" />Department</button></div>)}
             <div className="su-body">
               <div className="su-dept">
                 {set.departments.map((d) => (
                   <button key={d.name} type="button" className="su-deptcard" onClick={() => setDept({ old: d.name, name: d.name, titles: d.titles.join(', '), head: d.head })}>
-                    <span style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><b>{d.name}</b><span className="gc-badge gc-badge--slate">{S.staff.filter((s) => s.department === d.name && s.status !== 'left').length} staff</span></span>
+                    <span style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><b>{d.name}</b><StatusBadge tone="neutral">{S.staff.filter((s) => s.department === d.name && s.status !== 'left').length} staff</StatusBadge></span>
                     <span className="su-tags">{d.titles.map((t) => <span key={t} className="hr-chip" style={{ background: 'var(--surface-subtle)', color: 'var(--text-body)' }}>{t}</span>)}</span>
                     <span className="hr-sub">Head: {d.head}</span>
                   </button>
@@ -143,13 +153,13 @@ export default function HrSetup() {
           </> : null}
 
           {sec === 'ids' ? <>
-            {head('Employee numbers & ID cards', 'The number every new person gets, and what the ID card shows.', <Link href="/id-cards" className="gc-btn gc-btn--sm gc-btn--neutral"><Icon name="id-card" width="14" height="14" aria-hidden="true" /> Print ID cards</Link>)}
+            {head('Employee numbers & ID cards', 'The number every new person gets, and what the ID card shows.', <Link href="/id-cards" className="ix-btn ix-btn--sm">Print ID cards</Link>)}
             <div className="su-body su-rows">
               {row('Starts with', 'Letters before the number, e.g. EMP- or GS-.', <input className="gc-input hr-fig" aria-label="Employee number starts with" value={emp.prefix} maxLength={6} onChange={(e) => saveSettings({ empNo: { ...emp, prefix: e.target.value.toUpperCase().replace(/[^A-Z-]/g, '') } })} />)}
               {row('Digits', `The next person gets ${emp.prefix}${String(S.staff.reduce((m, x) => Math.max(m, Number(String(x.code).replace(/\D/g, '')) || 0), 0) + 1).padStart(emp.digits, '0')}. People already on the list keep their numbers.`, select('su-digits', emp.digits, [[3, '3 · 001'], [4, '4 · 0001'], [5, '5 · 00001']], (v) => put({ empNo: { ...emp, digits: Number(v) } }, 'Employee numbers saved.')))}
               {row('QR on the card holds', 'The employee number works with the POS and the attendance kiosk; a link lets anyone check the card on a phone.', select('su-qr', card.qr || 'code', [['code', 'Employee number'], ['link', 'Link to check the card']], (v) => put({ idCard: { ...card, qr: v } }, 'ID card QR saved.')))}
               {row('Card valid for', 'Printed on the back.', select('su-valid', card.validYears || 2, [[1, '1 year'], [2, '2 years'], [3, '3 years']], (v) => put({ idCard: { ...card, validYears: Number(v) } }, 'Saved.')))}
-              {row('Machines and gratuity', 'Attendance machines and the gratuity rule have their own pages.', <div className="hr-actions" style={{ justifyContent: 'flex-start' }}><Link href="/attendance-devices" className="gc-btn gc-btn--sm gc-btn--neutral">Attendance devices</Link><Link href="/gratuity" className="gc-btn gc-btn--sm gc-btn--neutral">Gratuity</Link></div>)}
+              {row('Machines and gratuity', 'Attendance machines and the gratuity rule have their own pages.', <div className="su-acts"><Link href="/attendance-devices" className="ix-btn ix-btn--sm">Attendance devices</Link><Link href="/gratuity" className="ix-btn ix-btn--sm">Gratuity</Link></div>)}
             </div>
           </> : null}
 
@@ -157,7 +167,7 @@ export default function HrSetup() {
             {head('Documents', 'Papers kept on each profile. Required ones show as missing until uploaded.')}
             <div className="su-body su-rows">
               {(set.docTypes || []).map(([k, l, need]) => <React.Fragment key={k}>{row(l, need ? 'Required for everyone' : 'Optional', <Switch on={!!need} label={`${l} required`} onChange={(v) => put({ docTypes: set.docTypes.map((d) => (d[0] === k ? [d[0], d[1], v] : d)) }, `${l} is ${v ? 'required' : 'optional'} now.`)} />)}</React.Fragment>)}
-              <p className="hr-sub" style={{ margin: 0 }}>{S.staff.filter((x) => x.status !== 'left' && (set.docTypes || []).some(([k, , need]) => need && !(x.docs || []).some((d) => d.kind === k))).length} people are missing a required paper.</p>
+              <p className="hr-sub" style={{ margin: 'var(--space-2) 0 0' }}>{S.staff.filter((x) => x.status !== 'left' && (set.docTypes || []).some(([k, , need]) => need && !(x.docs || []).some((d) => d.kind === k))).length} people are missing a required paper.</p>
             </div>
           </> : null}
 
@@ -168,7 +178,7 @@ export default function HrSetup() {
                 {sp.map(([id, l, p], i) => <div key={id}><label className="gc-label" htmlFor={'sp-' + id}>{l} (%)</label><input id={'sp-' + id} className="gc-input hr-fig" inputMode="decimal" value={p} onChange={(e) => setSplit(sp.map((x, j) => (j === i ? [x[0], x[1], e.target.value.replace(/[^\d.]/g, '')] : x)))} /></div>)}
               </div>
               <div className={'hr-note ' + (Math.abs(spTotal - 100) < 0.001 ? 'hr-note--ok' : 'hr-note--warn')}><Icon name={Math.abs(spTotal - 100) < 0.001 ? 'circle-check' : 'triangle-alert'} width="16" height="16" aria-hidden="true" /><span>{sp.map(([, l, p]) => `${l} ${p || 0}%`).join(' + ')} = <b>{spTotal}%</b> of gross. Basic is also what advances and festival bonuses are worked out from.</span></div>
-              {split ? <div className="hr-actions"><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setSplit(null)}>Undo</button><button type="submit" className="gc-btn gc-btn--solid">Save split</button></div> : null}
+              {split ? <div className="hr-actions"><button type="button" className="ix-btn" onClick={() => setSplit(null)}>Undo</button><button type="submit" className="ix-btn ix-btn--primary">Save split</button></div> : null}
               <table className="hr-mini">
                 <thead><tr><th scope="col">Added or cut each month</th><th scope="col">Type</th><th scope="col">How it is worked out</th><th scope="col">Comes from</th></tr></thead>
                 <tbody>
@@ -183,11 +193,11 @@ export default function HrSetup() {
           </> : null}
 
           {sec === 'leave' ? <>
-            {head('Leave types and policy', 'Defaults follow the Bangladesh Labour Act, 2006. Change them if your policy gives more.', <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => setLt({ isNew: true, name: '', days: '5', paid: true, carry: '0', needs: '—', who: 'Everyone' })}><Icon name="plus" width="14" height="14" aria-hidden="true" /> Leave type</button>)}
-            <div className="gc-table-wrap">
-              <table className="gc-table gc-table--compact gc-table--hoverable">
+            {head('Leave types and policy', 'Defaults follow the Bangladesh Labour Act, 2006. Change them if your policy gives more.', <button type="button" className="ix-btn ix-btn--sm ix-btn--primary" onClick={() => setLt({ isNew: true, name: '', days: '5', paid: true, carry: '0', needs: '—', who: 'Everyone' })}><Icon name="plus" width="16" height="16" aria-hidden="true" />Leave type</button>)}
+            <div className="ix-table-wrap ix-table-wrap--show">
+              <table className="ix-table gc-table--keep ix-table--static">
                 <thead><tr><th scope="col">Leave type</th><th scope="col">Days a year</th><th scope="col">Paid</th><th scope="col">Carry forward</th><th scope="col">Needs</th><th scope="col">Who gets it</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
-                <tbody>{set.leaveTypes.map((t) => <tr key={t.id}><td className="hr-strong">{t.name}</td><td>{t.accrue ? `1 per ${t.accrue} days worked` : t.days ?? 'As approved'}</td><td>{t.paid ? 'Yes' : <span className="hr-out">No — cut</span>}</td><td>{t.carry ? `Up to ${t.carry} days` : 'No'}</td><td>{t.needs}</td><td>{t.who}</td><td><div className="hr-actions"><button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setLt({ ...t, days: t.days == null ? '' : String(t.days), carry: String(t.carry || 0) })}>Edit</button></div></td></tr>)}</tbody>
+                <tbody>{set.leaveTypes.map((t) => <tr key={t.id}><td className="hr-strong">{t.name}</td><td>{t.accrue ? `1 per ${t.accrue} days worked` : t.days ?? 'As approved'}</td><td>{t.paid ? 'Yes' : <span className="hr-out">No — cut</span>}</td><td>{t.carry ? `Up to ${t.carry} days` : 'No'}</td><td>{t.needs}</td><td>{t.who}</td><td className="hr-tdbtn"><button type="button" className="ix-btn ix-btn--sm" onClick={() => setLt({ ...t, days: t.days == null ? '' : String(t.days), carry: String(t.carry || 0) })} aria-label={`Edit ${t.name} leave`}>Edit</button></td></tr>)}</tbody>
               </table>
             </div>
             <div className="su-body" style={{ paddingTop: 0 }}>
@@ -214,22 +224,22 @@ export default function HrSetup() {
           </> : null}
 
           {sec === 'hol' ? <>
-            {head('Holidays', 'Paid days off for everyone. Shown on the roster and attendance register, and used for payout days in Accounts.', <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => setHol({ date: todayKey(S), name: '' })}><Icon name="plus" width="14" height="14" aria-hidden="true" /> Holiday</button>)}
-            <div className="gc-table-wrap">
-              <table className="gc-table gc-table--compact gc-table--hoverable">
+            {head('Holidays', 'Paid days off for everyone. Shown on the roster and attendance register, and used for payout days in Accounts.', <button type="button" className="ix-btn ix-btn--sm ix-btn--primary" onClick={() => setHol({ date: todayKey(S), name: '' })}><Icon name="plus" width="16" height="16" aria-hidden="true" />Holiday</button>)}
+            <div className="ix-table-wrap ix-table-wrap--show">
+              <table className="ix-table gc-table--keep ix-table--static">
                 <thead><tr><th scope="col">Date</th><th scope="col">Holiday</th><th scope="col">Day</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
-                <tbody>{holidays.map(([k, name]) => <tr key={k} style={k < todayKey(S) ? { opacity: 0.6 } : undefined}><td className="hr-fig">{formatDate(fromKey(k))}</td><td className="hr-strong">{name}</td><td>{WEEKDAYS[dowOf(k)]}{set.weeklyOff.includes(dowOf(k)) ? ' · weekly off anyway' : ''}</td><td><div className="hr-actions"><button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => removeHol([k, name])} aria-label={`Remove ${name}`}>Remove</button></div></td></tr>)}</tbody>
+                <tbody>{holidays.map(([k, name]) => <tr key={k} style={k < todayKey(S) ? { opacity: 0.6 } : undefined}><td className="hr-fig">{formatDate(fromKey(k))}</td><td className="hr-strong">{name}</td><td>{WEEKDAYS[dowOf(k)]}{set.weeklyOff.includes(dowOf(k)) ? ' · weekly off anyway' : ''}</td><td className="hr-tdbtn"><button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => removeHol([k, name])} aria-label={`Remove ${name}`}>Remove</button></td></tr>)}</tbody>
               </table>
             </div>
-            <p className="hr-sub" style={{ margin: 0, padding: 'var(--space-3) var(--space-5)' }}>Dates that follow the moon (Eid, Ashura) can move a day or two — correct them here when the government announces them.</p>
+            <p className="hr-sub" style={{ margin: 0, padding: 'var(--space-3) var(--space-4)', borderTop: '1px solid var(--border-subtle)' }}>Dates that follow the moon (Eid, Ashura) can move a day or two — correct them here when the government announces them.</p>
           </> : null}
 
           {sec === 'roles' ? <>
-            {head('Roles and permissions', 'What each role can see and do in the admin and POS. Change one person’s role on All staff.', <Link href="/staff-access" className="gc-btn gc-btn--sm gc-btn--neutral">Staff access</Link>)}
-            <div className="gc-table-wrap">
-              <table className="gc-table gc-table--compact">
+            {head('Roles and permissions', 'What each role can see and do in the admin and POS. Change one person’s role on All staff.', <Link href="/staff-access" className="ix-btn ix-btn--sm">Staff access</Link>)}
+            <div className="ix-table-wrap ix-table-wrap--show">
+              <table className="ix-table gc-table--keep ix-table--static">
                 <thead><tr><th scope="col">Role</th><th scope="col" className="hr-num">People</th><th scope="col">Can do</th><th scope="col">Can not</th></tr></thead>
-                <tbody>{ROLES.map(([r, y, x]) => <tr key={r}><td className="hr-strong">{r}</td><td className="hr-num">{r === 'Owner' ? 1 : S.staff.filter((s) => s.role === r && s.status !== 'left').length}</td><td>{y}</td><td className="hr-sub" style={{ display: 'table-cell' }}>{x}</td></tr>)}</tbody>
+                <tbody>{ROLES.map(([r, y, x]) => <tr key={r}><td className="hr-strong">{r}</td><td className="hr-num">{r === 'Owner' ? 1 : S.staff.filter((s) => s.role === r && s.status !== 'left').length}</td><td>{y}</td><td className="ix-muted">{x}</td></tr>)}</tbody>
               </table>
             </div>
           </> : null}

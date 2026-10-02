@@ -64,7 +64,7 @@ export function navForSetup(nav, s = getStockSetup()) {
   if (!hide.size) return nav;
   return nav.map((g) => ({
     ...g,
-    items: g.items.map((it) => (hide.has(it.id) ? null : it.children ? { ...it, children: it.children.filter((c) => !hide.has(c.id)) } : it)).filter(Boolean),
+    items: g.items.map((it) => (hide.has(it.id) ? null : it.children ? { ...it, children: it.children.filter((c) => !hide.has(c.id)) } : it)).filter((it) => it && (!it.children || it.children.length)),
   })).filter((g) => g.items.length);
 }
 /** Purchases (direct) and purchase orders: which are switched on. */

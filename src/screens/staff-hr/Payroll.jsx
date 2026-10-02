@@ -1,6 +1,7 @@
 'use client';
 // Payroll — a month's salary in five steps: check attendance → review the sheet → owner approval →
-// pay → payslips. Every number comes from src/lib/hr.js: days payable, lates and overtime from
+// pay → payslips. Laid out like a Shopify record: the runs are views over the salary sheet; the next step, its
+// checks and the selected person's payslip sit on the right. Every number comes from src/lib/hr.js: days payable, lates and overtime from
 // Attendance, instalments from Loans & advances, the salary split from HR setup.
 // Approving turns the month into a salary liability (Accounts › Liabilities; September is LB-0001);
 // paying it posts one ledger entry per person and counts each loan instalment.
@@ -10,7 +11,8 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
-import { Dialog } from '@/components/ui';
+import { Dialog, StatusBadge } from '@/components/ui';
+import { IndexTabs, KV, LearnMore } from '@/components/ui/IndexKit';
 import { formatDate } from '@/lib/format';
 import { MERCHANT } from '@/lib/merchant';
 import { balanceOf } from '@/lib/ledger';
@@ -24,61 +26,39 @@ import {
 import { HrPage, useHr, money, minus, dash, Avatar } from './hrShared';
 
 const CSS = `
-.pr-runs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--space-3)}
-.pr-run{display:flex;flex-direction:column;gap:6px;min-width:0;padding:var(--space-3) var(--space-4);border:1.5px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card);text-align:left;cursor:pointer;font:inherit}
-.pr-run:hover{border-color:var(--border-strong)}
-.pr-run[aria-pressed="true"]{border-color:var(--primary);background:var(--fill-primary-soft)}
-.pr-run__top{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-width:0}
-.pr-run__top b{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pr-run__amt{font-family:var(--font-data);font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.pr-steps{display:flex;gap:var(--space-2);padding:var(--space-3);overflow-x:auto}
-.pr-step{flex:1 1 0;min-width:150px;display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg)}
-.pr-step[aria-current="step"]{background:var(--fill-primary-soft)}
-.pr-dot{flex:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:var(--radius-full);background:var(--slate-200);color:var(--text-body);font-size:var(--text-xs);font-weight:var(--weight-medium)}
+.pr-steps{display:flex;gap:4px;padding:6px 8px;border-bottom:1px solid var(--border-subtle);overflow-x:auto;scrollbar-width:none}
+.pr-steps::-webkit-scrollbar{display:none}
+.pr-step{flex:1 0 auto;display:flex;align-items:center;gap:var(--space-2);padding:4px 8px;border-radius:var(--radius-lg);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body);white-space:nowrap}
+.pr-step[aria-current="step"]{background:var(--fill-primary-soft);color:var(--primary)}
+.pr-dot{flex:none;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:var(--radius-full);background:var(--surface-subtle);color:var(--text-body);font-size:var(--text-xs);font-weight:var(--weight-medium)}
 .pr-dot--done{background:var(--fill-success);color:#fff}
 .pr-dot--cur{background:var(--primary);color:#fff}
-.pr-step b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
-.pr-main{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,360px);gap:var(--space-5);align-items:start}
-.pr-side{display:flex;flex-direction:column;gap:var(--space-5)}
-.pr-box{padding:var(--space-4) var(--space-5);display:flex;flex-direction:column;gap:var(--space-3)}
-.pr-box h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.pr-meth{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--surface-subtle);font-size:var(--text-sm)}
+.pr-row.is-on td{background:var(--fill-primary-soft)}
+.pr-inc{width:88px;height:28px;text-align:right;font-family:var(--font-data)}
+.pr-total td{font-weight:var(--weight-semibold);color:var(--text-heading);background:var(--surface-subtle)}
+.pr-total:hover td{background:var(--surface-subtle)!important}
+.ix-table tbody tr.pr-total{cursor:default}
+.pr-note{margin:0;padding:var(--space-3) var(--space-4);border-top:1px solid var(--border-subtle);font-size:var(--text-xs);color:var(--text-muted)}
+.pr-body{display:flex;flex-direction:column;gap:var(--space-3)}
+.pr-meth{display:flex;align-items:center;gap:var(--space-3);padding:6px var(--space-3);border-radius:var(--radius-md);background:var(--surface-subtle);font-size:var(--text-sm)}
 .pr-meth span:first-child{flex:1;min-width:0}
 .pr-checks{display:flex;flex-direction:column;gap:6px;font-size:var(--text-xs)}
 .pr-checks div{display:flex;gap:var(--space-2);align-items:flex-start}
 .pr-checks svg{flex:none;margin-top:1px}
-.pr-row{cursor:pointer}
-.pr-row.is-on td{background:var(--fill-primary-soft)}
-.pr-inc{width:96px;height:36px;text-align:right;font-family:var(--font-data)}
-.pr-total td{font-weight:var(--weight-semibold);color:var(--text-heading);background:var(--surface-subtle)}
+.pr-go{display:flex;flex-direction:column;gap:var(--space-2)}
+.pr-go .ix-btn{width:100%}
 .hr-slip{display:flex;flex-direction:column}
-.hr-slip__head{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle)}
-.hr-slip__head b{display:block;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.hr-slip__body{padding:var(--space-4) var(--space-5);display:flex;flex-direction:column;gap:4px}
-.hr-slip__sec{margin-top:var(--space-2);font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
+.hr-slip__head{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border-subtle)}
+.hr-slip__head b{display:block;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.hr-slip__body{padding:var(--space-3) var(--space-4) var(--space-4);display:flex;flex-direction:column;gap:2px}
+.hr-slip__sec{margin-top:var(--space-2);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-muted)}
 .hr-slip__line{display:flex;justify-content:space-between;gap:var(--space-3);font-size:var(--text-sm);padding:2px 0}
 .hr-slip__line span:first-child{color:var(--text-body);min-width:0}
 .hr-slip__line small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
-.hr-slip__net{display:flex;align-items:baseline;justify-content:space-between;margin-top:var(--space-2);padding-top:var(--space-3);border-top:1px dashed var(--border-strong)}
-.hr-slip__net b{font-family:var(--font-data);font-size:var(--text-2xl);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.hr-slip__net{display:flex;align-items:baseline;justify-content:space-between;margin-top:var(--space-2);padding-top:var(--space-2);border-top:1px dashed var(--border-strong)}
+.hr-slip__net b{font-family:var(--font-data);font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .hr-slip__shop{display:none}
 .hr-print{display:none}
-@media (max-width:1100px){.pr-runs{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media (max-width:1023px){.pr-main{grid-template-columns:minmax(0,1fr)}}
-@media (max-width:640px){
-  .pr-runs{grid-template-columns:repeat(2,minmax(0,1fr))}
-  /* half-width month cards: the title gets the whole line, the status badge sits under it */
-  .pr-run__top{flex-direction:column;align-items:flex-start;gap:4px}
-  .pr-run__top b{max-width:100%;white-space:normal}
-  /* an odd last run card takes the whole row instead of half */
-  .pr-run:last-child:nth-child(odd){grid-column:1 / -1}
-}
-@media (max-width:640px){
-  /* page title + "More" + main button share one row: the title keeps whole words (never split mid-word),
-     the main button is a little narrower; if they still do not fit, the row wraps */
-  [data-screen="Payroll"] .gc-shell__content .gc-pagehead>.gc-pagehead__text{flex-basis:0!important;min-width:min-content!important}
-  [data-screen="Payroll"] .gc-pagehead__actions .gc-btn--solid{padding:0 var(--space-3)}
-}
 @media print{
   body > *:not(.hr-print){display:none!important}
   .hr-print{display:block!important;width:100%}
@@ -90,7 +70,7 @@ const CSS = `
 const STEP_TOAST = ['Attendance checked for the month.', 'Sent to the owner for approval.'];
 
 /** One person's payslip: earnings, deductions (with each loan's balance after) and net. */
-function Payslip({ S, run, ln, onAddLine, printed }) {
+function Payslip({ S, run, ln, onAddLine }) {
   const st = staffBy(S, ln.code) || { code: ln.code, name: ln.name };
   const liab = runLiability(S, run);
   const lline = liab ? liab.lines.find((x) => x.name === ln.name) : null;
@@ -107,18 +87,18 @@ function Payslip({ S, run, ln, onAddLine, printed }) {
     ...ln.extras.filter((x) => x.amount < 0).map((x) => [x.label, -x.amount, '']),
   ];
   return (
-    <section className={'gc-card hr-slip' + (printed ? '' : ' hr-card')} aria-label={`Payslip · ${ln.name}`}>
+    <section className="ix-card hr-slip" aria-label={`Payslip · ${ln.name}`}>
       <div className="hr-slip__head">
-        <Avatar st={st} large />
+        <Avatar st={st} />
         <span style={{ flex: 1, minWidth: 0 }}><b>{ln.name}</b><span className="hr-sub">{ln.code} · {ln.designation} · {ln.branch}</span></span>
         <span className="hr-sub" style={{ textAlign: 'right' }}>Payslip<br />{run.kind === 'bonus' ? run.title : monthLabel(run.month)}</span>
       </div>
       <p className="hr-slip__shop">{MERCHANT.name} · {MERCHANT.address}</p>
       <div className="hr-slip__body">
         {run.kind !== 'bonus' ? <div className="hr-slip__line"><span>Days payable</span><span className="hr-fig">{ln.payable} of {ln.days}</span></div> : null}
-        <div className="hr-slip__sec" style={{ color: 'var(--text-success)' }}>Earnings</div>
+        <div className="hr-slip__sec">Earnings</div>
         {earn.map(([l, v]) => <div key={l} className="hr-slip__line"><span>{l}</span><span className="hr-fig">{money(v)}</span></div>)}
-        {ded.length ? <div className="hr-slip__sec" style={{ color: 'var(--text-danger)' }}>Deductions</div> : null}
+        {ded.length ? <div className="hr-slip__sec">Deductions</div> : null}
         {ded.map(([l, v, why]) => <div key={l} className="hr-slip__line"><span>{l}{why ? <small>{why}</small> : null}</span><span className="hr-fig hr-out">−{money(v)}</span></div>)}
         <div className="hr-slip__net"><span className="hr-strong">Net pay</span><b>{money(ln.net)}</b></div>
         <span className="hr-sub">{takaWords(ln.net)}</span>
@@ -126,7 +106,7 @@ function Payslip({ S, run, ln, onAddLine, printed }) {
           {PAY_METHODS[ln.payMethod]}{ln.payTo ? ` to ${ln.payTo}` : ''} · from {accName(ln.payAccount)}
           {lline && lline.paid >= lline.amount ? ` · paid ${run.paidAt ? formatDate(run.paidAt) : ''}` : run.status === 'approved' ? ` · due ${formatDate(payDateOf(run.month, S.settings))}` : ''}
         </span>
-        {onAddLine ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral hr-noprint" style={{ marginTop: 'var(--space-3)', alignSelf: 'flex-start' }} onClick={onAddLine}><Icon name="plus" width="14" height="14" aria-hidden="true" /> Add a one-time line</button> : null}
+        {onAddLine ? <button type="button" className="ix-btn ix-btn--sm hr-noprint" style={{ marginTop: 'var(--space-3)', alignSelf: 'flex-start' }} onClick={onAddLine}><Icon name="plus" width="16" height="16" aria-hidden="true" />Add a one-time line</button> : null}
       </div>
     </section>
   );
@@ -224,105 +204,103 @@ export default function Payroll() {
     toast('Salary sheet downloaded as a spreadsheet (CSV).');
   };
 
-  return (
-    <HrPage screen="Payroll" active="hr-payroll" page="Payroll" title="Payroll" css={CSS}
-      about="Attendance, leave, overtime, incentive, advances and loans flow in by themselves. Check the sheet, approve, pay, send payslips."
-      actions={<>
-        <Link href="/hr-setup?sec=pay" className="gc-btn gc-btn--neutral"><Icon name="sliders-horizontal" width="18" height="18" aria-hidden="true" /> Salary components</Link>
-        <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setBonus({ title: 'Durga Puja bonus', pct: String(S.settings.bonusPct) })}><Icon name="gift" width="18" height="18" aria-hidden="true" /> Festival bonus run</button>
-        {canStart ? <button type="button" className="gc-btn gc-btn--solid" onClick={() => { const r = startRun(nextMonth); setPick(r.id); toast(`${monthLabel(nextMonth)} payroll started. Check attendance first.`); }}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Start {monthLabel(nextMonth, true)} payroll</button> : null}
-      </>}>
-
-      <div className="pr-runs" role="group" aria-label="Payroll runs">
-        {runs.slice(0, 5).map((r) => {
-          const st = runStatusLabel(r);
+  const shownRuns = runs.slice(0, 6).includes(run) ? runs.slice(0, 6) : [...runs.slice(0, 5), run];
+  const runTabs = shownRuns.map((r) => ({ key: r.id, id: 'pr-tab-' + r.id, label: r.kind === 'bonus' ? r.title : monthLabel(r.month, true), on: r.id === run.id, onClick: () => { setPick(r.id); setPk(null); } }));
+  const runName = run.kind === 'bonus' ? run.title : monthLabel(run.month);
+  const statusText = runStatusLabel(run);
+  const statusTone = statusText === 'Paid' ? 'success' : statusText === 'Approved' ? 'info' : 'warning';
+  const removeBonus = () => confirmDialog({ title: `Delete ${run.title}?`, body: 'Nothing has been approved or paid from it.', confirmLabel: 'Delete run', tone: 'danger' }).then((ok) => { if (ok) { removeRun(run.id); setPick(null); toast('Bonus run deleted.', { tone: 'info' }); } });
+  const sheet = (
+    <>
+      <nav className="pr-steps" aria-label="Payroll steps">
+        {RUN_STEPS.map(([l, sub], i) => {
+          const n = i + 1, done = n < step || run.status === 'paid' && n <= 4 || (n === 5 && run.slipsAt), cur = n === step && !done;
+          if (run.kind === 'bonus' && n === 1) return null;
           return (
-            <button key={r.id} type="button" className="pr-run" aria-pressed={r.id === run.id} onClick={() => { setPick(r.id); setPk(null); }}>
-              <span className="pr-run__top"><b>{r.kind === 'bonus' ? r.title : monthLabel(r.month)}</b><span className={'gc-badge gc-badge--' + (st === 'Paid' ? 'success' : st === 'Approved' ? 'info' : 'warning')}>{st}</span></span>
-              <span className="pr-run__amt">{money(runTotal(S, r))}</span>
-              <span className="hr-sub">{r.status === 'paid' ? `Paid ${formatDate(r.paidAt)}` : r.kind === 'bonus' ? 'Festival bonus' : `Pay day ${formatDate(payDateOf(r.month, S.settings))}`} · {r.lines ? r.lines.length : r.count || lines.length}{'\u00a0'}staff</span>
-            </button>
+            <div key={l} className="pr-step" aria-current={cur ? 'step' : undefined} title={sub}>
+              <span className={'pr-dot' + (done ? ' pr-dot--done' : cur ? ' pr-dot--cur' : '')}>{done ? <><Icon name="check" width="12" height="12" aria-hidden="true" /><span className="sr-only">Done</span></> : n}</span>
+              {l}
+            </div>
           );
         })}
-      </div>
-
-      {archived ? (
-        <section className="gc-card hr-card">
-          <div className="hr-head"><div><h2>{run.kind === 'bonus' ? run.title : monthLabel(run.month)} · paid</h2><p>Paid on {formatDate(run.paidAt)} to {run.count} staff · {money(run.total)}. This run was paid before payroll moved to this system, so only the total is kept here; the money is in Accounts › Money book.</p></div>
-            <Link href="/money-book" className="gc-btn gc-btn--sm gc-btn--neutral">Open Money book</Link></div>
-        </section>
-      ) : (
-        <>
-          <nav className="gc-card pr-steps" aria-label="Payroll steps">
-            {RUN_STEPS.map(([l, s], i) => {
-              const n = i + 1, done = n < step || run.status === 'paid' && n <= 4 || (n === 5 && run.slipsAt), cur = n === step && !done;
-              if (run.kind === 'bonus' && n === 1) return null;
+      </nav>
+      <div className="ix-table-wrap ix-table-wrap--show">
+        <table className="ix-table gc-table--keep">
+          <caption className="sr-only">Salary sheet, {runName}. Click a row for the payslip.</caption>
+          <thead><tr>
+            <th scope="col">Staff</th>{run.kind !== 'bonus' ? <><th scope="col">Days</th><th scope="col" className="ix-num">Gross</th><th scope="col" className="ix-num">Overtime</th><th scope="col" className="ix-num">Incentive</th><th scope="col" className="ix-num">Cuts</th><th scope="col" className="ix-num">Loan · advance</th></> : <th scope="col" className="ix-num">Basic</th>}<th scope="col" className="ix-num">Net pay</th>
+          </tr></thead>
+          <tbody>
+            {lines.map((l) => {
+              const st = staffBy(S, l.code) || { code: l.code, name: l.name };
+              const on = sel && sel.code === l.code;
+              const extraSum = l.extras.reduce((a, x) => a + x.amount, 0);
               return (
-                <div key={l} className="pr-step" aria-current={cur ? 'step' : undefined}>
-                  <span className={'pr-dot' + (done ? ' pr-dot--done' : cur ? ' pr-dot--cur' : '')}>{done ? <><Icon name="check" width="14" height="14" aria-hidden="true" /><span className="sr-only">Done</span></> : n}</span>
-                  <span><b>{l}</b><span className="hr-sub">{s}</span></span>
-                </div>
+                <tr key={l.code} className={'pr-row' + (on ? ' is-on' : '')} onClick={() => setPk(l.code)}>
+                  <td><div className="hr-who"><Avatar st={st} /><span><button type="button" className="ix-strong" aria-pressed={on} onClick={(e) => { e.stopPropagation(); setPk(l.code); }}>{l.name}</button><span className="hr-sub">{l.designation}</span></span></div></td>
+                  {run.kind !== 'bonus' ? <>
+                    <td className={'hr-fig' + (l.payable < l.days ? ' hr-out' : '')}>{l.payable} / {l.days}{l.late ? <span className="hr-sub">{l.late} late</span> : null}</td>
+                    <td className="ix-num">{money(l.gross)}</td>
+                    <td className="ix-num">{dash(l.ot)}{l.otMin ? <span className="hr-sub">{hm(l.otMin)}</span> : null}</td>
+                    <td className="ix-num" onClick={(e) => e.stopPropagation()}>
+                      {draft && step === 2 ? <input className="gc-input pr-inc" inputMode="numeric" aria-label={`Incentive for ${l.name}`} value={String((run.incentive || {})[l.code] ?? '')} placeholder="0" onChange={(e) => setIncentive(l.code, e.target.value)} /> : dash(l.incentive)}
+                      {extraSum ? <span className="hr-sub">{extraSum > 0 ? '+' : '−'}{money(extraSum)} one-time</span> : null}
+                    </td>
+                    <td className="ix-num hr-out">{minus(l.cut)}</td>
+                    <td className="ix-num hr-out">{minus(l.loan)}{l.loanCuts.length ? <span className="hr-sub">{l.loanCuts.map((c) => c.id).join(', ')}</span> : null}</td>
+                  </> : <td className="ix-num">{money(basicOf(S, l.gross))}</td>}
+                  <td className="ix-num hr-strong">{money(l.net)}</td>
+                </tr>
               );
             })}
-          </nav>
+            <tr className="pr-total">
+              <td>Total · {lines.length} staff</td>
+              {run.kind !== 'bonus' ? <><td /><td className="ix-num">{money(T.g)}</td><td className="ix-num">{dash(T.ot)}</td><td className="ix-num">{dash(T.inc)}</td><td className="ix-num hr-out">{minus(T.cut)}</td><td className="ix-num hr-out">{minus(T.loan)}</td></> : <td />}
+              <td className="ix-num">{money(T.net)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      {run.kind === 'salary' && suspended.length ? <p className="pr-note">{suspended.map((s) => s.name).join(', ')} {suspended.length === 1 ? 'is' : 'are'} suspended — salary on hold and not in this run.</p> : null}
+      {run.kind === 'bonus' ? <p className="pr-note">{run.pct}% of basic for staff with {S.settings.bonusMonths}+ months of service. {S.staff.filter((s) => (s.status === 'active' || s.status === 'probation') && !bonusEligible(S, s, run.at)).map((s) => s.name).join(', ') || 'Everyone qualifies'}{S.staff.some((s) => (s.status === 'active' || s.status === 'probation') && !bonusEligible(S, s, run.at)) ? ' — not yet eligible.' : '.'}</p> : null}
+    </>
+  );
 
-          <div className="pr-main">
-            <section className="gc-card hr-card">
-              <div className="hr-head">
-                <div><h2>Salary sheet · {run.kind === 'bonus' ? run.title : monthLabel(run.month)}</h2><p>{draft && step <= 2 ? 'Worked out from today’s attendance, leave and loans. Click a row for the payslip.' : 'Locked when approved. Click a row for the payslip.'}</p></div>
-                <div className="hr-actions">
-                  <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={exportCsv}><Icon name="download" width="14" height="14" aria-hidden="true" /> Excel</button>
-                  <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => doPrint(lines.map((l) => l.code))}><Icon name="printer" width="14" height="14" aria-hidden="true" /> Print payslips</button>
-                  {draft && run.kind === 'bonus' ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => confirmDialog({ title: `Delete ${run.title}?`, body: 'Nothing has been approved or paid from it.', confirmLabel: 'Delete run', tone: 'danger' }).then((ok) => { if (ok) { removeRun(run.id); setPick(null); toast('Bonus run deleted.', { tone: 'info' }); } })}>Delete</button> : null}
-                </div>
-              </div>
-              <div className="gc-table-wrap">
-                <table className="gc-table gc-table--compact gc-table--hoverable">
-                  <thead><tr>
-                    <th scope="col">Staff</th>{run.kind !== 'bonus' ? <><th scope="col">Days</th><th scope="col" className="hr-num">Gross</th><th scope="col" className="hr-num">Overtime</th><th scope="col" className="hr-num">Incentive</th><th scope="col" className="hr-num">Cuts</th><th scope="col" className="hr-num">Loan · advance</th></> : <th scope="col" className="hr-num">Basic</th>}<th scope="col" className="hr-num">Net pay</th><th scope="col">Pay by</th>
-                  </tr></thead>
-                  <tbody>
-                    {lines.map((l) => {
-                      const st = staffBy(S, l.code) || { code: l.code, name: l.name };
-                      const on = sel && sel.code === l.code;
-                      const extraSum = l.extras.reduce((a, x) => a + x.amount, 0);
-                      return (
-                        <tr key={l.code} className={'pr-row' + (on ? ' is-on' : '')} onClick={() => setPk(l.code)}>
-                          <td><div className="hr-who"><Avatar st={st} /><span><button type="button" className="gc-btn gc-btn--flat" style={{ height: 'auto', padding: 0, fontWeight: 'var(--weight-medium)', color: 'var(--text-heading)' }} aria-pressed={on} onClick={(e) => { e.stopPropagation(); setPk(l.code); }}>{l.name}</button><span className="hr-sub">{l.designation}</span></span></div></td>
-                          {run.kind !== 'bonus' ? <>
-                            <td className={'hr-fig' + (l.payable < l.days ? ' hr-out' : '')}>{l.payable} / {l.days}{l.late ? <span className="hr-sub">{l.late} late</span> : null}</td>
-                            <td className="hr-num">{money(l.gross)}</td>
-                            <td className="hr-num">{dash(l.ot)}{l.otMin ? <span className="hr-sub">{hm(l.otMin)}</span> : null}</td>
-                            <td className="hr-num" onClick={(e) => e.stopPropagation()}>
-                              {draft && step === 2 ? <input className="gc-input pr-inc" inputMode="numeric" aria-label={`Incentive for ${l.name}`} value={String((run.incentive || {})[l.code] ?? '')} placeholder="0" onChange={(e) => setIncentive(l.code, e.target.value)} /> : dash(l.incentive)}
-                              {extraSum ? <span className="hr-sub">{extraSum > 0 ? '+' : '−'}{money(extraSum)} one-time</span> : null}
-                            </td>
-                            <td className="hr-num hr-out">{minus(l.cut)}</td>
-                            <td className="hr-num hr-out">{minus(l.loan)}{l.loanCuts.length ? <span className="hr-sub">{l.loanCuts.map((c) => c.id).join(', ')}</span> : null}</td>
-                          </> : <td className="hr-num">{money(basicOf(S, l.gross))}</td>}
-                          <td className="hr-num hr-strong">{money(l.net)}</td>
-                          <td><span className="gc-badge gc-badge--slate">{PAY_METHODS[l.payMethod]}</span></td>
-                        </tr>
-                      );
-                    })}
-                    <tr className="pr-total">
-                      <td>Total · {lines.length} staff</td>
-                      {run.kind !== 'bonus' ? <><td /><td className="hr-num">{money(T.g)}</td><td className="hr-num">{dash(T.ot)}</td><td className="hr-num">{dash(T.inc)}</td><td className="hr-num hr-out">{minus(T.cut)}</td><td className="hr-num hr-out">{minus(T.loan)}</td></> : <td />}
-                      <td className="hr-num">{money(T.net)}</td><td />
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              {run.kind === 'salary' && suspended.length ? <p className="hr-sub" style={{ margin: 0, padding: 'var(--space-3) var(--space-5)', borderTop: '1px solid var(--border-subtle)' }}>{suspended.map((s) => s.name).join(', ')} {suspended.length === 1 ? 'is' : 'are'} suspended — salary on hold and not in this run.</p> : null}
-              {run.kind === 'bonus' ? <p className="hr-sub" style={{ margin: 0, padding: 'var(--space-3) var(--space-5)', borderTop: '1px solid var(--border-subtle)' }}>{run.pct}% of basic for staff with {S.settings.bonusMonths}+ months of service. {S.staff.filter((s) => (s.status === 'active' || s.status === 'probation') && !bonusEligible(S, s, run.at)).map((s) => s.name).join(', ') || 'Everyone qualifies'}{S.staff.some((s) => (s.status === 'active' || s.status === 'probation') && !bonusEligible(S, s, run.at)) ? ' — not yet eligible.' : '.'}</p> : null}
+  return (
+    <HrPage screen="Payroll" active="hr-payroll" page="Payroll" title="Payroll" icon="banknote" css={CSS}
+      about="Attendance, leave, overtime, incentive, advances and loans flow in by themselves. Check the sheet, approve, pay, send payslips. The sheet is worked out from today’s attendance, leave and loans until it is approved; click a row for the payslip."
+      secondary={[{ label: 'Festival bonus run', onClick: () => setBonus({ title: 'Durga Puja bonus', pct: String(S.settings.bonusPct) }) }]}
+      more={[
+        ...(archived ? [] : [{ label: 'Export', onClick: exportCsv }, { label: 'Print payslips', onClick: () => doPrint(lines.map((l) => l.code)) }]),
+        { label: 'Salary components', href: '/hr-setup?sec=pay' },
+        ...(draft && run.kind === 'bonus' ? [{ label: 'Delete run', onClick: removeBonus, tone: 'danger' }] : []),
+      ]}
+      primary={canStart ? { label: `Start ${monthLabel(nextMonth, true)} payroll`, onClick: () => { const r = startRun(nextMonth); setPick(r.id); toast(`${monthLabel(nextMonth)} payroll started. Check attendance first.`); } } : undefined}>
+
+      {archived ? (
+        <section className="ix-card" aria-label="Payroll">
+          <div className="ix-bar"><IndexTabs tabs={runTabs} label="Payroll runs" /></div>
+          <div className="ix-card__body pr-body">
+            <KV rows={[['Status', <StatusBadge key="s" tone="success">Paid</StatusBadge>], ['Paid on', formatDate(run.paidAt)], ['Staff', String(run.count)], ['Total', money(run.total)]]} />
+            <p className="hr-sub" style={{ margin: 0 }}>This run was paid before payroll moved to this system, so only the total is kept here; the money is in Accounts › Money book.</p>
+            <Link href="/money-book" className="ix-btn ix-btn--sm" style={{ alignSelf: 'flex-start' }}>Open Money book</Link>
+          </div>
+        </section>
+      ) : (
+        <div className="ix-record">
+          <div className="ix-main">
+            <section className="ix-card" aria-label={`Salary sheet · ${runName}`}>
+              <div className="ix-bar"><IndexTabs tabs={runTabs} label="Payroll runs" /></div>
+              {sheet}
             </section>
+          </div>
 
-            <div className="pr-side">
-              <section className="gc-card pr-box" aria-label="Next step">
-                <h2>{['Before you continue', 'Ready for approval?', 'Owner approval', `Pay ${money(left || total)}`, run.slipsAt ? 'Payslips sent' : 'Send payslips'][step - 1]}</h2>
-                <div className="hr-opts" style={{ gap: 'var(--space-2)' }}>
-                  {byMethod.filter((b) => b.n).map((b) => <div key={b.m} className="pr-meth"><span>{PAY_METHODS[b.m]} <span className="hr-sub" style={{ display: 'inline' }}>· {b.n} staff</span></span><span className="hr-fig hr-strong">{money(b.v)}</span></div>)}
-                </div>
+          <div className="ix-side">
+            <section className="ix-card" aria-label="Next step">
+              <header className="ix-card__head"><h2>{['Before you continue', 'Ready for approval?', 'Owner approval', `Pay ${money(left || total)}`, run.slipsAt ? 'Payslips sent' : 'Send payslips'][step - 1]}</h2><StatusBadge tone={statusTone}>{statusText}</StatusBadge></header>
+              <div className="ix-card__body pr-body">
+                <KV rows={[['Net pay', money(T.net)], [run.status === 'paid' ? 'Paid' : run.kind === 'bonus' ? 'Festival bonus' : 'Pay day', run.status === 'paid' ? formatDate(run.paidAt) : run.kind === 'bonus' ? runName : formatDate(payDateOf(run.month, S.settings))], ['Staff', String(lines.length)]]} />
+                {byMethod.filter((b) => b.n).map((b) => <div key={b.m} className="pr-meth"><span>{PAY_METHODS[b.m]} <span className="hr-sub" style={{ display: 'inline' }}>· {b.n} staff</span></span><span className="hr-fig hr-strong">{money(b.v)}</span></div>)}
                 <div className="pr-checks">
                   {checks.map(([tone, text, href]) => (
                     <div key={text} style={{ color: tone === 'ok' ? 'var(--text-success)' : 'var(--text-warning)' }}>
@@ -332,25 +310,26 @@ export default function Payroll() {
                   ))}
                 </div>
                 {liab && step >= 4 ? <Link href={`/liabilities?id=${liab.id}`} className="hr-link">{liab.id} · {liab.title} in Accounts › Liabilities</Link> : null}
-                {run.status === 'paid'
-                  ? <div className="hr-actions" style={{ justifyContent: 'stretch' }}>
-                      <button type="button" className="gc-btn gc-btn--solid gc-btn--block" onClick={next}><Icon name="message-square-text" width="18" height="18" aria-hidden="true" /> {run.slipsAt ? 'Send payslips again' : 'Send payslips by SMS'}</button>
-                      <button type="button" className="gc-btn gc-btn--neutral gc-btn--block" onClick={() => doPrint(lines.map((l) => l.code))}><Icon name="printer" width="18" height="18" aria-hidden="true" /> Print all payslips</button>
-                    </div>
-                  : <button type="button" className="gc-btn gc-btn--solid gc-btn--block" onClick={next}>{['Attendance checked — next', 'Send for owner approval', 'Approve and lock', left ? 'Pay salaries' : 'Mark as paid', ''][step - 1]}</button>}
-                {step > (run.kind === 'bonus' ? 2 : 1) && step <= 4 && run.status !== 'paid' ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={back}>{step === 4 ? 'Change the numbers' : 'Go back a step'}</button> : null}
-              </section>
+                <div className="pr-go">
+                  {run.status === 'paid' ? <>
+                    <button type="button" className="ix-btn ix-btn--primary" onClick={next}><Icon name="message-square-text" width="16" height="16" aria-hidden="true" />{run.slipsAt ? 'Send payslips again' : 'Send payslips by SMS'}</button>
+                    <button type="button" className="ix-btn" onClick={() => doPrint(lines.map((l) => l.code))}><Icon name="printer" width="16" height="16" aria-hidden="true" />Print all payslips</button>
+                  </> : <button type="button" className="ix-btn ix-btn--primary" onClick={next}>{['Attendance checked — next', 'Send for owner approval', 'Approve and lock', left ? 'Pay salaries' : 'Mark as paid', ''][step - 1]}</button>}
+                  {step > (run.kind === 'bonus' ? 2 : 1) && step <= 4 && run.status !== 'paid' ? <button type="button" className="ix-btn ix-btn--plain" onClick={back}>{step === 4 ? 'Change the numbers' : 'Go back a step'}</button> : null}
+                </div>
+              </div>
+            </section>
 
-              {sel ? <Payslip S={S} run={run} ln={sel} onAddLine={draft && step <= 2 ? () => setExtra({ code: sel.code, label: '', amount: '', sign: '+' }) : null} /> : null}
-              {sel && !draft ? <button type="button" className="gc-btn gc-btn--neutral" onClick={() => doPrint([sel.code])}><Icon name="printer" width="18" height="18" aria-hidden="true" /> Print {sel.name.split(' ')[0]}’s payslip</button> : null}
-            </div>
+            {sel ? <Payslip S={S} run={run} ln={sel} onAddLine={draft && step <= 2 ? () => setExtra({ code: sel.code, label: '', amount: '', sign: '+' }) : null} /> : null}
+            {sel && !draft ? <button type="button" className="ix-btn" onClick={() => doPrint([sel.code])}><Icon name="printer" width="16" height="16" aria-hidden="true" />Print {sel.name.split(' ')[0]}’s payslip</button> : null}
           </div>
-        </>
+        </div>
       )}
+      <LearnMore topic="payroll" />
 
       {printSet.length ? createPortal(
         <div className="hr-print" aria-hidden="true">
-          {lines.filter((l) => printSet.includes(l.code)).map((l) => <Payslip key={l.code} S={S} run={run} ln={l} printed />)}
+          {lines.filter((l) => printSet.includes(l.code)).map((l) => <Payslip key={l.code} S={S} run={run} ln={l} />)}
         </div>, document.body) : null}
 
       {pay ? <PayDialog S={S} run={run} lines={lines} liab={liab} pay={pay} setPay={setPay} /> : null}

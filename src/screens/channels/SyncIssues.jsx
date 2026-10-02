@@ -1,33 +1,34 @@
 'use client';
-// Channels › Sync issues (/sync-issues?ch=&st=) — every channel problem in one place. Summary tabs filter by status
-// (All open · Needs attention · Failed · Processing · Resolved); channel filter (All channels, Meta, Google Merchant,
-// Google Business) and search; the list says the problem and the suggested fix in plain words, with one action per
-// row (Fix product, Retry or Review). Select several to retry them, or Retry all failed. Technical details only in
-// the row's details panel. Data: src/lib/channels.js › getIssues.
+// Channels › Sync issues (/sync-issues?ch=&st=) — every channel problem in one list, like a Shopify index: status
+// views with counts (All open · Needs attention · Failed · Processing · Resolved), search and a channel filter, bulk
+// Retry, and a compact table (item, channel, problem, status, last attempt). A row opens the product on its channel
+// (a sheet with the problem, how to fix it, Fix / Retry and the technical details). Retry all failed is the header's
+// main action. Data: src/lib/channels.js › getIssues.
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
-import { PageHeader, EmptyState } from '@/components/ui';
-import { MobileFilters } from '@/components/ui/FilterBar';
-import { PRODUCT_CHANNELS as CHANNELS, ISSUES, channelBy, getIssues, channelProducts, retryItem, retryMany, ago, agoLow } from '@/lib/channels';
-import { ChannelFrame, ChannelLogo, StatusTag, FixSheet, ItemSheet, RowMenu, useChannels } from './chShared';
+import { EmptyState } from '@/components/ui';
+import { ShopHeader, IndexTabs, SearchField, Menu, LearnMore } from '@/components/ui/IndexKit';
+import { PRODUCT_CHANNELS as CHANNELS, ISSUES, channelBy, getIssues, channelProducts, retryMany, ago } from '@/lib/channels';
+import { ChannelFrame, ChannelLogo, StatusTag, FixSheet, ItemSheet, useChannels } from './chShared';
 
-const TABS = [['open', 'All open', 'var(--primary)'], ['attention', 'Needs attention', 'var(--warning)'], ['failed', 'Failed', 'var(--error)'], ['processing', 'Processing', 'var(--info)'], ['resolved', 'Resolved', 'var(--success)']];
+const TABS = [['open', 'All open'], ['attention', 'Needs attention'], ['failed', 'Failed'], ['processing', 'Processing'], ['resolved', 'Resolved']];
 const CSS = `
-.si-chan{display:inline-flex;align-items:center;gap:var(--space-2);white-space:nowrap}
-.si-fix{display:block;min-width:180px;max-width:240px;white-space:normal;font-size:var(--text-sm);color:var(--text-body)}
-.si-prob{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:160px}
-@media (max-width:640px){.si-fix,.si-prob{max-width:none;min-width:0}}
+.si-chan{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.si-item{display:block;max-width:240px;overflow:hidden;text-overflow:ellipsis}
+.si-prob{display:block;max-width:260px;overflow:hidden;color:var(--text-heading);text-overflow:ellipsis}
 `;
+const chName = (k) => (k === 'meta' ? 'Meta' : channelBy(k).short);
+// a resolved problem says how it was fixed; an open one's fix is on the product's sheet
+const probOf = (i) => (i.issue ? ISSUES[i.issue].title : 'Sending again') + (i.st === 'resolved' ? ' · ' + (i.how || 'Fixed') : '');
 
 export default function SyncIssues() {
-  const router = useRouter();
   const { ready, c } = useChannels();
   const [tab, setTab] = useState('open');
   const [ch, setCh] = useState('');
   const [q, setQ] = useState('');
+  const [find, setFind] = useState(false);
   const [sel, setSel] = useState({});
   const [view, setView] = useState(null);
   const [fix, setFix] = useState(null);
@@ -37,7 +38,9 @@ export default function SyncIssues() {
     if (u.get('st') && TABS.some((t) => t[0] === u.get('st'))) setTab(u.get('st'));
   }, []);
   const frame = (body) => <ChannelFrame screen="SyncIssues" active="ch-issues" page="Sync issues" css={CSS}>{body}</ChannelFrame>;
-  if (!ready) return frame(<PageHeader title="Sync issues" description="Every problem on your channels, with the fix." />);
+  const head = (primary) => <ShopHeader icon="triangle-alert" title="Sync issues" about="Every problem on your channels, with the fix."
+    more={[{ label: 'Sales channels', href: '/channels' }, { label: 'Channel settings', href: '/channel-settings' }]} primary={primary} />;
+  if (!ready) return frame(head(null));
 
   const all = getIssues();
   const byCh = all.filter((i) => !ch || i.ch === ch);
@@ -48,14 +51,11 @@ export default function SyncIssues() {
   const picked = shown.filter((i) => sel[i.id]);
   const pickable = shown.filter((i) => i.st !== 'resolved' && i.st !== 'processing');
   const allOn = pickable.length > 0 && pickable.every((i) => sel[i.id]);
+  const toggleAll = () => setSel(allOn ? {} : Object.fromEntries(pickable.map((i) => [i.id, true])));
   const failed = byCh.filter((i) => i.st === 'failed');
 
   const rowOf = (i) => channelProducts(i.ch).find((x) => x.key === i.key);
-  const act = (i) => {
-    const r = rowOf(i);
-    if (!r) return;
-    if (i.st === 'failed') { retryItem(i.ch, i.key); toast('Trying again…'); } else setFix(r);
-  };
+  const openIssue = (i) => { const r = rowOf(i); if (r) setView(r); };
   const retrySel = () => {
     const list = picked.filter(retryable);
     retryMany(list.map((i) => [i.ch, i.key])); setSel({});
@@ -64,93 +64,102 @@ export default function SyncIssues() {
   };
   const retryAll = () => { retryMany(failed.map((i) => [i.ch, i.key])); setSel({}); toast(`Retrying ${failed.length} failed`); };
   const setChan = (v) => { setCh(v); setSel({}); };
+  const closeFind = () => { setFind(false); setQ(''); setChan(''); };
+  const tabs = TABS.map(([id, label]) => ({ key: id, id: 'si-tab-' + id, label, count: byCh.filter((i) => inTab(i, id)).length, on: tab === id, onClick: () => { setTab(id); setSel({}); } }));
+  const canOpen = (i) => i.st !== 'resolved';
 
   return frame(<>
-    <PageHeader title="Sync issues" description="Every problem on your channels, with the fix."
-      actions={failed.length ? <button type="button" className="gc-btn gc-btn--solid" onClick={retryAll}><Icon name="refresh-cw" width="18" height="18" aria-hidden="true" /> Retry all failed ({failed.length})</button> : null} />
+    {head(failed.length ? { label: `Retry all failed (${failed.length})`, icon: 'refresh-cw', onClick: retryAll } : null)}
 
-    <div className="gc-stattabs ch-stattabs" role="tablist" aria-label="Issues by status">
-      {TABS.map(([id, label, dot]) => (
-        <button key={id} type="button" role="tab" aria-selected={tab === id} className="gc-stattab" onClick={() => { setTab(id); setSel({}); }}>
-          <span className="gc-stattab__label"><i className="gc-stattab__dot" style={{ background: dot }} />{label}</span>
-          <span className="gc-stattab__nums"><b>{byCh.filter((i) => inTab(i, id)).length}</b>{id === 'resolved' ? <small>recently</small> : null}</span>
-        </button>
-      ))}
-    </div>
-
-    <section className="gc-card" style={{ overflow: 'hidden' }}>
-      <div className="ch-tools">
-        <label className="ch-tools__search">
-          <Icon name="search" width="16" height="16" aria-hidden="true" />
-          <input className="gc-input" type="search" placeholder="Search product or problem" aria-label="Search issues" value={q} onChange={(e) => setQ(e.target.value)} />
-        </label>
-        <MobileFilters label="Filter issues" count={ch ? 1 : 0} onClear={() => setChan('')}>
-          <select className="gc-input gc-select" aria-label="Channel" value={ch} onChange={(e) => setChan(e.target.value)} style={{ width: 'auto', minWidth: 200 }}>
-            <option value="">All channels</option>
-            {CHANNELS.map((x) => <option key={x.key} value={x.key}>{x.key === 'meta' ? 'Meta' : x.short}</option>)}
-          </select>
-        </MobileFilters>
-      </div>
+    <section className="ix-card" aria-label="Issues">
       {picked.length ? (
-        <div className="ch-bulk" role="region" aria-label="Selected issues">
-          <b>{picked.length} selected</b>
-          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={retrySel}><Icon name="refresh-cw" width="16" height="16" aria-hidden="true" /> Retry selected</button>
-          <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => setSel({})}>Clear</button>
+        <div className="ix-bulk" role="toolbar" aria-label="Selected issues">
+          <input type="checkbox" checked={allOn} onChange={toggleAll} aria-label="Select every issue shown" style={{ width: 16, height: 16, margin: '0 6px', accentColor: 'var(--primary)' }} />
+          <span className="ix-bulk__n">{picked.length} selected</span>
+          <button type="button" className="ix-btn ix-btn--sm" onClick={retrySel}><Icon name="refresh-cw" width="16" height="16" aria-hidden="true" />Retry selected</button>
+          <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" align="start" items={[{ label: 'Clear selection', onClick: () => setSel({}) }]} />
+        </div>
+      ) : (
+        <div className="ix-bar">
+          {find ? (<>
+            <SearchField value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search product or problem" onDone={closeFind} autoFocus />
+            <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={closeFind}>Cancel</button>
+          </>) : (<>
+            <IndexTabs tabs={tabs} label="Issues by status" />
+            <span className="ix-tools">
+              <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search and filter" onClick={() => setFind(true)}><Icon name="search" width="16" height="16" aria-hidden="true" /></button>
+            </span>
+          </>)}
+        </div>
+      )}
+      {(find || ch) && !picked.length ? (
+        <div className="ix-filters" role="group" aria-label="Filters">
+          <select aria-label="Channel" className={'ix-filter' + (ch ? ' is-set' : '')} value={ch} onChange={(e) => setChan(e.target.value)}>
+            <option value="">Channel</option>
+            {CHANNELS.map((x) => <option key={x.key} value={x.key}>{chName(x.key)}</option>)}
+          </select>
+          {ch || query ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => { setQ(''); setChan(''); }}>Clear all</button> : null}
         </div>
       ) : null}
-      {shown.length ? (
-        <div className="gc-table-wrap">
-          <table className="gc-table gc-table--hoverable ch-table">
+
+      {shown.length ? (<>
+        <ul className="ix-plist" aria-label="Issues">
+          {shown.map((i) => (
+            <li key={i.id}>
+              {canOpen(i) ? (
+                <button type="button" className="ix-pitem" onClick={() => openIssue(i)}>
+                  <span className="ix-pitem__top"><b>{i.name}</b><StatusTag st={i.st} /></span>
+                  <span className="ix-pitem__mid">{chName(i.ch)} · {probOf(i)}</span>
+                </button>
+              ) : (
+                <div className="ix-pitem">
+                  <span className="ix-pitem__top"><b>{i.name}</b><StatusTag st={i.st} /></span>
+                  <span className="ix-pitem__mid">{chName(i.ch)} · {probOf(i)}</span>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+        <div className="ix-table-wrap">
+          <table className="ix-table gc-table--keep">
+            <caption className="sr-only">{`Sync issues, ${shown.length} shown`}</caption>
             <thead>
               <tr>
-                <th style={{ width: 44 }}>{tab === 'resolved' ? <span className="sr-only">Select</span> : <input type="checkbox" className="gc-check" aria-label="Select all" checked={allOn} disabled={!pickable.length} onChange={() => setSel(allOn ? {} : Object.fromEntries(pickable.map((i) => [i.id, true])))} />}</th>
-                <th>Item</th>
-                <th>Channel</th>
-                <th>Problem</th>
-                <th>Suggested fix</th>
-                <th className="ch-sm-hide ch-wide-only">Last attempt</th>
-                <th><span className="sr-only">Action</span></th>
+                <th scope="col" className="ix-check">{tab === 'resolved' ? <span className="sr-only">Select</span> : <input type="checkbox" aria-label="Select all" checked={allOn} disabled={!pickable.length} onChange={toggleAll} />}</th>
+                <th scope="col">Item</th>
+                <th scope="col">Channel</th>
+                <th scope="col">Problem</th>
+                <th scope="col">Status</th>
+                <th scope="col">Last attempt</th>
               </tr>
             </thead>
             <tbody>
               {shown.map((i) => {
-                const is = i.issue ? ISSUES[i.issue] : null;
                 const canPick = i.st !== 'resolved' && i.st !== 'processing';
                 return (
-                  <tr key={i.id} style={sel[i.id] ? { background: 'var(--fill-primary-soft)' } : undefined}>
-                    <td>{canPick ? <input type="checkbox" className="gc-check" aria-label={`Select ${i.name}`} checked={!!sel[i.id]} onChange={() => setSel({ ...sel, [i.id]: !sel[i.id] })} /> : null}</td>
-                    <td><span className="ch-prod__name"><b>{i.name}</b><small>{i.ch === 'gbp' ? 'Location' : i.sku ? i.sku : 'Product'}</small></span></td>
-                    <td><span className="si-chan"><ChannelLogo ch={i.ch} size={24} />{i.ch === 'meta' ? 'Meta' : channelBy(i.ch).short}</span></td>
-                    <td>
-                      <span className="si-prob">
-                        <b style={{ fontWeight: 'var(--weight-medium)', color: 'var(--text-heading)', whiteSpace: 'normal' }}>{is ? is.title : 'Sending again'}</b>
-                        <StatusTag st={i.st} />
-                        <small className="ch-muted ch-narrow-only" style={{ fontSize: 'var(--text-xs)' }}>{i.st === 'resolved' ? 'Fixed' : 'Tried'} {agoLow(i.at, c.now)}</small>
-                      </span>
-                    </td>
-                    <td><span className="si-fix">{i.st === 'resolved' ? (i.how || 'Fixed') : i.st === 'processing' ? `Waiting for ${channelBy(i.ch).company}. Nothing to do.` : is.fix}</span></td>
-                    <td className="ch-sm-hide ch-wide-only ch-muted">{ago(i.at, c.now)}</td>
-                    <td>
-                      <span className="ch-acts">
-                        {i.st === 'attention' ? <button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={() => act(i)}>{i.ch === 'gbp' ? 'Review' : 'Fix product'}</button> : null}
-                        {i.st === 'failed' ? <button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={() => act(i)}>Retry</button> : null}
-                        {i.ch !== 'gbp' && i.st !== 'resolved' ? <RowMenu label={`More for ${i.name}`} items={[{ label: 'View details', icon: 'eye', onClick: () => { const r = rowOf(i); if (r) setView(r); } }]} /> : null}
-                      </span>
-                    </td>
+                  <tr key={i.id} className={sel[i.id] ? 'is-sel' : ''} style={canOpen(i) ? undefined : { cursor: 'default' }} onClick={(e) => { if (!canOpen(i) || e.target.closest('input')) return; openIssue(i); }}>
+                    <td className="ix-check">{canPick ? <input type="checkbox" aria-label={`Select ${i.name}`} checked={!!sel[i.id]} onChange={() => setSel({ ...sel, [i.id]: !sel[i.id] })} /> : null}</td>
+                    <td><span className="ix-strong si-item" title={i.sku ? i.name + ' · ' + i.sku : i.name}>{i.name}</span></td>
+                    <td><span className="si-chan"><ChannelLogo ch={i.ch} size={20} />{chName(i.ch)}</span></td>
+                    <td><span className="si-prob" title={probOf(i)}>{probOf(i)}</span></td>
+                    <td><StatusTag st={i.st} /></td>
+                    <td className="ix-muted">{ago(i.at, c.now)}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
-      ) : (
-        <div style={{ padding: '0 var(--space-5) var(--space-5)' }}>
+      </>) : (
+        <div className="ix-empty">
           {query ? <EmptyState title={`No issues match “${q.trim()}”`} body="Check the spelling, or clear the search." actionLabel="Clear search" onAction={() => setQ('')} />
             : tab === 'resolved' ? <EmptyState icon="history" title="Nothing resolved yet" body="Fixed problems show here for a while." />
-              : <EmptyState icon="circle-check" title="No problems here" body={ch ? `${ch === 'meta' ? 'Meta' : channelBy(ch).short} is up to date.` : 'Every connected channel is up to date.'} actionLabel={ch ? 'Show all channels' : undefined} onAction={() => setChan('')} />}
+              : <EmptyState icon="circle-check" title="No problems here" body={ch ? `${chName(ch)} is up to date.` : 'Every connected channel is up to date.'} actionLabel={ch ? 'Show all channels' : undefined} onAction={() => setChan('')} />}
         </div>
       )}
+      <div className="ix-foot"><span>{shown.length === 1 ? '1 issue' : shown.length + ' issues'}</span></div>
     </section>
+    <LearnMore topic="sync issues" />
 
     <ItemSheet item={view} c={c} onClose={() => setView(null)} onFix={(r) => setFix(r)} />
     <FixSheet item={fix} onClose={() => setFix(null)} />

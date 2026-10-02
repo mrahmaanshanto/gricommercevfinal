@@ -1,20 +1,21 @@
 'use client';
-// Liabilities — money the shop owes that is not a supplier bill: staff salaries, sales commission,
-// affiliate payouts and promotions (influencers, ad agencies, printing, stalls) and anything else.
-//   List     one card per liability: who is owed, for which month, when it is due, how much is
-//            paid; the chevron opens its lines (one per person) and the payments made so far.
+// Liabilities — "Bills to pay": money the shop owes that is not a supplier bill: staff salaries, sales
+// commission, affiliate payouts and promotions (influencers, ad agencies, printing, stalls) and anything else.
+// Laid out like a Shopify list (docs/shopify-style.md):
+//   Figures  owed now, overdue, due in 7 days, paid this month, and what is held for customers (the ৳ value
+//            of loyalty points and wallet money, loyalty.js; read-only, paid back on /wallet)
+//   List     a view per type and a status filter; a row shows who is owed, for which month, when it is
+//            due and how much is paid; a click opens its lines (one per person) and the payments so far.
 //   Pay      tick the people to pay now (part payments allowed), pay each from their usual account
 //            or everyone from one account, and say who paid. Every line paid posts to the money book.
 //   Add      a new liability with its lines; "Fill from payroll" copies the month's 13 staff salaries.
-//   Held for customers  read-only: the ৳ value of loyalty points customers hold and the money in
-//            customer wallets (and advances on invoices), from src/lib/loyalty.js. Paid back on /wallet.
 // ?id=<liability id> opens that liability's Pay window. Front end only: src/lib/liabilities.js.
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
+import React, { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
-import { Dialog, EmptyState, InfoTip } from '@/components/ui';
+import { Dialog, EmptyState, StatusBadge } from '@/components/ui';
+import { MetricStrip, IndexTabs, LearnMore } from '@/components/ui/IndexKit';
 import { BrandLogo } from '@/components/BrandLogo';
 import { formatDate } from '@/lib/format';
 import { OWN_ACCOUNTS, balanceOf } from '@/lib/ledger';
@@ -46,39 +47,25 @@ function DueWords({ l, now }) {
   const tone = st === 'Paid' ? LIAB_TONE.Paid : d < 0 ? LIAB_TONE.Overdue : d === 0 ? 'warning' : LIAB_TONE[st];
   return (
     <>
-      <span className={'gc-badge gc-badge--' + tone}>{words}</span>
-      {st === 'Partly paid' ? <span className={'gc-badge gc-badge--' + LIAB_TONE['Partly paid']}>Partly paid</span> : null}
+      <StatusBadge tone={tone === 'slate' ? 'neutral' : tone} icon={st === 'Paid' ? 'circle-check' : d < 0 ? undefined : 'clock'}>{words}</StatusBadge>
+      {st === 'Partly paid' ? <> <StatusBadge tone={LIAB_TONE['Partly paid']}>Partly paid</StatusBadge></> : null}
     </>
   );
 }
 
 const CSS = `
-.lb-tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-5);border-bottom:1px solid var(--border-subtle)}
-.lb-tools .gc-seg{flex-wrap:wrap}
-.lb-tools .gc-seg__btn b{margin-left:6px;font-weight:var(--weight-medium);color:var(--text-muted);font-family:var(--font-data)}
-.lb-tools .gc-seg__btn[aria-pressed="true"] b{color:inherit}
-.lb-status{width:auto;min-width:150px}
-.lb-item{border-top:1px solid var(--border-subtle)}
-.lb-item:first-child{border-top:0}
-.lb-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1.2fr) auto;align-items:center;gap:var(--space-4);padding:var(--space-4) var(--space-5)}
-.lb-main{display:flex;align-items:center;gap:var(--space-3);min-width:0}
+.lb-fig{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+.lb-status{max-width:140px}
+.lb-paid{display:inline-flex;align-items:center;gap:var(--space-2)}
+.lb-bar{display:inline-block;width:48px;height:4px;border-radius:var(--radius-full);background:var(--surface-subtle);overflow:hidden}
+.lb-bar i{display:block;height:100%;border-radius:var(--radius-full);background:var(--primary)}
+.lb-bar i.is-done{background:var(--text-success)}
+.lb-chev{color:var(--text-muted);transition:transform var(--duration-base) var(--ease-out)}
+tr[aria-expanded="true"] .lb-chev{transform:rotate(90deg)}
 .lb-tile{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary)}
-.lb-main b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
-.lb-main small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
-.lb-badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
-.lb-due{display:flex;flex-direction:column;align-items:flex-start;gap:4px;font-size:var(--text-xs);color:var(--text-muted)}
-.lb-due > span:first-child{display:flex;flex-wrap:wrap;gap:4px}
-.lb-prog{display:flex;flex-direction:column;gap:6px;min-width:0}
-.lb-prog .gc-progress{height:4px}
-.lb-prog .gc-progress__fill.is-done{background:var(--text-success)}
-.lb-prog p{display:flex;justify-content:space-between;gap:var(--space-2);margin:0;font-size:var(--text-xs);color:var(--text-muted)}
-.lb-left{font-family:var(--font-data);font-variant-numeric:tabular-nums;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading);white-space:nowrap}
-.lb-acts{display:flex;align-items:center;justify-content:flex-end;gap:var(--space-2)}
-.lb-chev svg{transition:transform var(--duration-base) var(--ease-out)}
-.lb-chev[aria-expanded="true"] svg{transform:rotate(180deg)}
-.lb-more{display:flex;flex-direction:column;gap:var(--space-4);padding:0 var(--space-5) var(--space-5)}
+.lb-more{display:flex;flex-direction:column;gap:var(--space-4);max-width:860px}
 .lb-more h3{margin:0 0 var(--space-1);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.lb-more .gc-table-wrap{border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
+.lb-more .gc-table-wrap{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card)}
 .lb-more .ac-mini{margin:0}
 .lb-more .ac-mini tr:last-child td{border-bottom:0}
 .lb-acc{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
@@ -110,20 +97,10 @@ const CSS = `
 .lb-erow{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.3fr) minmax(90px,.8fr) minmax(0,1.2fr) auto;gap:var(--space-2);align-items:center}
 .lb-ehead{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
 .lb-ebar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-2)}
-.lb-held{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--space-3);padding:0 var(--space-5) var(--space-4)}
-.lb-held > div{display:flex;flex-direction:column;gap:2px;min-width:0;padding:var(--space-3) var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card)}
-.lb-held > div.is-key{background:var(--fill-primary-soft)}
-.lb-held span{font-size:var(--text-xs);color:var(--text-muted)}
-.lb-held b{font-family:var(--font-data);font-variant-numeric:tabular-nums;font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.lb-held .is-key b{color:var(--primary)}
-.lb-heldtop{padding:0 var(--space-5) var(--space-5)}
-.lb-heldtop h3{margin:0 0 var(--space-1);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.lb-heldtop .gc-table-wrap{border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
-.lb-heldtop .ac-mini{margin:0}
-.lb-heldtop .ac-mini tr:last-child td{border-bottom:0}
-@media (max-width:1024px){.lb-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.lb-acts{grid-column:1 / -1;justify-content:flex-start}}
-@media (max-width:640px){.lb-tools .gc-seg{flex-wrap:nowrap;width:100%;max-width:100%;overflow-x:auto;scrollbar-width:none}.lb-tools .gc-seg::-webkit-scrollbar{display:none}.lb-tools .gc-seg>.gc-seg__btn{flex:none}.lb-status{width:100%}.lb-row{grid-template-columns:minmax(0,1fr)}.lb-line{grid-template-columns:auto minmax(0,1fr)}.lb-line .gc-input{grid-column:2}.lb-erow{grid-template-columns:1fr 1fr}.lb-ehead{display:none}}
+@media (max-width:640px){.lb-line{grid-template-columns:auto minmax(0,1fr)}.lb-line .gc-input{grid-column:2}.lb-erow{grid-template-columns:1fr 1fr}.lb-ehead{display:none}}
 `;
+
+const ABOUT = 'Money the shop owes that is not a supplier bill: salaries, sales commission, affiliate payouts and promotions.';
 
 export default function Liabilities() {
   const tick = useBooks();
@@ -132,6 +109,7 @@ export default function Liabilities() {
   const [open, setOpen] = useState({});      // id → expanded
   const [payId, setPayId] = useState('');
   const [adding, setAdding] = useState(false);
+  const held = useHeld();
 
   const data = useMemo(() => {
     if (!tick) return null;
@@ -177,46 +155,76 @@ export default function Liabilities() {
   const shown = pool.filter((l) => type === 'all' || l.type === type)
     .sort((a, b) => rank[liabStatus(a, data.now)] - rank[liabStatus(b, data.now)] || a.due - b.due);
   const payL = data && payId ? data.list.find((l) => l.id === payId) : null;
-
-  const kpi = (icon, bg, fg, label, value, sub) => (
-    <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: bg, color: fg }}><Icon name={icon} width="22" height="22" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">{label}</p><p className="gc-kpi__value">{data ? value : '—'}<small>{data ? sub : ''}</small></p></div></div>
-  );
+  const toggle = (id) => setOpen((o) => ({ ...o, [id]: !o[id] }));
+  const tabs = [['all', 'All'], ...TYPE_KEYS.map((k) => [k, LIAB_TYPES[k].label])].map(([k, label]) => ({ key: k, id: 'lb-tab-' + k, label, count: data ? counts[k] || 0 : null, on: type === k, onClick: () => setType(k) }));
+  const fig = (v) => (data ? v : '—');
 
   return (
-    <AccPage screen="Liabilities" active="acc-liab" page="Bills to pay" title="Bills to pay" css={CSS}
-      about="Money the shop owes that is not a supplier bill: salaries, sales commission, affiliate payouts and promotions."
-      actions={<>
-        <Link href="/dues?tab=owe" className="gc-btn gc-btn--neutral"><Icon name="scale" width="18" height="18" aria-hidden="true" /> All dues</Link>
-        <button type="button" className="gc-btn gc-btn--solid" onClick={() => setAdding(true)}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Add bill</button>
-      </>}>
-      <div className="gc-kpis gc-kpis--tight">
-        {kpi('hand-coins', 'var(--fill-primary-soft)', 'var(--primary)', 'Owed now', data && money(data.owed), data && plural(data.openCount, 'liability', 'liabilities'))}
-        {kpi('clock-alert', 'var(--fill-error-soft)', 'var(--text-danger)', 'Overdue', data && money(data.overdue.amt), data && plural(data.overdue.n, 'liability', 'liabilities'))}
-        {kpi('calendar-clock', 'var(--fill-warning-soft)', 'var(--text-warning)', 'Due in the next 7 days', data && money(data.soon.amt), data && plural(data.soon.n, 'liability', 'liabilities'))}
-        {kpi('circle-check', 'var(--fill-success-soft)', 'var(--text-success)', 'Paid this month', data && money(data.paidMonth.amt), data && `${plural(data.paidMonth.n, 'payment')} · ${data.paidMonth.label}`)}
-      </div>
+    <AccPage screen="Liabilities" active="acc-liab" page="Bills to pay" title="Bills to pay" css={CSS} icon="file-clock" about={ABOUT}
+      secondary={[{ label: 'All dues', href: '/dues?tab=owe' }]}
+      more={[{ label: 'Income & expenses', href: '/expenses-bills' }, { label: 'Customer wallets', href: '/wallet?tab=wallets' }, { label: 'Loyalty', href: '/loyalty' }]}
+      primary={{ label: 'Add bill', onClick: () => setAdding(true) }}>
+      <MetricStrip label="Bills to pay" items={[
+        { label: 'Owed now', value: fig(data && money(data.owed)), sub: data ? plural(data.openCount, 'liability', 'liabilities') : '' },
+        { label: 'Overdue', value: fig(data && money(data.overdue.amt)), sub: data ? plural(data.overdue.n, 'liability', 'liabilities') : '' },
+        { label: 'Due in the next 7 days', value: fig(data && money(data.soon.amt)), sub: data ? plural(data.soon.n, 'liability', 'liabilities') : '' },
+        { label: 'Paid this month', value: fig(data && money(data.paidMonth.amt)), sub: data ? plural(data.paidMonth.n, 'payment') : '' },
+        { label: 'Held for customers', value: held ? money(held.total) : '—', sub: 'points + wallets', href: '/wallet?tab=wallets' },
+      ]} />
 
-      <section className="gc-card ac-card" aria-label="Liabilities">
-        <div className="lb-tools">
-          <div className="gc-seg" role="group" aria-label="Type">
-            {[['all', 'All'], ...TYPE_KEYS.map((k) => [k, LIAB_TYPES[k].label])].map(([k, label]) => (
-              <button key={k} type="button" className={'gc-seg__btn' + (type === k ? ' gc-seg__btn--active' : '')} aria-pressed={type === k} onClick={() => setType(k)}>{label}<b>{counts[k] || 0}</b></button>
-            ))}
-          </div>
-          <select className="gc-input gc-select lb-status" aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
-            {STATUS_FILTER.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-          </select>
+      <section className="ix-card" aria-label="Liabilities">
+        <div className="ix-bar">
+          <IndexTabs tabs={tabs} label="Type" />
+          <span className="ix-tools">
+            <select className={'ix-filter lb-status' + (status !== 'open' ? ' is-set' : '')} aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
+              {STATUS_FILTER.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+          </span>
         </div>
-        {!data ? <EmptyState icon="loader" title="Reading the books" /> : shown.length === 0 ? (
-          <EmptyState icon="circle-check" title={status === 'open' ? 'Nothing left to pay here' : 'Nothing here'} body={status === 'open' ? 'Every liability of this type is paid.' : 'No liabilities match this filter.'} actionLabel="Add liability" onAction={() => setAdding(true)} />
-        ) : (
-          <div>
-            {shown.map((l) => <LiabItem key={l.id} l={l} now={data.now} open={!!open[l.id]} onToggle={() => setOpen((o) => ({ ...o, [l.id]: !o[l.id] }))} onPay={() => setPayId(l.id)} />)}
+        {!data ? <p className="ac-wait">Reading the books…</p> : shown.length === 0 ? (
+          <div className="ix-empty"><EmptyState icon="circle-check" title={status === 'open' ? 'Nothing left to pay here' : 'Nothing here'} actionLabel="Add liability" onAction={() => setAdding(true)} /></div>
+        ) : (<>
+          <ul className="ix-plist" aria-label="Liabilities">
+            {shown.map((l) => (
+              <li key={l.id}>
+                <button type="button" className="ix-pitem" aria-expanded={!!open[l.id]} onClick={() => toggle(l.id)}>
+                  <span className="ix-pitem__top"><b>{l.title}</b><span className="lb-fig">{leftOf(l) > 0 ? money(leftOf(l)) : 'Paid'}</span></span>
+                  <span className="ix-pitem__mid">{l.party} · {periodLabel(l.period)}</span>
+                  <span className="ix-pitem__tags"><DueWords l={l} now={data.now} /></span>
+                </button>
+                {open[l.id] ? <div className="ac-pdetail"><LiabDetail l={l} onPay={() => setPayId(l.id)} /></div> : null}
+              </li>
+            ))}
+          </ul>
+          <div className="ix-table-wrap">
+            <table className="ix-table gc-table--keep">
+              <caption className="sr-only">Bills to pay</caption>
+              <thead><tr><th scope="col">Bill</th><th scope="col">Owed to</th><th scope="col">Due</th><th scope="col">Paid</th><th scope="col" className="ix-num">Left</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
+              <tbody>
+                {shown.map((l) => {
+                  const paid = paidOf(l), left = leftOf(l);
+                  const pct = l.amount ? Math.min(100, Math.round((paid / l.amount) * 100)) : 0;
+                  return (
+                    <Fragment key={l.id}>
+                      <tr aria-expanded={!!open[l.id]} onClick={(e) => { if (!e.target.closest('a,button')) toggle(l.id); }} title={`${periodLabel(l.period)} · ${(LIAB_TYPES[l.type] || LIAB_TYPES.other).label}${l.channel ? ' · ' + l.channel : ''} · ${l.id}`}>
+                        <td><span className="ac-logo"><Icon name="chevron-right" width="14" height="14" className="lb-chev" aria-hidden="true" /><span className="ix-strong ac-trunc">{l.title}</span></span></td>
+                        <td><span className="ac-trunc">{l.party}</span></td>
+                        <td><DueWords l={l} now={data.now} /></td>
+                        <td><span className="lb-paid"><span className="lb-bar" role="progressbar" aria-label={`Paid of ${l.title}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}><i className={left <= 0 ? 'is-done' : ''} style={{ width: pct + '%' }} /></span><span className="ix-muted lb-fig">{money(paid)} of {money(l.amount)}</span></span></td>
+                        <td className="ix-num lb-fig ix-strong">{left > 0 ? money(left) : 'Paid'}</td>
+                        <td className="ac-act">{left > 0 ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => setPayId(l.id)} aria-label={`Pay ${l.title}`}>Pay</button> : null}</td>
+                      </tr>
+                      {open[l.id] ? <tr className="ac-detail"><td colSpan={6}><LiabDetail l={l} /></td></tr> : null}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        )}
+        </>)}
+        {data ? <div className="ix-foot"><span>{plural(shown.length, 'liability', 'liabilities')}</span></div> : null}
       </section>
-
-      <HeldForCustomers />
+      <LearnMore topic="bills to pay" />
 
       {payL ? <PayDialog l={payL} onClose={() => setPayId('')} /> : null}
       {adding && data ? <AddDialog now={data.now} onClose={() => setAdding(false)} /> : null}
@@ -224,137 +232,68 @@ export default function Liabilities() {
   );
 }
 
-/** Read-only: what the shop holds for customers — loyalty points (a promise of a discount, at the
- *  value of a point) and wallet money / advances. It is theirs until used, spent or paid back. */
-function HeldForCustomers() {
+/** What the shop holds for customers — loyalty points (a promise of a discount, at the value of a point) and
+ *  wallet money / advances (loyalty.js). It is theirs until used, spent or paid back; the list is on Customer wallets. */
+function useHeld() {
   const [d, setD] = useState(null);
   useEffect(() => {
-    const read = () => { const members = getMembers(); setD({ pts: pointsLiability(members), w: walletLiability(members) }); };
+    const read = () => { const members = getMembers(); const pts = pointsLiability(members); const w = walletLiability(members); setD({ total: r2(pts.value + w.total) }); };
     read();
     const evs = ['gc:loyalty', 'gc:ledger', 'storage'];
     evs.forEach((e) => window.addEventListener(e, read));
     return () => evs.forEach((e) => window.removeEventListener(e, read));
   }, []);
-  const total = d ? r2(d.pts.value + d.w.total) : 0;
-  const top = d ? d.w.customers.slice(0, 5) : [];
+  return d;
+}
+
+/** A liability's details: its note, one line per person or company, and the payments made so far. */
+function LiabDetail({ l, onPay }) {
   return (
-    <section className="gc-card ac-card" aria-labelledby="lb-held">
-      <div className="ac-head">
-        <div><h2 id="lb-held">Held for customers <InfoTip text="Loyalty points (a promise of a discount) and money customers keep in their wallet. It is theirs until they use it or take it back, so there is nothing to pay today." /></h2></div>
-        <div className="ac-row-actions">
-          <Link href="/loyalty" className="gc-btn gc-btn--sm gc-btn--neutral">Loyalty</Link>
-          <Link href="/wallet?tab=wallets" className="gc-btn gc-btn--sm gc-btn--neutral">Customer wallets</Link>
+    <div className="lb-more">
+      <p className="lb-note">For {periodLabel(l.period)} · {(LIAB_TYPES[l.type] || LIAB_TYPES.other).label}{l.channel ? ' · ' + l.channel : ''} · <span className="lb-fig">{l.id}</span>{l.note ? ' · ' + l.note : ''}</p>
+      <div>
+        <h3>{plural(l.lines.length, 'line')}</h3>
+        <div className="gc-table-wrap">
+          <table className="ac-mini">
+            <thead><tr><th scope="col">Name</th><th scope="col">Note</th><th scope="col" className="ac-num">Amount</th><th scope="col" className="ac-num">Paid</th><th scope="col" className="ac-num">Left</th><th scope="col">Usual account</th></tr></thead>
+            <tbody>
+              {l.lines.map((x) => (
+                <tr key={x.name}>
+                  <td className="ac-strong">{x.name}</td>
+                  <td>{x.note || '—'}</td>
+                  <td className="ac-num ac-fig">{money(x.amount)}</td>
+                  <td className="ac-num ac-fig">{x.paid ? money(x.paid) : '—'}</td>
+                  <td className={'ac-num ac-fig' + (lineLeft(x) > 0 ? ' ac-strong' : ' ac-in')}>{lineLeft(x) > 0 ? money(lineLeft(x)) : 'Paid'}</td>
+                  <td><span className="lb-acc"><BrandLogo brand={accBrand(x.account)} size={20} decorative />{accName(x.account)}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
-      <div className="lb-held">
-        <div><span>Points outstanding</span><b>{d ? money(d.pts.value) : '—'}</b><span>{d ? `${d.pts.points.toLocaleString('en-IN')} points at ${money(d.pts.pointValue)} · ${plural(d.pts.members, 'member')}` : ''}</span></div>
-        <div><span>Customer wallets</span><b>{d ? money(d.w.wallets) : '—'}</b><span>{d ? plural(d.w.customers.filter((c) => c.wallet > 0).length, 'customer') : ''}</span></div>
-        {d && d.w.advances ? <div><span>Advances on invoices</span><b>{money(d.w.advances)}</b><span>{plural(d.w.customers.filter((c) => c.advance > 0).length, 'customer')}</span></div> : null}
-        <div className="is-key"><span>Held in all</span><b>{d ? money(total) : '—'}</b><span>points value + wallet money</span></div>
-      </div>
-      {top.length ? (
-        <div className="lb-heldtop">
-          <h3>Most money held</h3>
+      <div>
+        <h3>Payments made</h3>
+        {(l.payments || []).length === 0 ? <p className="lb-note">No payments yet.</p> : (
           <div className="gc-table-wrap">
             <table className="ac-mini">
-              <thead><tr><th scope="col">Customer</th><th scope="col" className="ac-num">Wallet</th><th scope="col" className="ac-num">Advance</th><th scope="col" className="ac-num">Held</th></tr></thead>
+              <thead><tr><th scope="col">Date</th><th scope="col" className="ac-num">Amount</th><th scope="col">From</th><th scope="col">Paid by</th><th scope="col">For</th></tr></thead>
               <tbody>
-                {top.map((c) => (
-                  <tr key={c.phone}>
-                    <td><span className="ac-strong">{c.name}</span> <span className="ac-fig ac-sub" style={{ display: 'inline' }}>{c.phone}</span></td>
-                    <td className="ac-num ac-fig">{c.wallet ? money(c.wallet) : '—'}</td>
-                    <td className="ac-num ac-fig">{c.advance ? money(c.advance) : '—'}</td>
-                    <td className="ac-num ac-fig ac-strong">{money(c.total)}</td>
+                {[...l.payments].sort((a, b) => b.at - a.at).map((p, i) => (
+                  <tr key={p.at + '-' + i}>
+                    <td>{formatDate(p.at)}</td>
+                    <td className="ac-num ac-fig ac-strong">{money(p.amount)}</td>
+                    <td>{p.account ? <span className="lb-acc"><BrandLogo brand={accBrand(p.account)} size={20} decorative />{accName(p.account)}</span> : 'Each person’s usual account'}</td>
+                    <td>{p.by}</td>
+                    <td>{(p.lines || []).length > 3 ? `${p.lines.slice(0, 3).join(', ')} +${p.lines.length - 3} more` : (p.lines || []).join(', ')}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
-function LiabItem({ l, now, open, onToggle, onPay }) {
-  const t = LIAB_TYPES[l.type] || LIAB_TYPES.other;
-  const paid = paidOf(l), left = leftOf(l);
-  const pct = l.amount ? Math.min(100, Math.round((paid / l.amount) * 100)) : 0;
-  const moreId = 'lb-more-' + l.id;
-  return (
-    <article className="lb-item" aria-label={l.title}>
-      <div className="lb-row">
-        <div className="lb-main">
-          <span className="lb-tile" aria-hidden="true"><Icon name={t.icon} width="20" height="20" /></span>
-          <span style={{ minWidth: 0 }}>
-            <b>{l.title}</b>
-            <small>{l.party} · {periodLabel(l.period)} · <span className="ac-fig">{l.id}</span></small>
-            <span className="lb-badges">
-              <span className="gc-badge gc-badge--slate">{t.label}</span>
-              {l.channel ? <span className="gc-badge gc-badge--info">{l.channel}</span> : null}
-            </span>
-          </span>
-        </div>
-        <div className="lb-due">
-          <span><DueWords l={l} now={now} /></span>
-          <span>Due {formatDate(l.due)}</span>
-        </div>
-        <div className="lb-prog">
-          <p><span>{money(paid)} paid of {money(l.amount)}</span><span className="lb-left">{left > 0 ? money(left) + ' left' : 'Paid'}</span></p>
-          <div className="gc-progress" role="progressbar" aria-label={`Paid of ${l.title}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}><div className={'gc-progress__fill' + (left <= 0 ? ' is-done' : '')} style={{ width: pct + '%' }} /></div>
-        </div>
-        <div className="lb-acts">
-          {left > 0 ? <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={onPay} aria-label={`Pay ${l.title}`}>Pay</button> : null}
-          <button type="button" className="gc-iconbtn lb-chev" aria-expanded={open} aria-controls={moreId} onClick={onToggle} aria-label={`${open ? 'Hide' : 'Show'} lines and payments of ${l.title}`}><Icon name="chevron-down" width="18" height="18" aria-hidden="true" /></button>
-        </div>
+        )}
       </div>
-      {open ? (
-        <div className="lb-more" id={moreId}>
-          {l.note ? <p className="lb-note">{l.note}</p> : null}
-          <div>
-            <h3>{plural(l.lines.length, 'line')}</h3>
-            <div className="gc-table-wrap">
-              <table className="ac-mini">
-                <thead><tr><th scope="col">Name</th><th scope="col">Note</th><th scope="col" className="ac-num">Amount</th><th scope="col" className="ac-num">Paid</th><th scope="col" className="ac-num">Left</th><th scope="col">Usual account</th></tr></thead>
-                <tbody>
-                  {l.lines.map((x) => (
-                    <tr key={x.name}>
-                      <td className="ac-strong">{x.name}</td>
-                      <td>{x.note || '—'}</td>
-                      <td className="ac-num ac-fig">{money(x.amount)}</td>
-                      <td className="ac-num ac-fig">{x.paid ? money(x.paid) : '—'}</td>
-                      <td className={'ac-num ac-fig' + (lineLeft(x) > 0 ? ' ac-strong' : ' ac-in')}>{lineLeft(x) > 0 ? money(lineLeft(x)) : 'Paid'}</td>
-                      <td><span className="lb-acc"><BrandLogo brand={accBrand(x.account)} size={20} decorative />{accName(x.account)}</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <div>
-            <h3>Payments made</h3>
-            {(l.payments || []).length === 0 ? <p className="lb-note">No payments yet.</p> : (
-              <div className="gc-table-wrap">
-                <table className="ac-mini">
-                  <thead><tr><th scope="col">Date</th><th scope="col" className="ac-num">Amount</th><th scope="col">From</th><th scope="col">Paid by</th><th scope="col">For</th></tr></thead>
-                  <tbody>
-                    {[...l.payments].sort((a, b) => b.at - a.at).map((p, i) => (
-                      <tr key={p.at + '-' + i}>
-                        <td>{formatDate(p.at)}</td>
-                        <td className="ac-num ac-fig ac-strong">{money(p.amount)}</td>
-                        <td>{p.account ? <span className="lb-acc"><BrandLogo brand={accBrand(p.account)} size={20} decorative />{accName(p.account)}</span> : 'Each person’s usual account'}</td>
-                        <td>{p.by}</td>
-                        <td>{(p.lines || []).length > 3 ? `${p.lines.slice(0, 3).join(', ')} +${p.lines.length - 3} more` : (p.lines || []).join(', ')}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      ) : null}
-    </article>
+      {onPay && leftOf(l) > 0 ? <div><button type="button" className="ix-btn ix-btn--sm ix-btn--primary" onClick={onPay}>Pay</button></div> : null}
+    </div>
   );
 }
 

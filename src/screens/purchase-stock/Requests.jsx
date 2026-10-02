@@ -11,7 +11,9 @@ import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { Dialog, PageHeader, EmptyState } from '@/components/ui';
+import { Dialog, EmptyState, StatusBadge } from '@/components/ui';
+import { ShopHeader, IndexTabs, SearchField, LearnMore } from '@/components/ui/IndexKit';
+import { navigate } from '@/runtime/routes';
 import { formatDate, formatBDT } from '@/lib/format';
 import { getReceivingPlaces, placeName } from '@/lib/locations';
 import { usePlaceList } from '@/lib/usePlaces';
@@ -71,33 +73,13 @@ const BADGE = { waiting: ['Pending', 'warning'], approved: ['Approved', 'info'],
 const num = (v) => Math.max(0, Math.round(Number(v) || 0));
 
 const CSS = `
-.rq-flow{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4);padding:var(--space-3) var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card);font-size:var(--text-xs);color:var(--text-muted)}
-.rq-flow b{display:inline-flex;align-items:center;gap:8px;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
-.rq-flow b svg{color:var(--primary)}
-.rq-flow i{flex:none;width:20px;height:1px;background:var(--border-strong)}
-.rq-card{overflow:hidden}
-.rq-card .gc-table th,.rq-card .gc-table td{padding-left:var(--space-2);padding-right:var(--space-2);white-space:normal}
-.rq-card .gc-table th:first-child,.rq-card .gc-table td:first-child{padding-left:var(--space-5)}
-.rq-card .gc-table th:last-child,.rq-card .gc-table td:last-child{padding-right:var(--space-4)}
-.rq-card .gc-badge,.rq-card .gc-btn,.rq-num{white-space:nowrap}
-.rq-bar{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--space-3);padding:0 var(--space-4)}
-.rq-tab b{margin-left:6px;font-weight:var(--weight-medium);color:var(--text-muted);font-variant-numeric:tabular-nums}
-.rq-search{position:relative;flex:0 1 280px;margin-bottom:var(--space-2)}
-.rq-search svg{position:absolute;left:12px;top:13px;color:var(--text-muted);pointer-events:none}
-.rq-search input{padding-left:38px}
+.rq-id{font-family:var(--font-data)}
 .rq-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}
-.rq-strong{font-weight:var(--weight-medium);color:var(--text-heading)}
-.rq-code{font-family:var(--font-data)}
-.rq-num{text-align:right;font-variant-numeric:tabular-nums}
+.rq-name{display:block;max-width:280px;overflow:hidden;text-overflow:ellipsis}
 .rq-low{color:var(--text-danger);font-weight:var(--weight-medium)}
-.rq-qty{width:84px;text-align:right}
-.rq-actions{display:flex;justify-content:flex-end;gap:var(--space-2)}
-.rq-reject__lbl{display:none}
-.rq-pick{position:sticky;bottom:0;display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4);padding:var(--space-3) var(--space-5);background:var(--primary);color:#fff;font-size:var(--text-sm)}
-.rq-pick span:first-child{font-weight:var(--weight-medium)}
-.rq-pick__sups{flex:1;min-width:0;opacity:.85;font-size:var(--text-xs)}
-.rq-pick .gc-btn{background:#fff;color:var(--primary)}
-.rq-pick .gc-btn--flat{background:none;color:#fff}
+.rq-reason{display:block;max-width:260px;overflow:hidden;text-overflow:ellipsis;color:var(--text-body)}
+.rq-pbtn{width:100%;border-top:0;border-left:0;border-right:0;background:none;font:inherit;text-align:left;cursor:pointer}
+.rq-bulk-sups{flex:1;min-width:0;overflow:hidden;font-size:var(--text-xs);color:var(--text-muted);text-overflow:ellipsis;white-space:nowrap}
 .rq-form{display:flex;flex-direction:column;gap:var(--space-4)}
 .rq-two{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
 .rq-made{align-items:flex-start}
@@ -105,30 +87,19 @@ const CSS = `
 .rq-made p{margin:0}
 .rq-made__text{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--space-1)}
 .rq-made__list{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font-size:var(--text-xs)}
-.rq-sum{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary);font-size:var(--text-sm)}
+.rq-sum{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:var(--space-2);padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary);font-size:var(--text-sm)}
 .rq-sum b{font-weight:var(--weight-semibold)}
-.rq-po{border:1px solid var(--border-subtle);border-radius:var(--radius-xl);overflow:hidden}
-.rq-po__head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-4);background:var(--surface-subtle)}
+.rq-po{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden}
+.rq-po__head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--space-3);padding:var(--space-3);background:var(--surface-subtle)}
 .rq-po__head h3{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .rq-po__place{min-width:200px;flex:0 1 240px}
 .rq-po .gc-table th,.rq-po .gc-table td{padding-left:var(--space-2);padding-right:var(--space-2);white-space:normal}
-.rq-po .gc-table th:first-child,.rq-po .gc-table td:first-child{padding-left:var(--space-4)}
-.rq-po .gc-table th:last-child,.rq-po .gc-table td:last-child{padding-right:var(--space-4)}
+.rq-po .gc-table th:first-child,.rq-po .gc-table td:first-child{padding-left:var(--space-3)}
+.rq-po .gc-table th:last-child,.rq-po .gc-table td:last-child{padding-right:var(--space-3)}
+.rq-num{text-align:right;font-variant-numeric:tabular-nums}
+.rq-strong{font-weight:var(--weight-medium);color:var(--text-heading)}
 .rq-po__total td{font-weight:var(--weight-semibold);color:var(--text-heading)}
 @media (max-width:599px){.rq-two{grid-template-columns:1fr}}
-/* phones: the three steps run down the card with a short line between them; the search box takes the full width */
-@media (max-width:640px){
-  .rq-flow{flex-direction:column;align-items:flex-start;flex-wrap:nowrap;gap:2px}
-  .rq-flow i{width:1px;height:12px;margin:2px 0 2px 7px}
-  .rq-flow span{margin-left:24px}
-  .rq-bar{padding:0 var(--space-3-5)}
-  .rq-search{flex:1 1 100%;margin-bottom:var(--space-3)}
-  /* a request's actions: Approve and a labelled Reject share the row, both full height */
-  .rq-card .gc-table .rq-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2);width:100%}
-  .rq-actions>.gc-btn{min-height:44px}
-  .rq-actions>.rq-reject{width:auto;height:44px;gap:var(--space-1-5);border:1px solid var(--border-field);border-radius:var(--radius-lg);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-danger)}
-  .rq-reject .rq-reject__lbl{display:inline}
-}
 `;
 
 export default function Requests() {
@@ -137,6 +108,8 @@ export default function Requests() {
   const [rows, setRows] = useState([]);
   const [tab, setTab] = useState('waiting');
   const [q, setQ] = useState('');
+  const [sup, setSup] = useState('');            // supplier filter
+  const [find, setFind] = useState(false);       // search and filters open
   const [sel, setSel] = useState({});
   const [form, setForm] = useState(null);      // new request
   const [reject, setReject] = useState(null);  // { id, reason }
@@ -158,8 +131,8 @@ export default function Requests() {
   const counts = Object.fromEntries(TABS.map(([k]) => [k, rows.filter((r) => r.status === k).length]));
   const shown = useMemo(() => {
     const text = q.trim().toLowerCase();
-    return rows.filter((r) => r.status === tab && (!text || (r.name + ' ' + r.code + ' ' + r.by + ' ' + r.supplier).toLowerCase().includes(text)));
-  }, [rows, tab, q]);
+    return rows.filter((r) => r.status === tab && (!sup || r.supplier === sup) && (!text || (r.name + ' ' + r.code + ' ' + r.by + ' ' + r.supplier).toLowerCase().includes(text)));
+  }, [rows, tab, q, sup]);
   const picked = shown.filter((r) => sel[r.id]);
   const pickedSuppliers = [...new Set(picked.map((r) => r.supplier))];
   const canPick = tab === 'waiting' || tab === 'approved';
@@ -224,88 +197,129 @@ export default function Requests() {
     setForm(null); pickTab('waiting'); toast(`Request ${id} added · waiting for approval`);
   };
 
+  const searching = find || !!q || !!sup;
+  const hasFilters = !!(q || sup);
+  const closeFind = () => { setFind(false); setQ(''); setSup(''); };
+  const clearFilters = () => { setQ(''); setSup(''); };
+  const supplierList = [...new Set(rows.map((r) => r.supplier))].sort();
+  // a request opens its review (approve, order, reject); an ordered one opens its purchase order
+  const openRow = (r) => { if (r.status === 'waiting' || r.status === 'approved') openApprove(r); else if (r.status === 'ordered' && r.po) navigate(`/po-detail?no=${encodeURIComponent(r.po)}`); };
+  const allPicked = shown.length > 0 && picked.length === shown.length;
+  const toggleAll = () => setSel(allPicked ? {} : Object.fromEntries(shown.map((r) => [r.id, true])));
+  const reviewToReject = () => { const r = ap.row; setAp(null); setReject({ id: r.id, name: r.name, reason: '' }); };
+  const reviewToWaiting = () => { patch([ap.row.id], { status: 'waiting' }); setAp(null); toast('Moved back to Pending'); };
+
   return (
     <div className="dc-screen ds" data-screen="Requests">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="gc-shell">
         <Sidebar sticky="" active="po-requests" />
-        <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
+        <main className="gc-shell__main">
           <Topbar crumb="Purchase" page="Staff requests" placeholder="Search or scan any barcode" />
-          <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-            <PageHeader
-              title="Staff requests"
-              description="What the shops and the warehouse are asking you to buy."
-              actions={<>
-                <Link href="/purchase-orders" className="gc-btn gc-btn--neutral"><Icon name="file-text" width="18" height="18" aria-hidden="true" /> Purchase orders</Link>
-                <button type="button" className="gc-btn gc-btn--solid" onClick={() => setForm({ product: PRODUCTS[0].name, supplier: PRODUCTS[0].supplier, qty: '', by: STAFF[0], place: stockPlaces[0], need: '2026-10-05', note: '' })}><Icon name="plus" width="18" height="18" aria-hidden="true" /> New request</button>
-              </>}
-            />
+          <div className="gc-shell__content">
+            <div className="ix-page">
+              <ShopHeader icon="clipboard-list" title="Staff requests"
+                about="What the shops and the warehouse are asking you to buy. Staff asks, you approve or change the quantity, and it becomes a purchase order — one order per supplier."
+                more={[{ label: 'Purchase orders', href: '/purchase-orders' }]}
+                primary={{ label: 'New request', onClick: () => setForm({ product: PRODUCTS[0].name, supplier: PRODUCTS[0].supplier, qty: '', by: STAFF[0], place: stockPlaces[0], need: '2026-10-05', note: '' }) }} />
 
-            <div className="rq-flow">
-              <b><Icon name="user-round" width="16" height="16" aria-hidden="true" />Staff asks</b><i />
-              <b><Icon name="shield-check" width="16" height="16" aria-hidden="true" />You approve</b><span>or change the quantity</span><i />
-              <b><Icon name="file-text" width="16" height="16" aria-hidden="true" />Becomes a purchase order</b><span>one order per supplier</span>
-            </div>
-
-            {made ? (
-              <div className="gc-alert gc-alert--soft gc-alert--success rq-made" role="status">
-                <Icon name="circle-check" width="20" height="20" aria-hidden="true" />
-                <div className="rq-made__text">
-                  <p><b>{made.length} purchase order{made.length === 1 ? '' : 's'} made as draft{made.length === 1 ? '' : 's'}.</b> Check each one and send it to the supplier.</p>
-                  <div className="rq-made__list">{made.map((o) => <span key={o.no}><Link href={`/po-detail?no=${o.no}`}>{o.no}</Link> · {o.supplier} · {formatBDT(o.total)}</span>)}</div>
-                </div>
-                <button type="button" className="gc-iconbtn" aria-label="Close this message" onClick={() => setMade(null)}><Icon name="x" width="18" height="18" /></button>
-              </div>
-            ) : null}
-
-            <section className="gc-card rq-card">
-              <div className="rq-bar">
-                <div className="gc-tabs" role="tablist" aria-label="Requests by status" style={{ borderBottom: 0, overflow: 'visible', flexWrap: 'wrap' }}>
-                  {TABS.map(([k, label]) => <button key={k} type="button" role="tab" aria-selected={tab === k} className={'gc-tab rq-tab' + (tab === k ? ' gc-tab--active' : '')} onClick={() => pickTab(k)}>{label}<b>{counts[k]}</b></button>)}
-                </div>
-                <label className="rq-search"><Icon name="search" width="18" height="18" aria-hidden="true" /><input className="gc-input" type="search" placeholder="Search product, staff or supplier" aria-label="Search product, staff or supplier" value={q} onChange={(e) => setQ(e.target.value)} /></label>
-              </div>
-
-              {shown.length === 0 ? <EmptyState icon="clipboard-list" title={q ? 'No request matches that search' : `No ${BADGE[tab][0].toLowerCase()} request`} body={tab === 'waiting' && !q ? 'Every request has been answered.' : 'Nothing is in this group right now.'} /> : (
-                <div className="gc-table-wrap">
-                  <table className="gc-table gc-table--compact gc-table--hoverable">
-                    <thead><tr>
-                      {canPick ? <th scope="col"><input type="checkbox" className="gc-check" aria-label="Select all requests" checked={picked.length === shown.length} onChange={(e) => setSel(e.target.checked ? Object.fromEntries(shown.map((r) => [r.id, true])) : {})} /></th> : null}
-                      <th scope="col">Product</th><th scope="col">In stock</th><th scope="col" className="rq-num">Asked for</th><th scope="col">Asked by</th><th scope="col">Needed by</th><th scope="col">Buy from</th>
-                      <th scope="col">{tab === 'ordered' ? 'Purchase order' : tab === 'rejected' ? 'Reason' : <span className="sr-only">Actions</span>}</th>
-                    </tr></thead>
-                    <tbody>
-                      {shown.map((r) => (
-                        <tr key={r.id}>
-                          {canPick ? <td><input type="checkbox" className="gc-check" aria-label={`Select ${r.name}`} checked={!!sel[r.id]} onChange={(e) => setSel({ ...sel, [r.id]: e.target.checked })} /></td> : null}
-                          <td><span className="rq-strong">{r.name}</span><span className="rq-sub"><span className="rq-code">{r.code}</span>{r.note ? ' · ' + r.note : ''}</span></td>
-                          <td className={r.stock < 10 ? 'rq-low' : ''}>{r.stock === 0 ? 'Out' : r.stock + ' left'}</td>
-                          <td className="rq-num">{tab === 'waiting' ? <input className="gc-input rq-qty" type="number" min="1" inputMode="numeric" aria-label={`Quantity to buy of ${r.name}`} value={r.qty} onChange={(e) => patch([r.id], { qty: num(e.target.value) })} /> : <span className="rq-strong">{r.qty}</span>}</td>
-                          <td>{r.by}<span className="rq-sub">{r.place}</span></td>
-                          <td>{formatDate(r.need)}</td>
-                          <td>{r.supplier}</td>
-                          <td>
-                            {tab === 'waiting' ? <div className="rq-actions"><button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={() => openApprove(r)}><Icon name="check" width="16" height="16" aria-hidden="true" /> Approve</button><button type="button" className="gc-iconbtn rq-reject" aria-label={`Reject the request for ${r.name}`} onClick={() => setReject({ id: r.id, name: r.name, reason: '' })}><Icon name="x" width="18" height="18" aria-hidden="true" /><span className="rq-reject__lbl" aria-hidden="true">Reject</span></button></div> : null}
-                            {tab === 'approved' ? <div className="rq-actions"><button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => patch([r.id], { status: 'waiting' })}>Back to waiting</button></div> : null}
-                            {tab === 'ordered' ? <Link href={`/po-detail?no=${r.po}`} className="rq-code rq-strong">{r.po}</Link> : null}
-                            {tab === 'rejected' ? <><span className="rq-sub" style={{ color: 'var(--text-body)' }}>{r.reason}</span><button type="button" className="gc-btn gc-btn--sm gc-btn--flat" style={{ padding: 0, height: 'auto' }} onClick={() => patch([r.id], { status: 'waiting', reason: undefined })}>Bring back</button></> : null}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {canPick && picked.length ? (
-                <div className="rq-pick" role="status">
-                  <span>{picked.length} selected</span>
-                  <span className="rq-pick__sups">{pickedSuppliers.join(' · ')}</span>
-                  {tab === 'waiting' ? <button type="button" className="gc-btn gc-btn--flat" onClick={() => approve(picked.map((r) => r.id))}>Approve only</button> : null}
-                  <button type="button" className="gc-btn" onClick={openPreview}><Icon name="file-text" width="18" height="18" aria-hidden="true" /> Make {pickedSuppliers.length} purchase order{pickedSuppliers.length === 1 ? '' : 's'}</button>
+              {made ? (
+                <div className="gc-alert gc-alert--soft gc-alert--success rq-made" role="status">
+                  <Icon name="circle-check" width="16" height="16" aria-hidden="true" />
+                  <div className="rq-made__text">
+                    <p><b>{made.length} purchase order{made.length === 1 ? '' : 's'} made as draft{made.length === 1 ? '' : 's'}.</b> Check each one and send it to the supplier.</p>
+                    <div className="rq-made__list">{made.map((o) => <span key={o.no}><Link href={`/po-detail?no=${o.no}`}>{o.no}</Link> · {o.supplier} · {formatBDT(o.total)}</span>)}</div>
+                  </div>
+                  <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Close this message" onClick={() => setMade(null)}><Icon name="x" width="16" height="16" aria-hidden="true" /></button>
                 </div>
               ) : null}
-            </section>
+
+              <section className="ix-card" aria-label="Staff requests">
+                {canPick && picked.length ? (
+                  <div className="ix-bulk" role="toolbar" aria-label="Selected requests">
+                    <input type="checkbox" checked={allPicked} onChange={toggleAll} aria-label="Select all requests" style={{ width: 16, height: 16, margin: '0 6px', accentColor: 'var(--primary)' }} />
+                    <span className="ix-bulk__n">{picked.length} selected</span>
+                    <span className="rq-bulk-sups">{pickedSuppliers.join(' · ')}</span>
+                    {tab === 'waiting' ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => approve(picked.map((r) => r.id))}><Icon name="check" width="16" height="16" aria-hidden="true" />Approve only</button> : null}
+                    <button type="button" className="ix-btn ix-btn--sm ix-btn--primary" onClick={openPreview}><Icon name="file-text" width="16" height="16" aria-hidden="true" />Make {pickedSuppliers.length} purchase order{pickedSuppliers.length === 1 ? '' : 's'}</button>
+                    <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => setSel({})}>Clear selection</button>
+                  </div>
+                ) : (
+                  <div className="ix-bar">
+                    {searching ? (<>
+                      <SearchField value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search product, staff or supplier" onDone={closeFind} autoFocus />
+                      <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={closeFind}>Cancel</button>
+                    </>) : (<>
+                      <IndexTabs label="Requests by status" tabs={TABS.map(([k, label]) => ({ key: k, id: 'rq-tab-' + k, label, count: counts[k], on: tab === k, onClick: () => pickTab(k) }))} />
+                      <span className="ix-tools">
+                        <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search and filter" onClick={() => setFind(true)}><Icon name="search" width="16" height="16" aria-hidden="true" /></button>
+                      </span>
+                    </>)}
+                  </div>
+                )}
+                {searching && !(canPick && picked.length) ? (
+                  <div className="ix-filters" role="group" aria-label="Filters">
+                    <select aria-label="Buy from" className={'ix-filter' + (sup ? ' is-set' : '')} value={sup} onChange={(e) => setSup(e.target.value)}>
+                      <option value="">Buy from</option>
+                      {supplierList.map((x) => <option key={x}>{x}</option>)}
+                    </select>
+                    {hasFilters ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={clearFilters}>Clear all</button> : null}
+                  </div>
+                ) : null}
+
+                {shown.length === 0 ? (
+                  <div className="ix-empty">
+                    <EmptyState icon="clipboard-list" title={hasFilters ? 'No request matches that search' : tab === 'waiting' ? 'Every request has been answered.' : `No ${BADGE[tab][0].toLowerCase()} request`}
+                      actionLabel={hasFilters ? 'Clear filters' : undefined} onAction={hasFilters ? clearFilters : undefined} />
+                  </div>
+                ) : (<>
+                  <ul className="ix-plist" aria-label="Staff requests">
+                    {shown.map((r) => (
+                      <li key={r.id}>
+                        <button type="button" className="ix-pitem rq-pbtn" onClick={() => openRow(r)}>
+                          <span className="ix-pitem__top"><b>{r.name}</b><span>{r.qty} pcs</span></span>
+                          <span className="ix-pitem__mid">{r.by} · {r.place} · {formatDate(r.need)}</span>
+                          <span className="ix-pitem__tags">
+                            <StatusBadge tone={r.stock < 10 ? 'error' : 'neutral'}>{r.stock === 0 ? 'Out' : r.stock + ' left'}</StatusBadge>
+                            {r.status === 'ordered' && r.po ? <span className="gc-badge gc-badge--success rq-id">{r.po}</span> : null}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="ix-table-wrap">
+                    <table className="ix-table gc-table--keep">
+                      <caption className="sr-only">Staff requests</caption>
+                      <thead><tr>
+                        {canPick ? <th scope="col" className="ix-check"><input type="checkbox" aria-label="Select all requests" checked={allPicked} onChange={toggleAll} /></th> : null}
+                        <th scope="col">Product</th><th scope="col">Asked by</th><th scope="col">Needed by</th><th scope="col">Buy from</th><th scope="col" className="ix-num">Asked for</th><th scope="col">In stock</th>
+                        {tab === 'ordered' ? <th scope="col">Purchase order</th> : null}
+                        {tab === 'rejected' ? <th scope="col">Reason</th> : null}
+                        {tab === 'rejected' ? <th scope="col"><span className="sr-only">Actions</span></th> : null}
+                      </tr></thead>
+                      <tbody>
+                        {shown.map((r) => (
+                          <tr key={r.id} className={sel[r.id] ? 'is-sel' : ''} onClick={(e) => { if (!e.target.closest('a,button,input,label')) openRow(r); }} style={r.status === 'rejected' ? { cursor: 'default' } : undefined}>
+                            {canPick ? <td className="ix-check"><input type="checkbox" aria-label={`Select ${r.name}`} checked={!!sel[r.id]} onChange={(e) => setSel({ ...sel, [r.id]: e.target.checked })} /></td> : null}
+                            <td><span className="ix-strong rq-name">{r.name}</span></td>
+                            <td>{r.by}</td>
+                            <td className="ix-muted">{formatDate(r.need)}</td>
+                            <td>{r.supplier}</td>
+                            <td className="ix-num">{r.qty}</td>
+                            <td className={r.stock < 10 ? 'rq-low' : 'ix-muted'}>{r.stock === 0 ? 'Out' : r.stock + ' left'}</td>
+                            {tab === 'ordered' ? <td>{r.po ? <Link href={`/po-detail?no=${r.po}`} className="ix-strong rq-id">{r.po}</Link> : '—'}</td> : null}
+                            {tab === 'rejected' ? <td><span className="rq-reason" title={r.reason}>{r.reason}</span></td> : null}
+                            {tab === 'rejected' ? <td><button type="button" className="ix-btn ix-btn--sm" onClick={() => patch([r.id], { status: 'waiting', reason: undefined })}>Bring back</button></td> : null}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>)}
+                <div className="ix-foot"><span>{shown.length} {shown.length === 1 ? 'request' : 'requests'}</span></div>
+              </section>
+              <LearnMore topic="staff requests" />
+            </div>
           </div>
         </main>
       </div>
@@ -347,7 +361,7 @@ export default function Requests() {
                       <tbody>
                         {g.lines.map((l) => (
                           <tr key={l.name}>
-                            <td><span className="rq-strong">{l.name}</span><span className="rq-sub"><span className="rq-code">{l.code}</span> · {l.ids.join(', ')}</span></td>
+                            <td><span className="rq-strong">{l.name}</span><span className="rq-sub"><span className="rq-id">{l.code}</span> · {l.ids.join(', ')}</span></td>
                             <td className="rq-num">{l.qty}</td>
                             <td className="rq-num">{formatBDT(l.cost)}</td>
                             <td className="rq-num rq-strong">{formatBDT(l.qty * l.cost)}</td>
@@ -369,7 +383,7 @@ export default function Requests() {
       <Dialog open={!!ap} title={ap ? `Approve · ${ap.row.name}` : 'Approve'} onClose={() => setAp(null)} width={520}>
         {ap ? (
           <form className="rq-form" onSubmit={(e) => { e.preventDefault(); approveOne(true); }}>
-            <p className="gc-help" style={{ margin: 0 }}>{ap.row.by} asked for {ap.row.qty} pcs for {ap.row.place} · {ap.row.stock === 0 ? 'out of stock now' : ap.row.stock + ' left now'}{ap.row.note ? ` · “${ap.row.note}”` : ''}</p>
+            <p className="gc-help" style={{ margin: 0 }}><span className="rq-id">{ap.row.id} · {ap.row.code}</span> · {ap.row.by} asked for {ap.row.qty} pcs for {ap.row.place} · needed by {formatDate(ap.row.need)} · {ap.row.stock === 0 ? 'out of stock now' : ap.row.stock + ' left now'}{ap.row.note ? ` · “${ap.row.note}”` : ''}</p>
             <div className="rq-two">
               <div><label className="gc-label" htmlFor="ap-qty">Quantity to buy</label><input id="ap-qty" className="gc-input" type="number" min="1" inputMode="numeric" data-autofocus value={ap.qty} onChange={(e) => setAp({ ...ap, qty: e.target.value })} />{num(ap.qty) !== ap.row.qty ? <p className="gc-help">Changed from {ap.row.qty} pcs</p> : null}</div>
               <div><label className="gc-label" htmlFor="ap-cost">Unit cost (৳)</label><input id="ap-cost" className="gc-input" type="number" min="0" step="0.01" inputMode="decimal" value={ap.cost} onChange={(e) => setAp({ ...ap, cost: e.target.value })} /></div>
@@ -380,7 +394,10 @@ export default function Requests() {
             </div>
             <div className="rq-sum" role="status"><span>{num(ap.qty)} pcs × {formatBDT(Math.max(0, Number(ap.cost) || 0))} from <b>{ap.supplier}</b></span><span>Order total <b>{formatBDT(num(ap.qty) * Math.max(0, Number(ap.cost) || 0))}</b></span></div>
             <div className="gc-modal__foot" style={{ marginTop: 0 }}>
-              <button type="button" className="gc-btn gc-btn--neutral" style={{ marginRight: 'auto' }} onClick={() => setAp(null)}>Cancel</button>
+              {ap.row.status === 'approved'
+                ? <button type="button" className="gc-btn gc-btn--neutral" style={{ marginRight: 'auto' }} onClick={reviewToWaiting}>Back to waiting</button>
+                : <button type="button" className="gc-btn gc-btn--neutral" style={{ marginRight: 'auto', color: 'var(--text-danger)' }} onClick={reviewToReject}>Reject</button>}
+              <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setAp(null)}>Cancel</button>
               <button type="button" className="gc-btn gc-btn--soft" onClick={() => approveOne(false)}>Approve only</button>
               <button type="submit" className="gc-btn gc-btn--solid"><Icon name="file-plus" width="18" height="18" aria-hidden="true" /> Create order and approve</button>
             </div>

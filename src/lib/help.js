@@ -267,7 +267,8 @@ export const HELP = {
 };
 
 // ---- made-up help for pages without an entry ----------------------------------------------------
-const ALL = NAV.flatMap((g) => g.items.flatMap((it) => [{ ...it, group: g.label }, ...(it.children || []).map((c) => ({ ...c, group: g.label, parent: it }))]));
+// a page's group is its area (Orders, Inventory …); an item without pages is its own
+const ALL = NAV.flatMap((g) => g.items.flatMap((it) => [{ ...it, group: g.label }, ...(it.children || []).map((c) => ({ ...c, group: it.label, parent: it }))]));
 const pathOf = (it) => (it.to ? routeOf(it.to).split('?')[0] : '');
 export function navItemFor(path) { return ALL.find((it) => pathOf(it) === path) || null; }
 

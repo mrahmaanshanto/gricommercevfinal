@@ -1,6 +1,8 @@
 'use client';
 // ExpiryPanel — stock that is expired or expires in the next 30 days (Damaged & expired page), from the expiry dates
 // entered on purchases (src/lib/batches.js). Write off takes the pieces out of stock. Text stays short.
+// A Shopify-style card (components/ui/IndexKit.jsx): one line of totals under the title, then a compact table
+// (product, supplier, place, expiry, qty, value at cost) with one small Write off per row; a list on phones.
 
 import React, { useEffect, useState } from 'react';
 import { Icon } from '@/runtime/dc';
@@ -11,25 +13,13 @@ import { expiryList, writeOffBatch, BATCH_EVENT } from '@/lib/batches';
 import { isOnePlace } from '@/lib/stockSetup';
 
 const CSS = `
-.xp{overflow:hidden}
-.xp-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:var(--space-3);padding:var(--space-4) var(--space-5)}
-.xp-head h2{display:flex;align-items:center;gap:8px;margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.xp-head p{margin:2px 0 0;font-size:var(--text-xs);color:var(--text-muted)}
-.xp-rows{display:flex;flex-direction:column}
-.xp-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;align-items:center;gap:var(--space-4);min-height:60px;padding:var(--space-2) var(--space-5);border-top:1px solid var(--border-subtle)}
-.xp-main{display:flex;flex-direction:column;min-width:0}
-.xp-main b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.xp-main small{font-size:var(--text-xs);color:var(--text-muted)}
+.xp-head{align-items:flex-start;padding-bottom:var(--space-3)}
 .xp-when{display:inline-flex;align-items:center;gap:4px;font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
 .xp-when.is-gone{color:var(--text-danger)}.xp-when.is-soon{color:var(--text-warning)}
-.xp-num{font-family:var(--font-data);font-size:var(--text-sm);color:var(--text-heading);text-align:right;white-space:nowrap}
-.xp-num small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
-@media (max-width:640px){
-  .xp-head{padding:var(--space-3) var(--space-4)}
-  .xp-row{grid-template-columns:minmax(0,1fr) auto;row-gap:6px;padding:var(--space-3) var(--space-4)}
-  .xp-row .xp-when{grid-column:1;grid-row:2}
-  .xp-row .gc-btn{grid-column:2;grid-row:2;justify-self:end}
-}
+.xp-cell{display:block;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xp-act{text-align:right}
+.xp-pitem{cursor:default}
+.xp-pitem__ctl{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2)}
 `;
 
 export default function ExpiryPanel() {
@@ -52,28 +42,61 @@ export default function ExpiryPanel() {
     setRows(expiryList());
     toast('Written off');
   };
+  const when = (r) => (
+    <span className={'xp-when ' + (r.expired ? 'is-gone' : 'is-soon')}><Icon name={r.expired ? 'circle-x' : 'clock'} width="14" height="14" aria-hidden="true" />{r.expired ? `Expired ${formatDate(r.expiry)}` : r.daysLeft <= 1 ? 'Expires today' : `${r.daysLeft} days left`}</span>
+  );
 
   return (
-    <section className="gc-card xp" aria-labelledby="xp-title">
+    <section className="ix-card" aria-labelledby="xp-title">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
-      <div className="xp-head">
+      <div className="ix-card__head xp-head">
         <div>
-          <h2 id="xp-title"><Icon name="calendar-x" width="17" height="17" aria-hidden="true" />Expiry</h2>
-          <p>{rows.length ? `${expired.length} expired · ${rows.length - expired.length} expire in 30 days · ${formatBDT(Math.round(value))} at cost` : 'Nothing expires in the next 30 days'}</p>
+          <h2 id="xp-title">Expiry</h2>
+          <p className="ix-card__sub">{rows.length ? `${expired.length} expired · ${rows.length - expired.length} expire in 30 days · ${formatBDT(Math.round(value))} at cost` : 'Nothing expires in the next 30 days'}</p>
         </div>
       </div>
-      {rows.length ? (
-        <div className="xp-rows">
+      {rows.length ? (<>
+        <ul className="ix-plist" aria-label="Expiry">
           {rows.map((r) => (
-            <div key={r.id} className="xp-row">
-              <span className="xp-main"><b>{r.name}</b><small>{[one ? '' : r.place, r.supplier, r.ref].filter(Boolean).join(' · ')}</small></span>
-              <span className={'xp-when ' + (r.expired ? 'is-gone' : 'is-soon')}><Icon name={r.expired ? 'circle-x' : 'clock'} width="14" height="14" aria-hidden="true" />{r.expired ? `Expired ${formatDate(r.expiry)}` : r.daysLeft <= 1 ? 'Expires today' : `${r.daysLeft} days left`}</span>
-              <span className="xp-num">{r.left} pcs<small>{formatBDT(Math.round(r.value))}</small></span>
-              <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => writeOff(r)}>Write off</button>
-            </div>
+            <li key={r.id}>
+              <div className="ix-pitem xp-pitem">
+                <span className="ix-pitem__top"><b>{r.name}</b><span>{`${r.left} pcs`}</span></span>
+                <span className="ix-pitem__mid">{[one ? '' : r.place, r.supplier, r.ref].filter(Boolean).join(' · ')}</span>
+                <span className="xp-pitem__ctl">{when(r)}<button type="button" className="ix-btn ix-btn--sm" onClick={() => writeOff(r)}>Write off</button></span>
+              </div>
+            </li>
           ))}
+        </ul>
+        <div className="ix-table-wrap">
+          <table className="ix-table ix-table--static gc-table--keep">
+            <caption className="sr-only">Expired and expiring stock</caption>
+            <thead>
+              <tr>
+                <th scope="col">Product</th>
+                <th scope="col">Supplier</th>
+                {one ? null : <th scope="col">Place</th>}
+                <th scope="col">Expiry</th>
+                <th scope="col" className="ix-num">Qty</th>
+                <th scope="col" className="ix-num">Value at cost</th>
+                <th scope="col"><span className="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id}>
+                  <td><span className="ix-strong xp-cell">{r.name}</span></td>
+                  <td className="ix-muted"><span className="xp-cell">{[r.supplier, r.ref].filter(Boolean).join(' · ') || '—'}</span></td>
+                  {one ? null : <td className="ix-muted">{r.place}</td>}
+                  <td>{when(r)}</td>
+                  <td className="ix-num">{r.left}</td>
+                  <td className="ix-num">{formatBDT(Math.round(r.value))}</td>
+                  <td className="xp-act"><button type="button" className="ix-btn ix-btn--sm" onClick={() => writeOff(r)}>Write off</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      ) : <div style={{ padding: '0 var(--space-5) var(--space-5)' }}><EmptyState icon="calendar-check" title="Nothing expiring" body="Add expiry dates when you enter a purchase." /></div>}
+      </>) : <div className="ix-empty"><EmptyState icon="calendar-check" title="Nothing expiring" body="Add expiry dates when you enter a purchase." /></div>}
     </section>
   );
 }

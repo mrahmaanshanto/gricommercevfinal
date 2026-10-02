@@ -1,32 +1,23 @@
 'use client';
 // Gratuity & leaving (/gratuity) — the gratuity rule (HR setup › settings.gratuity: days of basic per full year,
 // after how many years), what each person has built up and could take if they left today, who becomes eligible
-// soon, and the people who left with their final settlement (src/lib/hr.js › gratuityOf, settleLeaving).
+// soon, and the people who left with their final settlement (src/lib/hr.js › gratuityOf, settleLeaving). The rule is
+// the title's meta line; a person opens their profile's salary tab, where Leaving (final settlement) is.
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
-import { Dialog, EmptyState, InfoTip } from '@/components/ui';
+import { Dialog, EmptyState, InfoTip, StatusBadge } from '@/components/ui';
+import { MetricStrip, LearnMore } from '@/components/ui/IndexKit';
+import { navigate } from '@/runtime/routes';
 import { formatDate } from '@/lib/format';
 import { fromKey } from '@/lib/settlements';
 import { gratuityOf, serviceOf, todayKey, saveSettings, addDays } from '@/lib/hr';
-import { HrPage, useHr, Person, money } from './hrShared';
-import { LeavingDialog } from './LeavingDialog';
+import { HrPage, useHr, Person, money, profileHref, rowGo } from './hrShared';
 import { FORM_CSS, Seg } from '@/screens/staff-profile/staffForm';
 
 const CSS = `
-.gr-rule{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3) var(--space-5);padding:var(--space-4) var(--space-5)}
-.gr-rule > div{display:flex;flex-direction:column}
-.gr-rule b{font-size:var(--text-md);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.gr-rule span{font-size:var(--text-xs);color:var(--text-muted)}
-.gr-prog{display:block;width:120px;margin-top:6px}
-@media (max-width:640px){
-  /* the rule reads as a plain two-column list of facts; the lone icon goes */
-  .gr-rule{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3) var(--space-4)}
-  .gr-rule > .rp-tile{display:none}
-  .gr-rule > .hr-sub{grid-column:1 / -1;margin-left:0!important;max-width:none!important}
-}
+.gr-prog{display:block;width:110px;margin-top:4px}
 `;
 
 export default function Gratuity() {
@@ -34,7 +25,6 @@ export default function Gratuity() {
   const g = S.settings.gratuity || {};
   const today = todayKey(S);
   const [rule, setRule] = useState(null);
-  const [leaving, setLeaving] = useState('');
   const active = S.staff.filter((s) => s.status !== 'left');
   const rows = active.map((s) => ({ s, gr: gratuityOf(S, s) })).sort((a, b) => b.gr.service.total - a.gr.service.total);
   const built = rows.reduce((a, r) => a + r.gr.provision, 0);
@@ -51,68 +41,75 @@ export default function Gratuity() {
     setRule(null);
   };
 
+  const ruleText = g.on
+    ? <>{g.days} days’ {g.base === 'gross' ? 'gross' : 'basic'} <span>for each full year</span>{g.daysAfter10 && g.daysAfter10 !== g.days ? <> · {g.daysAfter10} days <span>a year once past 10 years</span></> : null} · After {g.after} years{g.encashEarned ? <> · <span>earned leave cashed in on leaving</span></> : null}</>
+    : <><span>Gratuity is off</span> · <span>Only salary to the last day is paid when someone leaves.</span></>;
+
   return (
     <HrPage screen="Gratuity" active="hr-gratuity" page="Gratuity & leaving" title="Gratuity & leaving" css={FORM_CSS + CSS}
-      about="What each person has built up, who can take it, and the final settlement when someone leaves."
-      actions={<button type="button" className="gc-btn gc-btn--neutral" onClick={() => setRule({ ...g })}><Icon name="settings-2" width="18" height="18" aria-hidden="true" /> Gratuity rule</button>}>
-      <section className="gc-card">
-        <div className="gr-rule">
-          <span className="rp-tile"><Icon name="award" width="18" height="18" aria-hidden="true" /></span>
-          {g.on ? <>
-            <div><b>{g.days} days’ {g.base === 'gross' ? 'gross' : 'basic'}</b><span>for each full year of service</span></div>
-            {g.daysAfter10 && g.daysAfter10 !== g.days ? <div><b>{g.daysAfter10} days</b><span>a year once past 10 years</span></div> : null}
-            <div><b>After {g.after} years</b><span>before that nothing is paid</span></div>
-            <div><b>{g.encashEarned ? 'Yes' : 'No'}</b><span>earned leave cashed in on leaving</span></div>
-          </> : <div><b>Gratuity is off</b><span>Only salary to the last day is paid when someone leaves.</span></div>}
-          <span style={{ marginLeft: 'auto' }}><InfoTip text="Bangladesh Labour Act 2006, s.2(10): at least 30 days’ wages for each completed year, 45 days after 10 years." /></span>
-        </div>
-      </section>
+      meta={ruleText}
+      about="What each person has built up, who can take it, and the final settlement when someone leaves. Bangladesh Labour Act 2006, s.2(10): at least 30 days’ wages for each completed year, 45 days after 10 years."
+      secondary={[{ label: 'Gratuity rule', onClick: () => setRule({ ...g }) }]}
+      more={[{ label: 'Liabilities', href: '/liabilities' }]}>
 
-      <div className="gc-kpis">
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="piggy-bank" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Built up so far</p><p className="gc-kpi__value">{money(built)}<small>for {active.length} people</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-warning-soft)', color: 'var(--text-warning)' }}><Icon name="hand-coins" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Payable if they left today</p><p className="gc-kpi__value">{money(payable)}<small>{rows.filter((r) => r.gr.eligible).length} eligible now</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-info-soft)', color: 'var(--text-info)' }}><Icon name="calendar-clock" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Eligible within a year</p><p className="gc-kpi__value">{soon.length}<small>{soon.map((r) => r.s.name.split(' ')[0]).join(', ') || 'nobody'}</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="landmark" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Set aside each month</p><p className="gc-kpi__value">{money(monthly)}<small>keeps the fund level</small></p></div></div>
-      </div>
+      <MetricStrip label="Gratuity" items={[
+        { label: 'Built up so far', value: money(built), sub: `for ${active.length} people` },
+        { label: 'Payable if they left today', value: money(payable), sub: `${rows.filter((r) => r.gr.eligible).length} eligible now` },
+        { label: 'Eligible within a year', value: String(soon.length), sub: soon.map((r) => r.s.name.split(' ')[0]).join(', ') || 'nobody' },
+        { label: 'Set aside each month', value: money(monthly) },
+      ]} />
 
-      <section className="gc-card hr-card">
-        <div className="hr-head"><div><h2>Everyone <InfoTip text="Longest service first. Built up counts part years; payable counts full years once eligible." /></h2></div></div>
+      <section className="ix-card" aria-labelledby="gr-all">
+        <header className="ix-card__head"><h2 id="gr-all">Everyone <InfoTip text="Longest service first. Built up counts part years; payable counts full years once eligible. Bangladesh Labour Act 2006, s.2(10): at least 30 days’ wages for each completed year, 45 days after 10 years." /></h2></header>
         {rows.length ? (
-          <div className="gc-table-wrap">
-            <table className="gc-table gc-table--compact">
-              <thead><tr><th scope="col">Staff</th><th scope="col">Service</th><th scope="col" className="hr-num">Basic</th><th scope="col">Eligible</th><th scope="col" className="hr-num">Built up</th><th scope="col" className="hr-num">Payable today</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
-              <tbody>{rows.map(({ s, gr }) => {
-                const pct = Math.min(100, (gr.service.total / ((g.after || 5) * 12)) * 100);
-                return (
-                  <tr key={s.code}>
-                    <td><Person st={s} sub={`${s.code} · ${s.designation}`} /></td>
-                    <td>{gr.service.text}<span className="hr-sub">since {formatDate(fromKey(s.joined))}</span></td>
-                    <td className="hr-num hr-fig">{money(gr.basic)}</td>
-                    <td>{gr.eligible ? <span className="gc-badge gc-badge--success">Eligible</span> : <><span className="hr-sub">from {formatDate(fromKey(gr.eligibleOn))}</span><span className="gc-progress gr-prog" aria-hidden="true"><span className="gc-progress__fill" style={{ width: pct + '%', display: 'block' }} /></span></>}</td>
-                    <td className="hr-num hr-fig">{money(gr.provision)}</td>
-                    <td className="hr-num hr-fig hr-strong">{gr.amount ? money(gr.amount) : '—'}</td>
-                    <td><div className="hr-actions"><button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setLeaving(s.code)}>Leaving…</button></div></td>
-                  </tr>
-                );
-              })}</tbody>
-            </table>
-          </div>
-        ) : <EmptyState icon="users" title="No staff" body="Add staff to see their gratuity." />}
+          <>
+            <ul className="ix-plist" aria-label="Everyone">
+              {rows.map(({ s, gr }) => (
+                <li key={s.code}>
+                  <button type="button" className="ix-pitem" onClick={() => navigate(profileHref(s.code, 'salary'))}>
+                    <span className="ix-pitem__top"><b>{s.name}</b><span>{gr.amount ? money(gr.amount) : money(gr.provision)}</span></span>
+                    <span className="ix-pitem__mid">{gr.service.text} · {gr.eligible ? 'Eligible' : `from ${formatDate(fromKey(gr.eligibleOn))}`}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="ix-table-wrap" style={{ marginTop: 'var(--space-2)' }}>
+              <table className="ix-table gc-table--keep">
+                <caption className="sr-only">Gratuity for everyone</caption>
+                <thead><tr><th scope="col">Staff</th><th scope="col">Service</th><th scope="col" className="ix-num">Basic</th><th scope="col">Eligible</th><th scope="col" className="ix-num">Built up</th><th scope="col" className="ix-num">Payable today</th></tr></thead>
+                <tbody>{rows.map(({ s, gr }) => {
+                  const pct = Math.min(100, (gr.service.total / ((g.after || 5) * 12)) * 100);
+                  return (
+                    <tr key={s.code} onClick={rowGo(() => navigate(profileHref(s.code, 'salary')))}>
+                      <td><Person st={s} /></td>
+                      <td>{gr.service.text}<span className="hr-sub">since {formatDate(fromKey(s.joined))}</span></td>
+                      <td className="ix-num hr-fig">{money(gr.basic)}</td>
+                      <td>{gr.eligible ? <StatusBadge tone="success">Eligible</StatusBadge> : <><span className="hr-sub">from {formatDate(fromKey(gr.eligibleOn))}</span><span className="gc-progress gr-prog" aria-hidden="true"><span className="gc-progress__fill" style={{ width: pct + '%', display: 'block' }} /></span></>}</td>
+                      <td className="ix-num hr-fig">{money(gr.provision)}</td>
+                      <td className="ix-num hr-fig hr-strong">{gr.amount ? money(gr.amount) : '—'}</td>
+                    </tr>
+                  );
+                })}</tbody>
+              </table>
+            </div>
+          </>
+        ) : <div className="ix-empty"><EmptyState icon="users" title="No staff" /></div>}
       </section>
 
-      <section className="gc-card hr-card">
-        <div className="hr-head"><div><h2>People who left</h2><p>Their final settlement is a liability in Accounts until paid.</p></div><Link href="/liabilities" className="gc-btn gc-btn--sm gc-btn--neutral">Liabilities</Link></div>
+      <section className="ix-card" aria-labelledby="gr-left">
+        <header className="ix-card__head"><h2 id="gr-left">People who left <InfoTip text="Their final settlement is a liability in Accounts until paid." /></h2><Link href="/liabilities">Liabilities</Link></header>
         {left.length ? (
-          <div className="gc-table-wrap">
-            <table className="gc-table gc-table--compact">
-              <thead><tr><th scope="col">Staff</th><th scope="col">Last day</th><th scope="col">Why</th><th scope="col" className="hr-num">Service</th><th scope="col" className="hr-num">Gratuity</th><th scope="col" className="hr-num">Settlement</th></tr></thead>
-              <tbody>{left.map((s) => <tr key={s.code}><td><Person st={s} sub={`${s.code} · ${s.designation}`} /></td><td>{s.lastDay ? formatDate(fromKey(s.lastDay)) : '—'}</td><td>{s.leftReason || '—'}</td><td className="hr-num">{s.lastDay ? serviceOf(s, s.lastDay).text : '—'}</td><td className="hr-num hr-fig">{s.settlement && s.settlement.gratuity ? money(s.settlement.gratuity) : '—'}</td><td className="hr-num hr-fig hr-strong">{s.settlement ? money(s.settlement.net) : '—'}{s.settlement && s.settlement.liabilityId ? <span className="hr-sub">{s.settlement.liabilityId}</span> : null}</td></tr>)}</tbody>
+          <div className="ix-table-wrap ix-table-wrap--show" style={{ marginTop: 'var(--space-2)' }}>
+            <table className="ix-table gc-table--keep">
+              <caption className="sr-only">People who left</caption>
+              <thead><tr><th scope="col">Staff</th><th scope="col">Last day</th><th scope="col">Why</th><th scope="col" className="ix-num">Service</th><th scope="col" className="ix-num">Gratuity</th><th scope="col" className="ix-num">Settlement</th></tr></thead>
+              <tbody>{left.map((s) => <tr key={s.code} onClick={rowGo(() => navigate(profileHref(s.code)))}><td><Person st={s} /></td><td className="ix-muted">{s.lastDay ? formatDate(fromKey(s.lastDay)) : '—'}</td><td>{s.leftReason || '—'}</td><td className="ix-num">{s.lastDay ? serviceOf(s, s.lastDay).text : '—'}</td><td className="ix-num hr-fig">{s.settlement && s.settlement.gratuity ? money(s.settlement.gratuity) : '—'}</td><td className="ix-num hr-fig hr-strong">{s.settlement ? money(s.settlement.net) : '—'}{s.settlement && s.settlement.liabilityId ? <span className="hr-sub">{s.settlement.liabilityId}</span> : null}</td></tr>)}</tbody>
             </table>
           </div>
-        ) : <p className="hr-sub" style={{ margin: 0, padding: '0 var(--space-5) var(--space-5)' }}>Nobody has left since records started here.</p>}
+        ) : <p className="hr-empty">Nobody has left since records started here.</p>}
       </section>
+      <LearnMore topic="gratuity" />
 
-      {leaving ? <LeavingDialog S={S} code={leaving} onClose={() => setLeaving('')} /> : null}
       <Dialog open={!!rule} title="Gratuity rule" onClose={() => setRule(null)} width={560}
         footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setRule(null)}>Cancel</button><button type="submit" form="gr-form" className="gc-btn gc-btn--solid">Save</button></>}>
         {rule ? (

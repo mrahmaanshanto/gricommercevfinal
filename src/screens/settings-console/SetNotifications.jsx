@@ -6,7 +6,6 @@
 // Saved in this browser (gc.notify.settings); orders send through notify(). Text stays short (Shopify style).
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { SettingsSwitcher } from '@/shell/Shell';
 import { Sheet } from '@/components/ui';
@@ -19,15 +18,13 @@ const GROUPS = [...new Set(EVENTS.map((e) => e.group))];
 const SAMPLE = Object.fromEntries(VARIABLES.map(([k, , ex]) => [k, ex]));
 
 const CSS = `
-.sn-card{border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card)}
-.sn-card>header{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle)}
-.sn-card>header h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.sn-card>header p{margin:2px 0 0;font-size:var(--text-xs);color:var(--text-muted)}
-.sn-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-4);padding:var(--space-5)}
-.sn-head,.sn-row{display:grid;grid-template-columns:minmax(0,1fr) 64px 64px 84px 64px 96px;align-items:center;gap:var(--space-3);padding:0 var(--space-5)}
-.sn-head{min-height:40px;background:var(--surface-subtle);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
+.sn-card>header{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-height:44px;padding:var(--space-3) var(--space-4) 0}
+.sn-card>header h2{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.sn-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-4);padding:var(--space-3) var(--space-4) var(--space-4)}
+.sn-head,.sn-row{display:grid;grid-template-columns:minmax(0,1fr) 64px 64px 84px 64px 80px;align-items:center;gap:var(--space-3);padding:0 var(--space-4)}
+.sn-head{min-height:36px;margin-top:var(--space-3);border-top:1px solid var(--border-subtle);border-bottom:1px solid var(--border-subtle);background:var(--surface-subtle);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body)}
 .sn-head span:not(:first-child){text-align:center}
-.sn-row{min-height:60px;border-top:1px solid var(--border-subtle)}
+.sn-row{min-height:48px;padding-block:6px;border-top:1px solid var(--border-subtle)}
 .sn-row:first-of-type{border-top:0}
 .sn-ev{display:flex;flex-direction:column;min-width:0}
 .sn-ev b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
@@ -40,11 +37,11 @@ const CSS = `
 .sn-vars button{height:32px;padding:0 10px;border:1px solid var(--border-subtle);border-radius:var(--radius-full);background:var(--surface-card);font:inherit;font-family:var(--font-data);font-size:var(--text-xs);color:var(--text-body);cursor:pointer}
 .sn-vars button:hover{border-color:var(--primary);color:var(--primary)}
 .sn-ed{display:flex;flex-direction:column;gap:var(--space-4)}
-.sn-ed h3{margin:0;font-size:var(--text-xs);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
+.sn-ed h3{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .sn-count{display:block;margin-top:4px;font-size:var(--text-xs);color:var(--text-muted)}
 .sn-prev{padding:var(--space-3);border-radius:var(--radius-lg);background:var(--surface-subtle);font-size:var(--text-sm);line-height:1.5;color:var(--text-body);white-space:pre-wrap;overflow-wrap:anywhere}
 .sn-prev b{display:block;margin-bottom:4px;color:var(--text-heading)}
-.sn-bar{position:sticky;bottom:0;z-index:5;display:flex;align-items:center;justify-content:flex-end;gap:var(--space-2);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle);background:var(--surface-header);backdrop-filter:blur(8px)}
+.sn-bar{position:sticky;bottom:0;z-index:5;display:flex;align-items:center;justify-content:flex-end;gap:var(--space-2);min-height:52px;padding:8px 24px;border-top:1px solid var(--border-subtle);background:var(--surface-card);box-shadow:0 -8px 22px -14px rgba(15,23,42,.25)}
 .sn-bar span{margin-right:auto;font-size:var(--text-sm);color:var(--text-muted)}
 @media (max-width:767px){
   .sn-fields{grid-template-columns:minmax(0,1fr);padding:var(--space-4)}
@@ -54,8 +51,7 @@ const CSS = `
   .sn-cell{flex-direction:column;align-items:center;gap:2px}
   .sn-cap{display:block;font-size:var(--text-xs);color:var(--text-muted)}
   .sn-row>.sn-edit{grid-column:1 / -1;justify-self:start}
-  .sn-card>header{padding:var(--space-3) var(--space-4)}
-}
+  }
 `;
 
 export default function SetNotifications() {
@@ -109,12 +105,12 @@ export default function SetNotifications() {
             <div className="set-shell__col">
               <div className="set-content">
                 <main className="set-main">
-                  <header>
-                    <h1 style={{ margin: '0 0 4px', fontSize: 'var(--text-2xl)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-heading)' }}>Order notifications</h1>
-                    <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>SMS and email for each order event.</p>
+                  <header className="set-pagehead">
+                    <span className="set-pagehead__text"><h1 className="ix-head__title">Order notifications</h1></span>
+                    <span className="gc-pagehead__about" hidden>SMS and email for each order event: turn each one on or off, choose who gets it, and edit its text with the order's details filled in.</span>
                   </header>
 
-                  <section className="sn-card" aria-labelledby="sn-sender">
+                  <section className="ix-card sn-card" aria-labelledby="sn-sender">
                     <header><div><h2 id="sn-sender">Sender</h2></div></header>
                     <div className="sn-fields">
                       <div><label className="gc-label" htmlFor="sn-name">SMS sender name</label><input id="sn-name" className="gc-input" maxLength={11} value={s.senderName} onChange={setTop('senderName')} /></div>
@@ -126,7 +122,7 @@ export default function SetNotifications() {
                   </section>
 
                   {GROUPS.map((g) => (
-                    <section key={g} className="sn-card" aria-labelledby={'sn-g-' + g}>
+                    <section key={g} className="ix-card sn-card" aria-labelledby={'sn-g-' + g}>
                       <header><h2 id={'sn-g-' + g}>{g}</h2></header>
                       <div className="sn-head" aria-hidden="true"><span>Event</span><span>SMS</span><span>Email</span><span>Customer</span><span>Shop</span><span /></div>
                       {EVENTS.filter((e) => e.group === g).map((e) => {
@@ -139,7 +135,7 @@ export default function SetNotifications() {
                             <span className="sn-cell"><button type="button" role="switch" className="set-sw" aria-checked={!!t.email} aria-label={`${e.label}: Email`} onClick={() => setEv(e.key, { email: !t.email })}><span aria-hidden="true" /></button><span className="sn-cap" aria-hidden="true">Email</span></span>
                             <span className="sn-cell"><input type="checkbox" checked={!!t.customer} aria-label={`${e.label}: to customer`} onChange={() => setEv(e.key, { customer: !t.customer })} /><span className="sn-cap" aria-hidden="true">Customer</span></span>
                             <span className="sn-cell"><input type="checkbox" checked={!!t.merchant} aria-label={`${e.label}: to shop`} onChange={() => setEv(e.key, { merchant: !t.merchant })} /><span className="sn-cap" aria-hidden="true">Shop</span></span>
-                            <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral sn-edit" onClick={() => openEdit(e.key)}><Icon name="pencil" width="15" height="15" aria-hidden="true" /> Edit</button>
+                            <button type="button" className="ix-btn ix-btn--sm sn-edit" onClick={() => openEdit(e.key)}>Edit</button>
                           </div>
                         );
                       })}
@@ -150,8 +146,8 @@ export default function SetNotifications() {
               {dirty ? (
                 <div className="sn-bar" role="region" aria-label="Unsaved changes">
                   <span>Unsaved changes</span>
-                  <button type="button" className="gc-btn gc-btn--neutral" onClick={discard}>Discard</button>
-                  <button type="button" className="gc-btn gc-btn--solid" onClick={save}>Save</button>
+                  <button type="button" className="ix-btn" onClick={discard}>Discard</button>
+                  <button type="button" className="ix-btn ix-btn--primary" onClick={save}>Save</button>
                 </div>
               ) : null}
             </div>

@@ -2,35 +2,38 @@
 // Salary statements (/salary-statements?code=EMP-0142&year=2026) — what a person was paid over a tax year (July–June)
 // or any months, from the payroll runs (src/lib/hr.js › statementOf): gross, overtime, incentive, bonus, cuts, loan
 // instalments, net, when and how it was paid. Everyone at once gives the totals per person. Saves as a PDF on the
-// shop's letterhead (for bank loans, visas and the income tax return) or CSV.
+// shop's letterhead (for bank loans, visas and the income tax return) or CSV. One card: the staff and period pickers,
+// then the statement; a click on a person in the everyone list opens their statement.
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Icon } from '@/runtime/dc';
-import { EmptyState } from '@/components/ui';
+import { EmptyState, StatusBadge } from '@/components/ui';
 import { formatDate } from '@/lib/format';
 import { fromKey } from '@/lib/settlements';
 import { SHELL_CSS } from '@/components/reports/ReportsShell';
 import { PrintLetterhead, PrintSignOff, LETTERHEAD_CSS, savePdf } from '@/components/reports/PrintLetterhead';
 import { statementOf, taxYearOf, todayKey, monthOf, monthLabel, addMonths, staffBy, takaWords, PAY_METHODS, payToText, gradeLabel, gradeOf } from '@/lib/hr';
-import { HrPage, useHr, Person, money, profileHref } from './hrShared';
+import { HrPage, useHr, Avatar, money, profileHref, rowGo } from './hrShared';
 
 const CSS = `
-.ss-bar{display:flex!important;flex-direction:row!important;justify-content:flex-start!important;flex-wrap:wrap;align-items:flex-end!important;gap:var(--space-3);padding:var(--space-4) var(--space-5)}
-.ss-bar > div{min-width:180px}
-.ss-who{display:flex;flex-wrap:wrap;gap:var(--space-4) var(--space-6);padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle)}
-.ss-who div{display:flex;flex-direction:column}
+.ss-bar{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);padding:8px 12px;border-bottom:1px solid var(--border-subtle)}
+.ss-bar .ix-pick{max-width:260px}
+.ss-who{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--space-3) var(--space-5);padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border-subtle)}
+.ss-who div{display:flex;flex-direction:column;min-width:0}
 .ss-who span{font-size:var(--text-xs);color:var(--text-muted)}
 .ss-who b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
-.ss-words{margin:0;padding:var(--space-3) var(--space-5) var(--space-5);font-size:var(--text-sm);color:var(--text-body)}
+.ss-words{margin:0;padding:var(--space-3) var(--space-4);border-top:1px solid var(--border-subtle);font-size:var(--text-sm);color:var(--text-body)}
+.ss-total td,.ss-total th{font-weight:var(--weight-semibold);color:var(--text-heading);background:var(--surface-subtle)}
+.ss-total th{text-align:left;padding:6px 12px}
+.ix-table tbody tr.ss-total{cursor:default}
 @media print{
   .ss-bar,.ss-noprint{display:none!important}
-  .gc-card{border:0!important;box-shadow:none!important}
-  .gc-table{font-size:8.5pt}
-  .gc-table th,.gc-table td{padding:5px 6px!important}
+  .ix-card{box-shadow:none!important}
+  .ix-table{font-size:8.5pt}
+  .ix-table th,.ix-table td{padding:5px 6px!important;height:auto!important}
   .ss-who{padding:6px 0 10px}
 }
-@media (max-width:640px){.ss-bar > div{flex:1 1 100%;min-width:0}.ss-bar .gc-input{width:100%}}
+@media (max-width:640px){.ss-bar .ix-pick{flex:1 1 100%;max-width:none}}
 `;
 
 const yearsFrom = (S) => {
@@ -80,67 +83,81 @@ export default function SalaryStatements() {
   };
 
   const added = (r) => r.ot + r.incentive + r.extras;
+  const empty = st ? !one.rows.length : !all.length;
   return (
-    <HrPage screen="SalaryStatements" active="hr-statements" page="Salary statements" title="Salary statements" css={SHELL_CSS + LETTERHEAD_CSS + CSS}
-      about="What each person was paid over a tax year or any months — for bank loans, visas and the income tax return."
-      actions={<>
-        <button type="button" className="gc-btn gc-btn--neutral" onClick={csv} disabled={!ready || (st ? !one.rows.length : !all.length)}><Icon name="sheet" width="18" height="18" aria-hidden="true" /> Download CSV</button>
-        <button type="button" className="gc-btn gc-btn--solid" onClick={() => savePdf(`Salary statement - ${st ? st.name : 'all staff'} - ${y ? y.label : from + ' to ' + to}`)} disabled={!ready || (st ? !one.rows.length : !all.length)}><Icon name="file-down" width="18" height="18" aria-hidden="true" /> Download PDF</button>
-      </>}>
-      <section className="gc-card ss-bar" aria-label="Choose">
-        <div><label className="gc-label" htmlFor="ss-who">Staff</label><select id="ss-who" className="gc-input gc-select" value={code} onChange={(e) => pickCode(e.target.value)}><option value="">Everyone (totals)</option>{S.staff.map((s) => <option key={s.code} value={s.code}>{s.name} · {s.code}{s.status === 'left' ? ' · left' : ''}</option>)}</select></div>
-        <div><label className="gc-label" htmlFor="ss-year">Period</label><select id="ss-year" className="gc-input gc-select" value={mode} onChange={(e) => setMode(e.target.value)}>{years.map((x) => <option key={x.label} value={x.from.slice(0, 4)}>Tax year {x.label}</option>)}<option value="custom">Choose months…</option></select></div>
-        {mode === 'custom' ? <>
-          <div><label className="gc-label" htmlFor="ss-from">From</label><input id="ss-from" type="month" className="gc-input" value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} /></div>
-          <div><label className="gc-label" htmlFor="ss-to">To</label><input id="ss-to" type="month" className="gc-input" min={range.from} value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} /></div>
-        </> : null}
-      </section>
+    <HrPage screen="SalaryStatements" active="hr-statements" page="Salary statements" title="Salary statements" icon="file-spreadsheet" css={SHELL_CSS + LETTERHEAD_CSS + CSS}
+      about="What each person was paid over a tax year or any months — for bank loans, visas and the income tax return. Pick a person for their month-by-month statement."
+      secondary={[{ label: 'Download CSV', onClick: csv, disabled: !ready || empty }]}
+      primary={{ label: 'Download PDF', onClick: () => savePdf(`Salary statement - ${st ? st.name : 'all staff'} - ${y ? y.label : from + ' to ' + to}`), disabled: !ready || empty }}>
+      <section className="ix-card" aria-label="Salary statement">
+        <div className="ss-bar" role="group" aria-label="Choose">
+          <select id="ss-who" className="ix-pick" aria-label="Staff" value={code} onChange={(e) => pickCode(e.target.value)}><option value="">Everyone (totals)</option>{S.staff.map((s) => <option key={s.code} value={s.code}>{s.name} · {s.code}{s.status === 'left' ? ' · left' : ''}</option>)}</select>
+          <select id="ss-year" className="ix-pick" aria-label="Period" value={mode} onChange={(e) => setMode(e.target.value)}>{years.map((x) => <option key={x.label} value={x.from.slice(0, 4)}>Tax year {x.label}</option>)}<option value="custom">Choose months…</option></select>
+          {mode === 'custom' ? <>
+            <input id="ss-from" type="month" className="ix-date" aria-label="From" value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} />
+            <input id="ss-to" type="month" className="ix-date" aria-label="To" min={range.from} value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} />
+          </> : null}
+        </div>
 
-      {st ? (
-        <section className="gc-card hr-card">
-          <PrintLetterhead kind="Salary statement" title={st.name} meta={[['Employee no.', st.code], ['Position', `${st.designation}${gradeOf(S, st) ? ' · ' + gradeLabel(S, gradeOf(S, st)) : ''}`], ['Period', period], ['Prepared', formatDate(Date.now())]]} />
-          <div className="ss-who">
-            <div><span>Name</span><b>{st.name}</b></div>
-            <div><span>Employee no.</span><b className="hr-fig">{st.code}</b></div>
-            <div><span>Position</span><b>{st.designation} · {st.branch}</b></div>
-            <div><span>Joined</span><b>{formatDate(fromKey(st.joined))}</b></div>
-            <div><span>Paid by</span><b>{PAY_METHODS[st.payMethod]}{payToText(st) ? ` · ${payToText(st)}` : ''}</b></div>
-            <div className="ss-noprint"><span>Profile</span><b><Link href={profileHref(st.code, 'salary')} className="hr-link">Open</Link></b></div>
-          </div>
-          {one.rows.length ? (
-            <>
-              <div className="gc-table-wrap">
-                <table className="gc-table gc-table--compact">
-                  <thead><tr><th scope="col">Month</th><th scope="col" className="hr-num">Gross</th><th scope="col" className="hr-num">Overtime, incentive</th><th scope="col" className="hr-num">Bonus</th><th scope="col" className="hr-num">Cuts</th><th scope="col" className="hr-num">Loan</th><th scope="col" className="hr-num">Net</th><th scope="col">Paid</th></tr></thead>
-                  <tbody>
-                    {one.rows.map((r) => <tr key={r.run}><td className="hr-strong">{r.title}{r.absent ? <span className="hr-sub">{r.absent} day{r.absent === 1 ? '' : 's'} not paid</span> : null}</td><td className="hr-num hr-fig">{r.gross ? money(r.gross) : '—'}</td><td className="hr-num hr-fig">{added(r) ? money(added(r)) : '—'}</td><td className="hr-num hr-fig">{r.bonus ? money(r.bonus) : '—'}</td><td className="hr-num hr-fig hr-out">{r.cut ? '−' + money(r.cut) : '—'}</td><td className="hr-num hr-fig hr-out">{r.loan ? '−' + money(r.loan) : '—'}</td><td className="hr-num hr-fig hr-strong">{money(r.net)}</td><td>{r.status === 'paid' ? <span className="hr-sub">{formatDate(r.paidAt)} · {r.via}</span> : <span className="gc-badge gc-badge--warning">Unpaid</span>}</td></tr>)}
-                    <tr><th scope="row">Total</th><td className="hr-num hr-fig">{money(one.totals.gross)}</td><td className="hr-num hr-fig">{money(one.totals.ot + one.totals.incentive + one.totals.extras)}</td><td className="hr-num hr-fig">{money(one.totals.bonus)}</td><td className="hr-num hr-fig hr-out">{one.totals.cut ? '−' + money(one.totals.cut) : '—'}</td><td className="hr-num hr-fig hr-out">{one.totals.loan ? '−' + money(one.totals.loan) : '—'}</td><td className="hr-num hr-fig hr-strong">{money(one.totals.net)}</td><td className="hr-sub">{money(one.totals.paid)} paid</td></tr>
-                  </tbody>
-                </table>
-              </div>
-              <p className="ss-words">Total earned {money(one.totals.earned)} ({takaWords(one.totals.earned)}) before cuts and loan instalments; {money(one.totals.net)} net{one.totals.owed ? `, of which ${money(one.totals.owed)} is approved and not paid yet` : ''}.</p>
-              <PrintSignOff when={formatDate(Date.now())} />
-            </>
-          ) : <EmptyState icon="file-spreadsheet" title="No pay in this period" body={`${st.name} was not in an approved payroll run between ${monthLabel(from)} and ${monthLabel(to)}.`} />}
-        </section>
-      ) : (
-        <section className="gc-card hr-card">
-          <PrintLetterhead kind="Salary statement" title="All staff" meta={[['Period', period], ['People', String(all.length)], ['Prepared', formatDate(Date.now())]]} />
-          <div className="hr-head ss-noprint"><div><h2>Everyone · {y ? `tax year ${y.label}` : `${monthLabel(from, true)} – ${monthLabel(to, true)}`}</h2><p>Pick a person above for their month-by-month statement.</p></div></div>
-          {all.length ? (
-            <div className="gc-table-wrap">
-              <table className="gc-table gc-table--compact gc-table--hoverable">
-                <thead><tr><th scope="col">Staff</th><th scope="col" className="hr-num">Months</th><th scope="col" className="hr-num">Earned</th><th scope="col" className="hr-num">Cuts</th><th scope="col" className="hr-num">Loan</th><th scope="col" className="hr-num">Net</th><th scope="col" className="hr-num">Paid</th><th scope="col" className="hr-num">Due</th><th scope="col" className="ss-noprint"><span className="sr-only">Open</span></th></tr></thead>
-                <tbody>
-                  {all.map(({ s, x }) => <tr key={s.code}><td><Person st={s} sub={`${s.code} · ${s.designation}`} /></td><td className="hr-num">{x.rows.filter((r) => r.kind === 'salary').length}</td><td className="hr-num hr-fig">{money(x.totals.earned)}</td><td className="hr-num hr-fig hr-out">{x.totals.cut ? '−' + money(x.totals.cut) : '—'}</td><td className="hr-num hr-fig hr-out">{x.totals.loan ? '−' + money(x.totals.loan) : '—'}</td><td className="hr-num hr-fig hr-strong">{money(x.totals.net)}</td><td className="hr-num hr-fig">{money(x.totals.paid)}</td><td className={'hr-num hr-fig' + (x.totals.owed ? ' hr-warn' : '')}>{x.totals.owed ? money(x.totals.owed) : '—'}</td><td className="ss-noprint"><button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => pickCode(s.code)}>Statement</button></td></tr>)}
-                  <tr><th scope="row">Total · {all.length} people</th><td /><td className="hr-num hr-fig">{money(sumAll('earned'))}</td><td className="hr-num hr-fig hr-out">−{money(sumAll('cut'))}</td><td className="hr-num hr-fig hr-out">−{money(sumAll('loan'))}</td><td className="hr-num hr-fig hr-strong">{money(sumAll('net'))}</td><td className="hr-num hr-fig">{money(sumAll('paid'))}</td><td className="hr-num hr-fig">{money(sumAll('owed'))}</td><td className="ss-noprint" /></tr>
-                </tbody>
-              </table>
+        {st ? (
+          <>
+            <PrintLetterhead kind="Salary statement" title={st.name} meta={[['Employee no.', st.code], ['Position', `${st.designation}${gradeOf(S, st) ? ' · ' + gradeLabel(S, gradeOf(S, st)) : ''}`], ['Period', period], ['Prepared', formatDate(Date.now())]]} />
+            <div className="ss-who">
+              <div><span>Name</span><b>{st.name}</b></div>
+              <div><span>Employee no.</span><b className="hr-fig">{st.code}</b></div>
+              <div><span>Position</span><b>{st.designation} · {st.branch}</b></div>
+              <div><span>Joined</span><b>{formatDate(fromKey(st.joined))}</b></div>
+              <div><span>Paid by</span><b>{PAY_METHODS[st.payMethod]}{payToText(st) ? ` · ${payToText(st)}` : ''}</b></div>
+              <div className="ss-noprint"><span>Profile</span><b><Link href={profileHref(st.code, 'salary')} className="hr-link">Open</Link></b></div>
             </div>
-          ) : <EmptyState icon="file-spreadsheet" title="No payroll in this period" body="Approved salary and bonus runs show here." />}
-          <PrintSignOff when={formatDate(Date.now())} />
-        </section>
-      )}
+            {one.rows.length ? (
+              <>
+                <div className="ix-table-wrap ix-table-wrap--show">
+                  <table className="ix-table gc-table--keep ix-table--static">
+                    <caption className="sr-only">Salary statement, {st.name}, {period}</caption>
+                    <thead><tr><th scope="col">Month</th><th scope="col" className="ix-num">Gross</th><th scope="col" className="ix-num">Overtime, incentive</th><th scope="col" className="ix-num">Bonus</th><th scope="col" className="ix-num">Cuts</th><th scope="col" className="ix-num">Loan</th><th scope="col" className="ix-num">Net</th><th scope="col">Paid</th></tr></thead>
+                    <tbody>
+                      {one.rows.map((r) => <tr key={r.run}><td className="hr-strong">{r.title}{r.absent ? <span className="hr-sub">{r.absent} day{r.absent === 1 ? '' : 's'} not paid</span> : null}</td><td className="ix-num hr-fig">{r.gross ? money(r.gross) : '—'}</td><td className="ix-num hr-fig">{added(r) ? money(added(r)) : '—'}</td><td className="ix-num hr-fig">{r.bonus ? money(r.bonus) : '—'}</td><td className="ix-num hr-fig hr-out">{r.cut ? '−' + money(r.cut) : '—'}</td><td className="ix-num hr-fig hr-out">{r.loan ? '−' + money(r.loan) : '—'}</td><td className="ix-num hr-fig hr-strong">{money(r.net)}</td><td>{r.status === 'paid' ? <span className="ix-muted">{formatDate(r.paidAt)} · {r.via}</span> : <StatusBadge tone="warning">Unpaid</StatusBadge>}</td></tr>)}
+                      <tr className="ss-total"><th scope="row">Total</th><td className="ix-num hr-fig">{money(one.totals.gross)}</td><td className="ix-num hr-fig">{money(one.totals.ot + one.totals.incentive + one.totals.extras)}</td><td className="ix-num hr-fig">{money(one.totals.bonus)}</td><td className="ix-num hr-fig hr-out">{one.totals.cut ? '−' + money(one.totals.cut) : '—'}</td><td className="ix-num hr-fig hr-out">{one.totals.loan ? '−' + money(one.totals.loan) : '—'}</td><td className="ix-num hr-fig">{money(one.totals.net)}</td><td className="ix-muted">{money(one.totals.paid)} paid</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p className="ss-words">Total earned {money(one.totals.earned)} ({takaWords(one.totals.earned)}) before cuts and loan instalments; {money(one.totals.net)} net{one.totals.owed ? `, of which ${money(one.totals.owed)} is approved and not paid yet` : ''}.</p>
+                <PrintSignOff when={formatDate(Date.now())} />
+              </>
+            ) : <div className="ix-empty"><EmptyState icon="file-spreadsheet" title="No pay in this period" body={`${st.name} was not in an approved payroll run between ${monthLabel(from)} and ${monthLabel(to)}.`} /></div>}
+          </>
+        ) : (
+          <>
+            <PrintLetterhead kind="Salary statement" title="All staff" meta={[['Period', period], ['People', String(all.length)], ['Prepared', formatDate(Date.now())]]} />
+            {all.length ? (
+              <>
+                <ul className="ix-plist" aria-label="Everyone">
+                  {all.map(({ s, x }) => (
+                    <li key={s.code}>
+                      <button type="button" className="ix-pitem" onClick={() => pickCode(s.code)}>
+                        <span className="ix-pitem__top"><b>{s.name}</b><span>{money(x.totals.net)}</span></span>
+                        <span className="ix-pitem__mid">{x.rows.filter((r) => r.kind === 'salary').length} months · earned {money(x.totals.earned)}{x.totals.owed ? ` · ${money(x.totals.owed)} due` : ''}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <div className="ix-table-wrap">
+                  <table className="ix-table gc-table--keep">
+                    <caption className="sr-only">Everyone, {period}. Click a person for their statement.</caption>
+                    <thead><tr><th scope="col">Staff</th><th scope="col" className="ix-num">Months</th><th scope="col" className="ix-num">Earned</th><th scope="col" className="ix-num">Cuts</th><th scope="col" className="ix-num">Loan</th><th scope="col" className="ix-num">Net</th><th scope="col" className="ix-num">Paid</th><th scope="col" className="ix-num">Due</th></tr></thead>
+                    <tbody>
+                      {all.map(({ s, x }) => <tr key={s.code} onClick={rowGo(() => pickCode(s.code))}><td><div className="hr-who"><Avatar st={s} /><span><button type="button" className="ix-strong" onClick={() => pickCode(s.code)}>{s.name}</button><span className="hr-sub">{s.designation}</span></span></div></td><td className="ix-num">{x.rows.filter((r) => r.kind === 'salary').length}</td><td className="ix-num hr-fig">{money(x.totals.earned)}</td><td className="ix-num hr-fig hr-out">{x.totals.cut ? '−' + money(x.totals.cut) : '—'}</td><td className="ix-num hr-fig hr-out">{x.totals.loan ? '−' + money(x.totals.loan) : '—'}</td><td className="ix-num hr-fig hr-strong">{money(x.totals.net)}</td><td className="ix-num hr-fig">{money(x.totals.paid)}</td><td className={'ix-num hr-fig' + (x.totals.owed ? ' hr-warn' : '')}>{x.totals.owed ? money(x.totals.owed) : '—'}</td></tr>)}
+                      <tr className="ss-total"><th scope="row">Total · {all.length} people</th><td /><td className="ix-num hr-fig">{money(sumAll('earned'))}</td><td className="ix-num hr-fig hr-out">−{money(sumAll('cut'))}</td><td className="ix-num hr-fig hr-out">−{money(sumAll('loan'))}</td><td className="ix-num hr-fig">{money(sumAll('net'))}</td><td className="ix-num hr-fig">{money(sumAll('paid'))}</td><td className="ix-num hr-fig">{money(sumAll('owed'))}</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            ) : <div className="ix-empty"><EmptyState icon="file-spreadsheet" title="No payroll in this period" /></div>}
+            <PrintSignOff when={formatDate(Date.now())} />
+          </>
+        )}
+      </section>
     </HrPage>
   );
 }

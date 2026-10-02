@@ -1,7 +1,8 @@
 'use client';
 // loyShared — pieces the Loyalty screens (Loyalty, Members, Member detail, Wallet, Invite a friend,
-// Product points) share: the page frame, a hook that re-reads the loyalty books when anything
-// changes, the level badge, and the dialogs that move wallet money or points.
+// Product points) share: the page frame (IndexKit's ShopHeader / RecordHeader inside ix-page), a hook that
+// re-reads the loyalty books when anything changes, the level badge, small form parts (chips, stepper,
+// switch) and the dialogs that move wallet money or points.
 // Money that moves is posted to the ledger by src/lib/loyalty.js (top-up +, pay back −); reward
 // credit moves no money and is counted as a cost of the channel.
 
@@ -9,7 +10,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { Dialog, PageHeader } from '@/components/ui';
+import { Dialog } from '@/components/ui';
+import { ShopHeader, RecordHeader } from '@/components/ui/IndexKit';
 import { balanceOf } from '@/lib/ledger';
 import { ACC_CSS, AccountSelect, money, accName } from '@/screens/accounts/accShared';
 import {
@@ -33,48 +35,62 @@ export function useLoyalty() {
   return tick;
 }
 
-export const LOY_CSS = `
-.ly-card{overflow:hidden}
-.ly-bar{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--space-3);padding:0 var(--space-4);border-bottom:1px solid var(--border-subtle)}
-.ly-bar .gc-tabs{border-bottom:0;overflow:visible;flex-wrap:wrap}
-.ly-tab b{margin-left:6px;font-weight:var(--weight-medium);color:var(--text-muted);font-family:var(--font-data);font-variant-numeric:tabular-nums}
-.ly-tools{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-5);border-bottom:1px solid var(--border-subtle)}
-.ly-tools .gc-input{width:auto;flex:1 1 220px;min-width:0}
-.ly-chips{display:flex;flex-wrap:wrap;gap:var(--space-2)}
-.ly-chip{height:32px;padding:0 var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-full);background:var(--surface-card);font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer}
-.ly-chip:hover{border-color:var(--primary)}
-.ly-chip[aria-pressed="true"]{border-color:var(--primary);background:var(--fill-primary-soft);color:var(--primary)}
-.ly-who{display:flex;align-items:center;gap:var(--space-3);min-width:0}
-.ly-ava{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:var(--radius-full);background:var(--fill-primary-soft);color:var(--primary);font-size:var(--text-sm);font-weight:var(--weight-semibold)}
-.ly-who b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
-.ly-who small{display:block;font-family:var(--font-data);font-size:var(--text-xs);color:var(--text-muted)}
-.ly-books{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3) var(--space-5);padding:var(--space-4) var(--space-5)}
-.ly-books > div{flex:1 1 200px;min-width:0}
-.ly-books b{display:block;font-family:var(--font-data);font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.ly-books span{display:block;font-size:var(--text-xs);color:var(--text-muted)}
-.ly-steps{display:inline-flex;align-items:center;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);overflow:hidden;flex:none}
-.ly-steps button{width:40px;height:42px;border:0;background:none;color:var(--text-body);cursor:pointer;display:grid;place-items:center}
+// The loyalty pages, the promo forms and the customer pages share these small pieces (docs/shopify-style.md):
+// a − value + stepper (ly-steps) and a setting row with a switch (ly-set). Choice chips are the kit's ix-chip.
+export const FORM_CSS = `
+.ly-steps{display:inline-flex;flex:none;align-items:center;height:var(--control-height);border:1px solid var(--border-field);border-radius:var(--radius-lg);background:var(--surface-card);overflow:hidden}
+.ly-steps button{display:grid;place-items:center;width:32px;height:100%;border:0;background:none;color:var(--text-body);cursor:pointer}
 .ly-steps button:hover{background:var(--surface-subtle)}
 .ly-steps button:disabled{opacity:.4;cursor:default}
-.ly-steps output{min-width:52px;text-align:center;font-family:var(--font-data);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
-.ly-reasons{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.ly-steps output{display:grid;place-items:center}
+.ly-steps output,.ly-steps input{min-width:52px;width:64px;height:100%;padding:0;border:0;background:none;text-align:center;font-family:var(--font-data);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.ly-steps input:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.ly-steps[aria-invalid="true"]{border-color:var(--error)}
+.ly-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);font-size:var(--text-sm);color:var(--text-body)}
+.ly-row>.ly-grow{flex:1 1 200px;min-width:0}
+.ly-set{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) 0;border-top:1px solid var(--border-subtle)}
+.ly-set:first-child{padding-top:0;border-top:0}
+.ly-set:last-child{padding-bottom:0}
+.ly-set>div{flex:1;min-width:0}
+.ly-set b{display:flex;align-items:center;gap:4px;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.ly-set small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
+.ly-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.ly-field>.gc-label{margin:0}
+.ly-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)}
+.ly-err{display:block;margin:0;font-size:var(--text-xs);color:var(--text-danger)}
+.ly-help{margin:0;font-size:var(--text-xs);color:var(--text-muted)}
 .ly-in{color:var(--text-success)}
 .ly-out{color:var(--text-danger)}
-@media (max-width:640px){.ly-tools .gc-input{flex-basis:100%}}
+.ly-fig{font-family:var(--font-data);font-variant-numeric:tabular-nums;white-space:nowrap}
+@media (max-width:640px){.ly-two{grid-template-columns:minmax(0,1fr)}.ly-steps button{width:40px}.ix-metric{flex:0 0 auto}}
 `;
 
-/** The shell around a loyalty page: menu, top bar and page header. */
-export function LoyPage({ screen, active, crumb = 'Loyalty & rewards', page, title, description, about, actions, children, css = '' }) {
+export const LOY_CSS = `
+.ly-who{display:flex;align-items:center;gap:var(--space-2);min-width:0}
+.ly-ava{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:var(--radius-full);background:var(--fill-primary-soft);color:var(--primary);font-size:var(--text-xs);font-weight:var(--weight-semibold)}
+.ly-who b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ly-who small{display:block;font-family:var(--font-data);font-size:var(--text-xs);color:var(--text-muted)}
+.ly-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}
+.ly-note{margin:0;font-size:var(--text-xs);color:var(--text-muted)}
+`;
+
+/** The shell around a loyalty page: menu, top bar and the kit title row. A list or overview page gets ShopHeader
+ *  (icon, title, quiet actions, More, one primary); a record (back given) gets RecordHeader with badges and a meta line. */
+export function LoyPage({ screen, active, crumb = 'Loyalty & rewards', page, title, icon, about, back, backLabel, badges, meta, secondary, more, primary, narrow, children, css = '' }) {
   return (
     <div className="dc-screen ds" data-screen={screen}>
-      <style dangerouslySetInnerHTML={{ __html: ACC_CSS + LOY_CSS + css }} />
+      <style dangerouslySetInnerHTML={{ __html: ACC_CSS + FORM_CSS + LOY_CSS + css }} />
       <div className="gc-shell">
         <Sidebar sticky="" active={active} />
-        <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
+        <main className="gc-shell__main">
           <Topbar crumb={crumb} page={page || title} placeholder="Search customer by name or phone" />
-          <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-            <PageHeader title={title} description={description} about={about} actions={actions} />
-            {children}
+          <div className="gc-shell__content">
+            <div className={'ix-page' + (narrow ? ' ix-page--narrow' : '')}>
+              {back
+                ? <RecordHeader back={back} backLabel={backLabel} title={title} badges={badges} meta={meta} about={about} secondary={secondary} more={more} primary={primary} />
+                : <ShopHeader icon={icon} title={title} about={about} secondary={secondary} more={more} primary={primary} />}
+              {children}
+            </div>
           </div>
         </main>
       </div>
@@ -87,22 +103,26 @@ export function TierBadge({ m }) {
   return <span className={'gc-badge gc-badge--' + (TIER_TONE[t.k] || 'slate')}>{t.name || 'Member'}</span>;
 }
 
-export function Kpi({ icon, tone = 'primary', label, value, sub }) {
-  const bg = { primary: 'var(--fill-primary-soft)', success: 'var(--fill-success-soft)', warning: 'var(--fill-warning-soft)', error: 'var(--fill-error-soft)', info: 'var(--fill-info-soft)' }[tone];
-  const fg = { primary: 'var(--primary)', success: 'var(--text-success)', warning: 'var(--text-warning)', error: 'var(--text-danger)', info: 'var(--text-info)' }[tone];
-  return <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: bg, color: fg }}><Icon name={icon} width="22" height="22" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">{label}</p><p className="gc-kpi__value">{value}<small>{sub}</small></p></div></div>;
+/** A switch (role="switch"); the label is read by screen readers. */
+export function Switch({ on, onToggle, label }) {
+  return <button type="button" role="switch" aria-checked={!!on} aria-label={label} className="gc-switch" onClick={onToggle}><span className="gc-switch__knob" /></button>;
+}
+
+/** − value + buttons around a value (or an input passed as children). */
+export function Steps({ label, less, more, display, onDec, onInc, atMin, atMax, invalid, children }) {
+  return (
+    <span className="ly-steps" role="group" aria-label={label} aria-invalid={invalid ? 'true' : undefined}>
+      <button type="button" aria-label={less || `Less ${label}`} disabled={atMin} onClick={onDec}><Icon name="minus" width="16" height="16" aria-hidden="true" /></button>
+      {children || <output aria-live="polite">{display}</output>}
+      <button type="button" aria-label={more || `More ${label}`} disabled={atMax} onClick={onInc}><Icon name="plus" width="16" height="16" aria-hidden="true" /></button>
+    </span>
+  );
 }
 
 /** − value + control for whole numbers or steps. */
 export function Stepper({ value, onChange, step = 1, min = 0, max = 1e9, label, unit }) {
   const fix = (v) => Math.min(max, Math.max(min, Math.round(v * 100) / 100));
-  return (
-    <span className="ly-steps" role="group" aria-label={label}>
-      <button type="button" aria-label={`Less ${label}`} disabled={value <= min} onClick={() => onChange(fix(value - step))}><Icon name="minus" width="16" height="16" aria-hidden="true" /></button>
-      <output aria-live="polite">{value}{unit ? <span className="sr-only"> {unit}</span> : null}</output>
-      <button type="button" aria-label={`More ${label}`} disabled={value >= max} onClick={() => onChange(fix(value + step))}><Icon name="plus" width="16" height="16" aria-hidden="true" /></button>
-    </span>
-  );
+  return <Steps label={label} display={<>{value}{unit ? <span className="sr-only"> {unit}</span> : null}</>} atMin={value <= min} atMax={value >= max} onDec={() => onChange(fix(value - step))} onInc={() => onChange(fix(value + step))} />;
 }
 
 // ---- customer picker (for dialogs opened without a customer) -------------------------------------
@@ -193,7 +213,7 @@ export function WalletDialog({ mode, phone: startPhone = '', request = null, onC
         {mode === 'reward' ? (
           <fieldset style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
             <legend className="gc-label">Why?</legend>
-            <div className="ly-reasons">{REWARD_REASONS.map((r) => <button key={r} type="button" className="ly-chip" aria-pressed={reason === r} onClick={() => setReason(r)}>{r}</button>)}</div>
+            <div className="ix-chips">{REWARD_REASONS.map((r) => <button key={r} type="button" className="ix-chip" aria-pressed={reason === r} onClick={() => setReason(r)}>{r}</button>)}</div>
           </fieldset>
         ) : null}
         {mode === 'topup' && !request ? <div><label className="gc-label" htmlFor="ly-w-ref">Transaction ID or slip</label><input id="ly-w-ref" className="gc-input ac-fig" placeholder="Optional" value={ref} onChange={(e) => setRef(e.target.value)} /></div> : null}
@@ -250,7 +270,7 @@ export function PointsDialog({ phone, mode: startMode = 'give', onClose }) {
         </div>
         <fieldset style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
           <legend className="gc-label">Why?</legend>
-          <div className="ly-reasons">{reasons.map((r) => <button key={r} type="button" className="ly-chip" aria-pressed={reason === r} onClick={() => setReason(r)}>{r}</button>)}</div>
+          <div className="ix-chips">{reasons.map((r) => <button key={r} type="button" className="ix-chip" aria-pressed={reason === r} onClick={() => setReason(r)}>{r}</button>)}</div>
         </fieldset>
         <div className="ac-note ac-note--info"><Icon name="book-open" width="16" height="16" aria-hidden="true" /><span>{mode === 'take' ? 'What you hold for customers as points goes down.' : 'Points are a promise of a discount: what you hold for customers goes up now, and it becomes a cost when the points are used.'} The POS counter sees the new balance.</span></div>
       </form>

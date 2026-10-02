@@ -5,10 +5,10 @@
 
 import React from 'react';
 import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
+import { DCLogic, Icon as __Icon, list as __list } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
-import { PageHeader as __PageHeader, EmptyState as __EmptyState } from '@/components/ui';
-import { MobileFilters as __MobileFilters } from '@/components/ui/FilterBar';
+import { EmptyState as __EmptyState, StatusBadge as __StatusBadge, Dialog as __Dialog } from '@/components/ui';
+import { ShopHeader, IndexTabs, SearchField, LearnMore, Menu } from '@/components/ui/IndexKit';
 import { toast as __toast } from '@/runtime/ui';
 import { useRouter } from 'next/navigation';
 import { formatBDT } from '@/lib/format';
@@ -197,420 +197,178 @@ class Component extends DCLogic {
 
 const CSS = `
 .ap-chs{display:inline-flex;gap:6px}
-.ap-ch{position:relative;display:grid;place-items:center;width:28px;height:28px;border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--surface-card)}
+.ap-ch{position:relative;display:grid;place-items:center;width:24px;height:24px;border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--surface-card)}
 .ap-ch img{display:block}
 .ap-chdot{position:absolute;right:-3px;bottom:-3px;width:10px;height:10px;border-radius:var(--radius-full);box-shadow:0 0 0 2px var(--surface-card)}
 .ap-chdot--ok{background:var(--success)}.ap-chdot--warn{background:var(--warning)}.ap-chdot--bad{background:var(--error)}.ap-chdot--info{background:var(--info)}.ap-chdot--off{background:var(--slate-300)}
 .ap-chmenu{position:relative;display:inline-flex}
 .ap-chmenu .gc-dropdown{top:100%;right:0;color:var(--text-body)}
-
-body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
-*{box-sizing:border-box}
-a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
-.nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
-.nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
-.btn:hover{text-decoration:none}
-.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
-.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
-.line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
-.warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
-.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
-.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
-.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:var(--text-muted)}
-.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
-.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
-.tab:hover{background:#f1f5f9;color:#0f172a}
-.tab.on{background:#003087;color:#fff}
-.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
-.chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 12px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 12px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
-.row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
-.b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
-.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
-.b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:var(--font-data);letter-spacing:.02em}
-.fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
-@keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.flash{animation:gcFlash 900ms ease-out}
-@keyframes gcFlash{from{background:#e7f8f1}to{background:transparent}}
-.scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
-@keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
-
-.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
-.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
-.sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
-.t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
-.actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:var(--font-bn)}
-.pulse{animation:gcPulse 1.6s ease-in-out infinite}
-@keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
-@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-.pcard{background:#fff;border:1px solid #e6eaf0;border-radius:var(--radius-xl);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10)}
-.psec{font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
-.num{font-variant-numeric:tabular-nums}
-.ai{height:28px;padding:0 10px;border-radius:var(--radius-lg);border:1px solid #d9d2fb;background:linear-gradient(135deg,#f5f3ff,#eef6ff);color:#5b21b6;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:box-shadow 200ms,border-color 200ms}
-.ai:hover{border-color:#a78bfa;box-shadow:0 4px 12px -6px rgba(91,33,182,.5)}
-.ai:focus-visible{outline:3px solid rgba(124,58,237,.4);outline-offset:2px}
-.abtn{height:32px;padding:0 12px;border-radius:var(--radius-lg);border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-.abtn:hover{background:#f1f5f9}
-.ptabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid #e6eaf0;overflow-x:auto;scrollbar-width:none}
-.ptabs::-webkit-scrollbar{display:none}
-.ptab:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:-3px}
-.ptab{position:relative;height:52px;padding:0 12px;border:0;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-.ptab:hover{color:#0f172a}.ptab.on{color:#003087;font-weight:var(--weight-medium)}
-.ptab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2.5px;border-radius:3px 3px 0 0;background:#003087}
-.pcnt{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:#eef2f6;color:#475569;font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;justify-content:center}
-.ptab.on .pcnt{background:rgba(0,48,135,.1);color:#003087}
-.thumb{width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-lg);border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:var(--weight-semibold);color:#003087}
-
-/* phones: the search box takes its own row; Filter and Export share the row below */
-@media (max-width:640px){
-  .ap-toolbar{gap:8px!important;padding:12px!important}
-  .ap-toolbar>label.ap-search.ap-search{flex:1 1 100%!important;max-width:none!important;width:100%!important}
-  .ap-toolbar>span:empty{display:none}
-  .ap-toolbar>.gc-mf__btn,.ap-toolbar>.abtn{flex:1 1 0;height:44px;justify-content:center}
-}
 `;
 
 // ---- markup ----
 
+// Shopify's product list (components/ui/IndexKit.jsx): one card with the status views, search and filters, bulk
+// actions and a compact table of what you act on (product, status, stock, category, channels). Price, brand, sell-to
+// and the rest are on the product page.
+const STATUS_TONE = { Active: 'success', Draft: 'info', Archived: 'neutral', Deleted: 'error' };
+
 class AllProductsView extends Component {
   render() {
     const v = this.renderVals() || {};
+    const s = this.state || {};
+    const find = !!(s.find || v.q || v.filtered);
+    const openFind = () => this.setState({ find: true });
+    const closeFind = () => this.setState({ find: false, q: '', fCat: '', fBrand: '', fTag: '', fSell: '', fCh: '' });
+    const tabs = v.tabs.map((t) => ({ key: t.k, id: t.id, label: t.label, on: t.on, onClick: t.pick }));
     return (
       <div className="dc-screen ds" data-screen="AllProducts">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
+        <div className="gc-shell">
           <__Sidebar sticky="" active="products-all" />
-          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
+          <main className="gc-shell__main">
             <__Topbar crumb="Products" page="All products" placeholder="Search products, SKU or barcode" />
-            <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <__PageHeader title="All products" about="Every product you sell, with price, stock and photos." actions={<>
-                <__Link href="/catalog-setup" className="gc-btn gc-btn--neutral"><__Icon name="sliders-horizontal" width="18" height="18" aria-hidden="true" /> Catalog setup</__Link>
-                <button type="button" className="gc-btn gc-btn--neutral" onClick={v.importCsv}><__Icon name="upload" width="18" height="18" aria-hidden="true" /> Import CSV</button>
-                <__Link href="/add-product" className="gc-btn gc-btn--solid"><__Icon name="plus" width="18" height="18" aria-hidden="true" /> Add product</__Link>
-              </>} />
-              <div className="gc-cardrow" style={{ display: "flex", gap: "16px" }}>
-                <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#e0f3fb", color: "var(--accent-text)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m7.5 4.27 9 5.15" />
-                      <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-                      <path d="m3.3 7 8.7 5 8.7-5" />
-                      <path d="M12 22V12" />
-                    </svg>
-                  </span>
-                  <div>
-                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>386</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Active products</div>
-                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>412 in total</div>
-                  </div>
-                </div>
-                <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#fff4e0", color: "#a14f06", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-                      <path d="M12 9v4" />
-                      <path d="M12 17h.01" />
-                    </svg>
-                  </span>
-                  <div>
-                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#a14f06" }}>23</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Low or out of stock</div>
-                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>7 out of stock</div>
-                  </div>
-                </div>
-                <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#f3e8ff", color: "#6d28d9", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72" />
-                      <path d="m14 7 3 3" />
-                      <path d="M5 6v4" />
-                      <path d="M19 14v4" />
-                      <path d="M10 2v2" />
-                      <path d="M7 8H3" />
-                      <path d="M21 16h-4" />
-                      <path d="M11 3H9" />
-                    </svg>
-                  </span>
-                  <div>
-                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#6d28d9" }}>34</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Missing information</div>
-                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>no short description or photo</div>
-                  </div>
-                </div>
-                <div className="card" style={{ flexGrow: "1", flexBasis: "0", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ width: "48px", height: "48px", flexShrink: "0", borderRadius: "var(--radius-xl)", background: "#e7f8f1", color: "#047857", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />
-                      <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />
-                    </svg>
-                  </span>
-                  <div>
-                    <div style={{ fontSize: "var(--text-2xl)", lineHeight: "34px", fontWeight: "var(--weight-semibold)", color: "#047857" }}>৳18,64,200</div>
-                    <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "#475569" }}>Stock value</div>
-                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>at buying price</div>
-                  </div>
-                </div>
-              </div>
-              <section className="pcard" style={{ overflow: "hidden" }}>
-                <div className="ptabs" role="tablist" aria-label="Product status" onKeyDown={v.tabKey}>
-                  {__list(v.tabs).map((tb, $index) => (<React.Fragment key={$index}>
-                      <button type="button" role="tab" id={tb?.id} className={tb?.pcls} aria-selected={tb?.on} aria-controls="products-panel" tabIndex={tb?.tabIndex} onClick={tb?.pick}>{tb?.label}{tb?.hasCount ? (<>
-  <span className="pcnt">{tb?.count}</span>
-</>) : null}</button>
-                    </React.Fragment>))}
-                </div>
-                <div className="ap-toolbar" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "10px", padding: "12px 16px", borderBottom: "1px solid #e6eaf0" }}>
-                  <label className="ap-search" style={{ position: "relative", flex: "1 1 240px", maxWidth: "340px" }}>
-                    <span style={{ position: "absolute", left: "14px", top: "12px", color: "var(--text-muted)" }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <circle cx="11" cy="11" r="8" />
-                        <path d="m21 21-4.3-4.3" />
-                      </svg>
-                    </span>
-                    <input className="inp" type="search" placeholder="Name, SKU, barcode or IMEI" aria-label="Search products" value={v.q} onChange={v.typeQ} style={{ paddingLeft: "44px" }} />
-                  </label>
-                  <__MobileFilters label="Filter products" count={v.filterCount} onClear={v.clearFilters}>
-                  <select className="inp" aria-label="Category" value={v.fCat} onChange={v.setCat} style={{ width: "190px" }}>
-                    <option value="">All categories</option>
-                    {__list(v.catOpts).map((c) => (<option key={c.v} value={c.v}>{c.l}</option>))}
-                  </select>
-                  <select className="inp" aria-label="Brand" value={v.fBrand} onChange={v.setBrand} style={{ width: "160px" }}>
-                    <option value="">All brands</option>
-                    {__list(v.brandOpts).map((b) => (<option key={b} value={b}>{b}</option>))}
-                  </select>
-                  <select className="inp" aria-label="Missing details" value={v.fTag} onChange={v.setTag} style={{ width: "180px" }}>
-                    {__list(v.tagOpts).map((o) => (<option key={o.v} value={o.v}>{o.l}</option>))}
-                  </select>
-                  {v.wsOn ? <select className="inp" aria-label="Sell to" value={v.fSell} onChange={v.setSell} style={{ width: "180px" }}>
-                    {__list(v.sellOpts).map((o) => (<option key={o.v} value={o.v}>{o.l}</option>))}
-                  </select> : null}
-                  {v.chOn ? <select className="inp" aria-label="Channels" value={v.fCh} onChange={v.setCh} style={{ width: "200px" }}>
-                    {__list(v.chOpts).map((o) => (<option key={o.v} value={o.v}>{o.l}</option>))}
-                  </select> : null}
-                  </__MobileFilters>
-                  {v.filtered ? (<button type="button" className="abtn" onClick={v.clearFilters}><__Icon name="x" width="14" height="14" aria-hidden="true" />Clear filters</button>) : null}
-                  <span style={{ flexGrow: "1" }} />
-                  <button type="button" className="abtn" onClick={v.exportCsv}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-  <path d="m7 10 5 5 5-5" />
-  <path d="M12 15V3" />
-</svg>Export</button>
-                </div>
-                {v.hasSel ? (<>
-                  <div className="fade gc-on-dark" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 16px", background: "#0b1733", color: "#fff", fontSize: "var(--text-sm)" }}>
-                    <b>{v.selCount} selected</b>
-                    <span style={{ flexGrow: "1" }} />
-                    <button type="button" className="ai" onClick={v.openAi}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-</svg>Fill with AI</button>
-                    {v.chOn && v.chActs.length ? (
-                      <span className="ap-chmenu">
-                        <button type="button" className="btn sm" style={{ background: "rgba(255,255,255,.12)", color: "#fff" }} aria-haspopup="menu" aria-expanded={v.chMenu} onClick={v.toggleChMenu}>
-                          <__Icon name="radio-tower" width="15" height="15" aria-hidden="true" /><span>Channels</span><__Icon name="chevron-down" width="14" height="14" aria-hidden="true" />
-                        </button>
-                        {v.chMenu ? (
-                          <div className="gc-dropdown" role="menu">
-                            {__list(v.chActs).map((a) => (<button key={a.l} type="button" role="menuitem" className="gc-dropdown__item" onClick={a.run}>{a.l}</button>))}
-                          </div>
-                        ) : null}
-                      </span>
-                    ) : null}
-                    <button type="button" className="btn sm" style={{ background: "rgba(255,255,255,.12)", color: "#fff" }} onClick={v.bulkCat}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
-                      </svg>
-                      <span>Change category</span>
-                    </button>
-                    <button type="button" className="btn sm" style={{ background: "rgba(255,255,255,.12)", color: "#fff" }} onClick={v.bulkLbl}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M3 7V5a2 2 0 0 1 2-2h2" />
-                        <path d="M17 3h2a2 2 0 0 1 2 2v2" />
-                        <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
-                        <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
-                        <path d="M8 7v10" />
-                        <path d="M12 7v10" />
-                        <path d="M17 7v10" />
-                      </svg>
-                      <span>Print labels</span>
-                    </button>
-                    <button type="button" className="btn sm" style={{ background: "rgba(255,255,255,.12)", color: "#fff" }} onClick={v.bulkArchive}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-                        <path d="m3.3 7 8.7 5 8.7-5" />
-                        <path d="M12 22V12" />
-                      </svg>
-                      <span>Archive</span>
-                    </button>
-                    <button type="button" className="btn sm" style={{ background: "rgba(255,255,255,.12)", color: "#fff" }} onClick={v.bulkDelete}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M3 6h18" />
-                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2" />
-                      </svg>
-                      <span>Delete</span>
-                    </button>
-                  </div>
-                </>) : null}
-                {v.aiOpen ? (<>
-                  <div className="fade" style={{ margin: "14px 16px", padding: "18px", borderRadius: "var(--radius-xl)", border: "1px solid #d9d2fb", background: "linear-gradient(135deg, #faf8ff, #f3f8ff)", display: "flex", flexDirection: "column", gap: "12px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <span style={{ width: "34px", height: "34px", borderRadius: "var(--radius-lg)", background: "#7c3aed", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-                        </svg>
-                      </span>
-                      <div style={{ flexGrow: "1" }}>
-                        <div style={{ fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)" }}>Fill with AI for {v.selCount} products</div>
-                        <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Pick the columns. AI only fills empty fields unless you tick “Replace”. You check everything before it goes live.</div>
-                      </div>
-                      <button type="button" className="ib" aria-label="Close" onClick={v.closeAi}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M18 6 6 18" />
-                          <path d="m6 6 12 12" />
-                        </svg>
-                      </button>
+            <div className="gc-shell__content">
+              <div className="ix-page">
+                <ShopHeader icon="package" title="Products" about="Every product you sell, with price, stock and photos. Open a product to change it."
+                  secondary={[{ label: 'Export', onClick: v.exportCsv }, { label: 'Import', onClick: v.importCsv }]}
+                  more={[{ label: 'Categories', href: '/categories' }, { label: 'Catalog setup', href: '/catalog-setup' }, { label: 'Barcode labels', href: '/barcode-labels' }]}
+                  primary={{ label: 'Add product', href: '/add-product' }} />
+                {v.hasMsg ? <div className="gc-alert gc-alert--soft" role="status">{v.msg}</div> : null}
+
+                <section className="ix-card" aria-label="Products">
+                  {v.hasSel ? (
+                    <div className="ix-bulk" role="toolbar" aria-label="Selected products">
+                      <input type="checkbox" checked={v.allSel} onChange={v.toggleAll} aria-label="Select every product" style={{ width: 16, height: 16, margin: '0 6px', accentColor: 'var(--primary)' }} />
+                      <span className="ix-bulk__n">{v.selCount} selected</span>
+                      <button type="button" className="ix-btn ix-btn--sm" onClick={v.bulkCat}><__Icon name="folder" width="16" height="16" aria-hidden="true" />Change category</button>
+                      <button type="button" className="ix-btn ix-btn--sm" onClick={v.bulkLbl}><__Icon name="scan-barcode" width="16" height="16" aria-hidden="true" />Print labels</button>
+                      <button type="button" className="ix-btn ix-btn--sm" onClick={v.openAi}><__Icon name="sparkles" width="16" height="16" aria-hidden="true" />Fill with AI</button>
+                      {v.chOn && v.chActs.length ? <Menu label="Channels" icon="radio-tower" cls="ix-btn ix-btn--sm" align="start" items={v.chActs.map((a) => ({ label: a.l, onClick: a.run }))} /> : null}
+                      <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" align="start" items={[{ label: 'Archive', onClick: v.bulkArchive }, { label: 'Delete', onClick: v.bulkDelete, tone: 'danger' }]} />
                     </div>
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                      {__list(v.aiCols).map((c, $index) => (<React.Fragment key={$index}>
-                          <button type="button" className={c?.cls} aria-pressed={c?.on} onClick={c?.pick} style={{ height: "36px" }}>{c?.on ? (<>
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M20 6 9 17l-5-5" />
-  </svg>
-</>) : null}{c?.label}</button>
-                        </React.Fragment>))}
-                    </div>
-                    <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                      <select className="inp" aria-label="Language" style={{ width: "200px" }}>
-                        <option>English</option>
-                        <option>বাংলা</option>
-                        <option>English + বাংলা</option>
-                      </select>
-                      <select className="inp" aria-label="Tone" style={{ width: "200px" }}>
-                        <option>Friendly</option>
-                        <option>Premium</option>
-                        <option>Simple and short</option>
-                      </select>
-                      <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs-plus)" }}><input type="checkbox" style={{ width: "16px", height: "16px" }} />Replace existing text</label>
-                      <span style={{ flexGrow: "1" }} />
-                      <button type="button" className="btn solid" onClick={v.runAi} style={{ background: "#6d28d9" }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-                        </svg>
-                        <span>Generate {v.aiTotal} fields</span>
-                      </button>
-                    </div>
-                  </div>
-                </>) : null}
-                <div className="gc-table-wrap" role="tabpanel" id="products-panel" aria-labelledby={v.activeTabId}>
-                  {v.empty ? (
-                    <__EmptyState title={v.emptyTitle} body={v.emptyBody} actionLabel={v.emptyAction} onAction={v.clearEmpty} />
                   ) : (
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr>
-                        <th className="th" style={{ width: "44px" }}>
-                          <input type="checkbox" aria-label="Select all" checked={v.allSel} onChange={v.toggleAll} style={{ width: "18px", height: "18px" }} />
-                        </th>
-                        <th className="th">Product</th>
-                        <th className="th">Status</th>
-                        {v.chOn ? <th className="th">Channels</th> : null}
-                        <th className="th">Stock</th>
-                        <th className="th">Category</th>
-                        <th className="th">Brand</th>
-                        {v.wsOn ? <th className="th">Sell to</th> : null}
-                        <th className="th" style={{ textAlign: "right" }}>Price</th>
-                        <th className="th">Info</th>
-                        <th className="th" style={{ width: "52px" }}><span className="sr-only">Actions</span></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {__list(v.rows).map((r) => (<React.Fragment key={r.id}>
-                          <tr className="row" onClick={r?.open} style={__sx(`background: ${r?.bg ?? ""}; cursor: pointer;`)}>
-                            <td className="td">
-                              <input type="checkbox" aria-label={`Select ${r?.name ?? ""}`} checked={r?.sel} onChange={r?.toggle} style={{ width: "18px", height: "18px" }} />
-                            </td>
-                            <td className="td">
-                              <__Link href={r?.href} style={{ display: "flex", alignItems: "center", gap: "12px", textDecoration: "none", color: "inherit" }}>
-                                <span className="thumb" style={__sx(`background: ${r?.tbg ?? ""};`)}>{r?.initial}</span>
-                                <span style={{ minWidth: "180px" }}>
-                                  <span style={{ display: "block", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{r?.name}</span>
-                                  <span className="mono" style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)", whiteSpace: "nowrap" }}><span style={__sx(`color: ${r?.skuColor ?? ""};`)}>{r?.sku}</span> · {r?.vars}</span>
-                                </span>
-                              </__Link>
-                            </td>
-                            <td className="td">
-                              <span className={r?.stCls}>{r?.st}</span>
-                            </td>
-                            {v.chOn ? <td className="td">
-                              {r?.chMarks.length ? (
-                                <span className="ap-chs">
-                                  {r.chMarks.map((m) => (<span key={m.k} className="ap-ch" title={m.label}>{m.logo ? <img src={m.logo} alt="" width="14" height="14" /> : <__BrandLogo brand={m.brand} size={20} decorative style={{ border: 0, borderRadius: 'var(--radius-sm)' }} />}<i className={'ap-chdot ap-chdot--' + m.tone} /><span className="sr-only">{m.label}</span></span>))}
-                                </span>
-                              ) : <span style={{ color: "var(--text-muted)" }}>—</span>}
-                            </td> : null}
-                            <td className="td">
-                              <span style={__sx(`font-weight: var(--weight-medium); white-space: nowrap; color: ${r?.invColor ?? ""};`)}>{r?.inv}</span>
-                              <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", whiteSpace: "nowrap" }}>{r?.invSub}</div>
-                            </td>
-                            <td className="td" style={__sx(`color: ${r?.catColor ?? ""};`)}>{r?.cat}</td>
-                            <td className="td" style={{ color: "#475569" }}>{r?.brand}</td>
-                            {v.wsOn ? <td className="td">
-                              <span className={r?.sellCls}>{r?.sell}</span>
-                            </td> : null}
-                            <td className="td num" style={{ textAlign: "right" }}>
-                              <span style={{ display: "block", fontWeight: "var(--weight-medium)", whiteSpace: "nowrap" }}>{r?.price}</span>
-                              {v.wsOn ? <span style={__sx(`display: block; font-size: var(--text-xs); color: ${r?.wsColor ?? ""};`)}>{r?.ws}</span> : null}
-                            </td>
-                            <td className="td">
-                              <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
-                                {__list(r?.flags).map((f, $index) => (<React.Fragment key={$index}>
-                                    <span title={f?.t} style={__sx(`height: 22px; padding: 0 7px; border-radius: var(--radius-md); background: ${f?.bg ?? ""}; color: ${f?.fg ?? ""}; font-size: var(--text-xs); font-weight: var(--weight-medium); display: inline-flex; align-items: center; white-space: nowrap;`)}>{f?.l}</span>
-                                  </React.Fragment>))}
-                              </div>
-                            </td>
-                            <td className="td" style={{ textAlign: "right" }}>
-                              <__Link href={r?.href} className="ib" aria-label={`Edit ${r?.name ?? ""}`} title="Edit"><__Icon name="pencil" width="16" height="16" aria-hidden="true" /></__Link>
-                            </td>
-                          </tr>
-                        </React.Fragment>))}
-                    </tbody>
-                  </table>
+                    <div className="ix-bar">
+                      {find ? (<>
+                        <SearchField value={v.q} onChange={v.typeQ} placeholder="Search name, SKU, barcode or IMEI" onDone={closeFind} autoFocus />
+                        <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={closeFind}>Cancel</button>
+                      </>) : (<>
+                        <IndexTabs tabs={tabs} label="Product status" />
+                        <span className="ix-tools">
+                          <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search and filter" onClick={openFind}><__Icon name="search" width="16" height="16" aria-hidden="true" /></button>
+                        </span>
+                      </>)}
+                    </div>
                   )}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", padding: "14px 16px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>
-                  <span style={{ flexGrow: "1" }}>Showing {v.shown} of {v.total}</span>
-                  <button type="button" className="abtn" aria-label="Previous page">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m15 18-6-6 6-6" />
-                    </svg>
-                  </button>
-                  <button type="button" className="abtn" aria-label="Next page" style={{ marginLeft: "6px" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 18 6-6-6-6" />
-                    </svg>
-                  </button>
-                </div>
-              </section>
+                  {find && !v.hasSel ? (
+                    <div className="ix-filters" role="group" aria-label="Filters">
+                      <select aria-label="Category" className={'ix-filter' + (v.fCat ? ' is-set' : '')} value={v.fCat} onChange={v.setCat}>
+                        <option value="">Category</option>
+                        {__list(v.catOpts).map((c) => (<option key={c.v} value={c.v}>{c.l}</option>))}
+                      </select>
+                      <select aria-label="Brand" className={'ix-filter' + (v.fBrand ? ' is-set' : '')} value={v.fBrand} onChange={v.setBrand}>
+                        <option value="">Brand</option>
+                        {__list(v.brandOpts).map((b) => (<option key={b} value={b}>{b}</option>))}
+                      </select>
+                      <select aria-label="Missing details" className={'ix-filter' + (v.fTag ? ' is-set' : '')} value={v.fTag} onChange={v.setTag}>
+                        {__list(v.tagOpts).map((o) => (<option key={o.v} value={o.v}>{o.v ? o.l : 'Missing details'}</option>))}
+                      </select>
+                      {v.wsOn ? <select aria-label="Sell to" className={'ix-filter' + (v.fSell ? ' is-set' : '')} value={v.fSell} onChange={v.setSell}>
+                        {__list(v.sellOpts).map((o) => (<option key={o.v} value={o.v}>{o.v ? o.l : 'Sell to'}</option>))}
+                      </select> : null}
+                      {v.chOn ? <select aria-label="Channels" className={'ix-filter' + (v.fCh ? ' is-set' : '')} value={v.fCh} onChange={v.setCh}>
+                        {__list(v.chOpts).map((o) => (<option key={o.v} value={o.v}>{o.v ? o.l : 'Channels'}</option>))}
+                      </select> : null}
+                      {v.filtered ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={v.clearFilters}>Clear all</button> : null}
+                    </div>
+                  ) : null}
+
+                  {v.empty ? (
+                    <div className="ix-empty"><__EmptyState title={v.emptyTitle} body={v.emptyBody} actionLabel={v.emptyAction} onAction={v.clearEmpty} /></div>
+                  ) : (
+                    <>
+                    <ul className="ix-plist" aria-label="Products">
+                      {v.rows.map((r) => (
+                        <li key={r.id}>
+                          <__Link href={r.href} className="ix-pitem ix-pitem--thumb">
+                            <span className="ix-thumb" style={{ background: r.tbg }} aria-hidden="true">{r.initial}</span>
+                            <span className="ix-pitem__top"><b>{r.name}</b><__StatusBadge tone={STATUS_TONE[r.st] || 'neutral'} icon="circle">{r.st}</__StatusBadge></span>
+                            <span className="ix-pitem__mid"><span className={r.inv === 'Out of stock' ? 'ix-bad' : ''}>{r.inv}</span> · {r.cat}</span>
+                          </__Link>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="ix-table-wrap">
+                      <table className="ix-table gc-table--keep">
+                        <caption className="sr-only">Products, {v.shown} shown</caption>
+                        <thead>
+                          <tr>
+                            <th scope="col" className="ix-check"><input type="checkbox" aria-label="Select all" checked={v.allSel} onChange={v.toggleAll} /></th>
+                            <th scope="col">Product</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Inventory</th>
+                            <th scope="col">Category</th>
+                            {v.chOn ? <th scope="col">Channels</th> : null}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {v.rows.map((r) => (
+                            <tr key={r.id} className={r.sel ? 'is-sel' : ''} onClick={r.open}>
+                              <td className="ix-check"><input type="checkbox" checked={r.sel} onChange={r.toggle} aria-label={'Select ' + r.name} /></td>
+                              <td>
+                                <span className="ix-prod">
+                                  <span className="ix-thumb" style={{ background: r.tbg }} aria-hidden="true">{r.initial}</span>
+                                  <__Link href={r.href} className="ix-strong">{r.name}</__Link>
+                                </span>
+                              </td>
+                              <td><__StatusBadge tone={STATUS_TONE[r.st] || 'neutral'} icon="circle">{r.st}</__StatusBadge></td>
+                              <td className={r.inv === 'Out of stock' ? 'ix-bad' : r.invColor === '#a14f06' ? 'ix-warn' : ''}>{r.inv}{r.vars > 1 ? <span className="ix-muted"> for {r.vars} variants</span> : null}</td>
+                              <td className={r.cat === 'No category' ? 'ix-warn' : 'ix-muted'}>{r.cat}</td>
+                              {v.chOn ? (
+                                <td>
+                                  <span className="ap-chs">
+                                    {r.chMarks.map((m) => (
+                                      <span key={m.k} className="ap-ch" title={m.label}>
+                                        {m.logo ? <img src={m.logo} alt="" width="14" height="14" /> : <__BrandLogo brand={m.brand} size={14} decorative />}
+                                        <span className={'ap-chdot ap-chdot--' + m.tone} aria-hidden="true" />
+                                        <span className="sr-only">{m.label}</span>
+                                      </span>
+                                    ))}
+                                  </span>
+                                </td>
+                              ) : null}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    </>
+                  )}
+                  <div className="ix-foot"><span>{v.shown === 1 ? "1 product" : v.shown + " products"}</span></div>
+                </section>
+                <LearnMore topic="products" />
+              </div>
             </div>
           </main>
         </div>
+
+        <__Dialog open={!!v.aiOpen} title={'Fill with AI for ' + v.selCount + ' products'} onClose={v.closeAi} width={520} footer={<>
+          <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.closeAi}>Cancel</button>
+          <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.runAi}><__Icon name="sparkles" width="16" height="16" aria-hidden="true" />Generate {v.aiTotal} fields</button>
+        </>}>
+          <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+            <p className="gc-help" style={{ margin: 0 }}>AI fills only empty fields unless you tick Replace. You check everything before it goes live.</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+              {__list(v.aiCols).map((c) => (
+                <button key={c.label} type="button" className={'ix-filter' + (c.on ? ' is-set' : '')} aria-pressed={c.on} onClick={c.pick} style={{ backgroundImage: 'none', paddingRight: 10 }}>{c.label}</button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-2)' }}>
+              <select className="ix-pick" aria-label="Language"><option>English</option><option>বাংলা</option><option>English + বাংলা</option></select>
+              <select className="ix-pick" aria-label="Tone"><option>Friendly</option><option>Premium</option><option>Simple and short</option></select>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)' }}><input type="checkbox" style={{ width: 16, height: 16 }} />Replace existing text</label>
+            </div>
+          </div>
+        </__Dialog>
       </div>
     );
   }

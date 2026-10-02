@@ -16,7 +16,8 @@ import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { Dialog, PageHeader, EmptyState } from '@/components/ui';
+import { Dialog, EmptyState, InfoTip } from '@/components/ui';
+import { RecordHeader, MetricStrip, KV } from '@/components/ui/IndexKit';
 import { formatBDT, formatDate } from '@/lib/format';
 import { EMPLOYEES } from '@/lib/posStore';
 import { DAMAGED_PLACE } from '@/lib/locations';
@@ -59,36 +60,33 @@ function groupOf(name, items, db) {
 }
 
 const CSS = `
-.sr-card{overflow:hidden}
-.sr-card .gc-table th,.sr-card .gc-table td{padding-left:var(--space-3);padding-right:var(--space-3);white-space:normal}
-.sr-card .gc-table th:first-child,.sr-card .gc-table td:first-child{padding-left:var(--space-5)}
-.sr-card .gc-table th:last-child,.sr-card .gc-table td:last-child{padding-right:var(--space-5)}
-.sr-card .gc-badge,.sr-card .gc-btn,.sr-num{white-space:nowrap}
-.sr-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-4) var(--space-5)}
-.sr-head h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.sr-head p{margin:2px 0 0;font-size:var(--text-xs);color:var(--text-muted)}
-.sr-who{display:flex;align-items:center;gap:var(--space-3)}
-.sr-avatar{display:grid;place-items:center;width:36px;height:36px;flex:none;border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary);font-weight:var(--weight-medium)}
+.sr-id{font-family:var(--font-data)}
+.sr-idbtn{padding:0;border:0;background:none;font-size:inherit;cursor:pointer}
 .sr-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .sr-strong{font-weight:var(--weight-medium);color:var(--text-heading)}
-.sr-id{font-family:var(--font-data)}
-.sr-num{text-align:right;font-variant-numeric:tabular-nums}
-.sr-acts{display:flex;flex-wrap:wrap;gap:var(--space-2)}
-.sr-section{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.sr-section{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.sr-tw{overflow-x:auto}
+.sr-tw .ix-table tbody tr{cursor:default}
+.sr-tw .ix-table tbody tr:hover td{background:none}
+.sr-tw .ix-table td:first-child{white-space:normal;min-width:180px}
+.sr-tw--link .ix-table tbody tr{cursor:pointer}
+.sr-tw--link .ix-table tbody tr:hover td{background:var(--surface-subtle)}
+.sr-meta{margin:0;padding:0 var(--space-4) var(--space-2);font-size:var(--text-xs-plus);color:var(--text-muted)}
 .sr-form{display:flex;flex-direction:column;gap:var(--space-4)}
 .sr-two{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
 .sr-lines{margin:0;padding:0;list-style:none;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden}
-.sr-lines li{display:flex;align-items:center;gap:var(--space-3);min-height:56px;padding:6px var(--space-3);border-top:1px solid var(--border-subtle)}
+.sr-lines li{display:flex;align-items:center;gap:var(--space-3);min-height:48px;padding:6px var(--space-3);border-top:1px solid var(--border-subtle)}
 .sr-lines li:first-child{border-top:0}
 .sr-lines label{display:flex;align-items:center;gap:var(--space-3);flex:1;min-width:0;cursor:pointer}
-.sr-lines .gc-input{width:84px}
+.sr-lines .gc-input{width:76px}
 .sr-opts{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2)}
 .sr-opt{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);cursor:pointer}
 .sr-opt.is-on{border-color:var(--primary);background:var(--fill-primary-soft)}
 .sr-opt b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 .sr-opt small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
-.sr-total{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary);font-size:var(--text-sm)}
-.sr-total b{font-size:var(--text-xl);font-weight:var(--weight-semibold);font-variant-numeric:tabular-nums}
+.sr-total{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:var(--space-2);padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary);font-size:var(--text-sm)}
+.sr-total b{font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);font-variant-numeric:tabular-nums}
+.sr-items{display:flex;flex-direction:column;gap:4px;margin:0;padding:0;list-style:none;font-size:var(--text-sm)}
 @media (max-width:599px){.sr-two,.sr-opts{grid-template-columns:1fr}}
 `;
 
@@ -96,6 +94,7 @@ export default function SupplierReturn() {
   const [db, setDb] = useState(demoDb);
   const [holds, setHolds] = useState([]);
   const [form, setForm] = useState(null);   // { sup, qty: { holdId: n }, reason, how, note, by }
+  const [seen, setSeen] = useState(null);   // a return made, opened from the list
 
   const reload = () => { const d = getDb(), hs = getHolds(); setDb(d); setHolds(hs); return { d, hs }; };
   useEffect(() => {
@@ -151,99 +150,104 @@ export default function SupplierReturn() {
     toast(`${ret.no}: ${plural(pieces, 'piece')} back to ${g.name}${cn ? ` · credit note ${cn.no} for ${formatBDT(cn.amount)}` : ''}`);
   };
 
-  const kpi = (icon, bg, fg, label, value, note) => (
-    <div className="gc-kpi">
-      <span className="gc-kpi__icon" style={{ background: bg, color: fg }}><Icon name={icon} width="24" height="24" aria-hidden="true" /></span>
-      <span className="gc-kpi__text"><span className="gc-kpi__label" style={{ display: 'block' }}>{label}</span><span className="gc-kpi__value">{value}<small title={note}>{note}</small></span></span>
-    </div>
-  );
+  const ledgerOf = (id) => `/supplier-detail?id=${encodeURIComponent(id)}`;
 
   return (
     <div className="dc-screen ds" data-screen="SupplierReturn">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="gc-shell">
         <Sidebar sticky="" active="po-suppliers" />
-        <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
+        <main className="gc-shell__main">
           <Topbar crumb="Purchase › Suppliers & payables" page="Return goods to supplier" placeholder="Search or scan any barcode" />
-          <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-            <PageHeader
-              title="Return goods to supplier"
-              about="Damaged or wrong items from deliveries wait here. Sending them back takes them off stock and lowers what you owe."
-              actions={<>
-                <Link href="/receive-goods" className="gc-btn gc-btn--neutral"><Icon name="package-check" width="18" height="18" aria-hidden="true" /> Receive goods</Link>
-                <Link href="/suppliers" className="gc-btn gc-btn--neutral"><Icon name="wallet" width="18" height="18" aria-hidden="true" /> Suppliers & payables</Link>
-              </>}
-            />
+          <div className="gc-shell__content">
+            <div className="ix-page ix-page--narrow">
+              <RecordHeader back="/suppliers" backLabel="Back to Suppliers & payables" title="Return goods to supplier"
+                about="Damaged or wrong items from deliveries wait here. Sending them back takes them off stock and lowers what you owe."
+                more={[{ label: 'Receive goods', href: '/receive-goods' }, { label: 'Suppliers & payables', href: '/suppliers' }]} />
 
-            <div className="gc-kpis">
-              {kpi('package-x', 'var(--fill-error-soft)', 'var(--text-danger)', 'Waiting to go back', plural(totalPieces, 'piece'), plural(groups.length, 'supplier'))}
-              {kpi('coins', 'var(--fill-warning-soft)', 'var(--text-warning)', 'Their value', formatBDT(totalValue), 'at the order price')}
-              {kpi('undo-2', 'var(--fill-primary-soft)', 'var(--primary)', 'Returned this month', plural(thisMonth.length, 'return'), plural(thisMonth.reduce((a, r) => a + r.lines.reduce((n, l) => n + l.qty, 0), 0), 'piece'))}
-              {kpi('receipt', 'var(--fill-success-soft)', 'var(--text-success)', 'Credit from returns', formatBDT(thisMonth.reduce((a, r) => a + r.value, 0)), 'this month')}
+              <MetricStrip label="Returns" items={[
+                { label: 'Waiting to go back', value: plural(totalPieces, 'piece'), sub: plural(groups.length, 'supplier') },
+                { label: 'Their value', value: formatBDT(totalValue), sub: 'at the order price' },
+                { label: 'Returned this month', value: plural(thisMonth.length, 'return'), sub: plural(thisMonth.reduce((a, r) => a + r.lines.reduce((n, l) => n + l.qty, 0), 0), 'piece') },
+                { label: 'Credit from returns', value: formatBDT(thisMonth.reduce((a, r) => a + r.value, 0)), sub: 'this month' },
+              ]} />
+
+              <h2 className="sr-section">Waiting to go back</h2>
+              {groups.length === 0 ? (
+                <section className="ix-card">
+                  <div className="ix-empty"><EmptyState icon="package-check" title="Nothing is waiting to go back" /></div>
+                </section>
+              ) : groups.map((g) => (
+                <section key={g.name} className="ix-card" aria-label={`Waiting to go back to ${g.name}`}>
+                  <div className="ix-card__head">
+                    <h2>{g.sup ? <Link href={ledgerOf(g.sup.id)}>{g.name}</Link> : g.name}</h2>
+                    <button type="button" className="ix-btn ix-btn--sm ix-btn--primary" onClick={() => open(g)}><Icon name="undo-2" width="16" height="16" aria-hidden="true" /><span>Create return</span></button>
+                  </div>
+                  <p className="sr-meta">{plural(g.pieces, 'piece')} · {formatBDT(g.value)} · you owe them {formatBDT(g.owe)}</p>
+                  <div className="sr-tw">
+                    <table className="ix-table">
+                      <caption className="sr-only">Waiting to go back to {g.name}</caption>
+                      <thead><tr><th scope="col">Product</th><th scope="col">From</th><th scope="col" className="ix-num">Pieces</th><th scope="col" className="ix-num">Value</th><th scope="col">Set aside</th></tr></thead>
+                      <tbody>
+                        {g.items.map((h) => (
+                          <tr key={h.id}>
+                            <td><span className="sr-strong">{h.product}</span></td>
+                            <td>{h.po ? <span className="sr-id">{h.po}</span> : <span className="ix-muted">—</span>}</td>
+                            <td className="ix-num">{h.qty}</td>
+                            <td className="ix-num">{formatBDT(h.qty * h.cost)}</td>
+                            <td className="ix-muted">{formatDate(h.at)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              ))}
+
+              <section className="ix-card" aria-labelledby="sr-made">
+                <div className="ix-card__head"><h2 id="sr-made">Returns made <InfoTip text="Each return took the pieces off stock and added a credit note to the supplier’s ledger." /></h2></div>
+                {returns.length === 0 ? <div className="ix-empty"><EmptyState icon="undo-2" title="No returns yet" /></div> : (
+                  <div className="sr-tw sr-tw--link">
+                    <table className="ix-table">
+                      <caption className="sr-only">Returns made</caption>
+                      <thead><tr><th scope="col">Return</th><th scope="col">Date</th><th scope="col">Supplier</th><th scope="col">Reason</th><th scope="col" className="ix-num">Pieces</th><th scope="col" className="ix-num">Credit note</th></tr></thead>
+                      <tbody>
+                        {returns.map((r) => (
+                          <tr key={r.no} onClick={(e) => { if (!e.target.closest('a,button')) setSeen(r); }}>
+                            <td><button type="button" className="ix-strong sr-id sr-idbtn" onClick={() => setSeen(r)}>{r.no}</button></td>
+                            <td className="ix-muted">{formatDate(r.at)}</td>
+                            <td><Link href={ledgerOf(r.supplier)}>{supName(r.supplier)}</Link></td>
+                            <td>{r.reason}</td>
+                            <td className="ix-num">{r.lines.reduce((n, l) => n + l.qty, 0)}</td>
+                            <td className="ix-num">{formatBDT(r.value)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
             </div>
-
-            <h2 className="sr-section">Waiting to go back</h2>
-            {groups.length === 0 ? (
-              <section className="gc-card">
-                <EmptyState icon="package-check" title="Nothing is waiting to go back" body="Damaged or wrong items from Receive goods show here." />
-              </section>
-            ) : groups.map((g) => (
-              <section key={g.name} className="gc-card sr-card" aria-label={`Waiting to go back to ${g.name}`}>
-                <div className="sr-head">
-                  <div className="sr-who">
-                    <span className="sr-avatar" aria-hidden="true">{g.name[0]}</span>
-                    <div><h2>{g.name}</h2><p>{plural(g.pieces, 'piece')} · {formatBDT(g.value)} · you owe them {formatBDT(g.owe)}</p></div>
-                  </div>
-                  <div className="sr-acts">
-                    {g.sup ? <Link href={`/supplier-detail?id=${encodeURIComponent(g.sup.id)}`} className="gc-btn gc-btn--sm gc-btn--neutral">Ledger</Link> : null}
-                    <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => open(g)}><Icon name="undo-2" width="16" height="16" aria-hidden="true" /> Create return</button>
-                  </div>
-                </div>
-                <div className="gc-table-wrap">
-                  <table className="gc-table gc-table--compact">
-                    <thead><tr><th scope="col">Product</th><th scope="col">From</th><th scope="col" className="sr-num">Pieces</th><th scope="col" className="sr-num">Order price</th><th scope="col" className="sr-num">Value</th><th scope="col">Set aside</th></tr></thead>
-                    <tbody>
-                      {g.items.map((h) => (
-                        <tr key={h.id}>
-                          <td><span className="sr-strong">{h.product}</span><span className="sr-sub sr-id">{h.id}</span></td>
-                          <td>{h.po ? <span className="sr-id">{h.po}</span> : '—'}<span className="sr-sub">{h.note}</span></td>
-                          <td className="sr-num">{h.qty}</td>
-                          <td className="sr-num">{formatBDT(h.cost)}</td>
-                          <td className="sr-num sr-strong">{formatBDT(h.qty * h.cost)}</td>
-                          <td>{formatDate(h.at)}<span className="sr-sub">by {h.by}</span></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            ))}
-
-            <section className="gc-card sr-card" aria-label="Returns made">
-              <div className="sr-head"><div><h2>Returns made</h2><p>Each return took the pieces off stock and added a credit note to the supplier’s ledger.</p></div></div>
-              {returns.length === 0 ? <EmptyState icon="undo-2" title="No returns yet" body="Returns you make show here with their credit notes." /> : (
-                <div className="gc-table-wrap">
-                  <table className="gc-table gc-table--compact">
-                    <thead><tr><th scope="col">Return</th><th scope="col">Supplier</th><th scope="col">Items</th><th scope="col">Reason</th><th scope="col" className="sr-num">Credit note</th><th scope="col">By</th></tr></thead>
-                    <tbody>
-                      {returns.map((r) => (
-                        <tr key={r.no}>
-                          <td><span className="sr-strong sr-id">{r.no}</span><span className="sr-sub">{formatDate(r.at)}</span></td>
-                          <td><Link href={`/supplier-detail?id=${encodeURIComponent(r.supplier)}`}>{supName(r.supplier)}</Link></td>
-                          <td>{r.lines.map((l) => <span key={l.holdId + l.name} className="sr-sub" style={{ color: 'var(--text-body)' }}>{l.qty} × {l.name}</span>)}</td>
-                          <td>{r.reason}<span className="sr-sub">{HOW_LABEL[r.how]}{r.note ? ' · ' + r.note : ''}</span></td>
-                          <td className="sr-num"><span className="sr-strong">{formatBDT(r.value)}</span><span className="sr-sub sr-id">{r.credit || '—'}</span></td>
-                          <td>{r.by}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </section>
           </div>
         </main>
       </div>
+
+      <Dialog open={!!seen} title={seen ? seen.no : 'Return'} onClose={() => setSeen(null)} width={480}>
+        {seen ? (
+          <div className="sr-form">
+            <ul className="sr-items" aria-label="Items">{seen.lines.map((l) => <li key={l.holdId + l.name}>{l.qty} × {l.name}{l.po ? <span className="sr-sub sr-id">{l.po}</span> : null}</li>)}</ul>
+            <KV rows={[
+              ['Date', formatDate(seen.at)],
+              ['Supplier', supName(seen.supplier)],
+              ['Reason', seen.reason],
+              ['How', HOW_LABEL[seen.how]],
+              seen.note ? ['Note', seen.note] : null,
+              ['Handled by', seen.by],
+              ['Credit note', <span key="cn"><span className="sr-id">{seen.credit || '—'}</span> · {formatBDT(seen.value)}</span>],
+            ]} />
+          </div>
+        ) : null}
+      </Dialog>
 
       <Dialog open={!!form} title={form && form.g.name ? `Return to ${form.g.name}` : 'Return to supplier'} onClose={() => setForm(null)} width={600}>
         {form ? (

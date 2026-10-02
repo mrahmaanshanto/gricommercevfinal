@@ -1,14 +1,17 @@
 'use client';
 // WholesaleCustomer — the profile of one wholesale customer (?phone=<mobile number>):
 // who they are and their price list, what they owe, and their entire purchase history —
-// every order, what they bought in total, every payment and every return.
+// every order, what they bought in total, every payment and every return. A record page (docs/shopify-style.md):
+// RecordHeader (Statement, Take payment, New sale), the four figures, the purchase history on the left and the
+// account and credit limit on the right.
 // Front end only: built from the customer book, the invoices and the return history.
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { EmptyState } from '@/components/ui';
+import { EmptyState, StatusBadge } from '@/components/ui';
+import { RecordHeader, MetricStrip, IndexTabs, KV } from '@/components/ui/IndexKit';
 import { toast } from '@/runtime/ui';
 import { formatBDT, formatDate } from '@/lib/format';
 import { getCustomers, findCustomer, tierOf, phoneDigits, updateCustomer } from '@/lib/customers';
@@ -23,46 +26,24 @@ const money = (n) => formatBDT(n, { decimals: Number.isInteger(n) ? 0 : 2 });
 const r2 = (n) => Math.round(n * 100) / 100;
 
 const CSS = `
-.wc-head{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3)}
-.wc-back{display:grid;place-items:center;width:44px;height:44px;flex:none;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);color:var(--text-body)}
-.wc-avatar{display:grid;place-items:center;width:48px;height:48px;flex:none;border-radius:var(--radius-full);background:var(--fill-primary-soft);color:var(--primary);font-size:var(--text-base);font-weight:var(--weight-semibold)}
-.wc-title{margin:0;font-size:var(--text-2xl);line-height:var(--text-2xl-lh);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.wc-meta{margin:2px 0 0;font-size:var(--text-xs);color:var(--text-muted)}
-.wc-actions{margin-left:auto;display:flex;flex-wrap:wrap;gap:var(--space-2)}
-.wc-grid{display:grid;grid-template-columns:minmax(0,1fr) 288px;gap:var(--space-5);align-items:start}
-.wc-col{display:flex;flex-direction:column;gap:var(--space-5);min-width:0}
-.wc-card{overflow:hidden}
-.wc-card__head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-2) var(--space-3);padding:var(--space-4) var(--space-5) var(--space-3)}
-.wc-card__head h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.wc-card__body{display:flex;flex-direction:column;gap:var(--space-4);padding:0 var(--space-5) var(--space-5)}
-.wc-card .gc-table th,.wc-card .gc-table td{padding-left:var(--space-2);padding-right:var(--space-2);white-space:normal}
-.wc-card .gc-table th:first-child,.wc-card .gc-table td:first-child{padding-left:var(--space-5)}
-.wc-card .gc-table th:last-child,.wc-card .gc-table td:last-child{padding-right:var(--space-5)}
-.wc-card .gc-badge,.wc-num,.wc-id{white-space:nowrap}
-.wc-nowrap{white-space:nowrap!important}
+/* phones: a figure cell grows to fit its value and sub-line (kit request) */
+@media (max-width:640px){.ix-metric{flex:0 0 auto}}
+.wc-id{white-space:nowrap}
 .wc-items{min-width:150px}
 .wc-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .wc-strong{font-weight:var(--weight-medium);color:var(--text-heading)}
 .wc-id{font-family:var(--font-data);font-weight:var(--weight-medium);color:var(--primary)}
-.wc-num{text-align:right;font-variant-numeric:tabular-nums}
 .wc-due{color:var(--text-danger);font-weight:var(--weight-semibold)}
-.wc-facts{display:grid;grid-template-columns:auto 1fr;gap:8px var(--space-4);margin:0;font-size:var(--text-sm)}
-.wc-facts dt{color:var(--text-muted)}
-.wc-facts dd{margin:0;text-align:right;color:var(--text-heading);overflow-wrap:anywhere}
-.wc-owed{display:flex;align-items:baseline;justify-content:space-between;padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);background:var(--fill-error-soft);color:var(--text-danger)}
+.wc-ok{color:var(--text-success)}
+.wc-owed{display:flex;align-items:baseline;justify-content:space-between;padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--fill-error-soft);font-size:var(--text-sm);color:var(--text-danger)}
 .wc-owed.is-clear{background:var(--fill-success-soft);color:var(--text-success)}
-.wc-owed b{font-size:var(--text-xl);font-weight:var(--weight-semibold);font-variant-numeric:tabular-nums}
-.wc-empty{margin:0;padding:0 var(--space-5) var(--space-5);font-size:var(--text-sm);color:var(--text-muted)}
-.wc-tabs{display:flex;gap:3px;padding:3px;border-radius:var(--radius-lg);background:var(--slate-150)}
-.wc-tabs button{height:32px;padding:0 12px;border:0;border-radius:var(--radius-md);background:none;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer;white-space:nowrap}
-.wc-credit{display:flex;flex-direction:column;gap:8px}
-.wc-credit__row{display:flex;justify-content:space-between;gap:12px;font-size:var(--text-sm);color:var(--text-muted)}
-.wc-credit__row b{font-weight:var(--weight-semibold);color:var(--text-heading);font-variant-numeric:tabular-nums}
+.wc-owed b{font-family:var(--font-data);font-size:var(--text-sm-plus);font-weight:var(--weight-semibold)}
+.wc-empty{margin:0;padding:var(--space-4);font-size:var(--text-sm);color:var(--text-muted)}
+.wc-side .ix-card__body{display:flex;flex-direction:column;gap:var(--space-3)}
+.wc-credit{display:flex;flex-direction:column;gap:6px}
 .wc-credit.is-over .gc-progress__fill{background:var(--text-danger)}
 .wc-credit.is-near .gc-progress__fill{background:var(--text-warning)}
 .wc-over{display:flex;align-items:flex-start;gap:6px;margin:0;font-size:var(--text-xs);color:var(--text-danger);font-weight:var(--weight-medium)}
-.wc-tabs button.is-on{background:#fff;color:var(--primary);box-shadow:0 1px 2px rgba(48,46,56,.12)}
-@media (max-width:1100px){.wc-grid{grid-template-columns:minmax(0,1fr)}}
 `;
 
 export default function WholesaleCustomer() {
@@ -89,15 +70,15 @@ export default function WholesaleCustomer() {
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="gc-shell">
         <Sidebar sticky="" active="customers" />
-        <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
+        <main className="gc-shell__main">
           <Topbar crumb="Customers" page={cust ? cust.name : 'Wholesale customer'} />
-          <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>{body}</div>
+          <div className="gc-shell__content"><div className="ix-page">{body}</div></div>
         </main>
       </div>
     </div>
   );
   if (!ready) return shell(null);
-  if (!cust) return shell(<><h1 className="sr-only">Customer not found</h1><EmptyState icon="user-x" title="This customer was not found" body="Open a wholesale customer from the Customers list." /><p style={{ textAlign: 'center' }}><Link href="/all-customers?view=wholesale" className="gc-btn gc-btn--soft">Wholesale customers</Link></p></>);
+  if (!cust) return shell(<><RecordHeader back="/all-customers?view=wholesale" backLabel="Wholesale customers" title="Customer not found" /><section className="ix-card"><div className="ix-empty"><EmptyState icon="user-x" title="This customer was not found" body="Open a wholesale customer from the Customers list." /></div><div className="ix-foot"><span /><Link href="/all-customers?view=wholesale" className="ix-btn ix-btn--sm">Wholesale customers</Link></div></section></>);
 
   const tier = tierOf(cust);
   // invoices of this customer and of any duplicate merged into it
@@ -136,105 +117,98 @@ export default function WholesaleCustomer() {
     toast(vals.name + ' was updated.' + (stillWhole ? '' : ' They no longer buy wholesale, so New sale uses retail prices.'));
   };
 
+  const unpaid = orders.filter((r) => !isPaid(r)).length;
+  const histTabs = [['orders', 'Orders'], ['products', 'Products bought'], ['payments', 'Payments'], ['returns', 'Returns']]
+    .map(([id, label]) => ({ key: id, id: 'wc-tab-' + id, label, count: counts[id], on: tab === id, onClick: () => setTab(id) }));
+
   return shell(
     <>
-      <div className="wc-head">
-        <Link href="/all-customers?view=wholesale" className="wc-back" aria-label="Back to wholesale customers"><Icon name="arrow-left" width="18" height="18" /></Link>
-        <span className="wc-avatar" aria-hidden="true">{cust.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}</span>
-        <div><h1 className="wc-title">{cust.name}</h1><p className="wc-meta">{cust.shownPhone || cust.phone} · {cust.address || 'No address on file'}</p></div>
-        <span className={'gc-badge gc-badge--lg gc-badge--' + (tier ? 'primary' : 'slate')}>{tier ? 'Wholesale customer' : 'Retail prices'}</span>
-        <div className="wc-actions">
-          <button type="button" className="gc-btn gc-btn--neutral" onClick={openEdit} aria-haspopup="dialog"><Icon name="pencil" width="18" height="18" aria-hidden="true" /> Edit</button>
-          <Link href={'/customer-statement?phone=' + cust.phone} className="gc-btn gc-btn--neutral"><Icon name="file-text" width="18" height="18" aria-hidden="true" /> Statement</Link>
-          {firstUnpaid ? <Link href={link(firstUnpaid.id)} className="gc-btn gc-btn--neutral"><Icon name="hand-coins" width="18" height="18" aria-hidden="true" /> Take payment</Link> : null}
-          <Link href="/pos" className="gc-btn gc-btn--solid"><Icon name="plus" width="18" height="18" aria-hidden="true" /> New sale</Link>
+      <RecordHeader back="/all-customers?view=wholesale" backLabel="Back to wholesale customers" title={cust.name}
+        badges={<StatusBadge tone={tier ? 'primary' : 'neutral'} icon="store">{tier ? 'Wholesale customer' : 'Retail prices'}</StatusBadge>}
+        meta={`${cust.shownPhone || cust.phone} · ${cust.address || 'No address on file'}`}
+        secondary={[{ label: 'Statement', href: '/customer-statement?phone=' + cust.phone }, firstUnpaid ? { label: 'Take payment', href: link(firstUnpaid.id) } : null].filter(Boolean)}
+        more={[{ label: 'Edit', onClick: openEdit }]}
+        primary={{ label: 'New sale', href: '/pos' }} />
+
+      <MetricStrip label="Account" items={[
+        { label: 'Orders', value: String(orders.length), sub: `${pcs} pcs` },
+        { label: 'Total bought', value: formatBDT(bought) },
+        { label: 'Paid so far', value: formatBDT(paid) },
+        { label: 'Total due', value: formatBDT(due), sub: unpaid === 1 ? '1 order' : unpaid + ' orders' },
+      ]} />
+
+      <div className="ix-record">
+        <div className="ix-main">
+          <section className="ix-card" aria-label="Purchase history">
+            <div className="ix-bar"><IndexTabs tabs={histTabs} label="Purchase history" /></div>
+
+            {tab === 'orders' ? (orders.length === 0 ? <p className="wc-empty">No order yet. Start one from New sale.</p> : (
+              <div className="ix-table-wrap ix-table-wrap--show"><table className="ix-table ix-table--static gc-table--keep">
+                <thead><tr><th scope="col">Order</th><th scope="col">Date</th><th scope="col">Items</th><th scope="col" className="ix-num">Total</th><th scope="col" className="ix-num">Due</th><th scope="col">Payment and delivery</th></tr></thead>
+                <tbody>{orders.map((r) => { const d = deliveryOf(r); return (
+                  <tr key={r.src + r.id}>
+                    <td><Link href={link(r.id)} className="wc-id">{r.id}</Link></td>
+                    <td className="ix-nowrap">{formatDate(r.at)}</td>
+                    <td className="wc-items">{r.lines.map((l) => `${l.name} × ${l.qty}`).join(', ')}</td>
+                    <td className="ix-num wc-strong">{money(r.totals.total)}</td>
+                    <td className={'ix-num' + (isPaid(r) ? '' : ' wc-due')}>{isPaid(r) ? '—' : money(r.due)}</td>
+                    <td><span className={'gc-badge gc-badge--' + PAY[statusOf(r)][1]}>{PAY[statusOf(r)][0]}</span> <span className={'gc-badge gc-badge--' + DELIVERY[d.status][1]}>{DELIVERY[d.status][0]}</span><span className="wc-sub">{d.sent} of {d.total} pcs sent</span></td>
+                  </tr>); })}</tbody>
+              </table></div>
+            )) : null}
+
+            {tab === 'products' ? (products.length === 0 ? <p className="wc-empty">Nothing bought yet.</p> : (
+              <div className="ix-table-wrap ix-table-wrap--show"><table className="ix-table ix-table--static gc-table--keep">
+                <thead><tr><th scope="col">Product</th><th scope="col" className="ix-num">Pieces</th><th scope="col" className="ix-num">In orders</th><th scope="col" className="ix-num">Amount</th><th scope="col">Last bought</th></tr></thead>
+                <tbody>{products.map((p) => <tr key={p.name}><td className="wc-strong">{p.name}</td><td className="ix-num">{p.qty}</td><td className="ix-num">{p.orders}</td><td className="ix-num wc-strong">{money(r2(p.amount))}</td><td className="ix-nowrap">{formatDate(p.last)}</td></tr>)}</tbody>
+              </table></div>
+            )) : null}
+
+            {tab === 'payments' ? (payments.length === 0 ? <p className="wc-empty">No payment received yet.</p> : (
+              <div className="ix-table-wrap ix-table-wrap--show"><table className="ix-table ix-table--static gc-table--keep">
+                <thead><tr><th scope="col">Date</th><th scope="col">Order</th><th scope="col">Method</th><th scope="col">Received by</th><th scope="col" className="ix-num">Amount</th></tr></thead>
+                <tbody>{payments.map((p, i) => <tr key={i}><td className="ix-nowrap">{formatDate(p.at)}</td><td><Link href={link(p.order)} className="wc-id">{p.order}</Link></td><td className="wc-strong">{p.method}{p.ref ? <span className="wc-sub">{p.ref}</span> : null}</td><td>{p.by || '—'}</td><td className="ix-num wc-strong">{money(p.amount)}</td></tr>)}</tbody>
+              </table></div>
+            )) : null}
+
+            {tab === 'returns' ? (back.length === 0 ? <p className="wc-empty">This customer has not returned or exchanged anything.</p> : (
+              <div className="ix-table-wrap ix-table-wrap--show"><table className="ix-table ix-table--static gc-table--keep">
+                <thead><tr><th scope="col">Date</th><th scope="col">Order</th><th scope="col">What came back</th><th scope="col">Type</th><th scope="col" className="ix-num">Money</th><th scope="col">Stock</th></tr></thead>
+                <tbody>{back.map((r) => <tr key={r.id}><td className="ix-nowrap">{formatDate(r.at)}</td><td className="wc-id">{r.ref}</td><td>{r.items}<span className="wc-sub">{r.reason}</span></td><td><span className={'gc-badge gc-badge--' + (r.type === 'return' ? 'warning' : 'primary')}>{r.type === 'return' ? 'Return' : 'Exchange'}</span></td><td className="ix-num wc-strong">{r.amount ? money(r.amount) : '—'}</td><td><span className={'gc-badge gc-badge--' + (r.stock === 'restock' ? 'success' : 'error')}>{r.stock === 'restock' ? 'Back in stock' : 'Damaged'}</span></td></tr>)}</tbody>
+              </table></div>
+            )) : null}
+          </section>
         </div>
-      </div>
 
-      <div className="gc-kpis">
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="clipboard-list" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Orders</p><p className="gc-kpi__value">{orders.length}<small>{pcs} pcs</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-accent-soft)', color: 'var(--accent-text)' }}><Icon name="shopping-bag" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Total bought</p><p className="gc-kpi__value">{formatBDT(bought)}</p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="wallet" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Paid so far</p><p className="gc-kpi__value">{formatBDT(paid)}</p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-error-soft)', color: 'var(--text-danger)' }}><Icon name="file-clock" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Total due</p><p className="gc-kpi__value">{formatBDT(due)}<small>{orders.filter((r) => !isPaid(r)).length === 1 ? '1 order' : orders.filter((r) => !isPaid(r)).length + ' orders'}</small></p></div></div>
-      </div>
-
-      <div className="wc-grid">
-        <section className="gc-card wc-card">
-          <div className="wc-card__head">
-            <h2>Purchase history</h2>
-            <div className="wc-tabs" role="tablist" aria-label="Purchase history">
-              {[['orders', 'Orders'], ['products', 'Products bought'], ['payments', 'Payments'], ['returns', 'Returns']].map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={tab === id} className={tab === id ? 'is-on' : ''} onClick={() => setTab(id)}>{label} · {counts[id]}</button>)}
-            </div>
-          </div>
-
-          {tab === 'orders' ? (orders.length === 0 ? <p className="wc-empty">No order yet. Start one from New sale.</p> : (
-            <div className="gc-table-wrap"><table className="gc-table gc-table--compact gc-table--hoverable">
-              <thead><tr><th scope="col">Order</th><th scope="col">Date</th><th scope="col">Items</th><th scope="col" className="wc-num">Total</th><th scope="col" className="wc-num">Due</th><th scope="col">Payment and delivery</th></tr></thead>
-              <tbody>{orders.map((r) => { const d = deliveryOf(r); return (
-                <tr key={r.src + r.id}>
-                  <td><Link href={link(r.id)} className="wc-id">{r.id}</Link></td>
-                  <td className="wc-nowrap">{formatDate(r.at)}</td>
-                  <td className="wc-items">{r.lines.map((l) => `${l.name} × ${l.qty}`).join(', ')}</td>
-                  <td className="wc-num wc-strong">{money(r.totals.total)}</td>
-                  <td className={'wc-num' + (isPaid(r) ? '' : ' wc-due')}>{isPaid(r) ? '—' : money(r.due)}</td>
-                  <td><span className={'gc-badge gc-badge--' + PAY[statusOf(r)][1]}>{PAY[statusOf(r)][0]}</span> <span className={'gc-badge gc-badge--' + DELIVERY[d.status][1]}>{DELIVERY[d.status][0]}</span><span className="wc-sub">{d.sent} of {d.total} pcs sent</span></td>
-                </tr>); })}</tbody>
-            </table></div>
-          )) : null}
-
-          {tab === 'products' ? (products.length === 0 ? <p className="wc-empty">Nothing bought yet.</p> : (
-            <div className="gc-table-wrap"><table className="gc-table gc-table--compact">
-              <thead><tr><th scope="col">Product</th><th scope="col" className="wc-num">Pieces</th><th scope="col" className="wc-num">In orders</th><th scope="col" className="wc-num">Amount</th><th scope="col">Last bought</th></tr></thead>
-              <tbody>{products.map((p) => <tr key={p.name}><td className="wc-strong">{p.name}</td><td className="wc-num">{p.qty}</td><td className="wc-num">{p.orders}</td><td className="wc-num wc-strong">{money(r2(p.amount))}</td><td>{formatDate(p.last)}</td></tr>)}</tbody>
-            </table></div>
-          )) : null}
-
-          {tab === 'payments' ? (payments.length === 0 ? <p className="wc-empty">No payment received yet.</p> : (
-            <div className="gc-table-wrap"><table className="gc-table gc-table--compact">
-              <thead><tr><th scope="col">Date</th><th scope="col">Order</th><th scope="col">Method</th><th scope="col">Received by</th><th scope="col" className="wc-num">Amount</th></tr></thead>
-              <tbody>{payments.map((p, i) => <tr key={i}><td>{formatDate(p.at)}</td><td><Link href={link(p.order)} className="wc-id">{p.order}</Link></td><td className="wc-strong">{p.method}{p.ref ? <span className="wc-sub">{p.ref}</span> : null}</td><td>{p.by || '—'}</td><td className="wc-num wc-strong">{money(p.amount)}</td></tr>)}</tbody>
-            </table></div>
-          )) : null}
-
-          {tab === 'returns' ? (back.length === 0 ? <p className="wc-empty">This customer has not returned or exchanged anything.</p> : (
-            <div className="gc-table-wrap"><table className="gc-table gc-table--compact">
-              <thead><tr><th scope="col">Date</th><th scope="col">Order</th><th scope="col">What came back</th><th scope="col">Type</th><th scope="col" className="wc-num">Money</th><th scope="col">Stock</th></tr></thead>
-              <tbody>{back.map((r) => <tr key={r.id}><td>{formatDate(r.at)}</td><td className="wc-id">{r.ref}</td><td>{r.items}<span className="wc-sub">{r.reason}</span></td><td><span className={'gc-badge gc-badge--' + (r.type === 'return' ? 'warning' : 'primary')}>{r.type === 'return' ? 'Return' : 'Exchange'}</span></td><td className="wc-num wc-strong">{r.amount ? money(r.amount) : '—'}</td><td><span className={'gc-badge gc-badge--' + (r.stock === 'restock' ? 'success' : 'error')}>{r.stock === 'restock' ? 'Back in stock' : 'Damaged'}</span></td></tr>)}</tbody>
-            </table></div>
-          )) : null}
-        </section>
-
-        <aside className="wc-col">
-          <section className="gc-card wc-card">
-            <div className="wc-card__head"><h2>Account</h2></div>
-            <div className="wc-card__body">
+        <aside className="ix-side wc-side">
+          <section className="ix-card" aria-labelledby="wc-acct-h">
+            <header className="ix-card__head"><h2 id="wc-acct-h">Account</h2><button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={openEdit} aria-haspopup="dialog">Edit</button></header>
+            <div className="ix-card__body">
               <div className={'wc-owed' + (due ? '' : ' is-clear')}><span>{due ? 'Owes you' : 'Nothing due'}</span><b>{formatBDT(due)}</b></div>
-              <dl className="wc-facts">
-                <dt>Mobile</dt><dd>{cust.shownPhone || cust.phone}</dd>
-                <dt>Address</dt><dd>{cust.address || 'Not on file'}</dd>
-                <dt>Buys</dt><dd>{(cust.types || []).join(', ') || '—'}</dd>
-                <dt>Price list</dt><dd>{tier ? `${tier.label} · ${tier.off}% below retail` : 'Retail prices'}</dd>
-                <dt>First order</dt><dd>{orders.length ? formatDate(orders[orders.length - 1].at) : '—'}</dd>
-                <dt>Last order</dt><dd>{orders.length ? formatDate(orders[0].at) : '—'}</dd>
-                <dt>Still to deliver</dt><dd>{pcsLeft} pcs</dd>
-              </dl>
+              <KV rows={[
+                ['Mobile', cust.shownPhone || cust.phone],
+                ['Address', cust.address || 'Not on file'],
+                ['Buys', (cust.types || []).join(', ') || '—'],
+                ['Price list', tier ? `${tier.label} · ${tier.off}% below retail` : 'Retail prices'],
+                ['First order', orders.length ? formatDate(orders[orders.length - 1].at) : '—'],
+                ['Last order', orders.length ? formatDate(orders[0].at) : '—'],
+                ['Still to deliver', `${pcsLeft} pcs`],
+              ]} />
             </div>
           </section>
-          <section className="gc-card wc-card" aria-labelledby="wc-credit-h">
-            <div className="wc-card__head"><h2 id="wc-credit-h">Credit limit</h2><button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={openEdit} aria-haspopup="dialog">Change</button></div>
-            <div className="wc-card__body">
+          <section className="ix-card" aria-labelledby="wc-credit-h">
+            <header className="ix-card__head"><h2 id="wc-credit-h">Credit limit</h2><button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={openEdit} aria-haspopup="dialog">Change</button></header>
+            <div className="ix-card__body">
               {limit ? (
                 <div className={'wc-credit' + (over ? ' is-over' : pct >= 80 ? ' is-near' : '')}>
-                  <div className="wc-credit__row"><span>Limit</span><b>{formatBDT(limit)}</b></div>
+                  <KV rows={[['Limit', formatBDT(limit)]]} />
                   <div className="gc-progress" role="progressbar" aria-label="Credit used" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-valuetext={`${formatBDT(used)} of ${formatBDT(limit)} used`}><div className="gc-progress__fill" style={{ width: pct + '%' }} /></div>
-                  <div className="wc-credit__row"><span>Used</span><b style={over ? { color: 'var(--text-danger)' } : undefined}>{money(used)}</b></div>
-                  <div className="wc-credit__row"><span>{over ? 'Over the limit by' : 'Still available'}</span><b style={{ color: over ? 'var(--text-danger)' : 'var(--text-success)' }}>{money(Math.abs(left))}</b></div>
+                  <KV rows={[['Used', <span className={over ? 'wc-due' : ''}>{money(used)}</span>], [over ? 'Over the limit by' : 'Still available', <span className={over ? 'wc-due' : 'wc-ok'}>{money(Math.abs(left))}</span>]]} />
                   {over ? <p className="wc-over" role="alert"><Icon name="circle-alert" width="14" height="14" aria-hidden="true" style={{ flex: 'none', marginTop: '1px' }} />Over the credit limit. Take a payment before selling more on credit.</p> : null}
                 </div>
               ) : (
                 <div className="wc-credit">
-                  <div className="wc-credit__row"><span>Limit</span><b>No limit</b></div>
-                  <div className="wc-credit__row"><span>Owes now</span><b>{money(used)}</b></div>
+                  <KV rows={[['Limit', 'No limit'], ['Owes now', money(used)]]} />
                   <p className="gc-help" style={{ margin: 0 }}>Set a limit to be warned before this customer owes too much.</p>
                 </div>
               )}

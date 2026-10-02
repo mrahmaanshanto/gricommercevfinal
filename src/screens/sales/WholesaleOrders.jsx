@@ -1,133 +1,144 @@
 'use client';
 // WholesaleOrders — the wholesale orders and their delivery: taken or not, how many pieces sent,
-// partial or full, and from where. Each delivery prints a challan / gate pass once saved.
-// The orders themselves are still made in New sale; this page only follows them up.
+// partial or full. The orders themselves are made in New sale; this page only follows them up.
+// Laid out like Shopify's lists (components/ui/IndexKit.jsx): the list shows the order, date, customer, total,
+// payment, delivery and pieces sent; open an order (the invoice page) to deliver it, print a challan or take payment.
 // Front end only: rows are the wholesale invoices from src/lib/invoices.js.
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
+import { navigate } from '@/runtime/routes';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { PageHeader, EmptyState } from '@/components/ui';
+import { EmptyState, StatusBadge } from '@/components/ui';
+import { ShopHeader, MetricStrip, IndexTabs, SearchField, LearnMore } from '@/components/ui/IndexKit';
 import { formatBDT, formatDate } from '@/lib/format';
-import { getInvoices, deliveryOf, statusOf, isPaid } from '@/lib/invoices';
-import { INVOICE_STATUS as PAY, PAPER_CSS } from './InvoicePaper';
-import { DeliveryDialog, DELIVERY, DELIVERY_CSS } from './DeliveryDialog';
+import { getInvoices, deliveryOf, statusOf } from '@/lib/invoices';
+import { INVOICE_STATUS as PAY } from './InvoicePaper';
+import { DELIVERY } from './DeliveryDialog';
 
-const TABS = [['all', 'All wholesale orders'], ['none', 'Not delivered'], ['partial', 'Partly delivered'], ['full', 'Delivered in full']];
-const TAB_DOT = { all: 'var(--primary)', none: 'var(--fill-warning)', partial: 'var(--fill-info)', full: 'var(--fill-success)' };
+const TABS = [['all', 'All'], ['none', 'Not delivered'], ['partial', 'Partly delivered'], ['full', 'Delivered in full']];
 const money = (n) => formatBDT(n, { decimals: Number.isInteger(n) ? 0 : 2 });
+const hrefOf = (r) => '/sales-invoice?id=' + encodeURIComponent(r.id);
 
-const CSS = PAPER_CSS + DELIVERY_CSS + `
-.wo-card{overflow:hidden}
-.wo-card .gc-table th,.wo-card .gc-table td{padding-left:var(--space-2);padding-right:var(--space-2);white-space:normal}
-.wo-card .gc-table th:first-child,.wo-card .gc-table td:first-child{padding-left:var(--space-5)}
-.wo-card .gc-table th:last-child,.wo-card .gc-table td:last-child{padding-right:var(--space-4)}
-.wo-card .gc-badge,.wo-card .gc-btn,.wo-num,.wo-id{white-space:nowrap}
-.wo-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border-subtle)}
-.wo-count{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.wo-search{position:relative;flex:0 1 300px}
-@media (max-width:640px){.wo-bar{padding:var(--space-3)}.wo-count{display:none}.wo-search{flex:1 1 100%}.wo-card .wo-prog{clear:both;width:auto;margin-top:var(--space-2)}}
-.wo-search svg{position:absolute;left:12px;top:13px;color:var(--text-muted);pointer-events:none}
-.wo-search input{padding-left:38px}
-.wo-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}
-.wo-strong{font-weight:var(--weight-medium);color:var(--text-heading)}
-.wo-id{font-family:var(--font-data);font-weight:var(--weight-medium);color:var(--primary)}
-.wo-num{text-align:right;font-variant-numeric:tabular-nums}
-.wo-prog{display:block;width:120px;height:6px;margin-top:6px;border-radius:var(--radius-full);background:var(--slate-200);overflow:hidden}
-.wo-prog i{display:block;height:100%;border-radius:var(--radius-full);background:var(--primary)}
-.wo-prog i.is-full{background:var(--fill-success)}
-.wo-actions{display:flex;justify-content:flex-end;gap:var(--space-2)}
+const CSS = `
+.wo-id{font-family:var(--font-data)}
 `;
 
 export default function WholesaleOrders() {
   const [rows, setRows] = useState([]);
   const [tab, setTab] = useState('all');
+  const [find, setFind] = useState(false);
   const [q, setQ] = useState('');
-  const [deliver, setDeliver] = useState(null);
+  const [pay, setPay] = useState('');
 
-  const reload = () => setRows(getInvoices().filter((r) => r.wholesale));
-  useEffect(() => { reload(); }, []);
+  useEffect(() => { setRows(getInvoices().filter((r) => r.wholesale)); }, []);
 
   const of = (st) => rows.filter((r) => deliveryOf(r).status === st);
   const counts = { all: rows.length, none: of('none').length, partial: of('partial').length, full: of('full').length };
   const shown = useMemo(() => {
     const text = q.trim().toLowerCase();
-    return (tab === 'all' ? rows : of(tab)).filter((r) => !text || (r.id + ' ' + r.customer.name + ' ' + r.customer.phone).toLowerCase().includes(text));
+    return (tab === 'all' ? rows : of(tab))
+      .filter((r) => !pay || statusOf(r) === pay)
+      .filter((r) => !text || (r.id + ' ' + r.customer.name + ' ' + r.customer.phone).toLowerCase().includes(text));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, tab, q]);
+  }, [rows, tab, q, pay]);
+  const searching = find || !!q || !!pay;
+  const closeFind = () => { setFind(false); setQ(''); setPay(''); };
+  const toSend = rows.reduce((a, r) => a + deliveryOf(r).left, 0);
+  const toCollect = rows.reduce((a, r) => a + Math.max(0, r.due || 0), 0);
+  const tabs = TABS.map(([id, label]) => ({ key: id, id: 'wo-tab-' + id, label, count: counts[id], on: tab === id, onClick: () => setTab(id) }));
 
   return (
     <div className="dc-screen ds" data-screen="WholesaleOrders">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="gc-shell">
         <Sidebar sticky="" active="orders-wholesale" />
-        <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
+        <main className="gc-shell__main">
           <Topbar crumb="Orders" page="Wholesale orders" />
-          <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-            <PageHeader
-              title="Wholesale orders"
-              about="Follow each wholesale order: whether the customer has taken delivery, how many pieces went out, and what is still to pay."
-              actions={<>
-                <Link href="/merchant-orders" className="gc-btn gc-btn--neutral"><Icon name="inbox" width="18" height="18" aria-hidden="true" /> All orders</Link>
-                <Link href="/pos" className="gc-btn gc-btn--solid"><Icon name="plus" width="18" height="18" aria-hidden="true" /> New sale</Link>
-              </>}
-            />
+          <div className="gc-shell__content">
+            <div className="ix-page">
+              <ShopHeader icon="truck" title="Wholesale orders"
+                about="Follow each wholesale order: whether the customer has taken delivery, how many pieces went out, and what is still to pay."
+                more={[{ label: 'All orders', href: '/merchant-orders' }, { label: 'Invoices', href: '/sales-invoices' }]}
+                primary={{ label: 'New sale', href: '/pos' }} />
 
-            <div className="gc-stattabs" role="tablist" aria-label="Wholesale orders by delivery">
-              {TABS.map(([id, label]) => {
-                const list = id === 'all' ? rows : of(id);
-                const left = list.reduce((a, r) => a + deliveryOf(r).left, 0);
-                const sub = id === 'all' ? money(rows.reduce((a, r) => a + r.totals.total, 0)) : id === 'full' ? money(list.reduce((a, r) => a + r.totals.total, 0)) : `${left} pcs to send`;
-                return (
-                  <button key={id} type="button" role="tab" aria-selected={tab === id} className="gc-stattab" onClick={() => setTab(id)}>
-                    <span className="gc-stattab__label"><i className="gc-stattab__dot" style={{ background: TAB_DOT[id] }} />{label}</span>
-                    <span className="gc-stattab__nums"><b>{counts[id]}</b><small>{sub}</small></span>
-                  </button>
-                );
-              })}
-            </div>
+              <MetricStrip label="Wholesale orders" items={[
+                { label: 'Pieces to send', value: toSend + ' pcs' },
+                { label: 'Due to collect', value: money(toCollect) },
+              ]} />
 
-            <section className="gc-card wo-card">
-              <div className="wo-bar">
-                <p className="wo-count">{TABS.find((x) => x[0] === tab)[1]} · {shown.length}</p>
-                <label className="wo-search"><Icon name="search" width="18" height="18" aria-hidden="true" /><input className="gc-input" type="search" placeholder="Search customer or order no." aria-label="Search customer or order number" value={q} onChange={(e) => setQ(e.target.value)} /></label>
-              </div>
-              {shown.length === 0 ? <EmptyState icon="truck" title={q ? 'No order matches that search' : rows.length ? 'No order in this group' : 'No wholesale orders yet'} actionLabel={q || rows.length ? undefined : 'New sale'} onAction={() => window.location.assign('/pos')} /> : (
-                <div className="gc-table-wrap">
-                  <table className="gc-table gc-table--compact gc-table--hoverable">
-                    <thead><tr><th scope="col">Order</th><th scope="col">Customer</th><th scope="col">Date</th><th scope="col" className="wo-num">Total</th><th scope="col">Payment</th><th scope="col">Delivery</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
-                    <tbody>
-                      {shown.map((r) => {
-                        const d = deliveryOf(r), last = (r.deliveries || [])[(r.deliveries || []).length - 1];
-                        return (
-                          <tr key={r.src + r.id}>
-                            <td><Link href={'/sales-invoice?id=' + encodeURIComponent(r.id)} className="wo-id" aria-label={`Open order ${r.id}`}>{r.id}</Link></td>
-                            <td><span className="wo-strong">{r.customer.name}</span><span className="wo-sub">{r.customer.phone}</span></td>
-                            <td>{formatDate(r.at)}<span className="wo-sub">{r.lines.length} product{r.lines.length === 1 ? '' : 's'}</span></td>
-                            <td className="wo-num"><span className="wo-strong">{money(r.totals.total)}</span>{isPaid(r) ? null : <span className="wo-sub">{money(r.due)} due</span>}</td>
-                            <td><span className={'gc-badge gc-badge--' + PAY[statusOf(r)][1]}>{PAY[statusOf(r)][0]}</span></td>
-                            <td>
-                              <span className={'gc-badge gc-badge--' + DELIVERY[d.status][1]}>{DELIVERY[d.status][0]}</span>
-                              <span className="wo-sub">{d.sent} of {d.total} pcs sent{last ? ` · last ${formatDate(last.at)}${last.from ? ' from ' + last.from : ''}` : ''}</span>
-                              <span className="wo-prog" role="progressbar" aria-label={`Delivered ${d.sent} of ${d.total} pieces`} aria-valuemin="0" aria-valuemax={d.total} aria-valuenow={d.sent}><i className={d.status === 'full' ? 'is-full' : ''} style={{ width: (d.total ? Math.round(100 * d.sent / d.total) : 0) + '%' }} /></span>
-                            </td>
-                            <td><div className="wo-actions">
-                              {d.status !== 'full' ? <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => setDeliver(r)}><Icon name="truck" width="16" height="16" aria-hidden="true" /> Deliver</button> : null}
-                              <Link href={'/sales-invoice?id=' + encodeURIComponent(r.id)} className="gc-btn gc-btn--sm gc-btn--neutral">View</Link>
-                            </div></td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+              <section className="ix-card" aria-label="Wholesale orders">
+                <div className="ix-bar">
+                  {searching ? (<>
+                    <SearchField value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search customer or order no." onDone={closeFind} autoFocus />
+                    <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={closeFind}>Cancel</button>
+                  </>) : (<>
+                    <IndexTabs tabs={tabs} label="Wholesale orders by delivery" />
+                    <span className="ix-tools">
+                      <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search and filter" onClick={() => setFind(true)}><Icon name="search" width="16" height="16" aria-hidden="true" /></button>
+                    </span>
+                  </>)}
                 </div>
-              )}
-            </section>
+                {searching ? (
+                  <div className="ix-filters" role="group" aria-label="Filters">
+                    <select aria-label="Payment" className={'ix-filter' + (pay ? ' is-set' : '')} value={pay} onChange={(e) => setPay(e.target.value)}>
+                      <option value="">Payment</option>{Object.entries(PAY).map(([k, [l]]) => <option key={k} value={k}>{l}</option>)}
+                    </select>
+                    {q || pay ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => { setQ(''); setPay(''); }}>Clear all</button> : null}
+                  </div>
+                ) : null}
+
+                {shown.length === 0 ? (
+                  <div className="ix-empty"><EmptyState icon="truck" title={q || pay ? 'No order matches that search' : rows.length ? 'No order in this group' : 'No wholesale orders yet'} actionLabel={q || pay || rows.length ? undefined : 'New sale'} onAction={() => navigate('/pos')} /></div>
+                ) : (<>
+                  <ul className="ix-plist" aria-label="Wholesale orders">
+                    {shown.map((r) => {
+                      const d = deliveryOf(r);
+                      return (
+                        <li key={r.src + r.id}>
+                          <Link href={hrefOf(r)} className="ix-pitem">
+                            <span className="ix-pitem__top"><b>{r.customer.name}</b><span>{money(r.totals.total)}</span></span>
+                            <span className="ix-pitem__mid"><span className="wo-id">{r.id}</span> · {formatDate(r.at)} · {d.sent} of {d.total} pcs sent</span>
+                            <span className="ix-pitem__tags">
+                              <StatusBadge tone={PAY[statusOf(r)][1]}>{PAY[statusOf(r)][0]}</StatusBadge>
+                              <StatusBadge tone={DELIVERY[d.status][1]} icon="truck">{DELIVERY[d.status][0]}</StatusBadge>
+                            </span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <div className="ix-table-wrap">
+                    <table className="ix-table gc-table--keep">
+                      <caption className="sr-only">Wholesale orders, {shown.length} shown</caption>
+                      <thead><tr><th scope="col">Order</th><th scope="col">Date</th><th scope="col">Customer</th><th scope="col" className="ix-num">Total</th><th scope="col">Payment</th><th scope="col">Delivery</th><th scope="col" className="ix-num">Sent</th></tr></thead>
+                      <tbody>
+                        {shown.map((r) => {
+                          const d = deliveryOf(r);
+                          return (
+                            <tr key={r.src + r.id} onClick={(e) => { if (!e.target.closest('a,button')) navigate(hrefOf(r)); }}>
+                              <td><Link href={hrefOf(r)} className="ix-strong wo-id">{r.id}</Link></td>
+                              <td className="ix-muted">{formatDate(r.at)}</td>
+                              <td>{r.customer.name}</td>
+                              <td className="ix-num">{money(r.totals.total)}</td>
+                              <td><StatusBadge tone={PAY[statusOf(r)][1]}>{PAY[statusOf(r)][0]}</StatusBadge></td>
+                              <td><StatusBadge tone={DELIVERY[d.status][1]} icon="truck">{DELIVERY[d.status][0]}</StatusBadge></td>
+                              <td className="ix-num ix-muted">{d.sent} of {d.total} pcs</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>)}
+                <div className="ix-foot"><span>{shown.length === 1 ? '1 order' : shown.length + ' orders'}</span></div>
+              </section>
+              <LearnMore topic="wholesale orders" />
+            </div>
           </div>
         </main>
       </div>
-      <DeliveryDialog inv={deliver} onClose={() => setDeliver(null)} onDone={() => { setDeliver(null); reload(); }} />
     </div>
   );
 }

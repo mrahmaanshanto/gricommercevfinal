@@ -19,7 +19,7 @@ const BASE = ['my-dash', 'tasks', 'team-chat'];
 
 export const ROLES = {
   ceo: { title: 'CEO', icon: 'crown', tone: 'primary', blurb: 'Everything: sales, profit, cash, people and approvals.', access: '*' },
-  cto: { title: 'CTO', icon: 'cpu', tone: 'info', blurb: 'Website, integrations, payment gateways, devices and automations.', access: ['connections', 'ch-woo', 'ch-shopify', 'ch-home', 'ch-meta', 'ch-gmc', 'ch-gbp', 'ch-issues', 'ch-settings', 'storefront', 'storefront-pages', 'storefront-wp', 'storefront-theme', 'storefront-nav', 'settings', 'set-store', 'set-all', 'set-wallet', 'set-billing', 'set-help', 'auto-rules', 'auto-builder', 'auto-settings', 'auto-reports', 'ta-track', 'ta-health', 'ta-conn', 'ta-setup', 'comm-conn', 'hr-devices', 'pos-settings', 'acc-setup', 'tickets', 'products-setup', 'rep-all', 'rep-daily'] },
+  cto: { title: 'CTO', icon: 'cpu', tone: 'info', blurb: 'Website, integrations, payment gateways, devices and automations.', access: ['connections', 'ch-woo', 'ch-shopify', 'ch-home', 'ch-meta', 'ch-gmc', 'ch-gbp', 'ch-issues', 'ch-settings', 'storefront', 'storefront-pages', 'storefront-wp', 'storefront-theme', 'storefront-nav', 'settings', 'set-store', 'set-all', 'set-wallet', 'set-billing', 'set-help', 'auto-rules', 'auto-builder', 'auto-settings', 'auto-reports', 'ta-track', 'ta-health', 'ta-conn', 'ta-setup', 'comm-conn', 'hr-devices', 'pos-settings', 'acc-setup', 'pay-setup', 'tickets', 'products-setup', 'rep-all', 'rep-daily'] },
   content: { title: 'Social media & content', icon: 'clapperboard', tone: 'secondary', blurb: 'Posts, blog, comments and the post calendar.', access: ['ch-gbp', 'comm-cal', 'comm-new', 'comm-conn', 'blog', 'blog-posts', 'blog-new', 'blog-cats', 'blog-authors', 'storefront-pages', 'products-media', 'promo-page', 'promo-flash', 'rep-marketing'] },
   orders: { title: 'Order management', icon: 'package-check', tone: 'warning', blurb: 'Confirm, pack, ship and follow up every order.', access: ['orders', 'orders-all', 'orders-online', 'orders-pos', 'orders-wholesale', 'orders-rto', 'sales-invoices', 'sales-return', 'customers', 'leads', 'inbox', 'calls', 'comm-ai', 'rec-carts', 'rec-auto', 'stock-holds', 'products-all', 'rep-online', 'rep-daily'] },
   comms: { title: 'Communications', icon: 'messages-square', tone: 'info', blurb: 'Inbox, calls, comments and support tickets.', access: ['inbox', 'calls', 'tickets', 'comm-ai', 'comm-cal', 'customers', 'leads', 'orders', 'orders-all', 'orders-online', 'rec-carts', 'rep-marketing'] },
@@ -92,7 +92,7 @@ export function navFor(u) {
   })).filter((g) => g.items.length)));
 }
 /** Does this role have work in the site's edition (anything beyond the shared tasks / chat / my dashboard)? */
-export const hasWorkInEdition = (u) => navFor(u).some((g) => g.items.some((it) => !BASE.includes(it.id)));
+export const hasWorkInEdition = (u) => navFor(u).some((g) => g.items.some((it) => (it.children || [it]).some((p) => !BASE.includes(p.id))));
 const pathOf = (it) => (it.to ? routeOf(it.to).split('?')[0] : '');
 /** Can this user open a page? Pages that are not in the menu (details, profiles) are always allowed. */
 export function canOpen(u, path) {

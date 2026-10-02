@@ -1,19 +1,30 @@
 'use client';
-// Generated from design/templates/support-tickets/SupportTickets.dc.html by scripts/convert-design.mjs.
-// SupportTickets — Ticket desk for the omnichannel inbox — Kanban assignment board, list view, and a detail panel to assign, reply and solve.
-// Edit freely: this file is now the source for the screen.
+// SupportTickets — the ticket desk, laid out like a Shopify list (components/ui/IndexKit.jsx): title row, key
+// figures, then one card with the status views, search and filters and a compact table (or the board). A row opens
+// the ticket in a side panel: status, owner, team, linked order, activity and the reply box.
+// Front end only: the tickets are demo data; changes made here last until the page is left.
+// Edit freely: this file is the source for the screen.
 
 import React from 'react';
-import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { ChannelIcon as __ChannelIcon } from '@/components/ui';
-import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
+import Link from 'next/link';
+import { DCLogic, Icon } from '@/runtime/dc';
+import { Sidebar, Topbar } from '@/shell/Shell';
+import { toast } from '@/runtime/ui';
+import { ChannelIcon, Sheet, StatusBadge, EmptyState } from '@/components/ui';
+import { ShopHeader, MetricStrip, IndexTabs, SearchField, LearnMore, Menu, KV } from '@/components/ui/IndexKit';
 
-// ---- logic (from the design's <script type="text/x-dc">) ----
+// ---- logic ----
 
-// Demo tickets shown on the board, the list and in the detail panel.
 const CHANNEL_NAME = { instagram: 'Instagram', facebook: 'Facebook', whatsapp: 'WhatsApp', tiktok: 'TikTok', telegram: 'Telegram', linkedin: 'LinkedIn', phone: 'Phone' };
-const PRIORITY_TONE = { Urgent: ['rgba(255,87,36,.12)', '#c23a12'], High: ['rgba(255,152,0,.12)', '#a15f00'], Normal: ['#e9eef5', '#475569'], Low: ['#e9eef5', '#475569'] };
+const STATUSES = ['New', 'Assigned', 'In progress', 'Waiting on customer', 'Solved'];
+const STATUS_TONE = { New: 'info', Assigned: 'primary', 'In progress': 'warning', 'Waiting on customer': 'neutral', Solved: 'success' };
+const PRIORITY_TONE = { Urgent: 'error', High: 'warning', Normal: 'neutral', Low: 'neutral' };
+const COL_NOTE = { 'In progress': 'WIP limit 5 per agent', 'Waiting on customer': 'Auto-close after 5 days', Solved: 'Today · CSAT 4.7' };
+const AGENTS = ['Rina', 'Tasnim', 'Mehedi'];
+const ME = 'Rina';
+const TEAMS = ['Order support', 'Payments', 'Delivery', 'Sales'];
+const SOON = 'This action is not available in the demo yet.';
+// Demo tickets shown on the list, the board and in the ticket panel.
 const TICKETS = {
   '2304': { subject: 'Add one more saree to GC-10482 before dispatch', customer: 'Nusrat Jahan', initials: 'NJ', img: '/assets/9f66d32bb99031029a6fbcfd91e221f2.png', imgPos: '52% 22%', meta: 'VIP · 14 orders · ৳84,600 LTV', ch: 'instagram', priority: 'Urgent', status: 'New', sla: 'SLA 18m', hot: true, order: 'GC-10482', orderTotal: '৳4,850', assignee: '', full: true },
   '2303': { subject: 'bKash payment not reflecting on order', customer: 'Rakib Hasan', initials: 'RH', ch: 'whatsapp', priority: 'Normal', status: 'New', sla: '3h left', assignee: '' },
@@ -28,713 +39,318 @@ const TICKETS = {
   '2288': { subject: 'Payment verified and order released', customer: 'Rakib Hasan', initials: 'RH', ch: 'whatsapp', priority: 'Normal', status: 'Solved', sla: 'SLA met', assignee: 'Mehedi' },
   '2284': { subject: 'Size exchange arranged for Friday', customer: 'Mahmuda Alam', initials: 'MA', ch: 'instagram', priority: 'Normal', status: 'Solved', sla: 'SLA met', assignee: 'Tasnim' },
 };
+const TABS = [['all', 'All'], ...STATUSES.map((s) => [s, s])];
+const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many || one + 's');
 
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.state = { view: props.view === 'list' ? 'list' : 'board', detail: props.detailPanel !== false, reply: 'public', sel: '2304', mobileDetail: false };
+    this.state = { view: props.view === 'board' ? 'board' : 'list', tab: 'all', q: '', find: false, ch: '', pri: '', who: '', hot: false, over: {}, sel: '', reply: 'public', draft: '' };
   }
   componentDidMount() {
-    // phones open on the list (the board is five 288px columns); Board stays one tap away
-    if (this.props.view !== 'board' && window.matchMedia && window.matchMedia('(max-width: 640px)').matches && this.state.view === 'board') this.setState({ view: 'list' });
-    this.paint();
+    // the board is five columns wide: phones open on the list, the board stays one tap away
+    if (this.props.view === 'board' && window.matchMedia && window.matchMedia('(max-width: 640px)').matches) this.setState({ view: 'list' });
   }
-  componentDidUpdate() { this.paint(); }
-  paint() {
-    const go = () => { if (window.lucide && window.lucide.createIcons) window.lucide.createIcons({ attrs: { width: 20, height: 20, 'stroke-width': 1.75 } }); };
-    go(); setTimeout(go, 400); setTimeout(go, 1200);
-  }
+  tickets() { return Object.keys(TICKETS).map((id) => ({ id, ...TICKETS[id], ...(this.state.over[id] || {}) })); }
+  patch(id, p) { this.setState((s) => ({ over: { ...s.over, [id]: { ...(s.over[id] || {}), ...p } } })); }
   renderVals() {
-    const board = this.state.view === 'board', pub = this.state.reply === 'public';
-    const sel = TICKETS[this.state.sel] ? this.state.sel : '2304';
-    const t = { id: sel, ...TICKETS[sel] };
-    t.channel = CHANNEL_NAME[t.ch];
-    t.tone = PRIORITY_TONE[t.priority];
-    const narrow = () => typeof window !== 'undefined' && window.matchMedia('(max-width:1023px)').matches;
+    const st = this.state;
+    const all = this.tickets();
+    const needle = st.q.trim().toLowerCase();
+    const match = (t) => (!needle || ['TKT-' + t.id, t.subject, t.customer, t.order || '', CHANNEL_NAME[t.ch]].join(' ').toLowerCase().includes(needle))
+      && (!st.ch || t.ch === st.ch) && (!st.pri || t.priority === st.pri)
+      && (!st.who || (st.who === 'none' ? !t.assignee : t.assignee === st.who))
+      && (!st.hot || (t.hot && t.status !== 'Solved'));
+    const found = all.filter(match);
+    const rows = found.filter((t) => st.tab === 'all' || t.status === st.tab);
+    const counts = { all: all.length };
+    STATUSES.forEach((s) => { counts[s] = all.filter((t) => t.status === s).length; });
+    const findOn = !!(needle || st.ch || st.pri || st.who);
+    const hasFilters = findOn || st.hot;
+    const clear = () => this.setState({ q: '', ch: '', pri: '', who: '', hot: false });
+    const open = (id) => () => this.setState({ sel: id, reply: 'public', draft: '' });
+    const cur = all.find((t) => t.id === st.sel) || null;
+    const decorate = (t) => ({ ...t, ref: 'TKT-' + t.id, channel: CHANNEL_NAME[t.ch], open: open(t.id), label: 'TKT-' + t.id + ', ' + t.subject + ', ' + t.customer + ', ' + CHANNEL_NAME[t.ch] + ', ' + t.priority });
     return {
-      t, mobileDetail: this.state.mobileDetail,
-      // One ticket is open at a time; below 1024px the detail panel replaces the board.
-      pick: (id) => () => this.setState({ sel: id, detail: true, mobileDetail: true }),
-      cur: (id) => (this.state.detail && sel === id ? 'true' : undefined),
-      label: (id) => { const k = TICKETS[id]; return 'TKT-' + id + ', ' + k.subject + ', ' + k.customer + ', ' + CHANNEL_NAME[k.ch] + ', ' + k.priority; },
-      isBoard: board, isList: !board, showDetail: this.state.detail, isPublic: pub, isInternal: !pub,
-      openBoard: () => this.setState({ view: 'board' }),
-      openList: () => this.setState({ view: 'list' }),
-      toggleDetail: () => this.setState(s => (narrow() ? { detail: true, mobileDetail: !s.mobileDetail } : { detail: !s.detail, mobileDetail: false })),
+      isBoard: st.view === 'board',
+      toggleView: () => this.setState((s) => ({ view: s.view === 'board' ? 'list' : 'board' })),
+      tabs: TABS.map(([k, l]) => ({ key: k, label: l, count: counts[k], id: 'tk-tab-' + k.replace(/\s/g, '-'), on: st.tab === k, onClick: () => this.setState({ tab: k }) })),
+      tabLabel: st.tab === 'all' ? 'All tickets' : st.tab + ' tickets',
+      figures: [
+        // tap to show only the tickets breaching their SLA (tap again to show all)
+        { label: 'Breaching SLA', value: String(all.filter((t) => t.hot && t.status !== 'Solved').length), on: st.hot, onClick: () => this.setState((s) => ({ hot: !s.hot })) },
+        { label: 'First reply', value: '12m', sub: 'average today' },
+        { label: 'Customer rating', value: '4.7', sub: 'of 5' },
+      ],
+      find: !!(st.find || findOn),
+      openFind: () => this.setState({ find: true }),
+      closeFind: () => this.setState({ find: false, q: '', ch: '', pri: '', who: '', hot: false }),
+      q: st.q, onSearch: (e) => this.setState({ q: e.target.value }),
+      ch: st.ch, onCh: (e) => this.setState({ ch: e.target.value }),
+      pri: st.pri, onPri: (e) => this.setState({ pri: e.target.value }),
+      who: st.who, onWho: (e) => this.setState({ who: e.target.value }),
+      hasFilters, clear,
+      empty: rows.length === 0,
+      emptyTitle: needle ? 'No tickets match “' + st.q.trim() + '”' : 'No tickets match these filters',
+      countLabel: rows.length ? 'Showing ' + plural(rows.length, 'ticket') : 'No tickets to show',
+      rows: rows.map(decorate),
+      columns: STATUSES.map((s) => ({ s, note: COL_NOTE[s] || '', items: found.filter((t) => t.status === s).map(decorate) })),
+      newTicket: () => toast(SOON, { tone: 'info' }),
+      // the open ticket
+      t: cur ? decorate(cur) : null,
+      close: () => this.setState({ sel: '' }),
+      setStatus: (e) => { const s = e.target.value; this.patch(cur.id, { status: s }); toast('TKT-' + cur.id + ' moved to ' + s); },
+      setAssignee: (e) => { const a = e.target.value; this.patch(cur.id, { assignee: a, status: cur.status === 'New' && a ? 'Assigned' : cur.status }); toast(a ? 'Assigned to ' + a : 'Unassigned'); },
+      take: () => { this.patch(cur.id, { assignee: ME, status: cur.status === 'New' ? 'Assigned' : cur.status }); toast('Assigned to you'); },
+      setTeam: (e) => this.patch(cur.id, { team: e.target.value }),
+      solve: () => { this.patch(cur.id, { status: 'Solved', sla: 'SLA met', hot: false }); toast('TKT-' + cur.id + ' solved'); this.setState({ sel: '' }); },
+      isPublic: st.reply === 'public',
       setPublic: () => this.setState({ reply: 'public' }),
-      setInternal: () => this.setState({ reply: 'internal' })
+      setInternal: () => this.setState({ reply: 'internal' }),
+      draft: st.draft, onDraft: (e) => this.setState({ draft: e.target.value }),
+      send: () => {
+        if (!st.draft.trim()) { toast(st.reply === 'public' ? 'Write the reply first' : 'Write the note first', { tone: 'error' }); return; }
+        toast(st.reply === 'public' ? 'Reply sent on ' + CHANNEL_NAME[cur.ch] : 'Internal note added');
+        this.setState({ draft: '' });
+      },
+      soon: () => toast(SOON, { tone: 'info' }),
     };
   }
 }
 
-// ---- styles (from the design's <helmet>) ----
+// ---- styles ----
 
-const CSS = `body{margin:0;background:#eef2f7;font-family:var(--font-sans);color:#475569}a{color:#003087;text-decoration:none}a:hover{color:#002a77}input,select,textarea{font-family:inherit}::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:var(--radius-full)}
-.dc-h767:hover{background:#f8fafc !important}
-.dc-h768:hover{background:#002a77 !important}
-.dc-h769:hover{background:rgba(203,213,225,.2) !important;color:#475569 !important}
-.dc-h770:hover{background:#f1f5f9 !important}
-.dc-h771:hover{background:#f1f5f9 !important}
-.dc-h772:hover{background:rgba(203,213,225,.4) !important;color:#475569 !important}
-.dc-h773:hover{box-shadow:0 3px 10px 0 rgba(48,46,56,.12) !important}
-.dc-h774:hover{border-color:#003087 !important;color:#003087 !important}
-.dc-h775:hover{box-shadow:0 3px 10px 0 rgba(48,46,56,.12) !important}
-.dc-h776:hover{border-color:#003087 !important;color:#003087 !important}
-.dc-h777:hover{box-shadow:0 3px 10px 0 rgba(48,46,56,.12) !important}
-.dc-h778:hover{border-color:#003087 !important;color:#003087 !important}
-.dc-h779:hover{border-color:#003087 !important;color:#003087 !important}
-.dc-h780:hover{background:rgba(203,213,225,.4) !important;color:#475569 !important}
-.dc-h781:hover{box-shadow:0 3px 10px 0 rgba(48,46,56,.12) !important}
-.dc-h782:hover{box-shadow:0 3px 10px 0 rgba(48,46,56,.12) !important}
-.dc-h783:hover{box-shadow:0 3px 10px 0 rgba(48,46,56,.12) !important}
-.dc-h784:hover{background:rgba(203,213,225,.4) !important;color:#475569 !important}
-.dc-h785:hover{box-shadow:0 3px 10px 0 rgba(48,46,56,.12) !important}
-.dc-h786:hover{box-shadow:0 3px 10px 0 rgba(48,46,56,.12) !important}
-.dc-h787:hover{box-shadow:0 3px 10px 0 rgba(48,46,56,.12) !important}
-.dc-h788:hover{box-shadow:0 3px 10px 0 rgba(48,46,56,.12) !important}
-.dc-h789:hover{opacity:1 !important}
-.dc-h790:hover{opacity:1 !important}
-.dc-h791:hover{border-color:#003087 !important;color:#003087 !important}
-.dc-h792:hover{background:#f8fafc !important}
-.dc-h793:hover{border-color:#003087 !important;color:#003087 !important}
-.dc-h794:hover{background:#f8fafc !important}
-.dc-h795:hover{background:#f8fafc !important}
-.dc-h796:hover{background:#f8fafc !important}
-.dc-h797:hover{background:#f8fafc !important}
-.dc-h798:hover{border-color:#003087 !important;color:#003087 !important}
-.dc-h799:hover{background:#f8fafc !important}
-.dc-h800:hover{background:rgba(203,213,225,.2) !important;color:#475569 !important}
-.dc-h801:hover{background:rgba(16,185,129,.24) !important}
-.dc-h802:hover{background:#dde5ef !important}
-.dc-h803:hover{background:#f8fafc !important}
-.dc-h804:hover{background:rgba(0,48,135,.2) !important}
-.dc-h805:hover{border-color:#003087 !important;color:#003087 !important}
-.dc-h806:hover{background:#dde5ef !important}
-.dc-h807:hover{background:#dde5ef !important}
-.dc-h808:hover{background:#dde5ef !important}
-.dc-h809:hover{background:rgba(16,185,129,.24) !important}
-.dc-h810:hover{background:#002a77 !important}
-.dc-h811:hover{background:#dde5ef !important}
-.dc-h812:hover{background:#dde5ef !important}
-.dc-h813:hover{background:#dde5ef !important}
-.mg-row{appearance:none;width:100%;margin:0;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
-.mg-list{list-style:none;margin:0;padding:0}
-.mg-head>*{max-width:100%}
-@media (max-width:1279px){.mg-head{height:auto!important;flex-wrap:wrap;row-gap:10px!important;padding-top:12px!important;padding-bottom:12px!important}}
-@media (max-width:1023px){.mg-head{padding-left:16px!important;padding-right:16px!important}}
-.tk-open{appearance:none;display:block;width:100%;margin:0;padding:0;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:inherit}
-.tk-open::after{content:"";position:absolute;inset:0;border-radius:var(--radius-lg)}
-.ds .tk-open:focus-visible{box-shadow:none}
-.tk-open:focus-visible::after{box-shadow:0 0 0 3px var(--focus-ring)}
-.tk-card button:not(.tk-open),.tk-row button:not(.tk-open),.tk-card a,.tk-row a{position:relative;z-index:1}
-.tk-card:has(.tk-open[aria-current="true"]){box-shadow:0 0 0 2px #003087 !important;opacity:1 !important}
-.tk-row:has(.tk-open[aria-current="true"]){background:rgba(0,48,135,.06) !important;box-shadow:inset 3px 0 0 #003087}
-.tk-back{display:none}
-@media (max-width:1023px){.tk-panes[data-m="0"] .tk-side{display:none}.tk-panes[data-m="1"] .tk-main{display:none}.tk-side{width:100%!important;border-left:0!important}.tk-back{display:inline-flex}}
-@media (max-width:640px){
-.mg-head .tk-seg{order:1}
-.mg-head .tk-seg button{height:38px!important}
-.mg-head .tk-search{order:3;width:100%!important;flex:1 1 100%}
-.mg-head .tk-search input{height:44px!important;font-size:var(--text-sm)!important;border-radius:var(--radius-lg)!important}
-.mg-head .tk-acts{order:2;margin-left:0!important;width:100%}
-.mg-head .tk-acts>.dc-h768{flex:1;justify-content:center}
-.mg-head .tk-acts>button{height:44px!important}
-.mg-head .tk-acts>button[aria-label]{width:44px!important}
-.mg-head .tk-more{display:none!important}
-.tk-stats{padding:12px 16px!important;gap:8px!important}
-.tk-stats>span:last-child{margin-left:0!important;width:100%;overflow-x:auto}
-.tk-stats>span:last-child button{height:36px!important;white-space:nowrap}
-.tk-lscroll{padding:12px 16px 20px!important}
-.tk-list{min-width:0!important;background:none!important;box-shadow:none!important;overflow:visible!important;display:grid;gap:10px}
-.tk-lhead{display:none!important}
-.tk-row{grid-template-columns:minmax(0,1fr) auto!important;grid-template-areas:"id pri" "sub sub" "cus sla" "st asg";row-gap:8px!important;column-gap:12px!important;padding:12px 14px!important;background:#fff;border:1px solid #e2e8f0!important;border-radius:var(--radius-xl)}
-.tk-row>:nth-child(1){grid-area:id}
-.tk-row>:nth-child(2){grid-area:sub;white-space:normal!important;font-weight:var(--weight-medium)}
-.tk-row>:nth-child(3){grid-area:cus}
-.tk-row>:nth-child(4){grid-area:st;justify-self:start}
-.tk-row>:nth-child(5){grid-area:pri;justify-self:end}
-.tk-row>:nth-child(6){grid-area:sla;justify-self:end}
-.tk-row>:nth-child(7){grid-area:asg;justify-self:end}
-.tk-row>button:nth-child(7){height:36px!important}
-.tk-open::after{border-radius:var(--radius-xl)}
-}`;
+const CSS = `
+.tk-id{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-data)}
+.tk-subject{display:block;max-width:360px;overflow:hidden;text-overflow:ellipsis}
+.tk-hot{color:var(--text-danger);font-weight:var(--weight-medium)}
+.tk-boardtitle{flex:1;padding-left:4px}
+.tk-sla{font-size:var(--text-xs)}
+.tk-board{display:grid;grid-template-columns:repeat(5,minmax(220px,1fr));gap:var(--space-3);padding:var(--space-3);overflow-x:auto}
+.tk-col{display:flex;flex-direction:column;gap:var(--space-2);min-width:0;padding:var(--space-2);border-radius:var(--radius-lg);background:var(--surface-subtle)}
+.tk-col__head{display:flex;align-items:baseline;gap:var(--space-2);padding:2px 4px;font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.tk-col__head small{font-weight:var(--weight-regular);color:var(--text-muted)}
+.tk-col__note{margin:-4px 4px 0;font-size:var(--text-xs);color:var(--text-muted)}
+.tk-card{display:flex;flex-direction:column;gap:6px;width:100%;padding:10px;border:0;border-radius:var(--radius-lg);background:var(--surface-card);box-shadow:var(--shadow-xs);font:inherit;text-align:left;color:inherit;cursor:pointer}
+.tk-card:hover{box-shadow:var(--shadow-card)}
+.tk-card:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.tk-card__top,.tk-card__foot{display:flex;align-items:center;gap:6px;font-size:var(--text-xs);color:var(--text-muted)}
+.tk-card__top .gc-badge{margin-left:auto}
+.tk-card__foot>span:last-child{margin-left:auto}
+.tk-card__sub{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.tk-empty{padding:var(--space-2) 4px;font-size:var(--text-xs);color:var(--text-muted)}
+.tk-who{display:flex;align-items:center;gap:var(--space-3)}
+.tk-av{display:grid;flex:none;place-items:center;width:36px;height:36px;border-radius:var(--radius-full);background:var(--fill-primary-soft);color:var(--primary);font-size:var(--text-xs);font-weight:var(--weight-medium);object-fit:cover}
+.tk-who__text{display:flex;flex:1;flex-direction:column;min-width:0}
+.tk-who__text b{overflow:hidden;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);text-overflow:ellipsis;white-space:nowrap}
+.tk-who__text small{font-size:var(--text-xs);color:var(--text-muted)}
+.tk-subj{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.tk-badges{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.tk-badges .ix-menu{margin-left:auto}
+.tk-field{display:flex;gap:var(--space-2)}
+.tk-field .gc-input{flex:1;min-width:0}
+.tk-h3{margin:0;font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.tk-acts{display:flex;flex-direction:column;gap:var(--space-3)}
+.tk-act{display:flex;gap:10px;font-size:var(--text-xs-plus);color:var(--text-heading)}
+.tk-act>svg{flex:none;margin-top:2px;color:var(--text-muted)}
+.tk-act small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
+.tk-quick{display:flex;flex-wrap:wrap;gap:6px}
+.tk-tag{align-self:flex-start}
+.tk-order{font-family:var(--font-data)}
+.tk-note{background:var(--fill-warning-soft)}
+`;
 
 // ---- markup ----
 
 export default class SupportTicketsScreen extends Component {
   render() {
-    const v = this.renderVals() || {};
+    const v = this.renderVals();
+    const t = v.t;
     return (
       <div className="dc-screen ds" data-screen="SupportTickets">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell" style={{ display: "flex", gap: "12px", padding: "12px", background: "#eef2f7" }}>
-          <__Sidebar sticky="" active="tickets" />
-          <div className="gc-shell__main" style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#f8fafc" }}>
-            <__Topbar crumb="Customers" page="Support tickets" />
-            <header className="mg-head" style={{ zIndex: "90", display: "flex", minHeight: "72px", flex: "none", alignItems: "center", gap: "16px", padding: "14px 24px", background: "#fff", borderBottom: "1px solid #e2e8f0" }}>
-              <h1 style={{ margin: "0", fontSize: "var(--text-xl)", lineHeight: "var(--text-xl-lh)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>Support tickets</h1>
-              <span className="tk-seg" style={{ display: "inline-flex", borderRadius: "var(--radius-full)", background: "#e9eef5", padding: "3px" }}>
-                {v.isBoard ? (<>
-                  <button onClick={v.openBoard} style={{ height: "28px", display: "inline-flex", alignItems: "center", gap: "8px", border: "none", borderRadius: "var(--radius-full)", padding: "0 14px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer", background: "#fff", color: "#003087", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)" }}><__Icon name="columns-3" strokeWidth="1.75" width="15" height="15" />Board</button>
-                  {" "}
-                  <button onClick={v.openList} style={{ height: "28px", display: "inline-flex", alignItems: "center", gap: "8px", border: "none", borderRadius: "var(--radius-full)", padding: "0 14px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer", background: "transparent", color: "#475569" }}><__Icon name="list" strokeWidth="1.75" width="15" height="15" />List</button>
-                </>) : null}
-                {v.isList ? (<>
-                  <button onClick={v.openBoard} style={{ height: "28px", display: "inline-flex", alignItems: "center", gap: "8px", border: "none", borderRadius: "var(--radius-full)", padding: "0 14px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer", background: "transparent", color: "#475569" }}><__Icon name="columns-3" strokeWidth="1.75" width="15" height="15" />Board</button>
-                  {" "}
-                  <button onClick={v.openList} style={{ height: "28px", display: "inline-flex", alignItems: "center", gap: "8px", border: "none", borderRadius: "var(--radius-full)", padding: "0 14px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer", background: "#fff", color: "#003087", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)" }}><__Icon name="list" strokeWidth="1.75" width="15" height="15" />List</button>
-                </>) : null}
-              </span>
-              <span className="tk-search" style={{ position: "relative", display: "inline-block", width: "230px" }}>
-                <input aria-label="Search tickets, orders, people" type="search" placeholder="Search tickets, orders, people…" style={{ width: "100%", boxSizing: "border-box", height: "32px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", padding: "0 16px 0 36px", fontSize: "var(--text-xs-plus)", color: "#1e293b" }} />
-                <span style={{ position: "absolute", left: "0", top: "0", display: "flex", width: "36px", height: "100%", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", pointerEvents: "none" }}>
-                  <__Icon name="search" strokeWidth="1.75" width="16" height="16" />
-                </span>
-              </span>
-              <div className="tk-acts" style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px" }}>
-                <span className="tk-more" style={{ display: "flex", alignItems: "center", gap: "-6px" }}>
-                  <span style={{ width: "28px", height: "28px", marginLeft: "-8px", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", border: "2px solid #fff" }} title="3 more agents online"><span aria-hidden="true">+3</span><span className="sr-only">3 more agents online</span></span>
-                </span>
-                <button className="dc-h767" style={{ height: "32px", display: "inline-flex", alignItems: "center", gap: "6px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#334155", cursor: "pointer" }}><__Icon name="filter" strokeWidth="1.75" width="15" height="15" />Filters<span style={{ display: "inline-grid", placeItems: "center", minWidth: "16px", height: "16px", borderRadius: "var(--radius-full)", background: "rgba(0,48,135,.1)", color: "#003087", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>2</span></button>
-                <button className="dc-h768" style={{ height: "32px", display: "inline-flex", alignItems: "center", gap: "6px", border: "none", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", padding: "0 14px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}><__Icon name="plus" strokeWidth="1.75" width="15" height="15" />New ticket</button>
-                <button className="dc-h769" onClick={v.toggleDetail} style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "var(--text-muted)", cursor: "pointer" }} aria-label="Toggle ticket panel">
-                  <__Icon name="panel-right" width="20" height="20" strokeWidth="1.75" />
-                </button>
-              </div>
-            </header>
-            <div className="tk-panes" data-m={v.mobileDetail ? "1" : "0"} style={{ flex: "1", minHeight: "0", display: "flex" }}>
-              <div className="tk-main" style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column" }}>
-                <div className="tk-stats" style={{ flex: "none", display: "flex", alignItems: "center", gap: "12px", padding: "16px 24px", background: "#fff", borderBottom: "1px solid #e2e8f0", flexWrap: "wrap" }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "28px", borderRadius: "var(--radius-full)", background: "rgba(255,87,36,.12)", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#c23a12" }}><__Icon name="alert-triangle" strokeWidth="1.75" width="14" height="14" />2 breaching SLA</span>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "28px", borderRadius: "var(--radius-full)", background: "#e9eef5", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#334155" }}>5 unassigned</span>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "28px", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.1)", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#0f7a5a" }}>14 solved today</span>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", height: "28px", borderRadius: "var(--radius-full)", background: "#e9eef5", padding: "0 12px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#334155" }}>First reply 12m</span>
-                  <span style={{ marginLeft: "auto", display: "flex", gap: "6px" }}>
-                    <button style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "rgba(0,48,135,.1)", color: "#003087", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>All agents</button>
-                    <button className="dc-h770" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "#475569", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Mine 6</button>
-                    <button className="dc-h771" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "#475569", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Group by assignee</button>
-                  </span>
-                </div>
-                {v.isBoard ? (<>
-                  <div style={{ flex: "1", minHeight: "0", overflow: "auto", padding: "18px 20px 24px" }}>
-                    <div style={{ display: "flex", gap: "14px", alignItems: "flex-start", minWidth: "1240px" }}>
-                      <div style={{ width: "288px", flex: "none", display: "flex", flexDirection: "column", borderRadius: "var(--radius-xl)", background: "#f1f5f9", padding: "12px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <span style={{ width: "8px", height: "8px", borderRadius: "var(--radius-full)", background: "#697a9b" }} />
-                          <p style={{ margin: "0", flex: "1", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "#334155" }}>New</p>
-                          <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>5</span>
-                          <button className="dc-h772" style={{ width: "28px", height: "28px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "var(--text-muted)", cursor: "pointer" }} aria-label="Add ticket">
-                            <__Icon name="plus" strokeWidth="1.75" width="15" height="15" />
-                          </button>
-                        </div>
-                        <p style={{ margin: "6px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Unassigned — drag onto an agent</p>
-                        <div style={{ display: "grid", gap: "10px", marginTop: "12px" }}>
-                          <div className="tk-card dc-h773" style={{ position: "relative", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)", padding: "12px", borderLeft: "3px solid #ff5724" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <__ChannelIcon channel="instagram" size={20} />
-                              <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>TKT-2304</span>
-                              <span style={{ marginLeft: "auto", display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(255,87,36,.12)", color: "#c23a12" }}>Urgent</span>
-                            </div>
-                            <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b", textWrap: "pretty" }}><button type="button" className="tk-open" aria-current={v.cur("2304")} aria-label={v.label("2304")} onClick={v.pick("2304")}>Add one more saree to GC-10482 before dispatch</button></p>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px" }}>
-                              <img src="/assets/9f66d32bb99031029a6fbcfd91e221f2.png" alt="Nusrat Jahan" style={{ width: "22px", height: "22px", borderRadius: "var(--radius-full)", objectFit: "cover", objectPosition: "52% 22%" }} />
-                              <span style={{ flex: "1", minWidth: "0", fontSize: "var(--text-xs)", color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Nusrat Jahan · VIP</span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#c23a12" }}><__Icon name="timer" strokeWidth="1.75" width="12" height="12" />18m</span>
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px", paddingTop: "10px", borderTop: "1px solid #f1f5f9" }}>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><__Icon name="phone-incoming" strokeWidth="1.75" width="12" height="12" />From call</span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><__Icon name="paperclip" strokeWidth="1.75" width="12" height="12" />1</span>
-                              <button className="dc-h774" style={{ marginLeft: "auto", height: "28px", display: "inline-flex", alignItems: "center", gap: "4px", border: "1px dashed #cbd5e1", borderRadius: "var(--radius-full)", background: "none", color: "#475569", padding: "0 8px", fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}><__Icon name="user-plus" strokeWidth="1.75" width="12" height="12" />Assign</button>
-                            </div>
-                          </div>
-                          <div className="tk-card dc-h775" style={{ position: "relative", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)", padding: "12px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <__ChannelIcon channel="whatsapp" size={20} />
-                              <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>TKT-2303</span>
-                              <span style={{ marginLeft: "auto", display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#e9eef5", color: "#475569" }}>Normal</span>
-                            </div>
-                            <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b", textWrap: "pretty" }}><button type="button" className="tk-open" aria-current={v.cur("2303")} aria-label={v.label("2303")} onClick={v.pick("2303")}>bKash payment not reflecting on order</button></p>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px" }}>
-                              <span style={{ width: "22px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.12)", color: "#0f7a5a", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>RH</span>
-                              <span style={{ flex: "1", minWidth: "0", fontSize: "var(--text-xs)", color: "#475569" }}>Rakib Hasan</span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><__Icon name="timer" strokeWidth="1.75" width="12" height="12" />3h</span>
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px", paddingTop: "10px", borderTop: "1px solid #f1f5f9" }}>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><__Icon name="message-square" strokeWidth="1.75" width="12" height="12" />4</span>
-                              <button className="dc-h776" style={{ marginLeft: "auto", height: "28px", display: "inline-flex", alignItems: "center", gap: "4px", border: "1px dashed #cbd5e1", borderRadius: "var(--radius-full)", background: "none", color: "#475569", padding: "0 8px", fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}><__Icon name="user-plus" strokeWidth="1.75" width="12" height="12" />Assign</button>
-                            </div>
-                          </div>
-                          <div className="tk-card dc-h777" style={{ position: "relative", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)", padding: "12px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <__ChannelIcon channel="tiktok" size={20} />
-                              <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>TKT-2302</span>
-                              <span style={{ marginLeft: "auto", display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#e9eef5", color: "#475569" }}>Low</span>
-                            </div>
-                            <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b", textWrap: "pretty" }}><button type="button" className="tk-open" aria-current={v.cur("2302")} aria-label={v.label("2302")} onClick={v.pick("2302")}>Asks for size chart in Bangla</button></p>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px" }}>
-                              <span style={{ width: "22px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(30,41,59,.08)", color: "#1e293b", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>TR</span>
-                              <span style={{ flex: "1", minWidth: "0", fontSize: "var(--text-xs)", color: "#475569" }}>@tanvir.rides</span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><__Icon name="timer" strokeWidth="1.75" width="12" height="12" />5h</span>
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px", paddingTop: "10px", borderTop: "1px solid #f1f5f9" }}>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><__Icon name="at-sign" strokeWidth="1.75" width="12" height="12" />From comment</span>
-                              <button className="dc-h778" style={{ marginLeft: "auto", height: "28px", display: "inline-flex", alignItems: "center", gap: "4px", border: "1px dashed #cbd5e1", borderRadius: "var(--radius-full)", background: "none", color: "#475569", padding: "0 8px", fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}><__Icon name="user-plus" strokeWidth="1.75" width="12" height="12" />Assign</button>
-                            </div>
-                          </div>
-                          <button className="dc-h779" style={{ height: "36px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", border: "1px dashed #cbd5e1", borderRadius: "var(--radius-lg)", background: "none", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)", cursor: "pointer" }}>Show 2 more</button>
-                        </div>
-                      </div>
-                      <div style={{ width: "288px", flex: "none", display: "flex", flexDirection: "column", borderRadius: "var(--radius-xl)", background: "#f1f5f9", padding: "12px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <span style={{ width: "8px", height: "8px", borderRadius: "var(--radius-full)", background: "#003087" }} />
-                          <p style={{ margin: "0", flex: "1", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "#334155" }}>Assigned</p>
-                          <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>4</span>
-                          <button className="dc-h780" style={{ width: "28px", height: "28px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "var(--text-muted)", cursor: "pointer" }} aria-label="Add ticket">
-                            <__Icon name="plus" strokeWidth="1.75" width="15" height="15" />
-                          </button>
-                        </div>
-                        <p style={{ margin: "6px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Owner set, work not started</p>
-                        <div style={{ display: "grid", gap: "10px", marginTop: "12px" }}>
-                          <div className="tk-card dc-h781" style={{ position: "relative", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)", padding: "12px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <__ChannelIcon channel="facebook" size={20} />
-                              <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>TKT-2298</span>
-                              <span style={{ marginLeft: "auto", display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(255,152,0,.12)", color: "#a15f00" }}>High</span>
-                            </div>
-                            <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b", textWrap: "pretty" }}><button type="button" className="tk-open" aria-current={v.cur("2298")} aria-label={v.label("2298")} onClick={v.pick("2298")}>Wrong colour delivered — wants exchange</button></p>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px" }}>
-                              <img src="/assets/48a47ed6468079a61846b91934211c40.png" alt="Sadia Ferdous" style={{ width: "22px", height: "22px", borderRadius: "var(--radius-full)", objectFit: "cover", objectPosition: "55% 18%" }} />
-                              <span style={{ flex: "1", minWidth: "0", fontSize: "var(--text-xs)", color: "#475569" }}>Sadia Ferdous</span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><__Icon name="timer" strokeWidth="1.75" width="12" height="12" />2h</span>
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px", paddingTop: "10px", borderTop: "1px solid #f1f5f9" }}>
-                              <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "#003087" }}>GC-10455</span>
-                              <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs)", color: "#475569" }}><span style={{ width: "22px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.14)", color: "#0f7a5a", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>TA</span>Tasnim</span>
-                            </div>
-                          </div>
-                          <div className="tk-card dc-h782" style={{ position: "relative", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)", padding: "12px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <__ChannelIcon channel="telegram" size={20} />
-                              <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>TKT-2295</span>
-                              <span style={{ marginLeft: "auto", display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#e9eef5", color: "#475569" }}>Normal</span>
-                            </div>
-                            <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b", textWrap: "pretty" }}><button type="button" className="tk-open" aria-current={v.cur("2295")} aria-label={v.label("2295")} onClick={v.pick("2295")}>Refund not received for GC-10190</button></p>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px" }}>
-                              <img src="/assets/25e820cfa3e50978f934abe93e0c3db7.png" alt="Farhana Jahan" style={{ width: "22px", height: "22px", borderRadius: "var(--radius-full)", objectFit: "cover", objectPosition: "50% 20%" }} />
-                              <span style={{ flex: "1", minWidth: "0", fontSize: "var(--text-xs)", color: "#475569" }}>Farhana Jahan</span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#c23a12" }}><__Icon name="timer" strokeWidth="1.75" width="12" height="12" />Overdue</span>
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px", paddingTop: "10px", borderTop: "1px solid #f1f5f9" }}>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><__Icon name="message-square" strokeWidth="1.75" width="12" height="12" />7</span>
-                              <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs)", color: "#475569" }}><span style={{ width: "22px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(240,0,185,.1)", color: "#c1008f", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>MK</span>Mehedi</span>
-                            </div>
-                          </div>
-                          <div className="tk-card dc-h783" style={{ position: "relative", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)", padding: "12px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <__ChannelIcon channel="linkedin" size={20} />
-                              <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>TKT-2290</span>
-                              <span style={{ marginLeft: "auto", display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#e9eef5", color: "#475569" }}>Normal</span>
-                            </div>
-                            <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b", textWrap: "pretty" }}><button type="button" className="tk-open" aria-current={v.cur("2290")} aria-label={v.label("2290")} onClick={v.pick("2290")}>Wholesale quote for 200 staff kits</button></p>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px" }}>
-                              <span style={{ width: "22px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(0,156,222,.12)", color: "var(--accent-text)", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>IR</span>
-                              <span style={{ flex: "1", minWidth: "0", fontSize: "var(--text-xs)", color: "#475569" }}>Imran Rahman · B2B</span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><__Icon name="timer" strokeWidth="1.75" width="12" height="12" />1d</span>
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px", paddingTop: "10px", borderTop: "1px solid #f1f5f9" }}>
-                              <span style={{ display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "var(--radius-sm)", background: "rgba(0,48,135,.08)", padding: "0 6px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#003087" }}>Sales</span>
-                              <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs)", color: "#475569" }}><span style={{ width: "22px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(0,48,135,.1)", color: "#003087", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>RA</span>Rina</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div style={{ width: "288px", flex: "none", display: "flex", flexDirection: "column", borderRadius: "var(--radius-xl)", background: "#f1f5f9", padding: "12px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <span style={{ width: "8px", height: "8px", borderRadius: "var(--radius-full)", background: "#ff9800" }} />
-                          <p style={{ margin: "0", flex: "1", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "#334155" }}>In progress</p>
-                          <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>3</span>
-                          <button className="dc-h784" style={{ width: "28px", height: "28px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "var(--text-muted)", cursor: "pointer" }} aria-label="Add ticket">
-                            <__Icon name="plus" strokeWidth="1.75" width="15" height="15" />
-                          </button>
-                        </div>
-                        <p style={{ margin: "6px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>WIP limit 5 per agent</p>
-                        <div style={{ display: "grid", gap: "10px", marginTop: "12px" }}>
-                          <div className="tk-card dc-h785" style={{ position: "relative", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)", padding: "12px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <__ChannelIcon channel="phone" size={20} />
-                              <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>TKT-2291</span>
-                              <span style={{ marginLeft: "auto", display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(255,87,36,.12)", color: "#c23a12" }}>Urgent</span>
-                            </div>
-                            <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b", textWrap: "pretty" }}><button type="button" className="tk-open" aria-current={v.cur("2291")} aria-label={v.label("2291")} onClick={v.pick("2291")}>Third complaint about missing refund</button></p>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px" }}>
-                              <span style={{ width: "22px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(255,87,36,.12)", color: "#c23a12", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>AK</span>
-                              <span style={{ flex: "1", minWidth: "0", fontSize: "var(--text-xs)", color: "#475569" }}>Arif Karim</span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#c23a12" }}><__Icon name="timer" strokeWidth="1.75" width="12" height="12" />SLA 6m</span>
-                            </div>
-                            <span style={{ display: "block", height: "4px", marginTop: "10px", borderRadius: "var(--radius-full)", background: "#f1f5f9" }}>
-                              <span style={{ display: "block", width: "86%", height: "4px", borderRadius: "var(--radius-full)", background: "#ff5724" }} />
+        <div className="gc-shell">
+          <Sidebar sticky="" active="tickets" />
+          <div className="gc-shell__main">
+            <Topbar crumb="Customers" page="Support tickets" />
+            <main className="gc-shell__content">
+              <div className="ix-page">
+                <ShopHeader icon="life-buoy" title="Support tickets"
+                  about="Every customer request that needs follow-up, from chats, calls and comments. Open a ticket to assign it, reply and solve it."
+                  secondary={[{ label: v.isBoard ? 'List view' : 'Board view', icon: v.isBoard ? 'list' : 'columns-3', onClick: v.toggleView }]}
+                  more={[{ label: 'Inbox', href: '/merchant-inbox' }, { label: 'Team performance', href: '/team-report' }]}
+                  primary={{ label: 'New ticket', onClick: v.newTicket }} />
+
+                <MetricStrip label="Ticket figures" items={v.figures} />
+
+                <section className="ix-card" aria-label={v.tabLabel}>
+                  <div className="ix-bar">
+                    {v.find ? (<>
+                      <SearchField value={v.q} onChange={v.onSearch} placeholder="Search tickets, orders, people" onDone={v.closeFind} autoFocus />
+                      <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={v.closeFind}>Cancel</button>
+                    </>) : (<>
+                      {v.isBoard ? <h2 className="ix-section-title tk-boardtitle">Board</h2> : <IndexTabs tabs={v.tabs} label="Ticket status" />}
+                      <span className="ix-tools">
+                        <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search and filter" onClick={v.openFind}><Icon name="search" width="16" height="16" aria-hidden="true" /></button>
+                      </span>
+                    </>)}
+                  </div>
+                  {v.find ? (
+                    <div className="ix-filters" role="group" aria-label="Filters">
+                      <select aria-label="Channel" className={'ix-filter' + (v.ch ? ' is-set' : '')} value={v.ch} onChange={v.onCh}>
+                        <option value="">Channel</option>
+                        {Object.keys(CHANNEL_NAME).map((k) => <option key={k} value={k}>{CHANNEL_NAME[k]}</option>)}
+                      </select>
+                      <select aria-label="Priority" className={'ix-filter' + (v.pri ? ' is-set' : '')} value={v.pri} onChange={v.onPri}>
+                        <option value="">Priority</option><option>Urgent</option><option>High</option><option>Normal</option><option>Low</option>
+                      </select>
+                      <select aria-label="Assignee" className={'ix-filter' + (v.who ? ' is-set' : '')} value={v.who} onChange={v.onWho}>
+                        <option value="">Assignee</option><option value={ME}>Mine</option><option value="none">Unassigned</option>
+                        {AGENTS.filter((a) => a !== ME).map((a) => <option key={a} value={a}>{a}</option>)}
+                      </select>
+                      {v.hasFilters ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={v.clear}>Clear all</button> : null}
+                    </div>
+                  ) : null}
+
+                  {v.isBoard ? (
+                    <div className="tk-board">
+                      {v.columns.map((c) => (
+                        <section key={c.s} className="tk-col" aria-label={c.s}>
+                          <h3 className="tk-col__head">{c.s}<small>{c.items.length}</small></h3>
+                          {c.note ? <p className="tk-col__note">{c.note}</p> : null}
+                          {c.items.length ? c.items.map((k) => (
+                            <button key={k.id} type="button" className="tk-card" onClick={k.open} aria-label={k.label}>
+                              <span className="tk-card__top"><ChannelIcon channel={k.ch} size={16} decorative /><span className="tk-id">{k.ref}</span><StatusBadge tone={PRIORITY_TONE[k.priority]}>{k.priority}</StatusBadge></span>
+                              <span className="tk-card__sub">{k.subject}</span>
+                              <span className="tk-card__foot"><span>{k.customer}</span><span className={k.hot ? 'tk-hot' : ''}>{k.sla}</span></span>
+                            </button>
+                          )) : <p className="tk-empty">No tickets</p>}
+                        </section>
+                      ))}
+                    </div>
+                  ) : v.empty ? (
+                    <div className="ix-empty"><EmptyState icon="life-buoy" title={v.emptyTitle} actionLabel={v.hasFilters ? 'Clear filters' : undefined} onAction={v.hasFilters ? v.clear : undefined} /></div>
+                  ) : (<>
+                    <ul className="ix-plist" aria-label={v.tabLabel}>
+                      {v.rows.map((k) => (
+                        <li key={k.id}>
+                          <button type="button" className="ix-pitem" onClick={k.open} aria-label={k.label}>
+                            <span className="ix-pitem__top"><b>{k.subject}</b><span className={k.hot ? 'tk-hot' : 'ix-muted'}>{k.sla}</span></span>
+                            <span className="ix-pitem__mid">{k.ref} · {k.customer} · {k.assignee || 'Unassigned'}</span>
+                            <span className="ix-pitem__tags">
+                              <StatusBadge tone={STATUS_TONE[k.status]}>{k.status}</StatusBadge>
+                              <StatusBadge tone={PRIORITY_TONE[k.priority]}>{k.priority}</StatusBadge>
                             </span>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px", paddingTop: "10px", borderTop: "1px solid #f1f5f9" }}>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><__Icon name="git-branch" strokeWidth="1.75" width="12" height="12" />Escalated</span>
-                              <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs)", color: "#475569" }}><span style={{ width: "22px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(0,48,135,.1)", color: "#003087", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>RA</span>Rina</span>
-                            </div>
-                          </div>
-                          <div className="tk-card dc-h786" style={{ position: "relative", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)", padding: "12px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <__ChannelIcon channel="whatsapp" size={20} />
-                              <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>TKT-2287</span>
-                              <span style={{ marginLeft: "auto", display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(255,152,0,.12)", color: "#a15f00" }}>High</span>
-                            </div>
-                            <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b", textWrap: "pretty" }}><button type="button" className="tk-open" aria-current={v.cur("2287")} aria-label={v.label("2287")} onClick={v.pick("2287")}>Courier lost parcel — claim filed</button></p>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px" }}>
-                              <span style={{ width: "22px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(105,122,155,.15)", color: "var(--text-muted)", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>KW</span>
-                              <span style={{ flex: "1", minWidth: "0", fontSize: "var(--text-xs)", color: "#475569" }}>Katrina West</span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", color: "#a15f00" }}><__Icon name="timer" strokeWidth="1.75" width="12" height="12" />4h</span>
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px", paddingTop: "10px", borderTop: "1px solid #f1f5f9" }}>
-                              <span style={{ display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "var(--radius-sm)", background: "rgba(255,152,0,.1)", padding: "0 6px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#a15f00" }}>Waiting on courier</span>
-                              <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs)", color: "#475569" }}><span style={{ width: "22px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.14)", color: "#0f7a5a", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>TA</span>Tasnim</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div style={{ width: "288px", flex: "none", display: "flex", flexDirection: "column", borderRadius: "var(--radius-xl)", background: "#f1f5f9", padding: "12px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <span style={{ width: "8px", height: "8px", borderRadius: "var(--radius-full)", background: "#009cde" }} />
-                          <p style={{ margin: "0", flex: "1", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "#334155" }}>Waiting on customer</p>
-                          <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>2</span>
-                        </div>
-                        <p style={{ margin: "6px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Auto-close after 5 days</p>
-                        <div style={{ display: "grid", gap: "10px", marginTop: "12px" }}>
-                          <div className="tk-card dc-h787" style={{ position: "relative", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)", padding: "12px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <__ChannelIcon channel="instagram" size={20} />
-                              <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>TKT-2279</span>
-                              <span style={{ marginLeft: "auto", display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#e9eef5", color: "#475569" }}>Normal</span>
-                            </div>
-                            <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b", textWrap: "pretty" }}><button type="button" className="tk-open" aria-current={v.cur("2279")} aria-label={v.label("2279")} onClick={v.pick("2279")}>Asked for photo of the damaged item</button></p>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px" }}>
-                              <span style={{ width: "22px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(240,0,185,.1)", color: "#c1008f", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>RS</span>
-                              <span style={{ flex: "1", minWidth: "0", fontSize: "var(--text-xs)", color: "#475569" }}>@rumana.s</span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>2d</span>
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px", paddingTop: "10px", borderTop: "1px solid #f1f5f9" }}>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}><__Icon name="bell" strokeWidth="1.75" width="12" height="12" />Reminder sent</span>
-                              <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs)", color: "#475569" }}><span style={{ width: "22px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(0,48,135,.1)", color: "#003087", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>RA</span>Rina</span>
-                            </div>
-                          </div>
-                          <div className="tk-card dc-h788" style={{ position: "relative", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)", padding: "12px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <__ChannelIcon channel="facebook" size={20} />
-                              <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>TKT-2271</span>
-                              <span style={{ marginLeft: "auto", display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#e9eef5", color: "#475569" }}>Low</span>
-                            </div>
-                            <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b", textWrap: "pretty" }}><button type="button" className="tk-open" aria-current={v.cur("2271")} aria-label={v.label("2271")} onClick={v.pick("2271")}>Waiting for a new delivery address</button></p>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px" }}>
-                              <span style={{ width: "22px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(105,122,155,.15)", color: "var(--text-muted)", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>SM</span>
-                              <span style={{ flex: "1", minWidth: "0", fontSize: "var(--text-xs)", color: "#475569" }}>Shafin Mahmud</span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>4d</span>
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px", paddingTop: "10px", borderTop: "1px solid #f1f5f9" }}>
-                              <span style={{ display: "inline-flex", height: "20px", alignItems: "center", borderRadius: "var(--radius-sm)", background: "rgba(255,152,0,.1)", padding: "0 6px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#a15f00" }}>Closes in 1d</span>
-                              <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs)", color: "#475569" }}><span style={{ width: "22px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(240,0,185,.1)", color: "#c1008f", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>MK</span>Mehedi</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div style={{ width: "288px", flex: "none", display: "flex", flexDirection: "column", borderRadius: "var(--radius-xl)", background: "#f1f5f9", padding: "12px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <span style={{ width: "8px", height: "8px", borderRadius: "var(--radius-full)", background: "#10b981" }} />
-                          <p style={{ margin: "0", flex: "1", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "#334155" }}>Solved</p>
-                          <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>14</span>
-                        </div>
-                        <p style={{ margin: "6px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Today · CSAT 4.7</p>
-                        <div style={{ display: "grid", gap: "10px", marginTop: "12px" }}>
-                          <div className="tk-card dc-h789" style={{ position: "relative", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)", padding: "12px", opacity: ".85" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <__ChannelIcon channel="whatsapp" size={20} />
-                              <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>TKT-2288</span>
-                              <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "4px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(16,185,129,.1)", color: "#0f7a5a" }}><__Icon name="check" strokeWidth="1.75" width="11" height="11" />Solved</span>
-                            </div>
-                            <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b", textWrap: "pretty" }}><button type="button" className="tk-open" aria-current={v.cur("2288")} aria-label={v.label("2288")} onClick={v.pick("2288")}>Payment verified and order released</button></p>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px" }}>
-                              <span style={{ width: "22px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.12)", color: "#0f7a5a", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>RH</span>
-                              <span style={{ flex: "1", minWidth: "0", fontSize: "var(--text-xs)", color: "#475569" }}>Rakib Hasan</span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "3px", fontSize: "var(--text-xs)", color: "#a15f00" }}><__Icon name="star" strokeWidth="1.75" width="12" height="12" aria-hidden="true" /><span className="sr-only">Customer rating </span>5.0</span>
-                            </div>
-                          </div>
-                          <div className="tk-card dc-h790" style={{ position: "relative", borderRadius: "var(--radius-lg)", background: "#fff", boxShadow: "0 1px 2px 0 rgba(48,46,56,.08)", padding: "12px", opacity: ".85" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <__ChannelIcon channel="instagram" size={20} />
-                              <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>TKT-2284</span>
-                              <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "4px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(16,185,129,.1)", color: "#0f7a5a" }}><__Icon name="check" strokeWidth="1.75" width="11" height="11" />Solved</span>
-                            </div>
-                            <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b", textWrap: "pretty" }}><button type="button" className="tk-open" aria-current={v.cur("2284")} aria-label={v.label("2284")} onClick={v.pick("2284")}>Size exchange arranged for Friday</button></p>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px" }}>
-                              <span style={{ width: "22px", height: "22px", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.12)", color: "#0f7a5a", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>MA</span>
-                              <span style={{ flex: "1", minWidth: "0", fontSize: "var(--text-xs)", color: "#475569" }}>Mahmuda Alam</span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "3px", fontSize: "var(--text-xs)", color: "#a15f00" }}><__Icon name="star" strokeWidth="1.75" width="12" height="12" aria-hidden="true" /><span className="sr-only">Customer rating </span>4.0</span>
-                            </div>
-                          </div>
-                          <button className="dc-h791" style={{ height: "36px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", border: "1px dashed #cbd5e1", borderRadius: "var(--radius-lg)", background: "none", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)", cursor: "pointer" }}>Show 12 more</button>
-                        </div>
-                      </div>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="ix-table-wrap">
+                      <table className="ix-table gc-table--keep">
+                        <caption className="sr-only">{v.tabLabel}</caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">Ticket</th>
+                            <th scope="col">Subject</th>
+                            <th scope="col">Customer</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Priority</th>
+                            <th scope="col">SLA</th>
+                            <th scope="col">Assignee</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {v.rows.map((k) => (
+                            <tr key={k.id} className={t && t.id === k.id ? 'is-sel' : ''} onClick={k.open}>
+                              <td><span className="tk-id"><ChannelIcon channel={k.ch} size={16} label={k.channel} /><button type="button" className="ix-strong" aria-label={k.label}>{k.ref}</button></span></td>
+                              <td><span className="tk-subject">{k.subject}</span></td>
+                              <td className="ix-muted">{k.customer}</td>
+                              <td><StatusBadge tone={STATUS_TONE[k.status]}>{k.status}</StatusBadge></td>
+                              <td><StatusBadge tone={PRIORITY_TONE[k.priority]}>{k.priority}</StatusBadge></td>
+                              <td className={k.hot ? 'tk-hot' : 'ix-muted'}>{k.sla}</td>
+                              <td className={k.assignee ? '' : 'ix-muted'}>{k.assignee || 'Unassigned'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
-                  </div>
-                </>) : null}
-                {v.isList ? (<>
-                  <div className="tk-lscroll" style={{ flex: "1", minHeight: "0", overflow: "auto", padding: "18px 20px 24px" }}>
-                    <div className="tk-list" style={{ borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.06)", overflow: "hidden", minWidth: "1080px" }}>
-                      <div className="tk-lhead" style={{ display: "grid", gridTemplateColumns: "96px 1fr 150px 140px 116px 128px 132px", gap: "12px", padding: "10px 16px", background: "#f1f5f9", borderBottom: "1px solid #e2e8f0" }}>
-                        <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>Ticket</span>
-                        <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>Subject</span>
-                        <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>Customer</span>
-                        <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>Status</span>
-                        <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>Priority</span>
-                        <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>SLA</span>
-                        <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "var(--text-muted)" }}>Assignee</span>
-                      </div>
-                      <div className="tk-row dc-h792" style={{ position: "relative", display: "grid", gridTemplateColumns: "96px 1fr 150px 140px 116px 128px 132px", gap: "12px", alignItems: "center", padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                          <__ChannelIcon channel="instagram" size={20} />
-                          <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)", color: "#003087" }}>2304</span>
-                        </span>
-                        <p style={{ margin: "0", fontSize: "var(--text-sm)", color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><button type="button" className="tk-open" aria-current={v.cur("2304")} aria-label={v.label("2304")} onClick={v.pick("2304")}>Add one more saree to GC-10482 before dispatch</button></p>
-                        <span style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: "0" }}>
-                          <img src="/assets/9f66d32bb99031029a6fbcfd91e221f2.png" alt="" style={{ width: "24px", height: "24px", flex: "none", borderRadius: "var(--radius-full)", objectFit: "cover", objectPosition: "52% 22%" }} />
-                          <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Nusrat Jahan</span>
-                        </span>
-                        <span style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#e9eef5", color: "#475569" }}>New</span>
-                        <span style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(255,87,36,.12)", color: "#c23a12" }}>Urgent</span>
-                        <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#c23a12" }}>18m left</span>
-                        <button className="dc-h793" style={{ height: "28px", display: "inline-flex", alignItems: "center", gap: "6px", border: "1px dashed #cbd5e1", borderRadius: "var(--radius-full)", background: "none", color: "#475569", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}><__Icon name="user-plus" strokeWidth="1.75" width="13" height="13" />Assign</button>
-                      </div>
-                      <div className="tk-row dc-h794" style={{ position: "relative", display: "grid", gridTemplateColumns: "96px 1fr 150px 140px 116px 128px 132px", gap: "12px", alignItems: "center", padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                          <__ChannelIcon channel="phone" size={20} />
-                          <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)", color: "#003087" }}>2291</span>
-                        </span>
-                        <p style={{ margin: "0", fontSize: "var(--text-sm)", color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><button type="button" className="tk-open" aria-current={v.cur("2291")} aria-label={v.label("2291")} onClick={v.pick("2291")}>Third complaint about missing refund</button></p>
-                        <span style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: "0" }}>
-                          <span style={{ width: "24px", height: "24px", flex: "none", borderRadius: "var(--radius-full)", background: "rgba(255,87,36,.12)", color: "#c23a12", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>AK</span>
-                          <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Arif Karim</span>
-                        </span>
-                        <span style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(255,152,0,.12)", color: "#a15f00" }}>In progress</span>
-                        <span style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(255,87,36,.12)", color: "#c23a12" }}>Urgent</span>
-                        <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#c23a12" }}>6m left</span>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "#475569" }}><span style={{ width: "24px", height: "24px", borderRadius: "var(--radius-full)", background: "rgba(0,48,135,.1)", color: "#003087", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>RA</span>Rina</span>
-                      </div>
-                      <div className="tk-row dc-h795" style={{ position: "relative", display: "grid", gridTemplateColumns: "96px 1fr 150px 140px 116px 128px 132px", gap: "12px", alignItems: "center", padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                          <__ChannelIcon channel="facebook" size={20} />
-                          <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)", color: "#003087" }}>2298</span>
-                        </span>
-                        <p style={{ margin: "0", fontSize: "var(--text-sm)", color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><button type="button" className="tk-open" aria-current={v.cur("2298")} aria-label={v.label("2298")} onClick={v.pick("2298")}>Wrong colour delivered — wants exchange</button></p>
-                        <span style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: "0" }}>
-                          <img src="/assets/48a47ed6468079a61846b91934211c40.png" alt="" style={{ width: "24px", height: "24px", flex: "none", borderRadius: "var(--radius-full)", objectFit: "cover", objectPosition: "55% 18%" }} />
-                          <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Sadia Ferdous</span>
-                        </span>
-                        <span style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(0,48,135,.1)", color: "#003087" }}>Assigned</span>
-                        <span style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(255,152,0,.12)", color: "#a15f00" }}>High</span>
-                        <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}>3h left</span>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "#475569" }}><span style={{ width: "24px", height: "24px", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.14)", color: "#0f7a5a", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>TA</span>Tasnim</span>
-                      </div>
-                      <div className="tk-row dc-h796" style={{ position: "relative", display: "grid", gridTemplateColumns: "96px 1fr 150px 140px 116px 128px 132px", gap: "12px", alignItems: "center", padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                          <__ChannelIcon channel="telegram" size={20} />
-                          <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)", color: "#003087" }}>2295</span>
-                        </span>
-                        <p style={{ margin: "0", fontSize: "var(--text-sm)", color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><button type="button" className="tk-open" aria-current={v.cur("2295")} aria-label={v.label("2295")} onClick={v.pick("2295")}>Refund not received for GC-10190</button></p>
-                        <span style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: "0" }}>
-                          <img src="/assets/25e820cfa3e50978f934abe93e0c3db7.png" alt="" style={{ width: "24px", height: "24px", flex: "none", borderRadius: "var(--radius-full)", objectFit: "cover", objectPosition: "50% 20%" }} />
-                          <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Farhana Jahan</span>
-                        </span>
-                        <span style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(0,48,135,.1)", color: "#003087" }}>Assigned</span>
-                        <span style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#e9eef5", color: "#475569" }}>Normal</span>
-                        <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#c23a12" }}>Overdue 40m</span>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "#475569" }}><span style={{ width: "24px", height: "24px", borderRadius: "var(--radius-full)", background: "rgba(240,0,185,.1)", color: "#c1008f", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>MK</span>Mehedi</span>
-                      </div>
-                      <div className="tk-row dc-h797" style={{ position: "relative", display: "grid", gridTemplateColumns: "96px 1fr 150px 140px 116px 128px 132px", gap: "12px", alignItems: "center", padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                          <__ChannelIcon channel="tiktok" size={20} />
-                          <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)", color: "#003087" }}>2302</span>
-                        </span>
-                        <p style={{ margin: "0", fontSize: "var(--text-sm)", color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><button type="button" className="tk-open" aria-current={v.cur("2302")} aria-label={v.label("2302")} onClick={v.pick("2302")}>Asks for size chart in Bangla</button></p>
-                        <span style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: "0" }}>
-                          <span style={{ width: "24px", height: "24px", flex: "none", borderRadius: "var(--radius-full)", background: "rgba(30,41,59,.08)", color: "#1e293b", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>TR</span>
-                          <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>@tanvir.rides</span>
-                        </span>
-                        <span style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#e9eef5", color: "#475569" }}>New</span>
-                        <span style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#e9eef5", color: "#475569" }}>Low</span>
-                        <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569" }}>1d left</span>
-                        <button className="dc-h798" style={{ height: "28px", display: "inline-flex", alignItems: "center", gap: "6px", border: "1px dashed #cbd5e1", borderRadius: "var(--radius-full)", background: "none", color: "#475569", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}><__Icon name="user-plus" strokeWidth="1.75" width="13" height="13" />Assign</button>
-                      </div>
-                      <div className="tk-row dc-h799" style={{ position: "relative", display: "grid", gridTemplateColumns: "96px 1fr 150px 140px 116px 128px 132px", gap: "12px", alignItems: "center", padding: "12px 16px" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                          <__ChannelIcon channel="whatsapp" size={20} />
-                          <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)", color: "#003087" }}>2288</span>
-                        </span>
-                        <p style={{ margin: "0", fontSize: "var(--text-sm)", color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><button type="button" className="tk-open" aria-current={v.cur("2288")} aria-label={v.label("2288")} onClick={v.pick("2288")}>Payment verified and order released</button></p>
-                        <span style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: "0" }}>
-                          <span style={{ width: "24px", height: "24px", flex: "none", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.12)", color: "#0f7a5a", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>RH</span>
-                          <span style={{ fontSize: "var(--text-xs-plus)", color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Rakib Hasan</span>
-                        </span>
-                        <span style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "rgba(16,185,129,.1)", color: "#0f7a5a" }}>Solved</span>
-                        <span style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: "#e9eef5", color: "#475569" }}>Normal</span>
-                        <span style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Met</span>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-xs-plus)", color: "#475569" }}><span style={{ width: "24px", height: "24px", borderRadius: "var(--radius-full)", background: "rgba(0,48,135,.1)", color: "#003087", display: "grid", placeItems: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)" }}>MK</span>Mehedi</span>
-                      </div>
-                    </div>
-                  </div>
-                </>) : null}
+                  </>)}
+                  {v.isBoard ? null : <div className="ix-foot"><span>{v.countLabel}</span></div>}
+                </section>
+                <LearnMore topic="support tickets" />
               </div>
-              {v.showDetail ? (<>
-                <aside className="gc-side tk-side" aria-label="Ticket details" style={{ width: "376px", flex: "none", background: "#fff", borderLeft: "1px solid #e2e8f0", padding: "18px 18px 28px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                    <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>TKT-{v.t.id}</span>
-                    <span style={{ display: "inline-flex", height: "22px", alignItems: "center", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", background: v.t.tone[0], color: v.t.tone[1] }}>{v.t.priority}</span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "22px", borderRadius: "var(--radius-full)", background: v.t.hot ? "rgba(255,87,36,.12)" : "#e9eef5", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: v.t.hot ? "#c23a12" : "#475569" }}><__Icon name="timer" strokeWidth="1.75" width="12" height="12" aria-hidden="true" />{v.t.sla}</span>
-                    <button className="dc-h800" onClick={v.toggleDetail} style={{ marginLeft: "auto", flex: "none", width: "28px", height: "28px", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "none", color: "var(--text-muted)", cursor: "pointer" }} aria-label="Close ticket panel">
-                      <__Icon name="x" strokeWidth="1.75" width="16" height="16" />
-                    </button>
-                  </div>
-                  <h2 style={{ margin: "10px 0 0", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-wide)", color: "#1e293b", textWrap: "pretty" }}>{v.t.subject}</h2>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "12px" }}>
-                    {v.t.img ? (<img src={v.t.img} alt="" style={{ width: "36px", height: "36px", flex: "none", borderRadius: "var(--radius-full)", objectFit: "cover", objectPosition: v.t.imgPos }} />) : (<span aria-hidden="true" style={{ width: "36px", height: "36px", flex: "none", borderRadius: "var(--radius-full)", background: "rgba(0,48,135,.1)", color: "#003087", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)" }}>{v.t.initials}</span>)}
-                    <span style={{ flex: "1", minWidth: "0" }}>
-                      <p style={{ margin: "0", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.t.customer}</p>
-                      <p style={{ margin: "0", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.t.meta || (v.t.channel + " customer")}</p>
-                    </span>
-                    <button className="dc-h801" title={"Call " + v.t.customer} aria-label={"Call " + v.t.customer} style={{ width: "32px", height: "32px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "rgba(16,185,129,.12)", color: "#0f7a5a", cursor: "pointer" }}>
-                      <__Icon name="phone" strokeWidth="1.75" width="16" height="16" />
-                    </button>
-                    <button className="dc-h802" title="Open conversation" aria-label={"Open conversation with " + v.t.customer} style={{ width: "32px", height: "32px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#475569", cursor: "pointer" }}>
-                      <__Icon name="message-square" strokeWidth="1.75" width="16" height="16" />
-                    </button>
-                  </div>
-                  <div style={{ display: "grid", gap: "10px", marginTop: "16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <span style={{ width: "92px", flex: "none", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Status</span>
-                      <select aria-label="Status" key={"st" + v.t.id} defaultValue={v.t.status} style={{ flex: "1", minWidth: "0", height: "34px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 8px", fontSize: "var(--text-xs-plus)", color: "#1e293b" }}>
-                        <option>New</option>
-                        <option>Assigned</option>
-                        <option>In progress</option>
-                        <option>Waiting on customer</option>
-                        <option>Solved</option>
-                      </select>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <span style={{ width: "92px", flex: "none", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Assignee</span>
-                      <span style={{ flex: "1", minWidth: "0", display: "flex", gap: "6px" }}>
-                        <button className="dc-h803" aria-label={"Assignee: " + (v.t.assignee || "Unassigned")} style={{ flex: "1", height: "36px", display: "inline-flex", alignItems: "center", gap: "8px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 8px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#475569", cursor: "pointer" }}><__Icon name={v.t.assignee ? "user" : "user-plus"} strokeWidth="1.75" width="15" height="15" aria-hidden="true" />{v.t.assignee || "Unassigned"}<__Icon name="chevron-down" strokeWidth="1.75" width="14" height="14" style={{ marginLeft: "auto" }} /></button>
-                        {v.t.assignee ? null : (<button className="dc-h804" style={{ height: "36px", border: "none", borderRadius: "var(--radius-lg)", background: "rgba(0,48,135,.1)", color: "#003087", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Take it</button>)}
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <span style={{ width: "92px", flex: "none", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Team</span>
-                      <select aria-label="Team" style={{ flex: "1", minWidth: "0", height: "34px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 8px", fontSize: "var(--text-xs-plus)", color: "#1e293b" }}>
-                        <option>Order support</option>
-                        <option>Payments</option>
-                        <option>Delivery</option>
-                        <option>Sales</option>
-                      </select>
-                    </div>
-                    {v.t.order ? (<div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <span style={{ width: "92px", flex: "none", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Linked order</span>
-                      <span style={{ flex: "1", minWidth: "0", display: "flex", alignItems: "center", gap: "8px", height: "34px", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "0 10px" }}>
-                        <span style={{ fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)", color: "#003087" }}>{v.t.order}</span>
-                        {v.t.orderTotal ? (<span style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.t.orderTotal}</span>) : null}
-                        <a href="/merchant-orders" aria-label={"Open order " + v.t.order} style={{ marginLeft: "auto", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>Open</a>
-                      </span>
-                    </div>) : null}
-                  </div>
-                  <div style={{ display: "flex", gap: "6px", marginTop: "14px", flexWrap: "wrap" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "28px", borderRadius: "var(--radius-full)", background: "#e9eef5", padding: "0 10px 0 4px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#334155" }}><__ChannelIcon channel={v.t.ch} size={20} />{v.t.channel}</span>
-                    {v.t.full ? (<><span style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "24px", borderRadius: "var(--radius-full)", background: "#e9eef5", padding: "0 10px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#334155" }}><__Icon name="phone-incoming" strokeWidth="1.75" width="13" height="13" />Created from call</span>
-                    <span style={{ display: "inline-flex", height: "24px", alignItems: "center", borderRadius: "var(--radius-full)", background: "#e9eef5", padding: "0 10px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#334155" }}>order-change</span></>) : null}
-                    <button className="dc-h805" style={{ height: "28px", display: "inline-flex", alignItems: "center", gap: "4px", border: "1px dashed #cbd5e1", borderRadius: "var(--radius-full)", background: "none", color: "#475569", padding: "0 8px", fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}><__Icon name="plus" strokeWidth="1.75" width="12" height="12" />Tag</button>
-                  </div>
-                  <h3 style={{ margin: "20px 0 8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>Activity</h3>
-                  {v.t.full ? (<div style={{ display: "grid", gap: "12px" }}>
-                    <div style={{ display: "flex", gap: "10px" }}>
-                      <span style={{ width: "26px", height: "26px", flex: "none", borderRadius: "var(--radius-full)", background: "rgba(0,48,135,.1)", color: "#003087", display: "grid", placeItems: "center" }}>
-                        <__Icon name="phone-incoming" strokeWidth="1.75" width="13" height="13" />
-                      </span>
-                      <span>
-                        <p style={{ margin: "0", fontSize: "var(--text-xs-plus)", color: "#1e293b" }}>Ticket created from inbound call by <span style={{ fontWeight: "var(--weight-medium)" }}>Rina</span></p>
-                        <p style={{ margin: "0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Today 11:06 · recording attached (2:14)</p>
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", gap: "10px" }}>
-                      <img src="/assets/9f66d32bb99031029a6fbcfd91e221f2.png" alt="Nusrat Jahan" style={{ width: "26px", height: "26px", flex: "none", borderRadius: "var(--radius-full)", objectFit: "cover", objectPosition: "52% 22%" }} />
-                      <span>
-                        <p style={{ margin: "0", fontSize: "var(--text-xs-plus)", color: "#1e293b" }}>“Ekta saree add korte chai, difference bKash e dicchi.”</p>
-                        <p style={{ margin: "0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Today 11:04 · call transcript</p>
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", gap: "10px" }}>
-                      <span style={{ width: "26px", height: "26px", flex: "none", borderRadius: "var(--radius-full)", background: "rgba(255,152,0,.12)", color: "#a15f00", display: "grid", placeItems: "center" }}>
-                        <__Icon name="sticky-note" strokeWidth="1.75" width="13" height="13" />
-                      </span>
-                      <span>
-                        <p style={{ margin: "0", fontSize: "var(--text-xs-plus)", color: "#475569" }}>Stock confirmed — 6 left of JAM-114. Courier pickup 5 PM, needs packing hold.</p>
-                        <p style={{ margin: "0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Internal note · Rina</p>
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", gap: "10px" }}>
-                      <span style={{ width: "26px", height: "26px", flex: "none", borderRadius: "var(--radius-full)", background: "rgba(240,0,185,.1)", color: "#c1008f", display: "grid", placeItems: "center" }}>
-                        <__Icon name="message-square" strokeWidth="1.75" width="13" height="13" />
-                      </span>
-                      <span>
-                        <p style={{ margin: "0", fontSize: "var(--text-xs-plus)", color: "#1e293b" }}>Earlier Instagram DM thread merged into this ticket</p>
-                        <p style={{ margin: "0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Today 10:11 · 4 messages</p>
-                      </span>
-                    </div>
-                  </div>) : (<div style={{ display: "flex", gap: "10px" }}>
-                      <__ChannelIcon channel={v.t.ch} size={26} />
-                      <span>
-                        <p style={{ margin: "0", fontSize: "var(--text-xs-plus)", color: "#1e293b" }}>Ticket opened from {v.t.channel} by <span style={{ fontWeight: "var(--weight-medium)" }}>{v.t.customer}</span></p>
-                        <p style={{ margin: "0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{v.t.status} · {v.t.sla}</p>
-                      </span>
-                    </div>)}
-                  <h3 style={{ margin: "20px 0 8px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)", color: "#1e293b" }}>Reply</h3>
-                  <span style={{ display: "inline-flex", borderRadius: "var(--radius-full)", background: "#e9eef5", padding: "3px" }}>
-                    {v.isPublic ? (<>
-                      <button onClick={v.setPublic} style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer", background: "#fff", color: "#003087" }}>Reply to customer</button>
-                      {" "}
-                      <button onClick={v.setInternal} style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer", background: "transparent", color: "#475569" }}>Internal note</button>
-                    </>) : null}
-                    {v.isInternal ? (<>
-                      <button onClick={v.setPublic} style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer", background: "transparent", color: "#475569" }}>Reply to customer</button>
-                      {" "}
-                      <button onClick={v.setInternal} style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", padding: "0 12px", fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer", background: "#fff", color: "#a15f00" }}>Internal note</button>
-                    </>) : null}
-                  </span>
-                  {v.isPublic ? (<>
-                    <textarea aria-label={"Reply to " + v.t.customer + " on " + v.t.channel} rows="3" placeholder={"Reply on " + v.t.channel + " — the channel the customer used…"} style={{ width: "100%", boxSizing: "border-box", marginTop: "8px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", padding: "10px 12px", fontSize: "var(--text-sm)", color: "#1e293b", resize: "none" }} />
-                  </>) : null}
-                  {v.isInternal ? (<>
-                    <textarea aria-label={"Internal note on TKT-" + v.t.id} rows="3" placeholder="Note for the team — the customer will not see this." style={{ width: "100%", boxSizing: "border-box", marginTop: "8px", border: "1px solid #ffb951", borderRadius: "var(--radius-lg)", background: "rgba(255,152,0,.06)", padding: "10px 12px", fontSize: "var(--text-sm)", color: "#1e293b", resize: "none" }} />
-                  </>) : null}
-                  <div style={{ display: "flex", gap: "6px", marginTop: "8px", flexWrap: "wrap" }}>
-                    <button className="dc-h806" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#334155", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Payment link</button>
-                    <button className="dc-h807" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#334155", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Dispatch time</button>
-                    <button className="dc-h808" style={{ height: "28px", border: "none", borderRadius: "var(--radius-full)", background: "#e9eef5", color: "#334155", padding: "0 10px", fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Bangla version</button>
-                  </div>
-                  <div style={{ display: "flex", gap: "8px", marginTop: "14px" }}>
-                    <button className="dc-h809" style={{ flex: "1", height: "36px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "8px", border: "none", borderRadius: "var(--radius-lg)", background: "rgba(16,185,129,.12)", color: "#0f7a5a", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}><__Icon name="check-check" strokeWidth="1.75" width="16" height="16" />Solve ticket</button>
-                    <button className="dc-h810" style={{ flex: "1", height: "36px", border: "none", borderRadius: "var(--radius-lg)", background: "#003087", color: "#fff", fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-wide)", cursor: "pointer" }}>Send reply</button>
-                  </div>
-                  <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-                    <button className="dc-h811" style={{ flex: "1", height: "36px", border: "none", borderRadius: "var(--radius-lg)", background: "#e9eef5", color: "#334155", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Escalate</button>
-                    <button className="dc-h812" style={{ flex: "1", height: "36px", border: "none", borderRadius: "var(--radius-lg)", background: "#e9eef5", color: "#334155", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Snooze 2h</button>
-                    <button className="dc-h813" style={{ flex: "1", height: "36px", border: "none", borderRadius: "var(--radius-lg)", background: "#e9eef5", color: "#334155", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer" }}>Merge</button>
-                  </div>
-                </aside>
-              </>) : null}
-            </div>
+            </main>
           </div>
         </div>
+
+        <Sheet open={!!t} title={t ? t.ref : 'Ticket'} label="Ticket details" onClose={v.close}
+          footer={t ? <>
+            <button type="button" className="gc-btn gc-btn--neutral" onClick={v.solve} disabled={t.status === 'Solved'}><Icon name="check-check" width="16" height="16" aria-hidden="true" />Solve ticket</button>
+            <button type="button" className="gc-btn gc-btn--solid" onClick={v.send}>{v.isPublic ? 'Send reply' : 'Add note'}</button>
+          </> : null}>
+          {t ? (<>
+            <div className="tk-badges">
+              <StatusBadge tone={STATUS_TONE[t.status]}>{t.status}</StatusBadge>
+              <StatusBadge tone={PRIORITY_TONE[t.priority]}>{t.priority}</StatusBadge>
+              <span className={'tk-sla ' + (t.hot ? 'tk-hot' : 'ix-muted')}>{t.sla}</span>
+              <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" items={[{ label: 'Escalate', onClick: v.soon }, { label: 'Snooze 2h', onClick: v.soon }, { label: 'Merge', onClick: v.soon }]} />
+            </div>
+            <p className="tk-subj">{t.subject}</p>
+            <div className="tk-who">
+              {t.img ? <img className="tk-av" src={t.img} alt="" style={{ objectPosition: t.imgPos }} /> : <span className="tk-av" aria-hidden="true">{t.initials}</span>}
+              <span className="tk-who__text"><b>{t.customer}</b><small>{t.meta || t.channel + ' customer'}</small></span>
+              <Link href="/merchant-calls" className="ix-btn ix-btn--sm ix-btn--icon" aria-label={'Call ' + t.customer} title="Call"><Icon name="phone" width="16" height="16" aria-hidden="true" /></Link>
+              <Link href="/merchant-inbox" className="ix-btn ix-btn--sm ix-btn--icon" aria-label={'Open conversation with ' + t.customer} title="Open conversation"><Icon name="message-square" width="16" height="16" aria-hidden="true" /></Link>
+            </div>
+            <div>
+              <label className="gc-label" htmlFor="tk-status">Status</label>
+              <select id="tk-status" className="gc-input gc-select" value={t.status} onChange={v.setStatus}>{STATUSES.map((s) => <option key={s}>{s}</option>)}</select>
+            </div>
+            <div>
+              <label className="gc-label" htmlFor="tk-owner">Assignee</label>
+              <span className="tk-field">
+                <select id="tk-owner" className="gc-input gc-select" value={t.assignee} onChange={v.setAssignee}>
+                  <option value="">Unassigned</option>{AGENTS.map((a) => <option key={a} value={a}>{a}</option>)}
+                </select>
+                {t.assignee ? null : <button type="button" className="gc-btn gc-btn--soft" onClick={v.take}>Take it</button>}
+              </span>
+            </div>
+            <div>
+              <label className="gc-label" htmlFor="tk-team">Team</label>
+              <select id="tk-team" className="gc-input gc-select" value={t.team || TEAMS[0]} onChange={v.setTeam}>{TEAMS.map((x) => <option key={x}>{x}</option>)}</select>
+            </div>
+            <KV rows={[
+              ['Channel', t.channel],
+              t.order ? ['Linked order', <Link key="o" href={'/merchant-orders?q=' + t.order} className="tk-order">{t.order}{t.orderTotal ? ' · ' + t.orderTotal : ''}</Link>] : null,
+              t.full ? ['Tags', 'Created from call · order-change'] : null,
+            ]} />
+            <button type="button" className="ix-btn ix-btn--sm tk-tag"><Icon name="plus" width="16" height="16" aria-hidden="true" />Tag</button>
+            <h3 className="tk-h3">Activity</h3>
+            {t.full ? (
+              <div className="tk-acts">
+                <div className="tk-act"><Icon name="phone-incoming" width="16" height="16" aria-hidden="true" /><span>Ticket created from inbound call by Rina<small>Today 11:06 · recording attached (2:14)</small></span></div>
+                <div className="tk-act"><Icon name="quote" width="16" height="16" aria-hidden="true" /><span>“Ekta saree add korte chai, difference bKash e dicchi.”<small>Today 11:04 · call transcript</small></span></div>
+                <div className="tk-act"><Icon name="sticky-note" width="16" height="16" aria-hidden="true" /><span>Stock confirmed — 6 left of JAM-114. Courier pickup 5 PM, needs packing hold.<small>Internal note · Rina</small></span></div>
+                <div className="tk-act"><Icon name="message-square" width="16" height="16" aria-hidden="true" /><span>Earlier Instagram DM thread merged into this ticket<small>Today 10:11 · 4 messages</small></span></div>
+              </div>
+            ) : (
+              <div className="tk-act"><ChannelIcon channel={t.ch} size={16} decorative /><span>Ticket opened from {t.channel} by {t.customer}<small>{t.status} · {t.sla}</small></span></div>
+            )}
+            <h3 className="tk-h3">Reply</h3>
+            <div className="gc-seg" role="group" aria-label="Reply type">
+              <button type="button" className={'gc-seg__btn' + (v.isPublic ? ' gc-seg__btn--active' : '')} aria-pressed={v.isPublic} onClick={v.setPublic}>Reply to customer</button>
+              <button type="button" className={'gc-seg__btn' + (!v.isPublic ? ' gc-seg__btn--active' : '')} aria-pressed={!v.isPublic} onClick={v.setInternal}>Internal note</button>
+            </div>
+            <textarea className={'gc-input' + (v.isPublic ? '' : ' tk-note')} rows="3" value={v.draft} onChange={v.onDraft}
+              aria-label={v.isPublic ? 'Reply to ' + t.customer + ' on ' + t.channel : 'Internal note on ' + t.ref}
+              placeholder={v.isPublic ? 'Reply on ' + t.channel + ' — the channel the customer used…' : 'Note for the team — the customer will not see this.'} />
+            <div className="tk-quick">
+              <button type="button" className="ix-btn ix-btn--sm">Payment link</button>
+              <button type="button" className="ix-btn ix-btn--sm">Dispatch time</button>
+              <button type="button" className="ix-btn ix-btn--sm">Bangla version</button>
+            </div>
+          </>) : null}
+        </Sheet>
       </div>
     );
   }

@@ -27,11 +27,14 @@ export default function SetProfile() {
             <div className="set-shell__col">
               <div className="set-content">
                 <main className="set-main">
-                  <header>
-                    <h1 style={{ margin: '0 0 4px', fontSize: 'var(--text-2xl)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-heading)' }}>Profile type</h1>
-                    <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{me ? <>Active: <b style={{ fontWeight: 'var(--weight-medium)', color: 'var(--text-heading)' }}>{me}</b></> : '\u00a0'}</p>
+                  <header className="set-pagehead">
+                    <span className="set-pagehead__text">
+                      <h1 className="ix-head__title">Profile type</h1>
+                      <span className="ix-head__meta">{me ? <>Active: <b style={{ fontWeight: 'var(--weight-medium)', color: 'var(--text-heading)' }}>{me}</b></> : '\u00a0'}</span>
+                    </span>
+                    <span className="gc-pagehead__about" hidden>Switch between the team's profiles (owner, HR, warehouse, shop and more). Each opens with that person's dashboard and menu.</span>
                   </header>
-                  <section style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)', background: 'var(--surface-card)', padding: 'var(--space-5)' }}>
+                  <section className="ix-card ix-card--pad">
                     <DemoAccounts plain title="Switch profile" sub="" />
                   </section>
                 </main>

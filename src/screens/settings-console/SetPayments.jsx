@@ -36,7 +36,7 @@ function GatewayPanel({ f, name }) {
         {[id + "_id", id + "_secret"].map((n) => (
           <div key={n} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <label htmlFor={f.id(n)} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>{f.def(n).l}{on ? <> <span className="set-req" aria-hidden="true">*</span></> : null}</label>
-            <span className="set-box" style={{ display: "flex", alignItems: "center", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)", color: "#1e293b" }}>
+            <span className="set-box" style={{ display: "flex", alignItems: "center", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)", color: "#1e293b" }}>
               <__In f={f} n={n} labelled placeholder={on ? "Required while " + name + " is on" : "Not set"} />
             </span>
             <__Err f={f} n={n} />
@@ -219,35 +219,36 @@ export default class SetPaymentsScreen extends Component {
               <form className="set-shell__col" noValidate onSubmit={v.f.submit}>
                 <div className="set-content">
                   <main className="set-main">
-                    <header style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
-                      <span style={{ display: "block", minWidth: "0" }}>
-                        <h1 style={{ margin: "0 0 4px", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)", letterSpacing: "var(--tracking-tight)", color: "#0f172a" }}>Payment Gateway</h1>
+                    <header className="set-pagehead">
+                      <span className="set-pagehead__text">
+                        <h1 className="ix-head__title">Payment Gateway</h1>
                         <__SetTips />
+                        <span className="gc-pagehead__about" hidden>Optional configuration keeps its values while collapsed. A gateway in Live mode is marked in red everywhere it appears.</span>
                       </span>
                       <span style={{ marginLeft: "auto", flex: "none", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>{v.live} live · {v.sandbox} sandbox · {v.offline} offline</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>{v.live} live · {v.sandbox} sandbox · {v.offline} offline</span>
                         <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Last saved 7 Sep 2026, 11:04 AM</span>
                       </span>
                     </header>
                     <GatewayList />
-                    <section id="s0" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                    <section id="s0" className="ix-card set-card">
+                      <div className="set-head">
                         <span style={{ display: "block" }}>
-                          <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Online gateways</span>
+                          <h2 className="set-title">Online gateways</h2>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(255,87,36,.12)", color: "var(--text-danger)" }}>{v.live} live</span>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(255,152,0,.16)", color: "var(--text-warning)" }}>{v.sandbox} sandbox</span>
-                          <button type="button" onClick={v.f.say("“Reorder” is not available in the demo yet.")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#f1f5f9", color: "#1e293b" }}><__Icon name="arrow-up-down" strokeWidth="1.75" width="15" height="15" />Reorder</button>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(255,87,36,.12)", color: "var(--text-danger)" }}>{v.live} live</span>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(255,152,0,.16)", color: "var(--text-warning)" }}>{v.sandbox} sandbox</span>
+                          <button type="button" onClick={v.f.say("“Reorder” is not available in the demo yet.")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "var(--control-height)", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#f1f5f9", color: "#1e293b" }}><__Icon name="arrow-up-down" strokeWidth="1.75" width="15" height="15" />Reorder</button>
                         </span>
                       </div>
                       <div className="set-wrap" style={{ display: "flex", alignItems: "center", gap: "13px", padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
-                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#f1f5f9", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", color: "#475569" }}>COD</span>
+                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#f1f5f9", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", color: "#475569" }}>COD</span>
                         <span className="set-row__text" style={{ display: "block", flex: "1", minWidth: "0" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Cash on delivery</span>
                           <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>No credentials needed · 62% of orders last month</span>
                         </span>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>Always live</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>Always live</span>
                         <span style={{ flex: "none", width: "7px", height: "7px", borderRadius: "var(--radius-full)", background: "#10b981" }} />
                         <__Sw f={v.f} n="cash_on_delivery" />
                         <button className="dc-h442" {...v.f.disc("gw_cash_on_delivery", false)} aria-label="Cash on delivery settings" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>
@@ -261,7 +262,7 @@ export default class SetPaymentsScreen extends Component {
                           <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>SSLCommerz</span>
                           <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Cards, internet banking and mobile wallets · merchant GridShop_live</span>
                         </span>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", ...v.badge("sslcommerz").tone }}>{v.badge("sslcommerz").text}</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", ...v.badge("sslcommerz").tone }}>{v.badge("sslcommerz").text}</span>
                         <span style={{ flex: "none", width: "7px", height: "7px", borderRadius: "var(--radius-full)", background: "#10b981" }} />
                         <__Sw f={v.f} n="sslcommerz" />
                         <button className="dc-h443" {...v.f.disc("gw_sslcommerz", false)} aria-label="SSLCommerz settings" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>
@@ -275,7 +276,7 @@ export default class SetPaymentsScreen extends Component {
                           <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>EPS</span>
                           <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Test account · no live credentials entered yet</span>
                         </span>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", ...v.badge("eps").tone }}>{v.badge("eps").text}</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", ...v.badge("eps").tone }}>{v.badge("eps").text}</span>
                         <span style={{ flex: "none", width: "7px", height: "7px", borderRadius: "var(--radius-full)", background: "#ff9800" }} />
                         <__Sw f={v.f} n="eps" />
                         <button className="dc-h444" {...v.f.disc("gw_eps", false)} aria-label="EPS settings" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>
@@ -284,12 +285,12 @@ export default class SetPaymentsScreen extends Component {
                       </div>
                       <div {...v.f.panel("gw_eps", false)} style={{ borderBottom: "1px solid #f1f5f9", background: "#f8fafc", padding: "14px 16px" }}>{v.gateway("EPS")}</div>
                       <div className="set-wrap" style={{ display: "flex", alignItems: "center", gap: "13px", padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
-                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#f6821f", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", color: "#fff" }}>NGD</span>
+                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#f6821f", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", color: "#fff" }}>NGD</span>
                         <span className="set-row__text" style={{ display: "block", flex: "1", minWidth: "0" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Nagad</span>
                           <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Merchant 6801811843300 · wallet only</span>
                         </span>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", ...v.badge("nagad").tone }}>{v.badge("nagad").text}</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", ...v.badge("nagad").tone }}>{v.badge("nagad").text}</span>
                         <span style={{ flex: "none", width: "7px", height: "7px", borderRadius: "var(--radius-full)", background: "#10b981" }} />
                         <__Sw f={v.f} n="nagad" />
                         <button className="dc-h445" {...v.f.disc("gw_nagad", false)} aria-label="Nagad settings" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>
@@ -299,12 +300,12 @@ export default class SetPaymentsScreen extends Component {
                       <div {...v.f.panel("gw_nagad", false)} style={{ borderBottom: "1px solid #f1f5f9", background: "#f8fafc", padding: "14px 16px" }}>{v.gateway("Nagad")}</div>
                       <div style={{ border: "1px solid #003087", borderRadius: "var(--radius-lg)", margin: "0 10px 10px", background: "#fff", boxShadow: "0 8px 22px -14px rgba(0,48,135,.5)", overflow: "hidden" }}>
                         <div className="set-wrap" style={{ display: "flex", alignItems: "center", gap: "13px", padding: "12px 14px", background: "rgba(0,48,135,.05)" }}>
-                          <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#e2136e", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", color: "#fff" }}>bK</span>
+                          <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#e2136e", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", color: "#fff" }}>bK</span>
                           <span className="set-row__text" style={{ display: "block", flex: "1", minWidth: "0" }}>
                             <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>bKash</span>
                             <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Tokenised checkout · 31% of online payments</span>
                           </span>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", ...v.badge("bkash").tone }}>{v.badge("bkash").text}</span>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", ...v.badge("bkash").tone }}>{v.badge("bkash").text}</span>
                           <span style={{ flex: "none", width: "7px", height: "7px", borderRadius: "var(--radius-full)", background: "#10b981" }} />
                           <__Sw f={v.f} n="bkash" />
                           <button {...v.f.disc("gw_bkash", true)} aria-label="bKash settings" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#fff", color: "#475569", cursor: "pointer" }}>
@@ -323,7 +324,7 @@ export default class SetPaymentsScreen extends Component {
                                 <label htmlFor={v.f.id("bkash_app_key")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>App key <span className="set-req" aria-hidden="true">*</span></label>
                               </span>
                               <span id={v.f.id("bkash_app_key") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>bKash Merchant Portal → Developer → API Keys. Same value as “app_key” in the checkout SDK.</span>
-                              <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 4px 0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)" }}>
+                              <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 4px 0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)" }}>
                                 <__In f={v.f} n="bkash_app_key" labelled desc />
                                 <button type="button" onClick={v.f.say("Revealing a saved key is recorded in the audit log. It is switched off in this demo.")} className="dc-h446" aria-label="Reveal" title="Reveal" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
                                   <__Icon name="eye" strokeWidth="1.75" width="15" height="15" />
@@ -337,7 +338,7 @@ export default class SetPaymentsScreen extends Component {
                             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                               <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                                 <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>App secret <span style={{ color: "var(--text-danger)" }}>*</span></span>
-                                <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(16,185,129,.14)", color: "var(--text-success)" }}>Saved</span>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(16,185,129,.14)", color: "var(--text-success)" }}>Saved</span>
                               </span>
                               <span style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Stored encrypted. Once saved it is never displayed again — replace it if you rotate the key.</span>
                               <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "38px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 4px 0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
@@ -350,7 +351,7 @@ export default class SetPaymentsScreen extends Component {
                                 <label htmlFor={v.f.id("bkash_username")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Username <span className="set-req" aria-hidden="true">*</span></label>
                               </span>
                               <span id={v.f.id("bkash_username") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>The merchant username issued with your bKash tokenised checkout account.</span>
-                              <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
+                              <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
                                 <__In f={v.f} n="bkash_username" labelled desc />
                               </span>
                               <__Err f={v.f} n="bkash_username" />
@@ -360,7 +361,7 @@ export default class SetPaymentsScreen extends Component {
                                 <label htmlFor={v.f.id("bkash_password")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Password <span className="set-req" aria-hidden="true">*</span></label>
                               </span>
                               <span id={v.f.id("bkash_password") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Rotates every 90 days in the bKash portal. Reveal is logged in the audit trail.</span>
-                              <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 4px 0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)" }}>
+                              <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 4px 0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontFamily: "var(--font-data)", fontSize: "var(--text-xs-plus)" }}>
                                 <__In f={v.f} n="bkash_password" labelled desc />
                                 <button type="button" onClick={v.f.say("Revealing a saved key is recorded in the audit log. It is switched off in this demo.")} className="dc-h448" aria-label="Reveal" title="Reveal" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
                                   <__Icon name="eye" strokeWidth="1.75" width="15" height="15" />
@@ -376,7 +377,7 @@ export default class SetPaymentsScreen extends Component {
                                 <label htmlFor={v.f.id("bkash_merchant_number")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Merchant number</label>
                               </span>
                               <span id={v.f.id("bkash_merchant_number") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Printed on customer receipts and used for offline send-money reconciliation.</span>
-                              <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", width: "220px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                              <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", width: "220px", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                 <__In f={v.f} n="bkash_merchant_number" labelled desc />
                               </span>
                               <__Err f={v.f} n="bkash_merchant_number" />
@@ -386,21 +387,21 @@ export default class SetPaymentsScreen extends Component {
                                 <label htmlFor={v.f.id("bkash_checkout_label")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Checkout label</label>
                               </span>
                               <span id={v.f.id("bkash_checkout_label") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>What customers see at checkout. Bangla label falls back to this if unset.</span>
-                              <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
+                              <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b" }}>
                                 <__In f={v.f} n="bkash_checkout_label" labelled desc />
                               </span>
                               <__Err f={v.f} n="bkash_checkout_label" />
                             </div>
                           </div>
                           <div style={{ display: "flex", alignItems: "center", gap: "11px", borderTop: "1px solid #e2e8f0", paddingTop: "14px" }}>
-                            <button type="button" onClick={v.test} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "1px solid #cbd5e1", background: "#fff", color: "#1e293b" }}><__Icon name="plug-zap" strokeWidth="1.75" width="15" height="15" />Test connection</button>
+                            <button type="button" onClick={v.test} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "var(--control-height)", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "1px solid var(--border-field)", background: "#fff", color: "#1e293b" }}><__Icon name="plug-zap" strokeWidth="1.75" width="15" height="15" />Test connection</button>
                             <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", borderRadius: "var(--radius-lg)", background: "rgba(16,185,129,.1)", padding: "7px 11px", fontSize: "var(--text-xs)", color: "#047857" }}><__Icon name="circle-check" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-success)" }} />Connected · grant token issued in 380 ms</span>
                             <span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Last tested 7 Sep 2026, 4:12 PM · 62 transactions today</span>
                           </div>
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "10px", borderTop: "1px solid #e2e8f0", background: "#f8fafc", padding: "16px" }}>
                           <span style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                            <span style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>Optional configuration</span>
+                            <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>Optional configuration</span>
                             <span style={{ height: "1px", flex: "1", background: "#e2e8f0" }} />
                             <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>3 of 4 configured · collapsed sections keep their values</span>
                           </span>
@@ -412,7 +413,7 @@ export default class SetPaymentsScreen extends Component {
                                 <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Webhook / callback URLs</span>
                                 <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Generated for you — paste the IPN URL into the bKash Merchant Portal.</span>
                               </span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>Copy only</span>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>Copy only</span>
                             </button>
                             <div {...v.f.panel("opt_webhook_callback_urls", true)} style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "14px" }}>
                               <span style={{ display: "block", maxWidth: "720px", fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>bKash Merchant Portal → <b style={{ fontWeight: "var(--weight-medium)", color: "#475569" }}>Application → Callback URL</b>. Tokenised Checkout returns the buyer through the Success URL directly; IPN is optional but recommended — it calls <span style={{ fontFamily: "var(--font-data)" }}>payment/status</span> to confirm before the order is marked paid.</span>
@@ -420,9 +421,9 @@ export default class SetPaymentsScreen extends Component {
                                 <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
                                   <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                     <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>IPN / Webhook URL</span>
-                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(255,152,0,.16)", color: "var(--text-warning)" }}>Required</span>
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(255,152,0,.16)", color: "var(--text-warning)" }}>Required</span>
                                   </span>
-                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "0 4px 0 11px" }}>
+                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "0 4px 0 11px" }}>
                                     <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "#334155" }}>https://api.selorax.io/api/payments/bkash/ipn?sid=696</span>
                                     <button type="button" onClick={v.f.copy("https://api.selorax.io/api/payments/bkash/ipn?sid=696", "URL")} className="dc-h450" aria-label="Copy URL" title="Copy URL" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
                                       <__Icon name="copy" strokeWidth="1.75" width="15" height="15" />
@@ -433,9 +434,9 @@ export default class SetPaymentsScreen extends Component {
                                 <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
                                   <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                     <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Success URL</span>
-                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>Optional</span>
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>Optional</span>
                                   </span>
-                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "0 4px 0 11px" }}>
+                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "0 4px 0 11px" }}>
                                     <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "#334155" }}>https://api.selorax.io/api/payments/bkash/success</span>
                                     <button type="button" onClick={v.f.copy("https://api.selorax.io/api/payments/bkash/success", "URL")} className="dc-h451" aria-label="Copy URL" title="Copy URL" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
                                       <__Icon name="copy" strokeWidth="1.75" width="15" height="15" />
@@ -445,9 +446,9 @@ export default class SetPaymentsScreen extends Component {
                                 <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
                                   <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                     <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Fail URL</span>
-                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>Optional</span>
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>Optional</span>
                                   </span>
-                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "0 4px 0 11px" }}>
+                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "0 4px 0 11px" }}>
                                     <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "#334155" }}>https://api.selorax.io/api/payments/bkash/fail</span>
                                     <button type="button" onClick={v.f.copy("https://api.selorax.io/api/payments/bkash/fail", "URL")} className="dc-h452" aria-label="Copy URL" title="Copy URL" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
                                       <__Icon name="copy" strokeWidth="1.75" width="15" height="15" />
@@ -457,9 +458,9 @@ export default class SetPaymentsScreen extends Component {
                                 <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
                                   <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                     <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Cancel URL</span>
-                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>Optional</span>
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "#f1f5f9", color: "var(--text-muted)" }}>Optional</span>
                                   </span>
-                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "0 4px 0 11px" }}>
+                                  <span style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f8fafc", padding: "0 4px 0 11px" }}>
                                     <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "var(--font-data)", fontSize: "var(--text-xs)", color: "#334155" }}>https://api.selorax.io/api/payments/bkash/cancel</span>
                                     <button type="button" onClick={v.f.copy("https://api.selorax.io/api/payments/bkash/cancel", "URL")} className="dc-h453" aria-label="Copy URL" title="Copy URL" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "#f1f5f9", color: "#475569", cursor: "pointer" }}>
                                       <__Icon name="copy" strokeWidth="1.75" width="15" height="15" />
@@ -477,7 +478,7 @@ export default class SetPaymentsScreen extends Component {
                                 <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Payment rules</span>
                                 <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Order value limits, which payment modes this gateway may serve, and where it sits in the list.</span>
                               </span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(0,156,222,.14)", color: "var(--accent-text)" }}>{v.modes} {v.modes === 1 ? "mode" : "modes"} on</span>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(0,156,222,.14)", color: "var(--accent-text)" }}>{v.modes} {v.modes === 1 ? "mode" : "modes"} on</span>
                             </button>
                             <div {...v.f.panel("opt_payment_rules", true)} style={{ display: "flex", flexDirection: "column", gap: "14px", padding: "14px" }}>
                               <div className="gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "16px" }}>
@@ -486,7 +487,7 @@ export default class SetPaymentsScreen extends Component {
                                     <label htmlFor={v.f.id("priority")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Priority</label>
                                   </span>
                                   <span id={v.f.id("priority") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Lower shows first at checkout. Ties fall back to alphabetical.</span>
-                                  <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                                  <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                     <__In f={v.f} n="priority" labelled desc />
                                   </span>
                                   <__Err f={v.f} n="priority" />
@@ -496,7 +497,7 @@ export default class SetPaymentsScreen extends Component {
                                     <label htmlFor={v.f.id("min_order_amount")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Min order amount</label>
                                   </span>
                                   <span id={v.f.id("min_order_amount") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Gateway is hidden below this subtotal. Leave empty for no floor.</span>
-                                  <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
+                                  <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
                                     <__In f={v.f} n="min_order_amount" labelled desc placeholder="No minimum" />
                                   </span>
                                   <__Err f={v.f} n="min_order_amount" />
@@ -506,7 +507,7 @@ export default class SetPaymentsScreen extends Component {
                                     <label htmlFor={v.f.id("max_order_amount")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Max order amount</label>
                                   </span>
                                   <span id={v.f.id("max_order_amount") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Useful where the wallet itself caps a single transaction — bKash allows ৳25,000.</span>
-                                  <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                                  <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                     <__In f={v.f} n="max_order_amount" labelled desc />
                                   </span>
                                   <__Err f={v.f} n="max_order_amount" />
@@ -535,7 +536,7 @@ export default class SetPaymentsScreen extends Component {
                                       <label htmlFor={v.f.id("fixed_advance_amount")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Fixed advance amount</label>
                                     </span>
                                     <span id={v.f.id("fixed_advance_amount") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Tick “Fixed advance” above to set it.</span>
-                                    <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
+                                    <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
                                       <__In f={v.f} n="fixed_advance_amount" labelled desc dis={!v.f.get("mode_fixed_advance", false)} />
                                     </span>
                                     <__Err f={v.f} n="fixed_advance_amount" />
@@ -545,7 +546,7 @@ export default class SetPaymentsScreen extends Component {
                                       <label htmlFor={v.f.id("advance_percentage")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Advance percentage</label>
                                     </span>
                                     <span id={v.f.id("advance_percentage") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Applied to the order subtotal, before delivery charge.</span>
-                                    <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", width: "132px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                                    <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", width: "132px", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                                       <__In f={v.f} n="advance_percentage" labelled desc />
                                     </span>
                                     <__Err f={v.f} n="advance_percentage" />
@@ -572,7 +573,7 @@ export default class SetPaymentsScreen extends Component {
                                 <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Payment discount</span>
                                 <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Reward buyers for paying with this gateway. Applied to the online amount at checkout.</span>
                               </span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: v.f.get("payment_discount", false) ? "rgba(16,185,129,.14)" : "#f1f5f9", color: v.f.get("payment_discount", false) ? "var(--text-success)" : "var(--text-muted)" }}>{v.f.get("payment_discount", false) ? "On" : "Off"}</span>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: v.f.get("payment_discount", false) ? "rgba(16,185,129,.14)" : "#f1f5f9", color: v.f.get("payment_discount", false) ? "var(--text-success)" : "var(--text-muted)" }}>{v.f.get("payment_discount", false) ? "On" : "Off"}</span>
                             </button>
                             <div {...v.f.panel("opt_payment_discount", true)} style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "14px" }}>
                               <div style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", padding: "2px 13px" }}>
@@ -590,7 +591,7 @@ export default class SetPaymentsScreen extends Component {
                                     <label htmlFor={v.f.id("discount_type")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Discount type</label>
                                   </span>
                                   <span id={v.f.id("discount_type") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Percentage or a flat amount off.</span>
-                                  <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
+                                  <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
                                     <__In f={v.f} n="discount_type" labelled desc opts={["Percentage","Flat amount"]} dis={!v.f.get("payment_discount", false)} />
                                     <__Icon name="chevron-down" strokeWidth="1.75" width="16" height="16" style={{ color: "var(--text-muted)" }} />
                                   </span>
@@ -601,7 +602,7 @@ export default class SetPaymentsScreen extends Component {
                                     <label htmlFor={v.f.id("discount_value")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Value</label>
                                   </span>
                                   <span id={v.f.id("discount_value") + "-help"} className="set-help set-help--keep" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>bKash merchant cashback is commonly 1–2%.</span>
-                                  <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
+                                  <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
                                     <__In f={v.f} n="discount_value" labelled desc dis={!v.f.get("payment_discount", false)} />
                                   </span>
                                   <__Err f={v.f} n="discount_value" />
@@ -611,7 +612,7 @@ export default class SetPaymentsScreen extends Component {
                                     <label htmlFor={v.f.id("maximum_discount")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Maximum discount</label>
                                   </span>
                                   <span id={v.f.id("maximum_discount") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Caps the reward on large orders.</span>
-                                  <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
+                                  <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
                                     <__In f={v.f} n="maximum_discount" labelled desc dis={!v.f.get("payment_discount", false)} />
                                   </span>
                                   <__Err f={v.f} n="maximum_discount" />
@@ -621,7 +622,7 @@ export default class SetPaymentsScreen extends Component {
                                     <label htmlFor={v.f.id("minimum_order")} style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Minimum order</label>
                                   </span>
                                   <span id={v.f.id("minimum_order") + "-help"} className="set-help" style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", maxWidth: "560px" }}>Below this subtotal no discount is given.</span>
-                                  <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
+                                  <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#f1f5f9", padding: "0 11px", fontSize: "var(--text-sm)", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
                                     <__In f={v.f} n="minimum_order" labelled desc dis={!v.f.get("payment_discount", false)} />
                                   </span>
                                   <__Err f={v.f} n="minimum_order" />
@@ -638,7 +639,7 @@ export default class SetPaymentsScreen extends Component {
                                 <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Advanced conditions</span>
                                 <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Different payment modes by delivery area, customer segment and cart category.</span>
                               </span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(0,156,222,.14)", color: "var(--accent-text)" }}>2 areas · 4 segments</span>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(0,156,222,.14)", color: "var(--accent-text)" }}>2 areas · 4 segments</span>
                             </button>
                             <div {...v.f.panel("opt_advanced_conditions", true)} style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "14px" }}>
                               <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
@@ -738,7 +739,7 @@ export default class SetPaymentsScreen extends Component {
                                   <span style={{ display: "block", flex: "1", minWidth: "0" }}>
                                     <span style={{ display: "block", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Category rules</span>
                                   </span>
-                                  <button type="button" onClick={v.f.say("“Add rule” is not available in the demo yet.")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "1px solid #cbd5e1", background: "#fff", color: "#1e293b" }}><__Icon name="plus" strokeWidth="1.75" width="15" height="15" />Add rule</button>
+                                  <button type="button" onClick={v.f.say("“Add rule” is not available in the demo yet.")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "var(--control-height)", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "1px solid var(--border-field)", background: "#fff", color: "#1e293b" }}><__Icon name="plus" strokeWidth="1.75" width="15" height="15" />Add rule</button>
                                 </span>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                                   <div style={{ display: "flex", alignItems: "center", gap: "12px", border: "1px solid #e2e8f0", borderRadius: "var(--radius-lg)", background: "#fff", padding: "10px 12px" }}>
@@ -779,12 +780,12 @@ export default class SetPaymentsScreen extends Component {
                         </div>
                       </div>
                       <div className="set-wrap" style={{ display: "flex", alignItems: "center", gap: "13px", padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
-                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#635bff", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", color: "#fff" }}>STR</span>
+                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#635bff", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", color: "#fff" }}>STR</span>
                         <span className="set-row__text" style={{ display: "block", flex: "1", minWidth: "0" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Stripe</span>
                           <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>International cards · not configured</span>
                         </span>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", ...v.badge("stripe").tone }}>{v.badge("stripe").text}</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", ...v.badge("stripe").tone }}>{v.badge("stripe").text}</span>
                         <span style={{ flex: "none", width: "7px", height: "7px", borderRadius: "var(--radius-full)", border: "1.5px solid #cbd5e1", boxSizing: "border-box" }} />
                         <__Sw f={v.f} n="stripe" />
                         <button className="dc-h458" {...v.f.disc("gw_stripe", false)} aria-label="Stripe settings" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>
@@ -793,12 +794,12 @@ export default class SetPaymentsScreen extends Component {
                       </div>
                       <div {...v.f.panel("gw_stripe", false)} style={{ borderBottom: "1px solid #f1f5f9", background: "#f8fafc", padding: "14px 16px" }}>{v.gateway("Stripe")}</div>
                       <div className="set-wrap" style={{ display: "flex", alignItems: "center", gap: "13px", padding: "12px 16px" }}>
-                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#003087", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", color: "#fff" }}>PP</span>
+                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#003087", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", color: "#fff" }}>PP</span>
                         <span className="set-row__text" style={{ display: "block", flex: "1", minWidth: "0" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>PayPal</span>
                           <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Export orders only · unavailable to BD-domiciled merchants</span>
                         </span>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", ...v.badge("paypal").tone }}>{v.badge("paypal").text}</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", ...v.badge("paypal").tone }}>{v.badge("paypal").text}</span>
                         <span style={{ flex: "none", width: "7px", height: "7px", borderRadius: "var(--radius-full)", border: "1.5px solid #cbd5e1", boxSizing: "border-box" }} />
                         <__Sw f={v.f} n="paypal" />
                         <button className="dc-h459" {...v.f.disc("gw_paypal", false)} aria-label="PayPal settings" style={{ width: "28px", height: "28px", flex: "none", display: "grid", placeItems: "center", border: "none", borderRadius: "var(--radius-md)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>
@@ -807,18 +808,18 @@ export default class SetPaymentsScreen extends Component {
                       </div>
                       <div {...v.f.panel("gw_paypal", false)} style={{ borderBottom: "1px solid #f1f5f9", background: "#f8fafc", padding: "14px 16px" }}>{v.gateway("PayPal")}</div>
                     </section>
-                    <section id="s1" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                    <section id="s1" className="ix-card set-card">
+                      <div className="set-head">
                         <span style={{ display: "block" }}>
-                          <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Currency exchange rates</span>
+                          <h2 className="set-title">Currency exchange rates</h2>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
                           <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Fetched 7 Sep, 6:00 AM</span>
-                          <button type="button" onClick={v.f.say("Exchange rates are up to date. They were fetched today at 6:00 AM.")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#f1f5f9", color: "#1e293b" }}><__Icon name="refresh-cw" strokeWidth="1.75" width="15" height="15" />Refresh rates</button>
+                          <button type="button" onClick={v.f.say("Exchange rates are up to date. They were fetched today at 6:00 AM.")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "var(--control-height)", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#f1f5f9", color: "#1e293b" }}><__Icon name="refresh-cw" strokeWidth="1.75" width="15" height="15" />Refresh rates</button>
                         </span>
                       </div>
                       <div className="set-rates" style={{ padding: "6px 0 10px" }}>
-                        <div className="set-rates__head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "0 16px 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>
+                        <div className="set-rates__head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "0 16px 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>
                           <span style={{ width: "60px", flex: "none" }}>Code</span>
                           <span style={{ flex: "1" }}>Currency</span>
                           <span style={{ width: "40px", flex: "none" }} />
@@ -830,7 +831,7 @@ export default class SetPaymentsScreen extends Component {
                           <span style={{ flex: "1", minWidth: "0", color: "var(--text-muted)" }}>US Dollar</span>
                           <span style={{ width: "40px", flex: "none", textAlign: "right", color: "var(--text-muted)" }}>1 USD</span>
                           <span style={{ width: "150px", flex: "none" }}>
-                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                               <__Icon name="equal" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />
                               <__In f={v.f} n="rate_usd" />
                             </span>
@@ -843,7 +844,7 @@ export default class SetPaymentsScreen extends Component {
                           <span style={{ flex: "1", minWidth: "0", color: "var(--text-muted)" }}>Euro</span>
                           <span style={{ width: "40px", flex: "none", textAlign: "right", color: "var(--text-muted)" }}>1 EUR</span>
                           <span style={{ width: "150px", flex: "none" }}>
-                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                               <__Icon name="equal" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />
                               <__In f={v.f} n="rate_eur" />
                             </span>
@@ -856,7 +857,7 @@ export default class SetPaymentsScreen extends Component {
                           <span style={{ flex: "1", minWidth: "0", color: "var(--text-muted)" }}>Pound Sterling</span>
                           <span style={{ width: "40px", flex: "none", textAlign: "right", color: "var(--text-muted)" }}>1 GBP</span>
                           <span style={{ width: "150px", flex: "none" }}>
-                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                               <__Icon name="equal" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />
                               <__In f={v.f} n="rate_gbp" />
                             </span>
@@ -869,7 +870,7 @@ export default class SetPaymentsScreen extends Component {
                           <span style={{ flex: "1", minWidth: "0", color: "var(--text-muted)" }}>Indian Rupee</span>
                           <span style={{ width: "40px", flex: "none", textAlign: "right", color: "var(--text-muted)" }}>1 INR</span>
                           <span style={{ width: "150px", flex: "none" }}>
-                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                            <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                               <__Icon name="equal" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />
                               <__In f={v.f} n="rate_inr" />
                             </span>
@@ -879,24 +880,24 @@ export default class SetPaymentsScreen extends Component {
                         </div>
                       </div>
                     </section>
-                    <section id="s2" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", background: "#fff", boxShadow: "0 3px 10px 0 rgba(48,46,56,.05)" }}>
-                      <div className="set-head" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "15px 18px", borderBottom: "1px solid #f1f5f9" }}>
+                    <section id="s2" className="ix-card set-card">
+                      <div className="set-head">
                         <span style={{ display: "block" }}>
-                          <span style={{ display: "block", fontSize: "var(--text-sm-plus)", fontWeight: "var(--weight-semibold)", letterSpacing: ".01em", color: "#1e293b" }}>Offline gateways</span>
+                          <h2 className="set-title">Offline gateways</h2>
                         </span>
                         <span style={{ marginLeft: "auto", flex: "none", display: "flex", alignItems: "center", gap: "10px" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "21px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(16,185,129,.14)", color: "var(--text-success)" }}>{v.offline} on</span>
-                          <button type="button" onClick={v.f.say("“Add gateway” is not available in the demo yet.")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "36px", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#f1f5f9", color: "#1e293b" }}><__Icon name="plus" strokeWidth="1.75" width="15" height="15" />Add gateway</button>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "20px", borderRadius: "var(--radius-full)", padding: "0 8px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", background: "rgba(16,185,129,.14)", color: "var(--text-success)" }}>{v.offline} on</span>
+                          <button type="button" onClick={v.f.say("“Add gateway” is not available in the demo yet.")} style={{ display: "inline-flex", alignItems: "center", gap: "7px", height: "var(--control-height)", borderRadius: "var(--radius-lg)", padding: "0 13px", fontFamily: "inherit", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", cursor: "pointer", border: "none", background: "#f1f5f9", color: "#1e293b" }}><__Icon name="plus" strokeWidth="1.75" width="15" height="15" />Add gateway</button>
                         </span>
                       </div>
                       <div className="set-wrap" style={{ display: "flex", alignItems: "flex-start", gap: "13px", padding: "13px 16px", borderBottom: "1px solid #f1f5f9" }}>
-                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#e2136e", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", color: "#fff" }}>bK</span>
+                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#e2136e", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", color: "#fff" }}>bK</span>
                         <span className="set-row__text" style={{ display: "block", flex: "1", minWidth: "0" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>bKash send money</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Instructions shown at checkout, in Bangla and English. 14 orders awaiting review.</span>
                         </span>
                         <span style={{ width: "230px", flex: "none" }}>
-                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                             <__Icon name="smartphone" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />
                             <__In f={v.f} n="offline_bkash_number" />
                           </span>
@@ -911,7 +912,7 @@ export default class SetPaymentsScreen extends Component {
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>Dutch-Bangla mobile banking. Account must include the trailing digit.</span>
                         </span>
                         <span style={{ width: "230px", flex: "none" }}>
-                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                             <__Icon name="smartphone" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />
                             <__In f={v.f} n="offline_rocket_number" />
                           </span>
@@ -920,13 +921,13 @@ export default class SetPaymentsScreen extends Component {
                         <__Sw f={v.f} n="rocket_send_money" />
                       </div>
                       <div className="set-wrap" style={{ display: "flex", alignItems: "flex-start", gap: "13px", padding: "13px 16px" }}>
-                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#0f172a", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", color: "#fff" }}>BNK</span>
+                        <span style={{ display: "grid", placeItems: "center", width: "34px", height: "34px", flex: "none", borderRadius: "var(--radius-lg)", background: "#0f172a", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".02em", color: "#fff" }}>BNK</span>
                         <span className="set-row__text" style={{ display: "block", flex: "1", minWidth: "0" }}>
                           <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#1e293b" }}>Bank transfer</span>
                           <span style={{ display: "block", paddingTop: "2px", fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>City Bank PLC · Feni branch · A/C GridShop Smart Commerce Ltd.</span>
                         </span>
                         <span style={{ width: "230px", flex: "none" }}>
-                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
+                          <span className="set-box" style={{ display: "flex", alignItems: "center", gap: "8px", height: "var(--control-height)", border: "1px solid var(--border-field)", borderRadius: "var(--radius-lg)", background: "#fff", padding: "0 11px", fontSize: "var(--text-sm)", color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>
                             <__Icon name="landmark" strokeWidth="1.75" width="15" height="15" style={{ color: "var(--text-muted)" }} />
                             <__In f={v.f} n="offline_bank_account" />
                           </span>
@@ -936,16 +937,6 @@ export default class SetPaymentsScreen extends Component {
                       </div>
                     </section>
                   </main>
-                  <aside className="set-toc" aria-label="On this page">
-                    <span style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", textTransform: "uppercase", color: "var(--text-muted)" }}>On this page</span>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "1px", borderLeft: "2px solid #e2e8f0" }}>
-                      <a href="#s0" style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "-2px", borderLeft: "2px solid #003087", padding: "6px 10px", fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#003087", textDecoration: "none" }}>Online gateways<span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>7 + 4</span></a>
-                      <a href="#s1" style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "-2px", borderLeft: "2px solid transparent", padding: "6px 10px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", textDecoration: "none" }}>Exchange rates<span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>4</span></a>
-                      <a href="#s2" style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "-2px", borderLeft: "2px solid transparent", padding: "6px 10px", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)", textDecoration: "none" }}>Offline gateways<span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>3</span></a>
-                    </div>
-                    <span style={{ height: "1px", background: "#e2e8f0", margin: "4px 0" }} />
-                    <span style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>Optional configuration keeps its values while collapsed. A gateway in Live mode is marked in red everywhere it appears.</span>
-                  </aside>
                 </div>
                 <__SaveBar f={v.f} note="· 11:04 AM by Ashiq Khan" />
               </form>

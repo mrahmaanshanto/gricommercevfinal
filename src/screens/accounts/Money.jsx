@@ -1,71 +1,42 @@
 'use client';
 // Money — every account the shop keeps money in (cash, counter drawers, safe, banks, mobile wallets)
 // and every taka that moved in or out of it, in one place. It replaces the old Cash book, Money book
-// and Transactions pages.
-//   left   the accounts with their balances, grouped; "With partners" links to Settlements
-//   right  the chosen account (or all): money in / out, and the movements with a running balance
-//   Add money · Take money out · Move money between accounts
+// and Transactions pages. Laid out like a Shopify list (docs/shopify-style.md):
+//   figures   the balance of what is shown, money in, money out, and what partners hold (→ Payouts)
+//   card      views by account type (with their balance), search, filters (account, kind, dates, moves
+//             between own accounts), the movements with a running balance for one account, the pager
+//   Add money · Take money out · Move money between accounts (for the chosen account, if any)
 // ?account=<id> · ?type=Cash|Bank|Mobile · ?do=in|out|transfer (&from=<id>) opens that form
 // Front end only: balances are opening + every entry in lib/ledger.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { Dialog, EmptyState } from '@/components/ui';
-import { BrandLogo } from '@/components/BrandLogo';
+import { MetricStrip, IndexTabs, SearchField, Pager, LearnMore } from '@/components/ui/IndexKit';
 import { OWN_ACCOUNTS, HOLDING_ACCOUNTS, accountBy, getEntries, balanceOf, postEntry, transferBetween, KIND_LABEL } from '@/lib/ledger';
 import { clockNow, dayKey, startOfDay } from '@/lib/settlements';
 import { AccPage, AccountSelect, useBooks, money, signed, shortDate, accName } from './accShared';
 
 const TYPES = [['Cash', 'Cash'], ['Bank', 'Banks'], ['Mobile', 'Mobile wallets']];
-const PAGE = 60;
-const KIND_TONE = { sale: 'success', 'invoice payment': 'info', 'order payment': 'info', settlement: 'primary', refund: 'error', 'supplier payment': 'warning', expense: 'warning', salary: 'warning', 'owner withdraw': 'slate', investment: 'success', 'paid out': 'warning', 'cash pickup': 'slate', 'cash in': 'slate', transfer: 'slate' };
+const PAGE = 50;
+const INTERNAL = ['transfer', 'cash pickup', 'cash in'];   // moves between the shop's own accounts
 const IN_REASONS = [['investment', 'Owner put money in'], ['cash in', 'Other money in (loan, refund from a supplier …)']];
 const OUT_REASONS = [['owner withdraw', 'Owner took money'], ['expense', 'Bank or wallet charge'], ['paid out', 'Other money out']];
+const ABOUT = 'Every account the shop keeps money in, and every taka in or out: sales, payments, payouts, expenses and transfers.';
 
 const CSS = `
-.mo-grid{display:grid;grid-template-columns:320px minmax(0,1fr);gap:var(--space-5);align-items:start}
-.mo-list{position:sticky;top:var(--space-4)}
-.mo-total{padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle)}
-.mo-total span{display:block;font-size:var(--text-xs);color:var(--text-muted)}
-.mo-total b{font-family:var(--font-data);font-size:var(--text-xl);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.mo-gh{display:flex;justify-content:space-between;gap:var(--space-2);padding:var(--space-3) var(--space-5) var(--space-1);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
-.mo-gh span:last-child{font-family:var(--font-data)}
-.mo-acc{display:flex;align-items:center;gap:var(--space-3);width:100%;padding:var(--space-2) var(--space-5);border:0;border-left:3px solid transparent;background:none;font:inherit;text-align:left;cursor:pointer;color:inherit;text-decoration:none}
-.mo-acc:hover{background:var(--surface-subtle)}
-.mo-acc.is-on{background:var(--fill-primary-soft);border-left-color:var(--primary)}
-.mo-acc:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
-.mo-acc__name{flex:1;min-width:0;font-size:var(--text-sm);color:var(--text-heading);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mo-acc__bal{font-family:var(--font-data);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);font-variant-numeric:tabular-nums}
-.mo-sep{height:1px;margin:var(--space-2) 0;background:var(--border-subtle)}
-.mo-hero{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-4);padding:var(--space-5)}
-.mo-hero__fig{font-family:var(--font-data);font-size:var(--text-2xl);font-weight:var(--weight-semibold);color:var(--text-heading);line-height:1.2}
-.mo-hero__meta{flex:1;min-width:200px}
-.mo-hero__meta p{margin:0;font-size:var(--text-xs);color:var(--text-muted)}
-.mo-hero__meta h2{margin:0 0 2px;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.mo-flows{display:flex;gap:var(--space-5)}
-.mo-flows span{display:block;font-size:var(--text-xs);color:var(--text-muted)}
-.mo-flows b{font-family:var(--font-data);font-size:var(--text-sm);font-weight:var(--weight-semibold)}
-.mo-filters{display:flex;flex-wrap:wrap;gap:var(--space-3);align-items:flex-end;padding:0 var(--space-5) var(--space-2)}
-.mo-filters > div{flex:1 1 150px;min-width:0}
-.mo-filters > div:first-child{flex-basis:200px}
-.mo-moves{display:flex;align-items:center;gap:var(--space-2);padding:0 var(--space-5) var(--space-4);font-size:var(--text-xs);color:var(--text-body);cursor:pointer;width:fit-content;max-width:100%;box-sizing:border-box}
-.mo-moves input{accent-color:var(--primary)}
-.mo-table td{white-space:normal;vertical-align:top}
-.mo-table td.ac-num,.mo-table td:first-child{white-space:nowrap}
-.mo-table .ac-who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px}
-.mo-table .gc-badge{white-space:nowrap}
-.mo-more{display:flex;justify-content:center;padding:var(--space-3)}
-@media (max-width:1100px){.mo-grid{grid-template-columns:minmax(0,1fr)}.mo-list{position:static}}
-@media (max-width:640px){
-  /* the accounts list above already shows "All your accounts" and its total: don't repeat it */
-  .mo-hero--all > span:first-child,.mo-hero--all .mo-hero__meta{display:none!important}
-  .mo-hero--all{padding-bottom:var(--space-3)}
-  /* table-cards: the account (logo + name) sits on the right like the other values */
-  .mo-table.gc-cards-on .ac-who{justify-content:flex-end}
-}
+.mn-when{font-variant-numeric:tabular-nums}
+.mn-in{color:var(--text-success)}
+.mn-out{color:var(--text-danger)}
+.mn-fig{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+.mn-what .ac-trunc{max-width:460px}
+@media (max-width:1279px){.mn-what .ac-trunc{max-width:300px}}
 `;
+
+const timeOf = (t) => new Date(t).toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' });
+const whatOf = (e) => e.cat || KIND_LABEL[e.kind] || e.kind;
+const subOf = (e) => [e.party, e.ref && !String(e.ref).includes(':') ? e.ref : '', e.note].filter(Boolean).join(' · ');
 
 export default function Money() {
   const tick = useBooks();
@@ -75,9 +46,10 @@ export default function Money() {
   const [q, setQ] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
-  const [limit, setLimit] = useState(PAGE);
+  const [page, setPage] = useState(1);
   const [moves, setMoves] = useState(false);   // show moves between the shop's own accounts in the all-accounts view
-  const [form, setForm] = useState(null);   // { mode: 'in'|'out'|'transfer', ... }
+  const [find, setFind] = useState(false);
+  const [form, setForm] = useState(null);      // { mode: 'in'|'out'|'transfer', ... }
   const booted = useRef(false);
 
   useEffect(() => {
@@ -96,9 +68,10 @@ export default function Money() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tick]);
+  useEffect(() => { setPage(1); }, [account, type, kind, q, from, to, moves]);
 
   const pick = (id, t = '') => {
-    setAccount(id); setType(t); setLimit(PAGE);
+    setAccount(id); setType(t);
     const u = new URL(window.location.href);
     u.searchParams.delete('account'); u.searchParams.delete('type');
     if (id) u.searchParams.set('account', id); else if (t) u.searchParams.set('type', t);
@@ -106,6 +79,7 @@ export default function Money() {
   };
 
   const d = useMemo(() => {
+    if (!tick) return null;
     const entries = getEntries();
     const own = OWN_ACCOUNTS();
     const bal = Object.fromEntries(own.map((a) => [a.id, balanceOf(a.id, entries)]));
@@ -113,28 +87,8 @@ export default function Money() {
     return { entries: entries.filter((e) => own.some((a) => a.id === e.account)), own, bal, held };
   }, [tick]);
 
-  const ids = account ? [account] : type ? d.own.filter((a) => a.type === type).map((a) => a.id) : d.own.map((a) => a.id);
-  const scope = d.entries.filter((e) => ids.includes(e.account));
-  const fromAt = from ? startOfDay(new Date(from + 'T00:00:00').getTime()) : null;
-  const toAt = to ? startOfDay(new Date(to + 'T00:00:00').getTime()) + 864e5 : null;
-  const words = q.trim().toLowerCase();
-  const INTERNAL = ['transfer', 'cash pickup', 'cash in'];
-  const hideMoves = !account && !moves && !kind;
-  const shown = scope.filter((e) => (!hideMoves || !INTERNAL.includes(e.kind)) && (!kind || e.kind === kind) && (fromAt == null || e.at >= fromAt) && (toAt == null || e.at < toAt)
-    && (!words || [e.party, e.note, e.ref, e.cat, KIND_LABEL[e.kind], e.by].join(' ').toLowerCase().includes(words)));
-  // running balance after each movement, for one account (newest first)
-  const running = {};
-  if (account) { let b = d.bal[account] || 0; scope.forEach((e) => { running[e.id] = b; b -= e.amount; }); }
-  const monthStart = new Date(clockNow()); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
-  const inScope = shown.filter((e) => e.amount > 0).reduce((s, e) => s + e.amount, 0);
-  const outScope = shown.filter((e) => e.amount < 0).reduce((s, e) => s - e.amount, 0);
-  const kinds = [...new Set(scope.map((e) => e.kind))].sort();
-  const acc = account ? accountBy(account) : null;
-  const scopeBalance = ids.reduce((s, id) => s + (d.bal[id] || 0), 0);
-  const filtered = !!(kind || q || from || to);
-
   function openForm(mode, fromId) {
-    const first = fromId || account || (mode === 'in' ? 'cash-shop' : 'cash-shop');
+    const first = fromId || account || 'cash-shop';
     const other = first === 'safe' ? 'brac' : 'safe';
     setForm({ mode, account: first, to: other, reason: mode === 'in' ? 'investment' : 'owner withdraw', amount: '', note: '', date: dayKey(clockNow()), tried: false });
   }
@@ -156,98 +110,118 @@ export default function Money() {
     }
     setForm(null);
   };
+
+  const head = {
+    icon: 'wallet', about: ABOUT,
+    secondary: [{ label: 'Add money', onClick: () => openForm('in') }, { label: 'Take out', onClick: () => openForm('out') }],
+    more: [{ label: 'Payouts', href: '/settlements' }, { label: 'Banks & wallets', href: '/account-setup?tab=accounts' }],
+    primary: { label: 'Move money', onClick: () => openForm('transfer') },
+  };
+  if (!d) return <AccPage screen="Money" active="acc-money" page="Money" title="Money" css={CSS} {...head} />;
+
+  const acc = account ? accountBy(account) : null;
+  const viewType = acc ? acc.type : type;
+  const ids = account ? [account] : type ? d.own.filter((a) => a.type === type).map((a) => a.id) : d.own.map((a) => a.id);
+  const scope = d.entries.filter((e) => ids.includes(e.account));
+  const fromAt = from ? startOfDay(new Date(from + 'T00:00:00').getTime()) : null;
+  const toAt = to ? startOfDay(new Date(to + 'T00:00:00').getTime()) + 864e5 : null;
+  const words = q.trim().toLowerCase();
+  const hideMoves = !account && !moves && !kind;
+  const shown = scope.filter((e) => (!hideMoves || !INTERNAL.includes(e.kind)) && (!kind || e.kind === kind) && (fromAt == null || e.at >= fromAt) && (toAt == null || e.at < toAt)
+    && (!words || [e.party, e.note, e.ref, e.cat, KIND_LABEL[e.kind], e.by].join(' ').toLowerCase().includes(words)));
+  // running balance after each movement, for one account (newest first)
+  const running = {};
+  if (account) { let b = d.bal[account] || 0; scope.forEach((e) => { running[e.id] = b; b -= e.amount; }); }
+  const inScope = shown.filter((e) => e.amount > 0).reduce((s, e) => s + e.amount, 0);
+  const outScope = shown.filter((e) => e.amount < 0).reduce((s, e) => s - e.amount, 0);
+  const kinds = [...new Set(scope.map((e) => e.kind))].sort();
+  const scopeBalance = ids.reduce((s, id) => s + (d.bal[id] || 0), 0);
+  const filtered = !!(kind || q || from || to);
+  const findOn = find || filtered || !!account || moves;
+  const clearFilters = () => { setKind(''); setQ(''); setFrom(''); setTo(''); setMoves(false); if (account) pick('', viewType); };
+  const closeFind = () => { clearFilters(); setFind(false); };
   const outOver = form && form.mode !== 'in' && Number(form.amount) > (d.bal[form.account] || 0);
 
-  const actions = (<>
-          <button type="button" className="gc-btn gc-btn--neutral" onClick={() => openForm('in')}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Add money</button>
-          <button type="button" className="gc-btn gc-btn--neutral" onClick={() => openForm('out')}><Icon name="minus" width="18" height="18" aria-hidden="true" /> Take out</button>
-          <button type="button" className="gc-btn gc-btn--solid" onClick={() => openForm('transfer')}><Icon name="arrow-left-right" width="18" height="18" aria-hidden="true" /> Move money</button>
-        </>
-  );
-  if (!tick) return <AccPage screen="Money" active="acc-money" page="Money" title="Money" css={CSS} about="Every account the shop keeps money in, and every taka in or out: sales, payments, payouts, expenses and transfers." actions={actions} />;
-
-  const accRow = (a) => (
-    <button key={a.id} type="button" className={'mo-acc' + (account === a.id ? ' is-on' : '')} aria-pressed={account === a.id} onClick={() => pick(a.id)}>
-      <BrandLogo brand={a.brand} size={32} decorative />
-      <span className="mo-acc__name">{accName(a.id)}</span>
-      <span className="mo-acc__bal">{money(d.bal[a.id] || 0)}</span>
-    </button>
-  );
+  const typeTotal = (t) => d.own.filter((a) => !t || a.type === t).reduce((s, a) => s + (d.bal[a.id] || 0), 0);
+  const tabs = [['', 'All accounts'], ...TYPES].map(([t, label]) => ({ key: t || 'all', id: 'mn-tab-' + (t || 'all'), label, count: money(typeTotal(t)), on: viewType === t, onClick: () => pick('', t) }));
+  const pickable = d.own.filter((a) => !viewType || a.type === viewType);
+  const pages = Math.max(1, Math.ceil(shown.length / PAGE));
+  const pg = Math.min(page, pages);
+  const first = (pg - 1) * PAGE;
+  const rows = shown.slice(first, first + PAGE);
+  const scopeName = acc ? accName(acc.id) : type ? TYPES.find((x) => x[0] === type)[1] : 'All accounts';
 
   return (
-    <AccPage screen="Money" active="acc-money" page="Money" title="Money" css={CSS}
-      about="Every account the shop keeps money in, and every taka in or out: sales, payments, payouts, expenses and transfers."
-      actions={actions}>
-      <div className="mo-grid gc-split">
-        <nav className="gc-card ac-card mo-list" aria-label="Accounts">
-          <button type="button" className={'mo-acc mo-total' + (!account && !type ? ' is-on' : '')} style={{ display: 'block' }} aria-pressed={!account && !type} onClick={() => pick('')}>
-            <span>All your accounts</span><b>{money(Object.values(d.bal).reduce((s, x) => s + x, 0))}</b>
-          </button>
-          {TYPES.map(([t, label]) => {
-            const list = d.own.filter((a) => a.type === t);
-            return (
-              <div key={t}>
-                <button type="button" className="mo-gh" style={{ width: '100%', border: 0, background: type === t && !account ? 'var(--fill-primary-soft)' : 'none', font: 'inherit', cursor: 'pointer' }} aria-pressed={type === t && !account} onClick={() => pick('', t)}><span>{label}</span><span>{money(list.reduce((s, a) => s + (d.bal[a.id] || 0), 0))}</span></button>
-                {list.map(accRow)}
-              </div>
-            );
-          })}
-          <div className="mo-sep" />
-          <Link href="/settlements" className="mo-acc" style={{ marginBottom: 'var(--space-2)' }}>
-            <span className="ov-ico" style={{ display: 'grid', placeItems: 'center', width: 32, height: 32, borderRadius: 'var(--radius-lg)', background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="hourglass" width="16" height="16" aria-hidden="true" /></span>
-            <span className="mo-acc__name">With partners<span className="ac-sub">Gateways and couriers</span></span>
-            <span className="mo-acc__bal">{money(d.held)}</span>
-          </Link>
-        </nav>
+    <AccPage screen="Money" active="acc-money" page="Money" title="Money" css={CSS} {...head}>
+      <MetricStrip label={scopeName} items={[
+        { label: 'Balance', value: money(scopeBalance), sub: scopeName },
+        { label: filtered ? 'In (filtered)' : 'Money in', value: money(inScope) },
+        { label: filtered ? 'Out (filtered)' : 'Money out', value: money(outScope) },
+        { label: 'With partners', value: money(d.held), sub: 'Gateways and couriers', href: '/settlements' },
+      ]} />
 
-        <section className="gc-card ac-card" aria-label={acc ? accName(acc.id) : 'All accounts'}>
-          <div className={'mo-hero' + (!acc && !type ? ' mo-hero--all' : '')}>
-            {acc ? <BrandLogo brand={acc.brand} size={52} /> : <span style={{ display: 'grid', placeItems: 'center', width: 52, height: 52, borderRadius: 'var(--radius-lg)', background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="wallet" width="24" height="24" aria-hidden="true" /></span>}
-            <div className="mo-hero__meta">
-              <h2>{acc ? acc.name : type ? TYPES.find((x) => x[0] === type)[1] : 'All your accounts'}</h2>
-              <div className="mo-hero__fig">{money(scopeBalance)}</div>
-              <p>{acc ? `${acc.type === 'Mobile' ? 'Mobile wallet' : acc.type} · opened with ${money(acc.opening)} on 1 Sep` : `${ids.length} accounts`}</p>
-            </div>
-            <div className="mo-flows">
-              <div><span>{filtered ? 'In (filtered)' : 'Money in'}</span><b className="ac-in">{money(inScope)}</b></div>
-              <div><span>{filtered ? 'Out (filtered)' : 'Money out'}</span><b className="ac-out">{money(outScope)}</b></div>
-            </div>
-            {acc ? <div className="ac-row-actions" style={{ width: '100%', justifyContent: 'flex-start' }}>
-              <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => openForm('in', acc.id)}>Add money</button>
-              <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => openForm('out', acc.id)}>Take out</button>
-              <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => openForm('transfer', acc.id)}>Move to another account</button>
-            </div> : null}
+      <section className="ix-card" aria-label={scopeName}>
+        <div className="ix-bar">
+          {findOn ? (<>
+            <SearchField value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, order, note…" onDone={closeFind} autoFocus={find} />
+            <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={closeFind}>Cancel</button>
+          </>) : (<>
+            <IndexTabs tabs={tabs} label="Accounts" />
+            <span className="ix-tools">
+              <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search and filter" onClick={() => setFind(true)}><Icon name="search" width="16" height="16" aria-hidden="true" /></button>
+            </span>
+          </>)}
+        </div>
+        {findOn ? (
+          <div className="ix-filters" role="group" aria-label="Filters">
+            <select aria-label="Account" className={'ix-filter' + (account ? ' is-set' : '')} value={account} onChange={(e) => pick(e.target.value, viewType)}>
+              <option value="">Account</option>
+              {pickable.map((a) => <option key={a.id} value={a.id}>{accName(a.id)} · {money(d.bal[a.id] || 0)}</option>)}
+            </select>
+            <select aria-label="Kind" className={'ix-filter' + (kind ? ' is-set' : '')} value={kind} onChange={(e) => setKind(e.target.value)}>
+              <option value="">Kind</option>
+              {kinds.map((k) => <option key={k} value={k}>{KIND_LABEL[k] || k}</option>)}
+            </select>
+            <input type="date" aria-label="From" title="From" className="ix-date" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <input type="date" aria-label="To" title="To" className="ix-date" value={to} onChange={(e) => setTo(e.target.value)} />
+            {!account ? <button type="button" className="ix-chip" aria-pressed={moves} onClick={() => setMoves(!moves)} title="Cash pickups, deposits and transfers">Moves between my accounts</button> : null}
+            {filtered || account || moves ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={clearFilters}>Clear all</button> : null}
           </div>
-          <div className="mo-filters">
-            <div><label className="gc-label" htmlFor="mo-q">Search</label><input id="mo-q" type="search" className="gc-input" placeholder="Name, order, note…" value={q} onChange={(e) => { setQ(e.target.value); setLimit(PAGE); }} /></div>
-            <div><label className="gc-label" htmlFor="mo-kind">Kind</label><select id="mo-kind" className="gc-input gc-select" value={kind} onChange={(e) => { setKind(e.target.value); setLimit(PAGE); }}><option value="">All kinds</option>{kinds.map((k) => <option key={k} value={k}>{KIND_LABEL[k] || k}</option>)}</select></div>
-            <div><label className="gc-label" htmlFor="mo-from">From</label><input id="mo-from" type="date" className="gc-input" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
-            <div><label className="gc-label" htmlFor="mo-to">To</label><input id="mo-to" type="date" className="gc-input" value={to} onChange={(e) => setTo(e.target.value)} /></div>
-            <button type="button" className="gc-btn gc-btn--flat" disabled={!filtered} onClick={() => { setKind(''); setQ(''); setFrom(''); setTo(''); }}>Clear</button>
+        ) : null}
+
+        {shown.length ? (<>
+          <ul className="ix-plist" aria-label={scopeName}>
+            {rows.map((e) => (
+              <li key={e.id}>
+                <div className="ix-pitem">
+                  <span className="ix-pitem__top"><b>{whatOf(e)}</b><span className={'mn-fig ' + (e.amount > 0 ? 'mn-in' : 'mn-out')}>{signed(e.amount)}</span></span>
+                  <span className="ix-pitem__mid">{shortDate(e.at)} {timeOf(e.at)} · {accName(e.account)}{subOf(e) ? ' · ' + subOf(e) : ''}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="ix-table-wrap">
+            <table className="ix-table ix-table--static gc-table--keep">
+              <caption className="sr-only">Money in and out, {scopeName}</caption>
+              <thead><tr><th scope="col">When</th><th scope="col">What</th>{account ? null : <th scope="col">Account</th>}<th scope="col" className="ix-num">In</th><th scope="col" className="ix-num">Out</th>{account ? <th scope="col" className="ix-num">Balance</th> : null}</tr></thead>
+              <tbody>{rows.map((e) => (
+                <tr key={e.id} title={[e.by ? 'By ' + e.by : '', e.ref, e.note].filter(Boolean).join(' · ') || undefined}>
+                  <td className="mn-when ix-nowrap">{shortDate(e.at)} <span className="ix-muted">{timeOf(e.at)}</span></td>
+                  <td className="mn-what"><span className="ac-trunc"><span className="ix-strong">{whatOf(e)}</span>{subOf(e) ? <span className="ix-muted"> · {subOf(e)}</span> : null}</span></td>
+                  {account ? null : <td className="ix-muted ix-nowrap">{accName(e.account)}</td>}
+                  <td className="ix-num mn-fig mn-in">{e.amount > 0 ? money(e.amount) : ''}</td>
+                  <td className="ix-num mn-fig mn-out">{e.amount < 0 ? money(e.amount) : ''}</td>
+                  {account ? <td className="ix-num mn-fig ix-strong">{money(running[e.id])}</td> : null}
+                </tr>
+              ))}</tbody>
+            </table>
           </div>
-          {!account ? <label className="mo-moves"><input type="checkbox" checked={moves} onChange={(e) => { setMoves(e.target.checked); setLimit(PAGE); }} /> Show moves between my own accounts (cash pickups, deposits, transfers)</label> : <div style={{ height: 'var(--space-2)' }} />}
-          {shown.length ? (
-            <>
-              <div className="gc-table-wrap">
-                <table className="gc-table gc-table--compact gc-table--hoverable mo-table">
-                  <thead><tr><th scope="col">When</th><th scope="col">What</th>{account ? null : <th scope="col">Account</th>}<th scope="col" className="ac-num">In</th><th scope="col" className="ac-num">Out</th>{account ? <th scope="col" className="ac-num">Balance</th> : null}</tr></thead>
-                  <tbody>{shown.slice(0, limit).map((e) => (
-                    <tr key={e.id}>
-                      <td>{shortDate(e.at)}<span className="ac-sub">{new Date(e.at).toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' })}{e.by ? ' · ' + e.by : ''}</span></td>
-                      <td><span className={'gc-badge gc-badge--' + (KIND_TONE[e.kind] || 'slate')}>{e.cat || KIND_LABEL[e.kind] || e.kind}</span><span className="ac-sub">{[e.party, e.ref && !String(e.ref).includes(':') ? e.ref : '', e.note].filter(Boolean).join(' · ')}</span></td>
-                      {account ? null : <td><div className="ac-who"><BrandLogo brand={(accountBy(e.account) || {}).brand} size={24} decorative /><span>{accName(e.account)}</span></div></td>}
-                      <td className="ac-num ac-fig ac-in">{e.amount > 0 ? money(e.amount) : ''}</td>
-                      <td className="ac-num ac-fig ac-out">{e.amount < 0 ? money(e.amount) : ''}</td>
-                      {account ? <td className="ac-num ac-fig ac-strong">{money(running[e.id])}</td> : null}
-                    </tr>
-                  ))}</tbody>
-                </table>
-              </div>
-              {shown.length > limit ? <div className="mo-more"><button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setLimit(limit + PAGE)}>Show {Math.min(PAGE, shown.length - limit)} more</button></div> : null}
-            </>
-          ) : <EmptyState icon="search-x" title="No money moved here" body={filtered ? 'Nothing matches these filters.' : 'Sales, payments and transfers into this account show here.'} actionLabel={filtered ? 'Clear filters' : undefined} onAction={filtered ? () => { setKind(''); setQ(''); setFrom(''); setTo(''); } : undefined} />}
-        </section>
-      </div>
+        </>) : (
+          <div className="ix-empty"><EmptyState icon="search-x" title="No money moved here" body={filtered ? 'Nothing matches these filters.' : 'Sales, payments and transfers into this account show here.'} actionLabel={filtered ? 'Clear filters' : undefined} onAction={filtered ? clearFilters : undefined} /></div>
+        )}
+        <Pager label={shown.length ? `Showing ${first + 1}–${first + rows.length} of ${shown.length}` : 'No money moved here'} atStart={pg <= 1} atEnd={pg >= pages} prev={() => setPage(pg - 1)} next={() => setPage(pg + 1)} />
+      </section>
+      <LearnMore topic="money" />
 
       {form ? (
         <Dialog open title={form.mode === 'transfer' ? 'Move money' : form.mode === 'in' ? 'Add money' : 'Take money out'} onClose={() => setForm(null)} width={540}

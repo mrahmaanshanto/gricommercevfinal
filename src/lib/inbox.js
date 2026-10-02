@@ -139,7 +139,7 @@ function seedConvs(now) {
       cu(1600, 'Hello, we need 50 pairs of wireless earbuds for our staff. Can you share a wholesale price?'),
       ag(1560, 'mehedi', 'Thanks Imran! For 50 pieces the price is ৳3,141 each. Shall I send a quotation?'),
       cu(1500, 'Yes please, with delivery to Banani.'),
-      note(1490, 'mehedi', 'Send the quotation from Sales › Invoices. Ask for the trade licence.'),
+      note(1490, 'mehedi', 'Send the quotation from Orders › Invoices. Ask for the trade licence.'),
     ]),
     C('c-karim', 'whatsapp', 'Karim Saheb', { phone: '01718445120', assignee: 'tasnim', tags: ['Delivery'] }, [
       cu(150, 'Ami bari chilam na, earbuds er parcel ferot geche. Abar pathano jabe?'),

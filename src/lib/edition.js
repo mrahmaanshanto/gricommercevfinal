@@ -48,7 +48,7 @@ export const MODULES = {
   },
   commerce: {
     label: 'Orders & returns', desc: 'All orders, returns and exchanges, payment settings',
-    nav: ['orders', 'orders-all', 'sales-return'],
+    nav: ['orders', 'orders-all', 'sales-return', 'pay-setup'],
     routes: ['/order-detail', '/return-history', '/set-payments', '/set-notifications'],
   },
   marketing: {
@@ -154,11 +154,8 @@ export function routeInEdition(path, ed = currentEditionId()) {
 /** The menu with everything outside the edition removed (empty groups dropped). */
 export function navForEdition(nav, ed = currentEditionId()) {
   if (ed === 'full') return nav;
-  const hasStore = hasModule('online', ed);
   return nav.map((g) => ({
     ...g,
-    // without the online store, the last group is just automation and settings
-    label: g.label === 'Online store & settings' && !hasStore ? (hasModule('automation', ed) ? 'Automation & settings' : 'Settings') : g.label,
     items: g.items.map((it) => {
       if (!it.children) return inEditionNav(it.id, ed) ? it : null;
       const kids = it.children.filter((c) => inEditionNav(c.id, ed));

@@ -9,6 +9,7 @@ import { Dialog, EmptyState, ChannelIcon } from '@/components/ui';
 import { BrandLogo } from '@/components/BrandLogo';
 import { formatBDT } from '@/lib/format';
 import { searchProducts, stockAt } from '@/lib/stock';
+import { isStatusSellable } from '@/lib/sellable';
 import { getReplies, upsertReply, deleteReply, channelName, samePhone, previewOf, lastAny, ago } from '@/lib/inbox';
 import { SearchBox, Avatar } from './parts';
 
@@ -88,7 +89,7 @@ export function SavedRepliesDialog({ open, onClose, onUse }) {
 export function ProductDialog({ open, onClose, onSend }) {
   const [q, setQ] = useState('');
   useEffect(() => { if (open) setQ(''); }, [open]);
-  const rows = useMemo(() => (open ? searchProducts(q).slice(0, 40).map((p) => ({ ...p, free: stockAt(p.sku, '').available })) : []), [open, q]);
+  const rows = useMemo(() => (open ? searchProducts(q).filter(isStatusSellable).slice(0, 40).map((p) => ({ ...p, free: stockAt(p.sku, '').available })) : []), [open, q]);
   return (
     <Dialog open={open} title="Send a product card" onClose={onClose} width={560}>
       <SearchBox value={q} onChange={setQ} placeholder="Search by name, SKU or barcode" />

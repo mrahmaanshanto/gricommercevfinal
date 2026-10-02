@@ -1,32 +1,29 @@
 'use client';
 // Increments & promotions (/pay-changes) — every pay and job change in one list: increments, promotions,
 // confirmations after probation, transfers and pay cuts (src/lib/hr.js › changes). Who is due a review (no raise in
-// 12 months), the yearly increment for many people at once, planned changes, and the letter for each.
+// 12 months), the yearly increment for many people at once, planned changes, and the letter for each. A row opens
+// the change's letter (with Cancel change for a planned one); the reason is on the letter.
 
 import React, { useMemo, useState } from 'react';
-import Link from 'next/link';
-import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
-import { Dialog, EmptyState } from '@/components/ui';
+import { Dialog, EmptyState, StatusBadge, InfoTip } from '@/components/ui';
+import { MetricStrip, IndexTabs, LearnMore } from '@/components/ui/IndexKit';
 import { formatDate } from '@/lib/format';
 import { fromKey } from '@/lib/settlements';
 import {
-  CHANGE_KINDS, changePct, cancelChange, staffBy, monthLabel, monthOf, addMonths, todayKey, lastRaiseOf, positionOf, serviceOf, yearlyIncrement,
+  CHANGE_KINDS, changePct, cancelChange, staffBy, monthLabel, monthOf, todayKey, lastRaiseOf, positionOf, serviceOf, yearlyIncrement,
 } from '@/lib/hr';
-import { HrPage, useHr, Person, money } from './hrShared';
+import { HrPage, useHr, Person, money, rowGo } from './hrShared';
 import { ChangeDialog, LetterDialog, LETTER_CSS } from './ChangeDialog';
 import { FORM_CSS } from '@/screens/staff-profile/staffForm';
 
 const CSS = `
 .pc-band{display:block;position:relative;width:110px;height:6px;margin-top:6px;border-radius:var(--radius-full);background:var(--surface-subtle);border:1px solid var(--border-subtle)}
 .pc-band i{position:absolute;top:-3px;width:10px;height:10px;margin-left:-5px;border-radius:var(--radius-full);background:var(--primary)}
-.pc-chip{display:inline-flex;align-items:center;gap:6px;font-weight:var(--weight-medium);color:var(--text-heading)}
-.pc-chip .rp-tile{width:28px;height:28px}
 .pc-pick{max-height:320px;overflow:auto;border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
 .pc-pick table{width:100%}
 `;
 const FILTERS = [['all', 'All'], ['increment', 'Increments'], ['promotion', 'Promotions'], ['transfer', 'Transfers'], ['planned', 'Planned']];
-const tileTone = (tone) => (tone === 'slate' ? ['var(--fill-primary-soft)', 'var(--primary)'] : [`var(--fill-${tone}-soft)`, `var(--text-${tone === 'error' ? 'danger' : tone})`]);
 
 export default function PayChanges() {
   const { S } = useHr();
@@ -65,45 +62,52 @@ export default function PayChanges() {
   };
   const newGross = (s) => Math.ceil(Math.round(s.gross * (1 + Number(bulk.pct || 0) / 100)) / (Number(bulk.round) || 100)) * (Number(bulk.round) || 100);
 
+  const cancelPlanned = async (c) => {
+    const st = staffBy(S, c.code);
+    const [label] = CHANGE_KINDS[c.kind] || CHANGE_KINDS.increment;
+    if (await confirmDialog({ title: 'Cancel this planned change?', body: `${label} for ${st ? st.name : c.code} from ${monthLabel(c.effective)} will not happen.`, confirmLabel: 'Cancel it', tone: 'danger' })) { cancelChange(c.id); toast('Planned change cancelled.'); setLetter(null); }
+  };
+  const tabs = FILTERS.map(([k, l]) => ({ key: k, id: 'pc-tab-' + k, label: l, count: k === 'planned' ? planned.length : null, on: f === k, onClick: () => setF(k) }));
+
   return (
-    <HrPage screen="PayChanges" active="hr-changes" page="Increments & promotions" title="Increments & promotions" css={FORM_CSS + LETTER_CSS + CSS}
-      about="Raises, promotions, confirmations and transfers — with who is due a review, planned changes and a letter for each."
-      actions={<>
-        <button type="button" className="gc-btn gc-btn--neutral" onClick={openBulk}><Icon name="users" width="18" height="18" aria-hidden="true" /> Yearly increment</button>
-        <button type="button" className="gc-btn gc-btn--solid" onClick={() => setAdd('increment')}><Icon name="plus" width="18" height="18" aria-hidden="true" /> New change</button>
-      </>}>
-      <div className="gc-kpis">
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="trending-up" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Increments in {year}</p><p className="gc-kpi__value">{incs.length}<small>average +{avg}%</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-info-soft)', color: 'var(--text-info)' }}><Icon name="award" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Promotions in {year}</p><p className="gc-kpi__value">{thisYear.filter((c) => c.kind === 'promotion').length}<small>{thisYear.filter((c) => c.kind === 'transfer').length} transfers</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="banknote" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Added to monthly pay</p><p className="gc-kpi__value">{money(added)}<small>{money(added * 12)} a year</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-warning-soft)', color: 'var(--text-warning)' }}><Icon name="calendar-clock" width="24" height="24" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Planned</p><p className="gc-kpi__value">{planned.length}<small>{plannedCost ? `+${money(plannedCost)} a month` : 'none waiting'}</small></p></div></div>
-      </div>
+    <HrPage screen="PayChanges" active="hr-changes" page="Increments & promotions" title="Increments & promotions" icon="trending-up" css={FORM_CSS + LETTER_CSS + CSS}
+      about="Raises, promotions, confirmations and transfers — with who is due a review, planned changes and a letter for each. Positions and salary bands are in Positions & grades."
+      secondary={[{ label: 'Yearly increment', onClick: openBulk }]}
+      more={[{ label: 'Positions & grades', href: '/positions' }]}
+      primary={{ label: 'New change', onClick: () => setAdd('increment') }}>
+      <MetricStrip label={`Pay changes in ${year}`} items={[
+        { label: `Increments in ${year}`, value: String(incs.length), sub: `average +${avg}%` },
+        { label: `Promotions in ${year}`, value: String(thisYear.filter((c) => c.kind === 'promotion').length), sub: `${thisYear.filter((c) => c.kind === 'transfer').length} transfers` },
+        { label: 'Added to monthly pay', value: money(added), sub: `${money(added * 12)} a year` },
+        { label: 'Planned', value: String(planned.length), sub: plannedCost ? `+${money(plannedCost)} a month` : 'none waiting' },
+      ]} />
 
       {due.length || probation.length ? (
-        <section className="gc-card hr-card">
-          <div className="hr-head"><div><h2>Due for a review</h2><p>No raise in 12 months or more, or probation to confirm.</p></div></div>
-          <div className="gc-table-wrap">
-            <table className="gc-table gc-table--compact">
-              <thead><tr><th scope="col">Staff</th><th scope="col">Position</th><th scope="col" className="hr-num">Gross</th><th scope="col">In the band</th><th scope="col">Last raise</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
+        <section className="ix-card" aria-labelledby="pc-due">
+          <header className="ix-card__head"><h2 id="pc-due">Due for a review <InfoTip text="No raise in 12 months or more, or probation to confirm." /></h2></header>
+          <div className="ix-table-wrap ix-table-wrap--show" style={{ marginTop: 'var(--space-2)' }}>
+            <table className="ix-table gc-table--keep ix-table--static">
+              <caption className="sr-only">Due for a review</caption>
+              <thead><tr><th scope="col">Staff</th><th scope="col">Position</th><th scope="col" className="ix-num">Gross</th><th scope="col">In the band</th><th scope="col">Last raise</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
               <tbody>
                 {probation.map((s) => (
                   <tr key={'p' + s.code}>
-                    <td><Person st={s} sub={`${s.code} · ${s.branch}`} /></td>
+                    <td><Person st={s} /></td>
                     <td>{s.designation}<span className="hr-sub">Probation{s.probationEnd ? ` to ${formatDate(fromKey(s.probationEnd))}` : ''}</span></td>
-                    <td className="hr-num hr-fig">{money(s.gross)}</td>
+                    <td className="ix-num hr-fig">{money(s.gross)}</td>
                     <td><Band S={S} s={s} /></td>
-                    <td className={s.probationEnd && s.probationEnd < today ? 'hr-warn' : ''}>{s.probationEnd && s.probationEnd < today ? 'Probation ended' : 'On probation'}</td>
-                    <td><div className="hr-actions"><button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => setAdd({ code: s.code, kind: 'confirmation' })}>Confirm</button></div></td>
+                    <td className={s.probationEnd && s.probationEnd < today ? 'hr-warn' : 'ix-muted'}>{s.probationEnd && s.probationEnd < today ? 'Probation ended' : 'On probation'}</td>
+                    <td className="hr-tdbtn"><button type="button" className="ix-btn ix-btn--sm" onClick={() => setAdd({ code: s.code, kind: 'confirmation' })}>Confirm</button></td>
                   </tr>
                 ))}
                 {due.map(({ s, r }) => (
                   <tr key={s.code}>
-                    <td><Person st={s} sub={`${s.code} · ${s.branch}`} /></td>
+                    <td><Person st={s} /></td>
                     <td>{s.designation}<span className="hr-sub">{s.department}</span></td>
-                    <td className="hr-num hr-fig">{money(s.gross)}</td>
+                    <td className="ix-num hr-fig">{money(s.gross)}</td>
                     <td><Band S={S} s={s} /></td>
                     <td className="hr-warn">{r.change ? `${monthLabel(r.month, true)} · ${r.months} months ago` : `Never · joined ${r.months} months ago`}</td>
-                    <td><div className="hr-actions"><button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setAdd({ code: s.code, kind: 'promotion' })}>Promote</button><button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={() => setAdd({ code: s.code, kind: 'increment' })}>Increment</button></div></td>
+                    <td className="hr-tdbtn"><button type="button" className="ix-btn ix-btn--sm" onClick={() => setAdd({ code: s.code, kind: 'increment' })}>Increment</button></td>
                   </tr>
                 ))}
               </tbody>
@@ -112,51 +116,66 @@ export default function PayChanges() {
         </section>
       ) : null}
 
-      <section className="gc-card hr-card">
-        <div className="hr-bar">
-          <div className="gc-seg" role="group" aria-label="Kind">
-            {FILTERS.map(([k, l]) => <button key={k} type="button" className={'gc-seg__btn' + (f === k ? ' gc-seg__btn--active' : '')} aria-pressed={f === k} onClick={() => setF(k)}>{l}</button>)}
-          </div>
-          <select className="gc-input gc-select" style={{ width: 'auto' }} aria-label="Year" value={yr} onChange={(e) => setYr(e.target.value)}><option value="">All years</option>{years.map((y) => <option key={y}>{y}</option>)}</select>
+      <section className="ix-card" aria-label="Pay changes">
+        <div className="ix-bar">
+          <IndexTabs tabs={tabs} label="Kind of change" />
+          <span className="ix-tools">
+            <select className={'ix-filter' + (yr ? ' is-set' : '')} aria-label="Year" value={yr} onChange={(e) => setYr(e.target.value)}><option value="">All years</option>{years.map((y) => <option key={y}>{y}</option>)}</select>
+          </span>
         </div>
         {list.length ? (
-          <div className="gc-table-wrap">
-            <table className="gc-table gc-table--compact gc-table--hoverable">
-              <thead><tr><th scope="col">Staff</th><th scope="col">Change</th><th scope="col">From</th><th scope="col">Before → after</th><th scope="col" className="hr-num">Raise</th><th scope="col">Reason</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
-              <tbody>
-                {list.map((c) => {
-                  const st = staffBy(S, c.code);
-                  const [label, icon, tone] = CHANGE_KINDS[c.kind] || CHANGE_KINDS.increment;
-                  const [bg, fg] = tileTone(tone);
-                  const p = changePct(c);
-                  return (
-                    <tr key={c.id}>
-                      <td>{st ? <Person st={st} sub={c.id} /> : c.code}</td>
-                      <td><span className="pc-chip"><span className="rp-tile" style={{ background: bg, color: fg }}><Icon name={icon} width="14" height="14" aria-hidden="true" /></span>{label}</span>{c.status === 'planned' ? <span className="gc-badge gc-badge--warning" style={{ marginLeft: 6 }}>Planned</span> : null}</td>
-                      <td>{monthLabel(c.effective, true)}</td>
-                      <td>
-                        {c.to.designation ? <span className="hr-strong">{c.from.designation} → {c.to.designation}</span> : null}
-                        {c.to.branch ? <span className="hr-strong">{c.from.branch} → {c.to.branch}</span> : null}
-                        {c.to.type ? <span className="hr-strong">Probation → {c.to.type}</span> : null}
-                        {c.to.gross != null ? <span className={c.to.designation || c.to.branch || c.to.type ? 'hr-sub hr-fig' : 'hr-strong hr-fig'}>{money(c.from.gross)} → {money(c.to.gross)}</span> : null}
-                      </td>
-                      <td className={'hr-num hr-fig' + (p > 0 ? ' hr-in' : p < 0 ? ' hr-out' : '')}>{p != null ? `${p > 0 ? '+' : ''}${p}%` : '—'}</td>
-                      <td style={{ minWidth: 200, maxWidth: 300, whiteSpace: 'normal' }}><span className="hr-sub">{c.reason || '—'}</span></td>
-                      <td><div className="hr-actions">
-                        <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setLetter(c)}><Icon name="file-text" width="14" height="14" aria-hidden="true" /> Letter</button>
-                        {c.status === 'planned' ? <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={async () => { if (await confirmDialog({ title: 'Cancel this planned change?', body: `${label} for ${st ? st.name : c.code} from ${monthLabel(c.effective)} will not happen.`, confirmLabel: 'Cancel it', tone: 'danger' })) { cancelChange(c.id); toast('Planned change cancelled.'); } }}>Cancel</button> : null}
-                      </div></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : <EmptyState icon="trending-up" title="Nothing here" body="Try another filter or year." />}
+          <>
+            <ul className="ix-plist" aria-label="Pay changes">
+              {list.map((c) => {
+                const st = staffBy(S, c.code);
+                const [label] = CHANGE_KINDS[c.kind] || CHANGE_KINDS.increment;
+                const p = changePct(c);
+                return (
+                  <li key={c.id}>
+                    <button type="button" className="ix-pitem" onClick={() => setLetter(c)}>
+                      <span className="ix-pitem__top"><b>{st ? st.name : c.code}</b><span className={p > 0 ? 'hr-in' : p < 0 ? 'hr-out' : ''}>{p != null ? `${p > 0 ? '+' : ''}${p}%` : ''}</span></span>
+                      <span className="ix-pitem__mid">{label} · {monthLabel(c.effective, true)}{c.to.gross != null ? ` · ${money(c.from.gross)} → ${money(c.to.gross)}` : ''}</span>
+                      {c.status === 'planned' ? <span className="ix-pitem__tags"><StatusBadge tone="warning">Planned</StatusBadge></span> : null}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="ix-table-wrap">
+              <table className="ix-table gc-table--keep">
+                <caption className="sr-only">Pay changes. Click a row for its letter.</caption>
+                <thead><tr><th scope="col">Staff</th><th scope="col">Change</th><th scope="col">From</th><th scope="col">Before → after</th><th scope="col" className="ix-num">Raise</th></tr></thead>
+                <tbody>
+                  {list.map((c) => {
+                    const st = staffBy(S, c.code);
+                    const [label] = CHANGE_KINDS[c.kind] || CHANGE_KINDS.increment;
+                    const p = changePct(c);
+                    return (
+                      <tr key={c.id} onClick={rowGo(() => setLetter(c))}>
+                        <td>{st ? <Person st={st} /> : c.code}</td>
+                        <td>{label}{c.status === 'planned' ? <span style={{ marginLeft: 6 }}><StatusBadge tone="warning">Planned</StatusBadge></span> : null}</td>
+                        <td className="ix-muted">{monthLabel(c.effective, true)}</td>
+                        <td>
+                          {c.to.designation ? <span className="hr-strong">{c.from.designation} → {c.to.designation}</span> : null}
+                          {c.to.branch ? <span className="hr-strong">{c.from.branch} → {c.to.branch}</span> : null}
+                          {c.to.type ? <span className="hr-strong">Probation → {c.to.type}</span> : null}
+                          {c.to.gross != null ? <span className={c.to.designation || c.to.branch || c.to.type ? 'hr-sub hr-fig' : 'hr-fig'}>{money(c.from.gross)} → {money(c.to.gross)}</span> : null}
+                        </td>
+                        <td className={'ix-num hr-fig' + (p > 0 ? ' hr-in' : p < 0 ? ' hr-out' : '')}>{p != null ? `${p > 0 ? '+' : ''}${p}%` : '—'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="ix-foot"><span>{list.length === 1 ? '1 change' : `${list.length} changes`}</span></div>
+          </>
+        ) : <div className="ix-empty"><EmptyState icon="trending-up" title="Nothing here" actionLabel={yr ? 'Clear filters' : undefined} onAction={yr ? () => setYr('') : undefined} /></div>}
       </section>
+      <LearnMore topic="increments and promotions" />
 
       {add ? <ChangeDialog S={S} code={typeof add === 'object' ? add.code : ''} kind={typeof add === 'object' ? add.kind : add} onClose={() => setAdd(null)} /> : null}
-      <LetterDialog S={S} change={letter} onClose={() => setLetter(null)} />
+      <LetterDialog S={S} change={letter} onClose={() => setLetter(null)} onCancel={cancelPlanned} />
       <Dialog open={!!bulk} title="Yearly increment" onClose={() => setBulk(null)} width={720}
         footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setBulk(null)}>Cancel</button><button type="submit" form="pc-bulk" className="gc-btn gc-btn--solid">{bulk && bulk.effective > monthOf(today) ? 'Plan' : 'Apply'} {bulk ? bulk.codes.length : 0} increment{bulk && bulk.codes.length === 1 ? '' : 's'}</button></>}>
         {bulk ? (
@@ -191,7 +210,6 @@ export default function PayChanges() {
           </form>
         ) : null}
       </Dialog>
-      <p className="hr-sub" style={{ margin: 0 }}>Positions and salary bands are in <Link href="/positions" className="hr-link">Staff › Positions & grades</Link>.</p>
     </HrPage>
   );
 }

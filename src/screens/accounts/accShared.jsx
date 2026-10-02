@@ -2,12 +2,15 @@
 // accShared — pieces the Accounts pages share: the page frame, a hook that re-reads the books when
 // money moves, money and date words, and the payout dialogs (reconcile a payout, withdraw from a
 // partner wallet). The evening payout check (components/EveningCheck.jsx) uses the same dialogs.
+// The frame (AccPage) is the Shopify-style page of docs/shopify-style.md: one ix-page with a ShopHeader
+// (or a RecordHeader when the page has a `back` link), then the page's own cards.
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { Dialog, PageHeader } from '@/components/ui';
+import { Dialog } from '@/components/ui';
+import { ShopHeader, RecordHeader } from '@/components/ui/IndexKit';
 import { BrandLogo } from '@/components/BrandLogo';
 import { formatBDT, formatDate } from '@/lib/format';
 import { OWN_ACCOUNTS, accountBy, balanceOf, getEntries } from '@/lib/ledger';
@@ -60,13 +63,14 @@ export function useBooks() {
 }
 
 // ---- page frame ---------------------------------------------------------------------------------
+// ACC_CSS is shared with Loyalty, GatewaySetup and the evening check: keep its class names.
 export const ACC_CSS = `
 .ac-card{overflow:hidden}
 .ac-card .gc-table th,.ac-card .gc-table td{padding-left:var(--space-3);padding-right:var(--space-3)}
-.ac-card .gc-table th:first-child,.ac-card .gc-table td:first-child{padding-left:var(--space-5)}
-.ac-card .gc-table th:last-child,.ac-card .gc-table td:last-child{padding-right:var(--space-5)}
-.ac-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-4) var(--space-5)}
-.ac-head h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.ac-card .gc-table th:first-child,.ac-card .gc-table td:first-child{padding-left:var(--space-4)}
+.ac-card .gc-table th:last-child,.ac-card .gc-table td:last-child{padding-right:var(--space-4)}
+.ac-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-4)}
+.ac-head h2{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .ac-head p{margin:2px 0 0;font-size:var(--text-xs);color:var(--text-muted)}
 .ac-num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .ac-fig{font-family:var(--font-data);font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -108,26 +112,79 @@ export const ACC_CSS = `
 .ac-scroll{max-height:220px;overflow:auto}
 .ac-seg{display:inline-flex;padding:3px;gap:2px;border-radius:var(--radius-full);background:var(--surface-subtle);border:1px solid var(--border-subtle)}
 @media (max-width:640px){.ac-seg{max-width:100%;flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none}.ac-seg::-webkit-scrollbar{display:none}.ac-seg>*{flex:none}}
-.ac-seg button{height:34px;padding:0 var(--space-4);border:0;border-radius:var(--radius-full);background:none;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer}
+.ac-seg button{height:30px;padding:0 var(--space-3);border:0;border-radius:var(--radius-full);background:none;font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body);cursor:pointer}
 .ac-seg button[aria-pressed="true"]{background:var(--surface-card);color:var(--text-heading);box-shadow:0 1px 2px rgba(15,23,42,.08)}
 .ac-logo-line{display:flex;align-items:center;gap:var(--space-3)}
 .ac-logo-line b{display:block;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .ac-logo-line small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
-@media (max-width:640px){.ac-two{grid-template-columns:1fr}.ac-sum{grid-template-columns:1fr 1fr}}
+@media (max-width:640px){.ac-two{grid-template-columns:1fr}.ac-sum{grid-template-columns:1fr 1fr}.ac-seg button{height:36px}}
 `;
 
-/** The shell around an Accounts page: menu, top bar and page header. */
-export function AccPage({ screen, active, page, title, description, about, actions, children, css = '' }) {
+// Kit extras the Accounts pages share (asked for in the kit; kept here until then): group rows and a details
+// row in an ix-table, a section inside a card, phone-list group headings, the period row of the report pages,
+// to-do pills, and figures that keep their width (the strip scrolls instead of the text running over).
+const PAGE_CSS = `
+.ac-page .ix-metric__text{min-width:auto}
+.ix-table tbody tr.ac-grp{cursor:default}
+.ix-table tbody tr.ac-grp>*{height:32px;background:var(--surface-subtle);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-heading);text-align:left}
+.ix-table tbody tr.ac-grp:hover>*{background:var(--surface-subtle)}
+.ix-table tbody tr.ac-grp .ix-num{text-align:right}
+.ix-table tbody tr.ac-grp small{margin-left:6px;font-weight:var(--weight-regular);color:var(--text-muted)}
+.ix-table tbody tr.ac-detail{cursor:default}
+.ix-table tbody tr.ac-detail>td{padding:var(--space-3) var(--space-4) var(--space-4);background:var(--surface-subtle);white-space:normal}
+.ix-table tbody tr.ac-detail:hover>td{background:var(--surface-subtle)}
+.ix-table td.ac-act{width:1%;text-align:right}
+.ac-trunc{display:block;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ac-logo{display:inline-flex;align-items:center;gap:var(--space-2);min-width:0;white-space:nowrap}
+.ac-sec{border-top:1px solid var(--border-subtle)}
+.ac-sec>.ix-card__head{padding-bottom:var(--space-3)}
+.ac-plh{padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--border-subtle);background:var(--surface-subtle);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.ac-plh small{margin-left:6px;font-weight:var(--weight-regular);color:var(--text-muted)}
+.ac-pdetail{display:flex;flex-direction:column;gap:var(--space-3);padding:0 var(--space-3) var(--space-3);border-bottom:1px solid var(--border-subtle)}
+.ac-period{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
+.ac-period__text{font-size:var(--text-xs);color:var(--text-muted)}
+.ac-period__text b{font-weight:var(--weight-medium);color:var(--text-heading)}
+.ac-todo{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.ac-todo>a,.ac-todo>button{display:inline-flex;align-items:center;gap:var(--space-2);height:32px;padding:0 5px 0 12px;border:1px solid var(--border-subtle);border-radius:var(--radius-full);background:var(--surface-card);box-shadow:var(--shadow-xs);font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);text-decoration:none;white-space:nowrap;cursor:pointer;transition:var(--transition-colors)}
+.ac-todo>a:hover,.ac-todo>button:hover{border-color:var(--primary);color:var(--primary)}
+.ac-todo b{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:var(--radius-full);background:var(--surface-subtle);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.ac-todo .is-late b{background:var(--fill-error-soft);color:var(--text-danger)}
+.ac-done{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-success)}
+.ac-wait{margin:0;padding:var(--space-8) var(--space-4);text-align:center;font-size:var(--text-xs);color:var(--text-muted)}
+@media (max-width:640px){.ac-trunc{max-width:180px}}
+@media print{gc-sidebar,gc-topbar,.ac-noprint,.ix-head__actions{display:none!important}}
+`;
+
+/** The shell around an Accounts page: menu, top bar and the title row (docs/shopify-style.md).
+ *  A list or overview page passes `icon`, `secondary`, `more` and `primary` ({ label, href | onClick, icon });
+ *  a form or record page passes `back` too (and may pass `badges` / `meta`). `about` (or the older
+ *  `description`) is read by Help; `actions` (JSX buttons) still works for a page not yet moved over;
+ *  `placeholder` is the top bar's search hint. */
+export function AccPage({ screen, active, page, title, description, about, actions, children, css = '', icon, secondary, more, primary, back, backLabel, badges, meta, narrow, placeholder }) {
+  const help = about || description;
+  let head;
+  if (back) head = <RecordHeader back={back} backLabel={backLabel} title={title} badges={badges} meta={meta} about={help} secondary={secondary} more={more} primary={primary} />;
+  else if (actions) {
+    head = (
+      <header className="ix-head">
+        <h1 className="ix-head__title">{icon ? <Icon name={icon} width="18" height="18" aria-hidden="true" /> : null}<span>{title}</span></h1>
+        {help ? <span className="gc-pagehead__about" hidden>{help}</span> : null}
+        <div className="ix-head__actions">{actions}</div>
+      </header>
+    );
+  } else head = <ShopHeader icon={icon} title={title} about={help} secondary={secondary} more={more} primary={primary} />;
   return (
     <div className="dc-screen ds" data-screen={screen}>
-      <style dangerouslySetInnerHTML={{ __html: ACC_CSS + css }} />
+      <style dangerouslySetInnerHTML={{ __html: ACC_CSS + PAGE_CSS + css }} />
       <div className="gc-shell">
         <Sidebar sticky="" active={active} />
-        <main className="gc-shell__main" style={{ background: 'var(--surface-page)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xl)' }}>
-          <Topbar crumb="Accounts" page={page} />
-          <div className="gc-shell__content" style={{ flexGrow: 1, padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-            <PageHeader title={title} description={description} about={about} actions={actions} />
-            {children}
+        <main className="gc-shell__main">
+          <Topbar crumb="Accounts" page={page} placeholder={placeholder} />
+          <div className="gc-shell__content">
+            <div className={'ix-page ac-page' + (narrow ? ' ix-page--narrow' : '')}>
+              {head}
+              {children}
+            </div>
           </div>
         </main>
       </div>

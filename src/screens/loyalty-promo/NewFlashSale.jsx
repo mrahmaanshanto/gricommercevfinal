@@ -1,19 +1,21 @@
 'use client';
 // Generated from design/templates/loyalty-promo/NewFlashSale.dc.html by scripts/convert-design.mjs.
-// NewFlashSale — Loyalty, rewards & promo — New flash sale.
+// NewFlashSale — start a flash sale (docs/shopify-style.md, form page): RecordHeader with Save, the fields in short
+// cards (name, when, products and prices with the product finder folded, limits) and the poster preview on the side.
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
-import __Link from 'next/link';
-import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
-import { Sidebar as __Sidebar, Topbar as __Topbar, PosSwitcher as __PosSwitcher, SettingsSwitcher as __SettingsSwitcher, PosFit as __PosFit } from '@/shell/Shell';
-import { PageHeader as __PageHeader } from '@/components/ui';
-import { toast as __toast, confirmDialog as __confirm } from '@/runtime/ui';
+import { DCLogic, Icon as __Icon } from '@/runtime/dc';
+import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
+import { InfoTip } from '@/components/ui';
+import { RecordHeader } from '@/components/ui/IndexKit';
+import { toast as __toast } from '@/runtime/ui';
 import { clockNow } from '@/lib/settlements';
+import { FORM_CSS, Steps, Switch } from './loyShared';
 
 // ---- form helpers: required marker, field error text, invalid attributes, focus the first error ----
 function __Req() { return <span aria-hidden="true" style={{ color: 'var(--text-danger)' }}> *</span>; }
-function __Err({ id, msg }) { return msg ? <span id={id} style={{ display: 'block', fontSize: 'var(--text-xs)', lineHeight: '16px', color: 'var(--text-danger)' }}>{msg}</span> : null; }
+function __Err({ id, msg }) { return msg ? <span id={id} className="ly-err">{msg}</span> : null; }
 function __inv(err, id) { return err ? { 'aria-invalid': 'true', 'aria-describedby': id } : {}; }
 function __focusSoon(id) { setTimeout(function () { var el = document.getElementById(id); if (el) el.focus(); }, 0); }
 function __without(o, k) { var r = {}; for (var x in (o || {})) if (x !== k) r[x] = o[x]; return r; }
@@ -22,11 +24,8 @@ function __without(o, k) { var r = {}; for (var x in (o || {})) if (x !== k) r[x
 
 function bdt(n) { var neg = n < 0; var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return (neg ? '−' : '') + '৳' + s; }
 var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
-function mkTabs(self, list, cur, key, counts) { return list.map(function (x) { var on = x.k === cur; var c = counts ? counts[x.k] : null; return { label: x.label, on: on, cls: on ? 'tab on' : 'tab', hasCount: c != null, count: c, countBg: on ? 'rgba(255,255,255,0.2)' : '#e9eef5', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
 function mkChips(self, list, cur, key) { return list.map(function (x) { var on = x.k === cur; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var p = {}; p[key] = x.k; self.setState(p); } }; }); }
 function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
-function stepN(self, key, def, step, min, max) { var s = self.state || {}; var v = s[key] == null ? def : s[key]; return { v: v, dec: function () { var p = {}; p[key] = Math.max(min, +(v - step).toFixed(2)); self.setState(p); }, inc: function () { var p = {}; p[key] = Math.min(max, +(v + step).toFixed(2)); self.setState(p); } }; }
 var P = [
   { id: 1, name: 'Denim Jeans · Blue · 32', code: '8941200200214', mrp: 1890, cost: 1150, price: 1290, qty: 40 },
   { id: 2, name: 'Men’s Polo Shirt · Navy · M', code: '8941200100118', mrp: 1450, cost: 780, price: 990, qty: 60 },
@@ -54,31 +53,31 @@ function timesAt(now) {
 var LEADS = [{ k: 'at', label: 'At the start', ms: 0 }, { k: 'h6', label: '6 hours before', ms: 6 * 3600000 }, { k: 'd1', label: '1 day before', ms: 86400000 }, { k: 'd3', label: '3 days before', ms: 3 * 86400000 }];
 // catalogue the finder searches · exp = days to expiry, noSale = days since last sale, sold30 = pieces in 30 days, age = days since it arrived, other = in another running sale
 var CAT = [
-  { id: 101, name: 'Vitamin C Serum 30ml', code: '8941100500419', cat: 'Skin care', brand: 'Kioraa', mrp: 1650, cost: 820, stock: 34, exp: 21, sold30: 9, noSale: 6, age: 210, bg: '#fff4e0' },
-  { id: 102, name: 'Snail Repair Cream 50ml', code: '8941100500426', cat: 'Skin care', brand: 'Kioraa', mrp: 2450, cost: 1300, stock: 18, exp: 38, sold30: 4, noSale: 11, age: 260, bg: '#fde7ef' },
-  { id: 103, name: 'Aloe Soothing Gel 300ml', code: '8941100500433', cat: 'Skin care', brand: 'Kioraa', mrp: 690, cost: 310, stock: 120, exp: 54, sold30: 22, noSale: 1, age: 300, bg: '#e7f8f1' },
-  { id: 104, name: 'Mango Juice 1L · 12 pack', code: '8941300100127', cat: 'Grocery', brand: 'Deshi Fresh', mrp: 1440, cost: 1050, stock: 46, exp: 12, sold30: 30, noSale: 2, age: 40, bg: '#fff4e0' },
-  { id: 105, name: 'Basmati Rice 5kg', code: '8941300100134', cat: 'Grocery', brand: 'Deshi Fresh', mrp: 1180, cost: 930, stock: 210, exp: 160, sold30: 64, noSale: 1, age: 90, bg: '#eef2f6' },
-  { id: 106, name: 'Greek Yogurt 500g', code: '8941300100141', cat: 'Grocery', brand: 'Deshi Fresh', mrp: 320, cost: 210, stock: 58, exp: 6, sold30: 41, noSale: 1, age: 5, bg: '#e0f3fb' },
-  { id: 107, name: 'Leather Jacket · Black · L', code: '8941200200412', cat: 'Clothing', brand: 'Aarong Basics', mrp: 7800, cost: 4300, stock: 9, exp: null, sold30: 1, noSale: 48, age: 320, bg: '#eef2f6' },
-  { id: 108, name: 'Silk Saree · Maroon', code: '8941200200429', cat: 'Clothing', brand: 'Aarong Basics', mrp: 5400, cost: 2600, stock: 14, exp: null, sold30: 3, noSale: 19, age: 150, bg: '#fde7ef' },
-  { id: 109, name: 'Winter Hoodie · Grey · M', code: '8941200200436', cat: 'Clothing', brand: 'Aarong Basics', mrp: 1950, cost: 900, stock: 140, exp: null, sold30: 5, noSale: 63, age: 280, bg: '#eef2f6' },
-  { id: 110, name: 'Kids Raincoat · Yellow', code: '8941200200443', cat: 'Clothing', brand: 'Aarong Basics', mrp: 890, cost: 380, stock: 95, exp: null, sold30: 2, noSale: 71, age: 400, bg: '#fff4e0' },
-  { id: 111, name: 'Bluetooth Earbuds Pro', code: '8941400100118', cat: 'Electronics', brand: 'SoundBD', mrp: 3490, cost: 2100, stock: 26, exp: null, sold30: 18, noSale: 1, age: 14, bg: '#e0f3fb' },
-  { id: 112, name: 'Smart Watch S2', code: '8941400100125', cat: 'Electronics', brand: 'SoundBD', mrp: 6200, cost: 4100, stock: 12, exp: null, sold30: 6, noSale: 4, age: 22, bg: '#eef2f6' },
-  { id: 113, name: 'Power Bank 20000mAh', code: '8941400100132', cat: 'Electronics', brand: 'SoundBD', mrp: 2250, cost: 1380, stock: 80, exp: null, sold30: 55, noSale: 1, age: 180, bg: '#e7f8f1' },
-  { id: 114, name: 'Linen Kurta · White · L', code: '8941200200450', cat: 'Clothing', brand: 'Aarong Basics', mrp: 2100, cost: 820, stock: 60, exp: null, sold30: 38, noSale: 1, age: 8, bg: '#f2f6ff' },
-  { id: 115, name: 'Cotton T-shirt · Black · M', code: '8941200300311', cat: 'Clothing', brand: 'Aarong Basics', mrp: 590, cost: 290, stock: 80, exp: null, sold30: 120, noSale: 1, age: 200, bg: '#eef2f6', other: 'Weekend Mega Sale' }
+  { id: 101, name: 'Vitamin C Serum 30ml', code: '8941100500419', cat: 'Skin care', brand: 'Kioraa', mrp: 1650, cost: 820, stock: 34, exp: 21, sold30: 9, noSale: 6, age: 210 },
+  { id: 102, name: 'Snail Repair Cream 50ml', code: '8941100500426', cat: 'Skin care', brand: 'Kioraa', mrp: 2450, cost: 1300, stock: 18, exp: 38, sold30: 4, noSale: 11, age: 260 },
+  { id: 103, name: 'Aloe Soothing Gel 300ml', code: '8941100500433', cat: 'Skin care', brand: 'Kioraa', mrp: 690, cost: 310, stock: 120, exp: 54, sold30: 22, noSale: 1, age: 300 },
+  { id: 104, name: 'Mango Juice 1L · 12 pack', code: '8941300100127', cat: 'Grocery', brand: 'Deshi Fresh', mrp: 1440, cost: 1050, stock: 46, exp: 12, sold30: 30, noSale: 2, age: 40 },
+  { id: 105, name: 'Basmati Rice 5kg', code: '8941300100134', cat: 'Grocery', brand: 'Deshi Fresh', mrp: 1180, cost: 930, stock: 210, exp: 160, sold30: 64, noSale: 1, age: 90 },
+  { id: 106, name: 'Greek Yogurt 500g', code: '8941300100141', cat: 'Grocery', brand: 'Deshi Fresh', mrp: 320, cost: 210, stock: 58, exp: 6, sold30: 41, noSale: 1, age: 5 },
+  { id: 107, name: 'Leather Jacket · Black · L', code: '8941200200412', cat: 'Clothing', brand: 'Aarong Basics', mrp: 7800, cost: 4300, stock: 9, exp: null, sold30: 1, noSale: 48, age: 320 },
+  { id: 108, name: 'Silk Saree · Maroon', code: '8941200200429', cat: 'Clothing', brand: 'Aarong Basics', mrp: 5400, cost: 2600, stock: 14, exp: null, sold30: 3, noSale: 19, age: 150 },
+  { id: 109, name: 'Winter Hoodie · Grey · M', code: '8941200200436', cat: 'Clothing', brand: 'Aarong Basics', mrp: 1950, cost: 900, stock: 140, exp: null, sold30: 5, noSale: 63, age: 280 },
+  { id: 110, name: 'Kids Raincoat · Yellow', code: '8941200200443', cat: 'Clothing', brand: 'Aarong Basics', mrp: 890, cost: 380, stock: 95, exp: null, sold30: 2, noSale: 71, age: 400 },
+  { id: 111, name: 'Bluetooth Earbuds Pro', code: '8941400100118', cat: 'Electronics', brand: 'SoundBD', mrp: 3490, cost: 2100, stock: 26, exp: null, sold30: 18, noSale: 1, age: 14 },
+  { id: 112, name: 'Smart Watch S2', code: '8941400100125', cat: 'Electronics', brand: 'SoundBD', mrp: 6200, cost: 4100, stock: 12, exp: null, sold30: 6, noSale: 4, age: 22 },
+  { id: 113, name: 'Power Bank 20000mAh', code: '8941400100132', cat: 'Electronics', brand: 'SoundBD', mrp: 2250, cost: 1380, stock: 80, exp: null, sold30: 55, noSale: 1, age: 180 },
+  { id: 114, name: 'Linen Kurta · White · L', code: '8941200200450', cat: 'Clothing', brand: 'Aarong Basics', mrp: 2100, cost: 820, stock: 60, exp: null, sold30: 38, noSale: 1, age: 8 },
+  { id: 115, name: 'Cotton T-shirt · Black · M', code: '8941200300311', cat: 'Clothing', brand: 'Aarong Basics', mrp: 590, cost: 290, stock: 80, exp: null, sold30: 120, noSale: 1, age: 200, other: 'Weekend Mega Sale' }
 ];
 var CRITS = [
-  { k: 'expiring', label: 'Expiring soon', dot: '#ff5724', note: 'Within 60 days', test: function (p) { return p.exp != null && p.exp <= 60; }, sort: function (a, b) { return a.exp - b.exp; } },
-  { k: 'value', label: 'High value', dot: '#003087', note: '৳2,500 and up', test: function (p) { return p.mrp >= 2500; }, sort: function (a, b) { return b.mrp * b.stock - a.mrp * a.stock; } },
-  { k: 'slow', label: 'Slow moving', dot: '#ff9800', note: 'No sale 45+ days', test: function (p) { return p.noSale >= 45; }, sort: function (a, b) { return b.noSale - a.noSale; } },
-  { k: 'over', label: 'Overstock', dot: '#a855f7', note: '90+ days of stock', test: function (p) { return cover(p) >= 90; }, sort: function (a, b) { return cover(b) - cover(a); } },
-  { k: 'best', label: 'Best sellers', dot: '#10b981', note: 'Pull people in', test: function (p) { return p.sold30 >= 30; }, sort: function (a, b) { return b.sold30 - a.sold30; } },
-  { k: 'margin', label: 'Big margin', dot: '#009cde', note: '45%+ margin', test: function (p) { return marginOf(p) >= 45; }, sort: function (a, b) { return marginOf(b) - marginOf(a); } },
-  { k: 'new', label: 'New arrivals', dot: '#0070a0', note: 'Last 30 days', test: function (p) { return p.age <= 30; }, sort: function (a, b) { return a.age - b.age; } },
-  { k: 'all', label: 'All products', dot: '#94a3b8', note: 'Everything', test: function () { return true; }, sort: function (a, b) { return a.name < b.name ? -1 : 1; } }
+  { k: 'expiring', label: 'Expiring soon', note: 'Within 60 days', test: function (p) { return p.exp != null && p.exp <= 60; }, sort: function (a, b) { return a.exp - b.exp; } },
+  { k: 'value', label: 'High value', note: '৳2,500 and up', test: function (p) { return p.mrp >= 2500; }, sort: function (a, b) { return b.mrp * b.stock - a.mrp * a.stock; } },
+  { k: 'slow', label: 'Slow moving', note: 'No sale 45+ days', test: function (p) { return p.noSale >= 45; }, sort: function (a, b) { return b.noSale - a.noSale; } },
+  { k: 'over', label: 'Overstock', note: '90+ days of stock', test: function (p) { return cover(p) >= 90; }, sort: function (a, b) { return cover(b) - cover(a); } },
+  { k: 'best', label: 'Best sellers', note: 'Pull people in', test: function (p) { return p.sold30 >= 30; }, sort: function (a, b) { return b.sold30 - a.sold30; } },
+  { k: 'margin', label: 'Big margin', note: '45%+ margin', test: function (p) { return marginOf(p) >= 45; }, sort: function (a, b) { return marginOf(b) - marginOf(a); } },
+  { k: 'new', label: 'New arrivals', note: 'Last 30 days', test: function (p) { return p.age <= 30; }, sort: function (a, b) { return a.age - b.age; } },
+  { k: 'all', label: 'All products', note: 'Everything', test: function () { return true; }, sort: function (a, b) { return a.name < b.name ? -1 : 1; } }
 ];
 function cover(p) { return p.sold30 ? Math.round(p.stock / (p.sold30 / 30)) : 999; }
 function marginOf(p) { return Math.round((p.mrp - p.cost) / p.mrp * 100); }
@@ -90,14 +89,14 @@ function suggestPct(p, k) {
 function whyOf(p, k, now0) {
   var ed = new Date((now0 || NOW0) + 6 * 3600000 + (p.exp || 0) * 86400000);
   var map = {
-    expiring: [p.exp != null ? 'Expires in ' + p.exp + ' days' : 'No expiry', p.exp != null ? 'Best before ' + ed.getUTCDate() + ' ' + MONTHS[ed.getUTCMonth()] + ' ' + ed.getUTCFullYear() : '', p.exp != null && p.exp <= 14 ? ['#ffece6', '#b83210'] : ['#fff4e0', '#a14f06']],
-    value: ['৳' + p.mrp.toLocaleString('en-IN') + ' each', 'Stock worth ' + bdt(p.mrp * p.stock), ['rgba(0,48,135,.08)', '#003087']],
-    slow: ['No sale in ' + p.noSale + ' days', p.sold30 + ' sold in 30 days', ['#fff4e0', '#a14f06']],
-    over: [cover(p) >= 999 ? 'Not selling' : 'Stock for ' + cover(p) + ' days', p.stock + ' in stock · ' + p.sold30 + ' sold a month', ['#f3e8ff', '#7e22ce']],
-    best: ['Sold ' + p.sold30 + ' in 30 days', 'Pulls customers to the sale', ['#e7f8f1', '#047857']],
-    margin: ['Margin ' + marginOf(p) + '%', 'Room to cut the price', ['#e0f3fb', '#00567a']],
-    'new': ['Arrived ' + p.age + ' days ago', 'Launch price for new stock', ['#e0f3fb', '#00567a']],
-    all: [p.cat, p.brand, ['#eef2f6', '#475569']]
+    expiring: [p.exp != null ? 'Expires in ' + p.exp + ' days' : 'No expiry', p.exp != null ? 'Best before ' + ed.getUTCDate() + ' ' + MONTHS[ed.getUTCMonth()] + ' ' + ed.getUTCFullYear() : '', p.exp != null && p.exp <= 14 ? ['var(--fill-error-soft)', 'var(--text-danger)'] : ['var(--fill-warning-soft)', 'var(--text-warning)']],
+    value: ['৳' + p.mrp.toLocaleString('en-IN') + ' each', 'Stock worth ' + bdt(p.mrp * p.stock), ['var(--fill-primary-soft)', 'var(--primary)']],
+    slow: ['No sale in ' + p.noSale + ' days', p.sold30 + ' sold in 30 days', ['var(--fill-warning-soft)', 'var(--text-warning)']],
+    over: [cover(p) >= 999 ? 'Not selling' : 'Stock for ' + cover(p) + ' days', p.stock + ' in stock · ' + p.sold30 + ' sold a month', ['var(--fill-info-soft)', 'var(--text-info)']],
+    best: ['Sold ' + p.sold30 + ' in 30 days', 'Pulls customers to the sale', ['var(--fill-success-soft)', 'var(--text-success)']],
+    margin: ['Margin ' + marginOf(p) + '%', 'Room to cut the price', ['var(--fill-info-soft)', 'var(--text-info)']],
+    'new': ['Arrived ' + p.age + ' days ago', 'Launch price for new stock', ['var(--fill-info-soft)', 'var(--text-info)']],
+    all: [p.cat, p.brand, ['var(--surface-subtle)', 'var(--text-body)']]
   };
   return map[k];
 }
@@ -118,7 +117,7 @@ class Component extends DCLogic {
     var items = list.map(function (p) {
       var pr = p.price - p.cost; tot += pr * p.qty; if (pr < 0) losses.push(p.name);
       return { name: p.name, code: p.code, initial: p.name.charAt(0), mrp: bdt(p.mrp), price: bdt(p.price), off: Math.round((1 - p.price / p.mrp) * 100) + '% off', qty: p.qty,
-        profit: bdt(pr), pNote: pr < 0 ? 'Loss! Bought at ' + bdt(p.cost) : 'Bought at ' + bdt(p.cost), pColor: pr < 0 ? '#b83210' : '#047857', cls: p.fresh ? 'flash' : '',
+        profit: bdt(pr), pNote: pr < 0 ? 'Loss! Bought at ' + bdt(p.cost) : 'Bought at ' + bdt(p.cost), loss: pr < 0, cls: p.fresh ? 'nf-fresh' : '',
         dn: function () { upd(p.id, function (x) { x.price = Math.max(10, x.price - 10); return x; }); }, up: function () { upd(p.id, function (x) { x.price = Math.min(x.mrp, x.price + 10); return x; }); },
         qdn: function () { upd(p.id, function (x) { x.qty = Math.max(1, x.qty - 5); return x; }); }, qup: function () { upd(p.id, function (x) { x.qty += 5; return x; }); },
         remove: function () { self.setState({ list: list.filter(function (x) { return x.id !== p.id; }) }); } };
@@ -127,7 +126,7 @@ class Component extends DCLogic {
 
     // ---- poster preview: counts down to the start, then shows when it ends
     var now = now0 + (s.tick || 0) * 1000, TW = TIMES[wk], pvk = s.pv || 'before', before = pvk === 'before';
-    var cp = partsOf(before ? TW[0] - now : TW[1] - TW[0]), fg = '#b83210';
+    var cp = partsOf(before ? TW[0] - now : TW[1] - TW[0]), fg = 'var(--error)';
     var sp = mkSw(this, 'showPrices', true), rmd = mkSw(this, 'remind', true), soonP = mkSw(this, 'soonPoster', true);
     var lk = s.lead || 'd1', L = LEADS.filter(function (x) { return x.k === lk; })[0];
     // ---- product finder
@@ -148,36 +147,36 @@ class Component extends DCLogic {
       whens: mkChips(this, WHENS, wk, 'when').map(function (c, i) { c.pick = function () { self.setState({ when: WHENS[i].k, startTxt: null, endTxt: null, errs: __without(__without(errs, 'start'), 'end') }); }; return c; }), startTxt: startTxt, endTxt: endTxt,
 
       clock: [{ v: pad2(cp.d), l: 'days' }, { v: pad2(cp.h), l: 'hours' }, { v: pad2(cp.m), l: 'min' }, { v: pad2(cp.s), l: 'sec' }],
-      pvTabs: [{ k: 'before', label: 'Before it starts' }, { k: 'live', label: 'Once it starts' }].map(function (t) { var on = t.k === pvk; return { label: t.label, on: on ? 'true' : 'false', cls: on ? 'pvtab on' : 'pvtab', pick: function () { self.setState({ pv: t.k }); } }; }),
+      pvTabs: [{ k: 'before', label: 'Before it starts' }, { k: 'live', label: 'Once it starts' }].map(function (t) { var on = t.k === pvk; return { label: t.label, on: on, pick: function () { self.setState({ pv: t.k }); } }; }),
       pvNow: before ? 'Now: ' + whenOf(now).split(', ')[1] + ', ' + whenOf(now).split(', ')[0] : 'At ' + whenOf(TW[0]),
-      pvCover: before ? 'linear-gradient(135deg, #012169, #7c3aed)' : 'linear-gradient(135deg, #b83210, #f59e0b)', pvFg: before ? '#3b0f8c' : fg,
+      pvCover: before ? 'linear-gradient(135deg, var(--primary-900), var(--primary-600))' : 'linear-gradient(135deg, var(--error), var(--warning))', pvFg: before ? 'var(--primary)' : fg,
       pvPill: before ? 'COMING SOON' : 'LIVE NOW', pvIsLive: !before, pvShowRemind: before && rmd.on,
       pvWhen: before ? 'Starts ' + whenOf(TW[0]) : 'Ends ' + whenOf(TW[1]),
       pvClockLabel: before ? 'STARTS IN' : 'ENDS IN',
       pvHelp: before ? (soonP.on ? 'Goes up on the Offers page ' + (L.ms ? whenOf(TW[0] - L.ms) : 'at the start time') + '. At ' + whenOf(TW[0]).split(', ')[1] + ' the countdown switches to the end time by itself.' : 'The “Coming soon” poster is off. The sale appears on the Offers page at the start time.') : 'From the start time the poster counts down to ' + whenOf(TW[1]) + ', then moves to “Ended” by itself and prices go back to normal.',
-      previews: list.slice(0, 2).map(function (p) { var hide = before && !sp.on; return { initial: p.name.charAt(0), name: p.name, price: hide ? bdt(p.mrp) : bdt(p.price), mrp: hide ? '' : bdt(p.mrp), off: '−' + Math.round((1 - p.price / p.mrp) * 100) + '%', tagBg: before ? '#334155' : fg, priceFg: before ? '#0f172a' : fg, locked: before, lockText: hide ? 'Price drops at the start' : 'Sale price from ' + whenOf(TW[0]).split(', ')[0].replace(/^\w+ /, '') }; }),
+      previews: list.slice(0, 2).map(function (p) { var hide = before && !sp.on; return { initial: p.name.charAt(0), name: p.name, price: hide ? bdt(p.mrp) : bdt(p.price), mrp: hide ? '' : bdt(p.mrp), off: '−' + Math.round((1 - p.price / p.mrp) * 100) + '%', tagBg: before ? 'var(--slate-700)' : fg, priceFg: before ? 'var(--text-heading)' : fg, locked: before, lockText: hide ? 'Price drops at the start' : 'Sale price from ' + whenOf(TW[0]).split(', ')[0].replace(/^\w+ /, '') }; }),
       soonPoster: soonP, remind: rmd, showPrices: sp,
       leads: mkChips(this, LEADS, lk, 'lead'),
       leadText: L.ms ? 'Poster goes up ' + whenOf(TW[0] - L.ms) + ' and counts down to ' + whenOf(TW[0]) + '.' : 'Poster goes up at ' + whenOf(TW[0]) + ' and shows only the end time.',
-      finderOpen: s.finder == null ? true : s.finder, finderBtn: (s.finder == null || s.finder) ? 'Hide' : 'Find products', finderToggle: function () { self.setState({ finder: !(s.finder == null ? true : s.finder) }); },
-      crits: CRITS.map(function (c) { var on = c.k === crit, n = base.filter(c.test).length; return { label: c.label, note: c.note, dot: c.dot, count: n, on: on ? 'true' : 'false', cls: on ? 'crit on' : 'crit', pick: function () { self.setState({ crit: c.k, sel: {} }); } }; }),
-      cats: ['All', 'Skin care', 'Clothing', 'Grocery', 'Electronics'].map(function (c) { var on = c === cat; return { label: c === 'All' ? 'All categories' : c, on: on ? 'true' : 'false', cls: on ? 'chip on' : 'chip', pick: function () { self.setState({ cat: c, sel: {} }); } }; }),
+      finderOpen: !!s.finder, finderBtn: s.finder ? 'Hide' : 'Find products', finderToggle: function () { self.setState({ finder: !s.finder }); },
+      crits: CRITS.map(function (c) { var on = c.k === crit, n = base.filter(c.test).length; return { label: c.label, note: c.note, count: n, on: on, pick: function () { self.setState({ crit: c.k, sel: {} }); } }; }),
+      cats: ['All', 'Skin care', 'Clothing', 'Grocery', 'Electronics'].map(function (c) { var on = c === cat; return { label: c === 'All' ? 'All categories' : c, on: on, pick: function () { self.setState({ cat: c, sel: {} }); } }; }),
       hideOther: hideO, critHint: cands.length + ' match · sorted by ' + { expiring: 'soonest expiry', value: 'stock value', slow: 'longest without a sale', over: 'most days of stock', best: 'most sold', margin: 'biggest margin', 'new': 'newest', all: 'name' }[crit],
       cands: cands.map(function (p) { var w = whyOf(p, crit, now0), g = sugOf(p), had = !!inSale[p.code], on = !!sel[p.id] || had, pr = g.pr - p.cost;
-        return { name: p.name, initial: p.name.charAt(0), bg: p.bg, meta: p.cat + ' · ' + p.stock + ' in stock' + (p.other ? ' · in ' + p.other : ''), why: w[0], whySub: had ? 'Already in this sale' : w[1], whyBg: w[2][0], whyFg: w[2][1],
-          stock: p.stock, mrp: bdt(p.mrp), sug: bdt(g.pr), sugOff: '−' + g.pc + '%', sugNote: g.capped ? 'Kept above buying price' : 'Bought at ' + bdt(p.cost), profit: bdt(pr), pFg: pr < 0 ? '#b83210' : '#047857',
-          on: on ? 'true' : 'false', inSale: had ? 'true' : 'false', cbx: had ? 'cbx on dis' : on ? 'cbx on' : 'cbx', op: had ? 0.6 : 1,
+        return { name: p.name, meta: p.cat + ' · ' + p.stock + ' in stock' + (p.other ? ' · in ' + p.other : ''), why: w[0], whySub: had ? 'Already in this sale' : w[1], whyBg: w[2][0], whyFg: w[2][1],
+          stock: p.stock, mrp: bdt(p.mrp), sug: bdt(g.pr), sugOff: '−' + g.pc + '%', sugNote: g.capped ? 'Kept above buying price' : 'Bought at ' + bdt(p.cost), profit: bdt(pr), loss: pr < 0,
+          on: on, inSale: had,
           toggle: function () { if (had) return; var x = assign({}, sel); x[p.id] = !sel[p.id]; self.setState({ sel: x }); } }; }),
       noCands: cands.length === 0,
-      allCbx: allOn ? 'cbx on' : 'cbx', allOn: allOn ? 'true' : 'false',
+      allOn: allOn,
       toggleAll: function () { var x = {}; if (!allOn) selectable.forEach(function (p) { x[p.id] = true; }); self.setState({ sel: x }); },
       selText: pick.length ? pick.length + ' selected · if all sell, profit ' + bdt(pick.reduce(function (a, p) { return a + (sugOf(p).pr - p.cost) * Math.min(p.stock, 20); }, 0)) : 'Tick products to add them with the suggested price. You can change each price below.',
-      noSel: pick.length ? 'false' : 'true', addText: pick.length ? 'Add ' + pick.length + ' to this sale' : 'Add to this sale',
+      noSel: !pick.length, addText: pick.length ? 'Add ' + pick.length + ' to this sale' : 'Add to this sale',
       addSel: function () { if (pick.length) add(pick); }, clearSel: function () { self.setState({ sel: {} }); },
-      pcts: [10, 20, 30, 40].map(function (n) { return { label: n + '%', on: false, cls: 'chip', pick: setPct(n) }; }),
+      pcts: [10, 20, 30, 40].map(function (n) { return { label: n + '%', on: false, pick: setPct(n) }; }),
       items: items,
       addOne: function () { if (list.some(function (p) { return p.id === 5; })) return; var e = assign({}, EXTRA); e.fresh = true; self.setState({ list: list.concat([e]) }); },
-      nItems: list.length, nPieces: list.reduce(function (a, p) { return a + p.qty; }, 0), totProfit: bdt(tot), totColor: tot < 0 ? '#b83210' : '#047857',
+      nItems: list.length, nPieces: list.reduce(function (a, p) { return a + p.qty; }, 0), totProfit: bdt(tot), totLoss: tot < 0,
       hasLoss: losses.length > 0, lossText: losses.join(', ') + (losses.length > 1 ? ' are' : ' is') + ' below your buying price. Raise the sale price, or keep it on purpose to bring customers in.',
       // Validate, show each problem under its field, focus the first one; only a valid form saves.
       submit: function (e) {
@@ -198,602 +197,277 @@ class Component extends DCLogic {
 }
 function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
 
-// ---- styles (from the design's <helmet>) ----
+// ---- styles ----
 
 const CSS = `
-body{margin:0;font-family:var(--font-sans);background:#e9eef5;color:#1e293b;-webkit-font-smoothing:antialiased}
-*{box-sizing:border-box}
-a{color:#003087}a:hover{color:#002a77}
-.card{background:#ffffff;border-radius:var(--radius-xl);box-shadow:0 3px 10px 0 rgba(48,46,56,.06)}
-.nav{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--radius-lg);color:#475569;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:.01em;text-decoration:none;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 300ms ease-in-out}
-.nav:hover{background:#f1f5f9;color:#0f172a;text-decoration:none}
-.nav.on{background:rgba(0,48,135,.08);color:#003087}
-.navh{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);color:var(--text-muted);padding:18px 12px 6px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--radius-lg);border:0;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color 200ms cubic-bezier(0,0,.2,1),color 200ms,border-color 200ms}
-.btn:hover{text-decoration:none}
-.btn:focus-visible,.nav:focus-visible,.ib:focus-visible,.tab:focus-visible,.chip:focus-visible,.step:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.solid{background:#003087;color:#fff}.solid:hover{background:#002a77;color:#fff}
-.soft{background:rgba(0,48,135,.08);color:#003087}.soft:hover{background:rgba(0,48,135,.16);color:#003087}
-.line{background:#fff;color:#1e293b;border:1px solid #cbd5e1}.line:hover{background:#f1f5f9;color:#1e293b}
-.warnbtn{background:#b45309;color:#fff}.warnbtn:hover{background:#92400e;color:#fff}
-.big{height:52px;padding:0 24px;font-size:var(--text-sm-plus)}
-.sm{height:36px;padding:0 12px;font-size:var(--text-xs-plus)}
-.ib{width:36px;height:36px;border-radius:var(--radius-full);border:0;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.ib:hover{background:rgba(203,213,225,.35);color:#0f172a}
-.inp{width:100%;height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-sm);color:#1e293b;transition:border-color 200ms}
-.inp:hover{border-color:#94a3b8}.inp:focus{outline:none;border-color:#003087}
-.inp::placeholder{color:var(--text-muted)}
-.lbl{font-size:var(--text-sm);line-height:18px;font-weight:var(--weight-medium);color:#334155}
-.tab{height:36px;padding:0 14px;border-radius:var(--radius-full);border:0;background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,color 200ms}
-.tab:hover{background:#f1f5f9;color:#0f172a}
-.tab.on{background:#003087;color:#fff}
-.chip{height:36px;padding:0 14px;border-radius:var(--radius-full);border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color 200ms,border-color 200ms,color 200ms}
-.chip:hover{border-color:#94a3b8}
-.chip.on{border-color:#003087;background:rgba(0,48,135,.08);color:#003087}
-.th{font-size:var(--text-xs);line-height:16px;font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 16px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.td{padding:14px 16px;border-bottom:1px solid #eef2f6;font-size:var(--text-sm);line-height:20px;vertical-align:middle}
-.row{transition:background-color 200ms}.row:hover{background:#f8fafc}
-.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.badge::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:currentColor}
-.b-draft{background:#eef2f6;color:#475569}.b-approval{background:#fff4e0;color:#a14f06}.b-approved{background:#e0f2fe;color:#075985}
-.b-ordered{background:rgba(0,48,135,.08);color:#003087}.b-partial{background:#fff1e6;color:#b4410c}.b-received{background:#e7f8f1;color:#047857}
-.b-closed{background:#e2e8f0;color:#334155}.b-cancelled{background:#ffece6;color:#b83210}.b-over{background:#ffece6;color:#b83210}
-.mono{font-family:var(--font-data);letter-spacing:.02em}
-.fade{animation:gcFade 260ms cubic-bezier(0,0,.2,1)}
-@keyframes gcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.flash{animation:gcFlash 900ms ease-out}
-@keyframes gcFlash{from{background:#e7f8f1}to{background:transparent}}
-.scanline{animation:gcScan 1.8s ease-in-out infinite alternate}
-@keyframes gcScan{from{transform:translateY(0)}to{transform:translateY(150px)}}
-
-.inp[aria-invalid="true"],.stepbox[aria-invalid="true"]{border-color:var(--text-danger)!important}
-.inp[aria-invalid="true"]:focus{border-color:var(--text-danger)}
-@media (max-width:1023px){.gc-shell__content :has(> .gc-side){align-items:stretch!important}}
-.sw{position:relative;width:48px;height:28px;border-radius:var(--radius-full);border:0;background:#cbd5e1;cursor:pointer;flex-shrink:0;transition:background-color 200ms}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:var(--radius-full);background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform 200ms cubic-bezier(0,0,.2,1)}
-.sw.on{background:#003087}.sw.on::after{transform:translateX(20px)}
-.sw:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.b-live{background:#e7f8f1;color:#047857}.b-sched{background:#e0f2fe;color:#075985}.b-ended{background:#eef2f6;color:#475569}.b-paused{background:#fff4e0;color:#a14f06}
-.t-member{background:#eef2f6;color:#475569}.t-silver{background:#e2e8f0;color:#334155}.t-gold{background:#fff4e0;color:#a14f06}.t-plat{background:rgba(0,48,135,.08);color:#003087}
-.actc{border:1px solid transparent;transition:border-color 200ms,box-shadow 200ms}.actc:hover{border-color:#003087;box-shadow:0 6px 18px rgba(0,48,135,.12)}
-.bn{font-family:var(--font-bn)}
-.pulse{animation:gcPulse 1.6s ease-in-out infinite}
-@keyframes gcPulse{0%,100%{opacity:1}50%{opacity:.45}}
-@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
-
-.finder{border:1px solid #dbe3ee;border-radius:var(--radius-xl);background:#f8fafc;overflow:hidden}
-.crit{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;padding:10px 12px;border:1px solid #dbe3ee;border-radius:var(--radius-xl);background:#fff;font:inherit;text-align:left;cursor:pointer;transition:border-color 200ms,background-color 200ms}
-.crit:hover{border-color:#94a3b8}.crit.on{border-color:#003087;background:#f2f6ff;box-shadow:0 0 0 1px #003087}
-.crit:focus-visible,.cbx:focus-visible{outline:3px solid rgba(0,48,135,.5);outline-offset:2px}
-.critT{font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#0f172a;display:flex;align-items:center;gap:6px;white-space:nowrap}
-.critN{font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.cbx{width:20px;height:20px;border-radius:var(--radius-md);border:2px solid #94a3b8;background:#fff;display:inline-flex;align-items:center;justify-content:center;padding:0;cursor:pointer;color:#fff;flex-shrink:0}
-.cbx.on{background:#003087;border-color:#003087}.cbx.dis{background:#e2e8f0;border-color:#cbd5e1;cursor:default}
-.why{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
-.fsel{height:36px;padding:0 10px;border:1px solid #cbd5e1;border-radius:var(--radius-lg);background:#fff;font:inherit;font-size:var(--text-xs-plus);color:#1e293b}
-.pvtab{flex:1;height:36px;border:0;border-radius:var(--radius-lg);background:transparent;font:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:#475569;cursor:pointer}
-.pvtab.on{background:#fff;color:#003087;box-shadow:0 1px 2px rgba(15,23,42,.12)}
-/* phones: scan box and Add product stack; the finder head keeps icon + title + Hide on one row with the
-   explanation under it; each suggested product reads top to bottom (name, why it fits, price) */
-@media (max-width:640px){
-  .nfs-scan{flex-direction:column}
-  .nfs-scan>.btn{width:100%}
-  .nfs-scan input{font-size:var(--text-sm)!important;padding-left:44px!important;padding-right:var(--space-2)!important}
-  .nfs-scan label>span{left:12px!important}
-  .nfs-selbar{flex-wrap:wrap;gap:var(--space-2)!important}
-  .nfs-selbar>span:first-child{flex:1 1 100%}
-  .nfs-selbar>span:nth-child(2){display:none}
-  .nfs-selbar>.btn:last-child{flex:1 1 0;min-width:0}
-  .nfs-fhead{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto;gap:4px var(--space-2-5)!important;padding:var(--space-3)!important}
-  .nfs-fhead>span:first-child{grid-row:1;grid-column:1;display:inline-flex}
-  .nfs-fhead>div{display:contents}
-  .nfs-fhead>div>div:first-child{grid-row:1;grid-column:2;min-width:0}
-  .nfs-fhead>div>div:last-child{grid-row:2;grid-column:1/-1}
-  .nfs-fhead>button{grid-row:1;grid-column:3}
-  .nfs-hide{flex-wrap:wrap;row-gap:2px!important}
-  .nfs-hide>span:nth-of-type(1){flex:1 1 0;min-width:0}
-  .nfs-hide>span:last-child{flex:1 1 100%;margin-left:0!important}
-  .nfs-cand{grid-template-columns:24px minmax(0,1fr)!important;gap:6px var(--space-2-5)!important;align-items:start!important}
-  .nfs-cand>:nth-child(n+3){grid-column:2;text-align:left!important}
-  .nfs-cand--head{align-items:center!important}
-  .nfs-cand--head>:nth-child(n+3){display:none}
-}
+.nf-card .ix-card__body{display:flex;flex-direction:column;gap:var(--space-3)}
+.nf-name{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:var(--space-3);align-items:start}
+.nf-upload{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;height:96px;border:1px dashed var(--border-strong);border-radius:var(--radius-lg);background:var(--surface-subtle);font:inherit;font-size:var(--text-xs);color:var(--text-body);cursor:pointer}
+.nf-upload b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.nf-scan{display:flex;gap:var(--space-2)}
+.nf-scan .ix-search{height:var(--control-height)}
+.nf-finder{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden}
+.nf-fhead{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:var(--surface-subtle)}
+.nf-fhead b{flex:1;min-width:0;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.nf-fbody{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-3)}
+.nf-crits{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-2)}
+.nf-crit{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font:inherit;text-align:left;cursor:pointer}
+.nf-crit[aria-checked="true"]{border-color:var(--primary);background:var(--fill-primary-soft)}
+.nf-crit b{font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--text-heading);white-space:nowrap}
+.nf-crit b span{margin-left:4px;font-weight:var(--weight-regular);color:var(--text-muted)}
+.nf-crit small{max-width:100%;overflow:hidden;font-size:var(--text-xs);color:var(--text-muted);text-overflow:ellipsis;white-space:nowrap}
+.nf-filters{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.nf-hide{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);font-size:var(--text-xs-plus);color:var(--text-body)}
+.nf-hide>span:last-child{margin-left:auto;color:var(--text-muted)}
+.nf-box{border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
+.nf-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}
+.nf-why{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
+.nf-selbar{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
+.nf-selbar>span{flex:1 1 220px;min-width:0;font-size:var(--text-xs-plus);color:var(--text-body)}
+.nf-items{min-width:760px}
+.nf-items td:first-child{min-width:180px}
+.nf-was{color:var(--text-muted);text-decoration:line-through}
+.nf-fresh td{animation:nfFresh 900ms ease-out}
+@keyframes nfFresh{from{background:var(--fill-success-soft)}to{background:transparent}}
+.nf-poster{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden}
+.nf-cover{display:flex;flex-direction:column;gap:4px;padding:var(--space-3);color:var(--text-on-dark)}
+.nf-pills{display:flex;align-items:center;gap:6px}
+.nf-pill{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 8px;border-radius:var(--radius-full);background:rgba(255,255,255,.2);font-size:var(--text-2xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label)}
+.nf-pill--solid{background:var(--surface-card)}
+.nf-cover b{font-size:var(--text-sm-plus);font-weight:var(--weight-semibold)}
+.nf-cover small{display:flex;align-items:center;gap:6px;font-size:var(--text-xs);font-weight:var(--weight-medium)}
+.nf-clock{display:flex;gap:6px}
+.nf-clock>div{min-width:44px;padding:4px;border-radius:var(--radius-md);background:rgba(15,23,42,.35);text-align:center;font-size:var(--text-2xs)}
+.nf-clock b{display:block;font-family:var(--font-data);font-size:var(--text-sm-plus)}
+.nf-cta{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 var(--space-3);border-radius:var(--radius-lg);background:var(--surface-card);font-size:var(--text-xs);font-weight:var(--weight-medium)}
+.nf-prev{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--space-2);padding:var(--space-3);background:var(--surface-card)}
+.nf-prev__pic{position:relative;display:grid;place-items:center;height:72px;border-radius:var(--radius-md);background:var(--slate-150);font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--primary)}
+.nf-prev__pic span{position:absolute;top:4px;left:4px;padding:0 6px;border-radius:var(--radius-md);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-on-dark)}
+.nf-prev__name{margin-top:4px;overflow:hidden;font-size:var(--text-xs);text-overflow:ellipsis;white-space:nowrap}
+.nf-prev__price{font-size:var(--text-sm);font-weight:var(--weight-semibold)}
+.nf-prev__lock{display:inline-flex;align-items:center;gap:4px;font-size:var(--text-2xs);font-weight:var(--weight-medium);color:var(--text-body)}
+.nf-loss{display:flex;gap:var(--space-2);padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--fill-error-soft);font-size:var(--text-xs);line-height:1.5;color:var(--text-danger)}
+.nf-loss svg{flex:none;margin-top:1px}
+.nf-side .ix-card__body{display:flex;flex-direction:column;gap:var(--space-3)}
+@media (max-width:767px){.nf-name{grid-template-columns:minmax(0,1fr)}.nf-crits{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.nf-scan{flex-direction:column}.nf-scan .ix-search{flex:none}.nf-hide>span:last-child{margin-left:0;flex:1 1 100%}}
 `;
 
 // ---- markup ----
+
+const swRow = (sw, title, tip) => (
+  <div className="ly-set"><div><b>{title}{tip ? <InfoTip text={tip} /> : null}</b></div><Switch on={sw?.on} onToggle={sw?.toggle} label={title} /></div>
+);
 
 export default class NewFlashSaleScreen extends Component {
   render() {
     const v = this.renderVals() || {};
     return (
       <div className="dc-screen ds" data-screen="NewFlashSale">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell" style={{ background: "#eef2f7", padding: "12px", display: "flex", gap: "12px" }}>
+        <style dangerouslySetInnerHTML={{ __html: FORM_CSS + CSS }} />
+        <div className="gc-shell">
           <__Sidebar sticky="" active="promo-flash" />
-          <main className="gc-shell__main" style={{ flexGrow: "1", minWidth: "0", background: "#f8fafc", borderRadius: "var(--radius-xl)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
+          <main className="gc-shell__main">
             <__Topbar crumb="Promo / Flash sales" page="Start a flash sale" placeholder="Search a sale" />
-            <div className="gc-shell__content" style={{ flexGrow: "1", padding: "28px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              <__PageHeader title="Start a flash sale" />
-              <form noValidate onSubmit={v.submit} aria-label="New flash sale" style={{ display: "flex", gap: "20px", alignItems: "flex-start" }}>
-                <div style={{ flexGrow: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "20px" }}>
-                  <section className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                      <span style={{ width: "32px", height: "32px", flexShrink: "0", borderRadius: "var(--radius-full)", background: "#003087", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)" }}>1</span>
-                      <div style={{ flexGrow: "1" }}>
-                        <h2 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Name and picture</h2>
-                        <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Shown on top of the sale page.</p>
-                      </div>
-                    </div>
-                    <div className="gc-split" style={{ display: "grid", gridTemplateColumns: "1fr 260px", gap: "16px", alignItems: "start" }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                        <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                          <span className="lbl">Sale name<__Req /></span>
-                          <input id="fs-title" className="inp" value={v.title} onChange={v.typeTitle} aria-label="Sale name" aria-required="true" {...__inv(v.errs?.title, "fs-title-err")} />
-                          <__Err id="fs-title-err" msg={v.errs?.title} />
-                        </label>
-                        <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                          <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" />
-                            </svg>
-                          </span>
-                          <div style={{ flexGrow: "1" }}>
-                            <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Show on home page</div>
-                            <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>A big banner with the countdown</div>
+            <div className="gc-shell__content">
+              <div className="ix-page ix-page--narrow">
+                <RecordHeader back="/flash-sales" backLabel="Flash sales" title="Start a flash sale" primary={{ label: 'Save and schedule', onClick: v.submit }} />
+                <form noValidate onSubmit={v.submit} aria-label="New flash sale" className="ix-record">
+                  <div className="ix-main">
+                    <section className="ix-card nf-card" aria-labelledby="nf-s1">
+                      <header className="ix-card__head"><h2 id="nf-s1">Name and picture <InfoTip text="Shown on top of the sale page." /></h2></header>
+                      <div className="ix-card__body">
+                        <div className="nf-name">
+                          <div className="ly-field">
+                            <label className="gc-label" htmlFor="fs-title">Sale name<__Req /></label>
+                            <input id="fs-title" className="gc-input" value={v.title} onChange={v.typeTitle} aria-required="true" {...__inv(v.errs?.title, "fs-title-err")} />
+                            <__Err id="fs-title-err" msg={v.errs?.title} />
+                            {swRow(v.feat, 'Show on home page', 'A big banner with the countdown')}
                           </div>
-                          <button type="button" role="switch" aria-checked={v.feat?.on} aria-label="Show on home page" className={v.feat?.cls} onClick={v.feat?.toggle} />
+                          <button type="button" className="nf-upload"><__Icon name="image-up" width="20" height="20" aria-hidden="true" /><b>Add banner picture</b><span>1200 × 400, JPG or PNG</span></button>
                         </div>
                       </div>
-                      <button type="button" style={{ height: "124px", borderRadius: "var(--radius-lg)", border: "2px dashed #94a3b8", background: "#f8fafc", font: "inherit", color: "#475569", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <path d="M17 8 12 3 7 8" />
-                          <path d="M12 3v12" />
-                        </svg>
-                        <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)" }}>Add banner picture</span>
-                        <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>1200 × 400, JPG or PNG</span>
-                      </button>
-                    </div>
-                  </section>
-                  <section className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                      <span style={{ width: "32px", height: "32px", flexShrink: "0", borderRadius: "var(--radius-full)", background: "#003087", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)" }}>2</span>
-                      <div style={{ flexGrow: "1" }}>
-                        <h2 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>When does it run?</h2>
-                        <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>The price goes back to normal by itself when time is up.</p>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                      {__list(v.whens).map((c, $index) => (<React.Fragment key={$index}>
-                          <button type="button" className={c?.cls} aria-pressed={c?.on} onClick={c?.pick}>{c?.label}</button>
-                        </React.Fragment>))}
-                    </div>
-                    <div className="gc-cols-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                      <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <span className="lbl">Starts<__Req /></span>
-                        <input id="fs-start" className="inp" value={v.startTxt} onChange={v.typeStart} aria-label="Starts" aria-required="true" {...__inv(v.errs?.start, "fs-start-err")} />
-                        <__Err id="fs-start-err" msg={v.errs?.start} />
-                      </label>
-                      <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <span className="lbl">Ends<__Req /></span>
-                        <input id="fs-end" className="inp" value={v.endTxt} onChange={v.typeEnd} aria-label="Ends" aria-required="true" {...__inv(v.errs?.end, "fs-end-err")} />
-                        <__Err id="fs-end-err" msg={v.errs?.end} />
-                      </label>
-                    </div>
-                  </section>
-                  <section className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                      <span style={{ width: "32px", height: "32px", flexShrink: "0", borderRadius: "var(--radius-full)", background: "#003087", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)" }}>3</span>
-                      <div style={{ flexGrow: "1" }}>
-                        <h2 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Which products, and at what price?</h2>
-                        <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Profit is checked with your buying price, so you never sell at a loss by mistake.</p>
-                      </div>
-                    </div>
-                    <div className="nfs-scan" style={{ display: "flex", gap: "12px" }}>
-                      <label style={{ position: "relative", flexGrow: "1" }}>
-                        <span style={{ position: "absolute", left: "16px", top: "15px", color: "#003087" }}>
-                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M3 7V5a2 2 0 0 1 2-2h2" />
-                            <path d="M17 3h2a2 2 0 0 1 2 2v2" />
-                            <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
-                            <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
-                            <path d="M8 7v10" />
-                            <path d="M12 7v10" />
-                            <path d="M17 7v10" />
-                          </svg>
-                        </span>
-                        <input id="fs-scan" className="inp" type="search" placeholder="Scan barcode or type product name" aria-label="Scan barcode or type product name" {...__inv(v.itemsErr, "fs-items-err")} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); v.addOne(); } }} style={{ height: "54px", paddingLeft: "50px", fontSize: "var(--text-sm-plus)", border: "2px solid #003087" }} />
-                      </label>
-                      <button type="button" className="btn solid big" onClick={v.addOne}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M5 12h14" />
-                          <path d="M12 5v14" />
-                        </svg>
-                        <span>Add product</span>
-                      </button>
-                    </div>
-                    <div className="finder finderBlock">
-                      <div className="nfs-fhead" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", borderBottom: "1px solid #e2e8f0", background: "#fff" }}>
-                        <span style={{ color: "#003087" }}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="m12 3-1.9 5.8L4 10.8l4.9 3.6L7 21l5-3.6 5 3.6-1.9-6.6 4.9-3.6-6.1-2Z" />
-                          </svg>
-                        </span>
-                        <div style={{ flexGrow: "1" }}>
-                          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Find products to put on sale</div>
-                          <div style={{ fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Pick a reason, narrow it down, tick what you want. Each product comes in with a suggested sale price that never goes below your buying price.</div>
+                    </section>
+
+                    <section className="ix-card nf-card" aria-labelledby="nf-s2">
+                      <header className="ix-card__head"><h2 id="nf-s2">When does it run? <InfoTip text="The price goes back to normal by itself when time is up." /></h2></header>
+                      <div className="ix-card__body">
+                        <div className="ix-chips" role="group" aria-label="When does it run?">
+                          {v.whens.map((c) => <button key={c.label} type="button" className="ix-chip" aria-pressed={c.on} onClick={c.pick}>{c.label}</button>)}
                         </div>
-                        <button type="button" className="btn line sm" onClick={v.finderToggle} aria-expanded={v.finderOpen}>{v.finderBtn}</button>
-                      </div>
-                      {v.finderOpen ? (<>
-                        <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                          <div role="radiogroup" aria-label="Why put it on sale" className="gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "8px" }}>
-                            {__list(v.crits).map((c, $index) => (<React.Fragment key={$index}>
-                                <button type="button" role="radio" aria-checked={c?.on} className={c?.cls} onClick={c?.pick}>
-                                  <span className="critT"><span style={__sx(`width: 8px; height: 8px; border-radius: var(--radius-full); background: ${c?.dot ?? ""};`)} />{c?.label}<span style={{ marginLeft: "2px", fontWeight: "var(--weight-medium)", color: "var(--text-muted)" }}>{c?.count}</span></span>
-                                  <span className="critN">{c?.note}</span>
-                                </button>
-                              </React.Fragment>))}
+                        <div className="ly-two">
+                          <div className="ly-field">
+                            <label className="gc-label" htmlFor="fs-start">Starts<__Req /></label>
+                            <input id="fs-start" className="gc-input" value={v.startTxt} onChange={v.typeStart} aria-required="true" {...__inv(v.errs?.start, "fs-start-err")} />
+                            <__Err id="fs-start-err" msg={v.errs?.start} />
                           </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                            <span className="lbl" style={{ marginRight: "2px" }}>Category</span>
-                            {__list(v.cats).map((c, $index) => (<React.Fragment key={$index}>
-                                <button type="button" className={c?.cls} onClick={c?.pick} aria-pressed={c?.on} style={{ height: "36px", padding: "0 12px" }}>{c?.label}</button>
-                              </React.Fragment>))}
-                          </div>
-                          <div className="gc-cols-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px" }}>
-                            <label style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#475569" }}>Brand<select className="fsel" aria-label="Brand">
-  <option>All brands</option>
-  <option>Kioraa</option>
-  <option>Aarong Basics</option>
-  <option>Deshi Fresh</option>
-  <option>SoundBD</option>
-</select></label>
-                            <label style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#475569" }}>Stock at least<select className="fsel" aria-label="Stock at least">
-  <option>5 pieces</option>
-  <option>1 piece</option>
-  <option>20 pieces</option>
-  <option>50 pieces</option>
-</select></label>
-                            <label style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#475569" }}>Price<select className="fsel" aria-label="Price">
-  <option>Any price</option>
-  <option>Under ৳500</option>
-  <option>৳500 – ৳2,000</option>
-  <option>Over ৳2,000</option>
-</select></label>
-                            <label style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#475569" }}>Warehouse<select className="fsel" aria-label="Warehouse">
-  <option>All warehouses</option>
-  <option>Dhanmondi branch</option>
-  <option>Mirpur godown</option>
-</select></label>
-                          </div>
-                          <div className="nfs-hide" style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "var(--text-xs-plus)", color: "#334155" }}>
-                            <button type="button" role="switch" aria-checked={v.hideOther?.on} aria-label="Hide products already in another sale" className={v.hideOther?.cls} onClick={v.hideOther?.toggle} style={{ transform: "scale(.85)" }} />
-                            <span>Hide products already in another running sale</span>
-                            <span style={{ marginLeft: "auto", color: "var(--text-muted)" }}>{v.critHint}</span>
-                          </div>
-                          <div role="group" aria-label="Matching products" style={{ border: "1px solid #e2e8f0", borderRadius: "var(--radius-xl)", overflow: "hidden", background: "#fff" }}>
-                            <div className="nfs-cand nfs-cand--head" style={{ display: "grid", gridTemplateColumns: "24px minmax(0, 1.25fr) minmax(0, 1fr) 128px", gap: "12px", alignItems: "center", padding: "10px 14px", borderBottom: "1px solid #e2e8f0", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", letterSpacing: ".04em", textTransform: "uppercase", color: "var(--text-muted)" }}>
-                              <button type="button" className={v.allCbx} role="checkbox" aria-checked={v.allOn} aria-label="Select all shown" onClick={v.toggleAll}>
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <path d="M20 6 9 17l-5-5" />
-                                </svg>
-                              </button>
-                              <span>Product</span>
-                              <span>Why it fits</span>
-                              <span style={{ textAlign: "right" }}>Suggested price</span>
-                            </div>
-                            {__list(v.cands).map((r, $index) => (<React.Fragment key={$index}>
-                                <div className="row nfs-cand" style={__sx(`display: grid; grid-template-columns: 24px minmax(0, 1.25fr) minmax(0, 1fr) 128px; gap: 12px; align-items: center; padding: 10px 14px; border-bottom: 1px solid #eef2f6; opacity: ${r?.op ?? ""};`)}>
-                                  <button type="button" className={r?.cbx} role="checkbox" aria-checked={r?.on} aria-disabled={r?.inSale} aria-label={`Select ${r?.name ?? ""}`} onClick={r?.toggle}>
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                      <path d="M20 6 9 17l-5-5" />
-                                    </svg>
-                                  </button>
-                                  <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: "0" }}>
-                                    <span style={__sx(`width: 34px; height: 34px; flex-shrink: 0; border-radius: var(--radius-lg); background: ${r?.bg ?? ""}; color: #003087; display: flex; align-items: center; justify-content: center; font-weight: var(--weight-medium);`)}>{r?.initial}</span>
-                                    <div style={{ minWidth: "0" }}>
-                                      <div style={{ fontWeight: "var(--weight-medium)", fontSize: "var(--text-sm)", lineHeight: "20px" }}>{r?.name}</div>
-                                      <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{r?.meta}</div>
-                                    </div>
-                                  </div>
-                                  <div style={{ minWidth: "0" }}>
-                                    <span className="why" style={__sx(`background: ${r?.whyBg ?? ""}; color: ${r?.whyFg ?? ""};`)}>{r?.why}</span>
-                                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)", marginTop: "3px" }}>{r?.whySub}</div>
-                                  </div>
-                                  <div style={{ textAlign: "right" }}>
-                                    <div>
-                                      <span style={{ fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>{r?.sug}</span>
-                                      {" "}
-                                      <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#b83210" }}>{r?.sugOff}</span>
-                                    </div>
-                                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>was {r?.mrp} · <span style={__sx(`color: ${r?.pFg ?? ""}; font-weight: var(--weight-medium);`)}>+{r?.profit}</span></div>
-                                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>{r?.sugNote}</div>
-                                  </div>
-                                </div>
-                              </React.Fragment>))}
-                            {v.noCands ? (<>
-                              <div style={{ padding: "22px", textAlign: "center", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>Nothing matches. Try another category or turn off “Hide products already in another running sale”.</div>
-                            </>) : null}
-                          </div>
-                          <div className="nfs-selbar" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                            <span style={{ fontSize: "var(--text-xs-plus)", color: "#334155" }}>{v.selText}</span>
-                            <span style={{ flexGrow: "1" }} />
-                            <button type="button" className="btn line sm" onClick={v.clearSel}>Clear</button>
-                            <button type="button" className="btn solid sm" onClick={v.addSel} aria-disabled={v.noSel}>
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <path d="M12 5v14M5 12h14" />
-                              </svg>
-                              <span>{v.addText}</span>
-                            </button>
+                          <div className="ly-field">
+                            <label className="gc-label" htmlFor="fs-end">Ends<__Req /></label>
+                            <input id="fs-end" className="gc-input" value={v.endTxt} onChange={v.typeEnd} aria-required="true" {...__inv(v.errs?.end, "fs-end-err")} />
+                            <__Err id="fs-end-err" msg={v.errs?.end} />
                           </div>
                         </div>
-                      </>) : null}
-                    </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px", fontSize: "var(--text-sm)", color: "#334155" }}>
-                      <span>Same discount for all:</span>
-                      {__list(v.pcts).map((c, $index) => (<React.Fragment key={$index}>
-                          <button type="button" className={c?.cls} onClick={c?.pick}>{c?.label}</button>
-                        </React.Fragment>))}
-                    </div>
-                    <div role="region" aria-label="Products in this sale" tabIndex="0" style={{ overflowX: "auto", margin: "0 -24px", padding: "0 24px" }}>
-                      <table style={{ width: "100%", minWidth: "820px", borderCollapse: "collapse" }}>
-                        <thead>
-                          <tr>
-                            <th className="th" style={{ minWidth: "220px" }}>Product</th>
-                            <th className="th" style={{ textAlign: "right" }}>Normal price</th>
-                            <th className="th">Sale price</th>
-                            <th className="th" style={{ textAlign: "right" }}>Profit per piece</th>
-                            <th className="th">Pieces for sale</th>
-                            <th className="th" />
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {__list(v.items).map((r, $index) => (<React.Fragment key={$index}>
-                              <tr className={`row ${r?.cls ?? ""}`}>
-                                <td className="td">
-                                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                                    <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "var(--weight-medium)" }}>{r?.initial}</span>
-                                    <div>
-                                      <div style={{ fontWeight: "var(--weight-medium)" }}>{r?.name}</div>
-                                      <div className="mono" style={{ fontSize: "var(--text-xs)", lineHeight: "16px", color: "var(--text-muted)" }}>{r?.code}</div>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="td" style={{ textAlign: "right", color: "var(--text-muted)", textDecoration: "line-through" }}>{r?.mrp}</td>
-                                <td className="td">
-                                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                    <div style={{ display: "inline-flex", alignItems: "center", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", overflow: "hidden", background: "#fff" }}>
-                                      <button type="button" className="ib" aria-label={`Less sale price for ${r?.name ?? ""}`} onClick={r?.dn} style={{ borderRadius: "0" }}>
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                          <path d="M5 12h14" />
-                                        </svg>
-                                      </button>
-                                      <span style={{ minWidth: "44px", textAlign: "center", fontWeight: "var(--weight-medium)" }}>{r?.price}</span>
-                                      <button type="button" className="ib" aria-label={`More sale price for ${r?.name ?? ""}`} onClick={r?.up} style={{ borderRadius: "0" }}>
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                          <path d="M5 12h14" />
-                                          <path d="M12 5v14" />
-                                        </svg>
-                                      </button>
-                                    </div>
-                                    <span className="badge b-over" style={{ background: "#ffece6" }}>{r?.off}</span>
-                                  </div>
-                                </td>
-                                <td className="td" style={{ textAlign: "right" }}>
-                                  <div style={__sx(`font-weight: var(--weight-semibold); color: ${r?.pColor ?? ""};`)}>{r?.profit}</div>
-                                  <div style={__sx(`font-size: var(--text-xs); color: ${r?.pColor ?? ""};`)}>{r?.pNote}</div>
-                                </td>
-                                <td className="td">
-                                  <div style={{ display: "inline-flex", alignItems: "center", border: "1px solid #cbd5e1", borderRadius: "var(--radius-lg)", overflow: "hidden", background: "#fff" }}>
-                                    <button type="button" className="ib" aria-label={`Fewer pieces of ${r?.name ?? ""}`} onClick={r?.qdn} style={{ borderRadius: "0" }}>
-                                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                        <path d="M5 12h14" />
-                                      </svg>
-                                    </button>
-                                    <span style={{ minWidth: "44px", textAlign: "center", fontWeight: "var(--weight-medium)" }}>{r?.qty}</span>
-                                    <button type="button" className="ib" aria-label={`More pieces of ${r?.name ?? ""}`} onClick={r?.qup} style={{ borderRadius: "0" }}>
-                                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                        <path d="M5 12h14" />
-                                        <path d="M12 5v14" />
-                                      </svg>
-                                    </button>
-                                  </div>
-                                </td>
-                                <td className="td">
-                                  <button type="button" className="ib" aria-label={`Remove ${r?.name ?? ""}`} onClick={r?.remove}>
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                      <path d="M3 6h18" />
-                                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2" />
-                                    </svg>
-                                  </button>
-                                </td>
-                              </tr>
-                            </React.Fragment>))}
-                        </tbody>
-                      </table>
-                    </div>
-                    <__Err id="fs-items-err" msg={v.itemsErr} />
-                  </section>
-                  <section className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                      <span style={{ width: "32px", height: "32px", flexShrink: "0", borderRadius: "var(--radius-full)", background: "#003087", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)" }}>4</span>
-                      <div style={{ flexGrow: "1" }}>
-                        <h2 style={{ margin: "0", fontSize: "var(--text-lg)", lineHeight: "24px", fontWeight: "var(--weight-semibold)", color: "#0f172a" }}>Limits and showing</h2>
-                        <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }} />
                       </div>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                      <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
-                          <circle cx="12" cy="12" r="3" />
-                        </svg>
-                      </span>
-                      <div style={{ flexGrow: "1" }}>
-                        <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{"Show on the Offers & Promotions page"}</div>
-                        <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Customers see it with a countdown. It moves to “Ended” by itself.</div>
-                      </div>
-                      <button type="button" role="switch" aria-checked={v.onPage?.on} aria-label={"Show on the Offers & Promotions page"} className={v.onPage?.cls} onClick={v.onPage?.toggle} />
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                      <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <rect x="3" y="4" width="18" height="18" rx="2" />
-                          <path d="M16 2v4M8 2v4M3 10h18" />
-                        </svg>
-                      </span>
-                      <div style={{ flexGrow: "1" }}>
-                        <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Show a “Coming soon” poster before it starts</div>
-                        <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>The poster counts down to the start time, then switches by itself to show when the sale ends.</div>
-                      </div>
-                      <button type="button" role="switch" aria-checked={v.soonPoster?.on} aria-label="Show a Coming soon poster before it starts" className={v.soonPoster?.cls} onClick={v.soonPoster?.toggle} />
-                    </div>
-                    {v.soonPoster?.on ? (<>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", padding: "2px 0 12px 54px", borderBottom: "1px solid #eef2f6" }}>
-                        <span className="lbl">Put the poster up</span>
-                        {__list(v.leads).map((c, $index) => (<React.Fragment key={$index}>
-                            <button type="button" className={c?.cls} aria-pressed={c?.on} onClick={c?.pick} style={{ height: "36px", padding: "0 12px" }}>{c?.label}</button>
-                          </React.Fragment>))}
-                        <span style={{ flexBasis: "100%", fontSize: "var(--text-xs-plus)", color: "var(--text-muted)" }}>{v.leadText}</span>
-                      </div>
-                    </>) : null}
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                      <span style={{ width: "40px", height: "40px", flexShrink: "0", borderRadius: "var(--radius-lg)", background: "#e0f3fb", color: "#003087", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                          <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-                        </svg>
-                      </span>
-                      <div style={{ flexGrow: "1" }}>
-                        <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Let customers ask for a reminder</div>
-                        <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>A “Remind me” button on the poster. We send one SMS when the sale opens.</div>
-                      </div>
-                      <button type="button" role="switch" aria-checked={v.remind?.on} aria-label="Let customers ask for a reminder" className={v.remind?.cls} onClick={v.remind?.toggle} />
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                      <div style={{ flexGrow: "1" }}>
-                        <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Show sale prices before it starts</div>
-                        <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Off: the poster shows only the discount, and prices appear at the start time.</div>
-                      </div>
-                      <button type="button" role="switch" aria-checked={v.showPrices?.on} aria-label="Show sale prices before it starts" className={v.showPrices?.cls} onClick={v.showPrices?.toggle} />
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                      <div style={{ flexGrow: "1" }}>
-                        <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Max 2 pieces per customer</div>
-                        <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>So more customers get the offer</div>
-                      </div>
-                      <button type="button" role="switch" aria-checked={v.lim1?.on} aria-label="Max 2 pieces per customer" className={v.lim1?.cls} onClick={v.lim1?.toggle} />
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 0", borderBottom: "1px solid #eef2f6" }}>
-                      <div style={{ flexGrow: "1" }}>
-                        <div style={{ fontSize: "var(--text-sm)", lineHeight: "20px", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>Coupons also work</div>
-                        <div style={{ fontSize: "var(--text-xs-plus)", lineHeight: "18px", color: "var(--text-muted)" }}>Customers can add a code on top of the sale price</div>
-                      </div>
-                      <button type="button" role="switch" aria-checked={v.stack?.on} aria-label="Coupons also work" className={v.stack?.cls} onClick={v.stack?.toggle} />
-                    </div>
-                  </section>
-                </div>
-                <aside className="gc-side" style={{ width: "340px", flexShrink: "0", display: "flex", flexDirection: "column", gap: "16px", position: "sticky", top: "0" }}>
-                  <section className="card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <div className="lbl">Poster on the Offers page</div>
-                      <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{v.pvNow}</span>
-                    </div>
-                    <div role="tablist" aria-label="Poster state" style={{ display: "flex", gap: "4px", padding: "4px", borderRadius: "var(--radius-lg)", background: "#eef2f6" }}>
-                      {__list(v.pvTabs).map((t, $index) => (<React.Fragment key={$index}>
-                          <button type="button" role="tab" aria-selected={t?.on} className={t?.cls} onClick={t?.pick}>{t?.label}</button>
-                        </React.Fragment>))}
-                    </div>
-                    <div style={{ borderRadius: "var(--radius-xl)", overflow: "hidden", border: "1px solid #e2e8f0" }}>
-                      <div style={__sx(`padding: 14px; background: ${v.pvCover ?? ""}; color: #fff;`)}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", height: "22px", padding: "0 8px", borderRadius: "var(--radius-full)", background: "rgba(255,255,255,.2)", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
-</svg> FLASH SALE</span>
-                          <span style={__sx(`display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: var(--radius-full); background: #fff; color: ${v.pvFg ?? ""}; font-size: var(--text-2xs); font-weight: var(--weight-medium);`)}>{v.pvPill}</span>
+                    </section>
+
+                    <section className="ix-card nf-card" aria-labelledby="nf-s3">
+                      <header className="ix-card__head"><h2 id="nf-s3">Which products, and at what price? <InfoTip text="Profit is checked with your buying price, so you never sell at a loss by mistake." /></h2></header>
+                      <div className="ix-card__body">
+                        <div className="nf-scan">
+                          <label className="ix-search">
+                            <__Icon name="scan-barcode" width="16" height="16" aria-hidden="true" />
+                            <input id="fs-scan" type="search" placeholder="Scan barcode or type product name" aria-label="Scan barcode or type product name" {...__inv(v.itemsErr, "fs-items-err")} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); v.addOne(); } }} />
+                          </label>
+                          <button type="button" className="ix-btn" onClick={v.addOne}><__Icon name="plus" width="16" height="16" aria-hidden="true" />Add product</button>
                         </div>
-                        <div style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", marginTop: "6px" }}>{v.title}</div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", opacity: ".95" }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <rect x="3" y="4" width="18" height="18" rx="2" />
-                            <path d="M16 2v4M8 2v4M3 10h18" />
-                          </svg>
-                          <span>{v.pvWhen}</span>
-                        </div>
-                        <div style={{ marginTop: "10px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", letterSpacing: "var(--tracking-label)", opacity: ".85" }}>{v.pvClockLabel}</div>
-                        <div role="timer" style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
-                          {__list(v.clock).map((k, $index) => (<React.Fragment key={$index}>
-                              <div style={{ minWidth: "48px", padding: "6px 4px", borderRadius: "var(--radius-lg)", background: "rgba(15,23,42,.35)", textAlign: "center" }}>
-                                <div className="mono" style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)" }}>{k?.v}</div>
-                                <div style={{ fontSize: "var(--text-2xs)", opacity: ".85" }}>{k?.l}</div>
+
+                        <div className="nf-finder">
+                          <div className="nf-fhead">
+                            <__Icon name="sparkles" width="16" height="16" aria-hidden="true" />
+                            <b>Find products to put on sale <InfoTip text="Pick a reason, narrow it down, tick what you want. Each product comes in with a suggested sale price that never goes below your buying price." /></b>
+                            <button type="button" className="ix-btn ix-btn--sm" onClick={v.finderToggle} aria-expanded={v.finderOpen}>{v.finderBtn}</button>
+                          </div>
+                          {v.finderOpen ? (
+                            <div className="nf-fbody">
+                              <div role="radiogroup" aria-label="Why put it on sale" className="nf-crits">
+                                {v.crits.map((c) => (
+                                  <button key={c.label} type="button" role="radio" aria-checked={c.on} className="nf-crit" onClick={c.pick}><b>{c.label}<span>{c.count}</span></b><small>{c.note}</small></button>
+                                ))}
                               </div>
-                            </React.Fragment>))}
-                        </div>
-                        {v.pvShowRemind ? (<>
-                          <div style={__sx(`display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; height: 30px; padding: 0 12px; border-radius: var(--radius-lg); background: #fff; color: ${v.pvFg ?? ""}; font-size: var(--text-xs); font-weight: var(--weight-medium);`)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-  <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-</svg>Remind me when it starts</div>
-                        </>) : null}
-                        {v.pvIsLive ? (<>
-                          <div style={__sx(`display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; height: 30px; padding: 0 12px; border-radius: var(--radius-lg); background: #fff; color: ${v.pvFg ?? ""}; font-size: var(--text-xs); font-weight: var(--weight-medium);`)}>Shop the sale →</div>
-                        </>) : null}
-                      </div>
-                      <div className="gc-cols-2" style={{ padding: "12px", display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "10px", background: "#fff" }}>
-                        {__list(v.previews).map((p, $index) => (<React.Fragment key={$index}>
-                            <div>
-                              <div style={{ height: "84px", borderRadius: "var(--radius-lg)", background: "#eef2f6", position: "relative", display: "flex", alignItems: "center", justifyContent: "center", color: "#003087", fontSize: "var(--text-2xl)", fontWeight: "var(--weight-semibold)" }}>{p?.initial}<span style={__sx(`position: absolute; top: 6px; left: 6px; padding: 2px 6px; border-radius: var(--radius-md); background: ${p?.tagBg ?? ""}; color: #fff; font-size: var(--text-xs); font-weight: var(--weight-medium);`)}>{p?.off}</span></div>
-                              <div style={{ fontSize: "var(--text-xs)", lineHeight: "16px", marginTop: "6px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p?.name}</div>
-                              <div style={__sx(`font-size: var(--text-sm); font-weight: var(--weight-semibold); color: ${p?.priceFg ?? ""};`)}>{p?.price} <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)", textDecoration: "line-through" }}>{p?.mrp}</span></div>
-                              {p?.locked ? (<>
-                                <div style={{ display: "inline-flex", alignItems: "center", gap: "4px", marginTop: "3px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-medium)", color: "#475569" }}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <rect x="4" y="11" width="16" height="10" rx="2" />
-  <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-</svg>{p?.lockText}</div>
-                              </>) : null}
+                              <div className="ix-chips" role="group" aria-label="Category">
+                                {v.cats.map((c) => <button key={c.label} type="button" className="ix-chip" aria-pressed={c.on} onClick={c.pick}>{c.label}</button>)}
+                              </div>
+                              <div className="nf-filters">
+                                <select className="ix-filter" aria-label="Brand"><option>All brands</option><option>Kioraa</option><option>Aarong Basics</option><option>Deshi Fresh</option><option>SoundBD</option></select>
+                                <select className="ix-filter" aria-label="Stock at least"><option>5 pieces</option><option>1 piece</option><option>20 pieces</option><option>50 pieces</option></select>
+                                <select className="ix-filter" aria-label="Price"><option>Any price</option><option>Under ৳500</option><option>৳500 – ৳2,000</option><option>Over ৳2,000</option></select>
+                                <select className="ix-filter" aria-label="Warehouse"><option>All warehouses</option><option>Dhanmondi branch</option><option>Mirpur godown</option></select>
+                              </div>
+                              <div className="nf-hide">
+                                <Switch on={v.hideOther?.on} onToggle={v.hideOther?.toggle} label="Hide products already in another sale" />
+                                <span>Hide products already in another running sale</span>
+                                <span>{v.critHint}</span>
+                              </div>
+                              <div className="ix-table-wrap ix-table-wrap--show nf-box" role="group" aria-label="Matching products">
+                                <table className="ix-table ix-table--static gc-table--keep">
+                                  <thead><tr><th scope="col" className="ix-check"><input type="checkbox" checked={v.allOn} onChange={v.toggleAll} aria-label="Select all shown" /></th><th scope="col">Product</th><th scope="col">Why it fits</th><th scope="col" className="ix-num">Suggested price</th></tr></thead>
+                                  <tbody>
+                                    {v.cands.map((r) => (
+                                      <tr key={r.name} style={r.inSale ? { opacity: 0.6 } : undefined}>
+                                        <td className="ix-check"><input type="checkbox" checked={r.on} disabled={r.inSale} onChange={r.toggle} aria-label={`Select ${r.name}`} /></td>
+                                        <td><span className="ix-strong">{r.name}</span><span className="nf-sub">{r.meta}</span></td>
+                                        <td><span className="nf-why" style={{ background: r.whyBg, color: r.whyFg }}>{r.why}</span><span className="nf-sub">{r.whySub}</span></td>
+                                        <td className="ix-num"><span className="ix-strong">{r.sug}</span> <span className="ix-bad">{r.sugOff}</span><span className="nf-sub">was {r.mrp} · <span className={r.loss ? 'ix-bad' : 'ly-in'}>+{r.profit}</span></span><span className="nf-sub">{r.sugNote}</span></td>
+                                      </tr>
+                                    ))}
+                                    {v.noCands ? <tr><td colSpan={4} className="ix-muted">Nothing matches. Try another category or turn off “Hide products already in another running sale”.</td></tr> : null}
+                                  </tbody>
+                                </table>
+                              </div>
+                              <div className="nf-selbar">
+                                <span>{v.selText}</span>
+                                <button type="button" className="ix-btn ix-btn--sm" onClick={v.clearSel}>Clear</button>
+                                <button type="button" className="ix-btn ix-btn--sm ix-btn--primary" onClick={v.addSel} aria-disabled={v.noSel}><__Icon name="plus" width="16" height="16" aria-hidden="true" />{v.addText}</button>
+                              </div>
                             </div>
-                          </React.Fragment>))}
+                          ) : null}
+                        </div>
+
+                        <div className="ly-row">
+                          <span>Same discount for all:</span>
+                          {v.pcts.map((c) => <button key={c.label} type="button" className="ix-chip" onClick={c.pick}>{c.label}</button>)}
+                        </div>
+                        <div className="ix-table-wrap ix-table-wrap--show nf-box" role="region" aria-label="Products in this sale" tabIndex="0">
+                          <table className="ix-table ix-table--static gc-table--keep nf-items">
+                            <thead>
+                              <tr>
+                                <th scope="col">Product</th>
+                                <th scope="col" className="ix-num">Normal price</th>
+                                <th scope="col">Sale price</th>
+                                <th scope="col" className="ix-num">Profit per piece</th>
+                                <th scope="col">Pieces for sale</th>
+                                <th scope="col"><span className="sr-only">Remove</span></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {v.items.map((r) => (
+                                <tr key={r.code + r.name} className={r.cls}>
+                                  <td><span className="ix-strong">{r.name}</span><span className="nf-sub ly-fig">{r.code}</span></td>
+                                  <td className="ix-num nf-was">{r.mrp}</td>
+                                  <td className="ix-nowrap"><Steps label={`sale price for ${r.name}`} less={`Less sale price for ${r.name}`} more={`More sale price for ${r.name}`} display={r.price} onDec={r.dn} onInc={r.up} /> <span className="ix-bad">{r.off}</span></td>
+                                  <td className="ix-num"><span className={'ix-strong ' + (r.loss ? 'ix-bad' : 'ly-in')}>{r.profit}</span><span className={'nf-sub' + (r.loss ? ' ix-bad' : '')}>{r.pNote}</span></td>
+                                  <td className="ix-nowrap"><Steps label={`pieces of ${r.name}`} less={`Fewer pieces of ${r.name}`} more={`More pieces of ${r.name}`} display={r.qty} onDec={r.qdn} onInc={r.qup} /></td>
+                                  <td className="ix-num"><button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label={`Remove ${r.name}`} onClick={r.remove}><__Icon name="trash-2" width="16" height="16" aria-hidden="true" /></button></td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <__Err id="fs-items-err" msg={v.itemsErr} />
                       </div>
-                    </div>
-                    <div style={{ fontSize: "var(--text-xs)", lineHeight: "17px", color: "var(--text-muted)" }}>{v.pvHelp}</div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "14px", borderRadius: "var(--radius-xl)", background: "#f8fafc", fontSize: "var(--text-sm)" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span style={{ color: "#475569" }}>Products</span>
-                        <b>{v.nItems}</b>
+                    </section>
+
+                    <section className="ix-card nf-card" aria-labelledby="nf-s4">
+                      <header className="ix-card__head"><h2 id="nf-s4">Limits and showing</h2></header>
+                      <div className="ix-card__body">
+                        <div>
+                          {swRow(v.onPage, 'Show on the Offers & Promotions page', 'Customers see it with a countdown. It moves to “Ended” by itself.')}
+                          {swRow(v.soonPoster, 'Show a “Coming soon” poster before it starts', 'The poster counts down to the start time, then switches by itself to show when the sale ends.')}
+                          {v.soonPoster?.on ? (
+                            <div className="ly-set">
+                              <div>
+                                <b>Put the poster up</b>
+                                <div className="ix-chips" style={{ marginTop: 'var(--space-2)' }}>{v.leads.map((c) => <button key={c.label} type="button" className="ix-chip" aria-pressed={c.on} onClick={c.pick}>{c.label}</button>)}</div>
+                                <small style={{ marginTop: 'var(--space-1)' }}>{v.leadText}</small>
+                              </div>
+                            </div>
+                          ) : null}
+                          {swRow(v.remind, 'Let customers ask for a reminder', 'A “Remind me” button on the poster. We send one SMS when the sale opens.')}
+                          {swRow(v.showPrices, 'Show sale prices before it starts', 'Off: the poster shows only the discount, and prices appear at the start time.')}
+                          {swRow(v.lim1, 'Max 2 pieces per customer', 'So more customers get the offer')}
+                          {swRow(v.stack, 'Coupons also work', 'Customers can add a code on top of the sale price')}
+                        </div>
                       </div>
-                      <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span style={{ color: "#475569" }}>Pieces for sale</span>
-                        <b>{v.nPieces}</b>
+                    </section>
+                  </div>
+
+                  <aside className="ix-side nf-side">
+                    <section className="ix-card" aria-labelledby="nf-poster">
+                      <header className="ix-card__head"><h2 id="nf-poster">Poster on the Offers page</h2><span className="ly-help">{v.pvNow}</span></header>
+                      <div className="ix-card__body">
+                        <div className="gc-seg" role="tablist" aria-label="Poster state">
+                          {v.pvTabs.map((t) => <button key={t.label} type="button" role="tab" aria-selected={t.on} className={'gc-seg__btn' + (t.on ? ' gc-seg__btn--active' : '')} onClick={t.pick}>{t.label}</button>)}
+                        </div>
+                        <div className="nf-poster">
+                          <div className="nf-cover" style={{ background: v.pvCover }}>
+                            <span className="nf-pills"><span className="nf-pill"><__Icon name="zap" width="12" height="12" aria-hidden="true" />FLASH SALE</span><span className="nf-pill nf-pill--solid" style={{ color: v.pvFg }}>{v.pvPill}</span></span>
+                            <b>{v.title}</b>
+                            <small><__Icon name="calendar" width="14" height="14" aria-hidden="true" />{v.pvWhen}</small>
+                            <small>{v.pvClockLabel}</small>
+                            <div className="nf-clock" role="timer">{v.clock.map((k) => <div key={k.l}><b>{k.v}</b>{k.l}</div>)}</div>
+                            {v.pvShowRemind ? <span className="nf-cta" style={{ color: v.pvFg }}><__Icon name="bell" width="14" height="14" aria-hidden="true" />Remind me when it starts</span> : null}
+                            {v.pvIsLive ? <span className="nf-cta" style={{ color: v.pvFg }}>Shop the sale →</span> : null}
+                          </div>
+                          <div className="nf-prev">
+                            {v.previews.map((p) => (
+                              <div key={p.name}>
+                                <div className="nf-prev__pic">{p.initial}<span style={{ background: p.tagBg }}>{p.off}</span></div>
+                                <div className="nf-prev__name">{p.name}</div>
+                                <div className="nf-prev__price" style={{ color: p.priceFg }}>{p.price} <span className="nf-was ly-help" style={{ display: 'inline' }}>{p.mrp}</span></div>
+                                {p.locked ? <span className="nf-prev__lock"><__Icon name="lock" width="12" height="12" aria-hidden="true" />{p.lockText}</span> : null}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <p className="ly-help">{v.pvHelp}</p>
+                        <dl className="ix-sum"><dt>Products</dt><dd>{v.nItems}</dd><dt>Pieces for sale</dt><dd>{v.nPieces}</dd><dt className="is-total">If all are sold, profit</dt><dd className={'is-total ' + (v.totLoss ? 'ix-bad' : 'ly-in')}>{v.totProfit}</dd></dl>
+                        {v.hasLoss ? <div className="nf-loss" role="alert"><__Icon name="triangle-alert" width="16" height="16" aria-hidden="true" /><span>{v.lossText}</span></div> : null}
+                        <button type="submit" className="ix-btn ix-btn--primary">Save and schedule</button>
                       </div>
-                      <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span style={{ color: "#475569" }}>If all are sold, profit</span>
-                        <b style={__sx(`color: ${v.totColor ?? ""};`)}>{v.totProfit}</b>
-                      </div>
-                    </div>
-                    {v.hasLoss ? (<>
-                      <div className="fade" role="alert" style={{ display: "flex", gap: "10px", padding: "12px 14px", borderRadius: "var(--radius-lg)", background: "#ffece6", color: "#8a2a0c", fontSize: "var(--text-xs-plus)", lineHeight: "18px" }}>
-                        <span style={{ flexShrink: "0" }}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-                            <path d="M12 9v4" />
-                            <path d="M12 17h.01" />
-                          </svg>
-                        </span>
-                        <span>{v.lossText}</span>
-                      </div>
-                    </>) : null}
-                    <button type="submit" className="btn solid big">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M20 6 9 17l-5-5" />
-                      </svg>
-                      <span>Save and schedule</span>
-                    </button>
-                    <__Link href="/flash-sales" className="btn line">Cancel</__Link>
-                  </section>
-                </aside>
-              </form>
+                    </section>
+                  </aside>
+                </form>
+              </div>
             </div>
           </main>
         </div>

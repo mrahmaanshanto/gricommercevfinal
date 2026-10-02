@@ -1,8 +1,10 @@
 'use client';
 // MerchantInbox — one inbox for chats from Facebook, Instagram, WhatsApp, TikTok, LinkedIn and
-// Telegram, plus moderation of public comments on posts and reels.
-//   Chats     conversation list (status tabs, channel chips with unread counts, mine/unassigned,
-//             search, sort, SLA timers, bulk close/assign/tag) · thread · customer panel
+// Telegram, plus moderation of public comments on posts and reels. Shopify Inbox density: the kit title row
+// (components/ui/IndexKit.jsx ShopHeader: Channels and Saved replies, one primary New conversation), the views
+// (Chats, Comments, Reviews) as small tabs under it, then the app.
+//   Chats     conversation list (status tabs, channel chips with unread counts, search, one "Filter and sort"
+//             menu for mine/unassigned and the order, SLA timers, bulk close/assign/tag) · thread · customer panel
 //   Comments  posts list · moderation queue · insights (src/components/inbox/Comments.jsx)
 // Three panes from 1280px, two on tablets (customer panel slides over), one on phones
 // (list → thread with a back button; the panel is a full-screen sheet).
@@ -16,14 +18,15 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { PageHeader, EmptyState, ChannelIcon } from '@/components/ui';
+import { EmptyState, ChannelIcon } from '@/components/ui';
+import { ShopHeader, IndexTabs } from '@/components/ui/IndexKit';
 import { getOrders } from '@/lib/orders';
 import { getCustomers } from '@/lib/customers';
 import {
   ME, STAFF, CHANNEL_IDS, channelName, staffName, firstName, getConvs, patchConv, addMessages, addConversation, mergeConversations,
   getTags, addTag as saveTag, getReplies, getComments, statusOf, lastAny, lastAt, waitingMinutes, previewOf, ago, whenText, comeback, samePhone,
 } from '@/lib/inbox';
-import { useInbox, useNow, useMedia, Avatar, StaffAvatar, SlaChip, Menu, MenuItem, Sheet, Seg, SearchBox, PARTS_CSS } from '@/components/inbox/parts';
+import { useInbox, useNow, useMedia, Avatar, StaffAvatar, SlaChip, Menu, MenuItem, Sheet, SearchBox, PARTS_CSS } from '@/components/inbox/parts';
 import { Thread, THREAD_CSS } from '@/components/inbox/Thread';
 import { CustomerPanel, TagMenu, PANEL_CSS } from '@/components/inbox/CustomerPanel';
 import { SavedRepliesDialog, MergeDialog, NewConversationDialog, SnoozeDialog, DIALOGS_CSS } from '@/components/inbox/Dialogs';
@@ -39,6 +42,7 @@ import Link from 'next/link';
 
 const TABS = [['open', 'Open'], ['pending', 'Pending'], ['snoozed', 'Snoozed'], ['closed', 'Closed']];
 const SORTS = [['recent', 'Newest message'], ['waiting', 'Waiting longest'], ['unread', 'Unread first'], ['oldest', 'Oldest message']];
+const WHO = [['all', 'All'], ['mine', 'Mine'], ['unassigned', 'Unassigned']];
 const EMPTY_TAB = {
   open: ['inbox', 'You are all caught up', 'No open conversations. New messages land here.'],
   pending: ['hourglass', 'Nothing pending', 'Conversations waiting on the customer show here.'],
@@ -280,17 +284,14 @@ export default function MerchantInbox() {
         <main className="gc-shell__main ibx-main">
           <Topbar crumb="Management" page="Inbox" />
           <div className="gc-shell__content ibx-content" data-pane={pane}>
-            <PageHeader
-              compact
-              title="Inbox"
-              description="Chats, comments and reviews from every connected channel, in one place."
-              actions={<>
-                <Seg size="lg" label="Show" value={view} onChange={switchView} items={[['chats', 'Chats', data ? unreadAll : null, 'messages-square'], ['comments', 'Comments', data ? data.openComments : null, 'at-sign'], ...(reviewsOn ? [['reviews', 'Reviews', openReviews, 'star']] : [])]} />
-                <button type="button" className="gc-btn gc-btn--neutral ibx-iconish" onClick={() => setChOpen(true)} aria-label="Channels" title="Channels"><Icon name="plug" width="18" height="18" aria-hidden="true" /><span className="ibx-lbl">Channels</span></button>
-                <button type="button" className="gc-btn gc-btn--neutral ibx-iconish" onClick={() => setDlg('replies')} aria-label="Saved replies" title="Saved replies"><Icon name="zap" width="18" height="18" aria-hidden="true" /><span className="ibx-lbl">Saved replies</span></button>
-                {view === 'chats' ? <button type="button" className="gc-btn gc-btn--solid ibx-iconish" onClick={() => setDlg('new')} aria-label="New conversation" title="New conversation"><Icon name="square-pen" width="18" height="18" aria-hidden="true" /><span className="ibx-lbl">New conversation</span></button> : null}
-              </>}
-            />
+            <div className="ix-page ibx-page">
+            <ShopHeader icon="messages-square" title="Inbox"
+              about="Chats, comments and reviews from every connected channel, in one place. Pick a chat to read it and reply; the customer's orders and details are on the right."
+              secondary={[{ label: 'Channels', icon: 'plug', onClick: () => setChOpen(true) }, { label: 'Saved replies', icon: 'zap', onClick: () => setDlg('replies') }]}
+              primary={view === 'chats' ? { label: 'New conversation', onClick: () => setDlg('new') } : undefined} />
+            <div className="ibx-views">
+              <IndexTabs label="Show" tabs={[['chats', 'Chats', data ? unreadAll : null], ['comments', 'Comments', data ? data.openComments : null], ...(reviewsOn ? [['reviews', 'Reviews', openReviews]] : [])].map(([k, l, n]) => ({ key: k, label: l, count: n || null, id: 'ibx-view-' + k, on: view === k, onClick: () => switchView(k) }))} />
+            </div>
 
             {view === 'reviews' && reviewsOn ? (
               <div className="ibx-reviews"><style dangerouslySetInnerHTML={{ __html: CH_CSS + GB_CSS }} /><GbReviews reviews={getReviews()} locs={gbpLocations()} now={t} /></div>
@@ -301,10 +302,15 @@ export default function MerchantInbox() {
                   <div className="ibx-listhead">
                     <div className="ibx-listhead__row">
                       <SearchBox value={q} onChange={setQ} placeholder="Search name, phone, message" label="Search conversations" onKeyDown={(e) => { if (e.key === 'ArrowDown') { e.preventDefault(); const r = listRef.current && listRef.current.querySelector('.ibx-row'); if (r) r.focus(); } }} />
-                      <Menu label="Sort" button={({ toggle, open: o }) => <button type="button" className="gc-iconbtn gc-iconbtn--xl ibx-tool" aria-expanded={o} onClick={toggle} aria-label={'Sort: ' + SORTS.find((s) => s[0] === sort)[1]} title="Sort"><Icon name="arrow-up-down" width="18" height="18" /></button>}>
-                        {(close) => <><p className="ib-menu__head">Sort by</p>{SORTS.map(([v, l]) => <MenuItem key={v} checked={sort === v} onClick={() => { setSort(v); close(); }}>{l}</MenuItem>)}</>}
+                      <Menu label="Filter and sort" button={({ toggle, open: o }) => <button type="button" className={'ix-btn ix-btn--icon ibx-tool' + (who !== 'all' ? ' is-on' : '')} aria-expanded={o} onClick={toggle} aria-label={'Filter and sort: ' + WHO.find((w) => w[0] === who)[1] + ', ' + SORTS.find((s) => s[0] === sort)[1]} title="Filter and sort"><Icon name="list-filter" width="16" height="16" /></button>}>
+                        {(close) => <>
+                          <p className="ib-menu__head">Assigned to</p>
+                          {WHO.map(([v, l]) => <MenuItem key={v} checked={who === v} hint={data && v !== 'all' ? String(whoCount(v)) : undefined} onClick={() => { setWho(v); close(); }}>{l}</MenuItem>)}
+                          <p className="ib-menu__head">Sort by</p>
+                          {SORTS.map(([v, l]) => <MenuItem key={v} checked={sort === v} onClick={() => { setSort(v); close(); }}>{l}</MenuItem>)}
+                        </>}
                       </Menu>
-                      <button type="button" className={'gc-iconbtn gc-iconbtn--xl ibx-tool' + (picking ? ' gc-iconbtn--active' : '')} aria-pressed={picking} onClick={() => (picking ? endPicking() : setPicking(true))} aria-label="Select conversations" title="Select conversations"><Icon name="list-checks" width="18" height="18" /></button>
+                      <button type="button" className={'ix-btn ix-btn--icon ibx-tool' + (picking ? ' is-on' : '')} aria-pressed={picking} onClick={() => (picking ? endPicking() : setPicking(true))} aria-label="Select conversations" title="Select conversations"><Icon name="list-checks" width="16" height="16" /></button>
                     </div>
                     <div className="ibx-tabs" role="tablist" aria-label="Status">
                       {TABS.map(([id, l]) => <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => { setTab(id); setPicked([]); }}>{l}<b>{data ? tabCount(id) : ''}</b></button>)}
@@ -313,24 +319,23 @@ export default function MerchantInbox() {
                       <button type="button" className="ib-chip" aria-pressed={chan === 'all'} onClick={() => setChan('all')}>All{chanUnread('all') ? <span className="ib-count">{chanUnread('all')}</span> : null}</button>
                       {CHANNEL_IDS.filter((ch) => !liveChats || liveChats.includes(ch)).map((ch) => {
                         const n = chanUnread(ch);
-                        return <button key={ch} type="button" className="ib-chip ibx-chan" aria-pressed={chan === ch} onClick={() => setChan(chan === ch ? 'all' : ch)} aria-label={channelName(ch) + (n ? `, ${n} unread` : '')} title={channelName(ch)}><ChannelIcon channel={ch} size={20} decorative />{n ? <span className="ib-count">{n}</span> : null}</button>;
+                        return <button key={ch} type="button" className="ib-chip ibx-chanchip" aria-pressed={chan === ch} onClick={() => setChan(chan === ch ? 'all' : ch)} aria-label={channelName(ch) + (n ? `, ${n} unread` : '')} title={channelName(ch)}><ChannelIcon channel={ch} size={18} decorative />{n ? <span className="ib-count">{n}</span> : null}</button>;
                       })}
                     </div>
-                    <Seg label="Assigned to" value={who} onChange={setWho} items={[['all', 'All'], ['mine', 'Mine', data ? whoCount('mine') : null], ['unassigned', 'Unassigned', data ? whoCount('unassigned') : null]]} />
                   </div>
                   {picking ? (
                     <div className="ibx-bulk" role="toolbar" aria-label="Bulk actions">
                       <label className="ibx-bulk__all"><input type="checkbox" className="gc-check" checked={!!list.length && list.every((c) => picked.includes(c.id))} onChange={(e) => setPicked(e.target.checked ? list.map((c) => c.id) : [])} aria-label="Select all shown" /><b>{picked.length} selected</b></label>
-                      <Menu label="Assign" button={({ toggle, open: o }) => <button type="button" className="gc-btn gc-btn--xs gc-btn--neutral" disabled={!picked.length} aria-expanded={o} onClick={toggle}>Assign</button>}>
+                      <Menu label="Assign" button={({ toggle, open: o }) => <button type="button" className="ix-btn ix-btn--sm" disabled={!picked.length} aria-expanded={o} onClick={toggle}>Assign</button>}>
                         {(close) => <>{STAFF.map((p) => <MenuItem key={p.id} onClick={() => { close(); bulk({ assignee: p.id }, 'user-round-check', `Assigned to ${p.name} by ${me}`, `${picked.length} assigned to ${p.name}`); }} hint={p.role}>{p.name}</MenuItem>)}</>}
                       </Menu>
-                      <Menu label="Tag" button={({ toggle, open: o }) => <button type="button" className="gc-btn gc-btn--xs gc-btn--neutral" disabled={!picked.length} aria-expanded={o} onClick={toggle}>Tag</button>}>
+                      <Menu label="Tag" button={({ toggle, open: o }) => <button type="button" className="ix-btn ix-btn--sm" disabled={!picked.length} aria-expanded={o} onClick={toggle}>Tag</button>}>
                         {(close) => <TagMenu tags={tags} on={[]} onToggle={(n) => { close(); bulkTag(n); }} onAdd={(n) => { saveTag(n); close(); bulkTag(n); }} />}
                       </Menu>
                       {tab !== 'closed'
-                        ? <button type="button" className="gc-btn gc-btn--xs gc-btn--soft" disabled={!picked.length} onClick={() => bulk({ status: 'closed', snoozeUntil: null, unread: 0 }, 'circle-check', `Closed by ${me}`, `${picked.length} conversation${picked.length === 1 ? '' : 's'} closed`)}>Close</button>
-                        : <button type="button" className="gc-btn gc-btn--xs gc-btn--soft" disabled={!picked.length} onClick={() => bulk({ status: 'open' }, 'rotate-ccw', `Reopened by ${me}`, `${picked.length} reopened`)}>Reopen</button>}
-                      <button type="button" className="gc-iconbtn ibx-bulk__x" aria-label="Stop selecting" onClick={endPicking}><Icon name="x" width="16" height="16" /></button>
+                        ? <button type="button" className="ix-btn ix-btn--sm" disabled={!picked.length} onClick={() => bulk({ status: 'closed', snoozeUntil: null, unread: 0 }, 'circle-check', `Closed by ${me}`, `${picked.length} conversation${picked.length === 1 ? '' : 's'} closed`)}>Close</button>
+                        : <button type="button" className="ix-btn ix-btn--sm" disabled={!picked.length} onClick={() => bulk({ status: 'open' }, 'rotate-ccw', `Reopened by ${me}`, `${picked.length} reopened`)}>Reopen</button>}
+                      <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Stop selecting" onClick={endPicking}><Icon name="x" width="16" height="16" /></button>
                     </div>
                   ) : null}
                   <div className="ibx-rows">
@@ -348,7 +353,7 @@ export default function MerchantInbox() {
                                 onClick={() => (picking ? togglePick(c.id) : open(c.id))}
                                 aria-label={`${c.name}, ${channelName(c.ch)}${c.unread ? `, ${c.unread} unread` : ''}${wait >= 60 ? `, waiting over ${Math.floor(wait / 60)} hour${wait >= 120 ? 's' : ''}` : ''}`}>
                                 {picking ? <span className={'ibx-tick' + (on ? ' is-on' : '')} aria-hidden="true">{on ? <Icon name="check" width="14" height="14" /> : null}</span> : null}
-                                <Avatar name={c.name} avatar={c.avatar} pos={c.pos} ch={c.ch} size={42} />
+                                <Avatar name={c.name} avatar={c.avatar} pos={c.pos} ch={c.ch} size={36} />
                                 <span className="ibx-row__main">
                                   <span className="ibx-row__top"><span className="ibx-row__name">{c.name}</span><span className="ibx-row__time">{ago(last ? last.at : 0, t)}</span></span>
                                   <span className="ibx-row__prev">{lead}{previewOf(vis)}</span>
@@ -357,7 +362,7 @@ export default function MerchantInbox() {
                                     {c.blocked ? <span className="gc-badge gc-badge--error">Blocked</span> : null}
                                     {(c.tags || []).slice(0, 2).map((g) => <span key={g} className={'gc-badge gc-badge--' + (tags[g] || 'slate')}>{g}</span>)}
                                     {(c.tags || []).length > 2 ? <span className="ib-sub">+{c.tags.length - 2}</span> : null}
-                                    <span className="ibx-row__end"><StaffAvatar id={c.assignee} size={22} />{c.unread ? <span className="ib-count">{c.unread}</span> : null}</span>
+                                    <span className="ibx-row__end"><StaffAvatar id={c.assignee} size={20} />{c.unread ? <span className="ib-count">{c.unread}</span> : null}</span>
                                   </span>
                                 </span>
                               </button>
@@ -381,6 +386,7 @@ export default function MerchantInbox() {
                 {wide && panelWide && conv ? <aside className="ibx-panel" aria-label="Customer details">{panel}</aside> : null}
               </div>
             )}
+            </div>
           </div>
         </main>
       </div>
@@ -391,10 +397,10 @@ export default function MerchantInbox() {
           <p className="gc-help" style={{ margin: 0 }}>Connect a channel to bring its chats, comments or reviews into the Inbox. Connections are made in one place: Connections.</p>
           {apps.map((a) => (
             <div key={a.id} className="ibx-chan">
-              <BrandLogo brand={a.brand} size={36} decorative />
-              <span className="ibx-chan__text"><b>{a.name}</b><small>{a.uses.filter((u) => u !== 'Posts' && u !== 'Broadcasts').join(' · ')}</small>{a.status.note ? <small style={{ color: 'var(--text-warning)' }}>{a.status.note}</small> : null}</span>
-              {a.status.state === 'off' ? <Link href={'/connect?app=' + a.id} className="gc-btn gc-btn--sm gc-btn--soft">Connect</Link>
-                : a.status.state === 'attention' ? <Link href={'/connections?group=social'} className="gc-btn gc-btn--sm gc-btn--soft">Reconnect</Link>
+              <BrandLogo brand={a.brand} size={28} decorative />
+              <span className="ibx-chan__text"><b>{a.name}</b><small>{a.uses.filter((u) => u !== 'Posts' && u !== 'Broadcasts').join(' · ')}</small>{a.status.note ? <small className="ibx-chan__warn">{a.status.note}</small> : null}</span>
+              {a.status.state === 'off' ? <Link href={'/connect?app=' + a.id} className="ix-btn ix-btn--sm">Connect</Link>
+                : a.status.state === 'attention' ? <Link href={'/connections?group=social'} className="ix-btn ix-btn--sm">Reconnect</Link>
                   : <StatusBadge tone="success" icon="check">Connected</StatusBadge>}
             </div>
           ))}
@@ -410,47 +416,52 @@ export default function MerchantInbox() {
 
 const CSS = PARTS_CSS + DIALOGS_CSS + PANEL_CSS + THREAD_CSS + COMMENTS_CSS + `
 .ibx-chans{display:flex;flex-direction:column;gap:var(--space-2)}
-.ibx-chan{display:flex;align-items:center;gap:var(--space-3);min-height:60px;padding:var(--space-2) 0;border-top:1px solid var(--border-subtle)}
+.ibx-chan{display:flex;align-items:center;gap:var(--space-3);min-height:52px;padding:var(--space-2) 0;border-top:1px solid var(--border-subtle)}
 .ibx-chan__text{display:flex;flex-direction:column;min-width:0;flex:1}
 .ibx-chan__text b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 .ibx-chan__text small{font-size:var(--text-xs);color:var(--text-muted)}
+.ibx-chan__text .ibx-chan__warn{color:var(--text-warning)}
 .ibx-reviews{display:flex;flex-direction:column;gap:var(--space-4);min-width:0}
 /* the inbox fills the window and each pane scrolls on its own; the floating assistant would cover the composer */
 body:has(.ibx) .gc-ai{display:none}
 .ibx .gc-shell__main.ibx-main{height:calc(100dvh - var(--shell-inset) * 2);min-height:600px;background:var(--surface-page)}
-.ibx .gc-shell__content.ibx-content{flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--space-4);padding:var(--space-5) var(--space-6) var(--space-6)!important;overflow:visible}
-.ibx-app{flex:1;min-height:0;display:grid;grid-template-columns:minmax(300px,340px) minmax(0,1fr) minmax(300px,340px);overflow:hidden;border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card);box-shadow:var(--shadow-soft)}
-.ibx-app[data-panel="closed"]{grid-template-columns:minmax(300px,340px) minmax(0,1fr)}
+.ibx .gc-shell__content.ibx-content{flex:1;min-height:0;display:flex;flex-direction:column;padding:20px var(--margin-x) var(--space-5)!important;overflow:visible}
+.ibx-page{flex:1;min-height:0;gap:var(--space-3)}
+.ibx-views{display:flex;flex:none;margin:0 -4px}
+.ibx-views .ix-tabs{flex:none}
+.ibx-app{flex:1;min-height:0;display:grid;grid-template-columns:minmax(280px,320px) minmax(0,1fr) minmax(280px,320px);overflow:hidden;border-radius:var(--radius-xl);background:var(--surface-card);box-shadow:var(--shadow-card)}
+.ibx-app[data-panel="closed"]{grid-template-columns:minmax(280px,320px) minmax(0,1fr)}
 .ibx-list{display:flex;flex-direction:column;min-width:0;min-height:0;border-right:1px solid var(--border-subtle);background:var(--surface-card)}
 .ibx-thread{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--surface-page);container-type:inline-size}
 .ibx-panel{min-height:0;overflow-y:auto;overscroll-behavior:contain;border-left:1px solid var(--border-subtle);background:var(--surface-card)}
 .ibx-pick{flex:1;display:grid;place-items:center}
-.ibx-listhead{display:flex;flex-direction:column;gap:var(--space-2-5);flex:none;padding:var(--space-4) var(--space-4) var(--space-3);border-bottom:1px solid var(--border-subtle)}
-.ibx-listhead__row{display:flex;align-items:center;gap:var(--space-1-5)}
+.ibx-listhead{display:flex;flex-direction:column;gap:var(--space-2);flex:none;padding:var(--space-3) var(--space-3) var(--space-2);border-bottom:1px solid var(--border-subtle)}
+.ibx-listhead__row{display:flex;align-items:center;gap:4px}
 .ibx-listhead__row .ib-h2{margin-right:auto}
+.ibx-listhead .ib-search .gc-input{height:32px}
 .ibx-tool{flex:none}
-.ibx-listhead>.ib-seg{align-self:flex-start}
-.ibx-tabs{display:flex;margin:0 calc(var(--space-4) * -1);padding:0 var(--space-2);border-bottom:1px solid var(--border-subtle)}
-.ibx-tabs button{flex:1 1 0;min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:5px;height:38px;margin-bottom:-1px;padding:0 var(--space-1);border:0;border-bottom:2px solid transparent;background:none;color:var(--text-body);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap;cursor:pointer}
+.ibx-tool.is-on{border-color:var(--primary);background:var(--fill-primary-soft);color:var(--primary)}
+.ibx-tabs{display:flex;margin:0 calc(var(--space-3) * -1);padding:0 var(--space-1);border-bottom:1px solid var(--border-subtle)}
+.ibx-tabs button{flex:1 1 0;min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:5px;height:36px;margin-bottom:-1px;padding:0 var(--space-1);border:0;border-bottom:2px solid transparent;background:none;color:var(--text-body);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap;cursor:pointer}
 .ibx-tabs button:hover{color:var(--text-heading)}
 .ibx-tabs button[aria-selected="true"]{border-bottom-color:var(--primary);color:var(--primary)}
 .ibx-tabs b{font-weight:var(--weight-medium);color:var(--text-muted);font-variant-numeric:tabular-nums}
 .ibx-tabs button[aria-selected="true"] b{color:var(--primary)}
-.ibx-chan{gap:4px;padding:0 var(--space-2)}
-.ibx-bulk{display:flex;align-items:center;gap:var(--space-1-5);flex:none;padding:var(--space-2) var(--space-2) var(--space-2) var(--space-4);border-bottom:1px solid var(--border-subtle);background:var(--fill-primary-soft)}
+.ibx-listhead .ib-chip{height:28px}
+.ibx-chanchip{gap:4px;padding:0 var(--space-2)}
+.ibx-bulk{display:flex;align-items:center;gap:6px;flex:none;min-height:44px;padding:6px 6px 6px var(--space-3);border-bottom:1px solid var(--border-subtle);background:var(--surface-subtle)}
 .ibx-bulk__all{display:inline-flex;align-items:center;gap:var(--space-2);margin-right:auto;font-size:var(--text-xs);color:var(--text-heading);white-space:nowrap}
-.ibx-bulk__all b{font-weight:var(--weight-medium)}
-.ibx-bulk .gc-btn--xs{padding:0 var(--space-2-5)}
-.ibx-bulk__x{width:30px;height:30px}
+.ibx-bulk__all b{font-weight:var(--weight-semibold)}
+.ibx-bulk .gc-check{width:16px;height:16px}
 .ibx-rows{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
 .ibx-loading{margin:0;padding:var(--space-6);text-align:center;font-size:var(--text-sm);color:var(--text-muted)}
 .ibx-ul{list-style:none;margin:0;padding:0}
-.ibx-row{display:flex;align-items:flex-start;gap:var(--space-3);width:100%;padding:var(--space-3) var(--space-4) var(--space-3) calc(var(--space-4) - 3px);border:0;border-left:3px solid transparent;border-bottom:1px solid var(--border-subtle);background:none;text-align:left;cursor:pointer;transition:background-color var(--duration-base) var(--ease-out)}
-.ibx-row:hover{background:var(--surface-page)}
+.ibx-row{display:flex;align-items:flex-start;gap:10px;width:100%;padding:10px var(--space-3) 10px calc(var(--space-3) - 3px);border:0;border-left:3px solid transparent;border-bottom:1px solid var(--border-subtle);background:none;text-align:left;cursor:pointer;transition:background-color var(--duration-base) var(--ease-out)}
+.ibx-row:hover{background:var(--surface-subtle)}
 .ibx-row[aria-current="true"]{border-left-color:var(--primary);background:var(--fill-primary-soft)}
 .ibx-row[aria-pressed="true"]{background:var(--fill-primary-soft)}
 .ibx-row:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus-ring)}
-.ibx-tick{display:grid;place-items:center;flex:none;width:20px;height:20px;margin-top:11px;border:1px solid var(--border-strong);border-radius:var(--radius-md);background:var(--surface-card);color:var(--text-inverse)}
+.ibx-tick{display:grid;place-items:center;flex:none;width:16px;height:16px;margin-top:10px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface-card);color:var(--text-inverse)}
 .ibx-tick.is-on{border-color:var(--primary);background:var(--primary)}
 .ibx-row__main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .ibx-row__top{display:flex;align-items:baseline;gap:var(--space-2)}
@@ -458,39 +469,35 @@ body:has(.ibx) .gc-ai{display:none}
 .ibx-row[data-unread] .ibx-row__name{font-weight:var(--weight-semibold);color:var(--text-heading)}
 .ibx-row__time{flex:none;font-size:var(--text-xs);color:var(--text-muted)}
 .ibx-row[data-unread] .ibx-row__time{font-weight:var(--weight-medium);color:var(--primary)}
-.ibx-row__prev{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--text-xs-plus);color:var(--text-muted)}
+.ibx-row__prev{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--text-xs);color:var(--text-muted)}
 .ibx-row[data-unread] .ibx-row__prev{color:var(--text-heading)}
-.ibx-row__foot{display:flex;align-items:center;gap:var(--space-1-5);min-height:24px;margin-top:4px;overflow:hidden}
-.ibx-row__foot .gc-badge{height:20px;padding:0 var(--space-1-5)}
-.ibx-row__end{display:flex;align-items:center;gap:var(--space-1-5);flex:none;margin-left:auto}
-.ibx-lbl{white-space:nowrap}
-/* tablets: two panes, the customer panel slides over */
+.ibx-row__foot{display:flex;align-items:center;gap:6px;min-height:20px;margin-top:2px;overflow:hidden}
+.ibx-row__foot .gc-badge{height:20px;padding:0 6px}
+.ibx-row__end{display:flex;align-items:center;gap:6px;flex:none;margin-left:auto}
 /* up to 1599px the conversation gets the room: narrower list and customer panel */
 @media (max-width:1599px){.ibx-app{grid-template-columns:minmax(260px,300px) minmax(0,1fr) minmax(260px,290px)}.ibx-app[data-panel="closed"]{grid-template-columns:minmax(260px,300px) minmax(0,1fr)}}
-@media (max-width:1279px){.ibx-app,.ibx-app[data-panel]{grid-template-columns:minmax(280px,320px) minmax(0,1fr)}}
+/* tablets: two panes, the customer panel slides over */
+@media (max-width:1279px){.ibx-app,.ibx-app[data-panel]{grid-template-columns:minmax(260px,300px) minmax(0,1fr)}}
 @media (max-width:1023px){.ibx .gc-shell__content.ibx-content{padding:var(--space-4)!important}}
 /* phones: tags that don't fit wrap to a second line; the assignee and unread count stay at the right edge */
 @media (max-width:640px){
   .ibx-row__foot{flex-wrap:wrap;row-gap:4px}
   .ibx-row__foot>*{flex:none;max-width:100%}
   .ibx-row__end{flex:none}
+  .ibx-tool{width:36px;height:36px}
 }
-/* phones: one pane at a time */
+/* phones: one pane at a time; the title row and the views hide while a conversation is open */
 @media (max-width:767px){
   .ibx .gc-shell__main.ibx-main{height:100dvh;min-height:0}
-  .ibx .gc-shell__content.ibx-content{gap:var(--space-3);padding:var(--space-3) 0 0!important}
-  .ibx-content>.gc-pagehead{padding:0 var(--space-4)}
-  .ibx-content>.gc-pagehead .gc-pagehead__desc{display:none}
+  .ibx .gc-shell__content.ibx-content{padding:var(--space-3) 0 0!important}
+  .ibx-page{gap:var(--space-2)}
+  .ibx-page>.ix-head,.ibx-views{padding:0 var(--space-4)}
+  .ibx-views{margin:0}
   .ibx-content[data-pane="thread"]{padding-top:0!important}
-  .ibx-content[data-pane="thread"]>.gc-pagehead{display:none}
-  .ibx-app,.ibx-app[data-panel]{grid-template-columns:minmax(0,1fr);border:0;border-top:1px solid var(--border-subtle);border-radius:0;box-shadow:none}
+  .ibx-content[data-pane="thread"] .ibx-page>.ix-head,.ibx-content[data-pane="thread"] .ibx-views{display:none}
+  .ibx-app,.ibx-app[data-panel]{grid-template-columns:minmax(0,1fr);border-top:1px solid var(--border-subtle);border-radius:0;box-shadow:none}
   .ibx-app[data-pane="list"] .ibx-thread,.ibx-app[data-pane="thread"] .ibx-list,.ibx-app[data-pane="queue"] .ibx-list,.ibx-app[data-pane="list"] .cm-queue{display:none}
   .ibx-list{border-right:0}
   .ibx .th-back{display:inline-flex}
-  .ibx-iconish{width:44px;padding:0}
-  .ibx-lbl{display:none}
-  .ibx-content>.gc-pagehead .gc-pagehead__actions{flex-wrap:nowrap}
-  .ibx-content>.gc-pagehead .ib-seg{flex:1;min-width:0}
-  .ibx-content>.gc-pagehead .ib-seg button{flex:1;justify-content:center;padding:0 var(--space-2)}
 }
 `;

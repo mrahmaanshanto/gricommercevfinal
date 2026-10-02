@@ -24,15 +24,22 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
     500 labels/buttons/badges, 600 headings and prices; 700 is not used.
   - Fonts: `var(--font-sans)` everywhere, `var(--font-bn)` for Bangla, `var(--font-data)` for IDs
     and figures. Monospace (`var(--font-code)`) is for code blocks only.
-  - Shape: buttons, inputs and selects are 44px tall with `var(--radius-lg)` (8px); cards and
-    panels `var(--radius-xl)` (12px); badges, chips, tabs and icon buttons `var(--radius-full)`.
+  - Shape: buttons, inputs and selects are 32px tall on a desktop and 44px on phones (`--control-height`), with
+    `var(--radius-lg)` (8px); cards and panels `var(--radius-xl)` (12px) with the soft card shadow; badges, chips and
+    icon buttons `var(--radius-full)`.
+  - Density (Shopify's admin, approved Oct 2026; `docs/shopify-style.md`): 20px page titles, 16px icons in buttons and
+    lists, 40px table rows, figures 14px. A page shows the main thing and the rest is one click away on the record.
+    Pages are built from `components/ui/IndexKit.jsx` (ShopHeader / RecordHeader, MetricStrip, IndexTabs, SearchField,
+    Pager, Menu, KV; classes `ix-*` at the end of design-system.css). References: `MerchantOrders.jsx`, `AllProducts.jsx`,
+    `Home.jsx`.
   - Muted text is `var(--text-muted)`, never `#94a3b8`.
   `npm run pattern` snaps literals back onto the tokens and re-applies the shell hooks (safe to
   rerun; needed after `npm run convert`).
 - Layout: no screen has a fixed width. Merchant screens use the shared shell classes (`gc-shell`,
   `gc-shell__main`, `gc-shell__content`) and the reflow hooks `gc-cols-2…6`, `gc-split`, `gc-side`,
   `gc-cardrow`, `gc-table-wrap`; their rules are at the end of `design-system.css`. The sidebar is a
-  rail below 1280px and a drawer below 1024px. One `<h1>` per screen (`<PageHeader>` or the hero title).
+  rail below 1280px and a drawer below 1024px. One `<h1>` per screen (`ShopHeader` / `RecordHeader`, `<PageHeader>` or
+  the hero title).
 - Shared behaviour lives in `src/components/ui` (`Overlays`, `Dialog`, `PageHeader`, `EmptyState`, `InfoTip`,
   `ChannelIcon`, `StatusBadge`) and `src/runtime/ui.js` (`toast`, `confirmDialog`, `getLocale`/`setLocale`).
   Success feedback is a `toast`, destructive actions ask with `confirmDialog`, a control without a
@@ -46,8 +53,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   a "Filter (n)" bottom sheet). `Sheet` is the side panel / bottom sheet; `PhoneActionBar` pins a form's main action
   to the bottom on phones. On phones list tables become cards on their own (`src/runtime/mobileTables.js`; a grid that
   must scroll sideways gets `gc-table--keep`), and statistic rows (`gc-kpis`, `gc-cardrow`) become a swipe strip.
-  Never show statistic cards that repeat the tabs under them: make the tabs summary tabs (`gc-stattabs` /
-  `gc-stattab`: label, count and amount, tap to filter — see Invoices). On phones the title and main button share a row.
+  Never show statistic cards that repeat the tabs under them: the counts go on the list's view tabs (`IndexTabs`) and
+  amounts in the card's foot line (see Invoices). On phones the title and main button share a row.
 - Short pages (UI/UX audit, Oct 2026): title → main action → 3–5 key facts → work list → details on click. No intro
   paragraphs or card subtitles that repeat what the page shows: a page's longer explanation goes in `PageHeader`'s
   `about` (hidden, read by Help); an explanation tied to one figure or setting goes behind `InfoTip` (components/ui,
@@ -87,7 +94,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   the prepaid "GridCommerce credits" account once a month (one expense row per service when the month closes); the
   subscription (by edition) and server & storage are charged to the card's bank on the 12th. They are generated ledger rows
   (`ledger.getEntries`), so Income & expenses, profit and reports show them; report "Platform & messaging costs".
-- Connections (`/connections`, Online store & settings › Connections; `src/lib/connections.js`): the one place where every
+- Connections (`/connections`, Settings › Connections; `src/lib/connections.js`): the one place where every
   outside app and service is connected — Sell online (Meta catalog, Google Merchant, WooCommerce, Shopify), Inbox & social
   (Facebook, Instagram, WhatsApp, TikTok, YouTube, Google Business, LinkedIn, X, Pinterest, Threads, Telegram), Ads &
   tracking, Payments, Delivery, SMS & email, Devices & tools. `APPS` lists them (group, brand for `components/BrandLogo`,
@@ -97,7 +104,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `GatewaySetup` (prop `provider`) on the Connections page; devices and tools go to their page. Every other "Connect"
   button points here (old Social accounts, Ad accounts and WordPress sync menu items are aliases of it / the WooCommerce
   channel; `/social-connections` redirects; the ad-accounts screen is `/ad-accounts`). New outside service → add it to `APPS`.
-- Sales channels (menu group; module `channels` in retail-wholesale, online, retail-online): product sync to Meta
+- Sales channels (an area; module `channels` in retail-wholesale, online, retail-online): product sync to Meta
   Commerce, Google Merchant Center, WooCommerce and Shopify. UI only — `src/lib/channels.js` simulates syncs (progress
   follows the clock: connecting → syncing → success / partly synced / processing / failed; `?sync=failed` makes the next one
   fail), product statuses from the real product list (`channelProducts`, `PRODUCT_CHS`), plain-word problems with the fix
@@ -117,20 +124,35 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `gc-cols--keep`. A title shares its row with the page's main button; long titles wrap between words. Put phone rules in
   the screen's own CSS inside `@media (max-width:640px)`; app screens (`src/screens/app`) use `src/styles/phone-app.css`,
   the platform console uses `src/styles/console-responsive.css` (its header comment lists the table/form/chart hooks).
-- Menu: `src/shell/navigation.js` (10 groups, at most two levels; Sales channels after Products & stock, Connections in
-  Online store & settings). Old menu ids still used by a screen's `active`
-  map to the new item through `NAV_ALIAS` (sidebar highlight and role access both read it).
+- Menu: business areas, as in Shopify's admin (`docs/reference-ux.md`, `docs/shopify-style.md`).
+  - `src/shell/navigation.js` lists the areas in two groups:
+    - Commerce: Home · Orders · Products · Inventory · Purchasing · Payments · Customers · Communications · Finances ·
+      Analytics · Marketing · Online Store · Sales channels · POS.
+    - Team & settings: Staff & HR · Team · Settings.
+  - An area's pages are its `children`:
+    - the sidebar shows the areas, and the open area lists its pages under it;
+    - an area row opens its first page the role can open.
+  - Page fields:
+    - `hidden` pages are create flows. They are not listed; they light up the page named in `under`.
+    - `tab` is a shorter name for the page under its area.
+  - Records (an order, a profile) and create flows keep their own address.
+  - A new page goes into an area's `children`, and into a module in `MODULES`.
+  - Page ids never change. Area ids are `area-*`. Old menu ids still used by a screen's `active` (including the old
+    parents, such as `stock-more` or `hr-time`) map to a page through `NAV_ALIAS`. The sidebar highlight and role
+    access both read it.
 - Language: the switch in the account menu, on sign-in and in Help calls `setLocale`. The shell translates itself
   (`src/shell/i18n.js`); every page is translated by `src/runtime/translateDom.js`, which swaps whole strings
   found in `src/lib/i18n/bn.js` (plus number patterns) and restores English on switch back. Words follow
   `docs/terminology.md` (one word per idea, EN + BN): add a string to both when you add UI copy. Never select
   elements in CSS/JS by their visible text, placeholder or a control's aria-label (they change in Bangla).
 - Home (`/merchant-overview`, `screens/merchant-overview/Home.jsx`) is built from the shared books via
-  `reports/dailySummary` (no sample numbers); sections can be hidden with Customise (`gc.home.layout`). The old
-  design screen `MerchantOverview.jsx` stays as reference. The top bar crumb comes from the menu group.
-  The Online edition has its own Home, `OnlineHome.jsx` (orders to act on first: attention, sales summary, latest
-  orders, in courier, low stock; then a compact wallet (total, arriving in 7 days, overdue), revenue overview,
-  visitors by hour, top products and customers; Customise = `gc.home.online`), drawn
+  `reports/dailySummary` (no sample numbers), laid out like Shopify's Home: the key figures (Sales, Orders, Money in
+  hand, This month against the target in `gc.home.layout`), a greeting with "Ask GridAI" (fires `gc:gridai`, which
+  opens the GridAI panel and asks), the day's to-do as pills, then Sales · last 7 days and Best sellers. The old
+  design screen `MerchantOverview.jsx` stays as reference. The top bar crumb is the page's area.
+  The Online edition has its own Home, `OnlineHome.jsx`, laid out like Home (figures: Sales, Orders, Visitors,
+  Conversion, Money in hand; greeting with Ask GridAI and to-do pills; Sales · last 30 days and Latest orders); the
+  Connect edition's `CommsHome.jsx` follows the same pattern. Charts are drawn
   with `components/charts/DashCharts.jsx` (ColumnChart with an optional line, Sparkline, Donut, StackBar, HBars,
   Legend: hover and arrow-key tooltips, a hidden table per chart, bars rise once on first show). Chart colours are
   the `--viz-1…8` tokens (checked for colour-blind separation; keep the order; a colour follows one thing across the
@@ -151,6 +173,29 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   takes it out at once (`orders.js › takeOrderStock`, may go below zero) and cancelling puts it back. Order items can
   carry a photo (`orderFlow.js › setLinePhoto`, resized to 480 px). The order page's Order verification card shows the
   customer's courier record (`orderLinks.js › courierHistory`: totals and each courier).
+- Product ↔ orders (Nayeem's briefs #1 Product + #4 Sales & Orders, merged Oct 2026; logic only, the UI is fixed):
+  - **One product master.** `stock.js › getCatalog()` is the stock catalogue plus the product list (`products.js`
+    demo rows and products saved in this browser). Each product or variant is one SKU row, carrying `st`,
+    `oversell`, `productId`, `mrp` and `barcodeType`. A demo product brings its own stock at Central Warehouse; a new
+    product starts at 0, and Add product › Opening stock posts it once as an `opening` stock move.
+  - **What can be sold** is decided in `lib/sellable.js`:
+    - only Active products are sellable;
+    - online and retail also need "sold to" Retail or Both and a price (wholesale needs a wholesale price);
+    - "Keep selling when out of stock (pre-order)" = `oversell` lets an out-of-stock item be ordered.
+    Create order uses `orderableItems()`. The register (`Pos.jsx`) and the inbox product pickers drop non-Active products.
+  - **Orders keep what was sold.** `orderLinks.js › addOrder` freezes each line (`listPrice`, `price`, `priceChanged`,
+    `cost`, `productId`, share of `discount` and `tax`) and stores the order's discount, VAT, note and tags.
+    - A hand-typed price and the discount are written to the order's activity.
+    - The same order sent twice within 20 s returns the first one (`duplicate: true`). Counter sales and orders with no
+      phone are never treated as repeats.
+  - **Order states.** `lib/orderStates.js` works out confirmation, payment, fulfilment, delivery, due, completed,
+    exceptions and the next step from what the order records. The orders CSV export carries them.
+  - **Each step happens once.**
+    - `approveOrder` returns false when the order is no longer new.
+    - `sendToCourier` returns the parcel already booked and refuses orders that aren't approved or packed.
+  - **Order notes.** Order detail's Order note and Internal note save when the field is left.
+  - **Barcodes.** "Make one" makes an in-store EAN-13 (starts with 2, `barcodeType: 'internal'`). Google Merchant
+    treats it as no GTIN (`channels.js`).
 - POS: `/pos` (`src/screens/pos-register/Pos.jsx`) is the one register; `/pos-manage` (`PosManage.jsx`) is its
   back office (counters, employees and shifts, cash pickups, settings). Both read and write
   `src/lib/posStore.js` (browser storage). Register shortcuts are listed in `SHORTCUTS` in `Pos.jsx` (F1 on screen).
@@ -168,7 +213,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `Holding` accounts; posting into one also queues it for that partner's payout. `src/lib/settlements.js` has the
   partner rules (fee, payout days, weekend + BD holidays), expected payouts, confirm / delay / withdraw and the
   evening check (`components/EveningCheck.jsx`, 8 PM). Accounts is six pages (`/accounts-home`, `/money`,
-  `/settlements`, `/expenses-bills`, `/account-reports`, `/account-setup`) sharing `screens/accounts/accShared.jsx`;
+  `/settlements`, `/expenses-bills`, `/account-reports`, `/account-setup`) sharing `screens/accounts/accShared.jsx`
+  (in the menu: the Finances area, and Payments for `/settlements` with Payment setup `/set-payments`);
   old Accounts addresses redirect in `next.config.mjs`. Gateways and couriers are set up with
   `components/GatewaySetup.jsx` (Settings › Payment Gateway and Accounts › Setup): straight to an account or settled
   later (automatic T+n, set weekdays / dates of the month, or manual withdraw), API keys, and the accounts it needs.
@@ -188,7 +234,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   element (letters, ID cards) with `lib/printNode.js`; loyalty
   (members, points, wallets, referrals; POS checkout reads it) `lib/loyalty.js`; blog posts, categories, authors
   `lib/blog.js`; inbox chats, comments and calls `lib/inbox.js`.
-- Reports: one menu group (after Accounts) and one page, `/reports-centre`. Every report is a definition in
+- Reports: the Analytics area (with Daily summary, Scheduled reports and Ads tracking) and one page, `/reports-centre`. Every report is a definition in
   `src/lib/reports/defs/<group>.js` (contract at the top of `src/lib/reports/catalogue.js`) rendered by
   `/report?id=<id>` (`screens/reports/ReportView.jsx`: period + compare, filters, KPIs, `components/reports/ReportChart`,
   `ReportTable` with a per-report column chooser, CSV and a letterhead PDF via print; `components/reports/PrintLetterhead`
@@ -209,5 +255,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `src/styles/console-responsive.css`. `?quiet=1` stops the evening payout check from opening by itself (tests, screenshots).
 - Reference pages (UI kit, flows, site map, storyboards) are under `/dev/…`. They and the POS /
   settings screen switchers only show in a production build when `NEXT_PUBLIC_SHOW_STORYBOARD=true`.
+- Proposal switches (branch `explore/nayeem-merge`; `docs/handoff-nayeem-merge.md`): parts of Nayeem's proposal are tried
+  behind switches in `src/lib/proposal.js` (`FLAGS` = the backlog; `isOn(key)`, `useProposal(key)` in `lib/useProposal.js`),
+  off by default, so all off = today's build. `/dev/proposal` flips them (only `built: true` ones) and opens a page both
+  ways; `/dev/proposal/doc` is `docs/proposal-vs-build.md` with the briefs' sections linked. `?p=a,b` / `?p=off` pins one
+  tab. The top bar (or a corner badge on pages without it) says "Proposal: N on". Switches only work while developing or
+  with `NEXT_PUBLIC_SHOW_STORYBOARD=true`. An experiment checks its key at the narrowest point, then sets `built: true`.
 - `npm run check:screens` fails when a screen brings back a literal the tokens replace.
 - Check changes with `npm run build` (prerenders every route) and by loading the screen.

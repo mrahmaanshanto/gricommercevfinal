@@ -1,58 +1,45 @@
 'use client';
-// Attendance — punches from the fingerprint device, POS log-in and the staff app, one record per
-// person per day (src/lib/hr.js). Fix or add a day by hand, accept staff fix requests, and see the
-// month register. The register feeds Payroll: absences, unpaid leave and lates become cuts, overtime is paid.
+// Attendance — punches from the fingerprint device, POS log-in and the staff app, one record per person per day
+// (src/lib/hr.js). Laid out like a Shopify list: the day's figures (the date stepper leads), then one card with the
+// views Day · Month register · Fix requests. A click on a day row fixes or marks it; fix requests open the review
+// drawer. The register feeds Payroll: absences, unpaid leave and lates become cuts, overtime is paid.
 
-import { HrReview } from './HrReview';
+import { HrReview, reviewRow } from './HrReview';
 import React, { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
-import { Dialog } from '@/components/ui';
+import { Dialog, StatusBadge } from '@/components/ui';
+import { MetricStrip, IndexTabs, LearnMore } from '@/components/ui/IndexKit';
 import {
   todayKey, addDays, dayLabel, dowOf, WEEKDAYS, keysOf, monthOf, addMonths, monthLabel, cellOf, monthSummary, dayPlan,
-  shiftBy, lateFor, toMin, t12, hm, saveAttendance, bulkAttendance, decideFix, staffBy, ATT_CODES, HR_PLACES, leaveType,
+  shiftBy, lateFor, toMin, t12, hm, saveAttendance, bulkAttendance, staffBy, ATT_CODES, HR_PLACES, leaveType,
 } from '@/lib/hr';
-import { HrPage, useHr, Person, ShiftChip } from './hrShared';
+import { HrPage, useHr, Person, ShiftChip, rowGo } from './hrShared';
 
 const CSS = `
-.at-tools{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3)}
-.at-nav{display:inline-flex;align-items:center;gap:var(--space-1);padding:3px;border:1px solid var(--border-subtle);border-radius:var(--radius-full);background:var(--surface-card)}
-.at-nav span{min-width:190px;text-align:center;font-weight:var(--weight-semibold);color:var(--text-heading);font-size:var(--text-sm)}
-.at-place{width:auto;min-width:200px;margin-left:auto}
-.at-day{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,320px)}
-.at-side{border-left:1px solid var(--border-subtle);padding:var(--space-4) var(--space-5);display:flex;flex-direction:column;gap:var(--space-3);background:var(--surface-quiet)}
-.at-side h2{margin:0;font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.at-fix{padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);display:flex;flex-direction:column;gap:6px;font-size:var(--text-xs)}
-.at-fix b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
-.at-rules{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:var(--text-xs);color:var(--text-body)}
 .at-reg{border-collapse:collapse;font-size:var(--text-xs)}
 .at-reg th,.at-reg td{border-bottom:1px solid var(--border-subtle)}
-.at-reg th{padding:8px 0;font-weight:var(--weight-medium);color:var(--text-muted);text-align:center;min-width:30px}
+.at-reg th{height:36px;padding:4px 0;font-weight:var(--weight-medium);color:var(--text-muted);text-align:center;min-width:28px;background:var(--surface-subtle)}
 .at-reg th.is-today{color:var(--primary)}
-.at-reg .at-name{position:sticky;left:0;z-index:1;background:var(--surface-card);text-align:left;padding:6px var(--space-4);white-space:nowrap;font-weight:var(--weight-medium);color:var(--text-heading);min-width:160px}
-.at-reg td{padding:3px 2px;text-align:center}
-.at-cell{display:inline-flex;width:26px;height:26px;align-items:center;justify-content:center;border:0;border-radius:var(--radius-md);font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);cursor:pointer;padding:0}
+.at-reg .at-name{position:sticky;left:0;z-index:1;background:var(--surface-card);text-align:left;padding:4px var(--space-3);white-space:nowrap;font-weight:var(--weight-medium);color:var(--text-heading);min-width:150px}
+.at-reg thead .at-name{background:var(--surface-subtle)}
+.at-reg td{padding:2px;text-align:center}
+.at-cell{display:inline-flex;width:24px;height:24px;align-items:center;justify-content:center;border:0;border-radius:var(--radius-md);font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);cursor:pointer;padding:0}
 .at-cell:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
 .at-cell--q{border:1px dashed var(--text-warning)}
-.at-tot{padding:6px 10px!important;text-align:right!important;font-variant-numeric:tabular-nums;white-space:nowrap}
-.at-legend{display:flex;flex-wrap:wrap;gap:var(--space-3);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle);font-size:var(--text-xs);color:var(--text-body)}
+.at-tot{padding:4px 8px!important;text-align:right!important;font-variant-numeric:tabular-nums;white-space:nowrap}
+.at-legend{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-3);padding:var(--space-3) var(--space-4);border-top:1px solid var(--border-subtle);font-size:var(--text-xs);color:var(--text-body)}
 .at-legend span{display:inline-flex;align-items:center;gap:6px}
 .at-legend i{display:inline-flex;width:18px;height:18px;border-radius:var(--radius-sm);align-items:center;justify-content:center;font-style:normal;font-size:var(--text-2xs);font-weight:var(--weight-medium)}
 .at-pick{max-height:260px;overflow:auto;display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-2);border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
-@media (max-width:1023px){.at-day{grid-template-columns:minmax(0,1fr)}.at-side{border-left:0;border-top:1px solid var(--border-subtle)}}
-@media (max-width:640px){.at-place{margin-left:0;width:100%}.at-nav span{min-width:0}}
-@media (max-width:640px){
-  /* page title + "More" + main button share one row: the title keeps whole words (never split mid-word),
-     the main button is a little narrower; if they still do not fit, the row wraps */
-  [data-screen="Attendance"] .gc-shell__content .gc-pagehead>.gc-pagehead__text{flex-basis:0!important;min-width:min-content!important}
-  [data-screen="Attendance"] .gc-pagehead__actions .gc-btn--solid{padding:0 var(--space-3)}
-}
+.at-day{display:inline-flex;align-items:center;gap:2px;white-space:nowrap;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.at-day span{padding:0 4px}
+.at-list{display:block}
 @media print{
   body *{visibility:hidden}
   .at-print,.at-print *{visibility:visible}
   .at-print{position:absolute;left:0;top:0;width:100%}
-  .at-print .gc-table-wrap{overflow:visible}
+  .at-print .ix-table-wrap{overflow:visible}
   .at-noprint{display:none!important}
 }
 `;
@@ -68,7 +55,7 @@ export default function Attendance() {
   const [edit, setEdit] = useState(null);   // { code, key, s, in, out, ot }
   const [fixReview, setFixReview] = useState(null); // a fix request in the review drawer
   const [bulk, setBulk] = useState(null);   // { key, codes, mode }
-  useEffect(() => { const v = new URLSearchParams(window.location.search).get('view'); if (v === 'month') setView('month'); }, []);
+  useEffect(() => { const v = new URLSearchParams(window.location.search).get('view'); if (v === 'month' || v === 'fixes') setView(v); }, []);
   const key = day || today;
   const mon = month || monthOf(today);
   const staff = S.staff.filter((st) => st.status !== 'left' && (!place || st.branch === place));
@@ -130,125 +117,145 @@ export default function Attendance() {
   };
   const set = S.settings;
 
+  const monthStepper = (
+    <span className="at-day">
+      <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Previous month" onClick={() => setMonth(addMonths(mon, -1))}><Icon name="chevron-left" width="16" height="16" aria-hidden="true" /></button>
+      <span>{monthLabel(mon)}</span>
+      <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Next month" disabled={mon >= monthOf(today)} onClick={() => setMonth(addMonths(mon, 1))}><Icon name="chevron-right" width="16" height="16" aria-hidden="true" /></button>
+    </span>
+  );
+  const dayStepper = (
+    <span className="at-day">
+      <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Previous day" onClick={() => setDay(addDays(key, -1))}><Icon name="chevron-left" width="16" height="16" aria-hidden="true" /></button>
+      <span>{key === today ? 'Today · ' : ''}{WEEKDAYS[dowOf(key)]} {dayLabel(key, true)}</span>
+      <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label="Next day" disabled={key >= today} onClick={() => setDay(addDays(key, 1))}><Icon name="chevron-right" width="16" height="16" aria-hidden="true" /></button>
+    </span>
+  );
+  const printRegister = () => { setView('month'); window.setTimeout(() => window.print(), 80); };
+  const tabs = [['day', 'Day'], ['month', 'Month register'], ['fixes', 'Fix requests', fixes.length]].map(([k, l, n]) => ({ key: k, id: 'at-tab-' + k, label: l, count: n, on: view === k, onClick: () => setView(k) }));
+  const canMark = (c) => c.plan.kind !== 'suspended' && c.plan.kind !== 'none';
+
   return (
-    <HrPage screen="Attendance" active="hr-attendance" page="Attendance" title="Attendance" css={CSS}
-      about="Punches come in from the fingerprint device, POS log-in and the staff app. Fix anything wrong here — every change is logged and flows into payroll."
-      actions={<>
-        <button type="button" className="gc-btn gc-btn--neutral" onClick={openBulk}><Icon name="list-checks" width="18" height="18" aria-hidden="true" /> Bulk entry</button>
-        <button type="button" className="gc-btn gc-btn--neutral" onClick={() => toast('The ZKTeco devices sync by themselves every few minutes. A CSV import from the device is not in the demo yet.', { tone: 'info' })}><Icon name="fingerprint" width="18" height="18" aria-hidden="true" /> Import from device</button>
-        <button type="button" className="gc-btn gc-btn--solid" onClick={() => openEdit(staff[0].code, key <= today ? key : today)}><Icon name="plus" width="18" height="18" aria-hidden="true" /> Add attendance</button>
-      </>}>
+    <HrPage screen="Attendance" active="hr-attendance" page="Attendance" title="Attendance" icon="calendar-check" css={CSS}
+      about="Punches come in from the fingerprint device, POS log-in and the staff app. Click a day to fix it — every change is logged and flows into payroll. Absences, unpaid leave and every few lates (HR setup › Attendance rules) are cut in payroll; overtime is paid."
+      secondary={[{ label: 'Bulk entry', onClick: openBulk }]}
+      more={[
+        { label: 'Import from device', onClick: () => toast('The ZKTeco devices sync by themselves every few minutes. A CSV import from the device is not in the demo yet.', { tone: 'info' }) },
+        { label: 'Print register', onClick: printRegister },
+        { label: 'Attendance rules', href: '/hr-setup?sec=att' },
+        { label: 'Attendance devices', href: '/attendance-devices' },
+      ]}
+      primary={{ label: 'Add attendance', onClick: () => openEdit(staff[0].code, key <= today ? key : today) }}>
 
-      <div className="at-tools">
-        {view === 'day' ? (
-          <div className="at-nav">
-            <button type="button" className="gc-iconbtn" aria-label="Previous day" onClick={() => setDay(addDays(key, -1))}><Icon name="chevron-left" width="18" height="18" /></button>
-            <span>{key === today ? 'Today · ' : ''}{WEEKDAYS[dowOf(key)]} {dayLabel(key, true)}</span>
-            <button type="button" className="gc-iconbtn" aria-label="Next day" disabled={key >= today} onClick={() => setDay(addDays(key, 1))}><Icon name="chevron-right" width="18" height="18" /></button>
-          </div>
-        ) : (
-          <div className="at-nav">
-            <button type="button" className="gc-iconbtn" aria-label="Previous month" onClick={() => setMonth(addMonths(mon, -1))}><Icon name="chevron-left" width="18" height="18" /></button>
-            <span>{monthLabel(mon)}</span>
-            <button type="button" className="gc-iconbtn" aria-label="Next month" disabled={mon >= monthOf(today)} onClick={() => setMonth(addMonths(mon, 1))}><Icon name="chevron-right" width="18" height="18" /></button>
-          </div>
-        )}
-        <div className="hr-seg" role="group" aria-label="View">
-          <button type="button" aria-pressed={view === 'day'} onClick={() => setView('day')}>Day</button>
-          <button type="button" aria-pressed={view === 'month'} onClick={() => setView('month')}>Month register</button>
+      <MetricStrip label="Attendance" lead={dayStepper} items={[
+        { label: 'Present', value: String(count(['P', 'L', 'HD'])), sub: count(['L']) ? `${count(['L'])} late` : null },
+        { label: 'On leave', value: String(count(['V', 'U'])) },
+        { label: 'Absent', value: String(count(['A'])), sub: count(['?']) ? `${count(['?'])} not marked` : null },
+        { label: 'Overtime', value: otToday ? hm(otToday) : '—' },
+        { label: 'On time this month', value: `${monthStats}%` },
+      ]} />
+
+      <section className={'ix-card' + (view === 'month' ? ' at-print' : '')} aria-label="Attendance">
+        <div className="ix-bar at-noprint">
+          <IndexTabs tabs={tabs} label="Attendance views" />
+          <span className="ix-tools">
+            <select className={'ix-filter' + (place ? ' is-set' : '')} aria-label="Location" value={place} onChange={(e) => setPlace(e.target.value)}>
+              <option value="">All locations</option>
+              {HR_PLACES.filter((p) => S.staff.some((s) => s.branch === p)).map((p) => <option key={p}>{p}</option>)}
+            </select>
+          </span>
         </div>
-        <select className="gc-input gc-select at-place" aria-label="Location" value={place} onChange={(e) => setPlace(e.target.value)}>
-          <option value="">All locations</option>
-          {HR_PLACES.filter((p) => S.staff.some((s) => s.branch === p)).map((p) => <option key={p}>{p}</option>)}
-        </select>
-      </div>
 
-      <div className="gc-kpis gc-kpis--tight">
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="user-check" width="20" height="20" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Present</p><p className="gc-kpi__value">{count(['P', 'L', 'HD'])}</p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-warning-soft)', color: 'var(--text-warning)' }}><Icon name="alarm-clock" width="20" height="20" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Late</p><p className="gc-kpi__value">{count(['L'])}</p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-info-soft)', color: 'var(--text-info)' }}><Icon name="plane" width="20" height="20" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">On leave</p><p className="gc-kpi__value">{count(['V', 'U'])}</p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-error-soft)', color: 'var(--text-danger)' }}><Icon name="user-x" width="20" height="20" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Absent</p><p className="gc-kpi__value">{count(['A'])}<small>{count(['?']) ? `${count(['?'])} not marked` : ''}</small></p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-primary-soft)', color: 'var(--primary)' }}><Icon name="timer" width="20" height="20" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">Overtime</p><p className="gc-kpi__value">{otToday ? hm(otToday) : '—'}</p></div></div>
-        <div className="gc-kpi"><span className="gc-kpi__icon" style={{ background: 'var(--fill-success-soft)', color: 'var(--text-success)' }}><Icon name="badge-check" width="20" height="20" aria-hidden="true" /></span><div className="gc-kpi__text"><p className="gc-kpi__label">On time this month</p><p className="gc-kpi__value">{monthStats}%</p></div></div>
-      </div>
-
-      {view === 'day' ? (
-        <section className="gc-card hr-card at-day">
-          <div className="gc-table-wrap">
-            <table className="gc-table gc-table--compact gc-table--hoverable">
-              <thead><tr><th scope="col">Staff</th><th scope="col">Shift</th><th scope="col">In</th><th scope="col">Out</th><th scope="col">Worked</th><th scope="col">Late</th><th scope="col">Overtime</th><th scope="col">Status</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
-              <tbody>
-                {rows.map(({ st, c }) => {
-                  const r = c.rec, [label, tone] = DAY_STATUS[c.code] || DAY_STATUS['·'];
-                  return (
-                    <tr key={st.code}>
-                      <td><Person st={st} sub={st.branch} /></td>
-                      <td>{c.plan.kind === 'work' ? c.plan.shifts.map((id) => <ShiftChip key={id} S={S} id={id} />) : c.plan.kind === 'leave' ? <span className="hr-sub">{leaveType(S, c.plan.leave.type).name} leave</span> : c.plan.kind === 'holiday' ? <span className="hr-sub">{c.plan.holiday}</span> : <span className="hr-sub">{c.plan.kind === 'off' ? 'Weekly off' : '—'}</span>}</td>
-                      <td className="hr-fig hr-strong">{r && r.in ? t12(r.in) : '—'}</td>
-                      <td className="hr-fig">{r && r.in ? (r.out ? t12(r.out) : <span className="hr-sub">{key === today ? 'still in' : 'no punch'}</span>) : '—'}</td>
-                      <td className="hr-fig">{worked(r)}</td>
-                      <td className={'hr-fig' + (r && r.late ? ' hr-warn' : '')}>{r && r.late ? `${r.late} min` : '—'}</td>
-                      <td className="hr-fig">{r && r.ot ? hm(r.ot) : '—'}</td>
-                      <td><span className={'gc-badge gc-badge--' + tone}>{label}</span>{r && r.src ? <span className="hr-sub">{r.src}</span> : null}</td>
-                      <td><div className="hr-actions">{c.plan.kind !== 'suspended' && c.plan.kind !== 'none' ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => openEdit(st.code, key)} aria-label={`${r ? 'Fix' : 'Mark'} ${st.name} on ${dayLabel(key)}`}>{r ? 'Fix' : 'Mark'}</button> : null}</div></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <aside className="at-side">
-            <h2>Fix requests <span className="hr-sub" style={{ display: 'inline' }}>· {fixes.length}</span></h2>
-            {fixes.length ? fixes.map((f) => {
-              const st = staffBy(S, f.code);
-              return (
-                <div key={f.id} className="at-fix">
-                  <b>{st.name} · {WEEKDAYS[dowOf(f.key)]} {dayLabel(f.key)}</b>
-                  <div className="hr-actions" style={{ justifyContent: 'flex-start' }}>
-                    <button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={() => setFixReview(f.id)} aria-label={`Review ${st.name}’s fix for ${dayLabel(f.key)}`}>Review</button>
-                  </div>
-                </div>
-              );
-            }) : <p className="hr-sub" style={{ margin: 0 }}>No fix requests waiting.</p>}
-            <Link href="/hr-setup?sec=att" className="hr-link" style={{ marginTop: 'var(--space-2)' }}>Attendance rules</Link>
-          </aside>
-        </section>
-      ) : (
-        <section className="gc-card hr-card at-print">
-          <div className="hr-head">
-            <div><h2>Attendance register · {monthLabel(mon)}</h2><p>Click a day to fix it. Absences, unpaid leave and every {set.latesPerCut} lates are cut in payroll.</p></div>
-            <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral at-noprint" onClick={() => window.print()}><Icon name="printer" width="14" height="14" aria-hidden="true" /> Print register</button>
-          </div>
-          <div className="gc-table-wrap">
-            <table className="at-reg">
-              <thead><tr>
-                <th scope="col" className="at-name">Staff</th>
-                {keysOf(mon).map((k) => <th key={k} scope="col" className={k === today ? 'is-today' : ''}>{Number(k.slice(8))}<div style={{ fontSize: 'var(--text-2xs)' }}>{WEEKDAYS[dowOf(k)].charAt(0)}</div></th>)}
-                <th scope="col" className="at-tot">P</th><th scope="col" className="at-tot">L</th><th scope="col" className="at-tot">A</th><th scope="col" className="at-tot">Lv</th><th scope="col" className="at-tot">OT</th>
-              </tr></thead>
-              <tbody>
-                {staff.map((st) => {
-                  const m = monthSummary(S, st.code, mon);
-                  return (
-                    <tr key={st.code}>
-                      <th scope="row" className="at-name">{st.name}</th>
-                      {keysOf(mon).map((k) => {
-                        const c = cellOf(S, st.code, k), [label, bg, fg, txt] = ATT_CODES[c.code] || ATT_CODES['·'];
-                        const can = k <= today && c.plan.kind !== 'none' && c.plan.kind !== 'suspended';
-                        return <td key={k}><button type="button" className={'at-cell' + (c.code === '?' ? ' at-cell--q' : '')} style={{ background: c.code === 'P' ? 'var(--fill-success-soft)' : bg, color: fg, cursor: can ? 'pointer' : 'default' }} title={`${st.name} · ${dayLabel(k)} · ${label}`} aria-label={`${st.name}, ${dayLabel(k)}: ${label}`} onClick={() => (can ? openEdit(st.code, k) : toast(k > today ? 'That day has not come yet.' : 'Nothing to mark on this day.', { tone: 'info' }))}>{txt}</button></td>;
-                      })}
-                      <td className="at-tot hr-in">{m.present}</td><td className="at-tot hr-warn">{m.late}</td><td className="at-tot hr-out">{m.absent}</td><td className="at-tot">{m.paidLeave + m.unpaidLeave}</td><td className="at-tot">{m.otMin ? hm(m.otMin) : '—'}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <div className="at-legend">
-            {['P', 'L', 'A', 'HD', 'V', 'U', 'W', 'H', 'S', '?'].map((c) => { const [l, bg, fg, t] = ATT_CODES[c]; return <span key={c}><i style={{ background: c === 'P' ? 'var(--fill-success-soft)' : bg, color: fg, border: c === '?' ? '1px dashed var(--text-warning)' : 0 }}>{t}</i>{l}</span>; })}
-          </div>
-        </section>
-      )}
+        {view === 'day' ? (
+          <>
+            <ul className="ix-plist" aria-label="Staff today">
+              {rows.map(({ st, c }) => {
+                const r = c.rec, [label, tone] = DAY_STATUS[c.code] || DAY_STATUS['·'];
+                return (
+                  <li key={st.code}>
+                    <button type="button" className="ix-pitem" disabled={!canMark(c)} onClick={() => openEdit(st.code, key)}>
+                      <span className="ix-pitem__top"><b>{st.name}</b><StatusBadge tone={tone === 'slate' ? 'neutral' : tone}>{label}</StatusBadge></span>
+                      <span className="ix-pitem__mid">{r && r.in ? `In ${t12(r.in)}${r.out ? ` · out ${t12(r.out)}` : ''}${r.late ? ` · ${r.late} min late` : ''}` : st.branch}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="ix-table-wrap">
+              <table className="ix-table gc-table--keep">
+                <caption className="sr-only">Attendance on {dayLabel(key, true)}</caption>
+                <thead><tr><th scope="col">Staff</th><th scope="col">Shift</th><th scope="col">In</th><th scope="col">Out</th><th scope="col">Worked</th><th scope="col">Late</th><th scope="col">Overtime</th><th scope="col">Status</th><th scope="col"><span className="sr-only">Fix</span></th></tr></thead>
+                <tbody>
+                  {rows.map(({ st, c }) => {
+                    const r = c.rec, [label, tone] = DAY_STATUS[c.code] || DAY_STATUS['·'];
+                    return (
+                      <tr key={st.code} onClick={canMark(c) ? rowGo(() => openEdit(st.code, key)) : undefined}>
+                        <td><Person st={st} /></td>
+                        <td>{c.plan.kind === 'work' ? c.plan.shifts.map((id) => <ShiftChip key={id} S={S} id={id} />) : <span className="ix-muted">{c.plan.kind === 'leave' ? `${leaveType(S, c.plan.leave.type).name} leave` : c.plan.kind === 'holiday' ? c.plan.holiday : c.plan.kind === 'off' ? 'Weekly off' : '—'}</span>}</td>
+                        <td className="hr-fig hr-strong">{r && r.in ? t12(r.in) : '—'}</td>
+                        <td className="hr-fig">{r && r.in ? (r.out ? t12(r.out) : <span className="ix-muted">{key === today ? 'still in' : 'no punch'}</span>) : '—'}</td>
+                        <td className="hr-fig">{worked(r)}</td>
+                        <td className={'hr-fig' + (r && r.late ? ' hr-warn' : '')}>{r && r.late ? `${r.late} min` : '—'}</td>
+                        <td className="hr-fig">{r && r.ot ? hm(r.ot) : '—'}</td>
+                        <td><span title={r && r.src ? r.src : undefined}><StatusBadge tone={tone === 'slate' ? 'neutral' : tone}>{label}</StatusBadge></span></td>
+                        <td className="hr-tdbtn">{canMark(c) ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => openEdit(st.code, key)} aria-label={`${r ? 'Fix' : 'Mark'} ${st.name} on ${dayLabel(key)}`}>{r ? 'Fix' : 'Mark'}</button> : null}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="ix-foot"><span>{rows.length === 1 ? '1 person' : `${rows.length} people`}</span></div>
+          </>
+        ) : view === 'fixes' ? (
+          fixes.length ? (
+            <ul className="ix-plist at-list" aria-label="Fix requests">
+                {fixes.map((f) => { const x = reviewRow(S, 'fix', f); return (
+                  <li key={f.id}>
+                    <button type="button" className="ix-pitem" onClick={() => setFixReview(f.id)} aria-label={`Review ${x.title}, ${x.sub}`}>
+                      <span className="ix-pitem__top"><b>{x.title}</b><span className="hr-link">Review</span></span>
+                      <span className="ix-pitem__mid">{x.sub}{f.text ? ` · ${f.text}` : ''}</span>
+                    </button>
+                  </li>
+                ); })}
+            </ul>
+          ) : <p className="hr-empty">No fix requests waiting.</p>
+        ) : (
+          <>
+            <div className="hr-sub2">{monthStepper}</div>
+            <div className="ix-table-wrap ix-table-wrap--show">
+              <table className="at-reg">
+                <caption className="sr-only">Attendance register, {monthLabel(mon)}</caption>
+                <thead><tr>
+                  <th scope="col" className="at-name">Staff</th>
+                  {keysOf(mon).map((k) => <th key={k} scope="col" className={k === today ? 'is-today' : ''}>{Number(k.slice(8))}<div style={{ fontSize: 'var(--text-2xs)' }}>{WEEKDAYS[dowOf(k)].charAt(0)}</div></th>)}
+                  <th scope="col" className="at-tot">P</th><th scope="col" className="at-tot">L</th><th scope="col" className="at-tot">A</th><th scope="col" className="at-tot">Lv</th><th scope="col" className="at-tot">OT</th>
+                </tr></thead>
+                <tbody>
+                  {staff.map((st) => {
+                    const m = monthSummary(S, st.code, mon);
+                    return (
+                      <tr key={st.code}>
+                        <th scope="row" className="at-name">{st.name}</th>
+                        {keysOf(mon).map((k) => {
+                          const c = cellOf(S, st.code, k), [label, bg, fg, txt] = ATT_CODES[c.code] || ATT_CODES['·'];
+                          const can = k <= today && c.plan.kind !== 'none' && c.plan.kind !== 'suspended';
+                          return <td key={k}><button type="button" className={'at-cell' + (c.code === '?' ? ' at-cell--q' : '')} style={{ background: c.code === 'P' ? 'var(--fill-success-soft)' : bg, color: fg, cursor: can ? 'pointer' : 'default' }} title={`${st.name} · ${dayLabel(k)} · ${label}`} aria-label={`${st.name}, ${dayLabel(k)}: ${label}`} onClick={() => (can ? openEdit(st.code, k) : toast(k > today ? 'That day has not come yet.' : 'Nothing to mark on this day.', { tone: 'info' }))}>{txt}</button></td>;
+                        })}
+                        <td className="at-tot hr-in">{m.present}</td><td className="at-tot hr-warn">{m.late}</td><td className="at-tot hr-out">{m.absent}</td><td className="at-tot">{m.paidLeave + m.unpaidLeave}</td><td className="at-tot">{m.otMin ? hm(m.otMin) : '—'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="at-legend">
+              {['P', 'L', 'A', 'HD', 'V', 'U', 'W', 'H', 'S', '?'].map((c) => { const [l, bg, fg, t] = ATT_CODES[c]; return <span key={c}><i style={{ background: c === 'P' ? 'var(--fill-success-soft)' : bg, color: fg, border: c === '?' ? '1px dashed var(--text-warning)' : 0 }}>{t}</i>{l}</span>; })}
+            </div>
+          </>
+        )}
+      </section>
+      <LearnMore topic="attendance" />
 
       <Dialog open={!!edit} title={edit && edit.had ? 'Fix attendance' : 'Add attendance'} onClose={() => setEdit(null)} width={560}
         footer={<>{edit && edit.had ? <button type="button" className="gc-btn gc-btn--neutral" style={{ marginRight: 'auto' }} onClick={() => { saveAttendance(edit.key, edit.code, null); toast('Record removed. The day shows from the roster again.', { tone: 'info' }); setEdit(null); }}>Remove record</button> : null}<button type="button" className="gc-btn gc-btn--neutral" onClick={() => setEdit(null)}>Cancel</button><button type="submit" form="at-edit" className="gc-btn gc-btn--solid">Save</button></>}>
@@ -260,6 +267,7 @@ export default function Attendance() {
                 <div><label className="gc-label" htmlFor="at-staff">Staff</label><select id="at-staff" className="gc-input gc-select" value={edit.code} disabled={edit.had} onChange={(e) => openEdit(e.target.value, edit.key)}>{S.staff.filter((s) => s.status !== 'left').map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}</select></div>
                 <div><label className="gc-label" htmlFor="at-date">Date</label><input id="at-date" type="date" className="gc-input" value={edit.key} max={today} disabled={edit.had} onChange={(e) => e.target.value && openEdit(edit.code, e.target.value)} /></div>
               </div>
+              {edit.had && ((S.att[edit.key] || {})[edit.code] || {}).src ? <p className="gc-help" style={{ margin: 0 }}>Recorded by {(S.att[edit.key] || {})[edit.code].src}</p> : null}
               <p className="gc-help" style={{ margin: 0 }}>{p.kind === 'work' ? `On ${sh ? `${sh.name} · ${t12(sh.start)}–${t12(sh.end)}, grace ${sh.graceMin} min` : 'no shift'}.` : p.kind === 'leave' ? `On ${leaveType(S, p.leave.type).name.toLowerCase()} leave that day — a record here overrides it.` : p.kind === 'holiday' ? `${p.holiday} (holiday) — worked anyway?` : p.kind === 'off' ? 'Weekly off — worked anyway?' : ''}</p>
               <div className="hr-seg" role="group" aria-label="Status">
                 {[['P', 'Present'], ['HD', 'Half day'], ['A', 'Absent']].map(([k, l]) => <button key={k} type="button" aria-pressed={edit.s === k} onClick={() => setEdit({ ...edit, s: k })}>{l}</button>)}
