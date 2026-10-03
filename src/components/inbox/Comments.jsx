@@ -9,7 +9,6 @@ import React, { useMemo, useState } from 'react';
 import { Icon } from '@/runtime/dc';
 import { toast, confirmDialog } from '@/runtime/ui';
 import { ChannelIcon, EmptyState } from '@/components/ui';
-import { formatBDT } from '@/lib/format';
 import {
   POSTS, INTENTS, SENTIMENTS, RULES, STAFF, ME, CHANNEL_IDS, channelName, staffName, ago, fillReply,
   getComments, saveComments, patchComment, deleteComment, getRules, saveRules, getReplies, countReplyUse, dmFromComment,
@@ -27,7 +26,7 @@ const matchFilter = (c, f) => ({
   spam: c.intent === 'spam' && c.status !== 'hidden',
   hidden: c.status === 'hidden',
 }[f]);
-const SORTS = [['open', 'Most unanswered'], ['new', 'Newest post'], ['count', 'Most comments'], ['sales', 'Attributed sales']];
+const SORTS = [['open', 'Most unanswered'], ['new', 'Newest post'], ['count', 'Most comments']];
 const QUICK = [
   ['Price + COD', 'Hi {name}! Price and details are in your inbox 💌 Cash on delivery all over Bangladesh.'],
   ['Check inbox', 'Thanks {name}! We have sent you a message — please check your inbox.'],
@@ -57,7 +56,7 @@ export function CommentsView({ now, onOpenConv, wide }) {
 
   const openOf = (pid) => comments.filter((c) => c.post === pid && c.status === 'open').length;
   const posts = useMemo(() => SHOWN.filter((p) => chan === 'all' || p.ch === chan).map((p) => ({ ...p, open: openOf(p.id), count: comments.filter((c) => c.post === p.id).length }))
-    .sort((a, b) => (sort === 'open' ? b.open - a.open : sort === 'count' ? b.count - a.count : sort === 'sales' ? b.sales - a.sales : 0)), [comments, chan, sort, live]); // eslint-disable-line react-hooks/exhaustive-deps
+    .sort((a, b) => (sort === 'open' ? b.open - a.open : sort === 'count' ? b.count - a.count : 0)), [comments, chan, sort, live]); // eslint-disable-line react-hooks/exhaustive-deps
   const cur = SHOWN.find((p) => p.id === post) || SHOWN[0] || POSTS[0];
   const here = comments.filter((c) => c.post === cur.id);
   const shown = here.filter((c) => matchFilter(c, filter) && (!q || (c.author + ' ' + c.text).toLowerCase().includes(q.toLowerCase()))).sort((a, b) => (a.status === 'open') === (b.status === 'open') ? b.at - a.at : a.status === 'open' ? -1 : 1);
@@ -119,10 +118,9 @@ export function CommentsView({ now, onOpenConv, wide }) {
         <div className="ibx-listhead">
           <div className="ibx-listhead__row">
             <h2 className="ib-h2">Posts and reels</h2>
-            <span className="ib-sub">{totalOpen} unanswered</span>
             <button type="button" className="gc-btn gc-btn--xs gc-btn--flat cm-sync" onClick={() => toast(`Synced ${new Set(SHOWN.map((p) => p.ch)).size} channels · no new comments`)}><Icon name="refresh-cw" width="14" height="14" aria-hidden="true" />Sync</button>
           </div>
-          <div className="ib-scroll-x" role="group" aria-label="Filter by channel">
+          <div className="cm-wrap" role="group" aria-label="Filter by channel">
             <button type="button" className="ib-chip" aria-pressed={chan === 'all'} onClick={() => setChan('all')}>All<b>{totalOpen}</b></button>
             {[...new Set(SHOWN.map((p) => p.ch))].map((ch) => (
               <button key={ch} type="button" className="ib-chip" aria-pressed={chan === ch} onClick={() => setChan(ch)} aria-label={channelName(ch)} title={channelName(ch)}>
@@ -141,7 +139,7 @@ export function CommentsView({ now, onOpenConv, wide }) {
                     <span className="cm-post__tile" data-ch={p.ch}>{p.kind}<span className="ib-av__ch"><ChannelIcon channel={p.ch} size={18} decorative /></span></span>
                     <span className="cm-post__text">
                       <span className="cm-post__top"><span className="cm-post__title">{p.title}</span><span className="ib-sub">{p.date.replace(' 2026', '')}</span></span>
-                      <span className="ib-sub">{p.count} comments{p.sales ? ' · ' + formatBDT(p.sales) + ' sales' : p.views ? ' · ' + p.views.toLocaleString('en-IN') + ' views' : ''}</span>
+                      <span className="ib-sub">{p.count} comments{p.views ? ' · ' + p.views.toLocaleString('en-IN') + ' views' : ''}</span>
                       <span className={'gc-badge gc-badge--' + (p.open ? (p.open > 4 ? 'error' : 'warning') : 'success')}>{p.open ? `${p.open} unanswered` : 'All answered'}</span>
                     </span>
                   </button>
@@ -169,10 +167,9 @@ export function CommentsView({ now, onOpenConv, wide }) {
               <span><b>{cur.reactions.toLocaleString('en-IN')}</b>Reactions</span>
               <span><b>{here.length}</b>Comments</span>
               <span><b>{cur.views ? cur.views.toLocaleString('en-IN') : cur.shares}</b>{cur.views ? 'Views' : 'Shares'}</span>
-              <span><b>{cur.sales ? formatBDT(cur.sales) : '—'}</b>Attributed sales</span>
             </div>
           </div>
-          <div className="cm-filters ib-scroll-x" role="group" aria-label="Filter comments">
+          <div className="cm-filters cm-wrap" role="group" aria-label="Filter comments">
             {FILTERS.map(([v, l]) => <button key={v} type="button" className="ib-chip" aria-pressed={filter === v} onClick={() => { setFilter(v); setSel([]); }}>{l}<b>{here.filter((c) => matchFilter(c, v)).length}</b></button>)}
           </div>
           <div className="cm-bar">
@@ -364,7 +361,10 @@ export const COMMENTS_CSS = `
 .cm-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:var(--space-4) var(--space-5) var(--space-6);display:flex;flex-direction:column;gap:var(--space-3)}
 .cm-post-card{padding:var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card)}
 .cm-caption{margin:0 0 var(--space-3);font-size:var(--text-sm);line-height:var(--text-sm-lh);color:var(--text-body)}
-.cm-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-3)}
+.cm-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-3)}
+/* chip rows wrap, so every channel and filter stays in view */
+.cm-wrap{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.cm-wrap .ib-chip{flex:none}
 .cm-stats span{display:flex;flex-direction:column;font-size:var(--text-xs);color:var(--text-muted)}
 .cm-stats b{font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading);font-variant-numeric:tabular-nums}
 .cm-filters{padding:2px 0}
@@ -433,7 +433,7 @@ export const COMMENTS_CSS = `
 .cm-saved>span{min-width:0;display:flex;flex-direction:column}
 .cm-saved b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 @container (max-width:560px){
-  .cm-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cm-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
   .cm-scroll{padding:var(--space-3) var(--space-3) var(--space-5)}
   .cm-item{padding:var(--space-3)}
   .cm-item .ib-av{display:none}

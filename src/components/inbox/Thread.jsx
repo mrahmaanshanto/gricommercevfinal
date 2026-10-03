@@ -292,7 +292,6 @@ function Bubble({ m, conv, orders, first, last, isNew, seen, reply, compact, act
             {pickerOpen ? <ReactPicker mine={mine} onPick={onReact} onClose={() => onPicker(false)} /> : null}
           </span> : null}
         </div>
-        {m.via && last ? <span className="ms-via">{m.via === 'comment' ? 'From a comment' : 'Via ' + channelName(m.via)}</span> : null}
         {seen ? <Seen status={seen} conv={conv} /> : null}
       </div>
     </div>
@@ -700,7 +699,6 @@ export const THREAD_CSS = MSGR_CSS + `
 .ms-row--out .ms-picker{right:0}
 .ms-act{display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:var(--radius-full);background:none;color:var(--text-muted);cursor:pointer}
 .ms-act:hover{background:var(--surface-subtle);color:var(--text-heading)}
-.ms-via{margin:0 var(--space-3);font-size:var(--text-xs);color:var(--text-muted)}
 .ms-seen{display:inline-flex;align-self:flex-end;margin-top:2px;color:var(--text-muted);animation:ms-fadein var(--duration-base) ease-out}
 .ms-seen--delivered{color:var(--primary)}
 .ms-seen .ib-av{box-shadow:0 0 0 1px var(--surface-card)}

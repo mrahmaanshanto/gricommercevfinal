@@ -28,11 +28,11 @@ import { getOrders } from '@/lib/orders';
 import { getCustomers } from '@/lib/customers';
 import {
   ME, STAFF, CHANNEL_IDS, channelName, staffName, firstName, getConvs, patchConv, addMessages, addConversation, mergeConversations,
-  getTags, addTag as saveTag, getReplies, getComments, statusOf, lastAny, lastAt, waitingMinutes, previewOf, ago, whenText, comeback, samePhone,
+  getTags, addTag as saveTag, getReplies, getComments, statusOf, lastAny, lastAt, waitingMinutes, previewOf, whenText, comeback, samePhone,
   lockOf, holdLock, releaseLock, replyStateOf, demoTeammateTyping, getMentions, openMentions, teamMentions,
 } from '@/lib/inbox';
 import { REPLY_TONE } from '@/lib/channelCaps';
-import { useInbox, useNow, useMedia, Avatar, StaffAvatar, SlaChip, Menu, MenuItem, Sheet, SearchBox, PARTS_CSS } from '@/components/inbox/parts';
+import { useInbox, useNow, useMedia, Avatar, StaffAvatar, Menu, MenuItem, Sheet, SearchBox, PARTS_CSS } from '@/components/inbox/parts';
 import { Thread, THREAD_CSS } from '@/components/inbox/Thread';
 import { CustomerPanel, TagMenu, PANEL_CSS } from '@/components/inbox/CustomerPanel';
 import { SavedRepliesDialog, MergeDialog, NewConversationDialog, SnoozeDialog, DIALOGS_CSS } from '@/components/inbox/Dialogs';
@@ -48,6 +48,9 @@ import { CH_CSS } from '@/screens/channels/chShared';
 import Link from 'next/link';
 
 const VIEWS = ['comments', 'mentions', 'reviews'];
+// the list rows leave out the waiting time and where a chat came from ("From a comment"): the chat itself shows that
+const SOURCE_TAGS = ['From a comment', 'From a mention'];
+const rowTags = (c) => (c.tags || []).filter((g) => !SOURCE_TAGS.includes(g));
 const TABS = [['open', 'Open'], ['pending', 'Pending'], ['snoozed', 'Snoozed'], ['closed', 'Closed']];
 const SORTS = [['recent', 'Newest message'], ['waiting', 'Waiting longest'], ['unread', 'Unread first'], ['oldest', 'Oldest message']];
 const WHO = [['all', 'All'], ['mine', 'Mine'], ['unassigned', 'Unassigned']];
@@ -413,13 +416,12 @@ export default function MerchantInbox() {
                                 {picking ? <span className={'ibx-tick' + (on ? ' is-on' : '')} aria-hidden="true">{on ? <Icon name="check" width="14" height="14" /> : null}</span> : null}
                                 <Avatar name={c.name} avatar={c.avatar} pos={c.pos} ch={c.ch} size={36} />
                                 <span className="ibx-row__main">
-                                  <span className="ibx-row__top"><span className="ibx-row__name">{c.name}</span><span className="ibx-row__time">{ago(last ? last.at : 0, t)}</span></span>
+                                  <span className="ibx-row__top"><span className="ibx-row__name">{c.name}</span></span>
                                   <span className="ibx-row__prev">{lead}{previewOf(vis)}</span>
                                   <span className="ibx-row__foot">
-                                    <SlaChip minutes={wait} />
                                     {c.blocked ? <span className="gc-badge gc-badge--error">Blocked</span> : null}
-                                    {(c.tags || []).slice(0, 2).map((g) => <span key={g} className={'gc-badge gc-badge--' + (tags[g] || 'slate')}>{g}</span>)}
-                                    {(c.tags || []).length > 2 ? <span className="ib-sub">+{c.tags.length - 2}</span> : null}
+                                    {rowTags(c).slice(0, 2).map((g) => <span key={g} className={'gc-badge gc-badge--' + (tags[g] || 'slate')}>{g}</span>)}
+                                    {rowTags(c).length > 2 ? <span className="ib-sub">+{rowTags(c).length - 2}</span> : null}
                                     <span className="ibx-row__end"><StaffAvatar id={c.assignee} size={20} />{c.unread ? <span className="ib-count">{c.unread}</span> : null}</span>
                                   </span>
                                 </span>
@@ -543,8 +545,6 @@ body:has(.ibx) .gc-ai{display:none}
 .ibx-row__top{display:flex;align-items:baseline;gap:var(--space-2)}
 .ibx-row__name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-body)}
 .ibx-row[data-unread] .ibx-row__name{font-weight:var(--weight-semibold);color:var(--text-heading)}
-.ibx-row__time{flex:none;font-size:var(--text-xs);color:var(--text-muted)}
-.ibx-row[data-unread] .ibx-row__time{font-weight:var(--weight-medium);color:var(--primary)}
 .ibx-row__prev{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--text-xs);color:var(--text-muted)}
 .ibx-row[data-unread] .ibx-row__prev{color:var(--text-heading)}
 .ibx-row__foot{display:flex;align-items:center;gap:6px;min-height:20px;margin-top:2px;overflow:hidden}
