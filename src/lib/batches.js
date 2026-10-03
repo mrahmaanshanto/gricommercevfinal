@@ -63,7 +63,7 @@ export function writeOffBatch(id, by = 'Staff') {
   if (!b) return null;
   const left = leftOf(b);
   const p = productBy(b.sku) || productBy(b.name);
-  if (p && left) addMove({ sku: p.sku, place: b.place, qty: -left, kind: 'write-off', reason: b.expiry < Date.now() ? 'Expired' : 'Expiring · written off early', by, ref: b.id });
+  if (p && left) addMove({ sku: p.sku, place: b.place, qty: -left, kind: 'write-off', reason: b.expiry < Date.now() ? 'Expired' : 'Expiring · written off early', by, ref: b.id, batch: b.id, op: b.id + ':writeoff' });
   write(list.map((x) => (x.id === id ? { ...x, done: true, doneAt: Date.now(), doneWhy: 'Written off', left } : x)));
   return { ...b, left };
 }

@@ -32,6 +32,7 @@ import { usePlaceList } from '@/lib/usePlaces';
 import { onlinePlace } from '@/lib/locations';
 import { productBy, stockAt } from '@/lib/stock';
 import { getCustomers, findCustomer, saveCustomerOnce, ADDED_FROM } from '@/lib/customers';
+import { checkOrder } from '@/lib/restrictions';
 
 
 const CUST_TYPES = ['Online', 'Retail', 'Wholesale'];   // how a customer buys; one, two or all three
@@ -294,6 +295,10 @@ export default function NewOrder() {
     if (!validate(true)) return;
     const adv = Number(advance);
     if (terms === 'partial' && !(adv > 0 && adv < total)) { setErrors({ advance: `Enter an advance between ৳1 and ${formatBDT(total - 1)}.` }); return; }
+    // the customer's restrictions (blocked, no COD, prepaid above an amount …) stop the order here
+    const rc = checkOrder(customer.phone, { amount: total, payment: terms === 'full' ? '' : 'cod' });
+    if (!rc.ok) { toast(rc.blocks[0], { tone: 'error' }); return; }
+    if (rc.warnings.length) toast(rc.warnings[0], { tone: 'info' });
     creating.current = true;
     const label = status === 'approved' ? 'Approved' : 'New';
     const row = addOrder({ lines, customer: customer.name, phone: customer.phone, zone: delivery ? delivery.label : 'Not set', total, status: label, payment: PAYMENT_LABEL[terms], address: customer.address || '', shipping: deliveryFee, paid: terms === 'full' ? total : terms === 'partial' ? adv : 0,

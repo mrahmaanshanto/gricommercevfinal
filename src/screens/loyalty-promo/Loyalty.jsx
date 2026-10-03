@@ -20,6 +20,7 @@ import { LoyPage, Stepper, Switch, useLoyalty, money, pts, plural } from './loyS
 import { InfoTip } from '@/components/ui';
 import { MetricStrip, KV } from '@/components/ui/IndexKit';
 
+const LOY_MSGS = [['tier', 'New level'], ['credit', 'Store credit added'], ['referral', 'Invite reward ready'], ['birthday', 'Birthday gift'], ['expiring', 'Points expiring']];
 const AMTS = [500, 2500, 10000];
 const MONTH = (t) => new Date(t).toLocaleString('en', { month: 'long' });
 
@@ -98,13 +99,13 @@ export default function Loyalty() {
     <LoyPage screen="Loyalty" active="loy-home" title="Loyalty & rewards" icon="crown" css={CSS}
       about="Reward loyal customers. They collect points when they buy and use them as money off next time; points they hold are a promise you keep until they are used."
       secondary={[{ label: 'See members', href: '/members' }]}
-      more={[{ label: 'Product points', href: '/product-points' }, { label: 'Customer wallet', href: '/wallet' }, { label: 'Invite a friend', href: '/referrals' }, { label: 'Bills to pay', href: '/liabilities' }, { label: 'Sales & profit', href: '/sales-profit' }]}
+      more={[{ label: 'Product points', href: '/product-points' }, { label: 'Store credit', href: '/wallet' }, { label: 'Invite a friend', href: '/referrals' }, { label: 'Bills to pay', href: '/liabilities' }, { label: 'Sales & profit', href: '/sales-profit' }]}
       primary={{ label: 'Save rules', onClick: save }}>
       <MetricStrip items={[
         { label: 'Members', value: data ? pts(data.members.length) : '—', sub: data ? `+${data.joined} joined in ${data.monthLabel}` : '', href: '/members' },
         { label: 'Points customers hold', value: data ? money(data.liab.value) : '—', sub: data ? `${pts(data.liab.points)} points` : '' },
         { label: `Loyalty cost · ${data ? data.monthLabel : 'this month'}`, value: data ? money(data.month.total) : '—', sub: data ? `${data.lastLabel}: ${money(data.last.total)}` : '' },
-        { label: 'Customer wallets', value: data ? money(data.wallets.wallets) : '—', sub: data ? plural(data.wallets.customers.filter((c) => c.wallet > 0).length, 'customer') : '', href: '/wallet' },
+        { label: 'Store credit', value: data ? money(data.wallets.wallets) : '—', sub: data ? plural(data.wallets.customers.filter((c) => c.wallet > 0).length, 'customer') : '', href: '/wallet' },
       ]} />
 
       <div className="ix-record">
@@ -161,14 +162,28 @@ export default function Loyalty() {
             <header className="ix-card__head"><h2 id="lo-s4">Turn on or off</h2></header>
             <div className="ix-card__body">
               <div className="ly-set"><div><b>Reward points <InfoTip text="Customers earn and use points" /></b></div><Switch on={draft.on.points} onToggle={() => setOn('points')} label="Reward points" /></div>
-              <div className="ly-set"><div><b>Customer wallet <InfoTip text="Customers can keep money with you (bKash, Nagad, bank) and pay from it" /></b></div><Switch on={draft.on.wallet} onToggle={() => setOn('wallet')} label="Customer wallet" /></div>
-              <div className="ly-set"><div><b>Invite a friend <InfoTip text={draft.referral.kind === 'comm' ? `The customer gets ${draft.referral.pct}% of the friend’s first order in the wallet; the friend gets ${draft.referral.friendPoints} welcome points` : `Both get ${draft.referral.points} points when the friend’s first order is delivered`} /></b></div><Switch on={draft.on.referral} onToggle={() => setOn('referral')} label="Invite a friend" /></div>
+              <div className="ly-set"><div><b>Store credit <InfoTip text="Credit for returns, sorry gifts and rewards, spent on a later order. Never topped up or paid out in cash." /></b></div><Switch on={draft.on.wallet} onToggle={() => setOn('wallet')} label="Store credit" /></div>
+              <div className="ly-set">
+                <div><b>{draft.creditExpiryMonths ? `Store credit expires after ${draft.creditExpiryMonths} months` : 'Store credit never expires'}</b></div>
+                {draft.creditExpiryMonths ? <Stepper label="months before store credit expires" value={draft.creditExpiryMonths} min={3} max={36} onChange={(v) => set({ creditExpiryMonths: v })} /> : null}
+                <Switch on={!!draft.creditExpiryMonths} onToggle={() => set({ creditExpiryMonths: draft.creditExpiryMonths ? 0 : 12 })} label="Store credit expires" />
+              </div>
+              <div className="ly-set"><div><b>Invite a friend <InfoTip text={draft.referral.kind === 'comm' ? `The customer gets ${draft.referral.pct}% of the friend’s first order as store credit; the friend gets ${draft.referral.friendPoints} welcome points` : `Both get ${draft.referral.points} points when the friend’s first order is delivered`} /></b></div><Switch on={draft.on.referral} onToggle={() => setOn('referral')} label="Invite a friend" /></div>
               <div className="ly-set">
                 <div><b>Points expire after {draft.expiryMonths} months <InfoTip text="Unused points are removed. Customers get an SMS 7 days before." /></b></div>
                 {draft.expireOn ? <Stepper label="months before points expire" value={draft.expiryMonths} min={3} max={36} onChange={(v) => set({ expiryMonths: v })} /> : null}
                 <Switch on={draft.expireOn} onToggle={() => set({ expireOn: !draft.expireOn })} label="Points expire" />
               </div>
               <div className="ly-set"><div><b>Also at the POS counter <InfoTip text="The cashier types the phone number; points are added to the same account" /></b></div><Switch on={draft.on.pos} onToggle={() => setOn('pos')} label="Also at the POS counter" /></div>
+            </div>
+          </section>
+
+          <section className="ix-card" aria-labelledby="lo-msg">
+            <header className="ix-card__head"><h2 id="lo-msg">Messages to members <InfoTip text="Sent by Communications, which checks consent, the Don’t message list, quiet hours and message limits." /></h2><Link href="/campaigns-messaging?view=templates">Templates</Link></header>
+            <div className="ix-card__body">
+              {LOY_MSGS.map(([k, label]) => (
+                <div key={k} className="ly-set"><div><b>{label}</b></div><Switch on={draft.messages[k] !== false} onToggle={() => set({ messages: { ...draft.messages, [k]: draft.messages[k] === false } })} label={label} /></div>
+              ))}
             </div>
           </section>
 
@@ -203,11 +218,11 @@ export default function Loyalty() {
             </div>
           </section>
           <section className="ix-card" aria-labelledby="lo-books">
-            <header className="ix-card__head"><h2 id="lo-books">In your books <InfoTip text="Points and wallet money are held for customers (Accounts › Liabilities). Points used and rewards given are costs of the channel (Accounts › Sales & profit)." /></h2><Link href="/liabilities">Bills to pay</Link></header>
+            <header className="ix-card__head"><h2 id="lo-books">In your books <InfoTip text="Points and store credit are held for customers (Accounts › Liabilities). Points used and rewards given are costs of the channel (Accounts › Sales & profit)." /></h2><Link href="/liabilities">Bills to pay</Link></header>
             <div className="ix-card__body">
               <KV rows={[
                 ['Held as points', data ? money(data.liab.value) : '—'],
-                ['Held in wallets', data ? money(data.wallets.wallets) + (data.wallets.advances ? ` + ${money(data.wallets.advances)} advances on invoices` : '') : '—'],
+                ['Held as store credit', data ? money(data.wallets.wallets) + (data.wallets.advances ? ` + ${money(data.wallets.advances)} advances on invoices` : '') : '—'],
                 [`Points used · ${data ? data.monthLabel : ''}`, data ? money(pointsLine(data.month, 'points')) : '—'],
                 [`Rewards and referral credit · ${data ? data.monthLabel : ''}`, data ? money(pointsLine(data.month, 'reward')) : '—'],
               ]} />

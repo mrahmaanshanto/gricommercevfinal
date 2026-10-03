@@ -12,6 +12,8 @@ import { Sidebar, Topbar } from '@/shell/Shell';
 import { toast } from '@/runtime/ui';
 import { ChannelIcon, Sheet, StatusBadge, EmptyState } from '@/components/ui';
 import { ShopHeader, MetricStrip, IndexTabs, SearchField, LearnMore, Menu, KV } from '@/components/ui/IndexKit';
+import { MessageList, THREAD_CSS } from '@/components/inbox/Thread';
+import { PARTS_CSS } from '@/components/inbox/parts';
 
 // ---- logic ----
 
@@ -40,12 +42,33 @@ const TICKETS = {
   '2284': { subject: 'Size exchange arranged for Friday', customer: 'Mahmuda Alam', initials: 'MA', ch: 'instagram', priority: 'Normal', status: 'Solved', sla: 'SLA met', assignee: 'Tasnim' },
 };
 const TABS = [['all', 'All'], ...STATUSES.map((s) => [s, s])];
+const MIN = 60000;
+/** The first messages of a ticket (demo): how it came in, the customer's words and the team's notes. */
+function threadSeed(t) {
+  const now = Date.now();
+  const at = (min) => now - min * MIN;
+  const id = 'tk' + t.id + '-';
+  if (t.full) {
+    return [
+      { id: id + 1, at: at(52), from: 'customer', type: 'call', dir: 'in', dur: 134 },
+      { id: id + 2, at: at(51), from: 'system', type: 'text', icon: 'phone-incoming', text: 'Ticket created from the call by Rina · recording attached' },
+      { id: id + 3, at: at(50), from: 'customer', type: 'text', text: 'Ekta saree add korte chai, difference bKash e dicchi.' },
+      { id: id + 4, at: at(44), from: 'note', by: 'rina', type: 'text', text: 'Stock confirmed — 6 left of JAM-114. Courier pickup 5 PM, needs packing hold. @Tasnim please hold it.' },
+      { id: id + 5, at: at(40), from: 'system', type: 'text', icon: 'merge', text: 'Earlier Instagram chat merged into this ticket · 4 messages' },
+    ];
+  }
+  return [
+    { id: id + 1, at: at(90), from: 'system', type: 'text', icon: 'life-buoy', text: 'Ticket opened from ' + CHANNEL_NAME[t.ch] },
+    { id: id + 2, at: at(89), from: 'customer', type: 'text', text: t.subject },
+    ...(t.status === 'Solved' ? [{ id: id + 3, at: at(30), from: 'agent', by: 'rina', type: 'text', text: 'Done! Anything else we can help with?', status: 'read' }] : []),
+  ];
+}
 const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many || one + 's');
 
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.state = { view: props.view === 'board' ? 'board' : 'list', tab: 'all', q: '', find: false, ch: '', pri: '', who: '', hot: false, over: {}, sel: '', reply: 'public', draft: '' };
+    this.state = { view: props.view === 'board' ? 'board' : 'list', tab: 'all', q: '', find: false, ch: '', pri: '', who: '', hot: false, over: {}, sel: '', reply: 'public', draft: '', thread: {} };
   }
   componentDidMount() {
     // the board is five columns wide: phones open on the list, the board stays one tap away
@@ -111,9 +134,12 @@ class Component extends DCLogic {
       send: () => {
         if (!st.draft.trim()) { toast(st.reply === 'public' ? 'Write the reply first' : 'Write the note first', { tone: 'error' }); return; }
         toast(st.reply === 'public' ? 'Reply sent on ' + CHANNEL_NAME[cur.ch] : 'Internal note added');
-        this.setState({ draft: '' });
+        const msg = { id: 'tm-' + Date.now().toString(36), at: Date.now(), from: st.reply === 'public' ? 'agent' : 'note', by: 'rina', type: 'text', text: st.draft.trim(), status: 'sent' };
+        this.setState((s) => ({ draft: '', thread: { ...s.thread, [cur.id]: [...(s.thread[cur.id] || []), msg] } }));
       },
       soon: () => toast(SOON, { tone: 'info' }),
+      // the ticket's conversation, Messenger style (components/inbox/Thread.jsx › MessageList): what came in, notes, replies
+      conv: cur ? { id: 'tk-' + cur.id, name: cur.customer, avatar: cur.img || '', pos: cur.imgPos || '', ch: cur.ch === 'phone' ? '' : cur.ch, messages: [...threadSeed(cur), ...(st.thread[cur.id] || [])] } : null,
     };
   }
 }
@@ -150,14 +176,14 @@ const CSS = `
 .tk-field{display:flex;gap:var(--space-2)}
 .tk-field .gc-input{flex:1;min-width:0}
 .tk-h3{margin:0;font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.tk-acts{display:flex;flex-direction:column;gap:var(--space-3)}
-.tk-act{display:flex;gap:10px;font-size:var(--text-xs-plus);color:var(--text-heading)}
-.tk-act>svg{flex:none;margin-top:2px;color:var(--text-muted)}
-.tk-act small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .tk-quick{display:flex;flex-wrap:wrap;gap:6px}
 .tk-tag{align-self:flex-start}
 .tk-order{font-family:var(--font-data)}
 .tk-note{background:var(--fill-warning-soft)}
+.gc-sheet__body>*{flex-shrink:0}
+.tk-thread{display:flex;min-height:120px;flex-direction:column;gap:var(--space-1);max-height:360px;overflow-y:auto;overflow-x:hidden;padding:var(--space-3);border-radius:var(--radius-xl);background:var(--surface-page)}
+.tk-thread .ms-row{max-width:88%}
+.tk-thread .th-note{max-width:94%}
 `;
 
 // ---- markup ----
@@ -168,7 +194,7 @@ export default class SupportTicketsScreen extends Component {
     const t = v.t;
     return (
       <div className="dc-screen ds" data-screen="SupportTickets">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
+        <style dangerouslySetInnerHTML={{ __html: PARTS_CSS + THREAD_CSS + CSS }} />
         <div className="gc-shell">
           <Sidebar sticky="" active="tickets" />
           <div className="gc-shell__main">
@@ -325,17 +351,10 @@ export default class SupportTicketsScreen extends Component {
               t.full ? ['Tags', 'Created from call · order-change'] : null,
             ]} />
             <button type="button" className="ix-btn ix-btn--sm tk-tag"><Icon name="plus" width="16" height="16" aria-hidden="true" />Tag</button>
-            <h3 className="tk-h3">Activity</h3>
-            {t.full ? (
-              <div className="tk-acts">
-                <div className="tk-act"><Icon name="phone-incoming" width="16" height="16" aria-hidden="true" /><span>Ticket created from inbound call by Rina<small>Today 11:06 · recording attached (2:14)</small></span></div>
-                <div className="tk-act"><Icon name="quote" width="16" height="16" aria-hidden="true" /><span>“Ekta saree add korte chai, difference bKash e dicchi.”<small>Today 11:04 · call transcript</small></span></div>
-                <div className="tk-act"><Icon name="sticky-note" width="16" height="16" aria-hidden="true" /><span>Stock confirmed — 6 left of JAM-114. Courier pickup 5 PM, needs packing hold.<small>Internal note · Rina</small></span></div>
-                <div className="tk-act"><Icon name="message-square" width="16" height="16" aria-hidden="true" /><span>Earlier Instagram DM thread merged into this ticket<small>Today 10:11 · 4 messages</small></span></div>
-              </div>
-            ) : (
-              <div className="tk-act"><ChannelIcon channel={t.ch} size={16} decorative /><span>Ticket opened from {t.channel} by {t.customer}<small>{t.status} · {t.sla}</small></span></div>
-            )}
+            <h3 className="tk-h3">Conversation</h3>
+            <div className="tk-thread th-msgs" role="log" aria-label={'Conversation on ' + t.ref}>
+              <MessageList conv={v.conv} now={Date.now()} actions={false} compact />
+            </div>
             <h3 className="tk-h3">Reply</h3>
             <div className="gc-seg" role="group" aria-label="Reply type">
               <button type="button" className={'gc-seg__btn' + (v.isPublic ? ' gc-seg__btn--active' : '')} aria-pressed={v.isPublic} onClick={v.setPublic}>Reply to customer</button>

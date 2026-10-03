@@ -4,6 +4,7 @@
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
+import TemplatesCard from './TemplatesCard';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon, list as __list } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
@@ -113,6 +114,8 @@ export default class CatalogSetupScreen extends Component {
                 <ShopHeader icon="settings-2" title="Catalog setup"
                   about="Custom fields, attributes, brands, units, tax rates, size charts and warranty policies that every product uses."
                   more={[{ label: 'Categories', href: '/categories' }, { label: 'Warranty policies', href: '/warranty-policies' }, { label: 'All products', href: '/all-products' }]} />
+
+                <TemplatesCard />
 
                 <section className="ix-card cs-card" aria-label="Catalog setup">
                   <div className="ix-bar">

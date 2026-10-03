@@ -275,7 +275,7 @@ html.dark{
   /* application shell — two floating cards on a desk */
   --shell-inset:8px;             /* desk gutter + gap between sidebar and main card */
   --main-sidebar-width:76px;     /* collapsed icon rail */
-  --sidebar-panel-width:240px;   /* expanded nav panel */
+  --sidebar-panel-width:264px;   /* expanded nav panel (console-style tiles, Oct 2026) */
   --sidebar-panel-min-width:76px;
   --header-height:56px;
   --margin-x:24px;               /* page gutter inside the main card */
@@ -1118,6 +1118,10 @@ body:has(#nl-badge-frame) .au-root{padding-bottom:var(--host-badge)}
 .ix-head__title>svg{flex:none;color:var(--text-muted)}
 .ix-head__title>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ix-head__actions{display:flex;flex:none;align-items:center;gap:var(--space-2)}
+.ix-head--mid{flex-wrap:wrap;row-gap:var(--space-2)}
+.ix-head--mid .ix-head__title{flex:none}
+.ix-head__mid{flex:1;min-width:0;display:flex;align-items:center;margin-left:var(--space-4)}
+@media (max-width:640px){.ix-head--mid .ix-head__title{flex:1}.ix-head__mid{order:3;flex-basis:100%;margin-left:0;overflow-x:auto;scrollbar-width:none}}
 .ix-btn{display:inline-flex;flex:none;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);box-shadow:var(--shadow-xs);font:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);line-height:1;color:var(--text-heading);text-decoration:none;white-space:nowrap;cursor:pointer;transition:var(--transition-colors)}
 .ix-btn:hover{background:var(--surface-subtle);color:var(--text-heading)}
 .ix-btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}

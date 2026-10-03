@@ -7,15 +7,22 @@
 //   fulfilment    unfulfilled · stock held · stock taken · packing · packed · fulfilled · cancelled
 //   delivery      not booked · in transit · out for delivery · delivery failed · delivered · returning · returned · picked up
 //   due           what the customer still owes (0 when paid or cancelled)
-//   completed     delivered and nothing left to collect from the customer
-//   exceptions    ['Possible duplicate', 'Delivery failed', 'Part paid', …] — things that need a look
+//   completed     worked out by the shop's rule (orderRules.js › completionOf): delivered + fully paid + the return
+//                 window passed. completion = { done, at, wait, text }; Delivered stays a step before it.
+//   proof         'to review' when a payment proof waits (paymentProof.js), else ''
+//   custom        the shop's own sub-status label (orderRules.js), or ''
+//   exceptions    ['Possible duplicate', 'Delivery failed', 'Payment to review', …] — things that need a look
 //   next          { key, label }: the one next step for the order
-// Pure: pass the order (as orders.js › getOrders shapes it) and, if known, its verification and holds.
+// Pass the order (as orders.js › getOrders shapes it) and, if known, its verification and holds.
+
+import { completionOf, customStatusOf, getOrderRules } from './orderRules';
+import { proofToReview } from './paymentProof';
+import { editRequestOf } from './orderEdit';
 
 const NEW = ['onhold', 'processing', 'pending'];
 const COUNTER = (o) => /^(POS|Wholesale)/.test(String(o.channel || '')) || !!o.isInvoice;
 
-export function orderStates(o, { verify = o && o.verify, held = false, duplicate = false } = {}) {
+export function orderStates(o, { verify = o && o.verify, held = false, duplicate = false, rules = getOrderRules(), now } = {}) {
   if (!o) return null;
   const k = o.statusKey;
   const counter = COUNTER(o);
@@ -50,7 +57,11 @@ export function orderStates(o, { verify = o && o.verify, held = false, duplicate
     : 'not booked';
 
   const due = k === 'cancelled' || payment === 'paid' || payment === 'refunded' ? 0 : Math.max(0, amount - (paid || 0));
-  const completed = (k === 'delivered') && due === 0;
+  const completion = completionOf(o, { rules, due, ...(now ? { now } : {}) });
+  const completed = completion.done;
+  const proof = proofToReview(o) ? 'to review' : '';
+  const custom = (customStatusOf(o, rules) || {}).label || '';
+  const editAsked = !!editRequestOf(o);
 
   const exceptions = [];
   if (duplicate) exceptions.push('Possible duplicate');
@@ -58,15 +69,22 @@ export function orderStates(o, { verify = o && o.verify, held = false, duplicate
   if (confirmation === 'failed') exceptions.push('Customer not confirmed');
   if (k === 'delivered' && due > 0 && !cod) exceptions.push('Delivered, not paid');
   if (o.advance && o.advance.state === 'requested' && NEW.includes(k)) exceptions.push('Advance requested');
+  if (proof) exceptions.push('Payment to review');
+  if (editAsked) exceptions.push('Edit to review');
+  if (Number(o.refundDue) > 0) exceptions.push('Refund owed');
+  // paid more after the parcel was booked: the courier still has the old COD amount
+  if (o.sentAt && k === 'shipped' && Number(o.codAmount) > due) exceptions.push('COD to update');
 
   const next = k === 'cancelled' || completed ? { key: 'none', label: 'Nothing to do' }
+    : proof ? { key: 'review', label: 'Review payment' }
     : NEW.includes(k) ? (confirmation === 'confirmed' ? { key: 'approve', label: 'Approve' } : { key: 'confirm', label: 'Confirm customer' })
     : k === 'approved' ? { key: 'pack', label: 'Prepare parcel' }
     : k === 'ready' ? { key: 'send', label: 'Send to courier' }
     : k === 'shipped' ? { key: 'track', label: delivery === 'delivery failed' ? 'Call the customer' : 'Track parcel' }
     : k === 'returned' ? { key: 'receive', label: 'Receive the return' }
     : due > 0 ? { key: 'collect', label: 'Collect payment' }
+    : k === 'delivered' && !completed ? { key: 'complete', label: completion.text }
     : { key: 'none', label: 'Nothing to do' };
 
-  return { confirmation, payment, method: cod ? 'COD' : (o.method || ''), fulfilment, delivery, due, completed, exceptions, next };
+  return { confirmation, payment, method: cod ? 'COD' : (o.method || ''), fulfilment, delivery, due, completed, completion, proof, custom, exceptions, next };
 }

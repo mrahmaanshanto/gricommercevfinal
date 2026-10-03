@@ -64,7 +64,7 @@ export function accountForMethod(method, atCounter) {
 export function accountsForMethod(method) {
   const m = String(method || '').toLowerCase();
   const type = m === 'cash' ? 'Cash' : m === 'bank' || m === 'card' || m === 'bank transfer' ? 'Bank' : 'Mobile';
-  return ACCOUNTS.filter((a) => a.type === type && !a.credits && (m !== 'bkash' || a.id === 'bkash') && (m !== 'nagad' || a.id === 'nagad') && (m !== 'rocket' || a.id === 'rocket'));
+  return ACCOUNTS.filter((a) => a.type === type && !a.credits && !isArchived(a.id) && (m !== 'bkash' || a.id === 'bkash') && (m !== 'nagad' || a.id === 'nagad') && (m !== 'rocket' || a.id === 'rocket'));
 }
 /** The shop's own money accounts (not the partners' holding accounts, not the GridCommerce credits balance). */
 export const OWN_ACCOUNTS = () => ACCOUNTS.filter((a) => a.type !== 'Holding' && !a.credits);
@@ -121,4 +121,67 @@ export function balanceOf(idOrName, entries = getEntries()) {
   const acc = accountBy(idOrName);
   if (!acc) return 0;
   return Math.round((acc.opening + entries.filter((x) => x.account === acc.id).reduce((a, x) => a + x.amount, 0)) * 100) / 100;
+}
+
+// ---- account properties, archive / restore (brief #6) ---------------------------------------------
+// Each money account carries: currency, branch, who may use it (roles from team.js), how its statement is
+// matched, the date it was last matched and whether it is active or archived. Kept in gc.ledger.props
+// (id -> changes); the defaults below are the demo shop's. An account can be archived only when it holds
+// ৳0, so money never disappears from the books; its history stays. Front end only.
+const PROPS_KEY = 'gc.ledger.props';
+export const CURRENCIES = [['BDT', 'Bangladeshi taka (৳)']];
+/** How statement lines are matched to this account's entries (statementImport.js). */
+export const MATCH_RULES = [['amount', 'Same amount, within 3 days'], ['ref', 'Same amount and reference'], ['manual', 'By hand only']];
+const PROPS_SEED = {
+  'cash-shop': { branch: 'Head office', roles: ['ceo'], match: 'manual' },
+  safe: { branch: 'Dhanmondi branch', roles: ['ceo', 'shop-manager'], match: 'manual' },
+  drawer: { branch: 'Dhanmondi branch', roles: ['shop-manager', 'shop-supervisor', 'seller'], match: 'manual' },
+  citybank: { branch: 'Head office', roles: ['ceo'], lastMatched: new Date(2026, 8, 30, 18, 0).getTime() },
+  brac: { branch: 'Head office', roles: ['ceo'], match: 'amount', lastMatched: new Date(2026, 8, 25, 17, 0).getTime() },
+  dbbl: { branch: 'Head office', roles: ['ceo'] },
+  bkash: { branch: 'Head office', roles: ['ceo', 'orders'], match: 'ref', lastMatched: new Date(2026, 8, 30, 21, 0).getTime() },
+  nagad: { branch: 'Head office', roles: ['ceo', 'orders'], match: 'ref' },
+  rocket: { branch: 'Head office', roles: ['ceo'], match: 'ref' },
+};
+const readProps = () => { try { return JSON.parse(window.localStorage.getItem(PROPS_KEY)) || {}; } catch { return {}; } };
+/** { currency, branch, roles: [], match, lastMatched (ms|null), status: 'active'|'archived', archivedAt, archivedBy } */
+export function accountProps(id) {
+  const acc = accountBy(id);
+  const key = acc ? acc.id : id;
+  const stored = typeof window === 'undefined' ? {} : readProps()[key] || {};
+  return { currency: 'BDT', branch: '', roles: [], match: 'amount', lastMatched: null, status: 'active', ...(PROPS_SEED[key] || {}), ...stored };
+}
+export function setAccountProps(id, patch) {
+  const acc = accountBy(id);
+  if (!acc) return null;
+  const all = readProps();
+  all[acc.id] = { ...(all[acc.id] || {}), ...patch };
+  try { window.localStorage.setItem(PROPS_KEY, JSON.stringify(all)); } catch { /* ignore */ }
+  changed();
+  return accountProps(acc.id);
+}
+export const isArchived = (id) => accountProps(id).status === 'archived';
+/** The shop's own accounts that are still in use (pickers hide archived ones; lists and history keep them). */
+export const ACTIVE_ACCOUNTS = () => OWN_ACCOUNTS().filter((a) => !isArchived(a.id));
+/**
+ * Archive an account. Allowed only when it holds ৳0. Returns { ok, message }.
+ * Partner holding accounts are archived by removing the partner (Setup › Payment partners), not here.
+ */
+export function archiveAccount(id, by = 'Staff') {
+  const acc = accountBy(id);
+  if (!acc) return { ok: false, message: 'That account could not be found.' };
+  if (acc.type === 'Holding' || acc.credits) return { ok: false, message: `${acc.name} is kept by GridCommerce and can’t be archived.` };
+  const bal = balanceOf(acc.id);
+  if (Math.abs(bal) >= 0.005) {
+    const amt = '৳' + Math.abs(bal).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    return { ok: false, balance: bal, message: bal > 0 ? `${acc.name} still holds ${amt}. Move it to another account first; only an account at ৳0 can be archived.` : `${acc.name} is ${amt} below zero. Bring it back to ৳0 first; only an account at ৳0 can be archived.` };
+  }
+  setAccountProps(acc.id, { status: 'archived', archivedAt: Date.now(), archivedBy: by });
+  return { ok: true, message: `${acc.name} archived. Its history stays.` };
+}
+export function restoreAccount(id) {
+  const acc = accountBy(id);
+  if (!acc) return { ok: false, message: 'That account could not be found.' };
+  setAccountProps(acc.id, { status: 'active', archivedAt: null, archivedBy: null });
+  return { ok: true, message: `${acc.name} restored.` };
 }

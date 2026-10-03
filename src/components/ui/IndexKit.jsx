@@ -72,11 +72,13 @@ export function Menu({ label = 'More actions', icon, items, cls = 'ix-btn', alig
 
 /** The title row: a small icon and the title, quiet buttons, "More actions", one primary button. On a phone the
  *  quiet buttons move into "More actions", so the title shares its row with the primary button. */
-export function ShopHeader({ icon, title, about, secondary = [], more = [], primary }) {
+export function ShopHeader({ icon, title, about, secondary = [], more = [], primary, middle }) {
   const menu = [...secondary.map((a) => ({ ...a, only: 'phone' })), ...more];
+  // `middle` sits in the title row between the title and the actions (e.g. the Inbox's Chats / Comments / Mentions tabs)
   return (
-    <header className="ix-head">
+    <header className={'ix-head' + (middle ? ' ix-head--mid' : '')}>
       <h1 className="ix-head__title">{icon ? <Icon name={icon} width="18" height="18" aria-hidden="true" /> : null}<span>{title}</span></h1>
+      {middle ? <div className="ix-head__mid">{middle}</div> : null}
       {about ? <span className="gc-pagehead__about" hidden>{about}</span> : null}
       <div className="ix-head__actions">
         {secondary.map((a) => <Act key={a.label} a={a} cls="ix-btn ix-head__sec" />)}

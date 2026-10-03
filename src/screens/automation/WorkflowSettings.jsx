@@ -1,51 +1,35 @@
 'use client';
-// Workflow settings — a Shopify-style settings form (components/ui/IndexKit.jsx RecordHeader): quiet hours, spending
-// limits, what needs approval, who can do what and what happens when a step fails on the left; the names customers
-// see messages from on the right. Field help sits behind (i) tips.
+// Workflow settings — the Communications settings, set once for every sender (Nayeem's brief #11): quiet hours and
+// message limits per message class (src/lib/messagePolicy.js, read by campaigns, automations, recovery reminders,
+// loyalty messages and order notifications), how AI replies to customers (src/lib/aiReply.js), the suppression list
+// (src/lib/suppression.js), then what needs approval, who can do what and what happens when a step fails. The names
+// customers see messages from are on the right. Field help sits behind (i) tips.
+// A Shopify-style settings form (components/ui/IndexKit.jsx RecordHeader).
 // Edit freely: this file is the source for the screen.
 
-import React from 'react';
-import { DCLogic, Icon } from '@/runtime/dc';
+import React, { useEffect, useState } from 'react';
+import { Icon } from '@/runtime/dc';
 import { Sidebar, Topbar } from '@/shell/Shell';
-import { toast } from '@/runtime/ui';
-import { InfoTip, StatusBadge } from '@/components/ui';
+import { toast, confirmDialog } from '@/runtime/ui';
+import { InfoTip, StatusBadge, Dialog } from '@/components/ui';
 import { RecordHeader } from '@/components/ui/IndexKit';
+import { CLASSES, CLASS_INFO, DEFAULT_POLICY, getPolicy, savePolicy, quietText, inQuietHours } from '@/lib/messagePolicy';
+import { AI_MODES, AI_INTENTS, DEFAULT_AI, getAiSettings, saveAiSettings, inOfficeHours, aiAction, AI_ACT_WORD } from '@/lib/aiReply';
+import { getSuppressions, suppress, unsuppress, REASONS } from '@/lib/suppression';
+import { formatDate } from '@/lib/format';
+import { clockNow } from '@/lib/settlements';
 
 // ---- logic ----
 
 const ROLES = ['Manager', 'Order team', 'Marketing', 'Branch staff'];
 const RIGHTS = ['See runs', 'Turn rules on or off', 'Build workflows'];
 const DEF = { Manager: [1, 1, 1], 'Order team': [1, 1, 0], Marketing: [1, 1, 1], 'Branch staff': [1, 0, 0] };
-// key -> [default, step, min, max]
-const STEP = { qFrom: [21, 1, 18, 23], qTo: [9, 1, 6, 11], perCust: [2, 1, 1, 5], retry: [3, 1, 0, 5], pauseAfter: [10, 5, 5, 50] };
-const SW = { qFriday: true, apBulk: true, apRefund: true, apTransfer: true, failNotify: true };
+const SW = { apBulk: true, apRefund: true, apTransfer: true, failNotify: true };
 const SENDERS = [{ l: 'SMS name', v: 'GridShop', s: 'Approved' }, { l: 'WhatsApp', v: '+880 1711-482093', s: 'Verified business' }, { l: 'Email', v: 'hello@gridshop.com.bd', s: 'Verified' }];
-function hh(n) { const ap = n >= 12 ? 'pm' : 'am'; return (n % 12 || 12) + ' ' + ap; }
-
-class Component extends DCLogic {
-  state = { perm: {}, cap: '500' };
-  num(k) { return this.state[k] == null ? STEP[k][0] : this.state[k]; }
-  stepper(k, show) {
-    const [, step, min, max] = STEP[k];
-    const v = this.num(k);
-    return { v: show ? show(v) : v, dec: () => this.setState({ [k]: Math.max(min, v - step) }), inc: () => this.setState({ [k]: Math.min(max, v + step) }) };
-  }
-  sw(k) { const on = this.state[k] == null ? SW[k] : this.state[k]; return { on, toggle: () => this.setState({ [k]: !on }) }; }
-  renderVals() {
-    const s = this.state;
-    return {
-      headline: 'Quiet ' + hh(this.num('qFrom')) + ' to ' + hh(this.num('qTo')) + ' · daily limit ৳' + Number(s.cap || 0).toLocaleString('en-IN'),
-      qFrom: this.stepper('qFrom', hh), qTo: this.stepper('qTo', hh), perCust: this.stepper('perCust'), retry: this.stepper('retry'), pauseAfter: this.stepper('pauseAfter'),
-      sw: (k) => this.sw(k),
-      cap: s.cap, onCap: (e) => this.setState({ cap: String(e.target.value || '').replace(/\D/g, '') }),
-      roles: ROLES.map((r) => {
-        const p = s.perm[r] || DEF[r];
-        return { n: r, c: RIGHTS.map((lab, i) => ({ on: !!p[i], aria: r + ': ' + lab, toggle: () => { const q = p.slice(); q[i] = p[i] ? 0 : 1; this.setState({ perm: { ...s.perm, [r]: q } }); } })) };
-      }),
-      save: () => toast('Workflow settings saved'),
-    };
-  }
-}
+const CH_WORD = { sms: 'SMS', whatsapp: 'WhatsApp', email: 'Email' };
+const DAYS = [[6, 'Sat'], [0, 'Sun'], [1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu'], [5, 'Fri']];
+const hh = (n) => (((n % 24) + 24) % 24 % 12 || 12) + ' ' + ((((n % 24) + 24) % 24) >= 12 ? 'pm' : 'am');
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 // ---- styles ----
 
@@ -74,136 +58,258 @@ const CSS = `
 .ws-send:last-child{border-bottom:0}
 .ws-send__top{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-muted)}
 .ws-send b{overflow-wrap:anywhere;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.ws-cls{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) 0;border-bottom:1px solid var(--border-subtle)}
+.ws-cls:first-child{padding-top:0}
+.ws-cls:last-child{padding-bottom:0;border-bottom:0}
+.ws-cls__top{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.ws-cls__top>span:first-child{flex:1;min-width:0}
+.ws-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2)}
+.ws-mode{display:flex;flex-direction:column;gap:2px;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-card);font:inherit;text-align:left;cursor:pointer}
+.ws-mode[aria-pressed="true"]{border-color:var(--primary);background:var(--fill-primary-soft)}
+.ws-mode b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.ws-mode small{font-size:var(--text-xs);color:var(--text-muted)}
+.ws-now{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-muted)}
+.ws-sup{display:flex;align-items:center;gap:var(--space-3);padding:8px 0;border-bottom:1px solid var(--border-subtle)}
+.ws-sup:last-child{border-bottom:0}
+.ws-sup__text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ws-sup__text b{overflow-wrap:anywhere;font-family:var(--font-data);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.ws-sup__text small{font-size:var(--text-xs);color:var(--text-muted)}
+.ws-form{display:flex;flex-direction:column;gap:var(--space-3)}
+@media (max-width:640px){.ws-modes{grid-template-columns:minmax(0,1fr)}}
 `;
 
 // ---- markup ----
 
-function Stepper({ s, label, unit }) {
+function Stepper({ v, label, unit, onDec, onInc }) {
   return (
     <span className="ws-inline">
       <span className="ws-step">
-        <button type="button" aria-label={'Less ' + label} onClick={s.dec}><Icon name="minus" width="16" height="16" aria-hidden="true" /></button>
-        <span>{s.v}</span>
-        <button type="button" aria-label={'More ' + label} onClick={s.inc}><Icon name="plus" width="16" height="16" aria-hidden="true" /></button>
+        <button type="button" aria-label={'Less ' + label} onClick={onDec}><Icon name="minus" width="16" height="16" aria-hidden="true" /></button>
+        <span>{v}</span>
+        <button type="button" aria-label={'More ' + label} onClick={onInc}><Icon name="plus" width="16" height="16" aria-hidden="true" /></button>
       </span>
       {unit ? <span>{unit}</span> : null}
     </span>
   );
 }
 
-function Switch({ s, label, tip }) {
+function Switch({ on, toggle, label, tip }) {
   return (
     <div className="ws-row">
       <span className="ws-row__text">{label}{tip ? <InfoTip text={tip} /> : null}</span>
-      <button type="button" className="gc-switch" role="switch" aria-checked={s.on} aria-label={label} onClick={s.toggle}><span className="gc-switch__knob" /></button>
+      <button type="button" className="gc-switch" role="switch" aria-checked={on} aria-label={label} onClick={toggle}><span className="gc-switch__knob" /></button>
     </div>
   );
 }
 
-export default class WorkflowSettingsScreen extends Component {
-  render() {
-    const v = this.renderVals();
-    return (
-      <div className="dc-screen ds" data-screen="WorkflowSettings">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div className="gc-shell">
-          <Sidebar sticky="" active="auto-settings" />
-          <main className="gc-shell__main">
-            <Topbar crumb="Automation" page="Workflow settings" />
-            <div className="gc-shell__content">
-              <div className="ix-page ix-page--narrow">
-                <RecordHeader back="/automations" backLabel="Rules" title="Workflow settings" meta={v.headline}
-                  about="Rules for every automation: when customers are never messaged, how much rules may spend, what waits for a manager, who may change rules and what happens when a step fails."
-                  primary={{ label: 'Save', onClick: v.save }} />
+export default function WorkflowSettingsScreen() {
+  const [p, setP] = useState(DEFAULT_POLICY);      // message policy (first render = defaults; the saved one after mount)
+  const [ai, setAi] = useState(DEFAULT_AI);
+  const [sups, setSups] = useState([]);
+  const [sw, setSw] = useState(SW);
+  const [perm, setPerm] = useState({});
+  const [retry, setRetry] = useState(3);
+  const [pauseAfter, setPauseAfter] = useState(10);
+  const [adding, setAdding] = useState(null);     // { channel, address, reason }
+  const [now, setNow] = useState(0);
+  useEffect(() => { setP(getPolicy()); setAi(getAiSettings()); setSups(getSuppressions()); setNow(clockNow()); }, []);
 
-                <div className="ix-record">
-                  <div className="ix-main">
-                    <section className="ix-card ix-card--open" aria-labelledby="ws-quiet">
-                      <header className="ix-card__head"><h2 id="ws-quiet">Quiet hours <InfoTip text="No customer messages or calls in this window. They wait and go out when it ends. Dhaka time." /></h2></header>
-                      <div className="ix-card__body ws-body">
+  const quiet = (patch) => setP((x) => ({ ...x, quiet: { ...x.quiet, ...patch } }));
+  const cls = (c, patch) => setP((x) => ({ ...x, classes: { ...x.classes, [c]: { ...x.classes[c], ...patch } } }));
+  const save = () => { savePolicy(p); saveAiSettings(ai); toast('Settings saved. Every sender uses them from now.'); };
+  const headline = (p.quiet.on ? 'Quiet ' + hh(p.quiet.from) + ' to ' + hh(p.quiet.to) : 'No quiet hours') + ' · daily limit ৳' + Number(p.dailySpend || 0).toLocaleString('en-IN');
+  const act = now ? aiAction({ at: now, intent: 'price' }, ai) : null;
+  const addSup = (e) => {
+    e.preventDefault();
+    const r = suppress(adding);
+    if (r.error) { toast(r.error, { tone: 'error' }); return; }
+    setSups(getSuppressions()); setAdding(null);
+    toast(`${r.row.address} won’t get ${REASONS[r.row.reason].marketingOnly ? 'offers' : 'messages'} on ${CH_WORD[r.row.channel]}`);
+  };
+  const removeSup = async (row) => {
+    if (!(await confirmDialog({ title: 'Remove from the list?', body: `${row.address} can get messages on ${CH_WORD[row.channel]} again. Only do this if the customer asked.`, confirmLabel: 'Remove' }))) return;
+    unsuppress(row.id); setSups(getSuppressions()); toast('Removed from the list');
+  };
+
+  return (
+    <div className="dc-screen ds" data-screen="WorkflowSettings">
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      <div className="gc-shell">
+        <Sidebar sticky="" active="auto-settings" />
+        <main className="gc-shell__main">
+          <Topbar crumb="Automation" page="Workflow settings" />
+          <div className="gc-shell__content">
+            <div className="ix-page ix-page--narrow">
+              <RecordHeader back="/automations" backLabel="Rules" title="Workflow settings" meta={headline}
+                about="One set of rules for every message the shop sends: campaigns, automations, cart reminders, loyalty messages and order updates. Quiet hours and limits per kind of message, how AI replies, who never gets messages, what waits for a manager, who may change rules and what happens when a step fails."
+                primary={{ label: 'Save', onClick: save }} />
+
+              <div className="ix-record">
+                <div className="ix-main">
+                  <section className="ix-card ix-card--open" aria-labelledby="ws-quiet">
+                    <header className="ix-card__head"><h2 id="ws-quiet">Quiet hours <InfoTip text="Offers and service messages wait in this window and go out when it ends. Order updates and sign-in codes always go at once. Dhaka time." /></h2></header>
+                    <div className="ix-card__body ws-body">
+                      <div className="ws-rows"><Switch on={p.quiet.on} toggle={() => quiet({ on: !p.quiet.on })} label="Keep quiet hours" /></div>
+                      {p.quiet.on ? (
                         <div className="ws-grid">
-                          <div className="ws-field"><span className="gc-label">Quiet from</span><Stepper s={v.qFrom} label="quiet from" /></div>
-                          <div className="ws-field"><span className="gc-label">Until</span><Stepper s={v.qTo} label="quiet until" /></div>
+                          <div className="ws-field"><span className="gc-label">Quiet from</span><Stepper v={hh(p.quiet.from)} label="quiet from" onDec={() => quiet({ from: clamp(p.quiet.from - 1, 17, 23) })} onInc={() => quiet({ from: clamp(p.quiet.from + 1, 17, 23) })} /></div>
+                          <div className="ws-field"><span className="gc-label">Until</span><Stepper v={hh(p.quiet.to)} label="quiet until" onDec={() => quiet({ to: clamp(p.quiet.to - 1, 5, 11) })} onInc={() => quiet({ to: clamp(p.quiet.to + 1, 5, 11) })} /></div>
                         </div>
-                        <div className="ws-rows"><Switch s={v.sw('qFriday')} label="Quieter on Friday prayers" tip="No messages 12:30 to 2:30 PM on Fridays." /></div>
-                      </div>
-                    </section>
+                      ) : null}
+                      <div className="ws-rows"><Switch on={!!p.quiet.friday} toggle={() => quiet({ friday: !p.quiet.friday })} label="Quieter on Friday prayers" tip="No messages 12:30 to 2:30 PM on Fridays." /></div>
+                      {now ? <p className="ws-help">{inQuietHours(now, p) ? `Quiet now (${quietText(p)}).` : 'Messages go out now.'}</p> : null}
+                    </div>
+                  </section>
 
-                    <section className="ix-card ix-card--open" aria-labelledby="ws-limits">
-                      <header className="ix-card__head"><h2 id="ws-limits">Spending limits <InfoTip text="Charged from the wallet. Rules pause when a limit is reached and resume the next day." /></h2></header>
-                      <div className="ix-card__body">
-                        <div className="ws-grid">
-                          <div className="ws-field">
-                            <label className="gc-label" htmlFor="cap">Daily limit for all automation</label>
-                            <span className="ws-money"><span>৳</span><input id="cap" className="gc-input" inputMode="numeric" value={v.cap} onChange={v.onCap} /></span>
-                            <p className="ws-help">Today: ৳58 of the limit used.</p>
+                  <section className="ix-card ix-card--open" aria-labelledby="ws-caps">
+                    <header className="ix-card__head"><h2 id="ws-caps">Message limits <InfoTip text="How many messages one customer may get, counted across campaigns, automations, reminders and loyalty. A campaign or a rule may be stricter, never looser." /></h2></header>
+                    <div className="ix-card__body">
+                      {CLASSES.map((c) => {
+                        const x = p.classes[c];
+                        const fixed = c === 'Transactional' || c === 'Security';
+                        return (
+                          <div key={c} className="ws-cls">
+                            <span className="ws-cls__top"><span>{c} <InfoTip text={CLASS_INFO[c].about} /></span>{fixed ? <StatusBadge tone="neutral">Always sent</StatusBadge> : null}</span>
+                            {fixed ? null : (<>
+                              <div className="ws-grid">
+                                <div className="ws-field"><span className="gc-label">Per customer a day</span><Stepper v={x.perDay || 'No cap'} label={c + ' per day'} onDec={() => cls(c, { perDay: clamp((x.perDay || 0) - 1, 0, 10) })} onInc={() => cls(c, { perDay: clamp((x.perDay || 0) + 1, 0, 10) })} /></div>
+                                {c === 'Marketing' ? <div className="ws-field"><span className="gc-label">Per customer a week</span><Stepper v={x.perWeek || 'No cap'} label="marketing per week" onDec={() => cls(c, { perWeek: clamp((x.perWeek || 0) - 1, 0, 14) })} onInc={() => cls(c, { perWeek: clamp((x.perWeek || 0) + 1, 0, 14) })} /></div> : null}
+                                {c === 'Marketing' ? <div className="ws-field"><span className="gc-label">Hours between offers</span><Stepper v={x.gapHours || 'None'} label="hours between offers" onDec={() => cls(c, { gapHours: clamp((x.gapHours || 0) - 6, 0, 72) })} onInc={() => cls(c, { gapHours: clamp((x.gapHours || 0) + 6, 0, 72) })} /></div> : null}
+                              </div>
+                              <div className="ws-rows"><Switch on={!!x.quiet} toggle={() => cls(c, { quiet: !x.quiet })} label="Wait for quiet hours to end" /></div>
+                            </>)}
                           </div>
-                          <div className="ws-field"><span className="gc-label">Messages per customer per day</span><Stepper s={v.perCust} label="messages per customer" unit="at most" /></div>
+                        );
+                      })}
+                      <div className="ws-cls">
+                        <div className="ws-field">
+                          <label className="gc-label" htmlFor="cap">Daily limit for all messages</label>
+                          <span className="ws-money"><span>৳</span><input id="cap" className="gc-input" inputMode="numeric" value={String(p.dailySpend || '')} onChange={(e) => setP((x) => ({ ...x, dailySpend: Number(String(e.target.value || '').replace(/\D/g, '')) || 0 }))} /></span>
+                          <p className="ws-help">Charged from GridCommerce credits. Sending pauses at the limit and resumes the next day.</p>
                         </div>
                       </div>
-                    </section>
+                    </div>
+                  </section>
 
-                    <section className="ix-card ix-card--open" aria-labelledby="ws-approve">
-                      <header className="ix-card__head"><h2 id="ws-approve">Needs approval first <InfoTip text="These wait for a manager to approve in the app." /></h2></header>
-                      <div className="ix-card__body">
-                        <div className="ws-rows">
-                          <Switch s={v.sw('apBulk')} label="Messages to more than 500 customers at once" tip="Offers and announcements." />
-                          <Switch s={v.sw('apRefund')} label="Refunds and wallet credits" tip="Any amount." />
-                          <Switch s={v.sw('apTransfer')} label="Stock transfers worth more than ৳50,000" tip="Between warehouses and branches." />
-                        </div>
+                  <section className="ix-card ix-card--open" aria-labelledby="ws-ai">
+                    <header className="ix-card__head"><h2 id="ws-ai">AI replies <InfoTip text="How the AI answers chats in the Inbox. The AI provider, model and budget are in Settings › AI." /></h2></header>
+                    <div className="ix-card__body ws-body">
+                      <div className="ws-modes" role="group" aria-label="AI replies">
+                        {AI_MODES.map((m) => <button key={m.k} type="button" className="ws-mode" aria-pressed={ai.mode === m.k} onClick={() => setAi({ ...ai, mode: m.k })}><b>{m.label}</b><small>{m.sub}</small></button>)}
                       </div>
-                    </section>
+                      {ai.mode === 'auto-hours' || ai.mode === 'auto' ? (<>
+                        <div className="ws-field">
+                          <span className="gc-label">The AI may answer by itself <InfoTip text="Anything else gets a suggested reply for a person to send." /></span>
+                          <div className="ix-chips" role="group" aria-label="Questions the AI may answer">
+                            {AI_INTENTS.map(([k, l]) => { const on = ai.intents.includes(k); return <button key={k} type="button" className="ix-chip" aria-pressed={on} onClick={() => setAi({ ...ai, intents: on ? ai.intents.filter((x) => x !== k) : [...ai.intents, k] })}>{on ? <Icon name="check" width="14" height="14" aria-hidden="true" /> : null}{l}</button>; })}
+                          </div>
+                        </div>
+                        <div className="ws-field"><span className="gc-label">Hand to a person after</span><Stepper v={ai.escalateAfter} label="AI replies before a person" unit="AI replies without a fix" onDec={() => setAi({ ...ai, escalateAfter: clamp(ai.escalateAfter - 1, 1, 5) })} onInc={() => setAi({ ...ai, escalateAfter: clamp(ai.escalateAfter + 1, 1, 5) })} /></div>
+                      </>) : null}
+                      {ai.mode === 'auto-hours' ? (<>
+                        <div className="ws-grid">
+                          <div className="ws-field"><label className="gc-label" htmlFor="ai-from">Office hours from</label><input id="ai-from" type="time" className="gc-input" value={ai.hours.from} onChange={(e) => setAi({ ...ai, hours: { ...ai.hours, from: e.target.value } })} /></div>
+                          <div className="ws-field"><label className="gc-label" htmlFor="ai-to">Until <InfoTip text="May run past midnight, e.g. 10 PM to 6 AM." /></label><input id="ai-to" type="time" className="gc-input" value={ai.hours.to} onChange={(e) => setAi({ ...ai, hours: { ...ai.hours, to: e.target.value } })} /></div>
+                        </div>
+                        <div className="ws-field">
+                          <span className="gc-label">Work days</span>
+                          <div className="ix-chips" role="group" aria-label="Work days">
+                            {DAYS.map(([d, l]) => { const on = ai.hours.days.includes(d); return <button key={d} type="button" className="ix-chip" aria-pressed={on} onClick={() => setAi({ ...ai, hours: { ...ai.hours, days: on ? ai.hours.days.filter((x) => x !== d) : [...ai.hours.days, d] } })}>{l}</button>; })}
+                          </div>
+                        </div>
+                      </>) : null}
+                      {act ? <p className="ws-now">Now, for a price question: <StatusBadge tone={act.act === 'auto' ? 'success' : act.act === 'off' ? 'neutral' : 'info'}>{AI_ACT_WORD[act.act]}</StatusBadge>{ai.mode === 'auto-hours' ? <span>{inOfficeHours(now, ai) ? 'Office hours' : 'Outside office hours'}</span> : null}</p> : null}
+                    </div>
+                  </section>
 
-                    <section className="ix-card ix-card--open" aria-labelledby="ws-roles">
-                      <header className="ix-card__head"><h2 id="ws-roles">Who can do what <InfoTip text="By staff role. The owner can always do everything." /></h2></header>
-                      <div className="ix-table-wrap ix-table-wrap--show ws-table">
-                        <table className="ix-table ix-table--static gc-table--keep">
-                          <thead>
-                            <tr><th scope="col">Role</th>{RIGHTS.map((r) => <th key={r} scope="col">{r}</th>)}</tr>
-                          </thead>
-                          <tbody>
-                            {v.roles.map((r) => (
-                              <tr key={r.n}>
-                                <td className="ix-strong">{r.n}</td>
-                                {r.c.map((x) => <td key={x.aria}><button type="button" className="gc-switch" role="switch" aria-checked={x.on} aria-label={x.aria} onClick={x.toggle}><span className="gc-switch__knob" /></button></td>)}
+                  <section className="ix-card ix-card--open" aria-labelledby="ws-sup">
+                    <header className="ix-card__head"><h2 id="ws-sup">Don’t message <InfoTip text="Addresses that bounced, blocked the shop or asked to stop. Checked every time a message goes out, apart from consent." /></h2><button type="button" className="ix-btn ix-btn--sm" onClick={() => setAdding({ channel: 'sms', address: '', reason: 'unsubscribed' })}>Add</button></header>
+                    <div className="ix-card__body">
+                      {sups.length ? sups.map((r) => (
+                        <div key={r.id} className="ws-sup">
+                          <span className="ws-sup__text"><b>{r.address}</b><small>{CH_WORD[r.channel] || r.channel} · {formatDate(r.at)}{r.note ? ' · ' + r.note : ''}</small></span>
+                          <StatusBadge tone={REASONS[r.reason] && REASONS[r.reason].marketingOnly ? 'warning' : 'error'}>{(REASONS[r.reason] || { label: r.reason }).label}</StatusBadge>
+                          <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ix-btn--plain" aria-label={'Remove ' + r.address} onClick={() => removeSup(r)}><Icon name="x" width="16" height="16" aria-hidden="true" /></button>
+                        </div>
+                      )) : <p className="ws-help">Nobody is on the list.</p>}
+                    </div>
+                  </section>
+
+                  <section className="ix-card ix-card--open" aria-labelledby="ws-approve">
+                    <header className="ix-card__head"><h2 id="ws-approve">Needs approval first <InfoTip text="These wait for a manager to approve in the app." /></h2></header>
+                    <div className="ix-card__body">
+                      <div className="ws-rows">
+                        <Switch on={sw.apBulk} toggle={() => setSw({ ...sw, apBulk: !sw.apBulk })} label="Messages to more than 500 customers at once" tip="Offers and announcements." />
+                        <Switch on={sw.apRefund} toggle={() => setSw({ ...sw, apRefund: !sw.apRefund })} label="Refunds and store credit" tip="Any amount." />
+                        <Switch on={sw.apTransfer} toggle={() => setSw({ ...sw, apTransfer: !sw.apTransfer })} label="Stock transfers worth more than ৳50,000" tip="Between warehouses and branches." />
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="ix-card ix-card--open" aria-labelledby="ws-roles">
+                    <header className="ix-card__head"><h2 id="ws-roles">Who can do what <InfoTip text="By staff role. The owner can always do everything." /></h2></header>
+                    <div className="ix-table-wrap ix-table-wrap--show ws-table">
+                      <table className="ix-table ix-table--static gc-table--keep">
+                        <thead>
+                          <tr><th scope="col">Role</th>{RIGHTS.map((r) => <th key={r} scope="col">{r}</th>)}</tr>
+                        </thead>
+                        <tbody>
+                          {ROLES.map((r) => {
+                            const x = perm[r] || DEF[r];
+                            return (
+                              <tr key={r}>
+                                <td className="ix-strong">{r}</td>
+                                {RIGHTS.map((lab, i) => <td key={lab}><button type="button" className="gc-switch" role="switch" aria-checked={!!x[i]} aria-label={r + ': ' + lab} onClick={() => { const q = x.slice(); q[i] = x[i] ? 0 : 1; setPerm({ ...perm, [r]: q }); }}><span className="gc-switch__knob" /></button></td>)}
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </section>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
 
-                    <section className="ix-card ix-card--open" aria-labelledby="ws-fail">
-                      <header className="ix-card__head"><h2 id="ws-fail">When something fails <InfoTip text="Failed steps retry before anyone is told. Run history is kept for 90 days." /></h2></header>
-                      <div className="ix-card__body ws-body">
-                        <div className="ws-grid">
-                          <div className="ws-field"><span className="gc-label">Retries</span><Stepper s={v.retry} label="retries" unit="times, 5 minutes apart" /></div>
-                          <div className="ws-field"><span className="gc-label">Pause a rule after</span><Stepper s={v.pauseAfter} label="failures before a pause" unit="failures in an hour" /></div>
+                  <section className="ix-card ix-card--open" aria-labelledby="ws-fail">
+                    <header className="ix-card__head"><h2 id="ws-fail">When something fails <InfoTip text="Failed steps retry before anyone is told. Run history is kept for 90 days." /></h2></header>
+                    <div className="ix-card__body ws-body">
+                      <div className="ws-grid">
+                        <div className="ws-field"><span className="gc-label">Retries</span><Stepper v={retry} label="retries" unit="times, 5 minutes apart" onDec={() => setRetry(clamp(retry - 1, 0, 5))} onInc={() => setRetry(clamp(retry + 1, 0, 5))} /></div>
+                        <div className="ws-field"><span className="gc-label">Pause a rule after</span><Stepper v={pauseAfter} label="failures before a pause" unit="failures in an hour" onDec={() => setPauseAfter(clamp(pauseAfter - 5, 5, 50))} onInc={() => setPauseAfter(clamp(pauseAfter + 5, 5, 50))} /></div>
+                      </div>
+                      <div className="ws-rows"><Switch on={sw.failNotify} toggle={() => setSw({ ...sw, failNotify: !sw.failNotify })} label="Tell the owner in the app and by SMS" tip="Once per rule per day." /></div>
+                    </div>
+                  </section>
+                </div>
+
+                <div className="ix-side">
+                  <section className="ix-card ix-card--open" aria-labelledby="ws-from">
+                    <header className="ix-card__head"><h2 id="ws-from">Sent from <InfoTip text="Customers see these names and numbers." /></h2></header>
+                    <div className="ix-card__body">
+                      {SENDERS.map((k) => (
+                        <div key={k.l} className="ws-send">
+                          <span className="ws-send__top">{k.l}<StatusBadge tone="success">{k.s}</StatusBadge></span>
+                          <b>{k.v}</b>
                         </div>
-                        <div className="ws-rows"><Switch s={v.sw('failNotify')} label="Tell the owner in the app and by SMS" tip="Once per rule per day." /></div>
-                      </div>
-                    </section>
-                  </div>
-
-                  <div className="ix-side">
-                    <section className="ix-card ix-card--open" aria-labelledby="ws-from">
-                      <header className="ix-card__head"><h2 id="ws-from">Sent from <InfoTip text="Customers see these names and numbers." /></h2></header>
-                      <div className="ix-card__body">
-                        {SENDERS.map((k) => (
-                          <div key={k.l} className="ws-send">
-                            <span className="ws-send__top">{k.l}<StatusBadge tone="success">{k.s}</StatusBadge></span>
-                            <b>{k.v}</b>
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-                  </div>
+                      ))}
+                    </div>
+                  </section>
                 </div>
               </div>
             </div>
-          </main>
-        </div>
+          </div>
+        </main>
       </div>
-    );
-  }
+
+      <Dialog open={!!adding} title="Don’t message" onClose={() => setAdding(null)} width={480}
+        footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setAdding(null)}>Cancel</button><button type="submit" form="ws-sup-form" className="gc-btn gc-btn--solid">Add</button></>}>
+        {adding ? (
+          <form id="ws-sup-form" className="ws-form" onSubmit={addSup} noValidate>
+            <div className="ws-field"><label className="gc-label" htmlFor="sup-ch">Channel</label><select id="sup-ch" className="gc-input gc-select" value={adding.channel} onChange={(e) => setAdding({ ...adding, channel: e.target.value })}>{Object.entries(CH_WORD).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
+            <div className="ws-field"><label className="gc-label" htmlFor="sup-to">{adding.channel === 'email' ? 'Email address' : 'Mobile number'}</label><input id="sup-to" className="gc-input" data-autofocus inputMode={adding.channel === 'email' ? 'email' : 'tel'} value={adding.address} onChange={(e) => setAdding({ ...adding, address: e.target.value })} /></div>
+            <div className="ws-field"><label className="gc-label" htmlFor="sup-why">Why</label><select id="sup-why" className="gc-input gc-select" value={adding.reason} onChange={(e) => setAdding({ ...adding, reason: e.target.value })}>{Object.entries(REASONS).map(([k, r]) => <option key={k} value={k}>{r.label}</option>)}</select></div>
+            <p className="ws-help">{REASONS[adding.reason].marketingOnly ? 'Stops offers only. Order updates still go.' : 'Stops every message on this channel.'}</p>
+          </form>
+        ) : null}
+      </Dialog>
+    </div>
+  );
 }

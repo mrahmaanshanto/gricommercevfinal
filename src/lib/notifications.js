@@ -6,12 +6,16 @@
 //                                  webhook that arrives twice sends nothing the second time)
 //   notificationLog(order)         the order's log: event, channel, recipient, trigger, time, status, retries
 //   retryNotification(id)          sends a failed message again
+//   eventClass(key)                the message class of an event (Transactional / Service), messagePolicy.js
+// Every customer message passes the shared send layer first (messaging.js › checkSend): an address on the suppression
+// list or a customer without consent for the class gets no message (logged as Skipped with the reason).
 // Front end only: nothing leaves the browser. A message "goes out" as a log row; an SMS to a bad number fails
 // the way the real gateway would refuse it, and a customer with no email address gets no email.
 // Orders the demo generates (orders.js, liveOrders.js) get the rows their past events would have sent.
 
 import { MERCHANT } from './merchant';
 import { formatBDT } from './format';
+import { checkSend } from './messaging';
 
 const SETTINGS_KEY = 'gc.notify.settings';
 const LOG_KEY = 'gc.notify.log';
@@ -26,7 +30,8 @@ export const VARIABLES = [
   ['paid_amount', 'Paid so far', '৳500'], ['advance_amount', 'Advance asked or paid', '৳500'], ['remaining_amount', 'Still to pay', '৳1,500'],
   ['cod_amount', 'Cash to collect on delivery', '৳1,500'], ['courier_name', 'Courier', 'Pathao'], ['tracking_id', 'Tracking ID', 'PT-4480127'],
   ['tracking_url', 'Tracking link', 'https://gridshop.com.bd/track/PT-4480127'], ['payment_link', 'Payment link', 'https://gridshop.com.bd/pay/136829'],
-  ['cancel_reason', 'Why it was cancelled', 'Customer asked to cancel'], ['store_name', 'Shop name', MERCHANT.name], ['support_phone', 'Support phone', MERCHANT.phone],
+  ['cancel_reason', 'Why it was cancelled', 'Customer asked to cancel'], ['reject_reason', 'Why the payment was rejected', 'The transaction ID did not match'],
+  ['quote_link', 'Quotation link', 'https://gridshop.com.bd/quote/Q-1042'], ['store_name', 'Shop name', MERCHANT.name], ['support_phone', 'Support phone', MERCHANT.phone],
 ];
 
 // group · key · label · when it fires · customer on · merchant on · SMS · email text
@@ -81,8 +86,25 @@ export const EVENTS = [
     'Order {{order_id}} is on its way back.', 'Order {{order_id}} returning', 'Order {{order_id}} is on its way back.'),
   E('Returns', 'returned', 'Returned', 'Parcel back at the shop', false, true,
     'Order {{order_id}} is back. Check it into stock.', 'Order {{order_id}} returned', 'Order {{order_id}} ({{customer_name}}) is back. Check it into stock.'),
+  // payments and changes (Agent B, brief #4): proof of payment, a rejected payment, an edited order, a quotation
+  E('Payment', 'payment-proof-received', 'Payment proof received', 'Customer sent a payment proof', false, true,
+    '{{store_name}}: We got your payment proof for order {{order_id}}. We\'ll check it soon.',
+    'Payment proof for {{order_id}}', 'Order {{order_id}} ({{customer_name}}): a payment proof of {{paid_amount}} is waiting for review.', 'To the shop'),
+  E('Payment', 'payment-rejected', 'Payment rejected', 'Payment proof rejected', true, false,
+    '{{store_name}}: We couldn\'t confirm your payment for order {{order_id}}. {{reject_reason}} Pay: {{payment_link}}',
+    'Payment not confirmed for {{order_id}}', 'Hi {{customer_name}},\n\nWe couldn\'t confirm your payment for order {{order_id}}. {{reject_reason}}\nPay here: {{payment_link}}\n\n{{store_name}}'),
+  E('Changes', 'order-updated', 'Order updated', 'Items or amounts changed', true, false,
+    '{{store_name}}: Order {{order_id}} updated. New total {{order_total}}. Pay on delivery: {{cod_amount}}.',
+    'Order {{order_id}} updated', 'Hi {{customer_name}},\n\nYour order {{order_id}} was updated.\nNew total: {{order_total}}\nPay on delivery: {{cod_amount}}\n\n{{store_name}}'),
+  E('Changes', 'quote-sent', 'Quotation sent', 'A quotation is sent', true, false,
+    '{{store_name}}: Your quotation is ready: {{quote_link}}',
+    'Your quotation from {{store_name}}', 'Hi {{customer_name}},\n\nYour quotation is ready:\n{{quote_link}}\n\n{{store_name}}', 'Optional'),
 ];
 export const eventBy = (key) => EVENTS.find((e) => e.key === key) || null;
+// Nayeem's brief #11: every template and send carries a class. Order-life events are Transactional; delivery
+// problems, verification calls and returns are Service.
+const SERVICE_EVENTS = ['verify-requested', 'verified', 'delivery-failed', 'return-initiated', 'returning', 'returned'];
+export const eventClass = (key) => (SERVICE_EVENTS.includes(key) ? 'Service' : 'Transactional');
 /** The merchant's own message for an event (customers get the event's text; the shop gets this). */
 const MERCHANT_SMS = {
   'new-order': 'New order {{order_id}} from {{customer_name}}. {{order_total}}.',
@@ -91,6 +113,7 @@ const MERCHANT_SMS = {
   'delivery-failed': 'Delivery failed: {{order_id}} ({{courier_name}}).',
   'return-initiated': 'Return started: {{order_id}} ({{courier_name}}).',
   returned: 'Order {{order_id}} is back.',
+  'payment-proof-received': 'Payment proof for {{order_id}} ({{paid_amount}}). Review it.',
 };
 
 // ---- settings --------------------------------------------------------------------------------------------
@@ -120,7 +143,8 @@ export function varsOf(o, extra = {}) {
     remaining_amount: money(extra.remaining != null ? extra.remaining : remaining), cod_amount: money(o.codAmount != null ? o.codAmount : remaining),
     courier_name: (o.courier && o.courier !== 'Not assigned' ? o.courier : extra.courier) || 'the courier', tracking_id: id || '—',
     tracking_url: o.trackingUrl || (id ? 'https://gridshop.com.bd/track/' + id : ''), payment_link: 'https://gridshop.com.bd/pay/' + String(o.id).replace('#', ''),
-    cancel_reason: extra.reason ? `${extra.reason}.` : '', store_name: MERCHANT.name, support_phone: MERCHANT.phone,
+    cancel_reason: extra.reason ? `${extra.reason}.` : '', reject_reason: extra.rejectReason || extra.reason ? `${extra.rejectReason || extra.reason}.` : '',
+    quote_link: extra.quoteLink || 'https://gridshop.com.bd/quote/' + String(o.id).replace('#', ''), store_name: MERCHANT.name, support_phone: MERCHANT.phone,
     ...(extra.vars || {}),
   };
 }
@@ -167,7 +191,11 @@ export function notify(o, event, extra = {}) {
   const rows = [];
   const add = (recipient, channel, to, text, subject) => {
     const id = 'NT-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    rows.push({ id, once, order: o.id, event, label: ev.label, trigger: extra.trigger || ev.when, recipient, channel, to, text, subject: subject || '', at, retries: 0, ...outcome(channel, to, id + to) });
+    const cls = eventClass(event);
+    // the shared send layer: suppression and consent are checked at the moment it goes out (shop copies are internal)
+    const chk = recipient === 'Customer' ? checkSend({ to: { name: o.customer, phone: channel === 'SMS' ? to : o.phone, email: channel === 'Email' ? to : o.email }, channel: channel.toLowerCase(), cls, at }) : { ok: true };
+    const blocked = !chk.ok && (chk.code === 'suppressed' || chk.code === 'consent');
+    rows.push({ id, once, order: o.id, event, label: ev.label, trigger: extra.trigger || ev.when, recipient, channel, to, text, subject: subject || '', at, retries: 0, cls, ...(blocked ? { status: 'Skipped', error: chk.reason } : outcome(channel, to, id + to)) });
   };
   const toCustomer = t.customer && !extra.noCustomer;
   if (toCustomer && t.sms) add('Customer', 'SMS', o.phone, fill(t.smsText, vars));

@@ -1,18 +1,27 @@
 /* <gc-sidebar> — framework-free twin of the design system's Sidebar component.
    Same markup, same gc-* classes, same behaviour (grouped links, collapsible group headers,
    count chips, collapse to a 76px rail). The rows are business areas (navigation.js); the open
-   area lists its pages under it, as in Shopify's admin. Used by every template so a
+   area lists its pages under it, as in Shopify's admin. The person's own shortcuts (lib/navProfile.js): up to 5
+   pinned pages at the top (the pin on a page row), and an area opens the page last used in it. A module the plan
+   lacks shows locked with "Upgrade" (lib/plans.js); an area not set up yet shows "Set up" (lib/navSetup.js).
+   Used by every template so a
    template renders its nav without waiting on React or the compiled bundle.
    Renders into a shadow root so React templates never try to reconcile its children.
    Keep in step with components/navigation/Sidebar.jsx — that file is the source of truth. */
 import { NAV, NAV_ALIAS } from './navigation';
 import { routeOf, assetUrl, navigate } from '../runtime/routes';
-import { getLocale, readFlag, writeFlag } from '../runtime/ui';
+import { getLocale, readFlag, writeFlag, toast } from '../runtime/ui';
 import { t } from './i18n';
-import { navFor, currentUser, SESSION_EVENT } from '../lib/team';
+import { navFor, pinsFor, currentUser, roleOf, SESSION_EVENT } from '../lib/team';
 import { currentEdition, EDITION_EVENT } from '../lib/edition';
+import { PLAN_EVENT, upgradeHref } from '../lib/plans';
+import { NAV_PROFILE_EVENT, MAX_PINS, isPinned, togglePin, lastTabOf, rememberTab } from '../lib/navProfile';
 import { STOCK_SETUP_EVENT, rememberEdition } from '../lib/stockSetup';
 import { PROPOSAL_EVENT } from '../lib/proposal';
+import { liveCount, LIVE_EVENT } from '../lib/liveCounts';
+
+/** A menu row's count: a live one (lib/liveCounts.js) when it names one, else the number written in the menu. 0 shows nothing. */
+const countOf = (it) => { if (!it.live) return it.count != null ? it.count : null; const n = liveCount(it.live); return n ? n : null; };
 
 export function defineGcSidebar() {
   if (typeof window === 'undefined' || customElements.get('gc-sidebar')) return;
@@ -20,42 +29,54 @@ export function defineGcSidebar() {
   // <link>ed so the panel is styled on first paint; tokens inherit from the document :root.
   const CSS = `*,*::before,*::after{box-sizing:border-box}
 :host{display:contents}
-.gc-sidebar{width:var(--sidebar-panel-width,280px);flex:none;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border-subtle,#e2e8f0);border-radius:var(--radius-2xl,16px);background:var(--surface-card,#fff);font-family:var(--font-sans,Poppins,ui-sans-serif,system-ui,sans-serif);transition:width .3s cubic-bezier(.4,0,.2,1)}
+.gc-sidebar{width:var(--sidebar-panel-width,264px);flex:none;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border-subtle,#e2e8f0);border-radius:var(--radius-2xl,16px);background:var(--surface-card,#fff);font-family:var(--font-sans,Poppins,ui-sans-serif,system-ui,sans-serif);transition:width .3s cubic-bezier(.4,0,.2,1)}
 .gc-sidebar--collapsed{width:var(--main-sidebar-width,76px)}
 .gc-sidebar--fill{height:100%}
 .gc-sidebar--sticky{position:sticky;top:var(--shell-inset,12px);align-self:flex-start;height:calc(100vh - var(--shell-inset,12px)*2)}
-.gc-sidebar__head{display:flex;height:var(--header-height,72px);flex:none;align-items:center;justify-content:space-between;gap:8px;padding:0 var(--nav-pad-x,12px) 0 20px}
+.gc-sidebar__head{display:flex;height:56px;flex:none;align-items:center;justify-content:space-between;gap:8px;padding:4px 12px 0 20px}
 .gc-sidebar--collapsed .gc-sidebar__head{justify-content:center;padding:0}
 .gc-sidebar__ed{font-size:var(--text-xs,12px);font-weight:var(--weight-medium,500);letter-spacing:.02em;color:var(--text-muted,#64748b);white-space:nowrap;padding-left:2px}
-.gc-sidebar__body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;padding:4px 8px 16px}
+.gc-sidebar__body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;padding:0 12px 12px}
 .gc-sidebar__body::-webkit-scrollbar{width:6px}
 .gc-sidebar__body::-webkit-scrollbar-track{background:transparent}
 .gc-sidebar__body::-webkit-scrollbar-thumb{border-radius:var(--radius-full);background:var(--slate-300,#cbd5e1)}
-.gc-sidebar__group+.gc-sidebar__group{margin-top:var(--nav-group-gap,28px)}
-.gc-sidebar__grouphead{display:flex;width:100%;height:28px;align-items:center;justify-content:space-between;border:none;background:none;padding:0 10px;color:var(--text-muted,#94a3b8);font-family:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;cursor:pointer;transition:color .2s cubic-bezier(0,0,.2,1)}
+.gc-sidebar__group+.gc-sidebar__group{margin-top:8px}
+.gc-sidebar__grouphead{display:flex;width:100%;height:24px;align-items:center;justify-content:space-between;border:none;background:none;padding:0 10px;color:var(--text-muted,#94a3b8);font-family:inherit;font-size:var(--text-2xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;cursor:pointer;transition:color .2s cubic-bezier(0,0,.2,1)}
 .gc-sidebar__grouphead:hover{color:var(--text-body,#475569)}
-.gc-sidebar__items{display:flex;flex-direction:column;gap:var(--nav-row-gap,2px);margin-top:4px}
+.gc-sidebar__items{display:flex;flex-direction:column;gap:1px;margin-top:2px}
 .gc-sidebar__eyebrow{margin:0;padding:16px 10px 4px;font-size:var(--text-xs);font-weight:var(--weight-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted,#94a3b8)}
 .gc-sidebar__back{display:inline-flex;height:36px;align-items:center;gap:6px;border:none;border-radius:var(--radius-lg);background:none;padding:0 12px 0 6px;color:var(--text-body,#475569);font-family:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);cursor:pointer;transition:background .2s cubic-bezier(0,0,.2,1),color .2s}
 .gc-sidebar__back:hover{background:var(--surface-subtle,#f1f5f9);color:var(--text-heading,#1e293b)}
 .gc-sidebar__rule{margin:16px 10px;height:1px;background:var(--border-subtle,#e2e8f0);border:none}
-.gc-navitem{display:flex;width:100%;height:var(--nav-row-height,32px);align-items:center;gap:10px;border:none;border-radius:var(--radius-lg,8px);background:none;padding:0 10px;color:var(--text-body,#475569);font-family:inherit;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-align:left;text-decoration:none;cursor:pointer;transition:background-color .2s cubic-bezier(0,0,.2,1),color .2s cubic-bezier(0,0,.2,1)}
+.gc-navitem{position:relative;display:flex;width:100%;min-height:36px;align-items:center;gap:10px;border:none;border-radius:var(--radius-xl,12px);background:none;padding:0 10px;color:var(--text-body,#475569);font-family:inherit;font-size:var(--text-sm);font-weight:var(--weight-medium);letter-spacing:var(--tracking-wide);text-align:left;text-decoration:none;cursor:pointer;transition:background-color .2s cubic-bezier(0,0,.2,1),color .2s cubic-bezier(0,0,.2,1)}
 .gc-navitem:hover{background:var(--surface-subtle,#f1f5f9);color:var(--text-heading,#1e293b)}
-.gc-navitem--active,.gc-navitem--active:hover{background:var(--fill-primary-soft,rgba(0,48,135,.1));color:var(--primary,#003087)}
-.gc-navitem__icon{flex:none;display:grid;place-items:center;color:currentColor}
+.gc-navitem--active,.gc-navitem--active:hover{background:var(--surface-page,#f4f7fb);color:var(--text-heading,#0f172a)}
+.gc-navitem__icon{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:var(--radius-lg,8px);background:color-mix(in srgb,var(--primary-500,#2e559d) 9%,var(--surface-card,#fff));color:var(--primary-500,#2e559d);transition:background-color .15s ease,color .15s ease,box-shadow .15s ease}
+.gc-navitem--open .gc-navitem__icon,.gc-navitem--active .gc-navitem__icon{background:linear-gradient(145deg,color-mix(in srgb,var(--primary-500,#2e559d) 55%,#1f6fe0) 0%,var(--primary,#003087) 100%);color:#fff;box-shadow:0 6px 14px -6px color-mix(in srgb,var(--primary,#003087) 60%,transparent)}
+.gc-navitem--area.gc-navitem--active{background:none}
+.gc-navitem--area.gc-navitem--active:hover{background:var(--surface-page,#f4f7fb)}
+.gc-navitem--active,.gc-navitem--open{font-weight:var(--weight-medium)}
 .gc-navitem__label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gc-navitem__chev{flex:none;display:grid;place-items:center;color:var(--text-muted,#94a3b8);transition:transform .2s cubic-bezier(0,0,.2,1)}
+.gc-navitem__chev{flex:none;display:grid;place-items:center;margin-left:auto;color:var(--text-muted,#94a3b8);transition:transform 160ms cubic-bezier(.23,1,.32,1)}
 .gc-navitem--active .gc-navitem__chev{color:currentColor}
 .gc-navitem__count{flex:none;display:inline-flex;min-width:20px;height:20px;align-items:center;justify-content:center;border-radius:var(--radius-full);background:var(--surface-subtle,#f1f5f9);padding:0 8px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted,#94a3b8);font-variant-numeric:tabular-nums}
-.gc-navitem--active .gc-navitem__count{background:rgba(255,255,255,.65);color:var(--primary,#003087)}
+.gc-navitem__count--live{background:var(--fill-warning-soft,#fff1d6);color:var(--text-warning,#9a4a00)}
+.gc-sub .gc-navitem--active .gc-navitem__count{background:var(--surface-card,#fff);color:var(--primary,#003087)}
 .gc-sidebar--collapsed .gc-sidebar__body{padding-left:8px;padding-right:8px;scrollbar-width:none}
 .gc-sidebar--collapsed .gc-sidebar__body::-webkit-scrollbar{display:none}
-.gc-sidebar--collapsed .gc-navitem{justify-content:center;gap:0;padding:0}
+.gc-sidebar--collapsed .gc-navitem{justify-content:center;gap:0;padding:0;min-height:40px}
+.gc-sidebar--collapsed .gc-navitem--active{background:none}
 .gc-sidebar--collapsed .gc-navitem__label,.gc-sidebar--collapsed .gc-navitem__chev,.gc-sidebar--collapsed .gc-navitem__count{display:none}
 :host([theme="dark"]) .gc-sidebar{background:#222e45;border-color:#384766}
 :host([theme="dark"]) .gc-navitem{color:#cbd5e1}
 :host([theme="dark"]) .gc-navitem:hover{background:#313e59;color:#f1f5f9}
-:host([theme="dark"]) .gc-navitem--active,:host([theme="dark"]) .gc-navitem--active:hover{background:#313e59;color:#7cd4fd}
+:host([theme="dark"]) .gc-navitem--active,:host([theme="dark"]) .gc-navitem--active:hover{background:#313e59;color:#f1f5f9}
+:host([theme="dark"]) .gc-navitem__icon{background:rgba(255,255,255,.06);color:#9fb3d6}
+:host([theme="dark"]) .gc-navitem--open .gc-navitem__icon,:host([theme="dark"]) .gc-navitem--active .gc-navitem__icon{background:linear-gradient(145deg,#2eaee4 0%,#0070a0 100%);color:#fff}
+:host([theme="dark"]) .gc-sub .gc-navitem--active{background:rgba(0,156,222,.16);color:#7fd4f5}
+:host([theme="dark"]) .gc-sub .gc-navitem--active::before{background:#2eaee4}
+:host([theme="dark"]) .gc-sub__in::before{background:#24324f}
+:host([theme="dark"]) .gc-sidebar__me{border-color:#384766;color:#f1f5f9}
 :host([theme="dark"]) .gc-navitem__count{background:#26334d;color:var(--text-muted)}
 :host([theme="dark"]) .gc-navitem--active .gc-navitem__count{background:#222e45;color:#7cd4fd}
 :host([theme="dark"]) .gc-sidebar__grouphead{color:#7f8fb0}
@@ -66,23 +87,59 @@ export function defineGcSidebar() {
 :host([theme="dark"]) .gc-sidebar__back:hover{background:#313e59;color:#f1f5f9}
 /* sub-menu: opens under its parent, in place, with a short expand animation */
 .gc-sub{display:grid;grid-template-rows:1fr}
-.gc-sub__in{min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:var(--nav-row-gap,2px);padding-top:2px}
+.gc-sub__in{position:relative;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:1px;margin:1px 0 4px;padding-left:40px}
+.gc-sub__in::before{content:"";position:absolute;left:23px;top:3px;bottom:3px;width:1.5px;border-radius:2px;background:var(--border-subtle,#e2e8f0)}
 .gc-sub--opening{animation:gc-sub-open .24s cubic-bezier(.2,0,0,1) both}
 .gc-sub--closing{animation:gc-sub-close .2s cubic-bezier(.4,0,1,1) both}
 @keyframes gc-sub-open{from{grid-template-rows:0fr;opacity:0}to{grid-template-rows:1fr;opacity:1}}
 @keyframes gc-sub-close{from{grid-template-rows:1fr;opacity:1}to{grid-template-rows:0fr;opacity:0}}
-.gc-sub .gc-navitem{height:28px;padding-left:36px;border-radius:var(--radius-lg,8px);font-weight:var(--weight-regular);color:var(--text-body,#475569)}
+.gc-sub .gc-pinrow{overflow:visible}
+.gc-sub .gc-navitem{min-height:30px;padding:0 10px;border-radius:var(--radius-lg,8px);font-weight:var(--weight-regular);color:var(--text-body,#475569)}
+.gc-sub .gc-navitem--active,.gc-sub .gc-navitem--active:hover{background:color-mix(in srgb,var(--primary-500,#2e559d) 11%,var(--surface-card,#fff));color:var(--primary,#003087)}
+.gc-sub .gc-navitem--active::before{content:"";position:absolute;left:-20px;top:7px;bottom:7px;width:3px;border-radius:3px;background:var(--primary,#003087)}
 .gc-sub .gc-navitem--active,.gc-sub .gc-navitem--active:hover{font-weight:var(--weight-medium)}
-.gc-navitem--open{color:var(--text-heading,#1e293b)}
+.gc-navitem--open,.gc-navitem--open:hover{color:var(--text-heading,#1e293b)}
 .gc-navitem--open .gc-navitem__chev{transform:rotate(90deg)}
 :host([theme="dark"]) .gc-navitem--open{color:#f1f5f9}
 :host([theme="dark"]) .gc-sub .gc-navitem{color:#cbd5e1}
 button,a{font:inherit}
 button:focus-visible,a:focus-visible{outline:3px solid var(--focus-ring,rgba(0,48,135,.5));outline-offset:-2px}
 nav{display:block}
-.gc-sidebar__toggle{display:grid;place-items:center;width:36px;height:36px;flex:none;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:none;color:var(--text-muted);cursor:pointer}
+.gc-sidebar__toggle{display:grid;place-items:center;width:36px;height:36px;flex:none;border:0;border-radius:var(--radius-lg);background:none;color:var(--text-muted);cursor:pointer}
+.gc-sidebar__toggle:hover{background:var(--surface-subtle)}
+.gc-sidebar__meta{display:flex;align-items:center;gap:8px;min-width:0;padding:2px 20px 8px}
+.gc-sidebar__chip{flex:none;padding:3px 9px;border-radius:var(--radius-md,6px);background:color-mix(in srgb,var(--primary-500,#2e559d) 10%,var(--surface-card,#fff));color:var(--primary,#003087);font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-label);text-transform:uppercase;white-space:nowrap}
+.gc-sidebar__metatxt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--text-xs);color:var(--text-muted)}
+.gc-sidebar__me{display:flex;align-items:center;gap:10px;flex:none;margin:0 12px 10px;padding:6px 8px;border:1px solid var(--border-subtle,#e2e8f0);border-radius:var(--radius-xl,12px);color:var(--text-heading);text-decoration:none;transition:background-color .15s ease}
+.gc-sidebar__me:hover{background:var(--surface-page,#f4f7fb)}
+.gc-sidebar__av{position:relative;flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:var(--radius-full);background:linear-gradient(145deg,var(--primary-500,#2e559d),var(--primary,#003087));color:#fff;font-size:var(--text-2xs);font-weight:var(--weight-semibold)}
+.gc-sidebar__av i{position:absolute;right:-1px;bottom:-1px;width:10px;height:10px;border-radius:var(--radius-full);background:var(--success,#16a34a);border:2px solid var(--surface-card,#fff)}
+.gc-sidebar__metxt{flex:1;min-width:0;display:flex;flex-direction:column}
+.gc-sidebar__metxt b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--text-sm);font-weight:var(--weight-medium)}
+.gc-sidebar__metxt small{font-size:var(--text-xs);color:var(--text-muted)}
+.gc-sidebar--collapsed .gc-sidebar__me{justify-content:center;margin:0 12px 12px;padding:8px 0}
+.gc-navitem__dot--live{background:var(--error,#dc2626)}
 .gc-sidebar__toggle:hover{color:var(--text-heading);border-color:var(--border-strong)}
 .gc-tip{position:fixed;z-index:300;padding:4px 8px;border-radius:var(--radius-md);background:#0f172a;color:#fff;font-family:var(--font-sans);font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap;pointer-events:none;transform:translateY(-50%)}
+/* pins: a pin button on a page row (on hover, and always on the current page); the Pinned list at the top */
+.gc-pinrow{position:relative}
+.gc-pin{position:absolute;top:50%;right:4px;transform:translateY(-50%);display:grid;place-items:center;width:24px;height:24px;border:0;border-radius:var(--radius-full);background:none;color:var(--text-muted,#64748b);cursor:pointer;opacity:0;transition:opacity .15s,background-color .15s,color .15s}
+.gc-pinrow:hover .gc-pin,.gc-pinrow:focus-within .gc-pin{opacity:1}
+.gc-pinrow.is-here .gc-pin{opacity:.6}
+.gc-pinrow.is-here .gc-navitem__count{margin-right:22px}
+.gc-pin:hover{opacity:1;background:var(--surface-card,#fff);color:var(--text-heading,#1e293b)}
+.gc-pinrow:hover .gc-navitem__count,.gc-pinrow:focus-within .gc-navitem__count,.gc-pinrow:hover .gc-navitem__lock{visibility:hidden}
+.gc-sidebar--drawer .gc-pin{opacity:.6;width:32px;height:32px;right:0}
+/* "Set up" and locked ("Upgrade") states */
+.gc-navitem__setup,.gc-navitem__up{flex:none;display:inline-flex;height:20px;align-items:center;border-radius:var(--radius-full);padding:0 8px;font-size:var(--text-xs);font-weight:var(--weight-medium);white-space:nowrap}
+.gc-navitem__setup{background:var(--fill-warning-soft,#fef3c7);color:var(--text-warning,#a14f06)}
+.gc-navitem__up{background:var(--fill-primary-soft,rgba(0,48,135,.1));color:var(--primary,#003087)}
+.gc-navitem__lock{flex:none;display:grid;place-items:center;color:var(--text-muted,#64748b)}
+.gc-navitem--locked{color:var(--text-muted,#64748b)}
+.gc-navitem__dot{position:absolute;top:6px;right:14px;width:8px;height:8px;border-radius:var(--radius-full);background:var(--warning,#f59e0b);border:2px solid var(--surface-card,#fff)}
+.gc-sidebar--collapsed .gc-navitem{position:relative}
+.gc-sidebar--collapsed .gc-navitem__setup,.gc-sidebar--collapsed .gc-navitem__up,.gc-sidebar--collapsed .gc-navitem__lock{display:none}
+:host([theme="dark"]) .gc-navitem__dot{border-color:#222e45}
 /* below 1024px the panel is an off-canvas drawer opened from the top bar */
 .gc-sidebar--drawer{display:none}
 .gc-sidebar--drawer.is-open{display:flex;position:fixed;left:0;top:0;bottom:0;z-index:160;width:min(300px,86vw);height:100dvh;border-radius:0 var(--radius-2xl,16px) var(--radius-2xl,16px) 0;box-shadow:0 24px 60px -12px rgba(15,23,42,.45);animation:gc-drawer .2s cubic-bezier(0,0,.2,1)}
@@ -142,10 +199,19 @@ nav{display:block}
       window.addEventListener('gc:nav-toggle', this._toggle);
       window.addEventListener('gc:locale', this._route);
       window.addEventListener('gc:route', this._route);
+      // live counts (Inbox: unread chats, open comments, new mentions) follow the inbox data
+      this._live = () => { window.clearTimeout(this._liveT); this._liveT = window.setTimeout(() => this.render(), 120); };
+      window.addEventListener(LIVE_EVENT, this._live);
       window.addEventListener(SESSION_EVENT, this._route);
       window.addEventListener(EDITION_EVENT, this._route);
       window.addEventListener(STOCK_SETUP_EVENT, this._route);
       window.addEventListener(PROPOSAL_EVENT, this._route);
+      window.addEventListener(PLAN_EVENT, this._route);
+      window.addEventListener(NAV_PROFILE_EVENT, this._route);
+      // "Set up" states read the libs that own them (couriers, gateways, counters): loaded after the first paint
+      this._setup = () => this.loadSetup();
+      ['gc:connections', 'gc:ledger', 'gc:pos', 'storage', 'focus'].forEach((ev) => window.addEventListener(ev, this._setup));
+      this.loadSetup();
       rememberEdition();   // the first time the shop is opened, note its edition (Stock setup notices a later change)
       window.addEventListener('popstate', this._route);
       document.addEventListener('keydown', this._key);
@@ -160,14 +226,28 @@ nav{display:block}
       window.removeEventListener('gc:nav-toggle', this._toggle);
       window.removeEventListener('gc:locale', this._route);
       window.removeEventListener('gc:route', this._route);
+      window.removeEventListener(LIVE_EVENT, this._live);
       window.removeEventListener(SESSION_EVENT, this._route);
       window.removeEventListener(EDITION_EVENT, this._route);
       window.removeEventListener(STOCK_SETUP_EVENT, this._route);
       window.removeEventListener(PROPOSAL_EVENT, this._route);
+      window.removeEventListener(PLAN_EVENT, this._route);
+      window.removeEventListener(NAV_PROFILE_EVENT, this._route);
+      ['gc:connections', 'gc:ledger', 'gc:pos', 'storage', 'focus'].forEach((ev) => window.removeEventListener(ev, this._setup));
       window.removeEventListener('popstate', this._route);
       document.removeEventListener('keydown', this._key);
     }
     attributeChangedCallback() { if (this.shadowRoot) this.render(); }
+    /** Work out which chosen areas still need setting up (lib/navSetup.js), then redraw if that changed. */
+    loadSetup() {
+      import('../lib/navSetup').then(({ pendingSetup }) => {
+        const next = pendingSetup();
+        const key = next.map((x) => x.id).join(',');
+        if (key === (this.setupKey || '')) return;
+        this.setup = next; this.setupKey = key;
+        if (this.shadowRoot) this.render();
+      }).catch(() => {});
+    }
     get mode() { return this.mqDrawer && this.mqDrawer.matches ? 'drawer' : this.mqRail && this.mqRail.matches ? 'rail' : 'full'; }
     /** Screens that pass `collapsed` (the POS) start on the icon rail and expand by hand. */
     get railFirst() { return this.mode === 'rail' || (this.mode === 'full' && this.hasAttribute('collapsed')); }
@@ -216,9 +296,15 @@ nav{display:block}
     onClick(e) {
       const path = e.composedPath();
       const hit = (sel) => path.find((el) => el.matches && el.matches(sel));
-      const drill = hit('[data-drill]'), back = hit('[data-back]'), group = hit('[data-group]'), toggle = hit('[data-toggle]'), shade = hit('.gc-backdrop');
-      const link = !drill && !back && !group && !toggle ? hit('a[href^="/"]') : null;
+      const drill = hit('[data-drill]'), back = hit('[data-back]'), group = hit('[data-group]'), toggle = hit('[data-toggle]'), shade = hit('.gc-backdrop'), pin = hit('[data-pin]');
+      const link = !drill && !back && !group && !toggle && !pin ? hit('a[href^="/"]') : null;
       if (shade) { this.open = false; this.render(); return; }
+      if (pin) {
+        e.preventDefault();
+        const res = togglePin(currentUser().id, pin.dataset.pin);   // redraws through NAV_PROFILE_EVENT
+        if (res.full) toast(t('You can pin up to {n} pages. Unpin one first.').replace('{n}', MAX_PINS), { tone: 'info' });
+        return;
+      }
       if (link && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) { e.preventDefault(); this.open = false; navigate(link.getAttribute('href')); return; }
       if (drill) {
         e.preventDefault();
@@ -261,28 +347,62 @@ nav{display:block}
     /** One menu row. An area (an item with pages) is a link to its first page the role can open; the open area
      *  lists its pages under it (sub). */
     row(it, active, collapsed, L) {
-      const cls = 'gc-navitem' + (active ? ' gc-navitem--active' : '');
+      // an area with one page (Home) is drawn as a plain row: no chevron, no page list
+      const single = !!it.children && it.children.filter((c) => !c.hidden).length <= 1;
+      const open = !!it.children && !single && this.drill === it.id && !collapsed;
+      const cls = 'gc-navitem' + (active ? ' gc-navitem--active' : '') + (open ? ' gc-navitem--open' : '') + (it.children ? ' gc-navitem--area' : '') + (it.locked ? ' gc-navitem--locked' : '');
       const label = L(it.label) + (it.suffix ? ' ' + L(it.suffix) : '');
-      const inner = `<span class="gc-navitem__icon" aria-hidden="true">${glyph(it.icon, collapsed ? 20 : 16)}</span>`
+      const state = it.locked ? L('Upgrade') : it.setup ? L('Set up') : '';
+      const inner = `<span class="gc-navitem__icon" aria-hidden="true">${glyph(it.icon, 17)}</span>`
         + (collapsed ? '' : `<span class="gc-navitem__label">${esc(label)}</span>`)
-        + (!collapsed && it.count != null ? `<span class="gc-navitem__count">${it.count}</span>` : '');
-      const name = collapsed ? ` aria-label="${esc(label)}"` : '';
-      const to = it.children ? it.children.find((c) => !c.hidden && c.to) || it.children[0] : it;
+        + (it.locked ? `<span class="gc-navitem__up">${esc(state)}</span>` : it.setup ? `<span class="gc-navitem__setup">${esc(state)}</span>` : '')
+        + (!collapsed && countOf(it) != null && !state ? `<span class="gc-navitem__count${it.live ? ' gc-navitem__count--live' : ''}">${countOf(it)}</span>` : '')
+        + (!collapsed && it.children && !single && !state ? `<span class="gc-navitem__chev" aria-hidden="true">${glyph('chevron-right', 15)}</span>` : '')
+        + (collapsed && it.setup ? '<span class="gc-navitem__dot" aria-hidden="true"></span>' : '')
+        + (collapsed && !it.setup && it.live && countOf(it) ? '<span class="gc-navitem__dot gc-navitem__dot--live" aria-hidden="true"></span>' : '');
+      const name = collapsed ? ` aria-label="${esc(label + (state ? ' · ' + state : ''))}"` : state ? ` aria-label="${esc(label + ', ' + state)}"` : '';
+      // an area opens the page last used in it (lib/navProfile.js), else its first page; a locked area opens Upgrade
+      const pagesOf = it.children ? it.children.filter((c) => !c.hidden && c.to && !c.locked) : [];
+      const last = it.children ? lastTabOf(currentUser().id, it.id) : '';
+      const to = it.children ? pagesOf.find((c) => c.id === last) || pagesOf[0] || it.children[0] : it;
+      const href = it.locked ? upgradeHref(it.locked) : hrefOf(to);
       // the open area's page row carries aria-current; the area itself only on the icon rail (no page rows there)
-      return `<a class="${cls}"${name} href="${hrefOf(to)}"${active && (!it.children || collapsed) ? ' aria-current="page"' : ''}>${inner}</a>`;
+      return `<a class="${cls}"${name} href="${esc(href)}"${active && (!it.children || single || collapsed) ? ' aria-current="page"' : ''}>${inner}</a>`;
+    }
+
+    /** A page row with its pin button (a sibling of the link, so it never opens the page). */
+    pinRow(x, on, inner, L) {
+      const pinned = isPinned(currentUser().id, x.id);
+      const label = L(x.tab || x.label);
+      const pinLabel = (pinned ? L('Unpin') : L('Pin to menu')) + ': ' + label;
+      return `<div class="gc-pinrow${on ? ' is-here' : ''}"><a class="gc-navitem${on ? ' gc-navitem--active' : ''}" href="${hrefOf(x)}"${on ? ' aria-current="page"' : ''}>${inner}</a>`
+        + `<button type="button" class="gc-pin" data-pin="${esc(x.id)}" aria-pressed="${pinned}" aria-label="${esc(pinLabel)}" title="${esc(pinLabel)}">${glyph(pinned ? 'pin-off' : 'pin', 14)}</button></div>`;
+    }
+
+    /** The person's pinned pages (lib/navProfile.js), at the top of the menu. */
+    pinned(pins, active, collapsed, L) {
+      if (!pins.length) return '';
+      if (collapsed) return pins.map((p) => `<a class="gc-navitem${p.id === active ? ' gc-navitem--active' : ''}" aria-label="${esc(L(p.label))}" href="${hrefOf(p)}"${p.id === active ? ' aria-current="page"' : ''}><span class="gc-navitem__icon" aria-hidden="true">${glyph(p.icon, 17)}</span></a>`).join('') + '<hr class="gc-sidebar__rule">';
+      const shut = !!this.closed.Pinned;
+      return `<div class="gc-sidebar__group"><button type="button" class="gc-sidebar__grouphead" data-group="Pinned" aria-expanded="${!shut}"><span>${esc(L('Pinned'))}</span><span class="gc-navitem__chev" aria-hidden="true" style="transform:${shut ? 'rotate(-90deg)' : 'none'}">${glyph('chevron-down', 16)}</span></button>`
+        + (shut ? '' : `<div class="gc-sidebar__items">${pins.map((p) => this.pinRow(p, p.id === active, `<span class="gc-navitem__icon" aria-hidden="true">${glyph(p.icon, 17)}</span><span class="gc-navitem__label">${esc(L(p.label))}</span>`, L)).join('')}</div>`)
+        + '</div>';
     }
 
     /** The pages of the open area (the one this page belongs to). A `hidden` page (a create flow) is not listed: it
      *  lights up the page named in its `under`. */
     sub(p, active, L) {
-      if (!p.children) return '';
+      if (!p.children || p.children.filter((x) => !x.hidden).length <= 1) return '';
       const anim = this.subAnim(p.id);
       if (this.drill !== p.id && !anim.includes('closing')) return '';
       const here = p.children.find((x) => x.id === active);
       const lit = here && here.hidden ? here.under : active;
       const item = (x) => {
         const on = x.id === lit;
-        return `<a class="gc-navitem${on ? ' gc-navitem--active' : ''}" href="${hrefOf(x)}"${on ? ' aria-current="page"' : ''}><span class="gc-navitem__label">${esc(L(x.tab || x.label))}</span>${x.count != null ? `<span class="gc-navitem__count">${x.count}</span>` : ''}</a>`;
+        const label = L(x.tab || x.label);
+        // a page of a module the plan lacks: locked, opens Upgrade (never the page)
+        if (x.locked) return `<a class="gc-navitem gc-navitem--locked" href="${esc(upgradeHref(x.locked))}" aria-label="${esc(label + ', ' + L('Upgrade'))}"><span class="gc-navitem__label">${esc(label)}</span><span class="gc-navitem__lock" aria-hidden="true">${glyph('lock', 14)}</span></a>`;
+        return this.pinRow(x, on, `<span class="gc-navitem__label">${esc(label)}</span>${countOf(x) != null ? `<span class="gc-navitem__count${x.live ? ' gc-navitem__count--live' : ''}">${countOf(x)}</span>` : ''}`, L);
       };
       return `<div class="gc-sub${anim}"><div class="gc-sub__in">${p.children.filter((x) => !x.hidden).map(item).join('')}</div></div>`;
     }
@@ -313,15 +433,23 @@ nav{display:block}
       const mode = this.mode;
       const c = this.isCollapsed;
       const isOn = (it) => it.id === active || (it.children || []).some((x) => x.id === active);
-      const MENU = navFor(currentUser());   // only what the signed-in role can open
+      const me = currentUser();
+      const MENU = navFor(me, { setup: this.setup || [] });   // only what the signed-in person can open
+      const pins = pinsFor(me, MENU);
+      // remember the page used in its area, so tapping the area later opens it again (lib/navProfile.js)
+      for (const g of MENU) for (const it of g.items) {
+        const here = (it.children || []).find((x) => x.id === active && !x.locked);
+        if (here) rememberTab(me.id, it.id, here.hidden ? here.under : here.id);
+      }
       let body;
       if (c) {
         body = '<div class="gc-sidebar__items">'
-          + `<button type="button" class="gc-navitem" data-toggle aria-label="${esc(L('Expand sidebar'))}"><span class="gc-navitem__icon" aria-hidden="true">${glyph('panel-left-open', 20)}</span></button>`
+          + `<button type="button" class="gc-navitem" data-toggle aria-label="${esc(L('Expand sidebar'))}"><span class="gc-navitem__icon" aria-hidden="true">${glyph('panel-left-open', 17)}</span></button>`
+          + this.pinned(pins, active, true, L)
           + MENU.map((g, i) => (i ? '<hr class="gc-sidebar__rule">' : '') + g.items.map((it) => this.row(it, isOn(it), true, L)).join('')).join('')
           + '</div>';
       } else {
-        body = MENU.map((g) => {
+        body = this.pinned(pins, active, false, L) + MENU.map((g) => {
           const shut = !!this.closed[g.label];
           return `<div class="gc-sidebar__group"><button type="button" class="gc-sidebar__grouphead" data-group="${esc(g.label)}" aria-expanded="${!shut}"><span>${esc(L(g.label))}</span><span class="gc-navitem__chev" aria-hidden="true" style="transform:${shut ? 'rotate(-90deg)' : 'none'}">${glyph('chevron-down', 16)}</span></button>`
             + (shut ? '' : `<div class="gc-sidebar__items">${g.items.map((it) => this.row(it, isOn(it), false, L) + this.sub(it, active, L)).join('')}</div>`)
@@ -341,8 +469,10 @@ ${mode === 'drawer' && this.open ? `<button type="button" class="gc-backdrop" ar
 <aside class="${classes}" id="gc-nav">
 <div class="gc-sidebar__head"><a href="${logoHref}" aria-label="${esc(ed.name)}" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-decoration:none">${c
         ? `<img src="${assetUrl('8c3babaf605936b39809e7960e7c846f')}" alt="" style="width:36px;height:36px;flex:none;object-fit:contain">`
-        : `<img src="${dark ? assetUrl('820d4a69b45ed8fa40c9bc6015985c0e') : assetUrl('ff462bc6abaa5d30500a126b259de9d6')}" alt="" style="height:30px;width:auto;display:block">${ed.id !== 'full' ? `<span class="gc-sidebar__ed">${esc(L(ed.short))}</span>` : ''}`}</a>${c ? '' : `<button type="button" class="gc-sidebar__toggle" data-toggle aria-label="${esc(toggleLabel)}">${glyph(mode === 'drawer' ? 'x' : 'panel-left-close', 17)}</button>`}</div>
-<nav class="gc-sidebar__body" aria-label="${esc(L('Main'))}">${body}</nav></aside>`;
+        : `<img src="${dark ? assetUrl('820d4a69b45ed8fa40c9bc6015985c0e') : assetUrl('ff462bc6abaa5d30500a126b259de9d6')}" alt="" style="height:30px;width:auto;display:block">`}</a>${c ? '' : `<button type="button" class="gc-sidebar__toggle" data-toggle aria-label="${esc(toggleLabel)}">${glyph(mode === 'drawer' ? 'x' : 'panel-left-close', 17)}</button>`}</div>
+${c ? '' : `<div class="gc-sidebar__meta"><span class="gc-sidebar__chip">${esc(L(ed.id !== 'full' ? ed.short : 'All modules'))}</span><span class="gc-sidebar__metatxt">${esc(L(roleOf(me).title))}</span></div>`}
+<nav class="gc-sidebar__body" aria-label="${esc(L('Main'))}">${body}</nav>
+<a class="gc-sidebar__me" href="/my-dashboard" aria-label="${esc(me.name + ' · ' + L('My dashboard'))}"><span class="gc-sidebar__av" aria-hidden="true">${esc(me.initials)}<i></i></span>${c ? '' : `<span class="gc-sidebar__metxt"><b>${esc(me.name)}</b><small>${esc(L('My dashboard'))}</small></span><span class="gc-navitem__chev" aria-hidden="true">${glyph('chevron-right', 15)}</span>`}</a></aside>`;
     }
   }
 

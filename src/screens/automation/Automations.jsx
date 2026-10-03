@@ -2,9 +2,13 @@
 // Automations — the rules list, laid out like Shopify Flow's workflow list (components/ui/IndexKit.jsx): title row,
 // key figures, then one card with the category views, search and filters, bulk on / off and a compact table.
 // A row opens the workflow builder; the run history opens in a side panel (Recent runs).
+// Test a rule (side panel): run a rule against a sample event and see each step — conditions met or not, and for a
+// message whether the send layer would send it (consent, suppression, quiet hours, caps). Nothing is sent. Its
+// Versions tab lists every change to the rule; an old version can be brought back (src/lib/automationRules.js).
+// On / off is kept in this browser.
 // Edit freely: this file is the source for the screen.
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { DCLogic, Icon } from '@/runtime/dc';
 import { Sidebar, Topbar } from '@/shell/Shell';
@@ -12,6 +16,8 @@ import { toast } from '@/runtime/ui';
 import { navigate } from '@/runtime/routes';
 import { Sheet, StatusBadge, EmptyState } from '@/components/ui';
 import { ShopHeader, MetricStrip, IndexTabs, SearchField, LearnMore, Menu } from '@/components/ui/IndexKit';
+import { getRules, setRuleOn, ruleBy, ruleVersions, restoreVersion, simulate, SAMPLE_EVENTS, TRIGGERS, RULES_EVENT } from '@/lib/automationRules';
+import { formatDate } from '@/lib/format';
 
 // ---- logic ----
 
@@ -33,14 +39,17 @@ const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many || one + 's');
 const BUILDER = '/workflow-builder';
 
 class Component extends DCLogic {
-  state = { f: 'all', on: {}, q: '', find: false, status: '', kind: '', sel: {}, runsOpen: false };
+  state = { f: 'all', on: {}, q: '', find: false, status: '', kind: '', sel: {}, runsOpen: false, lab: '' };
+  componentDidMount() { this.readOn(); window.addEventListener(RULES_EVENT, this.readOn); }
+  componentWillUnmount() { window.removeEventListener(RULES_EVENT, this.readOn); }
+  readOn = () => { const on = {}; getRules().forEach((r) => { on[r.id] = r.on; }); this.setState({ on }); };
   isOn(r) { return this.state.on[r[0]] == null ? r[5] : this.state.on[r[0]]; }
   /** Turn the selected rules on or off. */
   setMany(ids, value) {
     const list = RULES.filter((r) => ids.includes(r[0]) && this.isOn(r) !== value);
     if (!list.length) { toast(value ? 'The selected rules are already on' : 'The selected rules are already off', { tone: 'info' }); return; }
     const on = { ...this.state.on };
-    list.forEach((r) => { on[r[0]] = value; });
+    list.forEach((r) => { on[r[0]] = value; setRuleOn(r[0], value); });
     this.setState({ on, sel: {} });
     if (list.length === 1) toast('“' + list[0][2] + '” is ' + (value ? 'on. It runs from the next matching event.' : 'off.'));
     else toast(plural(list.length, 'rule') + (value ? ' turned on' : ' turned off'));
@@ -84,6 +93,7 @@ class Component extends DCLogic {
       clearSel: () => this.setState({ sel: {} }),
       turnOn: () => this.setMany(selIds, true),
       turnOff: () => this.setMany(selIds, false),
+      labOpen: !!st.lab, labRule: st.lab, openLab: () => this.setState({ lab: 'c1' }), closeLab: () => this.setState({ lab: '' }),
       runsOpen: st.runsOpen,
       openRuns: () => this.setState({ runsOpen: true }),
       closeRuns: () => this.setState({ runsOpen: false }),
@@ -112,7 +122,78 @@ const CSS = `
 .au-run:last-child{border-bottom:0}
 .au-run__top{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 .au-run__text{font-size:var(--text-xs);color:var(--text-muted)}
+.au-lab{display:flex;flex-direction:column;gap:var(--space-3)}
+.au-field{display:flex;flex-direction:column;gap:6px}
+.au-field .gc-label{margin:0}
+.au-steps{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
+.au-step{display:flex;gap:var(--space-2);padding:8px 0;border-bottom:1px solid var(--border-subtle)}
+.au-step:last-child{border-bottom:0}
+.au-step>svg{flex:none;margin-top:2px}
+.au-step.is-ok>svg{color:var(--text-success)}
+.au-step.is-no>svg{color:var(--text-danger)}
+.au-step__text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.au-step__text b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.au-step__text span{overflow-wrap:anywhere;font-size:var(--text-xs);color:var(--text-muted)}
+.au-ver{display:flex;align-items:flex-start;gap:var(--space-3);padding:8px 0;border-bottom:1px solid var(--border-subtle)}
+.au-ver:last-child{border-bottom:0}
+.au-ver__text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.au-ver__text b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.au-ver__text span{font-size:var(--text-xs);color:var(--text-muted)}
 `;
+
+const STEP_ICON = { trigger: 'zap', condition: 'git-branch', wait: 'clock', action: 'send', stop: 'circle-x', note: 'info' };
+/** Test a rule against a sample event, and see its versions. Nothing is sent or changed. */
+function RuleLab({ first, onClose }) {
+  const [id, setId] = useState(first);
+  const [view, setView] = useState('test');
+  const [ev, setEv] = useState('s1');
+  const [out, setOut] = useState(null);
+  const [tick, setTick] = useState(0);
+  const rule = ruleBy(id);
+  const samples = SAMPLE_EVENTS[rule.trigger] || [];
+  useEffect(() => { setEv(samples[0] ? samples[0].id : ''); setOut(null); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const run = () => setOut(simulate(rule, samples.find((x) => x.id === ev) || samples[0]));
+  const versions = tick >= 0 ? ruleVersions(id) : [];
+  const restore = (vr) => { const r = restoreVersion(id, vr.v); if (r.error) { toast(r.error, { tone: 'error' }); return; } setTick((n) => n + 1); toast(`Version ${vr.v} is back as version ${r.version}`); };
+  return (
+    <Sheet open title="Test a rule" onClose={onClose}>
+      <div className="au-lab">
+        <div className="au-field">
+          <label className="gc-label" htmlFor="lab-rule">Rule</label>
+          <select id="lab-rule" className="gc-input gc-select" value={id} onChange={(e) => setId(e.target.value)}>{getRules().map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select>
+        </div>
+        <IndexTabs label="Test or versions" tabs={[['test', 'Test'], ['versions', 'Versions']].map(([k, l]) => ({ key: k, label: l, count: k === 'versions' ? versions.length : null, id: 'lab-' + k, on: view === k, onClick: () => setView(k) }))} />
+        {view === 'test' ? (<>
+          <div className="au-field">
+            <label className="gc-label" htmlFor="lab-ev">Sample event · {TRIGGERS[rule.trigger]}</label>
+            <select id="lab-ev" className="gc-input gc-select" value={ev} onChange={(e) => { setEv(e.target.value); setOut(null); }}>{samples.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}</select>
+          </div>
+          <button type="button" className="ix-btn ix-btn--primary" onClick={run}><Icon name="play" width="16" height="16" aria-hidden="true" />Run test</button>
+          {out ? (<>
+            <p className="gc-help" style={{ margin: 0 }}>{out.matched ? 'The rule runs. Nothing was sent.' : 'The rule doesn’t run for this event.'}</p>
+            <ol className="au-steps" aria-label="What would happen">
+              {out.steps.map((x, i) => (
+                <li key={i} className={'au-step ' + (x.ok ? 'is-ok' : 'is-no')}>
+                  <Icon name={x.ok ? (STEP_ICON[x.kind] || 'check') : 'circle-x'} width="16" height="16" aria-hidden="true" />
+                  <span className="au-step__text"><b>{x.label}</b><span>{x.detail}</span></span>
+                </li>
+              ))}
+            </ol>
+          </>) : null}
+        </>) : (
+          <div>
+            {versions.map((vr) => (
+              <div key={vr.v} className="au-ver">
+                <span className="au-ver__text"><b>Version {vr.v}</b><span>{vr.note} · {vr.by} · {formatDate(vr.at)}</span></span>
+                {vr.current ? <StatusBadge tone="success">Live</StatusBadge> : <button type="button" className="ix-btn ix-btn--sm" onClick={() => restore(vr)}>Restore</button>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Sheet>
+  );
+}
 
 // ---- markup ----
 
@@ -130,7 +211,7 @@ export default class AutomationsScreen extends Component {
               <div className="ix-page">
                 <ShopHeader icon="zap" title="Rules"
                   about="Ready-made rules and your own When / Then workflows. Turn a rule on or off, open it to change what it does, and check what ran in Recent runs."
-                  secondary={[{ label: 'Recent runs', onClick: v.openRuns }]}
+                  secondary={[{ label: 'Test a rule', onClick: v.openLab }, { label: 'Recent runs', onClick: v.openRuns }]}
                   more={[{ label: 'Workflow settings', href: '/workflow-settings' }]}
                   primary={{ label: 'New workflow', href: BUILDER }} />
 
@@ -221,6 +302,7 @@ export default class AutomationsScreen extends Component {
           </main>
         </div>
 
+        {v.labOpen ? <RuleLab first={v.labRule} onClose={v.closeLab} /> : null}
         <Sheet open={v.runsOpen} title="Recent runs" onClose={v.closeRuns}>
           <p className="gc-help" style={{ margin: 0 }}>Last 24 hours, Dhaka time. Failed runs retry 3 times before they show here.</p>
           <div className="au-runs">

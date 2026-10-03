@@ -2,7 +2,8 @@
 // Generated from design/templates/settings-console/SetRail.dc.html by scripts/convert-design.mjs.
 // SetRail — the settings list (Shopify's Settings navigation): a column beside the cards from 1024px up (search,
 // then each section with its icon and a status dot), and a horizontally scrolling strip of sections above the
-// cards on narrower windows.
+// cards on narrower windows. The search finds sections and single settings (lib/settingsRegistry.js): a setting
+// opens its page with the field highlighted, and settings owned by another area say where they live.
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
@@ -11,6 +12,7 @@ import { DCLogic, Icon as __Icon, list as __list } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { SetFragment as __SetFragment } from '@/screens/settings-console/SetChrome';
 import { hasModule, currentEditionId, LOCKED } from '@/lib/edition';
+import { searchSettings } from '@/lib/settingsRegistry';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -19,17 +21,20 @@ const ROUTES = {
   general: '/set-general', preference: '/set-preference', payment: '/set-payments', delivery: '/set-delivery',
   ai: '/set-ai', rules: '/set-rules', notifications: '/set-notifications', stocksetup: '/stock-setup', profile: '/set-profile', usage: '/set-usage', seo: '/set-seo', storage: '/set-storage',
   apisec: '/set-security', dbbackup: '/set-security#s1', filebackup: '/set-security#s2',
+  privacy: '/set-privacy', domains: '/set-domains', history: '/settings-history',
+  billing: '/subscription', usagelimits: '/subscription#usage', wallet: '/credit-wallet',
   // every outside connection is made in Connections
   connections: '/connections', social: '/connections?group=social', courier: '/connections?group=delivery', mail: '/connections?group=messages', sms: '/connections?group=messages',
 };
 
 const GROUPS = [
-  ['Store', [['connections', 'Connections', 'ok'], ['general', 'General', 'ok'], ['profile', 'Profile type', 'ok'], ['stocksetup', 'Stock setup', 'ok'], ['preference', 'Preference', 'ok'], ['pos', 'POS', 'ok'], ['report', 'Report Settings', 'none']]],
+  ['Store', [['connections', 'Connections', 'ok'], ['general', 'General', 'ok'], ['profile', 'Profile type', 'ok'], ['stocksetup', 'Stock setup', 'ok'], ['preference', 'Preference', 'ok'], ['privacy', 'Privacy & consent', 'ok'], ['domains', 'Domains', 'ok'], ['pos', 'POS', 'ok'], ['report', 'Report Settings', 'none']]],
   ['Commerce', [['payment', 'Payment Gateway', 'ok'], ['delivery', 'Delivery Settings', 'ok'], ['courier', 'Courier Settings', 'warn', '1']]],
   ['Notifications', [['notifications', 'Order notifications', 'ok']]],
   ['Communication', [['mail', 'Mail', 'ok'], ['sms', 'SMS', 'warn', '1'], ['push', 'Push Notifications', 'off'], ['social', 'Social Integrations', 'ok'], ['ai', 'AI Auto-Reply', 'ok'], ['rules', 'Auto-Reply Rules', 'ok'], ['usage', 'AI Usage', 'none']]],
   ['Discovery', [['seo', 'SEO', 'ok'], ['smart', 'Smart Search', 'ok'], ['imgsearch', 'Image Search', 'off']]],
-  ['Platform', [['storage', 'Storage', 'warn', '1'], ['realtime', 'Realtime (Websocket)', 'ok'], ['apisec', 'API Security', 'ok'], ['recaptcha', 'Recaptcha', 'off'], ['dbbackup', 'Database Backup', 'ok'], ['filebackup', 'File Backup', 'warn', '1']]],
+  ['Platform', [['storage', 'Storage', 'warn', '1'], ['realtime', 'Realtime (Websocket)', 'ok'], ['apisec', 'API Security', 'ok'], ['recaptcha', 'Recaptcha', 'off'], ['dbbackup', 'Database Backup', 'ok'], ['filebackup', 'File Backup', 'warn', '1'], ['history', 'Settings history', 'none']]],
+  ['Account & billing', [['billing', 'Plan & billing', 'ok'], ['usagelimits', 'Usage & limits', 'none'], ['wallet', 'Wallet & credits', 'none']]],
 ];
 
 const STATE = { ok: 'configured', warn: 'needs setup', off: 'turned off' };
@@ -39,9 +44,10 @@ const ICON = {
   payment: 'credit-card', delivery: 'truck', courier: 'package', notifications: 'bell', mail: 'mail', sms: 'message-square', push: 'bell-ring',
   social: 'share-2', ai: 'bot', rules: 'list-checks', usage: 'gauge', seo: 'search', smart: 'sparkles', imgsearch: 'image', storage: 'hard-drive',
   realtime: 'radio', apisec: 'shield', recaptcha: 'shield-check', dbbackup: 'database', filebackup: 'archive',
+  privacy: 'lock', domains: 'globe', history: 'history', billing: 'receipt', usagelimits: 'activity', wallet: 'wallet',
 };
 // sections that belong to a module (src/lib/edition.js); the rest are in every edition
-const SECTION_MODULE = { notifications: 'commerce', stocksetup: 'catalog', pos: 'pos', report: 'reports', payment: 'commerce', delivery: 'online', courier: 'online', social: 'comms', ai: 'comms', rules: 'comms', seo: 'online', smart: 'online', imgsearch: 'online' };
+const SECTION_MODULE = { domains: 'online', notifications: 'commerce', stocksetup: 'catalog', pos: 'pos', report: 'reports', payment: 'commerce', delivery: 'online', courier: 'online', social: 'comms', ai: 'comms', rules: 'comms', seo: 'online', smart: 'online', imgsearch: 'online' };
 
 class Component extends DCLogic {
   constructor(p) {
@@ -71,7 +77,19 @@ class Component extends DCLogic {
         .filter(([id, name]) => (!q || name.toLowerCase().includes(q)) && (!SECTION_MODULE[id] || hasModule(SECTION_MODULE[id], this.state.ed)))
         .map(([id, name, dot, badge]) => ({ id, name, dot, badge: badge || '', href: ROUTES[id] || '', active: id === active })),
     })).map((g) => ({ ...g, count: g.items.length })).filter((g) => g.items.length);
+    // single settings (and where settings owned by other areas live)
+    let hits = [];
+    if (q.length >= 2) { try { hits = searchSettings(q, { limit: 10 }); } catch { hits = []; } }
     return {
+      hits,
+      // a setting on the page that is open: highlight it here instead of opening the page again
+      samePage: (h) => (e) => {
+        const [path, query] = h.href.split('?');
+        if (!h.field || typeof window === 'undefined' || window.location.pathname !== path) return;
+        e.preventDefault();
+        window.history.replaceState(window.history.state, '', path + '?' + query);
+        window.dispatchEvent(new CustomEvent('gc:set-focus', { detail: h.field }));
+      },
       scroller: this.scroller,
       q: this.state.q,
       setQ: (e) => this.setState({ q: e.target.value }),
@@ -122,6 +140,12 @@ const CSS = `
 .set-nav a:focus-visible,.set-nav button:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
 .set-nav--collapsed{width:56px}
 .set-nav--collapsed .set-nav__hide{display:none}
+.set-nav__hit{height:auto;min-height:40px;padding:4px 8px;align-items:flex-start}
+.set-nav__hit>svg{margin-top:3px}
+.set-nav__hit .set-nav__name{display:flex;flex-direction:column;white-space:normal}
+.set-nav__hitlabel{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.set-nav__hit small{font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.set-nav--collapsed .set-nav__hits{display:none}
 /* collapsed: the list keeps only its icons */
 @media (min-width:1024px){
   .set-nav--collapsed .set-nav__head{padding:var(--space-3) 14px var(--space-2)}
@@ -134,7 +158,7 @@ const CSS = `
 @media (max-width:1023px){
   .set-shell__nav{align-self:stretch;width:100%;height:auto;z-index:30}
   .set-nav,.set-nav--collapsed{width:100%;height:auto;border-right:0;border-bottom:1px solid var(--border-subtle)}
-  .set-nav__head,.set-nav__grouphead{display:none}
+  .set-nav__head,.set-nav__grouphead,.set-nav__hits{display:none}
   .set-nav--collapsed .set-nav__list{display:flex}
   .set-nav__list{display:flex;align-items:center;gap:4px;overflow-x:auto;overflow-y:hidden;padding:8px 12px;scrollbar-width:thin}
   .set-nav__group{display:contents}
@@ -168,7 +192,7 @@ export default class SetRailScreen extends Component {
             </div>
             <label className="set-nav__search set-nav__hide">
               <__Icon name="search" width="16" height="16" aria-hidden="true" />
-              <input type="search" value={v.q} onChange={v.setQ} placeholder="Search settings" aria-label="Search settings sections" />
+              <input type="search" value={v.q} onChange={v.setQ} placeholder="Search settings" aria-label="Search settings" />
             </label>
           </div>
           <div ref={v.scroller} id="set-nav-list" className="set-nav__list">
@@ -181,8 +205,19 @@ export default class SetRailScreen extends Component {
                 )) : null}
               </div>
             ))}
-            {v.groups.length ? null : (
-              <span className="set-nav__empty">No section matches “{v.q}”. <button type="button" className="set-nav__clear" onClick={v.clearQ}>Clear search</button></span>
+            {v.hits.length ? (
+              <div className="set-nav__group set-nav__hits">
+                <span className="set-nav__grouphead" style={{ cursor: 'default' }}>Settings</span>
+                {v.hits.map((h) => (
+                  <__Link key={h.id} className="set-nav__item set-nav__hit" href={h.href} onClick={v.samePage(h)}>
+                    <__Icon name={h.field ? 'text-cursor-input' : 'arrow-up-right'} width="16" height="16" aria-hidden="true" />
+                    <span className="set-nav__name"><span className="set-nav__hitlabel">{h.label}</span><small>{h.page}{h.owner !== 'Settings' ? ' · ' + h.owner : ''}</small></span>
+                  </__Link>
+                ))}
+              </div>
+            ) : null}
+            {v.groups.length || v.hits.length ? null : (
+              <span className="set-nav__empty">No setting matches “{v.q}”. <button type="button" className="set-nav__clear" onClick={v.clearQ}>Clear search</button></span>
             )}
           </div>
         </nav>

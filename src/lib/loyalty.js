@@ -14,6 +14,19 @@
 //             wallet it is reward credit (above); paid in cash / bKash / bank it leaves that account
 //             (ledger 'referral reward', −). Either way it is a cost of the Online channel.
 //
+// Nayeem's brief #9 (Oct 2026):
+//   Store credit  the wallet is store credit now: issued (return, goodwill, loyalty, referral, promotion, by hand),
+//             used on an order, expired, reversed or corrected — never topped up or paid out in cash. The old
+//             wallet rows stay readable (top-up / paid back show as they were). storeCredit.js is its API.
+//   Members   a member is a CRM customer with a loyalty account: each row carries customerId (customerRef.js:
+//             the CRM ID when Customers & CRM has one, else the phone key) and inCrm.
+//   Levels    tierHistory(phone): when a member moved between Member, Silver, Gold and Platinum, and why;
+//             checkTiers() records a move when it happens (and sends the "new level" message).
+//   Referrals a reward waits (pending) until the friend's order is past the return period; a returned order
+//             cancels it, or reverses it when already given; monthly and total caps; self-referral checks
+//             (same phone blocks; same address or device goes to review). checkReferral() / recordReferral().
+//   Messages  loyalty never sends by itself: notifyMember() hands the message to Communications (messaging.js),
+//             which checks consent, suppression, quiet hours and caps.
 // Points earned and used at the POS register are read from its sales (POS_KEYS.sales), so they
 // show here without being saved twice; every points change made here is written back to the
 // register's points store (POS_KEYS.points) so the counter sees the same balance.
@@ -22,11 +35,14 @@
 import { POS_KEYS, load as loadPos, save as savePos } from './posStore';
 import { postEntry, accountBy } from './ledger';
 import { getReturns } from './returns';
-import { getCustomers } from './customers';
+import { getCustomers, saveCustomerOnce } from './customers';
+import { customerKey } from './customerRef';
+import { send as sendMessage } from './messaging';
 
 const KEYS = {
   settings: 'gc.loyalty.settings', members: 'gc.loyalty.members', points: 'gc.loyalty.points', wallet: 'gc.loyalty.wallet',
   requests: 'gc.loyalty.requests', referrals: 'gc.loyalty.referrals', products: 'gc.loyalty.productPoints',
+  tiers: 'gc.loyalty.tierlog', refAdded: 'gc.loyalty.refAdded', tierSet: 'gc.loyalty.tierSet',
 };
 const CREDIT_KEY = 'gc.customer.credit';   // advances kept on invoices (invoices.js): phone -> balance
 
@@ -53,7 +69,11 @@ export const DEFAULT_SETTINGS = {
   birthday: 100,        // points on the birthday
   expireOn: false,      // unused points expire
   expiryMonths: 12,
-  referral: { kind: 'comm', pct: 5, points: 100, friendPoints: 100 },   // comm: % of the friend's first order in ৳; points: points each
+  referral: { kind: 'comm', pct: 5, points: 100, friendPoints: 100, pendingDays: 7, capMonth: 5, capTotal: 50 },   // comm: % of the friend's first order in ৳; points: points each
+  // pendingDays: the reward waits this long after the friend's order is delivered (the return period);
+  // capMonth / capTotal: most rewards one customer can earn in a month / ever (0 = no cap)
+  creditExpiryMonths: 0,   // store credit expires after this many months (0 = never)
+  messages: { tier: true, credit: true, referral: true, birthday: true, expiring: true },   // loyalty messages (sent by Communications)
   on: { points: true, wallet: true, referral: true, pos: true },
   tiers: [
     { k: 'member', name: 'Member', min: 0, mult: 1, pct: 0 },
@@ -64,7 +84,7 @@ export const DEFAULT_SETTINGS = {
 };
 export function getLoyaltySettings() {
   const s = read(KEYS.settings, {});
-  return { ...DEFAULT_SETTINGS, ...s, referral: { ...DEFAULT_SETTINGS.referral, ...(s.referral || {}) }, on: { ...DEFAULT_SETTINGS.on, ...(s.on || {}) }, tiers: s.tiers || DEFAULT_SETTINGS.tiers };
+  return { ...DEFAULT_SETTINGS, ...s, referral: { ...DEFAULT_SETTINGS.referral, ...(s.referral || {}) }, on: { ...DEFAULT_SETTINGS.on, ...(s.on || {}) }, messages: { ...DEFAULT_SETTINGS.messages, ...(s.messages || {}) }, tiers: s.tiers || DEFAULT_SETTINGS.tiers };
 }
 export function saveLoyaltySettings(next) { write(KEYS.settings, next); changed(); }
 export const pointValue = () => getLoyaltySettings().pointValue;
@@ -141,7 +161,8 @@ const WALLET_SEED = [
   W('01890226153', aug(20, 10), 'top-up', 600, 'Added money by Nagad', 'TrxID 3NQ7HD82', { account: 'nagad', method: 'Nagad', ref: '3NQ7HD82', ledger: 'LS-W05' }),
   W('01890226153', aug(27, 19, 30), 'refund', -600, 'Paid back by Nagad', 'Cash-out sent to 01890-226153', { account: 'nagad', method: 'Nagad', ledger: 'LS-W06' }),
 ];
-export const WALLET_KIND = { 'top-up': 'Top-up', spend: 'Paid for an order', refund: 'Paid back', reward: 'Reward credit', points: 'From points', return: 'Return credit', adjust: 'Correction' };
+export const WALLET_KIND = { 'top-up': 'Top-up', spend: 'Paid for an order', refund: 'Paid back', reward: 'Reward credit', points: 'From points', return: 'Return credit', adjust: 'Correction',
+  issue: 'Credit added', redeem: 'Used', expire: 'Expired', reverse: 'Reversed' };
 
 // add-money and cash-out requests customers sent from the website or app (demo)
 const REQUEST_SEED = [
@@ -164,7 +185,8 @@ const REFERRER_SEED = [
   { phone: '01678492281', code: 'SHARMIN5', before: { joined: 6, bought: 4, sales: 12450, earned: 620 } },
 ];
 // each friend who joined with a code in September. reward ৳ (0 = nothing yet); status due · given · waiting
-const RF = (id, referrer, friend, joined, order, amount, reward, status, extra = {}) => ({ id, referrer, friend, joinedAt: joined, order: order ? { ref: order, amount, at: joined + 3 * 864e5 } : null, reward, status, channel: 'Online', ...extra });
+// friendPhone / address / device: what the friend signed up with (for the self-referral check)
+const RF = (id, referrer, friend, joined, order, amount, reward, status, extra = {}) => ({ id, referrer, friend, joinedAt: joined, order: order ? { ref: order, amount, at: joined + 3 * 864e5, deliveredAt: joined + 5 * 864e5 } : null, reward, status, channel: 'Online', ...extra });
 const REFERRAL_SEED = [
   RF('RF-0101', '01819072332', 'Sabrina Chowdhury', sep(2, 9, 30), '#GC-10421', 2980, 50, 'given', { how: 'points', points: 100, givenAt: sep(2, 18) }),
   RF('RF-0102', '01711245518', 'Sadia Islam', sep(6, 11), '#GC-10466', 9800, 490, 'due'),
@@ -175,7 +197,12 @@ const REFERRAL_SEED = [
   RF('RF-0107', '01553336655', 'Tahmina Akter', sep(9, 19), '#GC-10458', 4600, 230, 'given', { how: 'wallet', givenAt: sep(15, 12) }),
   RF('RF-0108', '01711245518', 'Fahim Chowdhury', sep(26, 20), null, 0, 0, 'waiting'),
   RF('RF-0109', '01819072332', 'Nadia Rahman', sep(28, 14), null, 0, 0, 'waiting'),
+  RF('RF-0110', '01711245518', 'Nasrin Akter', sep(20, 10), '#GC-10521', 3600, 180, 'due', { friendPhone: '01712004411', address: 'House 12, Road 5, Gulshan-1, Dhaka', device: 'dev-7f21' }),
+  RF('RF-0111', '01553336655', 'Kamrul Hasan', sep(16, 18), '#GC-10497', 5200, 260, 'due', { returnedAt: sep(24, 15) }),
+  RF('RF-0112', '01819072332', 'Mim Akter', sep(26, 12), '#GC-10560', 4400, 220, 'due'),
 ];
+// where each customer who shares a code lives and signs in from (demo; for the self-referral check)
+const REFERRER_ID = { '01711245518': { address: 'House 12, Road 5, Gulshan-1, Dhaka', device: 'dev-7f21' }, '01819072332': { address: 'Flat 4B, Road 11, Banani, Dhaka', device: 'dev-21aa' }, '01553336655': { address: 'House 14, Road 7, Sector 4, Uttara, Dhaka', device: 'dev-9c03' }, '01914622045': { address: 'Mirpur 10, Dhaka', device: 'dev-4410' }, '01678492281': { address: 'Dhanmondi 27, Dhaka', device: 'dev-0b77' } };
 // the wallet credit behind RF-0107 (given into Nusrat's wallet)
 WALLET_SEED.push(W('01553336655', sep(15, 12), 'reward', 230, 'Invite reward', 'Tahmina Akter’s first order #GC-10458', { ref: 'RF-0107', src: 'referral' }));
 
@@ -246,6 +273,8 @@ export function getMembers({ points = getPointEntries(), wallet = getWalletEntri
   const posBought = {}, posLast = {};
   posSales().forEach((sale) => { const p = sale.member && phoneKey(sale.member.phone); if (!p) return; posBought[p] = (posBought[p] || 0) + ((sale.totals || {}).total || 0); posLast[p] = Math.max(posLast[p] || 0, sale.at); });
   const cutoff = s.expireOn ? addMonths(now, -(s.expiryMonths - 1)) : 0;   // points earned before this expire within a month
+  const crm = new Set(getCustomers().map((c) => c.phone));
+  const tierSet = read(KEYS.tierSet, {});
   return [...base.values()].map((m) => {
     const mine = points.filter((e) => e.phone === m.phone);
     const plus = mine.filter((e) => e.points > 0).reduce((a, e) => a + e.points, 0);
@@ -253,7 +282,8 @@ export function getMembers({ points = getPointEntries(), wallet = getWalletEntri
     const balance = Math.max(0, (m.open || 0) + plus - minus);
     const walletBal = r2(wallet.filter((e) => e.phone === m.phone).reduce((a, e) => a + e.amount, 0));
     const bought = r2((m.bought || 0) + (posBought[m.phone] || 0));
-    const tierObj = m.tier ? s.tiers.find((t) => t.k === m.tier) || tierFor(bought, s.tiers) : tierFor(bought, s.tiers);
+    const setTo = (tierSet[m.phone] || {}).tier || m.tier;
+    const tierObj = setTo ? s.tiers.find((t) => t.k === setTo) || tierFor(bought, s.tiers) : tierFor(bought, s.tiers);
     // first in, first out: points earned before the cutoff and not used yet expire soon
     let expiring = 0;
     if (s.expireOn) {
@@ -263,6 +293,7 @@ export function getMembers({ points = getPointEntries(), wallet = getWalletEntri
     const lastEarn = mine.filter((e) => e.kind === 'earn' || e.kind === 'redeem').reduce((a, e) => Math.max(a, e.at), 0);
     return {
       phone: m.phone, name: m.name, joined: m.joined, code: m.code || '', birthday: m.birthday || '', added: !!m.added,
+      customerId: m.customerId || customerKey({ phone: m.phone }), inCrm: crm.has(m.phone),
       points: balance, value: r2(balance * s.pointValue), earned: (m.open || 0) + (m.usedBefore || 0) + plus, used: (m.usedBefore || 0) + minus,
       wallet: walletBal, bought, last: Math.max(m.last || 0, posLast[m.phone] || 0, lastEarn), tier: tierObj.k, tierObj, expiring,
     };
@@ -278,6 +309,9 @@ export function addMember({ name, phone }) {
   if (!/^01[3-9]\d{8}$/.test(p)) return null;
   if (findMember(p)) return findMember(p);
   const row = { phone: p, name: String(name || '').trim() || 'Customer · ' + p, joined: Date.now(), bought: 0, open: 0, usedBefore: 0, openAt: Date.now(), last: 0, code: '', birthday: '', added: true };
+  // a member is a CRM customer with a loyalty account: the customer book gets them too (once, by phone)
+  const crm = saveCustomerOnce({ name: row.name, phone: p, types: ['Online'], addedFrom: 'Loyalty' });
+  if (crm && crm.id) row.customerId = crm.id;
   write(KEYS.members, [row, ...storedMembers()]);
   changed();
   return row;
@@ -346,6 +380,8 @@ export function expirePoints(now = Date.now()) {
 
 // ---- wallet -------------------------------------------------------------------------------------
 function addWallet(row) { write(KEYS.wallet, [row, ...storedWallet()]); changed(); return row; }
+/** Write one store credit row (storeCredit.js uses this; nothing else should). */
+export const addCreditRow = (row) => addWallet({ id: uid('LW'), at: Date.now(), channel: 'Online', by: 'Shanto', ...row });
 const partyOf = (m) => `${m.name} · ${m.phone}`;
 /** Money a customer gives the shop to keep: it lands in `account` (ledger 'wallet top-up', +). */
 export function topUpWallet({ phone, amount, account, method = '', ref = '', note = '', by = 'Shanto' }) {
@@ -412,9 +448,103 @@ export function approveRequest(id, { account, by = 'Shanto' }) {
 export function rejectRequest(id, by = 'Shanto') { setRequest(id, { status: 'rejected', doneAt: Date.now(), by }); }
 
 // ---- referrals ----------------------------------------------------------------------------------
-export function getReferralRecords() {
+// A record's status is worked out from what happened (the saved status is only the merchant's decision):
+//   waiting    the friend joined, no order yet
+//   review     the self-referral check found the same address or device: a person decides (approveReferral)
+//   blocked    same phone as the customer who invited them (or rejected after review)
+//   pending    the friend's order is delivered but still inside the return period (availableAt)
+//   cancelled  the friend's order came back before the reward was given
+//   capped     over the customer's monthly or total cap
+//   due        ready to give · given · reversed (the friend's order came back after it was given)
+const readRefAdded = () => read(KEYS.refAdded, []);
+const norm = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+/** The self-referral check for a friend who joins with a customer's code. { verdict: 'ok'|'review'|'block', reasons } */
+export function checkReferral({ referrer, friendPhone, address, device }) {
+  const ref = phoneKey(referrer);
+  const who = REFERRER_ID[ref] || {};
+  const reasons = [];
+  if (friendPhone && phoneKey(friendPhone) === ref) return { verdict: 'block', reasons: ['Same phone as the customer who invited them'] };
+  if (address && who.address && norm(address) === norm(who.address)) reasons.push('Same address as the customer who invited them');
+  if (device && who.device && device === who.device) reasons.push('Signed up on the same device');
+  // a friend who already bought is not a new customer
+  if (friendPhone && findMember(friendPhone) && (findMember(friendPhone).bought || 0) > 0) return { verdict: 'block', reasons: ['Already a customer'] };
+  return { verdict: reasons.length ? 'review' : 'ok', reasons };
+}
+/** A friend joined with a code (called by sign-up or checkout). Returns the record with its check result. */
+export function recordReferral({ code, friend = {}, order = null }) {
+  const x = REFERRER_SEED.find((r) => r.code.toUpperCase() === String(code || '').trim().toUpperCase());
+  if (!x) return { error: 'No customer has this code' };
+  const chk = checkReferral({ referrer: x.phone, friendPhone: friend.phone, address: friend.address, device: friend.device });
+  const s = getLoyaltySettings();
+  const reward = order ? (s.referral.kind === 'comm' ? r2(order.amount * s.referral.pct / 100) : r2(s.referral.points * s.pointValue)) : 0;
+  const row = { id: uid('RF'), referrer: x.phone, friend: friend.name || 'Friend', friendPhone: phoneKey(friend.phone), address: friend.address || '', device: friend.device || '', joinedAt: Date.now(), order, reward, status: chk.verdict === 'block' ? 'blocked' : 'due', flags: chk.reasons, channel: 'Online', added: true };
+  write(KEYS.refAdded, [row, ...readRefAdded()]);
+  changed();
+  return { record: row, check: chk };
+}
+function referralState(r, t, s, returnedRefs) {
+  const flags = r.flags || (r.address || r.device ? checkReferral({ referrer: r.referrer, friendPhone: r.friendPhone, address: r.address, device: r.device }).reasons : []);
+  if (r.status === 'given' || r.status === 'reversed') {
+    const back = r.order && (r.returnedAt || returnedRefs.has(r.order.ref));
+    return { status: r.status === 'given' && back && r.reversedAt ? 'reversed' : r.status, flags, returned: !!back };
+  }
+  if (r.status === 'blocked' || r.status === 'rejected') return { status: 'blocked', flags };
+  if (flags.length && !r.approvedAt) return { status: 'review', flags };
+  if (!r.order) return { status: 'waiting', flags };
+  if (r.returnedAt || returnedRefs.has(r.order.ref)) return { status: 'cancelled', flags, returned: true };
+  const availableAt = (r.order.deliveredAt || r.order.at) + (s.referral.pendingDays || 0) * 864e5;
+  if (t < availableAt) return { status: 'pending', flags, availableAt };
+  return { status: 'due', flags, availableAt };
+}
+export function getReferralRecords(t = isBrowser ? Date.now() + (Number(read('gc.clock.offset', 0)) || 0) : Date.now()) {
   const edits = read(KEYS.referrals, {});
-  return REFERRAL_SEED.map((r) => ({ ...r, ...(edits[r.id] || {}) })).sort((a, b) => b.joinedAt - a.joinedAt);
+  const s = getLoyaltySettings();
+  const returnedRefs = new Set(isBrowser ? getReturns().map((x) => x.ref).filter(Boolean) : []);
+  const list = [...readRefAdded(), ...REFERRAL_SEED].map((r) => ({ ...r, ...(edits[r.id] || {}) }))
+    .map((r) => ({ ...r, ...referralState(r, t, s, returnedRefs) }))
+    .sort((a, b) => a.joinedAt - b.joinedAt);
+  // caps: rewards (pending, due, given) a customer earns in the friend's order month, and in total
+  const count = {};
+  list.forEach((r) => {
+    if (!['pending', 'due', 'given'].includes(r.status)) return;
+    const x = REFERRER_SEED.find((y) => y.phone === r.referrer) || { before: { bought: 0 } };
+    const mk = r.referrer + '|' + new Date(r.order ? r.order.at : r.joinedAt).getMonth();
+    count[mk] = (count[mk] || 0) + 1;
+    count[r.referrer] = (count[r.referrer] || x.before.bought) + 1;
+    if (r.status !== 'given' && ((s.referral.capMonth && count[mk] > s.referral.capMonth) || (s.referral.capTotal && count[r.referrer] > s.referral.capTotal))) r.status = 'capped';
+  });
+  return list.sort((a, b) => b.joinedAt - a.joinedAt);
+}
+/** Let a referral the check flagged go ahead (a person looked at it). */
+export function approveReferral(id, by = 'Shanto') { const e = read(KEYS.referrals, {}); e[id] = { ...(e[id] || {}), approvedAt: Date.now(), approvedBy: by, flags: [] }; write(KEYS.referrals, e); changed(); }
+/** Refuse a flagged referral: no reward. */
+export function rejectReferral(id, reason = 'Self-referral', by = 'Shanto') { const e = read(KEYS.referrals, {}); e[id] = { ...(e[id] || {}), status: 'rejected', rejectedAt: Date.now(), rejectReason: reason, by }; write(KEYS.referrals, e); changed(); }
+/**
+ * Take a given reward back (the friend's order was returned or cancelled). Store credit and points are taken back up to
+ * what the customer still has; a cash payout can't be taken back here.
+ */
+export function reverseReferral(id, reason = 'Friend’s order returned', by = 'System') {
+  const r = getReferralRecords().find((x) => x.id === id);
+  if (!r || r.status !== 'given') return { error: 'Only a given reward can be reversed' };
+  const m = findMember(r.referrer);
+  let amount = 0;
+  if (r.how === 'wallet' && m) {
+    amount = r2(Math.min(r.reward, Math.max(0, m.wallet)));
+    if (amount > 0) addWallet({ id: uid('LW'), phone: m.phone, at: Date.now(), kind: 'reverse', amount: -amount, what: 'Invite reward reversed', sub: reason, channel: r.channel || 'Online', ref: r.id, src: 'referral', by });
+  } else if (r.how === 'points' && m) {
+    const n = Math.min(r.points || 0, m.points);
+    if (n > 0) write(KEYS.points, [{ id: uid('LP'), phone: m.phone, at: Date.now(), kind: 'reverse', points: -n, what: 'Invite points reversed', sub: reason, channel: 'Online', ref: r.id, by }, ...storedPoints()]);
+    amount = n;
+  }
+  const e = read(KEYS.referrals, {});
+  e[id] = { ...(e[id] || {}), status: 'reversed', reversedAt: Date.now(), reverseReason: reason, reversedAmount: amount, by };
+  write(KEYS.referrals, e);
+  changed();
+  return { amount, how: r.how };
+}
+/** Reverse every given reward whose friend's order came back (run when returns change; the Referrals page runs it). */
+export function checkReferralReturns() {
+  return getReferralRecords().filter((r) => r.status === 'given' && r.returned).map((r) => reverseReferral(r.id));
 }
 /** One row per customer who shares a code: friends joined, bought, their sales, rewards given and due. */
 export function getReferrers(records = getReferralRecords(), members = getMembers()) {
@@ -428,6 +558,8 @@ export function getReferrers(records = getReferralRecords(), members = getMember
       sales: x.before.sales + mine.reduce((a, r) => a + (r.order ? r.order.amount : 0), 0),
       earned: r2(x.before.earned + mine.filter((r) => r.status === 'given').reduce((a, r) => a + r.reward, 0)),
       due: r2(mine.filter((r) => r.status === 'due').reduce((a, r) => a + r.reward, 0)),
+      pending: r2(mine.filter((r) => r.status === 'pending').reduce((a, r) => a + r.reward, 0)),
+      review: mine.filter((r) => r.status === 'review').length,
       records: mine,
     };
   }).sort((a, b) => b.joined - a.joined);
@@ -457,6 +589,7 @@ export function payReferral(ids, { how, account, by = 'Shanto' }) {
   list.forEach((r) => { edits[r.id] = { status: 'given', how, givenAt: now, account: how === 'cash' ? account : '', by, ledger }; });
   write(KEYS.referrals, edits);
   changed();
+  if (how !== 'cash') notifyMember('referral', referrer, { amount: '৳' + Math.round(total).toLocaleString('en-IN') }, 'referral|' + list.map((r) => r.id).join(','));
   return { total, count: list.length, name: m.name };
 }
 
@@ -520,4 +653,86 @@ export function loyaltyCosts(from, to, { points = getPointEntries(), wallet = ge
 export function monthRange(t, offset = 0) {
   const d = new Date(t);
   return [new Date(d.getFullYear(), d.getMonth() + offset, 1).getTime(), new Date(d.getFullYear(), d.getMonth() + offset + 1, 1).getTime()];
+}
+
+// ---- levels: history -----------------------------------------------------------------------------
+// The demo members' moves are worked out from what they bought since they joined (spend grew evenly from
+// joining to their last visit); moves after that are recorded by checkTiers() and setTier().
+const readTierLog = () => read(KEYS.tiers, []);
+function seedTierMoves(m, s) {
+  const base = [...storedMembers(), ...MEMBER_SEED].find((x) => x.phone === m.phone);
+  if (!base) return [];
+  const tiers = [...s.tiers].sort((a, b) => a.min - b.min);
+  const start = base.joined, end = Math.max(base.last || start, start + 864e5), total = base.bought || 0;
+  const out = [{ phone: m.phone, at: start, from: '', to: tiers[0].k, reason: 'Joined', by: 'System', seed: true }];
+  tiers.slice(1).forEach((t, i) => { if (total >= t.min && total > 0) out.push({ phone: m.phone, at: Math.round(start + (end - start) * (t.min / total)), from: tiers[i].k, to: t.k, reason: `Spent ৳${t.min.toLocaleString('en-IN')} in total`, by: 'System', seed: true }); });
+  return out;
+}
+/** When a member moved between levels, and why. Newest first: { at, from, to, reason, by, up } */
+export function tierHistory(phone, s = getLoyaltySettings()) {
+  const m = findMember(phone);
+  if (!m) return [];
+  const order = Object.fromEntries(s.tiers.map((t, i) => [t.k, i]));
+  return [...seedTierMoves(m, s), ...readTierLog().filter((e) => e.phone === m.phone)]
+    .sort((a, b) => b.at - a.at)
+    .map((e) => ({ ...e, up: !e.from || (order[e.to] ?? 0) > (order[e.from] ?? 0), toName: (s.tiers.find((t) => t.k === e.to) || { name: e.to }).name, fromName: e.from ? (s.tiers.find((t) => t.k === e.from) || { name: e.from }).name : '' }));
+}
+const lastTier = (m, s) => { const h = tierHistory(m.phone, s); return h.length ? h[0].to : ''; };
+/** Record every member whose level changed since the last move on record (and tell them). Returns the moves. */
+export function checkTiers(members = getMembers(), s = getLoyaltySettings()) {
+  const moves = [];
+  const order = Object.fromEntries(s.tiers.map((t, i) => [t.k, i]));
+  members.forEach((m) => {
+    const was = lastTier(m, s);
+    if (!was || was === m.tier) return;
+    const up = (order[m.tier] ?? 0) > (order[was] ?? 0);
+    moves.push({ phone: m.phone, at: Date.now(), from: was, to: m.tier, by: 'System',
+      reason: up ? `Spent ৳${m.tierObj.min.toLocaleString('en-IN')} in total` : `Level rules changed: ${m.tierObj.name} needs ৳${(s.tiers.find((t) => t.k === was) || { min: 0 }).min.toLocaleString('en-IN')}+` });
+  });
+  if (moves.length) {
+    write(KEYS.tiers, [...moves, ...readTierLog()]);
+    moves.filter((x) => (order[x.to] ?? 0) > (order[x.from] ?? 0)).forEach((x) => { const t = s.tiers.find((y) => y.k === x.to); notifyMember('tier', x.phone, { tier: t.name, mult: t.mult + 'x' }, `tier|${x.phone}|${x.to}`); });
+    changed();
+  }
+  return moves;
+}
+/** Put a member on a level by hand (with a reason), or back to automatic (tier ''). */
+export function setTier(phone, tier, reason, by = 'Shanto') {
+  const m = findMember(phone);
+  if (!m) return { error: 'No member with this number' };
+  if (!String(reason || '').trim()) return { error: 'Give a reason' };
+  const all = read(KEYS.tierSet, {});
+  if (tier) all[m.phone] = { tier, reason, by, at: Date.now() }; else delete all[m.phone];
+  write(KEYS.tierSet, all);
+  const after = findMember(m.phone);
+  if (after.tier !== m.tier) write(KEYS.tiers, [{ phone: m.phone, at: Date.now(), from: m.tier, to: after.tier, reason: (tier ? 'Set by hand: ' : 'Back to automatic: ') + reason, by }, ...readTierLog()]);
+  changed();
+  return { member: after };
+}
+
+// ---- messages (sent by Communications) -------------------------------------------------------------
+// Loyalty decides that a member should hear about something; messaging.js decides whether, when and how.
+export const LOYALTY_MESSAGES = {
+  tier: { template: 'T-TIER', cls: 'Service', label: 'New level' },
+  credit: { template: 'T-CREDIT', cls: 'Service', label: 'Store credit added' },
+  referral: { template: 'T-REFERRAL', cls: 'Service', label: 'Invite reward ready' },
+  birthday: { template: 'T-BIRTHDAY', cls: 'Marketing', label: 'Birthday gift' },
+  expiring: { template: 'T-POINTS-EXP', cls: 'Marketing', label: 'Points expiring' },
+};
+/** Hand a loyalty message to Communications. Returns its send result, or null when the message is turned off. */
+export function notifyMember(event, phone, vars = {}, once = '') {
+  const def = LOYALTY_MESSAGES[event];
+  const s = getLoyaltySettings();
+  if (!def || !isBrowser || s.messages[event] === false) return null;
+  const m = findMember(phone);
+  if (!m) return null;
+  return sendMessage({ source: 'Loyalty', event: def.label, cls: def.cls, channels: ['sms', 'whatsapp'], to: { name: m.name, phone: m.phone, customerId: m.customerId }, template: def.template, vars, once, ref: m.phone });
+}
+/** Remind members whose points expire within a month (once per member per month). Returns how many were handed over. */
+export function remindExpiring(now = Date.now()) {
+  const s = getLoyaltySettings();
+  if (!s.expireOn) return 0;
+  const d = new Date(now); const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+  const date = `${end.getDate()} ${end.toLocaleString('en', { month: 'short' })}`;
+  return getMembers({ now }).filter((m) => m.expiring > 0).map((m) => notifyMember('expiring', m.phone, { points: m.expiring.toLocaleString('en-IN'), date }, `expiring|${m.phone}|${d.getFullYear()}-${d.getMonth()}`)).filter(Boolean).length;
 }

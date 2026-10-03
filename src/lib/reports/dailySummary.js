@@ -3,6 +3,8 @@
 //   cash, bank and wallets at closing (ledger) · payouts that arrived and those running late (settlements)
 //   low stock (as of now) · dues collected (invoice payments) · expenses · the day's top 5 products
 // Used by the Daily summary page and by Scheduled reports (the message preview). Pure: reads only.
+// FIGURE_METRIC says which dictionary metric (./metrics.js) each figure is, so Home and the Daily summary can show
+// "How is this calculated?" (explain(id)) and agree with Reports. keyFigures rows carry the metric id third.
 
 import * as salesBook from '../salesBook';
 import { getOrders, isCounterSale } from '../orders';
@@ -21,6 +23,12 @@ const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 const inDay = (t, from, to) => typeof t === 'number' && t >= from && t < to;
 const CHANNELS = ['Retail', 'Online', 'Wholesale'];
 const money = (n) => (n < 0 ? '−' : '') + formatBDT(Math.abs(Math.round(n)));
+
+/** Figure (path in the pack) → metric id in the dictionary. */
+export const FIGURE_METRIC = {
+  'sales.total': 'sales', 'sales.net': 'net_sales', 'sales.returns': 'returns', 'sales.orders': 'orders', 'sales.gross': 'gross_profit',
+  'orders.placed': 'online_orders', 'orders.delivered': 'delivered_orders',
+};
 
 /** The pack for the day that contains `day`. */
 export function dailySummary(day, now = clockNow()) {
@@ -107,14 +115,15 @@ export function dailySummary(day, now = clockNow()) {
     expenses: { total: r2(expList.reduce((a, e) => a - e.amount, 0)), count: expList.length, byCat: [...expCats].map(([cat, amount]) => ({ cat, amount })).sort((a, b) => b.amount - a.amount) },
   };
   out.figures = keyFigures(out);
+  out.metrics = FIGURE_METRIC;
   return out;
 }
 
 /** The short list of figures a message carries: [[label, text]]. */
 export function keyFigures(d) {
   return [
-    ['Sales', `${money(d.sales.total)} · ${CHANNELS.map((c) => `${c} ${money((d.sales.byChannel.find((x) => x.channel === c) || {}).revenue || 0)}`).join(', ')}`],
-    ['Orders', `${d.orders.placed} online placed · ${d.orders.delivered} delivered · ${d.orders.returned} returned`],
+    ['Sales', `${money(d.sales.total)} · ${CHANNELS.map((c) => `${c} ${money((d.sales.byChannel.find((x) => x.channel === c) || {}).revenue || 0)}`).join(', ')}`, 'sales'],
+    ['Orders', `${d.orders.placed} online placed · ${d.orders.delivered} delivered · ${d.orders.returned} returned`, 'online_orders'],
     ['Money at closing', `${money(d.cashTotal)} (${d.cash.map((c) => `${c.label} ${money(c.closing)}`).join(', ')})`],
     ['Payouts', `${money(d.payouts.arrivedTotal)} arrived${d.payouts.late.length ? ` · ${d.payouts.late.length} late (${money(d.payouts.lateTotal)})` : ''}`],
     ['Dues collected', money(d.dues.collected)],

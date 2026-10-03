@@ -3,6 +3,8 @@
 // Coupons — the discount codes, laid out like Shopify's Discounts list (components/ui/IndexKit.jsx): title row,
 // this month's figures, then one card with the status views, a search and a compact table (code and what it
 // gives, dates, uses, sales, on / off). Tap a code to copy it.
+// The codes are a view of the one promotion engine (src/lib/promotions.js): the same codes the POS register, Create
+// order and the checkout check. Uses count what the engine committed; turning a code off pauses it everywhere.
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
@@ -12,20 +14,26 @@ import { EmptyState as __EmptyState } from '@/components/ui';
 import { ShopHeader, MetricStrip, IndexTabs, SearchField, LearnMore } from '@/components/ui/IndexKit';
 import { toast as __toast } from '@/runtime/ui';
 import { clockNow } from '@/lib/settlements';
+import { listOffers, setOfferStatus, CHANNEL_LABEL, PROMO_EVENT } from '@/lib/promotions';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
 function bdt(n) { var neg = n < 0; var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return (neg ? '−' : '') + '৳' + s; }
 var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-var C = [
-  { id: 1, code: 'EID300', gets: '৳300 off', rule: 'On bills of ৳2,000 or more', where: 'Website + POS', who: 'Everyone', from: -13, to: 2, used: 318, limit: 500, sales: 96400, st: 'live', on: true },
-  { id: 2, code: 'FIRST20', gets: '20% off', rule: 'Up to ৳400 off', where: 'Website', who: 'First order only', from: -17, to: 12, used: 140, limit: 0, sales: 73700, st: 'live', on: true },
-  { id: 3, code: 'SKIN15', gets: '15% off', rule: 'Skin care products only', where: 'Website + POS', who: 'Everyone', from: -8, to: 7, used: 96, limit: 300, sales: 31200, st: 'live', on: true },
-  { id: 4, code: 'GOLD500', gets: '৳500 off', rule: 'On bills of ৳5,000 or more', where: 'Website + POS', who: 'Gold and Platinum members', from: -17, to: 12, used: 22, limit: 150, sales: 13500, st: 'live', on: true },
-  { id: 5, code: 'PUJA10', gets: '10% off', rule: 'Up to ৳250 off', where: 'Website + POS', who: 'Everyone', from: 7, to: 17, used: 0, limit: 1000, sales: 0, st: 'soon', on: true },
-  { id: 6, code: 'FREESHIP', gets: 'Free delivery', rule: 'On bills of ৳1,500 or more', where: 'Website', who: 'Everyone', from: -10, to: -4, used: 211, limit: 0, sales: 58900, st: 'ended', on: false },
-  { id: 7, code: 'SORRY100', gets: '৳100 off', rule: 'Any bill', where: 'Website + POS', who: 'One customer per code', dates: 'No end date', left: 'Always on', used: 4, limit: 20, sales: 5200, st: 'off', on: false }
-];
+// One row per coupon offer in the engine, in this screen's shape (days from today, what it gives, who, where).
+var WHO = { all: 'Everyone', first: 'First order only', members: 'Members only', one: 'One customer per code', segment: 'One customer group' };
+var LIFE_ST = { Active: 'live', Scheduled: 'soon', Ended: 'ended', Exhausted: 'ended', Paused: 'off', Draft: 'off' };
+function couponRows(today) {
+  return listOffers('coupons').map(function (o) {
+    var r = o.reward || {}, cd = o.conditions || {}, sch = o.schedule || {};
+    var gets = o.type === 'percent' ? r.value + '% off' : o.type === 'amount' ? bdt(r.value) + ' off' : o.type === 'free-delivery' ? 'Free delivery' : o.summary;
+    var rule = cd.minSpend ? 'On bills of ' + bdt(cd.minSpend) + ' or more' : (cd.products && cd.products.mode === 'cats' ? cd.products.cats.join(', ') + ' only' : o.type === 'percent' && r.cap ? 'Up to ' + bdt(r.cap) + ' off' : 'Any bill');
+    var who = cd.customer === 'tiers' ? (cd.tiers || []).map(function (t) { return { silver: 'Silver', gold: 'Gold', plat: 'Platinum' }[t] || t; }).join(' and ') + ' members' : WHO[cd.customer] || 'Everyone';
+    return { id: o.id, code: o.code, gets: gets, rule: rule, where: (o.channels || []).map(function (c) { return CHANNEL_LABEL[c]; }).join(' + '), who: who,
+      from: sch.start != null && sch.end != null ? Math.round((sch.start - today) / DAY) : null, to: sch.end != null ? Math.floor((sch.end - today) / DAY) : null,
+      used: o.usage.used, limit: o.limits.total || 0, sales: o.usage.sales, st: LIFE_ST[o.life] || 'off', on: o.status !== 'paused', life: o.life };
+  });
+}
 // Coupon dates are kept as days from today (from / to), so the running codes stay current. The first render uses the
 // design's day (18 Sep 2026); after mount the app clock (clockNow, moved by gc.clock.offset) takes over.
 var FIRST_DAY = new Date(2026, 8, 18).getTime();
@@ -44,10 +52,11 @@ function setQuery(key, value) { if (typeof window === 'undefined') return; var u
 function getQuery(key) { if (typeof window === 'undefined') return ''; return new URLSearchParams(window.location.search).get(key) || ''; }
 var TABS = [{ k: 'live', label: 'Running' }, { k: 'soon', label: 'Coming soon' }, { k: 'ended', label: 'Ended' }, { k: 'off', label: 'Turned off' }];
 class Component extends DCLogic {
-  componentDidMount() { var d = new Date(clockNow()); d.setHours(0, 0, 0, 0); var p = { today: d.getTime() }; var t = getQuery('status'); if (TABS.some(function (x) { return x.k === t; })) p.tab = t; this.setState(p); }
-  componentWillUnmount() { clearTimeout(this.t); }
+  componentDidMount() { var self = this; var d = new Date(clockNow()); d.setHours(0, 0, 0, 0); var p = { today: d.getTime(), C: couponRows(d.getTime()) }; var t = getQuery('status'); if (TABS.some(function (x) { return x.k === t; })) p.tab = t; this.setState(p);
+    this.reread = function () { self.setState({ C: couponRows(self.state.today), sw: {} }); }; window.addEventListener(PROMO_EVENT, this.reread); }
+  componentWillUnmount() { clearTimeout(this.t); if (this.reread) window.removeEventListener(PROMO_EVENT, this.reread); }
   renderVals() {
-    var self = this, s = this.state || {}, tab = s.tab || 'live', sw = s.sw || {}, today = s.today || FIRST_DAY;
+    var self = this, s = this.state || {}, tab = s.tab || 'live', sw = s.sw || {}, today = s.today || FIRST_DAY, C = s.C || [];
     var isOn = function (c) { return sw[c.id] == null ? c.on : sw[c.id]; };
     var flash = function (m, o) { __toast(m, o || {}); };
     // A running code that is switched off moves to "Turned off"; switching it back on returns it to "Running".
@@ -58,15 +67,16 @@ class Component extends DCLogic {
       return { code: c.code, gets: c.gets, rule: c.rule, where: c.where, who: c.who, summary: [c.gets, c.rule, c.where, c.who].join(' · '), dates: cd.dates, left: cd.left, urgent: !!cd.urgent,
         used: c.limit ? c.used + ' of ' + c.limit : c.used + ' times', pct: pct + '%', sales: c.sales ? bdt(c.sales) : '—', on: on,
         copy: function () { try { if (navigator.clipboard) navigator.clipboard.writeText(c.code); } catch (e) { /* clipboard blocked: the toast still tells the code */ } flash(c.code + ' copied. Paste it in your Facebook post or SMS.'); },
-        toggle: function () { var q = assign({}, sw); q[c.id] = !on; self.setState({ sw: q });
-          var undo = function () { self.setState(function (p) { var r = assign({}, (p && p.sw) || {}); r[c.id] = on; return { sw: r }; }); };
+        toggle: function () { var q = assign({}, sw); q[c.id] = !on; self.setState({ sw: q }); setOfferStatus(c.id, on ? 'paused' : 'active', 'Turned off');
+          var undo = function () { setOfferStatus(c.id, on ? 'active' : 'paused', 'Turned off'); };
           var moved = c.st === 'live' || c.st === 'off';
           flash(c.code + (on ? ' turned off. Customers can’t use it now.' : ' turned on.') + (moved ? (on ? ' Find it under Turned off.' : ' Find it under Running.') : ''), { undo: undo }); } };
     });
     var cnt = {}; TABS.forEach(function (t) { cnt[t.k] = C.filter(function (c) { return eff(c) === t.k; }).length; });
     var tabs = TABS.map(function (t) { var k = t.k; return { key: k, label: t.label, count: cnt[k], on: k === tab, id: 'cp-tab-' + k, onClick: function () { self.setState({ tab: k }); setQuery('status', k === 'live' ? '' : k); } }; });
     var curLabel = TABS.filter(function (t) { return t.k === tab; })[0].label;
-    return { tabs: tabs, rows: rows, empty: !rows.length, emptyTitle: needle ? 'No codes match “' + String(s.q).trim() + '”' : 'No codes under “' + curLabel + '”', showRunning: function () { self.setState({ tab: 'live', q: '', find: false }); setQuery('status', ''); }, notRunning: tab !== 'live' || !!needle,
+    var all = C.reduce(function (a, c) { a.used += c.used; a.sales += c.sales; return a; }, { used: 0, sales: 0 });
+    return { loading: !s.C, usedAll: all.used.toLocaleString('en-IN'), salesAll: bdt(all.sales), tabs: tabs, rows: rows, empty: !rows.length, emptyTitle: needle ? 'No codes match “' + String(s.q).trim() + '”' : 'No codes under “' + curLabel + '”', showRunning: function () { self.setState({ tab: 'live', q: '', find: false }); setQuery('status', ''); }, notRunning: tab !== 'live' || !!needle,
       q: s.q || '', find: !!(s.find || s.q), openFind: function () { self.setState({ find: true }); }, closeFind: function () { self.setState({ find: false, q: '' }); }, typeQ: function (e) { self.setState({ q: e.target.value }); },
       countLabel: rows.length === 1 ? '1 code' : rows.length + ' codes' };
   }
@@ -111,10 +121,10 @@ export default class CouponsScreen extends Component {
                   more={[{ label: 'Offers', href: '/promo' }, { label: 'Flash sales', href: '/flash-sales' }, { label: 'Offers page', href: '/offers' }]}
                   primary={{ label: 'Make a new code', href: '/new-coupon' }} />
 
-                <MetricStrip label="This month" items={[
-                  { label: 'Used this month', value: '642', sub: 'times' },
-                  { label: 'Sales with codes', value: '৳2,14,800', sub: 'this month' },
-                  { label: 'Discount given', value: '৳19,420', sub: 'this month' },
+                <MetricStrip label="All codes" items={[
+                  { label: 'Codes used', value: v.loading ? '—' : v.usedAll, sub: 'times' },
+                  { label: 'Sales with codes', value: v.loading ? '—' : v.salesAll },
+                  { label: 'Running now', value: v.loading ? '—' : String((v.tabs.find((t) => t.key === 'live') || {}).count || 0), sub: 'codes' },
                 ]} />
 
                 <section className="ix-card" aria-label="Coupons">
@@ -127,7 +137,7 @@ export default class CouponsScreen extends Component {
                       <span className="ix-tools"><button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search" onClick={v.openFind}><__Icon name="search" width="16" height="16" aria-hidden="true" /></button></span>
                     </>)}
                   </div>
-                  {v.empty ? (
+                  {v.loading ? <div className="ix-empty"><__EmptyState icon="loader" title="Reading codes" /></div> : v.empty ? (
                     <div className="ix-empty"><__EmptyState icon="ticket-percent" title={v.emptyTitle} body="Codes move here when their status changes." actionLabel={v.notRunning ? "Show running codes" : undefined} onAction={v.showRunning} /></div>
                   ) : (<>
                     <ul className="ix-plist" aria-label="Coupons">

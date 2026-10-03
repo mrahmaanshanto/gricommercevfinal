@@ -4,6 +4,10 @@
 // the title row (back to Reports), platform and period pickers, five key figures with trend lines, the day's alerts as
 // pills, then one chart and one short list (where the money went). The deeper analysis (claims against deliveries,
 // money leaks, new and repeat buyers, messages) is folded under "More analysis".
+// The figures come from the shared books through the metric dictionary (lib/reports/analytics.js, metrics.js): ad spend,
+// delivered sales credited to each platform under the shop's attribution model (Delivered basis), Delivered ROAS, cost
+// per delivered order, contribution after ads. Platform-reported values stay beside them, never mixed. The alert pills
+// are the open alerts of lib/alerts.js. The messages panel still shows the inbox's demo figures.
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
@@ -14,6 +18,10 @@ import { toast as __toast } from '@/runtime/ui';
 import { InfoTip as __InfoTip } from '@/components/ui';
 import { RecordHeader, MetricStrip } from '@/components/ui/IndexKit';
 import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
+import { platformFacts, platformDays, sumFacts, PLATFORM_KEYS } from '@/lib/reports/analytics';
+import { explain } from '@/lib/reports/metrics';
+import { modelLabel } from '@/lib/attribution';
+import { evaluateAlerts } from '@/lib/alerts';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -25,22 +33,34 @@ var LOGO = { meta: '/assets/41f77fbf774c3a1c10208ca2b086bc14.png', google: '/ass
 function pct(n) { return (Math.round(n * 10) / 10) + '%'; }
 function x2(n) { return (Math.round(n * 100) / 100).toFixed(2) + '×'; }
 var PERIOD = [['7', '7 days'], ['30', '30 days'], ['90', '90 days']];
-// 30-day figures per platform: spend, platform-claimed revenue, claimed purchases, GC placed, confirmed, delivered, delivered revenue, returned, new customers, clicks, impressions
-var PF = { meta: [124500, 940000, 1190, 952, 790, 676, 672000, 64, 410, 38400, 1920000], google: [38200, 310000, 360, 318, 272, 238, 248000, 18, 142, 9100, 212000], tiktok: [22300, 185000, 240, 150, 118, 98, 96000, 14, 71, 11800, 1340000] };
-var COST = { courier: 70, ret: 120, pack: 15 };
-function agg(keys) { var t = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; keys.forEach(function (k) { PF[k].forEach(function (x, i) { t[i] += x; }); }); return t; }
-function netRev(a) { return a[6] - a[5] * COST.courier - a[7] * COST.ret - a[4] * COST.pack; }
+// facts per platform as arrays: spend, platform-reported revenue, platform-reported purchases, placed, confirmed,
+// delivered, delivered sales, returned to origin, new customers, clicks, impressions, cost of goods, courier & fees, RTO cost
+var F_KEYS = ['spend', 'reported', 'reportedOrders', 'placed', 'confirmed', 'delivered', 'deliveredSales', 'returned', 'newCustomers', 'clicks', 'impressions', 'cogs', 'variable', 'rtoCost'];
+var DAY = 864e5;
+function arr(f) { return F_KEYS.map(function (k) { return f[k] || 0; }); }
+var HUB = { key: '', data: null };
+/** The books for a period of n days ending today, and the period before (kept while the period is the same). */
+function hubData(per) {
+  var n = +per, end = new Date(); end.setHours(0, 0, 0, 0); var to = end.getTime() + DAY, from = to - n * DAY;
+  var key = per + '|' + modelLabel() + '|' + Math.floor(Date.now() / 60000);
+  if (HUB.key === key) return HUB.data;
+  var facts = platformFacts({ from: from, to: to }), before = platformFacts({ from: from - n * DAY, to: from });
+  var days = {}, prevDays = {};
+  ['all'].concat(PLATFORM_KEYS).forEach(function (k) { var keys = k === 'all' ? PLATFORM_KEYS : [k]; days[k] = platformDays({ from: from, to: to, keys: keys }); prevDays[k] = platformDays({ from: from - n * DAY, to: from, keys: keys }); });
+  HUB = { key: key, data: { from: from, to: to, n: n, facts: facts, before: before, days: days, prevDays: prevDays } };
+  return HUB.data;
+}
+function agg(facts, keys) { return arr(sumFacts(facts, keys)); }
+function contribution(a) { return a[6] - a[11] - a[12] - a[13] - a[0]; }
+function chg(cur, prev) { return prev ? Math.round((cur - prev) / Math.abs(prev) * 100) : null; }
 var PC = { meta: '#2563eb', google: '#059669', tiktok: '#db2777' };
 function curve(pts) { if (!pts.length) return ''; var d = 'M' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1); for (var i = 0; i < pts.length - 1; i++) { var p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2; var c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6, c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6; d += ' C' + c1x.toFixed(1) + ' ' + c1y.toFixed(1) + ' ' + c2x.toFixed(1) + ' ' + c2y.toFixed(1) + ' ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1); } return d; }
 function pts(vals, w, h, max, min, padT, padB) { padT = padT || 2; padB = padB || 2; min = min == null ? 0 : min; max = max || Math.max.apply(null, vals) || 1; var n = vals.length; return vals.map(function (v, i) { return [n === 1 ? w / 2 : i * w / (n - 1), padT + (h - padT - padB) * (1 - (v - min) / (max - min || 1))]; }); }
 function sparkP(vals, w, h) { w = w || 160; h = h || 30; var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals); var p = pts(vals, w, h, mx + (mx - mn) * .1, mn - (mx - mn) * .15, 3, 2); var l = curve(p); return { line: l, area: l + ' L' + w + ' ' + h + ' L0 ' + h + ' Z' }; }
-function series(n, base, amp, seed, trend) { var out = []; for (var i = 0; i < n; i++) { var s = Math.sin((i + seed) * 1.7) * .5 + Math.sin((i * 3 + seed) * .9) * .3 + Math.cos(i * .45 + seed) * .2; out.push(Math.max(0, base * (1 + (trend || 0) * (i / n - .5)) + amp * s)); } return out; }
 function delta(p, good) { var up = p >= 0; var ok = good === 'down' ? !up : up; return { up: up, ok: ok, dir: (up ? 'Up ' : 'Down ') + Math.abs(p) + '%' + (ok ? ', good' : ', worse'), d: Math.abs(p) + '%' }; }
-function tile(l, v, s, c, vals, dp, good) { var sp = sparkP(vals); var dl = delta(dp, good); return { l: l, v: v, s: s, c: c, vals: vals.map(function (x) { return Math.round(x * 100) / 100; }), line: sp.line, area: sp.area, d: dl.d, up: dl.up, ok: dl.ok, dir: dl.dir }; }
 function dseg(self, opts, cur, key) { return opts.map(function (o) { return { l: o[1], on: o[0] === cur, pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
 function ring(pctv, r) { var C = 2 * Math.PI * r; return { da: (C * pctv / 100).toFixed(1) + ' ' + C.toFixed(1) }; }
 function kfmt(n) { return n >= 100000 ? '৳' + (n / 100000).toFixed(n >= 1000000 ? 1 : 2) + 'L' : n >= 1000 ? '৳' + Math.round(n / 1000) + 'k' : '৳' + Math.round(n); }
-var DAYS = []; (function () { for (var i = 0; i < 90; i++) { var d = new Date(Date.UTC(2026, 5, 22 + i)); DAYS.push(d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()]); } })();
 // Non-colour cues: each platform / cost part also gets its own fill pattern, shown in the legends too.
 var PAT = [null, ['repeating-linear-gradient(45deg, rgba(255,255,255,.5) 0 2px, transparent 2px 6px)', 'auto'], ['radial-gradient(rgba(255,255,255,.7) 1.2px, transparent 1.6px)', '5px 5px'], ['repeating-linear-gradient(-45deg, rgba(255,255,255,.5) 0 2px, transparent 2px 6px)', 'auto']];
 function fillOf(c, i) { var pt = PAT[i]; return pt ? { backgroundColor: c, backgroundImage: pt[0], backgroundSize: pt[1] } : { backgroundColor: c }; }
@@ -48,42 +68,60 @@ var RC = function (r) { return r >= 4 ? 'var(--text-success)' : r >= 2.5 ? 'var(
 var RL = function (r) { return r >= 4 ? 'strong' : r >= 2.5 ? 'fair' : 'weak'; };
 var RI = function (r) { return r >= 4 ? 'trending-up' : r >= 2.5 ? 'minus' : 'trending-down'; };
 class Component extends DCLogic {
+  componentDidMount() {
+    var open = [];
+    try { open = evaluateAlerts().alerts.filter(function (a) { return a.state === 'open'; }); } catch (e) { open = []; }
+    this.setState({ ready: true, openAlerts: open });
+  }
   componentWillUnmount() { clearTimeout(this.t); }
   renderVals() {
     var self = this, s = this.state || {};
     var per = s.per || '30', pv = s.pv || this.props.platform || 'all';
-    var keys = pv === 'all' ? ['meta', 'google', 'tiktok'] : [pv];
-    var f = per === '7' ? .24 : per === '90' ? 2.9 : 1, n = +per;
-    var a = agg(keys).map(function (x) { return Math.round(x * f); });
-    var nrv = netRev(a), real = nrv / a[0], blended = a[6] / a[0];
-    var rev = series(n, a[6] / n, a[6] / n * .28, keys.length * 3 + 1, .35), sp = series(n, a[0] / n, a[0] / n * .18, keys.length + 5, .15), prev = series(n, a[6] / n * .86, a[6] / n * .22, 9, .1);
-    var mx = Math.max.apply(null, rev.concat(prev)) * 1.12, W = 760, Hc = 230;
+    var keys = pv === 'all' ? PLATFORM_KEYS : [pv];
+    var n = +per;
+    var D = s.ready ? hubData(per) : null;
+    var zero = F_KEYS.map(function () { return 0; });
+    var a = D ? agg(D.facts, keys) : zero, b = D ? agg(D.before, keys) : zero;
+    var roas = a[0] ? a[6] / a[0] : 0, roasB = b[0] ? b[6] / b[0] : 0;
+    var dd = D ? D.days[pv] : { days: [], sales: [], spend: [] }, pd = D ? D.prevDays[pv] : { sales: [] };
+    var rev = dd.sales.length ? dd.sales : [0, 0], sp = dd.spend.length ? dd.spend : [0, 0], prev = pd.sales.length ? pd.sales : rev.map(function () { return 0; });
+    var mx = Math.max.apply(null, rev.concat(prev).concat(sp)) * 1.12 || 1, W = 760, Hc = 230;
     var rp = pts(rev, W, Hc, mx, 0, 10, 0), pp = pts(prev, W, Hc, mx, 0, 10, 0);
-    var bw = W / n * .56, bars = sp.map(function (v, i) { var x = n === 1 ? W / 2 : i * W / (n - 1), h = v / mx * (Hc - 10); return 'M' + (x - bw / 2).toFixed(1) + ' ' + Hc + ' v-' + h.toFixed(1) + ' h' + bw.toFixed(1) + ' v' + h.toFixed(1) + ' Z'; }).join(' ');
+    var nn = rev.length, bw = W / nn * .56, bars = sp.map(function (v, i) { var x = nn === 1 ? W / 2 : i * W / (nn - 1), h = v / mx * (Hc - 10); return 'M' + (x - bw / 2).toFixed(1) + ' ' + Hc + ' v-' + h.toFixed(1) + ' h' + bw.toFixed(1) + ' v' + h.toFixed(1) + ' Z'; }).join(' ');
     var rl = curve(rp);
-    var off = 90 - n;
-    var PS = { meta: agg(['meta']), google: agg(['google']), tiktok: agg(['tiktok']) };
-    var tot = agg(['meta', 'google', 'tiktok'])[0], C = 2 * Math.PI * 58, acc = 0;
-    var dn = ['meta', 'google', 'tiktok'].map(function (k) { var share = PS[k][0] / tot, len = C * share; var o = { da: (Math.max(0, len - 3)).toFixed(1) + ' ' + C.toFixed(1), off: (-acc).toFixed(1) }; acc += len; return o; });
+    var label = function (t) { var d = new Date(t); return d.getDate() + ' ' + MONTHS[d.getMonth()]; };
+    var PS = D ? { meta: arr(D.facts.meta), google: arr(D.facts.google), tiktok: arr(D.facts.tiktok) } : { meta: zero, google: zero, tiktok: zero };
+    var tot = PS.meta[0] + PS.google[0] + PS.tiktok[0], C = 2 * Math.PI * 58, acc = 0;
+    var dn = PLATFORM_KEYS.map(function (k) { var share = tot ? PS[k][0] / tot : 0, len = C * share; var o = { da: (Math.max(0, len - 3)).toFixed(1) + ' ' + C.toFixed(1), off: (-acc).toFixed(1) }; acc += len; return o; });
+    var last14 = function (list) { return list.slice(-14).map(function (x) { return Math.round(x); }); };
+    var tl = function (l, v, sub, vals, dp, good, how) { if (dp == null) return { l: l, v: v, s: sub, vals: vals, d: null, how: how }; var dl = delta(dp, good); return { l: l, v: v, s: sub, vals: vals, d: dl.d, up: dl.up, ok: dl.ok, dir: dl.dir, how: how }; };
+    var spendDay = (function () { var i = sp.indexOf(Math.max.apply(null, sp)); return sp[i] > 0 ? i : -1; })();
+    var Mx = Math.max(1, PLATFORM_KEYS.reduce(function (m, k) { return Math.max(m, PS[k][1], PS[k][6]); }, 0));
     var v = {
-      perL: 'last ' + per + ' days', headline: kfmt(a[6]) + ' delivered from ' + kfmt(a[0]) + ' of ads',
+      perL: 'last ' + per + ' days', headline: kfmt(a[6]) + ' delivered sales from ' + kfmt(a[0]) + ' of ads · Delivered basis · ' + modelLabel(),
       periods: dseg(self, PERIOD, per, 'per'), ptabs: dseg(self, [['all', 'All'], ['meta', 'Meta'], ['google', 'Google'], ['tiktok', 'TikTok']], pv, 'pv'),
       pdf: function () { toast(self, 'Branded PDF for the last ' + per + ' days is ready.'); },
-      tiles: [tile('Ad spend', bdt(a[0]), 'vs previous', '#fbbf24', sp.slice(-14), 8, 'down'), tile('Delivered revenue', bdt(a[6]), a[5] + ' orders', '#60a5fa', rev.slice(-14), 14), tile('Blended return', x2(blended), 'platforms say ' + x2(a[1] / a[0]), '#a78bfa', series(14, 5, .6, 3, .2), 6), tile('Real return', x2(real), 'after courier, returns', '#34d399', series(14, 4.6, .5, 4, .25), 9), tile('Cost / confirmed', bdt(a[0] / a[4]), a[4] + ' confirmed', '#f472b6', series(14, 160, 14, 6, -.2), -4, 'down'), tile('Cost / delivered', bdt(a[0] / a[5]), 'return rate ' + pct(a[7] / a[5] * 100), '#fb923c', series(14, 185, 16, 8, -.15), -3, 'down')],
-      alerts: [['Meta spend passed ৳4,000 today', 'Daily limit alert · 9:12 AM', 'var(--fill-warning-soft)', 'var(--text-warning)'], ['Sylhet returns up to 18%', 'Consider prepaid-only there', 'var(--fill-error-soft)', 'var(--text-danger)'], ['Merchant Center: 12 warnings', 'Missing GTIN on 12 products', 'var(--fill-info-soft)', 'var(--text-info)']].map(function (x) { return { t: x[0], s: x[1], b: x[2], f: x[3] }; }),
+      tiles: [
+        tl('Ad spend', bdt(a[0]), 'vs previous', last14(sp), chg(a[0], b[0]), 'down', explain('ad_spend')),
+        tl('Delivered sales', bdt(a[6]), Math.round(a[5]) + ' delivered orders', last14(rev), chg(a[6], b[6]), 'up', explain('delivered_sales')),
+        tl('Delivered ROAS', a[0] ? x2(roas) : '—', 'platform-reported ' + (a[0] ? x2(a[1] / a[0]) : '—'), undefined, chg(roas, roasB), 'up', explain('delivered_roas')),
+        tl('Contribution after ads', bdt(contribution(a)), 'estimated costs', undefined, chg(contribution(a), contribution(b)), 'up', explain('contribution_after_ads')),
+        tl('Cost / delivered', a[5] && a[0] ? bdt(a[0] / a[5]) : '—', 'RTO ' + (a[5] + a[7] ? pct(a[7] / (a[5] + a[7]) * 100) : '—'), undefined, chg(a[5] ? a[0] / a[5] : 0, b[5] ? b[0] / b[5] : 0), 'down', explain('cost_per_delivered')),
+      ],
+      alerts: (s.openAlerts || []).slice(0, 4).map(function (x) { var hi = x.severity === 'high'; return { t: x.title, s: x.detail, b: hi ? 'var(--fill-error-soft)' : 'var(--fill-warning-soft)', f: hi ? 'var(--text-danger)' : 'var(--text-warning)' }; }),
       yax: [mx, mx * .66, mx * .33, 0].map(function (y) { return { t: kfmt(y) }; }),
       revLine: rl, revArea: rl + ' L' + W + ' ' + Hc + ' L0 ' + Hc + ' Z', prevLine: curve(pp), spBars: bars,
-      revPts: (function () { var k = Math.max(1, Math.round(n / 7)); var out = []; for (var i = Math.floor(k / 2); i < n; i += k) out.push({ x: (rp[i][0] / W * 100).toFixed(2) + '%', y: rp[i][1].toFixed(1) + 'px' }); return out; })(),
-      cols: rev.map(function (r, i) { return { dt: DAYS[off + i], r: bdt(r), s: bdt(sp[i]), x: x2(r * .9 / sp[i]) }; }),
-      xax: [0, .25, .5, .75, 1].map(function (q) { return { t: DAYS[off + Math.min(n - 1, Math.round(q * (n - 1)))] }; }),
-      annX: ((n - (per === '7' ? 3 : 12)) / (n - 1) * 100).toFixed(1) + '%',
-      d0: dn[0], d1: dn[1], d2: dn[2], mixTot: kfmt(tot * f),
-      mix: ['meta', 'google', 'tiktok'].map(function (k, i) { return { lg: LOGO[k], l: PL[k][0], c: PC[k], sw: fillOf(PC[k], i), v: bdt(PS[k][0] * f), p: Math.round(PS[k][0] / tot * 100) + '%' }; }),
-      bullets: ['meta', 'google', 'tiktok'].map(function (k) { var p = PS[k], r = netRev(p) / p[0], cl = p[1] / p[0]; return { lg: LOGO[k], l: PL[k][0], c: PC[k], r: x2(r), cl: x2(cl), w: Math.min(100, r / 12 * 100) + '%', cw: Math.min(99, cl / 12 * 100) + '%', rc: RC(r), ri: RI(r), rl: RL(r) }; }),
-      cmp: ['meta', 'google', 'tiktok'].filter(function (k) { return pv === 'all' || pv === k; }).map(function (k) { var p = PF[k].map(function (x) { return Math.round(x * f); }); var r = netRev(p) / p[0]; var M = 1000000 * f; return { lg: LOGO[k], pl: PL[k][0], c: PC[k], a: (p[6] / M * 100) + '%', b: (p[1] / M * 100) + '%', gw: ((p[1] - p[6]) / M * 100) + '%', dl: bdt(p[6]), cl: bdt(p[1]), gap: '+' + Math.round((p[1] / p[6] - 1) * 100) + '%', roas: x2(r), rc: RC(r), ri: RI(r), rl: RL(r) }; }),
-      leak: [['Orders placed', a[3]], ['Confirmed', a[4]], ['Shipped', Math.round(a[4] * .97)], ['Delivered', a[5]], ['Kept', a[5] - a[7]]].map(function (x, i, arr) { var prevV = i ? arr[i - 1][1] : x[1]; var lost = prevV - x[1]; return { l: x[0], n: x[1].toLocaleString('en-IN'), w: Math.max(18, x[1] / a[3] * 100) + '%', c: ['#1e3a8a', '#1d4ed8', '#2563eb', '#047857', '#065f46'][i], hasStep: i > 0, step: lost + ' lost', stepL: ['', 'not confirmed by phone', 'cancelled before pickup', 'failed or refused at door', 'returned after delivery'][i], sc: lost / prevV > .12 ? 'var(--text-danger)' : 'var(--text-warning)' }; }),
-      split: (function () { var R = a[6]; var parts = [['Ad spend', a[0], '#b45309', 0], ['Courier', a[5] * COST.courier, '#475569', 1], ['Returns', a[7] * COST.ret, '#be123c', 2], ['Packing', a[4] * COST.pack, '#64748b', 3]]; var used = 0; parts.forEach(function (p) { used += p[1]; }); parts.push(['Left for you', R - used, '#047857', 0]); return parts.map(function (p) { var w = p[1] / R * 100; return { l: p[0], c: p[2], sw: fillOf(p[2], p[3]), w: w + '%', t: w > 6 ? '৳' + Math.round(w) : '', v: bdt(p[1]) }; }); })(),
-      nrep: ['meta', 'google', 'tiktok'].map(function (k) { var p = PF[k]; var nn = p[8] / p[5] * 100; return { lg: LOGO[k], pl: PL[k][0], c: PC[k], nw: nn + '%', rw: (100 - nn) + '%', rsw: { width: (100 - nn) + '%', backgroundColor: PC[k], opacity: .45, backgroundImage: PAT[1][0] }, t: Math.round(nn) + '% new · ' + (100 - Math.round(nn)) + '% repeat' }; }),
+      revPts: (function () { var k = Math.max(1, Math.round(nn / 7)); var out = []; for (var i = Math.floor(k / 2); i < nn; i += k) out.push({ x: (rp[i][0] / W * 100).toFixed(2) + '%', y: rp[i][1].toFixed(1) + 'px' }); return out; })(),
+      cols: rev.map(function (r, i) { return { dt: dd.days[i] ? label(dd.days[i]) : '', r: bdt(r), s: bdt(sp[i] || 0), x: sp[i] ? x2(r / sp[i]) : '—' }; }),
+      xax: [0, .25, .5, .75, 1].map(function (q) { var t = dd.days[Math.min(nn - 1, Math.round(q * (nn - 1)))]; return { t: t ? label(t) : '' }; }),
+      ann: spendDay >= 0 ? { x: (spendDay / Math.max(1, nn - 1) * 100).toFixed(1) + '%', t: 'Ad paid ' + kfmt(sp[spendDay]) } : null,
+      d0: dn[0], d1: dn[1], d2: dn[2], mixTot: kfmt(tot),
+      mix: PLATFORM_KEYS.map(function (k, i) { return { lg: LOGO[k], l: PL[k][0], c: PC[k], sw: fillOf(PC[k], i), v: bdt(PS[k][0]), p: tot ? Math.round(PS[k][0] / tot * 100) + '%' : '0%' }; }),
+      bullets: PLATFORM_KEYS.map(function (k) { var p = PS[k], r = p[0] ? p[6] / p[0] : 0, cl = p[0] ? p[1] / p[0] : 0; return { lg: LOGO[k], l: PL[k][0], c: PC[k], r: p[0] ? x2(r) : '—', cl: p[0] ? x2(cl) : '—', w: Math.min(100, r / 12 * 100) + '%', cw: Math.min(99, cl / 12 * 100) + '%', rc: RC(r), ri: RI(r), rl: RL(r) }; }),
+      cmp: PLATFORM_KEYS.filter(function (k) { return pv === 'all' || pv === k; }).map(function (k) { var p = PS[k]; var r = p[0] ? p[6] / p[0] : 0; return { lg: LOGO[k], pl: PL[k][0], c: PC[k], a: (p[6] / Mx * 100) + '%', b: (p[1] / Mx * 100) + '%', gw: (Math.max(0, p[1] - p[6]) / Mx * 100) + '%', dl: bdt(p[6]), cl: bdt(p[1]), gap: p[6] ? '+' + Math.round((p[1] / p[6] - 1) * 100) + '%' : '—', roas: p[0] ? x2(r) : '—', rc: RC(r), ri: RI(r), rl: RL(r) }; }),
+      leak: [['Orders placed', a[3]], ['Confirmed', a[4]], ['Sent to courier', a[5] + a[7]], ['Delivered', a[5]]].map(function (x, i, list) { var top = list[0][1] || 1; var prevV = i ? list[i - 1][1] : x[1]; var lost = Math.max(0, Math.round(prevV - x[1])); return { l: x[0], n: Math.round(x[1]).toLocaleString('en-IN'), w: Math.max(18, x[1] / top * 100) + '%', c: ['#1e3a8a', '#1d4ed8', '#2563eb', '#047857'][i], hasStep: i > 0, step: lost + ' lost', stepL: ['', 'not confirmed', 'cancelled or still waiting', 'came back (RTO)'][i], sc: prevV && lost / prevV > .12 ? 'var(--text-danger)' : 'var(--text-warning)' }; }),
+      split: (function () { var R = a[6] || 1; var parts = [['Cost of goods', a[11], '#475569', 1], ['Courier & fees', a[12], '#64748b', 2], ['Returns (RTO)', a[13], '#be123c', 3], ['Ad spend', a[0], '#b45309', 0]]; parts.push(['Contribution after ads', Math.max(0, contribution(a)), '#047857', 0]); return parts.map(function (p) { var w = Math.max(0, p[1] / R * 100); return { l: p[0], c: p[2], sw: fillOf(p[2], p[3]), w: w + '%', t: w > 6 ? '৳' + Math.round(w) : '', v: bdt(p[1]) }; }); })(),
+      nrep: PLATFORM_KEYS.map(function (k) { var p = PS[k]; var nw = p[3] ? Math.min(100, p[8] / p[3] * 100) : 0; return { lg: LOGO[k], pl: PL[k][0], c: PC[k], nw: nw + '%', rw: (100 - nw) + '%', rsw: { width: (100 - nw) + '%', backgroundColor: PC[k], opacity: .45, backgroundImage: PAT[1][0] }, t: p[3] ? Math.round(nw) + '% new · ' + (100 - Math.round(nw)) + '% repeat' : 'No orders from ads' }; }),
       mRing: ring(16.7, 44),
       msgs: [['1,284', 'New conversations'], ['214', 'Became orders'], ['4 min', 'Average reply'], ['৳48', 'Cost per conversation']].map(function (m) { return { v: m[0], l: m[1] }; })
     };
@@ -126,10 +164,11 @@ export default class AnalyticsHubScreen extends Component {
                 <div className="lseg" role="group" aria-label="Period">
                   {__list(v.periods).map((pd) => <button key={pd.l} type="button" onClick={pd.pick} aria-pressed={pd.on}>{pd.l}</button>)}
                 </div>
+                <__InfoTip label="How is this calculated?" text={__list(v.tiles).map((t) => t.how).join(' ')} />
               </div>
-              <MetricStrip label={'Key figures, ' + v.perL} items={__list(v.tiles).filter((t) => t.l !== 'Blended return').map((t) => ({
+              <MetricStrip label={'Key figures, ' + v.perL} items={__list(v.tiles).map((t) => ({
                 label: t.l, value: t.v, spark: t.vals,
-                sub: <span className="dl" title={t.dir + ' · ' + t.s} style={{ background: t.ok ? 'var(--fill-success-soft)' : 'var(--fill-error-soft)', color: t.ok ? 'var(--text-success)' : 'var(--text-danger)' }}><__Icon name={t.up ? 'arrow-up' : 'arrow-down'} width="12" height="12" aria-label={t.up ? 'Up' : 'Down'} role="img" />{t.d}</span>,
+                sub: t.d == null ? t.s : <span className="dl" title={t.dir + ' · ' + t.s} style={{ background: t.ok ? 'var(--fill-success-soft)' : 'var(--fill-error-soft)', color: t.ok ? 'var(--text-success)' : 'var(--text-danger)' }}><__Icon name={t.up ? 'arrow-up' : 'arrow-down'} width="12" height="12" aria-label={t.up ? 'Up' : 'Down'} role="img" />{t.d}</span>,
               }))} />
               {__list(v.alerts).length ? (
                 <nav className="ta-todo" aria-label="Alerts">
@@ -187,15 +226,17 @@ export default class AnalyticsHubScreen extends Component {
                                   <span style={{ color: "#93c5fd" }}>Revenue {cl?.r}</span>
                                   <span style={{ color: "#fcd34d" }}>Spend {cl?.s}</span>
                                 </div>
-                                <div style={{ color: "#cbd5e1", marginTop: "2px" }}>Real return {cl?.x}</div>
+                                <div style={{ color: "#cbd5e1", marginTop: "2px" }}>Delivered ROAS {cl?.x}</div>
                               </div>
                             </div>
                           </React.Fragment>))}
                       </div>
-                      <div style={__sx(`position: absolute; left: ${v.annX ?? ""}; top: 6px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; pointer-events: none;`)}>
-                        <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "#0b1733", background: "#fff", border: "1px solid #e2e8f0", borderRadius: "var(--radius-full)", padding: "2px 8px", whiteSpace: "nowrap" }}>Eid gift box launched</span>
-                        <span style={{ width: "1px", height: "190px", background: "repeating-linear-gradient(#94a3b8 0 3px, transparent 3px 6px)" }} />
+                      {v.ann ? (
+                      <div style={__sx(`position: absolute; left: ${v.ann.x}; top: 6px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; pointer-events: none;`)}>
+                        <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-heading)", background: "var(--surface-card)", border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-full)", padding: "2px 8px", whiteSpace: "nowrap" }}>{v.ann.t}</span>
+                        <span style={{ width: "1px", height: "190px", background: "repeating-linear-gradient(var(--border-field) 0 3px, transparent 3px 6px)" }} />
                       </div>
+                      ) : null}
                     </div>
                     <div style={{ position: "absolute", left: "52px", right: "0", bottom: "0", height: "22px", display: "flex", justifyContent: "space-between", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
                       {__list(v.xax).map((xa, $index) => (<React.Fragment key={$index}>
@@ -246,15 +287,15 @@ export default class AnalyticsHubScreen extends Component {
                     </div>
                   </div>
                   <div style={{ height: "1px", background: "#eef1f6" }} />
-                  <div className="ey">Real return by platform</div>
+                  <div className="ey">Delivered ROAS by platform</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                     {__list(v.bullets).map((bu, $index) => (<React.Fragment key={$index}>
                         <div>
                           <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "6px" }}>
                             <img src={bu?.lg} alt="" width="16" height="16" style={{ width: "16px", height: "16px", objectFit: "contain", flexShrink: "0", display: "block" }} />
                             <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#0f172a", flexGrow: "1" }}>{bu?.l}</span>
-                            <span style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>claims {bu?.cl}</span>
-                            <span className="tn" title={`Real return is ${bu?.rl ?? ""}`} style={__sx(`display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-sm); font-weight: var(--weight-semibold); color: ${bu?.rc ?? ""};`)}><__Icon name={bu?.ri} width="14" height="14" aria-hidden="true" />{bu?.r}<span className="sr-only"> ({bu?.rl})</span></span>
+                            <span style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>platform-reported {bu?.cl}</span>
+                            <span className="tn" title={`Delivered ROAS is ${bu?.rl ?? ""}`} style={__sx(`display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-sm); font-weight: var(--weight-semibold); color: ${bu?.rc ?? ""};`)}><__Icon name={bu?.ri} width="14" height="14" aria-hidden="true" />{bu?.r}<span className="sr-only"> ({bu?.rl})</span></span>
                           </div>
                           <div style={{ position: "relative", height: "10px", borderRadius: "var(--radius-full)", background: "#f1f4f9" }}>
                             <div style={__sx(`position: absolute; left: 0; top: 0; bottom: 0; width: ${bu?.w ?? ""}; border-radius: var(--radius-full); background: ${bu?.c ?? ""};`)} />
@@ -263,16 +304,16 @@ export default class AnalyticsHubScreen extends Component {
                         </div>
                       </React.Fragment>))}
                   </div>
-                  <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Bar = real return · black tick = what the platform claims · scale 0 to 12x</div>
+                  <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Bar = Delivered ROAS · black tick = platform-reported ROAS · scale 0 to 12x</div>
                 </section>
               </div>
               <details className="gc-disclose ix-card ta-more">
-                <summary>More analysis: claims against deliveries, money leaks, new and repeat buyers, messages</summary>
+                <summary>More analysis: platform-reported against delivered, money leaks, new and repeat buyers, messages</summary>
                 <div className="ta-more__body">
               <section className="ta-block">
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                   <div style={{ flexGrow: "1", minWidth: "0" }}>
-                    <h2 className="ta-h2">What platforms claim vs what was delivered <__InfoTip text="Platforms count an order the moment it is placed. We count it when the courier delivers." /></h2>
+                    <h2 className="ta-h2">Platform-reported vs delivered <__InfoTip text="Platforms count an order the moment it is placed, under their own model. GridCommerce counts it when the courier delivers, under the shop's attribution model. The two are shown side by side, never mixed." /></h2>
                   </div>
                 </div>
                 <div className="gc-table-wrap"><div className="ah-cmp" style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "var(--text-sm)" }}>
@@ -289,7 +330,7 @@ export default class AnalyticsHubScreen extends Component {
                             <span className="tip">Delivered {cp?.dl}</span>
                           </span>
                           <span className="tt" style={__sx(`position: absolute; left: ${cp?.b ?? ""}; top: 6px; width: 16px; height: 16px; margin-left: -8px; border-radius: var(--radius-full); background: #fff; border: 2px solid #64748b;`)}>
-                            <span className="tip">Platform claims {cp?.cl}</span>
+                            <span className="tip">Platform-reported {cp?.cl}</span>
                           </span>
                         </div>
                         <div className="r">
@@ -305,7 +346,7 @@ export default class AnalyticsHubScreen extends Component {
                           <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", marginTop: "3px" }}>overstated</div>
                         </div>
                         <div className="r">
-                          <div className="tn" title={`Real return is ${cp?.rl ?? ""}`} style={__sx(`display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-base); font-weight: var(--weight-semibold); color: ${cp?.rc ?? ""};`)}><__Icon name={cp?.ri} width="16" height="16" aria-hidden="true" />{cp?.roas}<span className="sr-only"> ({cp?.rl})</span></div>
+                          <div className="tn" title={`Delivered ROAS is ${cp?.rl ?? ""}`} style={__sx(`display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-base); font-weight: var(--weight-semibold); color: ${cp?.rc ?? ""};`)}><__Icon name={cp?.ri} width="16" height="16" aria-hidden="true" />{cp?.roas}<span className="sr-only"> ({cp?.rl})</span></div>
                           <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>real return</div>
                         </div>
                       </div>
@@ -313,7 +354,7 @@ export default class AnalyticsHubScreen extends Component {
                 </div></div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", fontSize: "var(--text-xs)", color: "var(--text-muted)", padding: "0 8px" }}>
                   <span className="lg"><span aria-hidden="true" style={{ width: "12px", height: "12px", borderRadius: "var(--radius-full)", background: "#2563eb" }} />Filled dot: delivered revenue (GridCommerce)</span>
-                  <span className="lg"><span aria-hidden="true" style={{ width: "12px", height: "12px", borderRadius: "var(--radius-full)", border: "2px solid #64748b" }} />Hollow ring: revenue the platform claims</span>
+                  <span className="lg"><span aria-hidden="true" style={{ width: "12px", height: "12px", borderRadius: "var(--radius-full)", border: "2px solid #64748b" }} />Hollow ring: platform-reported revenue</span>
                 </div>
               </section>
               <div className="ah-3" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr)", gap: "16px", alignItems: "start" }}>

@@ -3,6 +3,9 @@
 // CustomerProfile — what one shopper did on the shop (customer intelligence), as a record page (docs/shopify-style.md):
 // RecordHeader with Call, the key figures, the suggested offer and her activity (timeline, looked at, searches) on the
 // left, and the facts (chance to buy again, where she came from, safety check) on the right.
+// Brief #13: this page becomes insights only; its figures now come from the CRM customer (lib/crm.js) and its
+// judgements from customerSignals.js (rule or model, version, time, "Not enough data"). The full profile is
+// /customer-crm (Insights). ?id= picks the customer; without it, the demo customer C-10482.
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
@@ -11,6 +14,9 @@ import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
 import { StatusBadge as __StatusBadge, InfoTip } from '@/components/ui';
 import { RecordHeader, MetricStrip, IndexTabs, KV } from '@/components/ui/IndexKit';
 import { toast as uiToast } from '@/runtime/ui';
+import { getCrmRows, crmRow } from '@/lib/crm';
+import { signalsOf, SIGNAL_TONE, NOT_ENOUGH } from '@/lib/customerSignals';
+import { isAllowed } from '@/lib/consent';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -27,7 +33,16 @@ var TL = [
   { tag: 'NEW', k: 'first', what: 'First visit and sign-up', sub: 'From Facebook ad “Eid skin care” · phone number added at checkout', when: '2 Mar 2026' }
 ];
 var TC = { view: 'eye', cart: 'shopping-cart', msg: 'message-circle', order: 'package-check', ticket: 'life-buoy', ret: 'undo-2', first: 'user-plus' };
+var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function when(t) { var d = new Date(t), h = d.getHours(); return d.getDate() + ' ' + MON[d.getMonth()] + ', ' + (h % 12 || 12) + ':' + String(d.getMinutes()).padStart(2, '0') + ' ' + (h < 12 ? 'AM' : 'PM'); }
+function bdt(n) { var s = String(Math.round(n || 0)); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return '৳' + s; }
 class Component extends DCLogic {
+  componentDidMount() {
+    var id = 'C-10482';
+    try { id = new URLSearchParams(window.location.search).get('id') || id; } catch (e) { /* no URL access */ }
+    var c = crmRow(id, getCrmRows());
+    if (c) this.setState({ c: c, sig: signalsOf(c) });
+  }
   renderVals() {
     var self = this, s = this.state || {}, tab = s.tab || 'tl';
     return ({
@@ -45,7 +60,8 @@ class Component extends DCLogic {
       ].map(function (q) { q.none = /Nothing/.test(q.res); return q; }),
       wish: [{ name: 'Night Repair Cream 50g', price: '৳1,690' }, { name: 'Travel Pouch Set', price: '৳650' }],
       notSent: !s.sent, sent: !!s.sent,
-      sendOffer: function () { self.setState({ sent: true }); toast(self, 'A one-time 10% code for Vitamin C Serum was sent to her WhatsApp.'); },
+      c: s.c || null, sig: s.sig ? s.sig.signals : null,
+      sendOffer: function () { if (s.c && !isAllowed(s.c, 'whatsapp', 'marketing')) { toast(self, 'She has not agreed to WhatsApp offers.', true); return; } self.setState({ sent: true }); toast(self, 'Handed to Communications: a one-time 10% code for Vitamin C Serum on WhatsApp.'); },
       call: function () { toast(self, 'Calling 01552-3X1-907 …'); }
     });
   }
@@ -98,14 +114,14 @@ export default class CustomerProfileScreen extends Component {
                   about="What one shopper did on your shop: what she looked at, searched for and left in her cart, and how likely she is to buy again."
                   badges={<__StatusBadge tone="warning" icon="crown">Gold member</__StatusBadge>}
                   meta="01552-3X1-907 · nusrat.jahan@example.com"
-                  more={[{ label: 'Customer profile', href: '/customer-crm' }, { label: 'Abandoned carts', href: '/abandoned-carts' }]}
+                  more={[{ label: 'Customer profile', href: '/customer-crm?id=' + (v.c ? v.c.id : 'C-10482') + '&tab=insights' }, { label: 'Abandoned carts', href: '/abandoned-carts' }]}
                   primary={{ label: 'Call', onClick: v.call }} />
 
                 <MetricStrip label="Customer figures" items={[
-                  { label: 'Total spent', value: '৳58,200' },
-                  { label: 'Orders', value: '14' },
-                  { label: 'Average order', value: '৳4,157' },
-                  { label: 'Returned', value: '1 order' },
+                  { label: 'Total spent', value: v.c ? bdt(v.c.spent) : '৳58,200', sub: 'Sales' },
+                  { label: 'Orders', value: v.c ? String(v.c.orders) : '14', sub: 'Sales' },
+                  { label: 'Average order', value: v.c ? bdt(v.c.aov) : '৳4,157', sub: 'Sales' },
+                  { label: 'Returned', value: v.c ? v.c.returns + (v.c.returns === 1 ? ' order' : ' orders') : '1 order', sub: 'After-sales' },
                 ]} />
 
                 <div className="ix-record">
@@ -156,31 +172,23 @@ export default class CustomerProfileScreen extends Component {
                   </div>
 
                   <aside className="ix-side cp-side">
-                    <section className="ix-card" aria-labelledby="cp-again">
-                      <header className="ix-card__head"><h2 id="cp-again">Chance to buy again</h2><__StatusBadge tone="success">High</__StatusBadge></header>
-                      <div className="ix-card__body">
-                        <div className="cp-meter">
-                          <span className="gc-progress" role="img" aria-label="78%"><span className="gc-progress__fill" style={{ display: 'block', width: '78%' }} /></span>
-                          <span className="cp-sub">Usually buys every 3–4 weeks. Last order 6 days ago.</span>
-                        </div>
-                      </div>
-                    </section>
+                    {(() => { const sg = v.sig; const box = (k, title) => { const x = sg && sg[k]; return (
+                      <section key={k} className="ix-card" aria-labelledby={'cp-' + k}>
+                        <header className="ix-card__head"><h2 id={'cp-' + k}>{title}</h2>{x ? <__StatusBadge tone={x.value === NOT_ENOUGH ? 'neutral' : SIGNAL_TONE[x.value] || 'info'}>{x.value}</__StatusBadge> : null}</header>
+                        <div className="ix-card__body">{x ? <><p className="cp-sub" style={{ margin: 0, color: 'var(--text-body)' }}>{x.explanation}</p><span className="cp-sub">{x.modelKind} {x.model} · {when(x.generatedAt)} · holds until {when(x.validUntil)}</span></> : <span className="cp-sub">Working it out…</span>}</div>
+                      </section>); };
+                      return [box('nextOrder', 'Next order'), box('vip', 'VIP likelihood'), box('history', 'Order history')]; })()}
                     <section className="ix-card" aria-labelledby="cp-about">
                       <header className="ix-card__head"><h2 id="cp-about">About her</h2></header>
                       <div className="ix-card__body">
                         <KV rows={[
-                          ['First came from', 'Facebook ad · “Eid skin care” campaign'],
-                          ['Last visit from', 'Google search · “sunscreen price in bd”'],
-                          ['Area', 'Mirpur, Dhaka (approximate)'],
-                          ['Shops on', 'Mobile · Android'],
-                          ['Likes messages by', 'WhatsApp'],
+                          ['First came from', 'Facebook ad · “Eid skin care” · Analytics'],
+                          ['Last visit from', 'Google search · today · Tracking'],
+                          ['Area', 'Mirpur, Dhaka · from her address'],
+                          ['Likes messages by', 'WhatsApp · a preference, not consent'],
                           ['Groups', 'Loyal · Big spender'],
                         ]} />
                       </div>
-                    </section>
-                    <section className="ix-card" aria-labelledby="cp-safe">
-                      <header className="ix-card__head"><h2 id="cp-safe">Safety check</h2><__StatusBadge tone="success">No risk</__StatusBadge></header>
-                      <div className="ix-card__body"><p className="cp-sub" style={{ margin: 0 }}>Returns 1 of 14 orders · phone number is valid · address is clear · no other accounts on this device.</p></div>
                     </section>
                   </aside>
                 </div>

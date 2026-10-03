@@ -1,7 +1,11 @@
 'use client';
-// One conversation: the header with its actions, the messages grouped by day, and the composer
-// (saved replies on "/", emoji, photo, product card, payment link, new order, internal notes,
-// Bangla/English quick replies and suggested replies). Enter sends, Shift+Enter is a new line.
+// One conversation: the header with its actions, the messages and the composer (saved replies on "/", emoji, photo,
+// voice message, product card, payment link, new order, internal notes with @mentions, Bangla/English quick replies and
+// suggested replies). Enter sends, Shift+Enter is a new line.
+// Messages look and move like Messenger (MessageList, also used by the floating chat windows in ChatDock.jsx):
+// bubbles join into groups with tighter corners, the time shows between groups, the avatar sits on a group's last
+// message, "Seen" is the customer's small avatar under the last message they read, hover (or tap) a message to react or
+// reply, one to three emoji show large, story mentions and calls have their own bubbles, and new messages slide in.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -14,10 +18,12 @@ import { ORDER_STATUSES } from '@/lib/orderStatus';
 import { orderHref } from '@/lib/orders';
 import { productBy, stockAt, getCatalog } from '@/lib/stock';
 import { isStatusSellable } from '@/lib/sellable';
-import { CHANNELS, channelName, staffName, STAFF, ME, statusOf, dayLabel, sameDay, clock, fmtDur, suggestions, fillReply, countReplyUse, snoozeChoices, whenText, samePhone } from '@/lib/inbox';
+import { CHANNELS, channelName, staffName, STAFF, ME, statusOf, dayLabel, sameDay, clock, fmtDur, suggestions, fillReply, countReplyUse, snoozeChoices, whenText, samePhone,
+  firstName, previewOf, reactTo, reactionsOf, bigEmoji, keepVoice, addCall } from '@/lib/inbox';
 import { Avatar, StaffAvatar, Menu, MenuItem } from './parts';
 import { TagMenu } from './CustomerPanel';
 import { SavedRepliesDialog, ProductDialog, PaymentDialog, Lightbox, catIcon } from './Dialogs';
+import { VoiceNote, VoiceRecorder, CallScreen, ReactPicker, Mentioned, MSGR_CSS } from './Messenger';
 
 const EMOJI = ['😊', '🙏', '👍', '❤️', '😍', '🎉', '✅', '📦', '🚚', '💳', '🛍️', '⭐', '😅', '🤝', '👋', '🔥', '💯', '🙂', '😔', '⏰', '📍', '🎁', '💌', '👌'];
 const STATUS_BADGE = { pending: ['Pending', 'info'], snoozed: ['Snoozed', 'warning'], closed: ['Closed', 'slate'] };
@@ -43,6 +49,9 @@ export function Thread({ conv, now, tags, orders, replies, typing, panelOpen, on
   const [fresh, setFresh] = useState(0);
   const [showJump, setShowJump] = useState(false);
   const [photo, setPhoto] = useState('');
+  const [replyTo, setReplyTo] = useState(null);
+  const [calling, setCalling] = useState(false);
+  useEffect(() => { setReplyTo(null); setCalling(false); }, [conv.id]);
   const count = conv.messages.length;
   const seen = useRef({ id: '', count: 0 });
   const mineOrders = useMemo(() => (conv.phone ? orders.filter((o) => samePhone(o.phone, conv.phone)).sort((a, b) => b.at - a.at) : []), [orders, conv.phone]);
@@ -86,6 +95,7 @@ export function Thread({ conv, now, tags, orders, replies, typing, panelOpen, on
           </span>
         </button>
         <div className="th-acts">
+          {canCall(conv) && !conv.blocked ? <button type="button" className="gc-iconbtn ms-callbtn" onClick={() => setCalling(true)} aria-label={'Voice call ' + conv.name} title="Voice call"><Icon name="phone" width="18" height="18" /></button> : null}
           <Menu label="Assign to" wide button={({ toggle, open }) => (
             <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral th-assign" aria-expanded={open} onClick={toggle} aria-label={conv.assignee ? `Assigned to ${staffName(conv.assignee)}. Change` : 'Assign'}>
               <StaffAvatar id={conv.assignee} size={22} /><span className="th-lbl">{conv.assignee ? staffName(conv.assignee).split(' ')[0] : 'Assign'}</span><Icon name="chevron-down" width="14" height="14" aria-hidden="true" />
@@ -140,104 +150,164 @@ export function Thread({ conv, now, tags, orders, replies, typing, panelOpen, on
 
       <div className="th-scrollwrap">
         <div className="th-msgs" ref={scroller} onScroll={onScroll} role="log" aria-label={`Messages with ${conv.name}`} aria-live="polite">
-          {conv.messages.length ? conv.messages.map((m, i) => {
-            const prev = conv.messages[i - 1], next = conv.messages[i + 1];
-            const newDay = !prev || !sameDay(prev.at, m.at);
-            const joins = (a, b) => a && b && a.from === b.from && a.by === b.by && Math.abs(b.at - a.at) < GAP && sameDay(a.at, b.at);
-            return (
-              <React.Fragment key={m.id}>
-                {newDay ? <div className="th-day" role="separator"><span>{dayLabel(m.at, now || Date.now())}</span></div> : null}
-                <Message m={m} conv={conv} orders={orders} first={!joins(prev, m) || newDay} last={!joins(m, next)} onPhoto={setPhoto} />
-              </React.Fragment>
-            );
-          }) : <EmptyState icon="message-square-dashed" title="No messages yet" body="Say hello — your first reply starts the conversation." />}
-          {typing ? (
-            <div className="th-row th-row--in th-first">
-              <Avatar name={conv.name} avatar={conv.avatar} pos={conv.pos} size={28} />
-              <div className="th-bubble th-typing" aria-label={`${conv.name} is typing`}><i /><i /><i /></div>
-            </div>
-          ) : null}
+          <MessageList conv={conv} now={now} orders={orders} typing={typing} onPhoto={setPhoto} onReply={setReplyTo} onCall={() => setCalling(true)} />
         </div>
         {showJump || fresh ? (
           <button type="button" className="th-jump" onClick={jump}><Icon name="arrow-down" width="16" height="16" aria-hidden="true" />{fresh ? `${fresh} new` : 'Jump to latest'}</button>
         ) : null}
       </div>
 
-      <Composer conv={conv} status={status} replies={replies} orders={mineOrders} onSend={act.send} onUnblock={act.unblock} onSystem={act.system} newOrderHref={'/new-order' + q} />
+      <Composer conv={conv} status={status} replies={replies} orders={mineOrders} onSend={act.send} onUnblock={act.unblock} onSystem={act.system} newOrderHref={'/new-order' + q}
+        replyTo={replyTo} onClearReply={() => setReplyTo(null)} />
       <Lightbox src={photo} onClose={() => setPhoto('')} />
+      {calling ? <CallScreen conv={conv} onEnd={(sec, answered) => { setCalling(false); endCall(conv, sec, answered, act.send); }} /> : null}
     </>
   );
 }
 
-// ---- one message ----------------------------------------------------------------------------------
-function Ticks({ status }) {
-  if (status === 'read') return <span className="th-tick th-tick--read" title="Seen"><Icon name="check-check" width="14" height="14" aria-hidden="true" /><span className="sr-only">Seen</span></span>;
-  if (status === 'delivered') return <span className="th-tick" title="Delivered"><Icon name="check-check" width="14" height="14" aria-hidden="true" /><span className="sr-only">Delivered</span></span>;
-  return <span className="th-tick" title="Sent"><Icon name="check" width="14" height="14" aria-hidden="true" /><span className="sr-only">Sent</span></span>;
+// ---- calls -----------------------------------------------------------------------------------------
+const CALL_CHANNELS = ['whatsapp', 'facebook', 'instagram', 'telegram'];
+/** Voice calls go through the chat app (WhatsApp, Messenger, Instagram, Telegram) or the phone line. */
+export const canCall = (conv) => CALL_CHANNELS.includes(conv.ch) || !!conv.phone;
+/** After a call: a call bubble in the chat and a row in the call log (Calls). */
+export function endCall(conv, sec, answered, send) {
+  send([{ from: 'agent', by: ME, type: 'call', dir: answered ? 'out' : 'missed', dur: sec, status: 'sent' }]);
+  addCall({ dir: 'out', phone: conv.phone || conv.handle || conv.name, name: conv.name, dur: sec, agent: ME, line: conv.ch === 'whatsapp' ? 'whatsapp' : 'support', result: answered ? '' : 'No answer' });
+  toast(answered ? `Call with ${conv.name} · ${fmtDur(sec)}` : `${conv.name} didn’t answer`);
 }
 
-function Message({ m, conv, orders, first, last, onPhoto }) {
-  if (m.from === 'system') {
-    return <div className="th-sys"><Icon name={m.icon || 'info'} width="14" height="14" aria-hidden="true" /><span>{m.text}</span><span className="th-sys__time">{clock(m.at)}</span></div>;
-  }
-  if (m.from === 'note') {
-    return (
-      <div className={'th-note' + (first ? ' th-first' : '')}>
-        <p className="th-note__label"><Icon name="lock" width="12" height="12" aria-hidden="true" />Internal note · only your team sees this</p>
-        <p className="th-note__text">{m.text}</p>
-        <p className="th-meta">{staffName(m.by)} · {clock(m.at)}</p>
-      </div>
-    );
-  }
+// ---- the messages (Messenger style) -------------------------------------------------------------------
+const GROUP_GAP = 15 * 60 * 1000;
+const joins = (a, b) => a && b && a.from === b.from && (a.from === 'customer' || a.by === b.by) && a.from !== 'system' && a.from !== 'note' && Math.abs(b.at - a.at) < GAP && sameDay(a.at, b.at);
+const senderOf = (conv, m) => (m.from === 'customer' ? firstName(conv.name) : m.by === ME ? 'you' : firstName(staffName(m.by)));
+
+/** Every message of a conversation, Messenger style. compact = the floating chat window. */
+export function MessageList({ conv, now, orders = [], typing, onPhoto, onReply, onCall, compact, actions = true }) {
+  const seenIds = useRef({ id: '', ids: new Set() });
+  if (seenIds.current.id !== conv.id) seenIds.current = { id: conv.id, ids: new Set(conv.messages.map((m) => m.id)) };
+  const [active, setActive] = useState('');
+  const [picker, setPicker] = useState('');
+  useEffect(() => { setActive(''); setPicker(''); }, [conv.id]);
+  const msgs = conv.messages;
+  const lastOut = (() => { for (let i = msgs.length - 1; i >= 0; i--) if (msgs[i].from === 'agent') return msgs[i].id; return ''; })();
+  const byId = (id) => msgs.find((x) => x.id === id) || null;
+  if (!msgs.length) return <EmptyState icon="message-square-dashed" title="No messages yet" body="Say hello — your first reply starts the conversation." />;
+  return (
+    <>
+      {msgs.map((m, i) => {
+        const prev = msgs[i - 1], next = msgs[i + 1];
+        const newDay = !prev || !sameDay(prev.at, m.at);
+        const gap = !newDay && prev && m.at - prev.at > GROUP_GAP;
+        const isNew = !seenIds.current.ids.has(m.id);
+        const sep = newDay ? <div className="ms-time" role="separator"><span>{dayLabel(m.at, now || Date.now())} · {clock(m.at)}</span></div>
+          : gap ? <div className="ms-time" role="separator"><span>{clock(m.at)}</span></div> : null;
+        if (m.from === 'system') return <React.Fragment key={m.id}>{sep}<div className={'th-sys' + (isNew ? ' ms-new' : '')}><Icon name={m.icon || 'info'} width="14" height="14" aria-hidden="true" /><span>{m.text}</span><span className="th-sys__time">{clock(m.at)}</span></div></React.Fragment>;
+        if (m.from === 'note') {
+          return (
+            <React.Fragment key={m.id}>{sep}
+              <div className={'th-note th-first' + (isNew ? ' ms-new' : '')}>
+                <p className="th-note__label"><Icon name="lock" width="12" height="12" aria-hidden="true" />Internal note · only your team sees this</p>
+                <p className="th-note__text"><Mentioned text={m.text} /></p>
+                <p className="th-meta">{staffName(m.by)} · {clock(m.at)}</p>
+              </div>
+            </React.Fragment>
+          );
+        }
+        const first = newDay || gap || !joins(prev, m);
+        const last = !joins(m, next) || (next && (!sameDay(m.at, next.at) || next.at - m.at > GROUP_GAP));
+        return (
+          <React.Fragment key={m.id}>{sep}
+            <Bubble m={m} conv={conv} orders={orders} first={first} last={last} isNew={isNew} compact={compact} actions={actions}
+              seen={m.id === lastOut ? m.status : ''} reply={m.replyTo ? byId(m.replyTo) : null}
+              active={active === m.id} onActive={() => setActive((a) => (a === m.id ? '' : m.id))}
+              pickerOpen={picker === m.id} onPicker={(on) => setPicker(on ? m.id : '')}
+              onReact={(e) => { reactTo(conv.id, m.id, e); setPicker(''); }}
+              onReply={onReply ? () => onReply(m) : null} onPhoto={onPhoto} onCall={onCall} />
+          </React.Fragment>
+        );
+      })}
+      {typing ? (
+        <div className="ms-row ms-row--in g-single ms-new">
+          <Avatar name={conv.name} avatar={conv.avatar} pos={conv.pos} size={28} />
+          <div className="ms-col"><div className="ms-bubble ms-typing" aria-label={`${conv.name} is typing`}><i /><i /><i /></div></div>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function Bubble({ m, conv, orders, first, last, isNew, seen, reply, compact, actions, active, onActive, pickerOpen, onPicker, onReact, onReply, onPhoto, onCall }) {
   const out = m.from === 'agent';
+  const pos = first && last ? 'g-single' : first ? 'g-first' : last ? 'g-last' : 'g-mid';
+  const reacts = reactionsOf(m);
+  const mine = (m.reactions || {})[ME] || '';
+  const big = m.type === 'text' && bigEmoji(m.text);
   const body = (() => {
-    if (m.type === 'image') return <div className="th-media"><button type="button" className="th-img" onClick={() => onPhoto(m.img)} aria-label="Open photo"><img src={m.img} alt="" /></button>{m.text ? <p className="th-bubble th-caption">{m.text}</p> : null}</div>;
-    if (m.type === 'voice') return <VoiceNote dur={m.dur} out={out} />;
+    if (big) return <p className="ms-emoji">{m.text}</p>;
+    if (m.type === 'image') return <div className="ms-media"><button type="button" className="th-img ms-img" onClick={() => onPhoto && onPhoto(m.img)} aria-label="Open photo"><img src={m.img} alt="" /></button>{m.text ? <p className="ms-bubble">{m.text}</p> : null}</div>;
+    if (m.type === 'voice') return <VoiceNote m={m} out={out} />;
     if (m.type === 'product') return <ProductCard sku={m.sku} />;
     if (m.type === 'order') return <OrderCard id={m.order} orders={orders} />;
     if (m.type === 'payment') return <PaymentCard m={m} />;
-    return <p className="th-bubble">{m.text}</p>;
+    if (m.type === 'story') {
+      return (
+        <div className="ms-story">
+          <span className="ms-story__lbl"><Icon name={m.story === 'mention' ? 'at-sign' : 'share-2'} width="12" height="12" aria-hidden="true" />{m.story === 'mention' ? 'Mentioned you in their story' : 'Shared a post'}</span>
+          {m.img ? <button type="button" className="ms-story__img" onClick={() => onPhoto && onPhoto(m.img)} aria-label="Open story"><img src={m.img} alt="" /></button> : null}
+          {m.text ? <p className="ms-bubble">{m.text}</p> : null}
+        </div>
+      );
+    }
+    if (m.type === 'call') {
+      const missed = m.dir === 'missed';
+      return (
+        <div className={'ms-callb' + (missed ? ' is-missed' : '')}>
+          <span className="ms-callb__row">
+            <span className="ms-callb__ic"><Icon name={missed ? 'phone-missed' : out ? 'phone-outgoing' : 'phone-incoming'} width="16" height="16" aria-hidden="true" /></span>
+            <span className="ms-callb__text"><b>{missed ? (out ? 'No answer' : 'Missed call') : 'Voice call'}</b><small>{missed ? clock(m.at) : fmtDur(m.dur)}</small></span>
+          </span>
+          {onCall ? <button type="button" className="ms-callb__back" onClick={onCall}>Call back</button> : null}
+        </div>
+      );
+    }
+    return <p className="ms-bubble">{m.text}</p>;
   })();
   return (
-    <div className={'th-row th-row--' + (out ? 'out' : 'in') + (first ? ' th-first' : '')}>
-      {out ? null : last ? <Avatar name={conv.name} avatar={conv.avatar} pos={conv.pos} size={28} /> : <span className="th-spacer" aria-hidden="true" />}
-      <div className="th-stack">
-        {body}
-        {last ? (
-          <p className="th-meta">
-            {out ? <span>{staffName(m.by)}</span> : null}
-            <time dateTime={new Date(m.at).toISOString()}>{clock(m.at)}</time>
-            {m.via ? <span>· {m.via === 'comment' ? 'from a comment' : 'via ' + channelName(m.via)}</span> : null}
-            {out ? <Ticks status={m.status} /> : null}
-          </p>
+    <div className={'ms-row ms-row--' + (out ? 'out' : 'in') + ' ' + pos + (isNew ? ' ms-new' : '') + (reacts.length ? ' has-react' : '') + (active ? ' is-active' : '') + (big ? ' is-big' : '')}>
+      {out ? null : last ? <Avatar name={conv.name} avatar={conv.avatar} pos={conv.pos} size={compact ? 24 : 28} /> : <span className={'th-spacer' + (compact ? ' is-sm' : '')} aria-hidden="true" />}
+      <div className="ms-col">
+        {first && out && m.by !== ME && !compact ? <span className="ms-who">{firstName(staffName(m.by))}</span> : null}
+        {reply ? (
+          <div className="ms-quote">
+            <span className="ms-quote__lbl"><Icon name="reply" width="12" height="12" aria-hidden="true" />{(out ? (m.by === ME ? 'You' : firstName(staffName(m.by))) : firstName(conv.name)) + ' replied to ' + senderOf(conv, reply)}</span>
+            <span className="ms-quote__txt">{previewOf(reply)}</span>
+          </div>
         ) : null}
+        <div className="ms-body" title={clock(m.at)} onClick={(e) => { if (!e.target.closest('button,a')) onActive(); }}>
+          {body}
+          {reacts.length ? <span className="ms-reacts" aria-label={'Reactions: ' + reacts.map(([e, n]) => e + (n > 1 ? ' ' + n : '')).join(', ')}>{reacts.map(([e]) => <i key={e}>{e}</i>)}{reacts.reduce((a, r) => a + r[1], 0) > 1 ? <b>{reacts.reduce((a, r) => a + r[1], 0)}</b> : null}</span> : null}
+          {actions ? <span className={'ms-acts' + (pickerOpen ? ' is-open' : '')}>
+            <button type="button" className="ms-act" onClick={() => onPicker(!pickerOpen)} aria-label="React" aria-expanded={pickerOpen} title="React"><Icon name="smile-plus" width="16" height="16" aria-hidden="true" /></button>
+            {onReply ? <button type="button" className="ms-act" onClick={onReply} aria-label="Reply" title="Reply"><Icon name="reply" width="16" height="16" aria-hidden="true" /></button> : null}
+            {pickerOpen ? <ReactPicker mine={mine} onPick={onReact} onClose={() => onPicker(false)} /> : null}
+          </span> : null}
+        </div>
+        {m.via && last ? <span className="ms-via">{m.via === 'comment' ? 'From a comment' : 'Via ' + channelName(m.via)}</span> : null}
+        {seen ? <Seen status={seen} conv={conv} /> : null}
       </div>
     </div>
   );
 }
 
-const BARS = [8, 14, 20, 12, 22, 16, 10, 18, 24, 14, 8, 16, 20, 12, 18, 10, 14, 22, 16, 8, 12, 18, 14, 10];
-function VoiceNote({ dur = 10, out }) {
-  const [pos, setPos] = useState(0);
-  const [on, setOn] = useState(false);
-  useEffect(() => {
-    if (!on) return undefined;
-    const id = window.setInterval(() => setPos((p) => { if (p + 0.25 >= dur) { setOn(false); return 0; } return p + 0.25; }), 250);
-    return () => window.clearInterval(id);
-  }, [on, dur]);
-  const done = pos / dur;
-  return (
-    <div className={'th-bubble th-voice' + (out ? ' th-voice--out' : '')}>
-      <button type="button" className="th-voice__btn" onClick={() => setOn((v) => !v)} aria-label={on ? 'Pause voice message' : 'Play voice message'}><Icon name={on ? 'pause' : 'play'} width="16" height="16" /></button>
-      <span className="th-voice__bars" aria-hidden="true">{BARS.map((h, i) => <i key={i} style={{ height: h }} className={i / BARS.length < done ? 'is-on' : ''} />)}</span>
-      <span className="th-voice__time ib-data">{fmtDur(on || pos ? pos : dur)}</span>
-    </div>
-  );
+/** Under the last message the shop sent: sent (ring), delivered (filled) or seen (the customer's small avatar). */
+function Seen({ status, conv }) {
+  if (status === 'read') return <span className="ms-seen" title="Seen">{conv.avatar ? <Avatar name={conv.name} avatar={conv.avatar} pos={conv.pos} size={16} /> : <span className="ms-seen__dot" aria-hidden="true">{firstName(conv.name).charAt(0)}</span>}<span className="sr-only">Seen</span></span>;
+  return <span className={'ms-seen ms-seen--' + status} title={status === 'delivered' ? 'Delivered' : 'Sent'}><Icon name={status === 'delivered' ? 'circle-check' : 'circle'} width="14" height="14" aria-hidden="true" /><span className="sr-only">{status === 'delivered' ? 'Delivered' : 'Sent'}</span></span>;
 }
 
 function ProductCard({ sku }) {
   const p = productBy(sku);
-  if (!p) return <p className="th-bubble">Product {sku} is no longer in the catalogue.</p>;
+  if (!p) return <p className="ms-bubble">Product {sku} is no longer in the catalogue.</p>;
   const free = stockAt(p.sku, '').available;
   return (
     <div className="th-card">
@@ -286,8 +356,9 @@ function PaymentCard({ m }) {
 }
 
 // ---- composer ---------------------------------------------------------------------------------------
-function Composer({ conv, status, replies, orders, onSend, onUnblock, onSystem, newOrderHref }) {
+function Composer({ conv, status, replies, orders, onSend, onUnblock, onSystem, newOrderHref, replyTo, onClearReply }) {
   const [mode, setMode] = useState('reply');
+  const [recording, setRecording] = useState(false);
   const [text, setText] = useState('');
   const [img, setImg] = useState('');
   const [lang, setLang] = useState('en');
@@ -296,7 +367,8 @@ function Composer({ conv, status, replies, orders, onSend, onUnblock, onSystem, 
   const drafts = useRef({});
   const ta = useRef(null);
   const file = useRef(null);
-  useEffect(() => { setText(drafts.current[conv.id] || ''); setImg(''); setMode('reply'); }, [conv.id]);
+  useEffect(() => { setText(drafts.current[conv.id] || ''); setImg(''); setMode('reply'); setRecording(false); }, [conv.id]);
+  useEffect(() => { if (replyTo) { setMode('reply'); focus(); } }, [replyTo]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const el = ta.current;
     if (!el) return;
@@ -308,7 +380,11 @@ function Composer({ conv, status, replies, orders, onSend, onUnblock, onSystem, 
 
   const slash = /^\/(\S*)$/.exec(text);
   const slashList = slash ? replies.filter((r) => (r.short + ' ' + r.title).toLowerCase().includes(slash[1].toLowerCase())).slice(0, 6) : [];
-  useEffect(() => { setPick(0); }, [slash && slash[1]]); // eslint-disable-line react-hooks/exhaustive-deps
+  // @mentions in a note: "@me" lists the team; picking one writes "@Name "
+  const at = mode === 'note' ? /(^|\s)@([A-Za-z]*)$/.exec(text) : null;
+  const atList = at ? STAFF.filter((p) => p.id !== ME && firstName(p.name).toLowerCase().startsWith(at[2].toLowerCase())) : [];
+  const pickAt = (p) => { setDraft(text.replace(/@([A-Za-z]*)$/, '@' + firstName(p.name) + ' ')); focus(); };
+  useEffect(() => { setPick(0); }, [slash && slash[1], at && at[2]]); // eslint-disable-line react-hooks/exhaustive-deps
   const focus = () => window.requestAnimationFrame(() => { if (ta.current) { ta.current.focus(); const n = ta.current.value.length; ta.current.setSelectionRange(n, n); } });
   const applyReply = (r) => { setDraft(fillReply(r.body, ctx)); countReplyUse(r.id); focus(); };
   const insert = (s) => {
@@ -321,13 +397,31 @@ function Composer({ conv, status, replies, orders, onSend, onUnblock, onSystem, 
   const submit = () => {
     const body = text.trim();
     if (!body && !img) { focus(); return; }
+    const re = replyTo && mode !== 'note' ? { replyTo: replyTo.id } : {};
     if (mode === 'note') onSend([{ from: 'note', by: ME, type: 'text', text: body }]);
-    else if (img) onSend([{ from: 'agent', by: ME, type: 'image', img, text: body, status: 'sent' }]);
-    else onSend([{ from: 'agent', by: ME, type: 'text', text: body, status: 'sent' }]);
+    else if (img) onSend([{ from: 'agent', by: ME, type: 'image', img, text: body, status: 'sent', ...re }]);
+    else onSend([{ from: 'agent', by: ME, type: 'text', text: body, status: 'sent', ...re }]);
     setDraft(''); setImg('');
+    if (onClearReply) onClearReply();
+    focus();
+  };
+  // empty box: the thumbs-up sends 👍 (Messenger's Like)
+  const like = () => { onSend([{ from: 'agent', by: ME, type: 'text', text: '👍', status: 'sent', ...(replyTo ? { replyTo: replyTo.id } : {}) }]); if (onClearReply) onClearReply(); };
+  const sendVoice = ({ dur, url }) => {
+    const vk = 'v-' + Date.now().toString(36);
+    keepVoice(vk, url);
+    onSend([{ from: 'agent', by: ME, type: 'voice', dur, vk, status: 'sent', ...(replyTo ? { replyTo: replyTo.id } : {}) }]);
+    setRecording(false);
+    if (onClearReply) onClearReply();
     focus();
   };
   const onKey = (e) => {
+    if (atList.length) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); setPick((p) => (p + 1) % atList.length); return; }
+      if (e.key === 'ArrowUp') { e.preventDefault(); setPick((p) => (p - 1 + atList.length) % atList.length); return; }
+      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); pickAt(atList[Math.min(pick, atList.length - 1)]); return; }
+    }
+    if (e.key === 'Escape' && replyTo && onClearReply) { e.preventDefault(); onClearReply(); return; }
     if (slashList.length) {
       if (e.key === 'ArrowDown') { e.preventDefault(); setPick((p) => (p + 1) % slashList.length); return; }
       if (e.key === 'ArrowUp') { e.preventDefault(); setPick((p) => (p - 1 + slashList.length) % slashList.length); return; }
@@ -388,7 +482,27 @@ function Composer({ conv, status, replies, orders, onSend, onUnblock, onSystem, 
           {quick.map((r) => <button key={r.id} type="button" className={'ib-chip th-chip' + (r.lang === 'bn' ? ' ib-bn' : '')} onClick={() => applyReply(r)} title={r.body}><span>{r.title}</span></button>)}
         </div>
       ) : null}
+      {replyTo && !note ? (
+        <div className="ms-replybar">
+          <Icon name="reply" width="16" height="16" aria-hidden="true" />
+          <span className="ms-replybar__text"><b>Replying to {replyTo.from === 'customer' ? conv.name : replyTo.by === ME ? 'yourself' : staffName(replyTo.by)}</b><span>{previewOf(replyTo)}</span></span>
+          <button type="button" className="gc-iconbtn" aria-label="Cancel reply" onClick={onClearReply}><Icon name="x" width="16" height="16" /></button>
+        </div>
+      ) : null}
+      {recording ? <div className="th-box th-box--rec"><VoiceRecorder onSend={sendVoice} onCancel={() => setRecording(false)} /></div> : (
       <div className="th-box">
+        {atList.length ? (
+          <ul className="th-slash" role="listbox" aria-label="Mention a teammate">
+            {atList.map((p, i) => (
+              <li key={p.id} role="option" aria-selected={i === pick}>
+                <button type="button" onMouseDown={(e) => { e.preventDefault(); pickAt(p); }} onMouseEnter={() => setPick(i)}>
+                  <span className="th-slash__top"><b>@{firstName(p.name)}</b><span className="ib-muted">{p.role}</span></span>
+                  <span className="ib-sub">{p.name}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
         {slashList.length ? (
           <ul className="th-slash" role="listbox" aria-label="Saved replies">
             {slashList.map((r, i) => (
@@ -416,7 +530,7 @@ function Composer({ conv, status, replies, orders, onSend, onUnblock, onSystem, 
           </div>
         ) : null}
         <textarea ref={ta} className="th-input" rows="1" value={text} onChange={(e) => setDraft(e.target.value)} onKeyDown={onKey}
-          placeholder={note ? 'Note for your team — the customer will not see this' : `Reply to ${conv.name} · type / for saved replies`}
+          placeholder={note ? 'Note for your team — type @ to mention someone' : `Reply to ${conv.name} · type / for saved replies`}
           aria-label={note ? `Internal note about ${conv.name}` : `Reply to ${conv.name}`} />
         <div className="th-tools">
           <div className="th-tools__icons ib-scroll-x">
@@ -425,6 +539,7 @@ function Composer({ conv, status, replies, orders, onSend, onUnblock, onSystem, 
             </Menu>
             <button type="button" className="gc-iconbtn" onClick={() => setDlg('replies')} aria-label="Saved replies" title="Saved replies (type /)"><Icon name="zap" width="18" height="18" /></button>
             {!note ? <>
+              <button type="button" className="gc-iconbtn ms-mic" onClick={() => setRecording(true)} aria-label="Record a voice message" title="Voice message"><Icon name="mic" width="18" height="18" /></button>
               <button type="button" className="gc-iconbtn" onClick={() => file.current && file.current.click()} aria-label="Attach a photo" title="Attach a photo"><Icon name="image" width="18" height="18" /></button>
               <input ref={file} type="file" accept="image/*" hidden onChange={pickImage} />
               <button type="button" className="gc-iconbtn" onClick={() => setDlg('product')} aria-label="Send a product card" title="Send a product card"><Icon name="package" width="18" height="18" /></button>
@@ -432,12 +547,17 @@ function Composer({ conv, status, replies, orders, onSend, onUnblock, onSystem, 
               <Link className="gc-iconbtn" href={newOrderHref} onClick={() => onSystem('shopping-bag', `${staffName(ME)} started a new order for this customer`)} aria-label="Create an order from this chat" title="Create an order from this chat"><Icon name="shopping-bag" width="18" height="18" /></Link>
             </> : null}
           </div>
-          <span className="th-hint" aria-hidden="true">Enter to send · Shift+Enter new line</span>
-          <button type="button" className={'gc-btn gc-btn--solid th-send' + (note ? ' th-send--note' : '')} onClick={submit} disabled={!text.trim() && !img}>
-            <Icon name={note ? 'sticky-note' : 'send'} width="16" height="16" aria-hidden="true" /><span className="th-lbl">{note ? 'Add note' : 'Send'}</span>
-          </button>
+          <span className="th-hint" aria-hidden="true">{note ? 'Type @ to mention a teammate' : 'Enter to send · Shift+Enter new line'}</span>
+          {!note && !text.trim() && !img ? (
+            <button key="like" type="button" className="ms-like" onClick={like} aria-label="Send a thumbs up" title="Send 👍"><span aria-hidden="true">👍</span></button>
+          ) : (
+            <button key="send" type="button" className={'gc-btn gc-btn--solid th-send ms-pop' + (note ? ' th-send--note' : '')} onClick={submit} disabled={!text.trim() && !img}>
+              <Icon name={note ? 'sticky-note' : 'send'} width="16" height="16" aria-hidden="true" /><span className="th-lbl">{note ? 'Add note' : 'Send'}</span>
+            </button>
+          )}
         </div>
       </div>
+      )}
 
       <SavedRepliesDialog open={dlg === 'replies'} onClose={() => setDlg('')} onUse={applyReply} />
       <ProductDialog open={dlg === 'product'} onClose={() => setDlg('')} onSend={sendProduct} />
@@ -446,7 +566,7 @@ function Composer({ conv, status, replies, orders, onSend, onUnblock, onSystem, 
   );
 }
 
-export const THREAD_CSS = `
+export const THREAD_CSS = MSGR_CSS + `
 .th-head{display:flex;align-items:center;gap:var(--space-2);flex:none;min-height:64px;padding:var(--space-2) var(--space-3) var(--space-2) var(--space-4);border-bottom:1px solid var(--border-subtle);background:var(--surface-card)}
 .th-back{display:none;flex:none}
 .th-who{flex:1;min-width:0;display:flex;align-items:center;gap:var(--space-3);padding:var(--space-1);margin:calc(var(--space-1) * -1);border:0;border-radius:var(--radius-lg);background:none;text-align:left;cursor:pointer}
@@ -460,27 +580,14 @@ export const THREAD_CSS = `
 .th-assign{gap:var(--space-1-5);padding:0 var(--space-2) 0 var(--space-1-5)}
 .th-only-xs{display:none}
 .th-scrollwrap{position:relative;flex:1;min-height:0;display:flex}
-.th-msgs{flex:1;min-width:0;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-5) var(--space-6) var(--space-6)}
+.th-msgs{flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-5) var(--space-6) var(--space-6)}
 .th-day{display:flex;align-items:center;gap:var(--space-3);margin:var(--space-4) 0 var(--space-2);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
 .th-day:first-child{margin-top:0}
 .th-day::before,.th-day::after{content:"";flex:1;height:1px;background:var(--border-subtle)}
-.th-row{display:flex;align-items:flex-end;gap:var(--space-2);max-width:min(80%,560px)}
-.th-row.th-first,.th-note.th-first{margin-top:var(--space-2-5)}
-.th-row--out{align-self:flex-end;flex-direction:row-reverse}
 .th-spacer{flex:none;width:28px}
-.th-stack{min-width:0;display:flex;flex-direction:column;gap:var(--space-1)}
-.th-row--out .th-stack{align-items:flex-end}
-.th-bubble{margin:0;padding:var(--space-2-5) var(--space-3-5);border-radius:var(--radius-xl);font-size:var(--text-sm);line-height:var(--text-sm-lh);white-space:pre-wrap;overflow-wrap:anywhere}
-.th-row--in .th-bubble{background:var(--surface-card);border:1px solid var(--border-subtle);color:var(--text-heading);border-bottom-left-radius:var(--radius-sm)}
-.th-row--out .th-bubble{background:var(--primary);color:var(--text-inverse);border-bottom-right-radius:var(--radius-sm)}
 .th-meta{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1-5);margin:0;font-size:var(--text-xs);color:var(--text-muted)}
-.th-tick{display:inline-flex;color:var(--text-muted)}
-.th-tick--read{color:var(--accent-text)}
-.th-media{display:flex;flex-direction:column;gap:var(--space-1)}
-.th-row--out .th-media{align-items:flex-end}
 .th-img{display:block;padding:0;border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-subtle);overflow:hidden;cursor:zoom-in}
 .th-img img{display:block;width:min(260px,60vw);max-height:260px;object-fit:cover}
-.th-caption{max-width:260px}
 .th-card{width:min(300px,68vw);overflow:hidden;border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card);box-shadow:var(--shadow-soft)}
 .th-card__row{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3)}
 .th-card__tile{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:var(--radius-lg);background:var(--fill-primary-soft);color:var(--primary)}
@@ -489,26 +596,12 @@ export const THREAD_CSS = `
 .th-card__note{margin:0;padding:0 var(--space-3) var(--space-2);font-size:var(--text-sm);color:var(--text-body)}
 .th-card__foot{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);padding:var(--space-2) var(--space-3);border-top:1px solid var(--border-subtle);background:var(--surface-page)}
 .th-trunc{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.th-voice{display:flex;align-items:center;gap:var(--space-2-5);padding:var(--space-2) var(--space-3) var(--space-2) var(--space-2)}
-.th-voice__btn{display:grid;place-items:center;flex:none;width:32px;height:32px;border:0;border-radius:var(--radius-full);background:var(--primary);color:var(--text-inverse);cursor:pointer}
-.th-voice--out .th-voice__btn{background:var(--surface-card);color:var(--primary)}
-.th-voice__bars{display:flex;align-items:center;gap:2px;height:24px}
-.th-voice__bars i{display:block;width:3px;border-radius:var(--radius-full);background:var(--border-strong)}
-.th-voice__bars i.is-on{background:var(--primary)}
-.th-voice--out .th-voice__bars i{background:color-mix(in srgb,var(--text-inverse) 45%,transparent)}
-.th-voice--out .th-voice__bars i.is-on{background:var(--text-inverse)}
-.th-voice__time{font-size:var(--text-xs);min-width:30px}
 .th-note{align-self:flex-end;max-width:min(80%,560px);padding:var(--space-2-5) var(--space-3-5);border:1px dashed color-mix(in srgb,var(--warning) 60%,transparent);border-radius:var(--radius-xl);background:var(--fill-warning-soft)}
 .th-note__label{display:flex;align-items:center;gap:var(--space-1);margin:0 0 var(--space-1);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-warning)}
 .th-note__text{margin:0 0 var(--space-1);font-size:var(--text-sm);line-height:var(--text-sm-lh);color:var(--text-heading);white-space:pre-wrap;overflow-wrap:anywhere}
 .th-sys{align-self:center;display:inline-flex;align-items:center;gap:var(--space-1-5);max-width:92%;margin:var(--space-2-5) 0 var(--space-1);padding:var(--space-1) var(--space-3);border-radius:var(--radius-full);background:var(--surface-quiet);font-size:var(--text-xs);color:var(--text-body);text-align:center}
 .th-sys svg{flex:none;color:var(--text-muted)}
 .th-sys__time{flex:none;color:var(--text-muted)}
-.th-typing{display:flex;align-items:center;gap:4px;padding:var(--space-3) var(--space-3-5)}
-.th-typing i{width:6px;height:6px;border-radius:var(--radius-full);background:var(--text-muted);animation:th-bounce 1.2s infinite ease-in-out}
-.th-typing i:nth-child(2){animation-delay:.15s}.th-typing i:nth-child(3){animation-delay:.3s}
-@keyframes th-bounce{0%,60%,100%{transform:none;opacity:.5}30%{transform:translateY(-4px);opacity:1}}
-@media (prefers-reduced-motion:reduce){.th-typing i{animation:none}}
 .th-jump{position:absolute;right:var(--space-5);bottom:var(--space-4);display:inline-flex;align-items:center;gap:var(--space-1-5);height:36px;padding:0 var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-full);background:var(--surface-card);color:var(--primary);font-size:var(--text-xs);font-weight:var(--weight-medium);box-shadow:var(--shadow-lg);cursor:pointer}
 .th-composer{flex:none;display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-2) var(--space-4) var(--space-4);border-top:1px solid var(--border-subtle);background:var(--surface-card)}
 .th-composer--blocked{flex-direction:row;align-items:center;gap:var(--space-3);padding:var(--space-4);color:var(--text-danger)}
@@ -534,6 +627,7 @@ export const THREAD_CSS = `
 .th-attach{display:flex;align-items:center;gap:var(--space-3);margin:var(--space-2) var(--space-3) 0;padding:var(--space-2);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--surface-page)}
 .th-attach img{width:48px;height:48px;flex:none;border-radius:var(--radius-md);object-fit:cover}
 .th-attach .ib-sub{flex:1;min-width:0}
+.th-input,.th-input:focus,.th-input:focus-visible{box-shadow:none;outline:none}
 .th-input{display:block;width:100%;min-height:44px;max-height:168px;margin:0;padding:var(--space-2-5) var(--space-3-5);border:0;background:none;color:var(--text-heading);font-size:var(--text-sm);line-height:var(--text-sm-lh);resize:none;outline:none}
 .th-input::placeholder{color:color-mix(in srgb,var(--text-muted) 80%,transparent)}
 .th-tools{display:flex;align-items:center;gap:var(--space-2);padding:0 var(--space-2) var(--space-2)}
@@ -553,11 +647,96 @@ export const THREAD_CSS = `
 .th-slash__top{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);font-size:var(--text-sm)}
 .th-slash__top b{font-weight:var(--weight-medium);color:var(--text-heading)}
 .th-linkbtn{padding:0;border:0;background:none;cursor:pointer}
+.ms-callbtn{color:var(--primary)}
+.ms-time{align-self:center;margin:var(--space-3) 0 var(--space-1);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted)}
+.ms-time:first-child{margin-top:0}
+.ms-row{position:relative;display:flex;align-items:flex-end;gap:var(--space-2);max-width:min(78%,560px)}
+.ms-row.g-first,.ms-row.g-single{margin-top:var(--space-2)}
+.ms-row--out{align-self:flex-end;flex-direction:row-reverse}
+.ms-row.has-react{margin-bottom:var(--space-3)}
+.th-spacer.is-sm{width:24px}
+.ms-col{position:relative;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.ms-row--out .ms-col{align-items:flex-end}
+.ms-who{margin:0 var(--space-3) 2px;font-size:var(--text-xs);color:var(--text-muted)}
+.ms-body{position:relative;max-width:100%}
+.ms-bubble{margin:0;padding:var(--space-2) var(--space-3);border-radius:var(--radius-2xl);font-size:var(--text-sm);line-height:var(--text-sm-lh);white-space:pre-wrap;overflow-wrap:anywhere}
+.ms-row--in .ms-bubble{background:var(--surface-quiet);color:var(--text-heading)}
+.ms-row--out .ms-bubble{background:var(--primary);color:var(--text-inverse)}
+.ms-row--in.g-first .ms-bubble{border-bottom-left-radius:var(--radius-sm)}
+.ms-row--in.g-mid .ms-bubble{border-top-left-radius:var(--radius-sm);border-bottom-left-radius:var(--radius-sm)}
+.ms-row--in.g-last .ms-bubble{border-top-left-radius:var(--radius-sm)}
+.ms-row--out.g-first .ms-bubble{border-bottom-right-radius:var(--radius-sm)}
+.ms-row--out.g-mid .ms-bubble{border-top-right-radius:var(--radius-sm);border-bottom-right-radius:var(--radius-sm)}
+.ms-row--out.g-last .ms-bubble{border-top-right-radius:var(--radius-sm)}
+.ms-emoji{margin:0;font-size:calc(var(--text-xl) * 2);line-height:1.1}
+.ms-media{display:flex;flex-direction:column;gap:2px}
+.ms-row--out .ms-media{align-items:flex-end}
+.ms-img{border-radius:var(--radius-2xl)}
+.ms-story{display:flex;flex-direction:column;gap:var(--space-1);align-items:inherit}
+.ms-row--out .ms-story{align-items:flex-end}
+.ms-story__lbl{display:inline-flex;align-items:center;gap:4px;font-size:var(--text-xs);color:var(--text-muted)}
+.ms-story__img{display:block;width:132px;aspect-ratio:9/16;padding:0;border:0;border-radius:var(--radius-2xl);overflow:hidden;background:var(--surface-subtle);box-shadow:var(--shadow-soft);cursor:zoom-in}
+.ms-story__img img{display:block;width:100%;height:100%;object-fit:cover}
+.ms-callb{display:flex;flex-direction:column;min-width:200px;border-radius:var(--radius-2xl);background:var(--surface-quiet);overflow:hidden}
+.ms-callb__row{display:flex;align-items:center;gap:var(--space-2-5);padding:var(--space-2-5) var(--space-3)}
+.ms-callb__ic{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:var(--radius-full);background:var(--surface-card);color:var(--text-heading)}
+.ms-callb.is-missed .ms-callb__ic{color:var(--text-danger)}
+.ms-callb__text{display:flex;flex-direction:column;font-size:var(--text-sm);color:var(--text-heading)}
+.ms-callb__text b{font-weight:var(--weight-semibold)}
+.ms-callb__text small{font-size:var(--text-xs);color:var(--text-muted);font-family:var(--font-data)}
+.ms-callb__back{height:36px;border:0;border-top:1px solid var(--border-subtle);background:none;color:var(--primary);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer}
+.ms-callb__back:hover{background:var(--surface-subtle)}
+.ms-quote{display:flex;flex-direction:column;gap:2px;max-width:100%;margin-bottom:-6px;padding:var(--space-1-5) var(--space-3) var(--space-3);border-radius:var(--radius-xl);background:var(--surface-subtle);opacity:.85}
+.ms-quote__lbl{display:inline-flex;align-items:center;gap:4px;font-size:var(--text-xs);color:var(--text-muted)}
+.ms-quote__txt{font-size:var(--text-xs);color:var(--text-body);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.ms-reacts{position:absolute;right:4px;bottom:-14px;display:inline-flex;align-items:center;gap:1px;height:20px;padding:0 5px;border-radius:var(--radius-full);background:var(--surface-card);box-shadow:var(--shadow-sm);font-size:var(--text-xs);animation:ms-react 260ms cubic-bezier(.34,1.56,.64,1)}
+.ms-reacts i{font-style:normal;line-height:1}
+.ms-reacts b{margin-left:3px;font-weight:var(--weight-medium);color:var(--text-muted)}
+.ms-acts{position:absolute;top:50%;display:flex;align-items:center;gap:2px;transform:translateY(-50%);opacity:0;pointer-events:none;transition:opacity 120ms ease-out}
+.ms-row--in .ms-acts{left:calc(100% + 6px)}
+.ms-row--out .ms-acts{right:calc(100% + 6px);flex-direction:row-reverse}
+.ms-row:hover .ms-acts,.ms-row:focus-within .ms-acts,.ms-row.is-active .ms-acts,.ms-acts.is-open{opacity:1;pointer-events:auto}
+.ms-row--in .ms-picker{left:0}
+.ms-row--out .ms-picker{right:0}
+.ms-act{display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:var(--radius-full);background:none;color:var(--text-muted);cursor:pointer}
+.ms-act:hover{background:var(--surface-subtle);color:var(--text-heading)}
+.ms-via{margin:0 var(--space-3);font-size:var(--text-xs);color:var(--text-muted)}
+.ms-seen{display:inline-flex;align-self:flex-end;margin-top:2px;color:var(--text-muted);animation:ms-fadein var(--duration-base) ease-out}
+.ms-seen--delivered{color:var(--primary)}
+.ms-seen .ib-av{box-shadow:0 0 0 1px var(--surface-card)}
+.ms-seen__dot{display:grid;place-items:center;width:16px;height:16px;border-radius:var(--radius-full);background:var(--fill-primary-soft);color:var(--primary);font-size:var(--text-2xs);font-weight:var(--weight-semibold);line-height:1}
+.ms-typing{display:flex;align-items:center;gap:4px;padding:var(--space-3) var(--space-3-5)}
+.ms-typing i{width:7px;height:7px;border-radius:var(--radius-full);background:var(--text-muted);animation:ms-bounce 1.2s infinite ease-in-out}
+.ms-typing i:nth-child(2){animation-delay:.15s}.ms-typing i:nth-child(3){animation-delay:.3s}
+@keyframes ms-bounce{0%,60%,100%{transform:none;opacity:.45}30%{transform:translateY(-4px);opacity:1}}
+.ms-new .ms-body,.ms-new.th-sys,.ms-new.th-note,.ms-new .ms-typing{animation:ms-in 220ms cubic-bezier(.23,1,.32,1) both}
+.ms-row--in.ms-new .ms-body{transform-origin:bottom left}
+.ms-row--out.ms-new .ms-body{transform-origin:bottom right}
+.ms-new.is-big .ms-body{animation:ms-big 380ms cubic-bezier(.34,1.56,.64,1) both}
+@keyframes ms-in{from{opacity:0;transform:translateY(8px) scale(.96)}}
+@keyframes ms-big{from{opacity:0;transform:scale(.4)}}
+@keyframes ms-react{from{opacity:0;transform:scale(.4)}}
+@keyframes ms-fadein{from{opacity:0}}
+.ms-replybar{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-1-5) var(--space-2) var(--space-1-5) var(--space-3);border-left:3px solid var(--primary);border-radius:var(--radius-md);background:var(--surface-subtle);color:var(--text-muted);animation:ms-in 180ms cubic-bezier(.23,1,.32,1)}
+.ms-replybar__text{flex:1;min-width:0;display:flex;flex-direction:column;font-size:var(--text-xs)}
+.ms-replybar__text b{font-weight:var(--weight-medium);color:var(--text-heading)}
+.ms-replybar__text span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.th-box--rec{padding:var(--space-2)}
+.ms-like{display:grid;place-items:center;flex:none;width:40px;height:40px;border:0;border-radius:var(--radius-full);background:none;font-size:var(--text-xl);line-height:1;cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1);animation:ms-fadein 160ms ease-out}
+.ms-like:active{transform:scale(.85)}
+@media (hover:hover) and (pointer:fine){.ms-like:hover{transform:scale(1.12)}}
+.ms-pop{animation:ms-big 220ms cubic-bezier(.23,1,.32,1)}
+.ms-mic{color:var(--primary)}
+@media (prefers-reduced-motion:reduce){
+  .ms-new .ms-body,.ms-new.th-sys,.ms-new.th-note,.ms-new .ms-typing,.ms-new.is-big .ms-body,.ms-reacts,.ms-pop,.ms-replybar{animation:ms-fadein 120ms ease-out both}
+  .ms-typing i{animation:none}
+}
+@media (hover:none){.ms-row--in .ms-acts{left:auto;right:0;top:auto;bottom:calc(100% + 2px);transform:none}.ms-row--out .ms-acts{right:auto;left:0;top:auto;bottom:calc(100% + 2px);transform:none}}
 @container (max-width:640px){
   .th-lbl,.th-hint,.th-window{display:none}
   .th-send{width:44px;padding:0}
   .th-msgs{padding:var(--space-4) var(--space-4) var(--space-5)}
-  .th-row,.th-note{max-width:88%}
+  .ms-row,.th-note{max-width:88%}
 }
 @container (max-width:420px){
   .th-hide-xs{display:none}

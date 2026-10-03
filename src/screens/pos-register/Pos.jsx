@@ -19,6 +19,21 @@
 // "Sold by" (Alt S at checkout) names the salesperson, the cashier unless changed; it is saved on the
 // sale (sale.salesperson) for staff sales and commission. Each saved line keeps its sku, category and
 // buying price at the time of sale (cost of one piece, lib/productCost).
+// Brief #8 additions (logic in lib/posSale, lib/serials, lib/scaleBarcode, lib/hardware; sheets in PosSheets):
+//   - serial / IMEI: a tracked product asks for its number when added; the number is checked (not sold, valid
+//     IMEI) and kept on the line; the sale marks it sold. Scanning a number in stock adds its product.
+//   - weighed products sell by the kg; a scale label (EAN-13 starting with 2) is read into product + weight
+//     or price and confirmed in a sheet before it is added.
+//   - card and wallet payments name the account or card terminal that received the money; the sale posts there.
+//   - hardware: the status chips come from the counter's devices (printer, scanner, terminal, drawer, scale),
+//     with a Hardware sheet (demo state + Test) and "Open drawer" without a sale (reason, PIN, audit).
+//   - offline: sales are queued with their local number and operation id and posted when the register is
+//     online again; conflicts (stock below zero, a price changed, a serial sold) wait in the Sync sheet.
+//   - every checkout has an operation id: a double tap or a retry returns the first sale ("Already completed").
+//   - opening: where the float came from (safe or last shift) and any difference; closing: expected vs counted
+//     per account, and a difference above the POS limit needs a manager's PIN and posts to the ledger.
+//   - one shift per counter and drawer across devices; held sales hold their stock until they expire;
+//     a product out here shows the stock at another place and can be sold here and shipped from there.
 // Front end only: the shift, held sales and completed sales are kept in this browser.
 // Counters, employees, shifts, cash movements and settings are shared with POS management (posStore).
 
@@ -32,20 +47,28 @@ import { addOrder } from '@/lib/orderLinks';
 import { getLocale, setLocale } from '@/runtime/ui';
 import { Sidebar } from '@/shell/Shell';
 import { PaymentLogo } from '@/components/PaymentLogo';
-import { POS_KEYS as KEYS, load, save, getCounters, getCash, saveCash, getShifts, saveShifts, getSettings, shiftReport, nextId, EMPLOYEES, MANAGERS, CASH_PLACES, CASH_LABEL, DEFAULT_SETTINGS, postCashMove, postSaleTenders } from '@/lib/posStore';
+import { POS_KEYS as KEYS, load, save, getCounters, getCash, saveCash, getShifts, saveShifts, getSettings, shiftReport, nextId, EMPLOYEES, MANAGERS, CASH_PLACES, CASH_LABEL, DEFAULT_SETTINGS, postCashMove, postVariance, claimCounter, counterBusy, releaseCounter, addDrawerOpen } from '@/lib/posStore';
+import { commitSale, queueSale, newOpId, saleForOp, getQueue, pendingQueue, queuedQty, syncQueue, resolveConflict, holdSale, releaseHeld, expireHeld } from '@/lib/posSale';
+import { trackingOf, checkSerial, serialsAt, getSerials } from '@/lib/serials';
+import { decodeScale, isWeighed, kgText, r3 } from '@/lib/scaleBarcode';
+import { devicesAt, setDeviceState, testDevice, payAccounts, TERMINALS } from '@/lib/hardware';
+import { accountBy } from '@/lib/ledger';
+import { SerialSheet, WeighSheet, FulfilSheet, HardwareSheet, NoSaleSheet, SyncSheet } from './PosSheets';
 import { loadVat, vatRateFor } from '@/lib/vat';
-import { getCustomers, findCustomer, tierOf, tierPrice, phoneDigits, saveCustomerOnce, ADDED_FROM } from '@/lib/customers';
-import { dueForPhone, recordDelivery, challanNo } from '@/lib/invoices';
-import { CATALOG, getCatalog, productBy, stockAt, getMoves, addMove, allowNegative } from '@/lib/stock';
+import { getCustomers, findCustomer, tierOf, tierPrice, phoneDigits } from '@/lib/customers';
+import { dueForPhone, challanNo } from '@/lib/invoices';
+import { CATALOG, getCatalog, productBy, stockAt, getMoves, allowNegative } from '@/lib/stock';
 import { isStatusSellable } from '@/lib/sellable';
-import { getHolds, addHolds } from '@/lib/stockHolds';
+import { getHolds } from '@/lib/stockHolds';
 import { STOCK_PLACES, getStockPlaces, placeName } from '@/lib/locations';
 import { usePlaceList } from '@/lib/usePlaces';
 import { navigate } from '@/runtime/routes';
 import { ManagerPin } from '@/components/ManagerPin';
 import { freezeLine } from '@/lib/productCost';
 import { logAudit } from '@/lib/auditLog';
-import { getMembers as getLoyaltyMembers, getLoyaltySettings, getProductPoints, pointsForSale, spendWallet, syncPosPoints, DEFAULT_SETTINGS as LOYALTY_DEFAULTS } from '@/lib/loyalty';
+import { getMembers as getLoyaltyMembers, getLoyaltySettings, getProductPoints, pointsForSale, DEFAULT_SETTINGS as LOYALTY_DEFAULTS } from '@/lib/loyalty';
+import { applyCode, getOffers, commit as commitPromo } from '@/lib/promotions';
+import { checkOrder } from '@/lib/restrictions';
 import { POS_CSS } from './posStyles';
 
 const ITEMS = [
@@ -71,11 +94,14 @@ const ITEMS = [
 const posProducts = (catalog) => catalog.map((c) => {
   const it = ITEMS.find((p) => p.name === c.name || (c.aka && p.name === c.aka) || p.code === c.barcode);
   const stock = Object.values(c.on || {}).reduce((a, n) => a + n, 0);
-  return { id: it ? it.id : c.sku, sku: c.sku, name: c.name, meta: c.variant || (it ? it.meta : ''), brand: (it && it.brand) || c.brand || '', cat: c.cat, price: c.price, stock, code: c.barcode || c.sku, moq: c.moq || 0 };
+  return { id: it ? it.id : c.sku, sku: c.sku, name: c.name, meta: c.variant || (it ? it.meta : ''), brand: (it && it.brand) || c.brand || '', cat: c.cat, price: c.price, stock, code: c.barcode || c.sku, moq: c.moq || 0, track: trackingOf(c.sku), weighed: isWeighed(c.sku) };
 });
 const BASE_PRODUCTS = posProducts(CATALOG);   // the first render, before this browser's saved products are read
 const WAREHOUSES = STOCK_PLACES;
 const NO_STOCK = { onHand: 0, held: 0, damaged: 0, available: 0, transit: 0 };
+const pidOf = (l) => l.pid || l.id;   // the product card a line came from (a line shipped from another place has its own id)
+const qtyText = (l) => (l.unit === 'kg' ? kgText(l.qty) : String(l.qty));
+const last4 = (sn) => '…' + String(sn).slice(-4);
 const returnsHref = (sale, mode) => '/return-exchange' + (sale ? `?ref=${encodeURIComponent(sale.id)}${mode ? '&mode=' + mode : ''}` : '');
 // who approved a manager-only change on a line
 const approvalNote = (l) => (l.priceBy && l.priceBy === l.discBy ? `Price and discount set by ${l.priceBy}` : [l.priceBy && `Price set by ${l.priceBy}`, l.discBy && `Discount by ${l.discBy}`].filter(Boolean).join(' · '));
@@ -85,7 +111,6 @@ const MEMBERS = [
   { phone: '01553336655', name: 'Nusrat Jahan', tier: 'Silver', tierPct: 2, points: 80 },
   { phone: '01711902244', name: 'Mostafizur Rahman', tier: 'Platinum', tierPct: 8, points: 1260 },
 ];
-const COUPONS = { EIDSAVE10: { percent: 10, cap: 150 }, WELCOME50: { amount: 50 } };
 const money = (n) => formatBDT(n, { decimals: 2 });
 const TENDERS = [
   { id: 'Cash', icon: 'banknote', key: 'Alt 1', offline: true },
@@ -101,7 +126,7 @@ const SHORTCUTS = [
   ['While selling', [
     ['F2', 'Search products'], ['F3', 'Scan or type a SKU'], ['+  −', 'Quantity of the last item (scan field empty)'], ['Delete', 'Remove the last item (scan field empty)'],
     ['F4', 'Complete order'], ['F6', 'Hold sale'], ['F7', 'Held sales'], ['F8', 'Recent sales and reprints'], ['Alt E', 'Exchange or return (opens Return & exchange)'], ['F9', 'Customer'],
-    ['F10', 'Cash drawer: pickup, cash in, paid out'], ['Alt N', 'New sale'], ['Alt X', 'Cancel sale'], ['Alt Z', 'End shift'], ['F1', 'This list'], ['Esc', 'Close a window'],
+    ['F10', 'Cash drawer: pickup, cash in, paid out'], ['Alt H', 'Hardware'], ['Alt N', 'New sale'], ['Alt X', 'Cancel sale'], ['Alt Z', 'End shift'], ['F1', 'This list'], ['Esc', 'Close a window'],
   ]],
   ['At checkout', [
     ['Enter', 'Take the amount and complete the sale'], ['F4', 'Complete the sale'], ['Alt 1 – 5', 'Cash, Card, bKash, Nagad, Rocket'], ['Alt 6', 'Due / credit'], ['Alt 7', 'Customer wallet (members)'],
@@ -119,14 +144,24 @@ const focusId = (id) => window.setTimeout(() => { const el = document.getElement
 // on its share of what is left after every discount.
 // `loy` is the loyalty settings: value of a point, the least points that can be used, and the most of
 // the bill points can pay.
+// A POS cart for the promotion engine: each line at its price after the line and cart discounts.
+function couponResult(code, lines, cartDisc, member) {
+  const base = lines.reduce((s, l) => s + l.price * l.qty - Math.min(l.price * l.qty, l.disc || 0), 0);
+  const keep = base ? (base - cartDisc) / base : 1;
+  const cart = { lines: lines.map((l) => ({ sku: l.sku, name: l.name, cat: l.cat, qty: l.qty, price: l.qty ? ((l.price * l.qty - Math.min(l.price * l.qty, l.disc || 0)) * keep) / l.qty : 0 })), payment: 'cash' };
+  // the register gives its own member and cashier discounts, so a coupon is checked against the other coupons only
+  const offers = getOffers().filter((o) => o.activation === 'code');
+  return applyCode(code, cart, member ? { phone: member.phone, tier: String(member.tier || '').toLowerCase() } : null, 'pos', { offers });
+}
 function totalsOf(lines, discount, coupon, member, redeem, vat, loy = LOYALTY_DEFAULTS) {
   const gross = lines.reduce((s, l) => s + l.price * l.qty, 0);
   const lineDisc = lines.reduce((s, l) => s + Math.min(l.price * l.qty, l.disc || 0), 0);
   let left = gross - lineDisc;
   const cartDisc = !discount ? 0 : Math.min(left, discount.type === 'percent' ? Math.round(left * discount.value / 100) : discount.value);
   left -= cartDisc;
-  const rule = coupon ? COUPONS[coupon] : null;
-  const couponDisc = !rule ? 0 : Math.min(left, rule.amount || Math.min(rule.cap, Math.round(left * rule.percent / 100)));
+  // the coupon goes through the one promotion engine (lib/promotions), on what is left after the cashier's discounts
+  const promo = coupon ? couponResult(coupon, lines, cartDisc, member) : null;
+  const couponDisc = promo && promo.ok ? Math.min(left, promo.result.discount) : 0;
   left -= couponDisc;
   const memberDisc = member ? Math.round(left * member.tierPct) / 100 : 0;
   left -= memberDisc;
@@ -137,8 +172,9 @@ function totalsOf(lines, discount, coupon, member, redeem, vat, loy = LOYALTY_DE
   left -= pointsDisc;
   const base = gross - lineDisc;
   const share = base ? left / base : 0;
-  const tax = r2(lines.reduce((s, l) => s + (l.price * l.qty - Math.min(l.price * l.qty, l.disc || 0)) * share * vatRateFor(l.cat || (BASE_PRODUCTS.find((p) => p.id === l.id) || {}).cat, vat) / 100, 0));
-  return { gross, lineDisc, cartDisc, couponDisc, memberDisc, pointsUsed, pointsDisc, taxable: left, tax, total: r2(left + tax), units: lines.reduce((s, l) => s + l.qty, 0) };
+  const tax = r2(lines.reduce((s, l) => s + (l.price * l.qty - Math.min(l.price * l.qty, l.disc || 0)) * share * vatRateFor(l.cat || (BASE_PRODUCTS.find((p) => p.id === pidOf(l)) || {}).cat, vat) / 100, 0));
+  // a weighed line counts as one unit, whatever it weighs
+  return { gross: r2(gross), lineDisc, cartDisc, couponDisc, promo: promo && promo.ok ? promo.result : null, memberDisc, pointsUsed, pointsDisc, taxable: r2(left), tax, total: r2(left + tax), units: lines.reduce((s, l) => s + (l.unit === 'kg' ? 1 : l.qty), 0) };
 }
 
 export default function Pos() {
@@ -147,7 +183,7 @@ export default function Pos() {
   const [counters, setCounters] = useState([]);       // active counters from POS management
   const [cfg, setCfg] = useState(DEFAULT_SETTINGS);
   const [vat, setVat] = useState(null);               // VAT rates by category, from Accounts > VAT   // POS settings
-  const [openForm, setOpenForm] = useState({ counter: '', cashier: '', float: '2000' });
+  const [openForm, setOpenForm] = useState({ counter: '', cashier: '', float: '2000', from: 'Shop safe', reason: '' });
   const [lines, setLines] = useState([]);
   const [customer, setCustomer] = useState({ name: '', phone: '' });
   const [discount, setDiscount] = useState(null);
@@ -189,13 +225,26 @@ export default function Pos() {
   const [products, setProducts] = useState(BASE_PRODUCTS); // the product cards (stock catalogue)
   const [takeNow, setTakeNow] = useState(null);       // wholesale: customer takes the goods now; null = follow the payment
   const [soldBy, setSoldBy] = useState('');           // salesperson of this sale; '' = the cashier on the shift
+  const [queue, setQueue] = useState([]);             // sales made offline (lib/posSale): queued, needing review or voided
+  const [syncResult, setSyncResult] = useState(null); // what the last sync posted
+  const [offlineAt, setOfflineAt] = useState(0);      // when the register went offline (stock shown is from then)
+  const [opId, setOpId] = useState('');               // operation id of this checkout: one sale, however often it is sent
+  const [serialAsk, setSerialAsk] = useState(null);   // { p } — the product waiting for its serial / IMEI
+  const [weigh, setWeigh] = useState(null);           // { p, kg, mode, code, fixed, price } — weighed item to confirm
+  const [fulfil, setFulfil] = useState(null);         // { p, options } — not here, at another place
+  const [shipTo, setShipTo] = useState('');           // delivery address for the lines shipped from another place
+  const [hwTick, setHwTick] = useState(0);            // bumped when a device changes
+  const [drawerOpen, setDrawerOpen] = useState(0);    // the drawer shows open until this time
+  const [closeCounts, setCloseCounts] = useState({}); // closing: counted per non-cash account
+  const [noSaleWhy, setNoSaleWhy] = useState(null);   // { reason, note } waiting for a manager's PIN
   const searchRef = useRef(null);
+  const doneRef = useRef('');                         // the operation id being completed right now (double tap guard)
 
   useEffect(() => {
     const list = getCounters().filter((c) => c.active);
     const set = getSettings();
     setCounters(list); setCfg(set); setRequireFull(set.requireFull); setPrintReceipt(set.printReceipt);
-    if (list[0]) setOpenForm({ counter: list[0].name, cashier: list[0].staff[0] || '', float: String(list[0].float ?? set.float) });
+    if (list[0]) setOpenForm({ counter: list[0].name, cashier: list[0].staff[0] || '', float: String(list[0].float ?? set.float), from: 'Shop safe', reason: '' });
     const open = load(KEYS.shift, null);
     setShift(open);
     const at = open && list.find((c) => c.name === open.counter);
@@ -203,6 +252,9 @@ export default function Pos() {
     if (placeWant && livePlaces.includes(placeWant)) setWarehouse(placeWant); else if (livePlaces.length && !livePlaces.includes(WAREHOUSES[0])) setWarehouse(livePlaces[0]);
     setHeld(load(KEYS.held, []));
     setSales(load(KEYS.sales, []));
+    setQueue(getQueue());
+    // this device's open shift holds its counter (and drawer) in the list every device reads
+    if (open && list.find((c) => c.name === open.counter)) claimCounter(list.find((c) => c.name === open.counter), open);
     setCash(getCash());
     setVat(loadVat());
     setBook(getCustomers());
@@ -214,7 +266,8 @@ export default function Pos() {
     if (['recent', 'held', 'close', 'cash', 'keys'].includes(want)) setPanel(want);
     setLoc(getLocale());
     setOffline(!window.navigator.onLine);
-    const on = () => setOffline(false), off = () => setOffline(true);
+    if (!window.navigator.onLine) setOfflineAt(Date.now());
+    const on = () => setOffline(false), off = () => { setOffline(true); setOfflineAt(Date.now()); };
     window.addEventListener('online', on); window.addEventListener('offline', off);
     setReady(true);
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
@@ -222,8 +275,8 @@ export default function Pos() {
 
   const CATS = useMemo(() => [...new Set(products.map((p) => p.cat).filter(Boolean))], [products]);
   const BRANDS = useMemo(() => [...new Set(products.map((p) => p.brand).filter(Boolean))], [products]);
-  const moqOf = (l) => (products.find((p) => p.id === l.id) || {}).moq || 0;
-  const retailOf = (l) => (products.find((p) => p.id === l.id) || {}).price || l.price;
+  const moqOf = (l) => (products.find((p) => p.id === pidOf(l)) || {}).moq || 0;
+  const retailOf = (l) => (products.find((p) => p.id === pidOf(l)) || {}).price || l.price;
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return products.filter((p) => (!cat || p.cat === cat) && (!brand || p.brand === brand) && (!q || (p.name + ' ' + p.brand + ' ' + p.code + ' ' + p.sku).toLowerCase().includes(q)));
@@ -246,18 +299,36 @@ export default function Pos() {
   const priceTier = atRetail ? null : tier;             // the price list the lines are charged at
   const priceTierId = priceTier ? priceTier.id : '';
   useEffect(() => {
-    setLines((cur) => cur.map((l) => { const p = products.find((x) => x.id === l.id); return p ? { ...l, price: tierPrice(p.price, priceTier), priceBy: '' } : l; }));
+    setLines((cur) => cur.map((l) => { const p = products.find((x) => x.id === pidOf(l)); return p ? { ...l, price: tierPrice(p.price, priceTier), priceBy: '' } : l; }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [priceTierId]);
   // what the customer already owes on unpaid invoices, for the credit limit check
   const owedBefore = useMemo(() => (ready && buyer ? dueForPhone(buyer.phone) : 0), [ready, buyer, sales]);
-  // stock of every product at the chosen warehouse or branch
+  // stock of every product at the chosen warehouse or branch; offline, what was sold and not synced yet is taken off
   const stockMap = useMemo(() => {
     if (!ready) return {};
     const holds = getHolds(), moves = getMoves();
-    return Object.fromEntries(products.map((p) => [p.id, stockAt(p.sku, warehouse, holds, moves)]));
-  }, [ready, products, warehouse, stockTick]);
+    const sold = queuedQty(warehouse);
+    return Object.fromEntries(products.map((p) => {
+      const s = stockAt(p.sku, warehouse, holds, moves);
+      return [p.id, sold[p.sku] ? { ...s, available: Math.max(0, r3(s.available - sold[p.sku])) } : s];
+    }));
+  }, [ready, products, warehouse, stockTick, queue]);
   const stockOf = (id) => stockMap[id] || NO_STOCK;
+  // the same products at the other places, best first (shown on a card that is low or out here)
+  const elseMap = useMemo(() => {
+    if (!ready) return {};
+    const holds = getHolds(), moves = getMoves();
+    const others = warehouses.filter((w) => w !== warehouse);
+    return Object.fromEntries(products.map((p) => [p.id, others.map((place) => ({ place, available: stockAt(p.sku, place, holds, moves).available })).filter((o) => o.available > 0).sort((a, b) => b.available - a.available)]));
+  }, [ready, products, warehouse, warehouses, stockTick]);
+  const elsewhere = (id) => elseMap[id] || [];
+  // the counter's devices (lib/hardware) and the payment accounts / card terminals it can take money into
+  const counterOf = (name) => counters.find((c) => c.name === name) || null;
+  const devices = useMemo(() => (ready && shift ? devicesAt(counterOf(shift.counter) || { id: shift.counterId, printer: '' }) : []), [ready, shift, counters, hwTick]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const printerOk = (devices.find((d) => d.kind === 'printer') || {}).state === 'ok';
+  const waiting = useMemo(() => queue.filter((s) => s.syncState === 'queued' || s.syncState === 'review'), [queue]);
+  const reviewList = waiting.filter((s) => s.syncState === 'review');
   // "Allow negative stock" at this place (Warehouses / Branches): sell past what is available, with a warning
   const negOk = useMemo(() => ready && allowNegative(warehouse), [ready, warehouse]);
   const overToast = (name, avail) => toast(`${name}: selling past the ${avail} available at ${warehouse}. Negative stock is allowed here.`, { tone: 'info' });
@@ -272,9 +343,14 @@ export default function Pos() {
   const pending = due ? (tender.amount === '' ? due : num(tender.amount)) : 0;   // what the amount field adds
   const stillDue = Math.max(0, r2(due - pending));
   const change = Math.max(0, r2(paid + pending - t.total));
-  const orderNo = 'ORD-20260907-' + String(sales.length + 1).padStart(4, '0');
+  const orderNo = 'ORD-20260907-' + String(sales.length + queue.length + 1).padStart(4, '0');
+  // the account or card terminal the chosen method pays into (lib/hardware › payAccounts, from the ledger)
+  const counterRow0 = shift ? counterOf(shift.counter) || { id: shift.counterId } : null;
+  const acctOptions = shift ? payAccounts(tender.method, counterRow0, devices) : [];
+  const acct = acctOptions.find((o) => o.id === tender.acct) || acctOptions.find((o) => !o.down) || acctOptions[0] || null;
+  const tenderOf = (method, amount, a) => ({ method, amount, ...(a ? { account: a.account, ...(a.terminal ? { terminal: a.terminal } : {}), via: a.label } : {}) });
   // money this sale would leave unpaid, and whether that takes the customer over their credit limit
-  const tendersNow = pending ? [...tenders, { method: tender.method, amount: pending }] : tenders;
+  const tendersNow = pending ? [...tenders, tenderOf(tender.method, pending, acct)] : tenders;
   const owedNow = r2((requireFull ? 0 : stillDue) + tendersNow.filter((x) => x.method === CREDIT).reduce((s, x) => s + x.amount, 0));
   const creditLimit = buyer ? buyer.creditLimit || 0 : 0;
   const creditOver = creditLimit > 0 && owedNow > 0 && r2(owedBefore + owedNow) > creditLimit;
@@ -286,51 +362,91 @@ export default function Pos() {
   const takesNow = takeNow === null ? !(owedNow > 0) : takeNow;
 
   // ---- cart -------------------------------------------------------------------------------------
-  const add = (p) => {
-    const avail = stockOf(p.id).available;
-    if (!avail && !negOk) { toast(`${p.name} is out of stock at ${warehouse}`, { tone: 'error' }); return; }
+  // `extra`: { kg } for a weighed product, { serial } for a tracked one, { from } to ship it from another place.
+  // A weighed product without a weight asks for it first; a tracked one asks for its serial / IMEI.
+  const add = (p, extra) => {
+    const from = extra && extra.from;
+    const avail = from ? (elsewhere(p.id).find((o) => o.place === from) || { available: 0 }).available : stockOf(p.id).available;
+    const lineId = from ? `${p.id}@${from}` : p.id;
+    const have = (lines.find((l) => l.id === lineId) || {}).qty || 0;
+    const step = extra && extra.kg ? extra.kg : 1;
+    if (!from && (!avail || have + step > avail) && !negOk) {
+      const other = elsewhere(p.id);
+      if (other.length) { setFulfil({ p, options: other, kg: extra && extra.kg }); return; }
+      toast(!avail ? `${p.name} is out of stock at ${warehouse}` : `Only ${p.weighed ? kgText(avail) : avail} of ${p.name} available at ${warehouse}`, { tone: 'error' });
+      return;
+    }
+    if (!from && !extra && p.weighed) { setWeigh({ p, kg: '', mode: 'manual' }); return; }
+    if (!from && !(extra && extra.serial) && p.track) { setSerialAsk({ p }); return; }
+    if (!from && have < avail && have + step > avail) overToast(p.name, avail);   // crossing below zero
     // decided inside the update, so two quick taps or scans add to the same line
     setLines((cur) => {
-      const inCart = cur.find((l) => l.id === p.id);
-      const have = inCart ? inCart.qty : 0;
-      if (have >= avail && !negOk) { window.setTimeout(() => toast(`Only ${avail} of ${p.name} available at ${warehouse}`, { tone: 'error' }), 0); return cur; }
-      if (have === avail) window.setTimeout(() => overToast(p.name, avail), 0);   // crossing below zero
-      if (!inCart) return [...cur, { id: p.id, sku: p.sku, name: p.name, meta: p.meta, cat: p.cat, price: tierPrice(p.price, priceTier), qty: 1, disc: 0, stock: avail }];
-      return cur.map((l) => (l.id === p.id ? { ...l, qty: l.qty + 1, stock: avail } : l));
+      const inCart = cur.find((l) => l.id === lineId);
+      const qty = (inCart ? inCart.qty : 0) + step;
+      if (from && qty > avail) { window.setTimeout(() => toast(`Only ${avail} of ${p.name} at ${from}`, { tone: 'error' }), 0); return cur; }
+      const serials = extra && extra.serial ? [...((inCart && inCart.serials) || []), extra.serial] : inCart && inCart.serials;
+      const patch = { qty: p.weighed ? r3(qty) : qty, stock: avail, ...(serials ? { serials } : {}) };
+      if (!inCart) return [...cur, { id: lineId, ...(from ? { pid: p.id, from } : {}), sku: p.sku, name: p.name, meta: p.meta, cat: p.cat, price: tierPrice(p.price, priceTier), basePrice: p.price, disc: 0, ...(p.weighed ? { unit: 'kg' } : {}), ...(p.track && !from ? { track: p.track } : {}), ...patch }];
+      return cur.map((l) => (l.id === lineId ? { ...l, ...patch } : l));
     });
   };
+  // the serial sheet checks a number against the register and this sale
+  const takenSerials = lines.flatMap((l) => l.serials || []);
+  const checkSn = (p) => (raw) => checkSerial(raw, { sku: p.sku, kind: p.track, place: warehouse, taken: takenSerials });
   const setQty = (id, qty) => {
     const line = lines.find((l) => l.id === id);
+    // a tracked item: one more unit needs its number; one less drops the last number
+    if (line && line.track && qty > line.qty) { const p = products.find((x) => x.id === pidOf(line)); if (p) add(p); return; }
     if (line && qty > line.stock) {
-      if (!negOk) toast(`Only ${line.stock} of ${line.name} available at ${warehouse}`, { tone: 'error' });
+      if (!negOk || line.from) toast(`Only ${line.stock} of ${line.name} available at ${line.from || warehouse}`, { tone: 'error' });
       else if (line.qty <= line.stock) overToast(line.name, line.stock);
     }
-    setLines((cur) => cur.flatMap((l) => (l.id !== id ? [l] : qty <= 0 ? [] : [{ ...l, qty: negOk ? qty : Math.min(qty, l.stock) }])));
+    setLines((cur) => cur.flatMap((l) => (l.id !== id ? [l] : qty <= 0 ? [] : [{ ...l, qty: negOk && !l.from ? qty : Math.min(qty, l.stock), ...(l.serials ? { serials: l.serials.slice(0, Math.min(qty, l.serials.length)) } : {}) }])));
   };
-  // fit cart lines to what a place has: each line learns its limit, too many is cut down
+  // fit cart lines to what a place has: each line learns its limit, too many is cut down.
+  // A line shipped from another place is checked there.
   const fitLines = (list, place) => {
     const holds = getHolds(), moves = getMoves();
     const cut = [];
-    const neg = allowNegative(place);
     const next = list.flatMap((l) => {
-      const a = stockAt(l.sku || l.name, place, holds, moves).available;
-      if (l.qty <= a || neg) return [{ ...l, stock: a }];
-      cut.push(a ? `${l.name} cut to ${a}` : `${l.name} removed`);
-      return a ? [{ ...l, qty: a, stock: a }] : [];
+      const at = l.from || place;
+      const a = stockAt(l.sku || l.name, at, holds, moves).available;
+      if (l.qty <= a || (!l.from && allowNegative(place))) return [{ ...l, stock: a }];
+      cut.push(a ? `${l.name} cut to ${l.unit === 'kg' ? kgText(a) : a}` : `${l.name} removed`);
+      return a ? [{ ...l, qty: a, stock: a, ...(l.serials ? { serials: l.serials.slice(0, a) } : {}) }] : [];
     });
     if (cut.length) toast(`Not enough at ${place}: ${cut.join(', ')}`, { tone: 'error' });
     return next;
   };
-  const changeWarehouse = (place) => { setWarehouse(place); if (lines.length) setLines(fitLines(lines, place)); };
+  const changeWarehouse = (place) => { setWarehouse(place); if (lines.length) setLines(fitLines(lines.filter((l) => l.from !== place), place)); };
   const scan = (e) => {
     e.preventDefault();
-    const q = code.trim().toLowerCase();
+    const raw = code.trim();
+    const q = raw.toLowerCase();
     if (!q) return;
     const hits = products.filter((p) => p.code.toLowerCase() === q || p.sku.toLowerCase() === q || p.id === q || p.name.toLowerCase().includes(q));
     const exact = hits.find((p) => p.code.toLowerCase() === q || p.sku.toLowerCase() === q);
     if (exact) { add(exact); setCode(''); return; }
+    // a serial or IMEI in stock: its product, with that unit
+    const unit = getSerials().find((u) => u.serial === raw.toUpperCase() && u.state !== 'sold');
+    const tracked = unit && products.find((p) => p.sku === unit.sku);
+    if (tracked) {
+      const r = checkSn(tracked)(raw);
+      if (r.ok) add(tracked, { serial: r.serial }); else toast(r.error, { tone: 'error' });
+      setCode(''); return;
+    }
+    // a scale label: product + weight or price, confirmed before it is added
+    const label = decodeScale(raw, (sku) => (products.find((p) => p.sku === sku) || {}).price || 0);
+    if (label) {
+      setCode('');
+      if (!label.ok) { toast(label.error, { tone: 'error' }); return; }
+      const p = products.find((x) => x.sku === label.sku);
+      if (!p) { toast(`No product for PLU ${label.plu} on this counter`, { tone: 'error' }); return; }
+      setWeigh({ p, kg: label.kg, mode: label.mode, code: label.code, fixed: true, price: label.price });
+      return;
+    }
     if (hits.length === 1 || (hits[0] && hits[0].code === q)) { add(hits[0]); setCode(''); }
-    else toast(hits.length ? `${hits.length} products match “${code.trim()}”. Use the search on the left to pick one.` : `No product found for “${code.trim()}”`, { tone: hits.length ? 'info' : 'error' });
+    else toast(hits.length ? `${hits.length} products match “${raw}”. Use the search on the left to pick one.` : `No product found for “${raw}”`, { tone: hits.length ? 'info' : 'error' });
   };
   // with the scan field empty, + and − change the last item and Delete removes it
   const scanKey = (e) => {
@@ -340,7 +456,7 @@ export default function Pos() {
     else if (e.key === '-') { e.preventDefault(); setQty(last.id, last.qty - 1); }
     else if (e.key === 'Delete') { e.preventDefault(); setQty(last.id, 0); }
   };
-  const clearSale = () => { setLines([]); setCustomer({ name: '', phone: '' }); setDiscount(null); setCoupon(''); setCouponText(''); setTenders([]); setTender({ method: 'Cash', amount: '' }); setSheet(false); setRedeem(false); setRetailFor(''); setTakeNow(null); setSoldBy(''); };
+  const clearSale = () => { setLines([]); setCustomer({ name: '', phone: '' }); setDiscount(null); setCoupon(''); setCouponText(''); setTenders([]); setTender({ method: 'Cash', amount: '' }); setSheet(false); setRedeem(false); setRetailFor(''); setTakeNow(null); setSoldBy(''); setShipTo(''); };
   const newSale = async () => {
     if (!lines.length || await confirmDialog({ title: 'Start a new sale?', body: 'The items in the cart will be removed. Hold the sale first if you need it later.', confirmLabel: 'New sale' })) { clearSale(); focusId('pos-scan'); }
   };
@@ -354,25 +470,54 @@ export default function Pos() {
   const openCustomer = () => { setCustDraft(customer); setPanel('customer'); };
 
   // ---- hold and resume --------------------------------------------------------------------------
+  // a held sale holds its stock at this place (lib/stockHolds) until it is resumed, discarded or expires
   const hold = () => {
     if (!lines.length) return;
-    const next = [{ id: 'HOLD-' + String(held.length + 1).padStart(4, '0'), at: Date.now(), lines, customer, discount, coupon, retail: atRetail, total: t.total, soldBy }, ...held];
-    setHeld(next); save(KEYS.held, next); clearSale();
-    toast(`Sale held as ${next[0].id}`);
+    const row = holdSale({ lines, customer, discount, coupon, retail: atRetail, total: t.total, soldBy, shipTo }, { place: warehouse, minutes: cfg.holdMinutes, cashier: shift.cashier, counter: shift.counter });
+    const next = [row, ...held];
+    setHeld(next); save(KEYS.held, next); clearSale(); setStockTick((n) => n + 1);
+    toast(`Sale held as ${row.id}`);
   };
   const resume = async (h) => {
     if (lines.length && !(await confirmDialog({ title: 'Replace the current sale?', body: 'The items in the cart now will be removed. Hold the current sale first if you need it.', confirmLabel: 'Replace' }))) return;
-    setLines(fitLines(h.lines, warehouse)); setCustomer(h.customer); setRetailFor(h.retail ? phoneDigits(h.customer.phone) : ''); setDiscount(h.discount); setCoupon(h.coupon || ''); setCouponText(h.coupon || ''); setTenders([]); setSoldBy(h.soldBy || '');
+    releaseHeld(h, 'Held sale resumed');
+    setLines(fitLines(h.lines, warehouse)); setCustomer(h.customer); setRetailFor(h.retail ? phoneDigits(h.customer.phone) : ''); setDiscount(h.discount); setCoupon(h.coupon || ''); setCouponText(h.coupon || ''); setTenders([]); setSoldBy(h.soldBy || ''); setShipTo(h.shipTo || '');
     const next = held.filter((x) => x.id !== h.id);
-    setHeld(next); save(KEYS.held, next); setPanel('');
+    setHeld(next); save(KEYS.held, next); setPanel(''); setStockTick((n) => n + 1);
   };
+  const discard = async (h) => {
+    if (!(await confirmDialog({ title: `Discard ${h.id}?`, body: 'Its items go back on sale.', confirmLabel: 'Discard', tone: 'danger' }))) return;
+    releaseHeld(h, 'Held sale discarded');
+    logAudit({ action: 'Void sale', detail: `Held sale ${h.id} discarded`, by: shift.cashier, approvedBy: '', ok: true, ref: h.id, amount: h.total, counter: shift.counter, place: h.place || warehouse });
+    const next = held.filter((x) => x.id !== h.id);
+    setHeld(next); save(KEYS.held, next); setStockTick((n) => n + 1);
+    toast(`${h.id} discarded`);
+  };
+  // expired holds put their stock back on sale, once
+  useEffect(() => {
+    if (!ready) return undefined;
+    const tick = () => {
+      const cur = load(KEYS.held, []);
+      const { list, expired } = expireHeld(cur);
+      if (!expired.length) return;
+      save(KEYS.held, list); setHeld(list); setStockTick((n) => n + 1);
+      toast(`${expired.join(', ')} expired. Stock is back on sale.`, { tone: 'info' });
+    };
+    tick();
+    const id = window.setInterval(tick, 30000);
+    return () => window.clearInterval(id);
+  }, [ready]);
 
   // ---- checkout ---------------------------------------------------------------------------------
   // "Complete order" opens one window with everything: customer, discount, coupon, payment and the
   // total. Cash for the full amount is ready, so F4 then Enter finishes a plain cash sale.
+  // every tracked item needs one number per unit before the sale can be paid
+  const missingSerial = lines.find((l) => l.track && (l.serials || []).length < l.qty);
   const startPay = () => {
     if (!lines.length) return;
+    if (missingSerial) { toast(`Scan the ${missingSerial.track === 'imei' ? 'IMEI' : 'serial number'} of ${missingSerial.name}`, { tone: 'error' }); const p = products.find((x) => x.id === pidOf(missingSerial)); if (p) setSerialAsk({ p }); return; }
     setTenders([]); setTender({ method: 'Cash', amount: '' }); setSheet(false); setReceipt(null); setTakeNow(null);
+    setOpId(newOpId(shift.counterId)); doneRef.current = '';
     setPanel('checkout');
   };
   const closeCheckout = () => { setPanel(''); setReceipt(null); focusId('pos-scan'); };
@@ -388,11 +533,13 @@ export default function Pos() {
   const applyCoupon = () => {
     const code = couponText.trim().toUpperCase();
     if (!code) { setCoupon(''); return; }
-    if (!COUPONS[code]) { toast(`Coupon ${code} is not valid`, { tone: 'error' }); return; }
+    const res = couponResult(code, lines, t.cartDisc, member);
+    if (!res.ok) { toast(`${code}: ${res.reason}`, { tone: 'error' }); return; }
     setCoupon(code); setCouponText(code); toast(`Coupon ${code} applied`);
   };
   const pickTender = (id) => {
     if (id === WALLET) {
+      if (offline) { toast('Offline: wallet payments return when the connection does', { tone: 'error' }); return; }
       if (!member) { toast('Type the member’s mobile number to pay from their wallet', { tone: 'error' }); focusId('pos-mobile'); return; }
       if (!walletLeft) { toast(`${member.name} has no wallet money to use`, { tone: 'error' }); return; }
       setTender({ method: WALLET, amount: String(Math.min(due, walletLeft)) }); focusId('pos-amt'); return;
@@ -400,6 +547,7 @@ export default function Pos() {
     const m = TENDERS.find((x) => x.id === id);
     if (offline && !(m && m.offline)) { toast('Offline: only cash can be taken right now', { tone: 'error' }); return; }
     if (id === CREDIT && requireFull && !tier) { toast('Turn off “Require full payment” to leave money on the customer’s account', { tone: 'error' }); return; }
+    if (id === 'Card' && shift && !payAccounts('Card', counterRow0, devices).some((o) => !o.down)) { toast('No card terminal is connected. Check Hardware.', { tone: 'error' }); return; }
     setTender({ method: id, amount: '' }); focusId('pos-amt');
   };
   const tooMuch = () => {
@@ -411,73 +559,67 @@ export default function Pos() {
   // a smaller amount is kept as a part payment and the rest is asked for
   const addSplit = () => {
     if (!pending || tooMuch()) return;
-    setTenders([...tenders, { method: tender.method, amount: pending }]);
-    setTender({ method: tender.method, amount: '' }); focusId('pos-amt');
+    if (acct && acct.down) { toast(`${acct.label} is not connected`, { tone: 'error' }); return; }
+    setTenders([...tenders, tenderOf(tender.method, pending, acct)]);
+    setTender({ method: tender.method, amount: '', acct: tender.acct }); focusId('pos-amt');
   };
-  // `approver` is the manager who approved going over the customer's credit limit
+  // `approver` is the manager who approved going over the customer's credit limit.
+  // The checkout's operation id makes this safe to call twice: the second call finds the first sale.
   const complete = (approver) => {
-    if (!lines.length && !receipt) return;
+    if (!lines.length && !receipt) {
+      const before = saleForOp(opId);
+      if (before && before.totals) { toast(`Already completed · ${before.id}`, { tone: 'info' }); setReceipt(before); }
+      return;
+    }
     if (panel !== 'checkout') { startPay(); return; }
     if (receipt) { closeCheckout(); return; }
+    if (doneRef.current === opId || saleForOp(opId)) { const before = saleForOp(opId); toast(`Already completed${before ? ' · ' + before.id : ''}`, { tone: 'info' }); if (before && before.totals) setReceipt(before); return; }
     if (tooMuch()) return;
-    const list = pending ? [...tenders, { method: tender.method, amount: pending }] : tenders;
+    if (acct && acct.down && pending) { toast(`${acct.label} is not connected`, { tone: 'error' }); return; }
+    const list = tendersNow;
     if (stillDue && requireFull) { toast(`${money(stillDue)} is still to pay`, { tone: 'error' }); return; }
+    if (phoneDigits(customer.phone)) {
+      const rc = checkOrder(customer.phone, { amount: t.total, payment: list.some((x) => x.method === CREDIT) ? 'credit' : (list[0] || {}).method });
+      if (!rc.ok) { toast(rc.blocks[0], { tone: 'error' }); return; }
+    }
     if (!list.length) return;
+    if (missingSerial) { startPay(); return; }
+    const away = lines.filter((l) => l.from);
+    if (away.length && !phoneDigits(customer.phone)) { toast('Add the customer’s mobile number for the delivery', { tone: 'error' }); focusId('pos-mobile'); return; }
     const creditBy = typeof approver === 'string' ? approver : '';
     if (creditOver && !creditBy) {
       setPin({ kind: 'credit', reason: `${buyer.name} would owe ${money(r2(owedBefore + owedNow))}, over the ${formatBDT(creditLimit)} credit limit. A manager approves leaving ${money(owedNow)} unpaid on this sale.` });
       return;
     }
     const onAccount = list.filter((x) => x.method === CREDIT).reduce((s, x) => s + x.amount, 0);
-    const earned = earnNow;
     const fromWallet = r2(list.filter((x) => x.method === WALLET).reduce((s, x) => s + x.amount, 0));
     if (fromWallet && (!member || fromWallet > (member.wallet || 0) + 0.001)) { toast(`Only ${money(member ? member.wallet : 0)} in the wallet`, { tone: 'error' }); return; }
+    doneRef.current = opId;
     const who = { name: customer.name || (member ? member.name : buyer ? buyer.name : ''), phone: customer.phone };
     const owed = r2(stillDue + onAccount);
     // each line keeps its sku, category and buying price as they are today
     const soldLines = lines.map(freezeLine);
-    const salesperson = soldBy || shift.cashier;
-    // the sale also shows under Orders > POS / Retail orders; an unpaid one stays Pending until it is paid
-    const order = addOrder({ lines: soldLines, customer: who.name || 'Walk-in customer', phone: who.phone || '—', zone: 'Counter sale', total: t.total, status: owed ? 'Pending' : tier && !takesNow ? 'Approved' : 'Delivered', payment: !owed ? 'Paid' : owed < t.total ? 'Partial' : 'Unpaid', channel: (priceTier ? 'Wholesale · ' : 'POS · ') + shift.counter });
     // Stock: a retail sale, or a wholesale customer taking the goods now, takes them out of this place.
-    // A wholesale customer who does not take them now gets them held here for the invoice; the
-    // invoice's deliveries take them out later. Either way they leave only once.
+    // A wholesale customer who does not take them now gets them held here for the invoice.
     const stockOut = !tier || takesNow;
-    const sale = { id: orderNo, orderId: order.id, wholesale: !!tier, tier: tier ? tier.label : '', atRetail, invoice: !!(who.name || who.phone), rev: 1, payments: [], at: Date.now(), lines: soldLines, customer: who, member, earned, totals: t, coupon: t.couponDisc ? coupon : '', tenders: list, change, due: owed, creditBy, printed: printReceipt, cashier: shift.cashier, salesperson, counter: shift.counter, place: warehouse, offline, returned: {}, stockOut, deliveries: [] };
-    let next = [sale, ...sales];
-    save(KEYS.sales, next);
-    if (stockOut) {
-      lines.forEach((l) => { const sku = l.sku || (productBy(l.name) || {}).sku; if (sku) addMove({ sku, place: warehouse, qty: -l.qty, kind: 'sale', reason: 'POS sale', by: shift.cashier, ref: orderNo }); });
-    } else {
-      addHolds({ type: 'retail', ref: orderNo, who: who.name || (buyer ? buyer.name : 'Wholesale customer'), place: warehouse, note: 'Sold at the counter · waiting for delivery', by: shift.cashier }, lines.map((l) => ({ name: l.name, qty: l.qty })));
-    }
-    let done = sale;
-    if (tier && stockOut) {
-      // handed over at the counter: the invoice shows a full delivery (and its challan)
-      done = recordDelivery({ ...sale, src: 'pos' }, Object.fromEntries(lines.map((l) => [l.id, l.qty])), { from: warehouse, how: 'Customer collected from the shop', by: shift.cashier, taker: who.name || (buyer ? buyer.name : ''), note: '' });
-      delete done.src;
-      next = [done, ...sales];
-    }
-    setSales(next);
+    const sale = { id: orderNo, opId, wholesale: !!tier, tier: tier ? tier.label : '', atRetail, invoice: !!(who.name || who.phone), rev: 1, payments: [], at: Date.now(), lines: soldLines, customer: who, member, earned: earnNow, totals: t, coupon: t.couponDisc ? coupon : '', tenders: list, change, due: owed, creditBy, printed: printReceipt, cashier: shift.cashier, salesperson: soldBy || shift.cashier, counter: shift.counter, counterId: shift.counterId, place: warehouse, offline, returned: {}, stockOut, deliveries: [], ...(away.length ? { ship: { address: shipTo } } : {}) };
+    // online: the sale is posted now (orders, stock, money, serials). Offline: it waits in the queue.
+    const res = offline ? queueSale(sale) : commitSale(sale);
+    if (res.already) { toast(`Already completed · ${res.sale.id}`, { tone: 'info' }); setReceipt(res.sale); return; }
+    if (t.promo) commitPromo(sale.id, t.promo, { customer: member ? { phone: member.phone } : null });   // the coupon's use is counted once per sale
+    setSales(load(KEYS.sales, [])); setQueue(getQueue());
     setStockTick((n) => n + 1);
-    // the money taken lands in the drawer, bKash, Nagad or card settlements (cash net of change)
-    postSaleTenders(sale);
-    // a mobile number that is not in the customer book yet is kept there
-    if (who.phone && !findCustomer(book, who.phone) && saveCustomerOnce({ name: customer.name || (member ? member.name : ''), phone: who.phone, types: ['Retail'], addedFrom: ADDED_FROM.pos })) setBook(getCustomers());
-    // wallet money used: the balance the shop holds for the member goes down (no money moves)
-    if (fromWallet) spendWallet({ phone: member.phone, amount: fromWallet, ref: orderNo, by: shift.cashier, channel: tier ? 'Wholesale' : 'Retail', where: shift.counter });
-    // points: loyalty.js reads them from the saved sale; the register's points store follows
-    if (member) {
-      if (loyMembers.some((m) => m.phone === member.phone) || fromWallet) syncPosPoints(member.phone);
-      else save(KEYS.points, { ...points, [member.phone]: member.points - t.pointsUsed + earned });
-      setPoints(load(KEYS.points, {})); setLoyMembers(getLoyaltyMembers());
-    }
-    setReceipt(done); clearSale(); focusId('pos-newsale');
-    if (printReceipt) toast('Receipt sent to the printer');
+    if (res.bookChanged) setBook(getCustomers());
+    if (member) { setPoints(load(KEYS.points, {})); setLoyMembers(getLoyaltyMembers()); }
+    if (list.some((x) => x.method === 'Cash')) setDrawerOpen(Date.now() + 6000);
+    setReceipt(res.sale); clearSale(); focusId('pos-newsale');
+    if (printReceipt) printMsg('Receipt sent to the printer');
   };
+  // the receipt goes to the counter's printer, when it is connected
+  const printMsg = (ok) => (printerOk ? toast(ok) : toast('Printer is not connected. Check Hardware.', { tone: 'error' }));
   // Enter in the amount field: enough to cover the bill completes the sale, less is a part payment
   const amountEnter = (e) => { e.preventDefault(); if (stillDue) addSplit(); else complete(); };
-  const reprint = () => toast('Receipt sent to the printer');
+  const reprint = () => printMsg('Receipt sent to the printer');
   // returns and exchanges are done on the Return & exchange page, opened on the receipt when there is one.
   // A sale in the cart is held first, so it can be resumed on the way back.
   const openReturns = async (sale, mode) => {
@@ -489,27 +631,88 @@ export default function Pos() {
   };
 
   // ---- shift and cash drawer --------------------------------------------------------------------
-  const openShift = (e) => {
-    e.preventDefault();
+  // Opening: the float comes from the shop safe (posted safe → drawer) or is what the last shift left in the
+  // drawer. A count that differs is an opening difference: it needs a reason, a manager's PIN above the POS
+  // limit, and posts to the ledger as a shortage or overage. One shift per counter and drawer (posStore).
+  const lastShiftAt = (name) => getShifts().find((x) => x.counter === name) || null;
+  const plannedFloat = (form) => {
+    const c = counters.find((x) => x.name === form.counter);
+    const last = lastShiftAt(form.counter);
+    return form.from === 'Last shift' && last ? last.counted : c ? c.float ?? cfg.float : cfg.float;
+  };
+  const pickCounter = (name, from = openForm.from) => {
+    const c = counters.find((x) => x.name === name);
+    const f = from === 'Last shift' && !lastShiftAt(name) ? 'Shop safe' : from;
+    const next = { counter: c.name, cashier: c.staff[0] || '', from: f, reason: '' };
+    setOpenForm({ ...next, float: String(plannedFloat(next)) });
+  };
+  const openShift = (e, approver) => {
+    if (e && e.preventDefault) e.preventDefault();
     const at = counters.find((c) => c.name === openForm.counter);
     if (!at || !openForm.cashier) { toast('Choose the counter and the employee working it', { tone: 'error' }); return; }
-    const next = { counter: at.name, counterId: at.id, cashier: openForm.cashier, float: num(openForm.float), openedAt: Date.now() };
+    const busy = counterBusy(at);
+    if (busy) { toast(`${at.name} is open on ${busy.deviceName} by ${busy.cashier}. End that shift first.`, { tone: 'error' }); return; }
+    const planned = plannedFloat(openForm);
+    const counted0 = num(openForm.float);
+    const diff = r2(counted0 - planned);
+    const why = openForm.reason.trim();
+    if (diff && !why) { toast('Say why the drawer is different', { tone: 'error' }); focusId('pos-openwhy'); return; }
+    const by = typeof approver === 'string' ? approver : '';
+    if (Math.abs(diff) > cfg.varianceLimit && !by) {
+      setPin({ kind: 'open', action: 'Opening difference', amount: Math.abs(diff), reason: `Opening cash is ${diff > 0 ? 'over' : 'short'} by ${money(Math.abs(diff))}, above the ${formatBDT(cfg.varianceLimit)} limit. ${why}` });
+      return;
+    }
+    const next = { counter: at.name, counterId: at.id, cashier: openForm.cashier, float: counted0, openedAt: Date.now(), floatFrom: openForm.from, floatPlanned: planned, ...(diff ? { openDiff: diff, openReason: why, openBy: by } : {}) };
+    const claim = claimCounter(at, next);
+    if (!claim.ok) { toast(`${at.name} is open on ${claim.by.deviceName} by ${claim.by.cashier}. End that shift first.`, { tone: 'error' }); return; }
     setShift(next); save(KEYS.shift, next);
+    // the float as an event: from the safe (money moves) or left by the last shift (no money moves)
+    const all = getCash();
+    const float = { id: nextId('CM', all), type: 'float', counter: at.name, amount: planned, by: next.cashier, to: openForm.from, note: '', cashier: next.cashier, at: next.openedAt, shiftAt: next.openedAt };
+    const moves = [float, ...all];
+    postCashMove(float);
+    if (diff) {
+      const d = { id: nextId('CM', moves), type: 'opendiff', counter: at.name, amount: Math.abs(diff), diff, by: by || next.cashier, to: '', note: `${diff > 0 ? 'Over' : 'Short'} · ${why}`, cashier: next.cashier, at: next.openedAt, shiftAt: next.openedAt };
+      moves.unshift(d);
+      postVariance(diff, { when: 'opening', shiftRef: d.id, counter: at.name, cashier: next.cashier, approvedBy: by, reason: why });
+    }
+    saveCash(moves); setCash(moves);
     if (warehouses.includes(placeName(at.stock))) setWarehouse(placeName(at.stock));
     toast(`${at.name} opened by ${next.cashier} with ${formatBDT(next.float)} in the drawer`);
   };
-  const rep = shift ? shiftReport(shift, sales, cash) : null;   // what this shift sold and the cash it should hold
+  const rep = shift ? shiftReport(shift, [...sales, ...queue], cash) : null;   // what this shift sold and the cash it should hold
   const expected = rep ? rep.expected : 0;
-  const openClose = () => { setCounted(''); setCloseNote(''); setPanel('close'); };
+  const acctLabel = (a) => (a.account === 'drawer' ? 'Cash · drawer' : a.terminal ? (TERMINALS.find((x) => x.id === a.terminal) || {}).name || a.terminal : (accountBy(a.account) || {}).name || a.account);
+  const acctKey = (a) => a.account + '|' + (a.terminal || '');
+  const openClose = () => {
+    setCounted(''); setCloseNote('');
+    setCloseCounts(Object.fromEntries((rep ? rep.byAccount : []).filter((a) => a.account !== 'drawer').map((a) => [acctKey(a), String(a.expected)])));
+    setPanel('close');
+  };
   const openCash = (type) => { setMove({ type: type || 'pickup', amount: '', by: MANAGERS[0], to: CASH_PLACES[0], note: '' }); setPanel('cash'); };
-  const closeShift = (e) => {
-    e.preventDefault();
+  // Closing: expected vs counted per account. A cash difference above the POS limit, or sales not synced yet,
+  // need a manager's PIN; the cash difference posts to the ledger as a shortage or overage.
+  const closeShift = (e, approver) => {
+    if (e && e.preventDefault) e.preventDefault();
     if (counted === '') return;
     const diff = r2(num(counted) - expected);
+    const by = typeof approver === 'string' ? approver : '';
+    const over = Math.abs(diff) > cfg.varianceLimit;
+    if ((over || waiting.length) && !by) {
+      const owedQ = r2(waiting.reduce((a, x) => a + x.totals.total, 0));
+      setPin({ kind: 'close', action: over ? 'Cash variance' : 'Close with unsynced sales', amount: over ? Math.abs(diff) : owedQ, reason: [over && `Cash ${diff > 0 ? 'over' : 'short'} by ${money(Math.abs(diff))}, above the ${formatBDT(cfg.varianceLimit)} limit.`, waiting.length && `${waiting.length} sale${waiting.length > 1 ? 's' : ''} not synced (${money(owedQ)}).`].filter(Boolean).join(' ') });
+      return;
+    }
     const { moves, ...numbers } = rep;
+    const byAccount = rep.byAccount.map((a) => {
+      const c = a.account === 'drawer' ? num(counted) : num(closeCounts[acctKey(a)] ?? a.expected);
+      return { ...a, label: acctLabel(a), counted: c, diff: r2(c - a.expected) };
+    });
     const all = getShifts();
-    const record = { id: nextId('SH', all), ...shift, closedAt: Date.now(), ...numbers, counted: num(counted), diff, note: closeNote.trim() };
+    const record = { id: nextId('SH', all), ...shift, closedAt: Date.now(), ...numbers, byAccount, counted: num(counted), diff, note: closeNote.trim(), ...(by ? { approvedBy: by } : {}), ...(waiting.length ? { unsynced: waiting.length } : {}) };
     saveShifts([record, ...all]);
+    if (diff) postVariance(diff, { when: 'closing', shiftRef: record.id, counter: shift.counter, cashier: shift.cashier, approvedBy: over ? by : '', reason: closeNote.trim() });
+    releaseCounter(shift.counterId);
     setShift(null); save(KEYS.shift, null); setPanel(''); setCounted(''); setCloseNote(''); clearSale();
     toast(`Shift ${record.id} closed · ${record.cashier} sold ${formatBDT(rep.sold)} in ${rep.count} sale${rep.count === 1 ? '' : 's'} · cash ${diff === 0 ? 'matches' : (diff > 0 ? 'over by ' : 'short by ') + formatBDT(Math.abs(diff))}`);
   };
@@ -528,10 +731,12 @@ export default function Pos() {
   };
 
   // ---- line editor (keypad) ---------------------------------------------------------------------
-  const openEdit = (l) => { setEdit({ id: l.id, name: l.name, field: 'qty', qty: String(l.qty), price: String(l.price), disc: String(l.disc || 0), stock: stockOf(l.id).available, fresh: true }); setPanel('edit'); };
+  // a weighed line's quantity is its weight (decimals); a tracked line's quantity follows its serial numbers
+  const openEdit = (l) => { setEdit({ id: l.id, name: l.name, field: l.track ? 'price' : 'qty', qty: String(l.qty), price: String(l.price), disc: String(l.disc || 0), stock: l.from ? l.stock : stockOf(pidOf(l)).available, kg: l.unit === 'kg', track: !!l.track, fresh: true }); setPanel('edit'); };
   const press = (k) => setEdit((cur) => {
     const v = cur.fresh ? '' : cur[cur.field];
-    const next = k === 'back' ? v.slice(0, -1) : k === 'clear' ? '' : (v + k).replace(/^0+(?=\d)/, '').slice(0, 7);
+    if (k === '.') return cur.field === 'qty' && cur.kg && !v.includes('.') ? { ...cur, qty: (v || '0') + '.', fresh: false } : cur;
+    const next = k === 'back' ? v.slice(0, -1) : k === 'clear' ? '' : (v + k).replace(/^0+(?=\d)/, '').replace(/(\.\d{3})\d+$/, '$1').slice(0, 8);
     return { ...cur, [cur.field]: next, fresh: false };
   });
   // quantity changes apply at once; a lower unit price or a bigger line discount needs a manager's PIN,
@@ -540,8 +745,8 @@ export default function Pos() {
     const line = lines.find((l) => l.id === edit.id);
     const done = () => { setEdit(null); setPanel(''); };
     if (!line) { done(); return; }
-    const want = Math.round(num(edit.qty));
-    const qty = negOk ? want : Math.min(edit.stock, want);
+    const want = edit.kg ? r3(num(edit.qty)) : edit.track ? line.qty : Math.round(num(edit.qty));
+    const qty = negOk && !line.from ? want : Math.min(edit.stock, want);
     if (qty <= 0) { setQty(edit.id, 0); done(); return; }
     const price = num(edit.price);
     const disc = Math.min(num(edit.disc), price * qty);
@@ -553,7 +758,7 @@ export default function Pos() {
       setPin({ kind: 'edit', reason: `A manager approves this change: ${what}.` });
       return;
     }
-    if (want > edit.stock) { if (negOk) overToast(line.name, edit.stock); else toast(`Only ${edit.stock} of ${line.name} available at ${warehouse}`, { tone: 'error' }); }
+    if (want > edit.stock) { if (negOk && !line.from) overToast(line.name, edit.stock); else toast(`Only ${edit.kg ? kgText(edit.stock) : edit.stock} of ${line.name} available at ${line.from || warehouse}`, { tone: 'error' }); }
     setLines((cur) => cur.map((l) => (l.id !== edit.id ? l : {
       ...l, qty, price, disc,
       priceBy: lower ? by : price === l.price ? l.priceBy || '' : '',
@@ -567,6 +772,63 @@ export default function Pos() {
     setPin(null);
     if (asked && asked.kind === 'credit') complete(manager);
     else if (asked && asked.kind === 'edit') applyEdit(manager);
+    else if (asked && asked.kind === 'open') openShift(null, manager);
+    else if (asked && asked.kind === 'close') closeShift(null, manager);
+    else if (asked && asked.kind === 'nosale') openNoSale(noSaleWhy, manager);
+    else if (asked && asked.kind === 'void') resolve(asked.sale, null, 'void', {}, manager);
+  };
+
+  // ---- hardware, drawer without a sale ----------------------------------------------------------
+  const counterNow = shift ? counterOf(shift.counter) || { id: shift.counterId, name: shift.counter, printer: '' } : null;
+  const isManager = shift && (EMPLOYEES.find((x) => x.name === shift.cashier) || {}).role === 'Branch manager';
+  const onTest = (d) => { const r = testDevice(counterNow.id, d); toast(r.message, { tone: r.ok ? 'success' : 'error' }); if (r.ok && d.kind === 'drawer') setDrawerOpen(Date.now() + 6000); setHwTick((n) => n + 1); };
+  const onDeviceState = (d, state) => { setDeviceState(counterNow.id, d.key, state); setHwTick((n) => n + 1); };
+  // a cashier without the permission needs a manager's PIN; every open is recorded (POS manage › Cash pickups)
+  const openNoSale = (why, manager) => {
+    if (!why) return;
+    if (!isManager && !manager) { setNoSaleWhy(why); setPin({ kind: 'nosale', action: 'No-sale drawer open', reason: `Open the drawer without a sale: ${why.reason}${why.note ? ' · ' + why.note : ''}.` }); return; }
+    const drawer = devices.find((d) => d.kind === 'drawer');
+    if (drawer && drawer.state !== 'ok') { toast('The cash drawer is not connected', { tone: 'error' }); return; }
+    addDrawerOpen({ counter: shift.counter, cashier: shift.cashier, reason: why.reason, note: why.note, approvedBy: manager || '' });
+    if (!manager) logAudit({ action: 'No-sale drawer open', detail: `${why.reason}${why.note ? ' · ' + why.note : ''}`, by: shift.cashier, approvedBy: shift.cashier, ok: true, ref: '', counter: shift.counter, place: warehouse });
+    setNoSaleWhy(null); setPanel(''); setDrawerOpen(Date.now() + 6000);
+    toast('Drawer opened');
+  };
+
+  // ---- offline queue and sync -------------------------------------------------------------------
+  const runSync = () => {
+    const demo = /[?&]sync=conflicts\b/.test(window.location.search);
+    if (demo) window.history.replaceState(null, '', window.location.pathname);
+    const res = syncQueue({ demo });
+    setSyncResult(res); setQueue(getQueue()); setSales(load(KEYS.sales, [])); setStockTick((n) => n + 1);
+    if (res.review.length) setPanel('sync');
+    else if (res.synced.length) toast(`${res.synced.length} offline sale${res.synced.length > 1 ? 's' : ''} synced`);
+  };
+  const goOnline = (on) => {
+    setOffline(!on);
+    if (!on) setOfflineAt(Date.now());
+  };
+  // back online: the queue is sent at once
+  const wasOffline = useRef(false);
+  useEffect(() => {
+    if (!ready) return;
+    if (wasOffline.current && !offline && pendingQueue().some((x) => x.syncState === 'queued')) runSync();
+    wasOffline.current = offline;
+  }, [offline, ready]);   // eslint-disable-line react-hooks/exhaustive-deps
+  // the drawer chip goes back to "closed" a few seconds after it opened
+  useEffect(() => {
+    if (!drawerOpen) return undefined;
+    const id = window.setTimeout(() => setHwTick((n) => n + 1), Math.max(0, drawerOpen - Date.now()) + 50);
+    return () => window.clearTimeout(id);
+  }, [drawerOpen]);
+  // `manager` approved a void (its PIN was asked first)
+  const resolve = (sale, c, action, extra = {}, manager) => {
+    if (action === 'void' && !manager) { setPin({ kind: 'void', sale, action: 'Void sale', amount: sale.totals.total, reason: `Void offline sale ${sale.id}: give ${money(sale.totals.total)} back to the customer.` }); return; }
+    const res = resolveConflict(sale.id, c ? c.id : null, action, { ...extra, by: shift.cashier, approvedBy: manager || '' });
+    if (res.error) { toast(res.error, { tone: 'error' }); return; }
+    setQueue(getQueue()); setSales(load(KEYS.sales, [])); setStockTick((n) => n + 1);
+    if (res.voided) { toast(`${sale.id} voided`); setPanel('sync'); }
+    else if (res.posted) { toast(`${sale.id} synced`); setSyncResult((r) => ({ synced: [...((r && r.synced) || []), res.sale], review: [] })); }
   };
 
   // keyboard shortcuts (F1 lists them); they follow what is on screen: the sale or the checkout
@@ -604,6 +866,7 @@ export default function Pos() {
       if (alt === 'KeyE') return run(() => k.openReturns());
       if (e.key === 'F9') return run(k.openCustomer);
       if (e.key === 'F10') return run(() => k.openCash());
+      if (alt === 'KeyH') return run(() => k.setPanel('hardware'));
       if (alt === 'KeyN') return run(k.newSale);
       if (alt === 'KeyX') return run(k.cancelSale);
       if (alt === 'KeyZ') return run(k.openClose);
@@ -618,6 +881,10 @@ export default function Pos() {
   if (!shift) {
     const at = counters.find((c) => c.name === openForm.counter);
     const roleOf = (name) => (EMPLOYEES.find((x) => x.name === name) || {}).role;
+    const busy = at ? counterBusy(at) : null;
+    const last = at ? lastShiftAt(at.name) : null;
+    const planned = plannedFloat(openForm);
+    const odiff = openForm.float === '' ? 0 : r2(num(openForm.float) - planned);
     return (
       <div className="dc-screen ds" data-screen="Pos">
         <style dangerouslySetInnerHTML={{ __html: POS_CSS }} />
@@ -627,13 +894,23 @@ export default function Pos() {
             <h1 className="pos-h1">Open the register</h1>
             <p className="pos-muted">Choose a counter and count the opening cash.</p>
             {counters.length === 0 ? <p className="pos-banner" role="alert">No counter is registered yet. Register one in POS management first.</p> : null}
-            <div><label className="gc-label" htmlFor="pos-counter">Counter</label><select id="pos-counter" className="gc-input gc-select" value={openForm.counter} onChange={(e) => { const c = counters.find((x) => x.name === e.target.value); setOpenForm({ counter: c.name, cashier: c.staff[0] || '', float: String(c.float ?? cfg.float) }); }}>{counters.map((c) => <option key={c.id} value={c.name}>{c.id} · {c.name}</option>)}</select>{at ? <p className="gc-help">At {at.location}{at.stock && at.stock !== at.location ? ` · sells from ${at.stock}` : ''}</p> : null}</div>
+            <div><label className="gc-label" htmlFor="pos-counter">Counter</label><select id="pos-counter" className="gc-input gc-select" value={openForm.counter} onChange={(e) => pickCounter(e.target.value)}>{counters.map((c) => <option key={c.id} value={c.name}>{c.id} · {c.name}</option>)}</select>{at ? <p className="gc-help">At {at.location}{at.stock && at.stock !== at.location ? ` · sells from ${at.stock}` : ''}</p> : null}</div>
+            {busy ? <p className="pos-banner" role="alert"><Icon name="lock" width="16" height="16" aria-hidden="true" />Open on {busy.deviceName} by {busy.cashier} since {clock(busy.openedAt)}. End that shift first.</p> : null}
             <div><label className="gc-label" htmlFor="pos-cashier">Employee on this counter</label><select id="pos-cashier" className="gc-input gc-select" value={openForm.cashier} onChange={(e) => setOpenForm({ ...openForm, cashier: e.target.value })}>{(at ? at.staff : []).map((c) => <option key={c} value={c}>{c}{roleOf(c) ? ' · ' + roleOf(c) : ''}</option>)}</select></div>
-            <div><label className="gc-label" htmlFor="pos-float">Opening cash in drawer (৳)</label><input id="pos-float" className="gc-input" type="number" min="0" inputMode="numeric" value={openForm.float} onChange={(e) => setOpenForm({ ...openForm, float: e.target.value })} /></div>
-            <button type="submit" className="gc-btn gc-btn--solid gc-btn--lg gc-btn--block" disabled={!at || !openForm.cashier}>Open register</button>
+            <div className="pos-two">
+              <div><label className="gc-label" htmlFor="pos-floatfrom">Float from</label><select id="pos-floatfrom" className="gc-input gc-select" value={openForm.from} onChange={(e) => { const next = { ...openForm, from: e.target.value, reason: '' }; setOpenForm({ ...next, float: String(plannedFloat(next)) }); }}><option value="Shop safe">Shop safe</option>{last ? <option value="Last shift">Last shift</option> : null}</select></div>
+              <div><label className="gc-label" htmlFor="pos-float">Cash counted (৳)</label><input id="pos-float" className="gc-input" type="number" min="0" step="0.01" inputMode="decimal" value={openForm.float} onChange={(e) => setOpenForm({ ...openForm, float: e.target.value })} /></div>
+            </div>
+            <p className="gc-help" style={{ margin: 0 }}>{openForm.from === 'Last shift' && last ? `${formatBDT(planned)} left by ${last.cashier} (${last.id})` : `${formatBDT(planned)} from the safe`}</p>
+            {odiff ? <>
+              <p className={'pos-diff'} role="status">{odiff > 0 ? 'Over' : 'Short'} by {money(Math.abs(odiff))}{Math.abs(odiff) > cfg.varianceLimit ? ' · needs a manager' : ''}</p>
+              <div><label className="gc-label" htmlFor="pos-openwhy">Reason *</label><input id="pos-openwhy" className="gc-input" placeholder="For example: extra change from the safe" value={openForm.reason} onChange={(e) => setOpenForm({ ...openForm, reason: e.target.value })} /></div>
+            </> : null}
+            <button type="submit" className="gc-btn gc-btn--solid gc-btn--lg gc-btn--block" disabled={!at || !openForm.cashier || !!busy}>Open register</button>
             <div className="pos-open__links"><Link href="/pos-manage" className="gc-btn gc-btn--flat">Counters and settings</Link><Link href="/merchant-overview" className="gc-btn gc-btn--flat">Back to dashboard</Link></div>
           </form>
         </div>
+        <ManagerPin open={!!pin} reason={pin ? pin.reason : ''} action={pin ? pin.action : undefined} amount={pin ? pin.amount : undefined} by={openForm.cashier} onApprove={approve} onClose={() => setPin(null)} />
       </div>
     );
   }
@@ -698,15 +975,21 @@ export default function Pos() {
               <span className="pos-line__thumb" aria-hidden="true">{l.name[0]}</span>
               <button type="button" className="pos-line__main" onClick={() => openEdit(l)} aria-label={`Edit ${l.name}: quantity, price, discount`}>
                 <span className="pos-line__name">{l.name}</span>
-                <span className="pos-line__meta">{l.meta ? l.meta + ' · ' : ''}{money(l.price)}{isWholesaleLine(l) ? ' wholesale' : ''}{l.disc ? ` · −${money(l.disc)}` : ''}</span>
+                <span className="pos-line__meta">{l.meta ? l.meta + ' · ' : ''}{money(l.price)}{l.unit === 'kg' ? '/kg' : ''}{isWholesaleLine(l) ? ' wholesale' : ''}{l.disc ? ` · −${money(l.disc)}` : ''}</span>
+                {l.track ? <span className={(l.serials || []).length < l.qty ? 'pos-line__warn' : 'pos-line__note'}><Icon name="barcode" width="12" height="12" aria-hidden="true" />{(l.serials || []).length ? (l.track === 'imei' ? 'IMEI ' : 'SN ') + l.serials.map(last4).join(', ') : ''}{(l.serials || []).length < l.qty ? `${(l.serials || []).length ? ' · ' : ''}${l.qty - (l.serials || []).length} to scan` : ''}</span> : null}
+                {l.from ? <span className="pos-line__note"><Icon name="truck" width="12" height="12" aria-hidden="true" />Ships from {l.from}</span> : null}
                 {moqShort.includes(l) ? <span className="pos-line__warn"><Icon name="triangle-alert" width="12" height="12" aria-hidden="true" />MOQ {moqOf(l)} · only {l.qty} in cart</span> : null}
                 {approvalNote(l) ? <span className="pos-line__note"><Icon name="shield-check" width="12" height="12" aria-hidden="true" />{approvalNote(l)}</span> : null}
               </button>
-              <span className="pos-step">
-                <button type="button" aria-label={`Decrease quantity of ${l.name}`} onClick={() => setQty(l.id, l.qty - 1)}><Icon name="minus" width="16" height="16" /></button>
-                <b aria-label={`Quantity ${l.qty}`}>{l.qty}</b>
-                <button type="button" aria-label={`Increase quantity of ${l.name}`} disabled={l.qty >= l.stock && !negOk} onClick={() => setQty(l.id, l.qty + 1)}><Icon name="plus" width="16" height="16" /></button>
-              </span>
+              {l.unit === 'kg' ? (
+                <button type="button" className="pos-kg" aria-label={`Weight of ${l.name}: ${kgText(l.qty)}. Change it`} onClick={() => openEdit(l)}>{kgText(l.qty)}</button>
+              ) : (
+                <span className="pos-step">
+                  <button type="button" aria-label={`Decrease quantity of ${l.name}`} onClick={() => setQty(l.id, l.qty - 1)}><Icon name="minus" width="16" height="16" /></button>
+                  <b aria-label={`Quantity ${l.qty}`}>{l.qty}</b>
+                  <button type="button" aria-label={`Increase quantity of ${l.name}`} disabled={l.qty >= l.stock && (!negOk || !!l.from)} onClick={() => setQty(l.id, l.qty + 1)}><Icon name="plus" width="16" height="16" /></button>
+                </span>
+              )}
               <span className="pos-line__amt">{money(l.price * l.qty - (l.disc || 0))}</span>
               <button type="button" className="pos-line__x" aria-label={`Remove ${l.name}`} onClick={() => setQty(l.id, 0)}><Icon name="x" width="16" height="16" /></button>
             </div>
@@ -743,9 +1026,21 @@ export default function Pos() {
             <h1 className="pos-h1">Point of sale</h1>
             <span className="pos-vr" />
             <div className="pos-status">
-              <button type="button" aria-pressed={offline} onClick={() => setOffline(!offline)} title="Tap to test offline mode"><i className={offline ? 'is-warn' : 'is-ok'} /><Icon name={offline ? 'wifi-off' : 'wifi'} width="14" height="14" aria-hidden="true" /><span>{offline ? 'Offline' : 'Online'}</span></button>
-              <span><i className="is-ok" /><Icon name="printer" width="14" height="14" aria-hidden="true" /><span>Printer</span></span>
-              <span><i /><Icon name="inbox" width="14" height="14" aria-hidden="true" /><span>Drawer closed</span></span>
+              <button type="button" aria-pressed={offline} onClick={() => goOnline(offline)} title="Tap to test offline mode"><i className={offline ? 'is-warn' : 'is-ok'} /><Icon name={offline ? 'wifi-off' : 'wifi'} width="14" height="14" aria-hidden="true" /><span>{offline ? 'Offline' : 'Online'}</span></button>
+              {waiting.length ? <button type="button" onClick={() => setPanel('sync')} title="Offline sales waiting to sync"><i className="is-warn" /><Icon name={reviewList.length ? 'triangle-alert' : 'refresh-cw'} width="14" height="14" aria-hidden="true" /><span>{reviewList.length ? `${reviewList.length} to review` : `${waiting.length} to sync`}</span></button> : null}
+              {/* the counter's devices (lib/hardware): tap for the Hardware sheet (Alt H) */}
+              {(() => {
+                const pr = devices.find((d) => d.kind === 'printer') || { state: 'off' };
+                const dr = devices.find((d) => d.kind === 'drawer') || { state: 'off' };
+                const bad = devices.filter((d) => d.state === 'error' || (d.state === 'off' && (d.kind === 'terminal' || d.kind === 'scanner')));
+                const dot = (st) => (st === 'ok' ? 'is-ok' : 'is-warn');
+                const isOpen = drawerOpen > Date.now();
+                return <>
+                  <button type="button" onClick={() => setPanel('hardware')} title="Hardware (Alt H)"><i className={dot(pr.state)} /><Icon name="printer" width="14" height="14" aria-hidden="true" /><span>{pr.state === 'ok' ? 'Printer' : 'Printer off'}</span></button>
+                  <button type="button" onClick={() => setPanel('hardware')} title="Hardware (Alt H)"><i className={dr.state !== 'ok' ? 'is-warn' : isOpen ? 'is-ok' : ''} /><Icon name="inbox" width="14" height="14" aria-hidden="true" /><span>{dr.state !== 'ok' ? 'Drawer off' : isOpen ? 'Drawer open' : 'Drawer closed'}</span></button>
+                  {bad.filter((d) => d.kind !== 'printer' && d.kind !== 'drawer').slice(0, 1).map((d) => <button key={d.key} type="button" onClick={() => setPanel('hardware')} title="Hardware (Alt H)"><i className="is-warn" /><Icon name={d.icon} width="14" height="14" aria-hidden="true" /><span>{d.label} {d.state === 'error' ? 'error' : 'off'}</span></button>)}
+                </>;
+              })()}
             </div>
             <div className="pos-top__right">
               <button type="button" className="pos-topbtn" title="Held sales (F7)" onClick={() => setPanel('held')}><Icon name="pause" width="16" height="16" aria-hidden="true" /><span>Held sales</span>{held.length ? <b className="pos-count">{held.length}</b> : null}</button>
@@ -788,7 +1083,7 @@ export default function Pos() {
             </button>
           </div>
 
-          {offline ? <p className="pos-banner" role="status"><Icon name="wifi-off" width="16" height="16" aria-hidden="true" />You are offline. Cash sales keep working and are saved on this device; card and mobile payments return when the connection does.</p> : null}
+          {offline ? <p className="pos-banner" role="status"><Icon name="wifi-off" width="16" height="16" aria-hidden="true" />You are offline. Cash sales keep working and are saved on this device; card and mobile payments return when the connection does.{waiting.length ? ` ${waiting.length} sale${waiting.length > 1 ? 's' : ''} waiting to sync.` : ''}</p> : reviewList.length ? <p className="pos-banner" role="status"><Icon name="triangle-alert" width="16" height="16" aria-hidden="true" />{reviewList.length} offline sale{reviewList.length > 1 ? 's' : ''} need review.<button type="button" className="pos-link" onClick={() => setPanel('sync')}>Review</button></p> : null}
           {overLimit ? <p className="pos-banner" role="status"><Icon name="banknote" width="16" height="16" aria-hidden="true" />The drawer holds {formatBDT(expected)}, over the {formatBDT(cfg.pickupLimit)} limit.<button type="button" className="pos-link" onClick={() => openCash('pickup')}>Record a cash pickup</button></p> : null}
 
           <div className="pos-body">
@@ -813,26 +1108,31 @@ export default function Pos() {
                     const inCart = lines.find((l) => l.id === p.id);
                     const s = stockOf(p.id);
                     const heldNote = s.held ? ` · ${s.held} held` : '';
-                    const stock = !s.available ? [(s.transit ? `Out · ${s.transit} on the way` : 'Out of stock') + heldNote, 'is-out'] : s.available <= 6 ? [`Low · ${s.available} left${heldNote}`, 'is-low'] : [`${s.available} in stock${heldNote}`, ''];
+                    const n = (v) => (p.weighed ? kgText(v) : v);
+                    const stock = !s.available ? [(s.transit ? `Out · ${s.transit} on the way` : 'Out of stock') + heldNote, 'is-out'] : s.available <= 6 ? [`Low · ${n(s.available)} left${heldNote}`, 'is-low'] : [`${n(s.available)} in stock${heldNote}`, ''];
+                    // low or out here: the place with the most of it ("12 at Mirpur branch"); out here, it can ship from there
+                    const best = s.available <= 6 ? elsewhere(p.id)[0] : null;
+                    const blocked = !s.available && !negOk && !best;
                     return (
-                      <button key={p.id} type="button" className={'pos-card' + (inCart ? ' is-in' : '')} disabled={!s.available && !negOk} onClick={() => add(p)} aria-label={`${p.name}, ${money(tierPrice(p.price, priceTier))}${priceTier ? ' wholesale' : ''}, ${stock[0]} at ${warehouse}${inCart ? `, ${inCart.qty} in cart` : ''}`}>
+                      <button key={p.id} type="button" className={'pos-card' + (inCart ? ' is-in' : '')} disabled={blocked} onClick={() => add(p)} aria-label={`${p.name}, ${money(tierPrice(p.price, priceTier))}${p.weighed ? ' per kg' : ''}${priceTier ? ' wholesale' : ''}, ${stock[0]} at ${warehouse}${best ? `, ${best.available} at ${best.place}` : ''}${inCart ? `, ${qtyText(inCart)} in cart` : ''}`}>
                         <span className="pos-card__pic" aria-hidden="true">
                           <span className="pos-card__letter">{p.name[0]}</span>
                           <span className={'pos-card__stock ' + stock[1]}>{stock[0]}</span>
-                          {inCart ? <span className="pos-card__qty">{inCart.qty}</span> : null}
+                          {inCart ? <span className="pos-card__qty">{p.weighed ? r3(inCart.qty) : inCart.qty}</span> : null}
                         </span>
                         <span className="pos-card__name">{p.name}</span>
-                        <span className="pos-card__meta">{p.meta}<span className="pos-card__liststock"> · {stock[0]}</span></span>
+                        <span className="pos-card__meta">{p.track ? <span className="pos-tag">{p.track === 'imei' ? 'IMEI' : 'Serial'}</span> : null}{p.weighed ? <span className="pos-tag">By weight</span> : null}{p.meta}<span className="pos-card__liststock"> · {stock[0]}</span></span>
+                        {best ? <span className="pos-card__else"><Icon name="map-pin" width="12" height="12" aria-hidden="true" />{best.available} at {best.place}</span> : null}
                         <span className="pos-card__row">
-                          <span className="pos-card__price">{money(tierPrice(p.price, priceTier))}{priceTier ? <s>{formatBDT(p.price)}</s> : null}</span>
-                          <span className={'pos-card__add' + (inCart ? ' is-in' : '')}><Icon name={!s.available && !negOk ? 'ban' : inCart ? 'check' : 'plus'} width="16" height="16" /></span>
+                          <span className="pos-card__price">{money(tierPrice(p.price, priceTier))}{p.weighed ? '/kg' : ''}{priceTier ? <s>{formatBDT(p.price)}</s> : null}</span>
+                          <span className={'pos-card__add' + (inCart ? ' is-in' : '')}><Icon name={blocked ? 'ban' : !s.available && !negOk ? 'truck' : inCart ? 'check' : 'plus'} width="16" height="16" /></span>
                         </span>
                       </button>
                     );
                   })}
                 </div>
               )}
-              <div className="pos-catfoot"><span>Showing {shown.length} of {products.length} products · stock at {warehouse}{negOk ? ' · negative stock allowed' : ''}</span><span>{[cat, brand, query.trim() && `“${query.trim()}”`].filter(Boolean).join(' · ') || 'All products'}</span></div>
+              <div className="pos-catfoot"><span>Showing {shown.length} of {products.length} products · stock at {warehouse}{offline && offlineAt ? ` as of ${clock(offlineAt)}` : ''}{negOk ? ' · negative stock allowed' : ''}</span><span>{[cat, brand, query.trim() && `“${query.trim()}”`].filter(Boolean).join(' · ') || 'All products'}</span></div>
             </main>
             {cart}
           </div>
@@ -866,7 +1166,7 @@ export default function Pos() {
                     <span className="pos-sel__ico pos-sel__ico--sky" aria-hidden="true">{member.name.split(' ').map((w) => w[0]).join('').slice(0, 2)}</span>
                     <span><b>{member.name} · {member.tier} member</b><small>{member.tierPct ? `${member.tierPct}% off applied · ` : ''}this sale adds {earnNow} points to the {member.points} they have{loy.on.wallet ? ` · wallet ${money(member.wallet || 0)}` : ''}</small></span>
                   </div>
-                  <label className="pos-check"><input type="checkbox" className="gc-check" checked={redeem} disabled={!member.points || member.points < (loy.minUse || 0)} onChange={(e) => setRedeem(e.target.checked)} />{member.points < (loy.minUse || 0) ? `Points can be used from ${loy.minUse} (${member.points} now)` : `Pay with points (${member.points} points = ${money(member.points * loy.pointValue)}, up to ${loy.maxPct}% of the bill)`}<kbd>Alt R</kbd></label>
+                  <label className="pos-check"><input type="checkbox" className="gc-check" checked={redeem} disabled={offline || !member.points || member.points < (loy.minUse || 0)} onChange={(e) => setRedeem(e.target.checked)} />{member.points < (loy.minUse || 0) ? `Points can be used from ${loy.minUse} (${member.points} now)` : `Pay with points (${member.points} points = ${money(member.points * loy.pointValue)}, up to ${loy.maxPct}% of the bill)`}<kbd>Alt R</kbd></label>
                 </div>
               ) : null}
 
@@ -892,6 +1192,15 @@ export default function Pos() {
                 </div>
               ) : null}
 
+              {lines.some((l) => l.from) ? (
+                <div className="pos-member" role="status">
+                  <div className="pos-member__head">
+                    <span className="pos-sel__ico" aria-hidden="true"><Icon name="truck" width="16" height="16" /></span>
+                    <span><b>Delivery order</b><small>{[...new Set(lines.filter((l) => l.from).map((l) => l.from))].join(', ')} ships to {shipTo || 'the customer'}. A mobile number is needed.</small></span>
+                  </div>
+                </div>
+              ) : null}
+
               <span className="pos-cap">{tier ? 'Extra discount' : 'Discount'} <kbd>Alt D</kbd> and coupon <kbd>Alt C</kbd></span>
               <div className="pos-discrow">
                 <span className="pos-seg" role="group" aria-label="Discount type">
@@ -912,11 +1221,18 @@ export default function Pos() {
                 ))}
                 <button type="button" className={'pos-tender pos-tender--dashed' + (tender.method === CREDIT ? ' is-on' : '')} aria-pressed={tender.method === CREDIT} disabled={(requireFull && !tier) || (offline && !tier)} onClick={() => pickTender(CREDIT)}><Icon name={tier ? 'file-text' : 'clock'} width="18" height="18" aria-hidden="true" /><span>{tier ? 'Unpaid' : 'Due'}</span><kbd>Alt 6</kbd></button>
                 {member && loy.on.wallet ? (
-                  <button type="button" className={'pos-tender' + (tender.method === WALLET ? ' is-on' : '')} aria-pressed={tender.method === WALLET} disabled={!walletLeft} onClick={() => pickTender(WALLET)} aria-label={`Customer wallet, ${money(walletLeft)} free`}>
+                  <button type="button" className={'pos-tender' + (tender.method === WALLET ? ' is-on' : '')} aria-pressed={tender.method === WALLET} disabled={!walletLeft || offline} onClick={() => pickTender(WALLET)} aria-label={`Customer wallet, ${money(walletLeft)} free`}>
                     <Icon name="wallet" width="18" height="18" aria-hidden="true" /><span>Wallet · {money(walletLeft)}</span><kbd>Alt 7</kbd>
                   </button>
                 ) : null}
               </div>
+              {/* which account or card terminal receives the money: asked only when there is more than one */}
+              {acctOptions.length > 1 ? (
+                <div className="pos-acct" role="group" aria-label={tender.method === 'Card' ? 'Card terminal' : 'Received in'}>
+                  <span className="pos-cap">{tender.method === 'Card' ? 'Terminal' : 'Received in'}</span>
+                  {acctOptions.map((o) => <button key={o.id} type="button" className={'pos-softbtn' + (acct && acct.id === o.id ? ' is-on' : '')} aria-pressed={!!acct && acct.id === o.id} disabled={o.down} onClick={() => setTender({ ...tender, acct: o.id })}>{o.label}{o.down ? ' · off' : ''}</button>)}
+                </div>
+              ) : null}
               <form className="pos-tenderform" onSubmit={amountEnter}>
                 <div className="pos-tenderform__head"><label htmlFor="pos-amt">{tender.method === 'Cash' ? 'Cash received' : tender.method === CREDIT ? 'Left unpaid on the invoice' : tender.method === WALLET ? `From the wallet (up to ${money(walletLeft)})` : tender.method + ' amount'} <kbd>Alt A</kbd></label><span>{tenders.length ? 'Remaining ' : 'To pay '}{money(due)}</span></div>
                 <div className="pos-bigfield"><span aria-hidden="true">৳</span><input id="pos-amt" type="number" min="0" step="0.01" inputMode="decimal" data-autofocus placeholder={due.toFixed(2)} value={tender.amount} onChange={(e) => setTender({ ...tender, amount: e.target.value })} /></div>
@@ -944,7 +1260,7 @@ export default function Pos() {
               <div className="pos-remain"><span className="pos-cap">Total</span><b>{money(t.total)}</b></div>
               {tenders.length ? (
                 <ul className="pos-tenderlist">
-                  {tenders.map((x, i) => <li key={i}><span><b>{x.method}</b><small>Part payment</small></span><span className="pos-line__amt">{money(x.amount)}</span><button type="button" className="pos-line__x" aria-label={`Remove ${x.method} ${money(x.amount)}`} onClick={() => setTenders(tenders.filter((_, j) => j !== i))}><Icon name="x" width="16" height="16" /></button></li>)}
+                  {tenders.map((x, i) => <li key={i}><span><b>{x.method}</b><small>{x.via ? x.via + ' · ' : ''}Part payment</small></span><span className="pos-line__amt">{money(x.amount)}</span><button type="button" className="pos-line__x" aria-label={`Remove ${x.method} ${money(x.amount)}`} onClick={() => setTenders(tenders.filter((_, j) => j !== i))}><Icon name="x" width="16" height="16" /></button></li>)}
                 </ul>
               ) : null}
               <div className="pos-paysum"><span>{tender.method === CREDIT ? 'Unpaid on invoice' : tender.method}{tenders.length ? ' · now' : ''}</span><b>{money(pending)}</b></div>
@@ -968,10 +1284,12 @@ export default function Pos() {
         ) : (
           <div className="pos-paygrid">
             <div className="pos-paycol">
-              <div className="pos-done"><Icon name="circle-check" width="40" height="40" aria-hidden="true" /><b>{money(receipt.totals.total)}</b><span className="pos-muted">{receipt.id} · {clock(receipt.at)}{receipt.offline ? ' · saved offline' : ''}</span></div>
+              <div className="pos-done"><Icon name="circle-check" width="40" height="40" aria-hidden="true" /><b>{money(receipt.totals.total)}</b><span className="pos-muted">{receipt.id} · {clock(receipt.at)}{receipt.queued ? ' · saved offline, syncs when online' : receipt.offline ? ' · saved offline' : ''}</span></div>
               {receipt.change ? <div className="pos-change"><span><Icon name="coins" width="16" height="16" aria-hidden="true" />Change to give</span><b>{money(receipt.change)}</b></div> : null}
               {receipt.due ? <div className="pos-due pos-due--open"><span>Unpaid invoice · <Link href="/sales-invoices" className="pos-link">open Invoices</Link></span><b>{money(receipt.due)}</b></div> : null}
               {receipt.wholesale ? <p className="pos-hint"><Icon name={receipt.stockOut ? 'package-check' : 'package'} width="12" height="12" aria-hidden="true" /> {receipt.stockOut ? `Handed over at the counter · challan ${challanNo(receipt, 0)}` : `Goods held at ${receipt.place} for this invoice · deliver them from Invoices`}</p> : null}
+              {(receipt.shipOrders || []).map((o) => <p key={o.id} className="pos-hint"><Icon name="truck" width="12" height="12" aria-hidden="true" /> Order {o.id} ships from {o.from}</p>)}
+              {receipt.queued && (receipt.lines || []).some((l) => l.from) ? <p className="pos-hint"><Icon name="truck" width="12" height="12" aria-hidden="true" /> The delivery order is made when the sale syncs</p> : null}
               {receipt.creditBy ? <p className="pos-hint"><Icon name="shield-check" width="12" height="12" aria-hidden="true" /> Over the credit limit · approved by <b>{receipt.creditBy}</b></p> : null}
               <p className="pos-hint" role="status">{receipt.printed ? 'The receipt was sent to the printer.' : 'Receipt printing is off for this sale. You can still print it.'}{receipt.member ? ` ${receipt.member.name} earned ${receipt.earned} points${receipt.totals.pointsUsed ? ` and used ${receipt.totals.pointsUsed}` : ''}.` : ''}</p>
               <div className="pos-payactions">
@@ -986,7 +1304,11 @@ export default function Pos() {
                 <span>{receipt.id} · {clock(receipt.at)}</span>
                 <span>{receipt.customer.name || 'Walk-in customer'}{receipt.member ? ` · ${receipt.member.tier} member` : ''}</span>
                 <hr />
-                {receipt.lines.map((l) => <div key={l.id}><span>{l.qty} × {l.name}</span><span>{money(l.price * l.qty - (l.disc || 0))}</span></div>)}
+                {receipt.lines.map((l) => <React.Fragment key={l.id}>
+                  <div><span>{l.unit === 'kg' ? `${kgText(l.qty)} × ${money(l.price)}/kg ` : `${l.qty} × `}{l.name}</span><span>{money(l.price * l.qty - (l.disc || 0))}</span></div>
+                  {(l.serials || []).map((sn) => <span key={sn} className="pos-receipt__sn">{/^\d{15}$/.test(sn) ? 'IMEI' : 'SN'} {sn}</span>)}
+                  {l.from ? <span className="pos-receipt__sn">Ships from {l.from}</span> : null}
+                </React.Fragment>)}
                 <hr />
                 <div><span>Subtotal</span><span>{money(receipt.totals.gross - receipt.totals.lineDisc)}</span></div>
                 {receipt.totals.cartDisc ? <div><span>Discount</span><span>− {money(receipt.totals.cartDisc)}</span></div> : null}
@@ -996,7 +1318,7 @@ export default function Pos() {
                 <div><span>VAT</span><span>{money(receipt.totals.tax)}</span></div>
                 <div className="pos-receipt__total"><span>Total</span><span>{money(receipt.totals.total)}</span></div>
                 <hr />
-                {receipt.tenders.map((x, i) => <div key={i}><span>{x.method === CREDIT ? 'Unpaid' : x.method}</span><span>{money(x.amount)}</span></div>)}
+                {receipt.tenders.map((x, i) => <div key={i}><span>{x.method === CREDIT ? 'Unpaid' : x.method}{x.via ? ` · ${x.via}` : ''}</span><span>{money(x.amount)}</span></div>)}
                 {receipt.change ? <div><span>Change</span><span>{money(receipt.change)}</span></div> : null}
                 {receipt.member ? <div><span>Points earned</span><span>{receipt.earned}</span></div> : null}
                 <hr />
@@ -1036,8 +1358,9 @@ export default function Pos() {
           <ul className="pos-list">
             {held.map((h) => (
               <li key={h.id}>
-                <div><b>{h.id}</b><span className="pos-muted">{h.customer.name || 'Walk-in customer'} · {h.lines.reduce((s, l) => s + l.qty, 0)} items · held {clock(h.at)}</span></div>
+                <div><b>{h.id}</b><span className="pos-muted">{h.customer.name || 'Walk-in customer'} · {h.lines.reduce((s, l) => s + (l.unit === 'kg' ? 1 : l.qty), 0)} items · held {clock(h.at)}{h.reserved && h.expiresAt ? ` · stock kept until ${clock(h.expiresAt)}` : h.expired ? ' · expired, stock released' : ''}</span></div>
                 <span className="pos-line__amt">{formatBDT(h.total)}</span>
+                <button type="button" className="gc-btn gc-btn--flat" onClick={() => discard(h)} aria-label={`Discard ${h.id}`}>Discard</button>
                 <button type="button" className="gc-btn gc-btn--soft" onClick={() => resume(h)} aria-label={`Resume ${h.id}`}>Resume</button>
               </li>
             ))}
@@ -1047,8 +1370,17 @@ export default function Pos() {
 
       {/* recent sales */}
       <Dialog open={panel === 'recent'} title="Recent sales" onClose={() => setPanel('')} width={640}>
-        {sales.length === 0 ? <p className="pos-empty"><Icon name="receipt-text" width="28" height="28" aria-hidden="true" />No sales yet on this device. <button type="button" className="pos-link" onClick={() => openReturns()}>Return & exchange</button></p> : (
+        {sales.length === 0 && queue.length === 0 ? <p className="pos-empty"><Icon name="receipt-text" width="28" height="28" aria-hidden="true" />No sales yet on this device. <button type="button" className="pos-link" onClick={() => openReturns()}>Return & exchange</button></p> : (
           <ul className="pos-list">
+            {/* sales made offline: waiting to sync, needing review, or voided at sync */}
+            {queue.slice(0, 6).map((s) => (
+              <li key={s.id}>
+                <div><b>{s.id}</b><span className="pos-muted">{s.customer.name || 'Walk-in customer'} · {clock(s.at)} · {s.tenders.map((x) => x.method).join(' + ')}</span></div>
+                <span className="pos-line__amt">{formatBDT(s.totals.total)}</span>
+                <span className={'pos-pill' + (s.syncState === 'voided' ? '' : ' is-warn')}><i />{s.syncState === 'review' ? 'Needs review' : s.syncState === 'voided' ? 'Voided' : 'Waiting to sync'}</span>
+                <button type="button" className="gc-btn gc-btn--neutral" onClick={() => printMsg(`Receipt ${s.id} sent to the printer`)} aria-label={`Reprint receipt ${s.id}`}><Icon name="printer" width="18" height="18" /></button>
+              </li>
+            ))}
             {sales.slice(0, 12).map((s) => {
               const refunded = (s.refunds || []).reduce((a, r) => a + r.amount, 0);
               const swaps = (s.refunds || []).filter((r) => r.type === 'exchange').length;
@@ -1057,7 +1389,7 @@ export default function Pos() {
                 <li key={s.id}>
                   <div><b>{s.id}</b><span className="pos-muted">{s.customer.name || 'Walk-in customer'} · {clock(s.at)} · {s.tenders.map((x) => x.method).join(' + ')}{swaps ? ` · ${swaps} exchange${swaps > 1 ? 's' : ''}` : ''}{refunded ? ` · ${money(refunded)} refunded` : ''}</span></div>
                   <span className="pos-line__amt">{formatBDT(s.totals.total)}</span>
-                  <button type="button" className="gc-btn gc-btn--neutral" onClick={() => toast(`Receipt ${s.id} sent to the printer`)} aria-label={`Reprint receipt ${s.id}`}><Icon name="printer" width="18" height="18" /></button>
+                  <button type="button" className="gc-btn gc-btn--neutral" onClick={() => printMsg(`Receipt ${s.id} sent to the printer`)} aria-label={`Reprint receipt ${s.id}`}><Icon name="printer" width="18" height="18" /></button>
                   {left ? <>
                     <button type="button" className="gc-btn gc-btn--neutral" onClick={() => openReturns(s, 'exchange')} aria-label={`Exchange items from ${s.id} on the Return & exchange page`}>Exchange</button>
                     <button type="button" className="gc-btn gc-btn--soft" onClick={() => openReturns(s, 'return')} aria-label={`Return items from ${s.id} on the Return & exchange page`}>Return</button>
@@ -1076,16 +1408,16 @@ export default function Pos() {
           <>
             <div className="pos-fields" role="group" aria-label="What to change">
               {[['qty', 'Quantity'], ['price', 'Unit price ৳'], ['disc', 'Discount ৳']].map(([f, label]) => (
-                <button key={f} type="button" className={'pos-field' + (edit.field === f ? ' is-on' : '')} aria-pressed={edit.field === f} onClick={() => setEdit({ ...edit, field: f, fresh: true })}><span>{label}</span><b>{edit[f] || '0'}</b></button>
+                <button key={f} type="button" className={'pos-field' + (edit.field === f ? ' is-on' : '')} aria-pressed={edit.field === f} disabled={f === 'qty' && edit.track} onClick={() => setEdit({ ...edit, field: f, fresh: true })}><span>{f === 'qty' && edit.kg ? 'Weight kg' : label}</span><b>{edit[f] || '0'}</b></button>
               ))}
             </div>
             <div className="pos-keys">
               {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((k) => <button key={k} type="button" onClick={() => press(k)}>{k}</button>)}
-              <button type="button" aria-label="Clear" onClick={() => press('clear')}>C</button>
+              {edit.kg && edit.field === 'qty' ? <button type="button" aria-label="Decimal point" onClick={() => press('.')}>.</button> : <button type="button" aria-label="Clear" onClick={() => press('clear')}>C</button>}
               <button type="button" onClick={() => press('0')}>0</button>
               <button type="button" aria-label="Delete last digit" onClick={() => press('back')}><Icon name="delete" width="22" height="22" /></button>
             </div>
-            <p className="pos-muted">{edit.stock} available at {warehouse}.{negOk ? ' Negative stock is allowed here.' : ''} Lowering the price or giving a discount needs a manager’s PIN.</p>
+            <p className="pos-muted">{edit.kg ? kgText(edit.stock) : edit.stock} available at {(lines.find((l) => l.id === edit.id) || {}).from || warehouse}.{negOk ? ' Negative stock is allowed here.' : ''}{edit.track ? ' Add or remove units with + and − (each needs its number).' : ''} Lowering the price or giving a discount needs a manager’s PIN.</p>
           </>
         ) : null}
       </Dialog>
@@ -1134,9 +1466,10 @@ export default function Pos() {
       </Dialog>
 
       {/* end of shift: what this employee sold, then the drawer count */}
-      <Dialog open={panel === 'close'} title={`End shift · ${shift.cashier}`} onClose={() => setPanel('')} width={760}>
+      <Dialog open={panel === 'close' && !pin} title={`End shift · ${shift.cashier}`} onClose={() => setPanel('')} width={760}>
         <form onSubmit={closeShift} className="pos-form">
           {lines.length ? <p className="pos-banner" role="alert">There is a sale in the cart. Hold or finish it first: ending the shift clears the cart.</p> : null}
+          {waiting.length ? <p className="pos-banner" role="alert"><Icon name="refresh-cw" width="16" height="16" aria-hidden="true" />{waiting.length} sale{waiting.length > 1 ? 's' : ''} not synced ({money(waiting.reduce((a, x) => a + x.totals.total, 0))}). Sync first, or a manager approves.<button type="button" className="pos-link" onClick={() => setPanel('sync')}>Sync</button></p> : null}
           <div className="pos-paygrid">
             <div className="pos-paycol">
               <span className="pos-cap">{counterId} · {shift.counter} · since {clock(shift.openedAt)}</span>
@@ -1161,17 +1494,48 @@ export default function Pos() {
               <div className="pos-due pos-due--open"><span>Cash expected in drawer</span><b>{money(expected)}</b></div>
             </div>
           </div>
+          {/* expected vs counted per account: the drawer, each wallet or gateway, each card terminal */}
+          {rep.byAccount.length > 1 ? (
+            <div className="gc-table-wrap">
+              <table className="pos-acctable">
+                <thead><tr><th scope="col">Account</th><th scope="col">Expected</th><th scope="col">Counted</th><th scope="col">Difference</th></tr></thead>
+                <tbody>
+                  {rep.byAccount.map((a) => {
+                    const k = acctKey(a);
+                    const c = a.account === 'drawer' ? counted : closeCounts[k] ?? '';
+                    const d = c === '' ? null : r2(num(c) - a.expected);
+                    return (
+                      <tr key={k}>
+                        <td>{acctLabel(a)}</td>
+                        <td>{money(a.expected)}</td>
+                        <td>{a.account === 'drawer' ? (counted === '' ? '—' : money(num(counted))) : <input className="pos-in" type="number" min="0" step="0.01" inputMode="decimal" aria-label={`Counted in ${acctLabel(a)}`} value={c} onChange={(e) => setCloseCounts({ ...closeCounts, [k]: e.target.value })} />}</td>
+                        <td className={d ? 'is-off' : ''}>{d == null ? '—' : d === 0 ? 'Matches' : (d > 0 ? '+' : '−') + money(Math.abs(d))}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
           <div className="pos-two">
             <div><label className="gc-label" htmlFor="pos-counted">Cash counted (৳) *</label><input id="pos-counted" className="gc-input pos-bignum" type="number" min="0" step="0.01" inputMode="decimal" aria-required="true" data-autofocus value={counted} onChange={(e) => setCounted(e.target.value)} /></div>
             <div><label className="gc-label" htmlFor="pos-closenote">Note for the manager</label><input id="pos-closenote" className="gc-input pos-bignum" placeholder="Optional" value={closeNote} onChange={(e) => setCloseNote(e.target.value)} /></div>
           </div>
-          {counted !== '' ? <p className={'pos-diff' + (r2(num(counted) - expected) === 0 ? ' is-ok' : '')} role="status">{r2(num(counted) - expected) === 0 ? 'The drawer matches.' : `${num(counted) > expected ? 'Over' : 'Short'} by ${money(Math.abs(num(counted) - expected))}. It is recorded with the shift.`}</p> : null}
+          {counted !== '' ? <p className={'pos-diff' + (r2(num(counted) - expected) === 0 ? ' is-ok' : '')} role="status">{r2(num(counted) - expected) === 0 ? 'The drawer matches.' : `${num(counted) > expected ? 'Over' : 'Short'} by ${money(Math.abs(num(counted) - expected))}. ${Math.abs(num(counted) - expected) > cfg.varianceLimit ? `Above the ${formatBDT(cfg.varianceLimit)} limit: a manager approves.` : 'It is recorded with the shift.'}`}</p> : null}
           <div className="gc-modal__foot" style={{ marginTop: 0 }}><button type="button" className="gc-btn gc-btn--flat" style={{ marginRight: 'auto' }} onClick={() => toast('Shift report sent to the printer')}><Icon name="printer" width="18" height="18" aria-hidden="true" /> Print report</button><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setPanel('')}>Keep open</button><button type="submit" className="gc-btn gc-btn--solid gc-btn--lg" disabled={counted === ''}>End shift</button></div>
         </form>
       </Dialog>
 
-      {/* manager approval: going over a credit limit, a lower price or a line discount */}
-      <ManagerPin open={!!pin} reason={pin ? pin.reason : ''} onApprove={approve} onClose={() => setPin(null)} />
+      {/* serial / IMEI, weighed item, fulfil from another place, hardware, drawer without a sale, sync */}
+      <SerialSheet open={!!serialAsk && !pin} product={serialAsk && serialAsk.p} kind={serialAsk && serialAsk.p.track} units={serialAsk ? serialsAt(serialAsk.p.sku, warehouse).filter((u) => !takenSerials.includes(u.serial)) : []} check={serialAsk ? checkSn(serialAsk.p) : () => ({})} onAdd={(sn) => { const p = serialAsk.p; setSerialAsk(null); add(p, { serial: sn }); focusId('pos-scan'); }} onClose={() => { setSerialAsk(null); focusId('pos-scan'); }} />
+      <WeighSheet open={!!weigh} item={weigh} onAdd={(kg) => { const p = weigh.p; setWeigh(null); add(p, { kg }); focusId('pos-scan'); }} onClose={() => { setWeigh(null); focusId('pos-scan'); }} />
+      <FulfilSheet open={!!fulfil} product={fulfil && fulfil.p} here={warehouse} options={fulfil ? fulfil.options : []} address={shipTo} onPick={(place, addr) => { const p = fulfil.p, kg = fulfil.kg; setFulfil(null); setShipTo(addr); add(p, { from: place, ...(kg ? { kg } : {}) }); toast(`${p.name} will ship from ${place}`); }} onClose={() => setFulfil(null)} />
+      <HardwareSheet open={panel === 'hardware'} counter={shift.counter} devices={devices} onTest={onTest} onState={onDeviceState} onNoSale={() => setPanel('nosale')} onClose={() => setPanel('')} />
+      <NoSaleSheet open={panel === 'nosale' && !pin} allowed={isManager} onDone={(why) => openNoSale(why)} onClose={() => setPanel('')} />
+      <SyncSheet open={panel === 'sync' && !pin} result={syncResult} review={reviewList} offline={offline} onResolve={resolve} onSync={runSync} onClose={() => setPanel('')} />
+
+      {/* manager approval: credit limit, lower price or line discount, drawer difference, no-sale open, void */}
+      <ManagerPin open={!!pin} reason={pin ? pin.reason : ''} action={pin ? pin.action : undefined} amount={pin ? pin.amount : undefined} refId={pin && pin.sale ? pin.sale.id : undefined} onApprove={approve} onClose={() => setPin(null)} />
     </div>
   );
 }

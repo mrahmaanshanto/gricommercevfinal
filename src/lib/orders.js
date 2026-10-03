@@ -211,13 +211,14 @@ export function patchOrder(o, patch) {
   save(EDITS_KEY, { ...edits, [o.id]: { ...(edits[o.id] || {}), ...patch } });
 }
 /** Change the status (a label from orderStatus.js, e.g. 'Cancelled'). Kept in this browser; the time
- *  of the new status is stamped in the order's `times`. */
-export function setOrderStatus(o, label) {
-  if (o.made) { updateOrder(o.id, { status: label }); return; }
+ *  of the new status is stamped in the order's `times` (stamp: false keeps the old time, e.g. an edited packed
+ *  order going back to Approved). */
+export function setOrderStatus(o, label, { stamp = true } = {}) {
+  if (o.made) { updateOrder(o.id, { status: label }, { stamp }); return; }
   const was = o.status;
   save(STATUS_KEY, { ...readMap(STATUS_KEY, {}), [o.id]: label });
   const k = STATUS_TIME[label];
-  if (k && label !== was) { const map = readMap(TIMES_KEY, {}); save(TIMES_KEY, { ...map, [o.id]: { ...(map[o.id] || {}), [k]: Date.now() } }); }
+  if (stamp && k && label !== was) { const map = readMap(TIMES_KEY, {}); save(TIMES_KEY, { ...map, [o.id]: { ...(map[o.id] || {}), [k]: Date.now() } }); }
 }
 export function logOrder(id, icon, title, meta) {
   const log = readMap(LOG_KEY, {});

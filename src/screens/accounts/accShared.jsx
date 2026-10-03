@@ -13,7 +13,9 @@ import { Dialog } from '@/components/ui';
 import { ShopHeader, RecordHeader } from '@/components/ui/IndexKit';
 import { BrandLogo } from '@/components/BrandLogo';
 import { formatBDT, formatDate } from '@/lib/format';
-import { OWN_ACCOUNTS, accountBy, balanceOf, getEntries } from '@/lib/ledger';
+import { OWN_ACCOUNTS, accountBy, balanceOf, getEntries, isArchived } from '@/lib/ledger';
+import { refMessage } from '@/lib/paymentRefs';
+import { currentUser, SESSION_EVENT } from '@/lib/team';
 import { closeMonths } from '@/lib/platformUsage';
 import { clockNow, startOfDay, addWorkingDays, dayKey, fromKey, costsOf, confirmPayout, delayPayout, resolveReview, withdraw, closedReason } from '@/lib/settlements';
 
@@ -194,7 +196,8 @@ export function AccPage({ screen, active, page, title, description, about, actio
 
 /** A select of the shop's own accounts (not partner holding accounts), each with its balance. */
 export function AccountSelect({ id, value, onChange, types, label = 'Account', exclude, describedBy }) {
-  const list = OWN_ACCOUNTS().filter((a) => (!types || types.includes(a.type)) && a.id !== exclude);
+  // archived accounts are hidden from pickers (the one already chosen stays, so a form never loses its value)
+  const list = OWN_ACCOUNTS().filter((a) => (!types || types.includes(a.type)) && a.id !== exclude && (!isArchived(a.id) || a.id === value));
   return (
     <div>
       <label className="gc-label" htmlFor={id}>{label}</label>
@@ -385,6 +388,31 @@ export function WithdrawDialog({ wallet, onClose }) {
         </div>
       </form>
     </Dialog>
+  );
+}
+
+/** The signed-in person (demo), re-read when someone switches account. */
+export function useMe() {
+  const [me, setMe] = useState(null);
+  useEffect(() => {
+    const on = () => setMe(currentUser());
+    on();
+    window.addEventListener(SESSION_EVENT, on);
+    return () => window.removeEventListener(SESSION_EVENT, on);
+  }, []);
+  return me;
+}
+
+/** A transaction ID / reference field that says at once when the reference was used before
+ *  (paymentRefs.js): "Already used on #136801". `owner` is the order / invoice the payment is for. */
+export function RefField({ id, label = 'Transaction ID', value, onChange, owner, placeholder = 'e.g. 9KT5MX2RQA', required }) {
+  const dup = value ? refMessage(value, owner) : '';
+  return (
+    <div>
+      <label className="gc-label" htmlFor={id}>{label}{required ? ' *' : ''}</label>
+      <input id={id} className={'gc-input ac-fig' + (dup ? ' gc-input--error' : '')} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} autoComplete="off" aria-invalid={!!dup} aria-describedby={dup ? id + '-dup' : undefined} />
+      {dup ? <p id={id + '-dup'} className="gc-help gc-help--error" role="alert" style={{ margin: '4px 0 0' }}>{dup}</p> : null}
+    </div>
   );
 }
 

@@ -7,6 +7,18 @@
 // Damaged stock sits in the 'Returns & damaged' bay (DAMAGED_PLACE): a damaged hold has left the
 // shelf it came from (hold.from) and counts as on hand, damaged and never available in the bay.
 // Front end only: base counts are demo data; moves (adjustments, receipts, transfers) are kept in this browser.
+//
+// Base units, operation keys and the offline queue (Nayeem's Inventory brief #2):
+//   - Every move is in base units (units.js). A move entered in packs ({ pack, packs }) is stored as packs × pack size
+//     with the pack it was entered in, so a later pack-size change never rewrites history.
+//   - Every move carries an operation key (`op`). Posting the same key again is ignored, so a double tap, a retried
+//     scan or a replayed offline queue never counts stock twice. Callers that can repeat (receiving, counts,
+//     transfers, custody) pass a key made from their document and line; others get a fresh key.
+//   - Posted while the browser is offline, a move counts at once and waits in the queue (getQueue) until the browser
+//     is back online (flushQueue). In a real build the queue goes to the server with the same keys.
+// Products that are not physical stock: digital downloads and services are not tracked (UNTRACKED available);
+// a licence product's stock is its free keys (licenceKeys.js), and a sale takes a key; a virtual bundle has no
+// stock of its own: what can be sold is worked out from its parts, and a sale of the bundle moves the parts.
 
 import { getHolds } from './stockHolds';
 import { getTransfers, inTransit } from './transfers';
@@ -14,6 +26,9 @@ import { STOCK_PLACES, DAMAGED_PLACE, namesOf, getPlaces, onlinePlace } from './
 import { isOnePlace } from './stockSetup';
 import { productCostOf } from './productCost';   // called at run time only (productCost reads this module too)
 import { DEMO_PRODUCTS } from './products';       // read at run time only (products.js reads this module too)
+import { packsOf, roundQty } from './units';
+import { takeKeys, releaseKeys, freeKeys } from './licenceKeys';
+import { recordSerial } from './serialTrace';      // called at run time only (serialTrace reads this module too)
 
 const MOVES = 'gc.stock.moves';
 // sku, name, variant, barcode, category, retail price, wholesale price, MOQ for wholesale, sold to, on hand by place, in transit by place
@@ -75,8 +90,23 @@ const fresh = (sku, name, variant, barcode, cat, price, wholesale, moq, sell, br
   moq: moq ?? 0, sell: sell || 'retail', on: {}, transit: {}, saved: true, brand: brand || '',
 });
 
-// what a catalogue row learns from its product (sellable.js reads these)
-const metaOf = (p, v) => ({ st: p.st || 'active', oversell: !!p.oversell, productId: p.id, mrp: num((v && v.mrp) ?? p.mrp), barcodeType: (v && v.barcodeType) || p.barcodeType || '' });
+// what a catalogue row learns from its product (sellable.js, identifiers.js, units.js and the stock maths read these)
+const lc = (x) => String(x == null ? '' : x).replace(/\s+/g, '').toLowerCase();
+/** A product's identifiers that belong to this row: the product's own (or this variant's) codes and pack barcodes. */
+function idsFor(p, v) {
+  const own = (Array.isArray(p.ids) ? p.ids : []).filter((x) => x && x.value && (!x.variant || (v && x.variant === v.sku)));
+  const packs = packsOf({ sku: (v && v.sku) || p.sku, packs: p.packs }).filter((k) => k.barcode).map((k) => ({ type: 'pack', value: String(k.barcode), pack: k.id }));
+  return own.map((x) => ({ type: x.type || 'alt', value: String(x.value).trim(), pack: x.pack || '' })).concat(packs);
+}
+const metaOf = (p, v) => {
+  const ids = idsFor(p, v);
+  const bundle = p.bundle && Array.isArray(p.bundle.parts) && p.bundle.parts.length ? p.bundle : null;
+  return {
+    st: p.st || 'active', oversell: !!p.oversell, productId: p.id, mrp: num((v && v.mrp) ?? p.mrp), barcodeType: (v && v.barcodeType) || p.barcodeType || '',
+    unit: p.unit || 'pc', ...(Array.isArray(p.packs) ? { packs: p.packs } : {}), ids, codes: ids.map((x) => lc(x.value)),
+    format: p.format || 'physical', backorder: !!p.backorder, restockAt: p.restockAt || '', giftOnly: !!p.giftOnly, catalogueOnly: p.sellability === 'catalogue', bundle, template: p.template || '',
+  };
+};
 
 /** The one catalogue: the stock catalogue and the product list (demo + saved in this browser), see above. */
 let built = { from: undefined, list: CATALOG };
@@ -113,6 +143,8 @@ export function getCatalog(saved = readSaved()) {
       list.push({ ...add, saved: edited || !!p.savedNew, ...metaOf(p, v) });
     });
   });
+  // catalogue-only items with demo packs (units.js) can be found by their pack barcodes too
+  list.forEach((r, i) => { if (!r.codes) { const pk = packsOf(r).filter((k) => k.barcode); if (pk.length) list[i] = { ...r, ids: pk.map((k) => ({ type: 'pack', value: k.barcode, pack: k.id })), codes: pk.map((k) => lc(k.barcode)) }; } });
   built = { from: saved, list };
   return list;
 }
@@ -124,7 +156,9 @@ function listProducts(saved, demo) {
   const added = saved.filter((p) => p && !ids.has(p.id)).map((p) => ({ ...p, savedNew: true }));
   return added.concat(demo.map((p) => (byId.has(p.id) ? { ...p, ...byId.get(p.id), variants: byId.get(p.id).variants || p.variants } : p)));
 }
-const matches = (p, key) => p.sku === key || p.name === key || p.barcode === key || (p.aka && p.aka === key);
+// a row is found by its SKU, name, barcode, old name, or any other code it has (identifiers.js: other barcodes,
+// supplier codes, pack barcodes, PLU, MPN, ISBN)
+const matches = (p, key) => p.sku === key || p.name === key || p.barcode === key || (p.aka && p.aka === key) || (!!p.codes && p.codes.length > 0 && p.codes.indexOf(lc(key)) >= 0);
 export const productBy = (key, catalog = getCatalog()) => (key ? catalog.find((p) => matches(p, key)) || null : null);
 
 // ---- negative stock: a place may sell more than it has (set per place in Warehouses / Branches) --
@@ -148,21 +182,72 @@ export function setAllowNegative(place, on) {
 }
 
 const read = () => { try { return JSON.parse(window.localStorage.getItem(MOVES)) || []; } catch { return []; } };
+const QUEUE = 'gc.stock.queue';
+export const STOCK_EVENT = 'gc:stock';
+const readQueue = () => { try { return JSON.parse(window.localStorage.getItem(QUEUE)) || []; } catch { return []; } };
+let seq = 0;
+const newId = () => 'MV-' + Date.now().toString(36) + (seq++ % 1296).toString(36).padStart(2, '0');
+const isOffline = () => typeof navigator !== 'undefined' && navigator.onLine === false;
+const SALE_OUT = { sale: 1, delivery: 1 };
+const SALE_BACK = { return: 1, rto: 1 };
 /** Stock moves recorded in this browser: adjustments, receipts, transfers, sales. */
 export const getMoves = () => (typeof window === 'undefined' ? [] : read());
-/** Record a change to what is on hand: { sku, place, qty (+ in / − out), kind, reason, by, ref, status }. */
+/** Was this operation key posted already? */
+export const hasOp = (op) => !!op && typeof window !== 'undefined' && read().some((m) => m.op === op);
+/**
+ * Record a change to what is on hand: { sku, place, qty (+ in / − out, base units), kind, reason, by, ref, status,
+ * op (operation key: the same key twice is ignored), pack + packs (entered as packs: qty = packs × pack size),
+ * serial, batch }. Returns the list of moves.
+ */
 export function addMove(move) {
-  const list = [{ id: 'MV-' + Date.now().toString(36), at: Date.now(), status: 'done', ...move }, ...read()];
-  try { window.localStorage.setItem(MOVES, JSON.stringify(list)); } catch { /* ignore */ }
-  return list;
+  const list = read();
+  if (move.op && list.some((m) => m.op === move.op)) return list;            // the same operation twice: ignored
+  const row = productBy(move.sku);
+  let qty = Number(move.qty) || 0, pack;
+  if (move.pack && move.packs != null && row) {
+    const pk = packsOf(row).find((k) => k.id === move.pack || k.name === move.pack);
+    if (pk) { qty = (Number(move.packs) || 0) * pk.qty; pack = { id: pk.id, name: pk.name, qty: pk.qty }; }
+  }
+  if (row) qty = roundQty(row, qty);
+  // a virtual bundle has no stock of its own: its parts move instead
+  if (row && row.bundle && row.bundle.type !== 'kit' && !move.part) {
+    let out = list;
+    row.bundle.parts.forEach((pt) => { out = addMove({ ...move, sku: pt.sku, qty: qty * (Number(pt.qty) || 1), pack: undefined, packs: undefined, part: row.sku, op: move.op ? move.op + ':' + pt.sku : undefined, reason: [move.reason, 'part of ' + row.name].filter(Boolean).join(' · ') }); });
+    return out;
+  }
+  const id = newId();
+  const rec = { id, at: Date.now(), status: 'done', ...move, qty, op: move.op || id };
+  if (pack) rec.pack = pack; else { delete rec.pack; delete rec.packs; }
+  // a licence product: a sale takes keys from the pool, a return or cancelled sale puts them back
+  if (row && row.format === 'licence') {
+    if (SALE_OUT[rec.kind] && qty < 0) rec.keys = takeKeys(row.sku, -qty, rec.ref, rec.who).map((k) => k.key);
+    else if (SALE_BACK[rec.kind] && qty > 0) releaseKeys(row.sku, rec.ref, qty);
+  }
+  if (isOffline()) { rec.sync = 'queued'; try { window.localStorage.setItem(QUEUE, JSON.stringify([...readQueue(), rec.op])); } catch { /* ignore */ } }
+  const next = [rec, ...list];
+  try { window.localStorage.setItem(MOVES, JSON.stringify(next)); window.dispatchEvent(new CustomEvent(STOCK_EVENT, { detail: rec })); } catch { /* ignore */ }
+  if (rec.serial && row) { try { recordSerial(rec.serial, { kind: rec.kind, place: rec.place, ref: rec.ref, by: rec.by, note: rec.reason }, { sku: row.sku, name: row.name }); } catch { /* ignore */ } }
+  return next;
 }
+/** Moves waiting to be sent (posted while offline). */
+export const getQueue = () => (typeof window === 'undefined' ? [] : read().filter((m) => m.sync === 'queued'));
+/** Send the waiting moves. Each goes once: the server keeps the operation keys (here: the moves are marked sent). */
+export function flushQueue() {
+  if (typeof window === 'undefined' || isOffline()) return 0;
+  const ops = new Set(readQueue());
+  let n = 0;
+  const list = read().map((m) => (m.sync === 'queued' || ops.has(m.op) ? (n++, { ...m, sync: 'sent', syncedAt: Date.now() }) : m));
+  try { window.localStorage.setItem(MOVES, JSON.stringify(list)); window.localStorage.removeItem(QUEUE); if (n) window.dispatchEvent(new CustomEvent(STOCK_EVENT)); } catch { /* ignore */ }
+  return n;
+}
+if (typeof window !== 'undefined' && !window.__gcStockQueue) { window.__gcStockQueue = true; window.addEventListener('online', () => { flushQueue(); }); }
 
 /** Find products by SKU, name, variant or barcode (for pickers). Empty query returns the whole catalogue. */
 export function searchProducts(query) {
   const q = String(query || '').trim().toLowerCase();
   const all = getCatalog();
   if (!q) return all;
-  return all.filter((p) => [p.sku, p.name, p.variant, p.barcode].some((x) => String(x).toLowerCase().includes(q)));
+  return all.filter((p) => [p.sku, p.name, p.variant, p.barcode].some((x) => String(x).toLowerCase().includes(q)) || (p.codes || []).includes(lc(q)));
 }
 /** One line for a product in a picker: "SKU · name · variant". */
 export const productLabel = (p) => [p.sku, p.name, p.variant].filter(Boolean).join(' · ');
@@ -174,11 +259,22 @@ const sum = (list) => list.reduce((a, x) => a + (Number(x.qty) || 0), 0);
  * `transfers` defaults to the transfers in this browser; pass null to use the catalogue's demo
  * in-transit numbers (for the first render, before the browser data is read).
  */
-export function stockAt(key, place, holds = getHolds(), moves = getMoves(), transfers = typeof window === 'undefined' ? null : getTransfers()) {
+export function stockAt(key, place, holds = getHolds(), moves = getMoves(), transfers = typeof window === 'undefined' ? null : getTransfers(), depth = 0) {
   // a one-place shop's stock is its one place (stock left at other places is merged in Settings › Stock setup)
   if (!place && isOnePlace()) place = onlinePlace();
   const p = productBy(key);
   if (!p) return { onHand: 0, held: 0, damaged: 0, available: 0, transit: 0 };
+  // not physical stock: downloads and services are not counted; a licence product has its free keys
+  if (p.format === 'digital' || p.format === 'service') return { onHand: 0, held: 0, damaged: 0, available: UNTRACKED, transit: 0, untracked: true };
+  if (p.format === 'licence') { const free = typeof window === 'undefined' ? 0 : freeKeys(p.sku); return { onHand: free, held: 0, damaged: 0, available: free, transit: 0, keys: true }; }
+  // a virtual bundle: as many as its scarcest part allows, less the bundles already held for orders
+  if (p.bundle && p.bundle.type !== 'kit') {
+    if (depth > 3) return { onHand: 0, held: 0, damaged: 0, available: 0, transit: 0 };
+    const parts = p.bundle.parts.map((pt) => ({ q: Math.max(1, Number(pt.qty) || 1), st: stockAt(pt.sku, place, holds, moves, transfers, depth + 1) }));
+    const most = (k) => Math.max(0, Math.min(...parts.map((x) => Math.floor((x.st[k] || 0) / x.q))));
+    const heldB = sum(holds.filter((h) => (h.product === p.name || h.product === p.sku) && h.status === 'held' && (!place || namesOf(place).includes(h.place))));
+    return { onHand: most('onHand'), held: heldB, damaged: 0, available: Math.max(0, most('available') - heldB), transit: most('transit'), virtual: true };
+  }
   // a renamed place still counts what was saved under its old names
   const names = place ? namesOf(place) : null;
   const isHere = (x) => names.includes(x);
@@ -202,6 +298,13 @@ export function stockAt(key, place, holds = getHolds(), moves = getMoves(), tran
   const available = bay ? 0 : Math.max(0, onHand - held - damaged);
   return { onHand, held, damaged, available, transit };
 }
+/** Available stock shown for products that are not counted (downloads, services). */
+export const UNTRACKED = 9999;
+/** True for a catalogue row whose stock is not counted (a download or a service). */
+export const isUntracked = (row) => !!row && (row.format === 'digital' || row.format === 'service');
+/** True for a row that has no shelf stock of its own (not counted, a licence, or a virtual bundle). */
+export const isVirtualRow = (row) => !!row && (isUntracked(row) || row.format === 'licence' || (!!row.bundle && row.bundle.type !== 'kit'));
+
 /** Built-in stock places plus every name of the places the merchant added or renamed (browser only). */
 function allStockPlaces() {
   if (typeof window === 'undefined') return STOCK_PLACES;
@@ -225,6 +328,7 @@ export function placeStock(place, { holds = getHolds(), moves = getMoves(), tran
   const names = namesOf(place);
   const rows = [];
   catalog.forEach((p) => {
+    if (isVirtualRow(p)) return;                         // downloads, licences and virtual bundles have no shelf stock
     const st = stockAt(p.sku, place, holds, moves, transfers);
     const stocked = names.some((n) => ((p.on || {})[n] || 0) > 0);
     if (!stocked && !st.onHand && !st.held && !st.transit && !st.damaged) return;

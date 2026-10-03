@@ -95,11 +95,15 @@ class Component extends DCLogic {
     var recvShort = recvLines.reduce(function (a, l) { return a + l.short; }, 0);
     var doReceive = function (e) {
       e.preventDefault();
+      // two people receiving the same transfer: the second one finds it received already (operation keys keep the
+      // stock moves to one each, even when a retry gets through)
+      var fresh = getTransfers().filter(function (x) { return x.no === rc.no; })[0];
+      if (fresh && fresh.status === 'received') { reload({ recv: null }); __toast(rc.no + ' was already received. Nothing changed.', { tone: 'info' }); return; }
       var r = rc, lines = r.lines.map(function (l) { return assign(assign({}, l), { got: Math.max(0, Math.min(l.qty, Math.round(Number(s.recv.got[l.sku]) || 0))) }); });
       lines.forEach(function (l) {
         if (!l.got) return;
-        addMove({ sku: l.sku, place: r.from, qty: -l.got, kind: 'transfer', reason: 'Sent to ' + r.to, by: BY, ref: r.no });
-        addMove({ sku: l.sku, place: r.to, qty: l.got, kind: 'transfer', reason: 'Received from ' + r.from, by: BY, ref: r.no });
+        addMove({ sku: l.sku, place: r.from, qty: -l.got, kind: 'transfer', reason: 'Sent to ' + r.to, by: BY, ref: r.no, op: r.no + ':out:' + l.sku });
+        addMove({ sku: l.sku, place: r.to, qty: l.got, kind: 'transfer', reason: 'Received from ' + r.from, by: BY, ref: r.no, op: r.no + ':in:' + l.sku });
       });
       var list2 = updateTransfer(r.no, { status: 'received', receivedAt: Date.now(), lines: lines });
       var r2 = list2.filter(function (x) { return x.no === r.no; })[0];
@@ -127,12 +131,12 @@ class Component extends DCLogic {
         var m = missingOf(r, l), pk = s.fix.picks[l.sku];
         if (!m || !pk) return l;
         var at = Date.now();
-        if (pk.kind === 'writeoff') { addMove({ sku: l.sku, place: r.from, qty: -m, kind: 'writeoff', reason: 'Missing in ' + r.no + ' · ' + (pk.reason.trim() || 'Lost in transit'), by: BY, ref: r.no }); done.push(m + ' written off'); return assign(assign({}, l), { res: { kind: 'writeoff', qty: m, reason: pk.reason.trim() || 'Lost in transit', at: at, by: BY } }); }
-        if (pk.kind === 'claim') { var amt = Math.max(0, Math.round(Number(pk.amount) || 0)); addMove({ sku: l.sku, place: r.from, qty: -m, kind: 'writeoff', reason: 'Missing in ' + r.no + ' · claimed from ' + (r.carrier || 'the carrier'), by: BY, ref: r.no }); done.push('claim ' + formatBDT(amt)); return assign(assign({}, l), { res: { kind: 'claim', qty: m, amount: amt, note: pk.note.trim(), at: at, by: BY } }); }
+        if (pk.kind === 'writeoff') { addMove({ sku: l.sku, place: r.from, qty: -m, kind: 'writeoff', reason: 'Missing in ' + r.no + ' · ' + (pk.reason.trim() || 'Lost in transit'), by: BY, ref: r.no, op: r.no + ':writeoff:' + l.sku }); done.push(m + ' written off'); return assign(assign({}, l), { res: { kind: 'writeoff', qty: m, reason: pk.reason.trim() || 'Lost in transit', at: at, by: BY } }); }
+        if (pk.kind === 'claim') { var amt = Math.max(0, Math.round(Number(pk.amount) || 0)); addMove({ sku: l.sku, place: r.from, qty: -m, kind: 'writeoff', reason: 'Missing in ' + r.no + ' · claimed from ' + (r.carrier || 'the carrier'), by: BY, ref: r.no, op: r.no + ':claim:' + l.sku }); done.push('claim ' + formatBDT(amt)); return assign(assign({}, l), { res: { kind: 'claim', qty: m, amount: amt, note: pk.note.trim(), at: at, by: BY } }); }
         if (pk.kind === 'pending') { done.push(m + ' pending'); return assign(assign({}, l), { res: { kind: 'pending', qty: m, note: pk.note.trim(), at: at, by: BY } }); }
         if (pk.kind === 'found') {
-          addMove({ sku: l.sku, place: r.from, qty: -m, kind: 'transfer', reason: 'Sent to ' + r.to + ' · found later', by: BY, ref: r.no });
-          addMove({ sku: l.sku, place: r.to, qty: m, kind: 'transfer', reason: 'Received from ' + r.from + ' · found later', by: BY, ref: r.no });
+          addMove({ sku: l.sku, place: r.from, qty: -m, kind: 'transfer', reason: 'Sent to ' + r.to + ' · found later', by: BY, ref: r.no, op: r.no + ':found-out:' + l.sku });
+          addMove({ sku: l.sku, place: r.to, qty: m, kind: 'transfer', reason: 'Received from ' + r.from + ' · found later', by: BY, ref: r.no, op: r.no + ':found-in:' + l.sku });
           done.push(m + ' found'); return assign(assign({}, l), { got: l.got + m, res: { kind: 'found', qty: m, at: at, by: BY } });
         }
         return l;

@@ -3,6 +3,7 @@
 //   1. the latest buying price from a purchase (Purchases › New purchase: setBuyingPrice)
 //   2. the cost set on the product in Products (products.js, a variant uses its product's cost)
 //   3. the usual buying price (purchaseOrders.unitCost: a set price, else about 70% of the price)
+// A bundle or kit without a cost of its own costs the sum of its parts.
 // Kept in its own file so orders, invoices and the register can freeze cost without importing salesBook.
 
 import { allProducts } from './products';
@@ -54,6 +55,8 @@ export function productCostOf(nameOrSku) {
   if (byKey[key]) return byKey[key];
   const c = productBy(key);
   if (c) {
+    // a bundle or kit costs what its parts cost (unless the product has its own cost)
+    if (c.bundle && !byKey[c.sku] && !byKey[c.name]) return Math.round(c.bundle.parts.reduce((a, pt) => a + (pt.sku === c.sku ? 0 : productCostOf(pt.sku)) * (Number(pt.qty) || 1), 0) * 100) / 100;
     if (byKey[c.sku]) return byKey[c.sku];
     if (byKey[c.name]) return byKey[c.name];
     if (c.aka && byKey[c.aka]) return byKey[c.aka];

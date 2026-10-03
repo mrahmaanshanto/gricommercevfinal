@@ -2,7 +2,9 @@
 // AccountsHome — the money overview, laid out like Shopify's Finance overview (docs/shopify-style.md):
 //   figures   where the money is: cash, banks, mobile wallets, what partners hold, and this month's net profit
 //   to-dos    what needs the owner, as short pills (late or short payouts, wallets to withdraw, today's
-//             payouts, supplier bills and other bills due, a full drawer); each opens the page where it is done
+//             payouts, money waiting for approval, payments to check (manual payments, failed refunds and
+//             card batch differences together), statement lines to match, supplier bills and other bills due, a full drawer); each
+//             opens the page where it is done
 //   cards     what is coming in over the next payout days (a chart), and money in and out by kind
 // Sales by channel, dues and the latest movements live on their own pages (Sales & profit, Dues, Money).
 // Front end only: figures come from lib/ledger, lib/settlements, lib/profit and the bills / liabilities books.
@@ -17,6 +19,11 @@ import { getPayouts, getWallets, getPartners, heldBy, clockNow, startOfDay } fro
 import { getBills, billLeft } from '@/lib/supplierBills';
 import { getLiabilities, leftOf } from '@/lib/liabilities';
 import { profitByChannel } from '@/lib/profit';
+import { waitingRequests } from '@/lib/approvals';
+import { getManualPayments } from '@/lib/manualPayments';
+import { getRefunds } from '@/lib/refunds';
+import { batchRows, needsLook } from '@/lib/terminalBatches';
+import { getLines } from '@/lib/statementImport';
 import { AccPage, useBooks, money, signed, dayLabel, shortDate } from './accShared';
 
 const CSS = `
@@ -67,6 +74,12 @@ export default function AccountsHome() {
     const bills = getBills().map((b) => ({ ...b, left: billLeft(b) })).filter((b) => b.left > 0 && b.due && startOfDay(b.due) <= today + 3 * DAY).sort((a, b) => a.due - b.due);
     const liabs = getLiabilities().filter((l) => leftOf(l) > 0 && startOfDay(l.due) <= today + 3 * DAY).sort((a, b) => a.due - b.due);
     const drawer = balanceOf('drawer', entries);
+    const approvals = waitingRequests();
+    const toCheck = getManualPayments().filter((m) => m.status === 'waiting');
+    const failedRefunds = getRefunds().filter((r) => r.stage === 'failed');
+    const batchDiffs = batchRows().filter(needsLook);
+    const stmtOpen = getLines().filter((l) => l.status === 'open');
+    const payLook = toCheck.length + failedRefunds.length + batchDiffs.length;
 
     // what needs the owner, most urgent first; each pill opens the page (or the window) where it is done
     const one = (list, href, many) => (list.length === 1 ? href(list[0]) : many);
@@ -77,6 +90,10 @@ export default function AccountsHome() {
       dueToday.length && { key: 'today', label: 'Check today’s payouts', n: dueToday.length, onClick: () => window.dispatchEvent(new CustomEvent('gc:check')) },
       bills.length && { key: 'bills', label: 'Pay suppliers', n: bills.length, late: bills.some((b) => startOfDay(b.due) < today), href: one(bills, (b) => '/suppliers?pay=' + encodeURIComponent(b.supplier), '/dues?tab=owe') },
       liabs.length && { key: 'liabs', label: 'Pay bills', n: liabs.length, late: liabs.some((l) => startOfDay(l.due) < today), href: one(liabs, (l) => '/liabilities?id=' + encodeURIComponent(l.id), '/liabilities') },
+      approvals.length && { key: 'approvals', label: 'Approve money', n: approvals.length, late: approvals.some((r) => now - r.at > DAY), href: approvals.length === 1 ? '/money-approvals?id=' + encodeURIComponent(approvals[0].id) : '/money-approvals' },
+      // payments to look at: manual payments to check, failed refunds and card batch differences, as one pill
+      payLook && { key: 'payments', label: 'Check payments', n: payLook, late: failedRefunds.length > 0, href: toCheck.length ? '/payment-ops?tab=tx' : failedRefunds.length ? '/payment-ops?tab=refunds&view=failed' : '/payment-ops?tab=batches' },
+      stmtOpen.length && { key: 'stmt', label: 'Match statement lines', n: stmtOpen.length, href: '/statement-match?account=' + encodeURIComponent(stmtOpen[0].account) },
       drawer > 50000 && { key: 'drawer', label: 'Move drawer cash', n: money(drawer), href: '/money?do=transfer&from=drawer' },
     ].filter(Boolean);
 
@@ -110,7 +127,7 @@ export default function AccountsHome() {
     icon: 'landmark', about: ABOUT,
     secondary: [{ label: 'Move money', href: '/money?do=transfer' }],
     more: [
-      { label: 'Payouts', href: '/settlements' }, { label: 'Dues', href: '/dues' }, { label: 'Bills to pay', href: '/liabilities' },
+      { label: 'Payouts', href: '/settlements' }, { label: 'Payments', href: '/payment-ops' }, { label: 'Approvals', href: '/money-approvals' }, { label: 'Match statements', href: '/statement-match' }, { label: 'Dues', href: '/dues' }, { label: 'Bills to pay', href: '/liabilities' },
       { label: 'Sales & profit', href: '/sales-profit' }, { label: 'Reports', href: '/account-reports' }, { label: 'Setup', href: '/account-setup' },
     ],
     primary: { label: 'Record expense', href: '/expenses-bills?add=expense' },

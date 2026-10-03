@@ -12,7 +12,11 @@
 // new line and "/" searches saved replies.
 // Front end only: data lives in this browser (src/lib/inbox.js); customers and orders come from
 // src/lib/customers.js and src/lib/orders.js by phone number.
-// URL: ?view=comments opens the comments, ?c=<conversation id> or ?phone=<number> opens a chat.
+// URL: ?view=comments opens the comments, ?view=mentions the mentions (the menu links to both), ?c=<conversation id> or ?phone=<number> opens a chat.
+// Send lock (inbox.js › holdLock / lockOf): typing a reply holds the conversation for a few seconds; a teammate sees
+// "Name is replying" and can't send until it is free (notes still go). The bar above the thread also shows the
+// channel's reply state from the channel adapter table when a free reply isn't possible (template required, window
+// closed, disconnected).
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '@/runtime/dc';
@@ -25,12 +29,15 @@ import { getCustomers } from '@/lib/customers';
 import {
   ME, STAFF, CHANNEL_IDS, channelName, staffName, firstName, getConvs, patchConv, addMessages, addConversation, mergeConversations,
   getTags, addTag as saveTag, getReplies, getComments, statusOf, lastAny, lastAt, waitingMinutes, previewOf, ago, whenText, comeback, samePhone,
+  lockOf, holdLock, releaseLock, replyStateOf, demoTeammateTyping, getMentions, openMentions, teamMentions,
 } from '@/lib/inbox';
+import { REPLY_TONE } from '@/lib/channelCaps';
 import { useInbox, useNow, useMedia, Avatar, StaffAvatar, SlaChip, Menu, MenuItem, Sheet, SearchBox, PARTS_CSS } from '@/components/inbox/parts';
 import { Thread, THREAD_CSS } from '@/components/inbox/Thread';
 import { CustomerPanel, TagMenu, PANEL_CSS } from '@/components/inbox/CustomerPanel';
 import { SavedRepliesDialog, MergeDialog, NewConversationDialog, SnoozeDialog, DIALOGS_CSS } from '@/components/inbox/Dialogs';
 import { CommentsView, COMMENTS_CSS } from '@/components/inbox/Comments';
+import { MentionsView, MENTIONS_CSS } from '@/components/inbox/Mentions';
 import { useLiveChannels } from '@/components/inbox/useLiveChannels';
 import { Sheet as SidePanel, StatusBadge } from '@/components/ui';
 import { BrandLogo } from '@/components/BrandLogo';
@@ -40,6 +47,7 @@ import { Reviews as GbReviews, GB_CSS } from '@/screens/channels/GoogleBusiness'
 import { CH_CSS } from '@/screens/channels/chShared';
 import Link from 'next/link';
 
+const VIEWS = ['comments', 'mentions', 'reviews'];
 const TABS = [['open', 'Open'], ['pending', 'Pending'], ['snoozed', 'Snoozed'], ['closed', 'Closed']];
 const SORTS = [['recent', 'Newest message'], ['waiting', 'Waiting longest'], ['unread', 'Unread first'], ['oldest', 'Oldest message']];
 const WHO = [['all', 'All'], ['mine', 'Mine'], ['unassigned', 'Unassigned']];
@@ -54,7 +62,7 @@ const sys = (icon, text) => ({ id: mid(), from: 'system', type: 'text', icon, te
 const me = staffName(ME);
 
 export default function MerchantInbox() {
-  const data = useInbox(() => ({ convs: getConvs(), tags: getTags(), replies: getReplies(), openComments: getComments().filter((c) => c.status === 'open').length }));
+  const data = useInbox(() => ({ convs: getConvs(), tags: getTags(), replies: getReplies(), openComments: getComments().filter((c) => c.status === 'open').length, mentions: openMentions(getMentions()) + teamMentions(ME).length }));
   const now = useNow(30000);
   const wide = useMedia('(min-width:1280px)');
   const phone = useMedia('(max-width:767px)');
@@ -85,6 +93,14 @@ export default function MerchantInbox() {
   const [picking, setPicking] = useState(false);
   const [picked, setPicked] = useState([]);
   const [panelWide, setPanelWide] = useState(true);
+  // the chat gets the room on screens under 1600px: the customer panel starts closed there (the panel button opens it;
+  // the choice is kept for the visit)
+  useEffect(() => {
+    let saved = null;
+    try { saved = window.sessionStorage.getItem('gc.inbox.panel'); } catch { /* ignore */ }
+    setPanelWide(saved != null ? saved === '1' : window.matchMedia('(min-width:1600px)').matches);
+  }, []);
+  useEffect(() => { try { window.sessionStorage.setItem('gc.inbox.panel', panelWide ? '1' : '0'); } catch { /* ignore */ } }, [panelWide]);
   const [panelSheet, setPanelSheet] = useState(false);
   const [typing, setTyping] = useState('');
   const [dlg, setDlg] = useState('');          // replies · new · merge · snooze
@@ -97,7 +113,10 @@ export default function MerchantInbox() {
   const autoOff = useRef(false);      // after "mark as unread" nothing is opened by itself
   selRef.current = sel;
 
+  // the send lock: let go of the conversation when another one opens or the page closes
+  useEffect(() => { const id = sel; return () => { if (id) releaseLock(id); }; }, [sel]);
   useEffect(() => {
+    demoTeammateTyping();
     setOrders(getOrders());
     setCustomers(getCustomers());
     const list = timers.current;
@@ -114,12 +133,26 @@ export default function MerchantInbox() {
     if (!data || booted.current) return;
     booted.current = true;
     const p = new URLSearchParams(window.location.search);
-    if (p.get('view') === 'comments' || p.get('view') === 'reviews') { setView(p.get('view')); return; }
+    if (VIEWS.includes(p.get('view'))) { setView(p.get('view')); return; }
     const byId = p.get('c') && data.convs.find((c) => c.id === p.get('c'));
     const byPhone = p.get('phone') && data.convs.find((c) => samePhone(c.phone, p.get('phone')));
     const hit = byId || byPhone;
     if (hit) { setTab(statusOf(hit, Date.now())); open(hit.id); }
   }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // the menu's Chats / Comments / Mentions items change ?view= without reloading the page
+  useEffect(() => {
+    const follow = () => {
+      const p = new URLSearchParams(window.location.search);
+      const v = p.get('view');
+      setView(VIEWS.includes(v) ? v : 'chats');
+      // the top bar's chat list opens a chat here with ?c=
+      const c = p.get('c') && getConvs().find((x) => x.id === p.get('c'));
+      if (c && !VIEWS.includes(v)) { setTab(statusOf(c, Date.now())); openRef.current(c.id); }
+    };
+    window.addEventListener('gc:route', follow);
+    return () => window.removeEventListener('gc:route', follow);
+  }, []);
 
   // ---- the list ---------------------------------------------------------------------------------
   const needle = q.trim().toLowerCase();
@@ -150,6 +183,9 @@ export default function MerchantInbox() {
     const c = getConvs().find((x) => x.id === id);
     if (c && c.unread) patchConv(id, { unread: 0 });
   }
+  const openRef = useRef(open);
+  openRef.current = open;
+
   const back = () => { setPane('list'); setPanelSheet(false); };
   const clearFilters = () => { setChan('all'); setWho('all'); setQ(''); };
 
@@ -217,6 +253,9 @@ export default function MerchantInbox() {
       if (!c) return;
       const rows = msgs.map((m) => ({ ...m, id: mid(), at: Date.now() }));
       const reply = rows.some((m) => m.from === 'agent');
+      const lock = reply ? lockOf(id) : null;
+      if (lock) { toast(`${lock.name} is replying. Wait until they finish.`, { tone: 'error' }); return; }
+      if (reply) releaseLock(id);
       const st = statusOf(c, Date.now());
       const pre = [];
       const patch = { unread: 0 };
@@ -257,7 +296,7 @@ export default function MerchantInbox() {
   };
   const setUrlView = (v) => {
     const url = new URL(window.location.href);
-    if (v === 'comments' || v === 'reviews') url.searchParams.set('view', v); else url.searchParams.delete('view');
+    if (VIEWS.includes(v)) url.searchParams.set('view', v); else url.searchParams.delete('view');
     window.history.replaceState(window.history.state, '', url.pathname + url.search);
   };
   const switchView = (v) => { setView(v); setPane('list'); setPanelSheet(false); setUrlView(v); };
@@ -267,6 +306,16 @@ export default function MerchantInbox() {
     open(id);
   };
 
+  // ---- send lock and reply state ------------------------------------------------------------------
+  const lock = conv ? lockOf(conv.id, ME, t) : null;
+  const reach = conv ? replyStateOf(conv, t, !liveChats || liveChats.includes(conv.ch)) : null;
+  const isNote = (el) => !!(el && el.closest('.ibx-thread') && el.closest('.ibx-thread').querySelector('.th-send--note'));
+  const lockedSay = () => toast(`${lock.name} is replying. Wait until they finish.`, { tone: 'error' });
+  const guard = {
+    onInputCapture: (e) => { if (conv && e.target.matches && e.target.matches('textarea.th-input') && !isNote(e.target)) holdLock(conv.id); },
+    onKeyDownCapture: (e) => { if (lock && e.key === 'Enter' && !e.shiftKey && e.target.matches && e.target.matches('textarea.th-input') && !isNote(e.target)) { e.preventDefault(); e.stopPropagation(); lockedSay(); } },
+    onClickCapture: (e) => { const b = e.target.closest && e.target.closest('.th-send'); if (lock && b && !b.classList.contains('th-send--note')) { e.preventDefault(); e.stopPropagation(); lockedSay(); } },
+  };
   const panelOn = wide ? panelWide : panelSheet;
   const togglePanel = () => (wide ? setPanelWide((v) => !v) : setPanelSheet((v) => !v));
   const panel = conv ? (
@@ -276,6 +325,7 @@ export default function MerchantInbox() {
       onSaved={() => setCustomers(getCustomers())} onClose={wide ? () => setPanelWide(false) : undefined} />
   ) : null;
 
+  const viewTabs = [['chats', 'Chats', data ? unreadAll : null], ['comments', 'Comments', data ? data.openComments : null], ['mentions', 'Mentions', data ? data.mentions : null], ...(reviewsOn ? [['reviews', 'Reviews', openReviews]] : [])];
   return (
     <div className="dc-screen ds ibx" data-screen="MerchantInbox">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
@@ -286,16 +336,24 @@ export default function MerchantInbox() {
           <div className="gc-shell__content ibx-content" data-pane={pane}>
             <div className="ix-page ibx-page">
             <ShopHeader icon="messages-square" title="Inbox"
-              about="Chats, comments and reviews from every connected channel, in one place. Pick a chat to read it and reply; the customer's orders and details are on the right."
+              about="Chats, comments, mentions and reviews from every connected channel, in one place. Pick a chat to read it and reply; the customer's orders and details are on the right."
               secondary={[{ label: 'Channels', icon: 'plug', onClick: () => setChOpen(true) }, { label: 'Saved replies', icon: 'zap', onClick: () => setDlg('replies') }]}
-              primary={view === 'chats' ? { label: 'New conversation', onClick: () => setDlg('new') } : undefined} />
-            <div className="ibx-views">
-              <IndexTabs label="Show" tabs={[['chats', 'Chats', data ? unreadAll : null], ['comments', 'Comments', data ? data.openComments : null], ...(reviewsOn ? [['reviews', 'Reviews', openReviews]] : [])].map(([k, l, n]) => ({ key: k, label: l, count: n || null, id: 'ibx-view-' + k, on: view === k, onClick: () => switchView(k) }))} />
-            </div>
+              primary={view === 'chats' ? { label: 'New conversation', onClick: () => setDlg('new') } : undefined}
+              middle={<>
+                <IndexTabs label="Show" tabs={viewTabs.map(([k, l, n]) => ({ key: k, label: l, count: n || null, id: 'ibx-view-' + k, on: view === k, onClick: () => switchView(k) }))} />
+                {/* phones: the same views as one dropdown */}
+                <label className="ibx-viewsel">
+                  <span className="sr-only">Show</span>
+                  <select value={view} onChange={(e) => switchView(e.target.value)}>
+                    {viewTabs.map(([k, l, n]) => <option key={k} value={k}>{n ? l + ' · ' + n : l}</option>)}
+                  </select>
+                  <Icon name="chevron-down" width="16" height="16" aria-hidden="true" />
+                </label>
+              </>} />
 
             {view === 'reviews' && reviewsOn ? (
               <div className="ibx-reviews"><style dangerouslySetInnerHTML={{ __html: CH_CSS + GB_CSS }} /><GbReviews reviews={getReviews()} locs={gbpLocations()} now={t} /></div>
-            ) : view === 'comments' ? <CommentsView now={t} onOpenConv={openFromComment} wide={wide} /> : (
+            ) : view === 'comments' ? <CommentsView now={t} onOpenConv={openFromComment} wide={wide} /> : view === 'mentions' ? <MentionsView now={t} onOpenConv={openFromComment} /> : (
               <div className="ibx-app" data-pane={pane} data-panel={wide && panelWide && conv ? 'open' : 'closed'}>
                 {/* ---- conversation list ---- */}
                 <section className="ibx-list" aria-label="Conversations">
@@ -376,7 +434,14 @@ export default function MerchantInbox() {
                 </section>
 
                 {/* ---- thread ---- */}
-                <section className="ibx-thread" aria-label={conv ? `Conversation with ${conv.name}` : 'Conversation'}>
+                <section className="ibx-thread" aria-label={conv ? `Conversation with ${conv.name}` : 'Conversation'} {...guard}>
+                  {conv && (lock || (reach && reach.state !== 'open')) ? (
+                    <div className="ibx-lockbar" role="status">
+                      {lock ? <StatusBadge tone="warning" icon="pencil">{lock.name} is replying</StatusBadge> : null}
+                      {reach && reach.state !== 'open' ? <StatusBadge tone={REPLY_TONE[reach.state]}>{reach.label}</StatusBadge> : null}
+                      <span className="ibx-lockbar__text">{lock ? 'You can add a note. Send when they finish.' : reach.state === 'template' ? 'Only an approved template can go now.' : reach.state === 'closed' ? 'Wait for the customer to write again.' : 'Reconnect the channel to reply.'}</span>
+                    </div>
+                  ) : null}
                   {conv ? (
                     <Thread conv={conv} now={t} tags={tags} orders={orders} replies={data.replies} typing={typing === conv.id} panelOpen={panelOn} onBack={back} onTogglePanel={togglePanel} act={act} />
                   ) : <div className="ibx-pick"><EmptyState icon="messages-square" title={data ? 'Pick a conversation' : 'Loading…'} body={data ? 'Choose a chat on the left to read it and reply. Use ↑ and ↓ to move through the list and Enter to open.' : undefined} /></div>}
@@ -414,25 +479,36 @@ export default function MerchantInbox() {
   );
 }
 
-const CSS = PARTS_CSS + DIALOGS_CSS + PANEL_CSS + THREAD_CSS + COMMENTS_CSS + `
+const CSS = PARTS_CSS + DIALOGS_CSS + PANEL_CSS + THREAD_CSS + COMMENTS_CSS + MENTIONS_CSS + `
 .ibx-chans{display:flex;flex-direction:column;gap:var(--space-2)}
 .ibx-chan{display:flex;align-items:center;gap:var(--space-3);min-height:52px;padding:var(--space-2) 0;border-top:1px solid var(--border-subtle)}
 .ibx-chan__text{display:flex;flex-direction:column;min-width:0;flex:1}
 .ibx-chan__text b{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
 .ibx-chan__text small{font-size:var(--text-xs);color:var(--text-muted)}
 .ibx-chan__text .ibx-chan__warn{color:var(--text-warning)}
-.ibx-reviews{display:flex;flex-direction:column;gap:var(--space-4);min-width:0}
+.ibx .ibx-page>.ix-head{flex:none;flex-shrink:0!important}
+.ibx-reviews{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:var(--space-4);min-width:0}
+.ibx-page>.mn{flex:1;min-height:0;overflow-y:auto}
 /* the inbox fills the window and each pane scrolls on its own; the floating assistant would cover the composer */
 body:has(.ibx) .gc-ai{display:none}
 .ibx .gc-shell__main.ibx-main{height:calc(100dvh - var(--shell-inset) * 2);min-height:600px;background:var(--surface-page)}
-.ibx .gc-shell__content.ibx-content{flex:1;min-height:0;display:flex;flex-direction:column;padding:20px var(--margin-x) var(--space-5)!important;overflow:visible}
-.ibx-page{flex:1;min-height:0;gap:var(--space-3)}
-.ibx-views{display:flex;flex:none;margin:0 -4px}
-.ibx-views .ix-tabs{flex:none}
+.ibx .gc-shell__content.ibx-content{flex:1;min-height:0;display:flex;flex-direction:column;padding:var(--space-3) var(--space-4) var(--space-3)!important;overflow:visible}
+.ibx-page{flex:1;min-height:0;gap:var(--space-3);max-width:none}
+.ibx-viewsel{display:none;position:relative;align-items:center}
+.ibx-viewsel select{appearance:none;-webkit-appearance:none;height:40px;min-width:180px;padding:0 var(--space-8) 0 var(--space-3);border:1px solid var(--border-field);border-radius:var(--radius-lg);background:var(--surface-card);color:var(--text-heading);font:inherit;font-size:var(--text-sm);font-weight:var(--weight-semibold);cursor:pointer}
+.ibx-viewsel select:focus-visible{outline:none;border-color:var(--border-field-focus);box-shadow:0 0 0 3px var(--focus-ring)}
+.ibx-viewsel svg{position:absolute;right:var(--space-3);pointer-events:none;color:var(--text-muted)}
+@media (max-width:640px){.ibx .ix-head__mid .ix-tabs{display:none}.ibx-viewsel{display:inline-flex}.ibx .ix-head__mid{overflow:visible}}
+/* the chat itself reads bigger: 14px messages, roomier bubbles */
+.ibx .th-msgs .ms-bubble{font-size:var(--text-sm-plus);line-height:1.45;padding:var(--space-2) var(--space-3-5)}
+.ibx .th-msgs .ms-row{max-width:min(72%,640px)}
+.ibx .th-input{font-size:var(--text-sm-plus)}
 .ibx-app{flex:1;min-height:0;display:grid;grid-template-columns:minmax(280px,320px) minmax(0,1fr) minmax(280px,320px);overflow:hidden;border-radius:var(--radius-xl);background:var(--surface-card);box-shadow:var(--shadow-card)}
 .ibx-app[data-panel="closed"]{grid-template-columns:minmax(280px,320px) minmax(0,1fr)}
 .ibx-list{display:flex;flex-direction:column;min-width:0;min-height:0;border-right:1px solid var(--border-subtle);background:var(--surface-card)}
 .ibx-thread{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--surface-page);container-type:inline-size}
+.ibx-lockbar{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--border-subtle);background:var(--surface-card)}
+.ibx-lockbar__text{font-size:var(--text-xs);color:var(--text-muted)}
 .ibx-panel{min-height:0;overflow-y:auto;overscroll-behavior:contain;border-left:1px solid var(--border-subtle);background:var(--surface-card)}
 .ibx-pick{flex:1;display:grid;place-items:center}
 .ibx-listhead{display:flex;flex-direction:column;gap:var(--space-2);flex:none;padding:var(--space-3) var(--space-3) var(--space-2);border-bottom:1px solid var(--border-subtle)}
@@ -491,10 +567,9 @@ body:has(.ibx) .gc-ai{display:none}
   .ibx .gc-shell__main.ibx-main{height:100dvh;min-height:0}
   .ibx .gc-shell__content.ibx-content{padding:var(--space-3) 0 0!important}
   .ibx-page{gap:var(--space-2)}
-  .ibx-page>.ix-head,.ibx-views{padding:0 var(--space-4)}
-  .ibx-views{margin:0}
+  .ibx-page>.ix-head{padding:0 var(--space-4)}
   .ibx-content[data-pane="thread"]{padding-top:0!important}
-  .ibx-content[data-pane="thread"] .ibx-page>.ix-head,.ibx-content[data-pane="thread"] .ibx-views{display:none}
+  .ibx-content[data-pane="thread"] .ibx-page>.ix-head{display:none}
   .ibx-app,.ibx-app[data-panel]{grid-template-columns:minmax(0,1fr);border-top:1px solid var(--border-subtle);border-radius:0;box-shadow:none}
   .ibx-app[data-pane="list"] .ibx-thread,.ibx-app[data-pane="thread"] .ibx-list,.ibx-app[data-pane="queue"] .ibx-list,.ibx-app[data-pane="list"] .cm-queue{display:none}
   .ibx-list{border-right:0}

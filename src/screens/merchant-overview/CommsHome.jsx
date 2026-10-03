@@ -4,11 +4,13 @@
 // a greeting with "Ask GridAI" and the day's to-do as pills (reply, call back, follow up, answer comments), then two
 // short lists: chats waiting the longest and follow-ups due. All calls are on Calls; the rest is in the menu.
 // Everything is read from the shared books: lib/inbox (chats, comments, calls), lib/leads, lib/posStore.
+// Brief #10: the to-do pills are action items (lib/actionItems.js), "As of" with a refresh, Export (CSV) and the
+// first-run checklist, as on Home.
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
-import { getLocale } from '@/runtime/ui';
+import { getLocale, toast } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { StatusBadge } from '@/components/ui';
 import { Menu } from '@/components/ui/IndexKit';
@@ -19,6 +21,11 @@ import { POS_KEYS, load } from '@/lib/posStore';
 import { clockNow, startOfDay } from '@/lib/settlements';
 import { currentUser } from '@/lib/team';
 import { HOME_CSS, Fig, Hero, greeting } from './OnlineHome';
+import { formatDate } from '@/lib/format';
+import { downloadCsv } from '@/lib/reports/period';
+import { trackItems, ACTIONS_EVENT, SEVERITY, ageOf, ageText } from '@/lib/actionItems';
+import { PILLS_CSS } from './ActionPills';
+import { AsOf, Readiness, EXTRAS_CSS } from './HomeExtras';
 
 const safe = (fn, fb) => { try { const v = fn(); return v == null ? fb : v; } catch { return fb; } };
 const money = (n) => formatBDT(Math.round(Number(n) || 0));
@@ -39,12 +46,14 @@ function build() {
   const due = leads.map((l) => ({ l, st: followState(l, now) })).filter((x) => x.st === 'overdue' || x.st === 'today').sort((a, b) => a.l.next.at - b.l.next.at);
   const sales = safe(() => load(POS_KEYS.sales, []), []).filter((s) => s.at >= day);
   const posTotal = sales.reduce((a, s) => a + ((s.totals && s.totals.total) || 0), 0);
+  // as action items (lib/actionItems.js): one key per issue, owner, severity and since when
+  const MIN = 60 * 1000;
   const todo = [
-    waiting.length > 0 && ['Reply to chats', waiting.length, '/merchant-inbox'],
-    missed.length > 0 && ['Call back', missed.length, '/merchant-calls'],
-    due.length > 0 && ['Follow up', due.length, '/sales-leads'],
-    comments.length > 0 && ['Answer comments', comments.length, '/merchant-inbox'],
-  ].filter(Boolean).map(([label, n, href]) => ({ label, n, href }));
+    waiting.length > 0 && { key: 'comms:reply', label: 'Reply to chats', n: waiting.length, href: '/merchant-inbox', severity: waiting[0].min > 60 ? 'high' : 'normal', area: 'area-comms', owner: ['comms', 'orders', 'online-sales'], since: now - waiting[0].min * MIN },
+    missed.length > 0 && { key: 'comms:call-back', label: 'Call back', n: missed.length, href: '/merchant-calls', severity: 'high', area: 'area-comms', owner: ['comms', 'orders', 'online-sales'], since: Math.min(...missed.map((c) => c.at || now)) },
+    due.length > 0 && { key: 'leads:follow-up', label: 'Follow up', n: due.length, href: '/sales-leads', severity: due.some((x) => x.st === 'overdue') ? 'high' : 'normal', area: 'area-customers', owner: ['online-sales', 'shop-manager', 'comms', 'orders'], since: due[0].l.next.at },
+    comments.length > 0 && { key: 'comms:comments', label: 'Answer comments', n: comments.length, href: '/merchant-inbox', severity: 'normal', area: 'area-comms', owner: ['comms', 'content'] },
+  ].filter(Boolean);
   return { now, open, waiting, unread, callsToday, due, sales, posTotal, todo };
 }
 
@@ -54,18 +63,36 @@ export default function CommsHome() {
   const [name, setName] = useState('');
   useEffect(() => {
     setLoc(getLocale()); setName(safe(() => currentUser().name.split(' ')[0], ''));
-    const run = () => setD(build());
+    const run = () => { const next = build(); next.todo = trackItems('home-comms', next.todo, { user: safe(() => currentUser(), null) }); setD(next); };
     const loc = () => setLoc(getLocale());
     const id = window.setTimeout(run, 0);
-    ['storage', 'focus', 'gc:inbox', 'gc:leads'].forEach((e) => window.addEventListener(e, run));
+    ['storage', 'focus', 'gc:inbox', 'gc:leads', ACTIONS_EVENT].forEach((e) => window.addEventListener(e, run));
     window.addEventListener('gc:locale', loc);
-    return () => { window.clearTimeout(id); ['storage', 'focus', 'gc:inbox', 'gc:leads'].forEach((e) => window.removeEventListener(e, run)); window.removeEventListener('gc:locale', loc); };
+    return () => { window.clearTimeout(id); ['storage', 'focus', 'gc:inbox', 'gc:leads', ACTIONS_EVENT].forEach((e) => window.removeEventListener(e, run)); window.removeEventListener('gc:locale', loc); };
   }, []);
   const [hello, helloBn] = d ? greeting(new Date(d.now).getHours()) : ['Hello', 'হ্যালো'];
+  const refresh = () => { const next = build(); next.todo = trackItems('home-comms', next.todo, { user: safe(() => currentUser(), null) }); setD(next); };
+  // today's figures as CSV
+  const exportCsv = () => {
+    if (!d) return;
+    downloadCsv(`home-${new Date(d.now).toISOString().slice(0, 10)}-connect.csv`, [
+      ['GridCommerce Connect · Home', formatDate(d.now), 'As of ' + formatDate(d.now) + ' ' + new Date(d.now).toLocaleTimeString('en-GB')],
+      [],
+      ['Figure', 'Value'],
+      ['Open chats', d.open.length], ['Unread', d.unread], ['Calls today', d.callsToday.length], ['At the counter today', Math.round(d.posTotal)], ['Counter sales', d.sales.length],
+      [],
+      ['Waiting the longest', 'Channel', 'Waiting'],
+      ...d.waiting.slice(0, ROWS).map(({ c, min }) => [c.name, channelName(c.ch), fmtWait(min)]),
+      [],
+      ['To do', 'Count', 'Priority', 'Waiting'],
+      ...d.todo.map((t) => [t.label, t.n, (SEVERITY[t.severity] || SEVERITY.normal).label, t.item ? ageText(ageOf(t.item)) : '']),
+    ]);
+    toast('Home exported');
+  };
 
   return (
     <div className="dc-screen ds" data-screen="CommsHome">
-      <style dangerouslySetInnerHTML={{ __html: HOME_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: HOME_CSS + PILLS_CSS + EXTRAS_CSS }} />
       <div className="gc-shell">
         <Sidebar sticky="" active="home" />
         <main className="gc-shell__main">
@@ -78,6 +105,8 @@ export default function CommsHome() {
                   <span className="hk-today"><Icon name="calendar" width="16" height="16" aria-hidden="true" />Today</span>
                   <Menu label="Create" icon="plus" cls="ix-btn" align="start" items={[{ label: 'New sale', icon: 'scan-barcode', href: '/pos' }]} />
                   <Link href="/merchant-inbox" className="ix-btn"><Icon name="inbox" width="16" height="16" aria-hidden="true" />Open inbox</Link>
+                  <button type="button" className="ix-btn" onClick={exportCsv} disabled={!d}><Icon name="download" width="16" height="16" aria-hidden="true" />Export</button>
+                  {d ? <AsOf at={d.now} onRefresh={refresh} /> : null}
                 </div>
                 {d ? (
                   <div className="hk-figs" aria-label="Key figures, today">
@@ -89,7 +118,9 @@ export default function CommsHome() {
                 ) : null}
               </div>
 
-              <Hero greeting={(locale === 'bn' ? helloBn : hello) + (name ? ', ' + name : '')} todo={d ? d.todo : null} placeholder="Ask GridAI about chats, calls or customers…" />
+              <Hero greeting={(locale === 'bn' ? helloBn : hello) + (name ? ', ' + name : '')} todo={d ? d.todo : null} source="home-comms" placeholder="Ask GridAI about chats, calls or customers…" />
+
+              <Readiness ed="comms" />
 
               {!d ? (
                 <div className="hk-cards hk-cards--even" aria-busy="true"><div className="hk-skel" /><div className="hk-skel" /></div>

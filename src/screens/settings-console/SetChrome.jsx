@@ -9,13 +9,25 @@ import React, { useEffect, useState } from 'react';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon } from '@/runtime/dc';
 import { Sidebar as __Sidebar } from '@/shell/Shell';
-import { toast } from '@/runtime/ui';
+import { toast, confirmDialog } from '@/runtime/ui';
+import { navigate } from '@/runtime/routes';
 import { formatTime } from '@/lib/format';
+import { Dialog as __Dialog, Sheet as __Sheet } from '@/components/ui';
+import { readSettings, writeSettings, simulateOtherSave, SETTINGS_EVENT } from '@/lib/settingsStore';
+import { logChanges, getHistory, whoNow, HISTORY_EVENT } from '@/lib/settingsHistory';
 
 // ---- form logic shared by the settings screens -------------------------------------------------
-// A screen declares `formId` and `fields = { name: { l: label, d: default, req, k: kind } }`.
+// A screen declares `formId` and `fields = { name: { l: label, d: default, req, k: kind, risky } }`.
 // `this.f` (passed to the markup as `v.f`) reads and writes the values, tracks what changed,
 // validates on save, and moves focus to the first field that needs attention.
+// Saving (Nayeem's brief #16):
+//   · values are kept in lib/settingsStore.js with a version; a field someone else saved after the page opened raises
+//     "This page changed since you opened it" (keep theirs, or save mine over it) instead of a silent overwrite;
+//     ?conflict=1 makes another admin save this page a moment after it opens (demo)
+//   · every saved change goes to lib/settingsHistory.js (who, when, old → new); History in the save bar shows them
+//   · a field with `risky: { effects: [...] }` (currency, country, timezone) asks for the shop name before saving
+//   · leaving the page (a link, the browser) with unsaved changes asks "Leave without saving?"
+//   · ?focus=<field> (from the settings search) opens and highlights that field
 
 const CHECKS = {
   email: (x) => (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? '' : 'Enter a valid email address, like name@shop.com.'),
@@ -28,7 +40,7 @@ const CHECKS = {
 export class SettingsLogic extends DCLogic {
   constructor(p) {
     super(p);
-    this.state = { vals: {}, saved: {}, errs: {}, open: {}, savedAt: '' };
+    this.state = { vals: {}, saved: {}, errs: {}, open: {}, savedAt: '', savedBy: '', version: 0, guard: null };
     this.off = {};
     this.formRef = React.createRef();
     const self = this;
@@ -80,6 +92,15 @@ export class SettingsLogic extends DCLogic {
       },
       say: (message, tone) => () => toast(message, { tone: tone || 'info' }),
       focus: (n) => self.focusField(n),
+      // save guards (rendered by SetSaveBar): risky change, version conflict; the page's history
+      guard: () => self.state.guard,
+      closeGuard: () => self.setState({ guard: null }),
+      confirmRisk: () => { self.setState({ guard: null }); self.save({ riskOk: true }); },
+      keepTheirs: () => self.keepTheirs(),
+      saveMine: () => { self.setState({ guard: null }); self.save({ riskOk: true, force: true }); },
+      formId: () => self.formId || 'set',
+      savedBy: () => self.state.savedBy,
+      shopName: () => String(readSettings('general').values.store_name || 'GridShop'),
     };
   }
 
@@ -92,9 +113,95 @@ export class SettingsLogic extends DCLogic {
       }
     };
     document.addEventListener('keydown', this._key);
+    if (!this.fields || this.noSave) return;
+    this.loadSaved();
+    // saved in another tab (another admin in the demo): reload what isn't being edited here
+    this._sync = (e) => { if (!e || !e.detail || e.detail.formId === this.formId || e.type === 'storage') this.loadSaved(true); };
+    window.addEventListener(SETTINGS_EVENT, this._sync);
+    window.addEventListener('storage', this._sync);
+    // leaving with unsaved changes: the browser asks on close / reload, links ask here
+    this._unload = (e) => { if (this.f.dirty()) { e.preventDefault(); e.returnValue = ''; } };
+    window.addEventListener('beforeunload', this._unload);
+    this._leave = (e) => {
+      if (!this.f.dirty() || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = (e.composedPath ? e.composedPath() : [e.target]).find((el) => el && el.tagName === 'A' && el.getAttribute && el.getAttribute('href'));
+      if (!a || a.target === '_blank' || a.hasAttribute('download')) return;
+      const url = new URL(a.href, window.location.href);
+      if (url.origin !== window.location.origin || (url.pathname === window.location.pathname && url.search === window.location.search)) return;
+      e.preventDefault(); e.stopPropagation();
+      confirmDialog({ title: 'Leave without saving?', body: 'Your changes on this page will be lost.', confirmLabel: 'Leave page', tone: 'danger' }).then((ok) => {
+        if (!ok) return;
+        this.setState({ vals: {}, errs: {} }, () => navigate(url.pathname + url.search + url.hash));
+      });
+    };
+    document.addEventListener('click', this._leave, true);
+    // from the settings search: open and highlight one field
+    this._focus = (e) => { if (e.detail && this.fields[e.detail]) this.highlight(e.detail); };
+    window.addEventListener('gc:set-focus', this._focus);
+    try {
+      const q = new URLSearchParams(window.location.search);
+      const focus = q.get('focus');
+      if (focus && this.fields[focus]) setTimeout(() => this.highlight(focus), 250);
+      // demo: another admin saves this page a few seconds after it opens
+      if (q.get('conflict') === '1') this._conflictT = setTimeout(() => this.otherAdminSaves(), 4000);
+    } catch { /* ignore */ }
   }
 
-  componentWillUnmount() { if (this._key) document.removeEventListener('keydown', this._key); }
+  componentWillUnmount() {
+    if (this._key) document.removeEventListener('keydown', this._key);
+    if (this._sync) { window.removeEventListener(SETTINGS_EVENT, this._sync); window.removeEventListener('storage', this._sync); }
+    if (this._unload) window.removeEventListener('beforeunload', this._unload);
+    if (this._leave) document.removeEventListener('click', this._leave, true);
+    if (this._focus) window.removeEventListener('gc:set-focus', this._focus);
+    clearTimeout(this._conflictT);
+  }
+
+  /** Read the saved values (and their version). `quiet`: a save elsewhere; keep what is being edited here. */
+  loadSaved(quiet) {
+    const rec = readSettings(this.formId || 'set');
+    const known = Object.fromEntries(Object.entries(rec.values).filter(([n]) => this.fields[n]));
+    this.setState((st) => {
+      if (quiet && rec.version === st.version) return null;
+      const vals = { ...st.vals };
+      Object.keys(vals).forEach((n) => { if (n in known && vals[n] === known[n]) delete vals[n]; });
+      // a quiet reload keeps the version this page started from, so a save over someone else's change is caught
+      return { saved: { ...st.saved, ...known }, vals, ...(quiet ? {} : { version: rec.version }), savedAt: rec.savedAt ? formatTime(new Date(rec.savedAt)) : st.savedAt, savedBy: rec.savedBy || st.savedBy };
+    });
+  }
+
+  /** Open and highlight one field (from the settings search). */
+  highlight(n) {
+    this.focusField(n);
+    setTimeout(() => {
+      const el = document.getElementById(this.f.id(n));
+      const box = el && (el.closest('.set-box') || el.closest('label') || el);
+      if (!box) return;
+      box.setAttribute('data-set-hl', '');
+      setTimeout(() => box.removeAttribute('data-set-hl'), 2600);
+    }, 60);
+  }
+
+  /** Demo (?conflict=1): another admin changes the first text field of this page. */
+  otherAdminSaves() {
+    const n = Object.keys(this.fields).find((k) => typeof this.fields[k].d === 'string' && !this.fields[k].k);
+    if (!n) return;
+    const base = n in this.state.saved ? this.state.saved[n] : this.fields[n].d;
+    const who = 'Tanvir Hossain (CTO)';
+    simulateOtherSave(this.formId, { [n]: String(base).trim() + ' (updated)' }, who);
+    toast(who + ' saved ' + this.fields[n].l + ' on this page', { tone: 'info' });
+  }
+
+  /** The conflict dialog's "Keep their changes": take the saved values, drop mine for the fields they saved. */
+  keepTheirs() {
+    const g = this.state.guard || {};
+    const rec = readSettings(this.formId || 'set');
+    this.setState((st) => {
+      const vals = { ...st.vals };
+      (g.fields || []).forEach((n) => { delete vals[n]; });
+      return { guard: null, vals, saved: { ...st.saved, ...rec.values }, version: rec.version, savedAt: rec.savedAt ? formatTime(new Date(rec.savedAt)) : st.savedAt, savedBy: rec.savedBy };
+    });
+    toast('Their changes are on the page now');
+  }
 
   /** The error for one field, or '' when it is fine. */
   check(n, value) {
@@ -121,7 +228,7 @@ export class SettingsLogic extends DCLogic {
     else go();
   }
 
-  save() {
+  save(opts = {}) {
     const errs = {};
     for (const n of Object.keys(this.fields || {})) { const e = this.check(n, this.f.get(n, '')); if (e) errs[n] = e; }
     const bad = Object.keys(errs);
@@ -131,7 +238,27 @@ export class SettingsLogic extends DCLogic {
       return false;
     }
     if (!this.f.dirty()) return true;
-    this.setState((st) => ({ saved: { ...st.saved, ...st.vals }, vals: {}, errs: {}, savedAt: formatTime(new Date()) }));
+    const vals = { ...this.state.vals };
+    const before = (n) => (n in this.state.saved ? this.state.saved[n] : this.fields[n] ? this.fields[n].d : undefined);
+    // currency, country, timezone: explain what changes and ask for the shop name first
+    const risky = Object.keys(vals).filter((n) => this.fields[n] && this.fields[n].risky);
+    if (risky.length && !opts.riskOk) {
+      this.setState({ guard: { kind: 'risk', fields: risky.map((n) => ({ n, l: this.fields[n].l, from: before(n), to: vals[n], effects: this.fields[n].risky.effects || [] })) } });
+      return false;
+    }
+    if (!this.noStore && !this.props.embedded) {
+      const by = whoNow();
+      const res = writeSettings(this.formId || 'set', vals, { baseVersion: this.state.version, by, force: !!opts.force });
+      if (res.conflict) {
+        const c = res.conflict;
+        this.setState({ guard: { kind: 'conflict', by: c.savedBy, at: c.savedAt, fields: c.fields, rows: c.fields.map((n) => ({ n, l: (this.fields[n] || {}).l || n, theirs: c.values[n], mine: vals[n] })) } });
+        return false;
+      }
+      logChanges({ formId: this.formId || 'set', changes: Object.keys(vals).map((n) => ({ field: n, label: (this.fields[n] || {}).l || n, from: before(n), to: vals[n], secret: (this.fields[n] || {}).k === 'secret' })) });
+      this.setState({ version: res.version, savedBy: by });
+    }
+    this.setState((st) => ({ saved: { ...st.saved, ...vals }, vals: {}, errs: {}, savedAt: formatTime(new Date()) }));
+    if (this.afterSave) this.afterSave(vals);
     toast(this.savedMessage || 'Settings saved');
     return true;
   }
@@ -252,22 +379,103 @@ export function SetTips() {
 }
 
 export function SetSaveBar({ f, note }) {
+  const [hist, setHist] = useState(false);
   const dirty = f.dirty();
   const changed = f.count();
   const errors = f.errCount();
   const at = f.savedAt();
+  const by = f.savedBy ? f.savedBy() : '';
   let status;
   if (errors) status = <><span className="set-bar__dot set-bar__dot--bad"><__Icon name="triangle-alert" strokeWidth="1.75" width="13" height="13" aria-hidden="true" /></span>{'Could not save: ' + errors + (errors === 1 ? ' field needs' : ' fields need') + ' attention'}</>;
   else if (dirty) status = <><span className="set-bar__dot"><__Icon name="pencil" strokeWidth="1.75" width="13" height="13" aria-hidden="true" /></span>{changed + (changed === 1 ? ' unsaved change' : ' unsaved changes')}</>;
-  else status = <><__Icon name="circle-check" strokeWidth="1.75" width="16" height="16" aria-hidden="true" style={{ color: 'var(--text-success)' }} />All changes saved<span className="set-bar__note">{at ? '· ' + at + ' by you' : note || ''}</span></>;
+  else status = <><__Icon name="circle-check" strokeWidth="1.75" width="16" height="16" aria-hidden="true" style={{ color: 'var(--text-success)' }} />All changes saved<span className="set-bar__note">{at ? '· ' + at + ' by ' + (by || 'you') : note || ''}</span></>;
   return (
     <div className="set-bar" data-dirty={dirty ? 'true' : 'false'}>
       <span className="set-bar__status" role="status">{status}</span>
+      {f.formId ? <button type="button" className="set-bar__hist" onClick={() => setHist(true)}><__Icon name="history" width="14" height="14" aria-hidden="true" />History</button> : null}
       <span style={{ flex: '1' }} />
       {dirty ? <span className="set-bar__hint">Ctrl or ⌘ + S also saves</span> : null}
       <button type="button" className="ix-btn set-bar__discard" aria-disabled={dirty ? undefined : 'true'} onClick={dirty ? f.discard : undefined}>Discard</button>
       <button type="submit" className="ix-btn ix-btn--primary set-bar__save" aria-disabled={dirty ? undefined : 'true'}>Save changes</button>
+      {f.guard ? <SetGuards f={f} /> : null}
+      {f.formId ? <SetHistorySheet formId={f.formId()} open={hist} onClose={() => setHist(false)} /> : null}
     </div>
+  );
+}
+
+/** The dialogs a save can stop at: a risky change (type the shop name) or a version conflict. */
+function SetGuards({ f }) {
+  const g = f.guard();
+  const [typed, setTyped] = useState('');
+  useEffect(() => { setTyped(''); }, [g && g.kind]);
+  if (!g) return null;
+  if (g.kind === 'risk') {
+    const name = f.shopName();
+    const ok = typed.trim().toLowerCase() === name.trim().toLowerCase();
+    return (
+      <__Dialog open title={g.fields.length === 1 ? 'Change ' + g.fields[0].l.toLowerCase() + '?' : 'Change these settings?'} onClose={f.closeGuard}
+        footer={<>
+          <button type="button" className="gc-btn gc-btn--neutral" onClick={f.closeGuard}>Cancel</button>
+          <button type="button" className="gc-btn gc-btn--solid gc-btn--error" disabled={!ok} onClick={ok ? f.confirmRisk : undefined}>Change and save</button>
+        </>}>
+        <div className="set-guard">
+          {g.fields.map((x) => (
+            <div key={x.n} className="set-guard__item">
+              <p className="set-guard__change"><b>{x.l}</b><span>{String(x.from || '—')}</span><__Icon name="arrow-right" width="14" height="14" aria-hidden="true" /><span>{String(x.to || '—')}</span></p>
+              <ul className="set-guard__list">{x.effects.map((t) => <li key={t}>{t}</li>)}</ul>
+            </div>
+          ))}
+          <label className="set-guard__type">
+            <span>Type <b>{name}</b> to confirm</span>
+            <input className="gc-input" value={typed} autoComplete="off" data-autofocus onChange={(e) => setTyped(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (ok) f.confirmRisk(); } }} />
+          </label>
+        </div>
+      </__Dialog>
+    );
+  }
+  const when = g.at ? formatTime(new Date(g.at)) : '';
+  return (
+    <__Dialog open title="This page changed since you opened it" onClose={f.closeGuard}
+      footer={<>
+        <button type="button" className="gc-btn gc-btn--neutral" onClick={f.keepTheirs}>Keep their changes</button>
+        <button type="button" className="gc-btn gc-btn--solid" onClick={f.saveMine}>Save mine over theirs</button>
+      </>}>
+      <div className="set-guard">
+        <p className="set-guard__note">{(g.by || 'Someone') + (when ? ' saved at ' + when : ' saved this page') + '. You both changed:'}</p>
+        <table className="set-guard__table">
+          <thead><tr><th scope="col">Setting</th><th scope="col">Theirs</th><th scope="col">Yours</th></tr></thead>
+          <tbody>{g.rows.map((r) => <tr key={r.n}><th scope="row">{r.l}</th><td>{fmtVal(r.theirs)}</td><td>{fmtVal(r.mine)}</td></tr>)}</tbody>
+        </table>
+      </div>
+    </__Dialog>
+  );
+}
+const fmtVal = (v) => (v === true ? 'On' : v === false ? 'Off' : v == null || v === '' ? '—' : String(v).length > 60 ? String(v).slice(0, 57) + '…' : String(v));
+
+/** This page's change history in a side panel. */
+export function SetHistorySheet({ formId, open, onClose }) {
+  const [rows, setRows] = useState([]);
+  useEffect(() => {
+    if (!open) return undefined;
+    const read = () => setRows(getHistory({ formId, limit: 60 }));
+    read();
+    window.addEventListener(HISTORY_EVENT, read);
+    return () => window.removeEventListener(HISTORY_EVENT, read);
+  }, [open, formId]);
+  return (
+    <__Sheet open={open} title="Change history" onClose={onClose}>
+      {rows.length ? (
+        <ol className="set-hist">
+          {rows.map((r) => (
+            <li key={r.id} className="set-hist__row">
+              <span className="set-hist__what"><b>{r.label}</b><span>{r.from}</span><__Icon name="arrow-right" width="12" height="12" aria-hidden="true" /><span>{r.to}</span></span>
+              <span className="set-hist__who">{r.by} · {formatTime(new Date(r.at))} · {new Date(r.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+            </li>
+          ))}
+        </ol>
+      ) : <p className="set-hist__empty">No changes saved on this page yet.</p>}
+      <__Link className="set-hist__all" href="/settings-history">All settings history</__Link>
+    </__Sheet>
   );
 }
 
@@ -448,6 +656,32 @@ input[type="time"].set-in{min-width:96px}
   /* reveal / copy / replace buttons inside a key field are 36px to tap (the field itself is 44px) */
   .set-box>button{min-width:36px;min-height:36px}
 }
+
+/* save guards, history and the field highlighted by the settings search */
+.set-bar__hist{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 6px;border:0;border-radius:var(--radius-md);background:none;font:inherit;font-size:var(--text-xs);color:var(--text-link);cursor:pointer}
+.set-bar__hist:hover{background:var(--surface-subtle)}
+[data-set-hl]{outline:2px solid var(--primary);outline-offset:2px;background:var(--fill-primary-soft)!important;transition:outline-color .4s,background-color .4s}
+.set-guard{display:flex;flex-direction:column;gap:var(--space-3);font-size:var(--text-sm);color:var(--text-body)}
+.set-guard__item{display:flex;flex-direction:column;gap:6px;padding-bottom:var(--space-3);border-bottom:1px solid var(--border-subtle)}
+.set-guard__change{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0}
+.set-guard__change b{font-weight:var(--weight-semibold);color:var(--text-heading);margin-right:4px}
+.set-guard__change svg{color:var(--text-muted)}
+.set-guard__list{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:var(--text-xs);color:var(--text-body)}
+.set-guard__type{display:flex;flex-direction:column;gap:6px;font-size:var(--text-xs);color:var(--text-body)}
+.set-guard__type b{font-weight:var(--weight-semibold);color:var(--text-heading)}
+.set-guard__note{margin:0}
+.set-guard__table{width:100%;border-collapse:collapse;font-size:var(--text-xs)}
+.set-guard__table th,.set-guard__table td{padding:6px 8px;border-bottom:1px solid var(--border-subtle);text-align:left;vertical-align:top;overflow-wrap:anywhere}
+.set-guard__table thead th{color:var(--text-muted);font-weight:var(--weight-medium)}
+.set-guard__table tbody th{font-weight:var(--weight-medium);color:var(--text-heading)}
+.set-hist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.set-hist__row{display:flex;flex-direction:column;gap:2px;padding:10px 0;border-bottom:1px solid var(--border-subtle)}
+.set-hist__what{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:var(--text-sm);color:var(--text-body);overflow-wrap:anywhere}
+.set-hist__what b{font-weight:var(--weight-medium);color:var(--text-heading)}
+.set-hist__what svg{color:var(--text-muted)}
+.set-hist__who{font-size:var(--text-xs);color:var(--text-muted)}
+.set-hist__empty{margin:0;font-size:var(--text-sm);color:var(--text-muted)}
+.set-hist__all{display:inline-block;margin-top:var(--space-3);font-size:var(--text-sm);color:var(--text-link)}
 `;
 
 // ---- markup ----

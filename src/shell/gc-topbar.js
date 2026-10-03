@@ -3,6 +3,9 @@
    View store · Notifications · the signed-in user (always rightmost). Below 1024px a menu button opens the
    sidebar as a drawer, and the quick-access links move into the account menu.
    Attributes: crumb, page (the page title), placeholder, base (path to templates/, default "../"), theme="dark", height.
+   Under the bar, a page of an area the shop chose but has not set up shows a short setup prompt (lib/navSetup.js).
+   The account menu shows the person's roles (several roles = the union, lib/team.js), their start page
+   (lib/navProfile.js) and the shop's plan (lib/plans.js).
    Framework-free and rendered in a shadow root, like <gc-sidebar>, so React templates never reconcile it. */
 import { routeOf, navigate } from '../runtime/routes';
 import { getLocale, setLocale, toast } from '../runtime/ui';
@@ -34,7 +37,25 @@ function menuCrumb(fallback) {
   }
   return byPath || OLD_CRUMB[fallback] || fallback;
 }
-import { USERS, currentUser, roleOf, signInAs, signOut, SESSION_EVENT } from '../lib/team';
+import { USERS, currentUser, roleOf, roleTitles, signInAs, signOut, homeOf, navFor, landingChoices, canSee, SESSION_EVENT } from '../lib/team';
+import { getConvs, recentConvs, lastLine, ago as agoText, unreadCount, initialsOf, channelName } from '../lib/inbox';
+import { liveCount, LIVE_EVENT } from '../lib/liveCounts';
+import { currentPlan, PLAN_EVENT } from '../lib/plans';
+import { landingOf, setLanding, areaOf, NAV_PROFILE_EVENT } from '../lib/navProfile';
+
+// the menu area of this page: the side menu's active id, else the address
+function pageArea() {
+  if (typeof document === 'undefined') return null;
+  const sb = document.querySelector('gc-sidebar');
+  const raw = (sb && sb.getAttribute('active')) || '';
+  const path = (window.location.pathname.replace(/\/$/, '') || '/');
+  const pathOf = (it) => (it.to ? routeOf(it.to).split('?')[0] : '');
+  for (const g of NAV) for (const it of g.items) for (const c of it.children || []) if (pathOf(c) === path) return it.id;
+  const a = raw ? areaOf(raw) : null;
+  return a ? a.id : null;
+}
+const LATER_KEY = 'gc.setup.later';
+const later = () => { try { return JSON.parse(window.sessionStorage.getItem(LATER_KEY)) || []; } catch { return []; } };
 
 export function defineGcTopbar() {
   if (typeof window === 'undefined' || customElements.get('gc-topbar')) return;
@@ -47,6 +68,7 @@ export function defineGcTopbar() {
     store: '<path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4M2 7h20M22 7v3a2 2 0 0 1-2 2a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12a2 2 0 0 1-2-2V7"/>',
     ext: '<path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
     refresh: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+    chat: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
     bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
     chev: '<path d="m6 9 6 6 6-6"/>',
     check: '<path d="M20 6 9 17l-5-5"/>',
@@ -65,6 +87,8 @@ export function defineGcTopbar() {
     x: '<path d="M18 6 6 18M6 6l12 12"/>',
     menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
     help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/>',
+    flag: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7"/>',
+    alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/>',
     flask: '<path d="M10 2v7.53a2 2 0 0 1-.21.9L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.07-10.12a2 2 0 0 1-.21-.9V2M8.5 2h7M7 16h10"/>'
   };
   const ic = (n, s = 18, w = 1.75) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]}</svg>`;
@@ -130,6 +154,24 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
 .foot{display:block;margin:4px 0 0;padding:10px 8px 6px;border-top:1px solid var(--line);font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--navy);text-align:center;text-decoration:none}
 .only-narrow{display:none}
 .hr{height:1px;margin:6px 4px;background:var(--line)}
+.chl{display:flex;flex-direction:column;max-height:min(420px,calc(100dvh - 220px));overflow-y:auto}
+.chat{display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;column-gap:10px;padding:8px}
+.chat .cav{position:relative;width:40px;height:40px;border-radius:var(--radius-full);display:grid;place-items:center;overflow:hidden;background:var(--soft);color:var(--navy);font-size:var(--text-xs);font-weight:var(--weight-semibold)}
+.chat .cav img{width:100%;height:100%;object-fit:cover}
+.chat b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:var(--weight-medium)}
+.chat small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat.unread b{font-weight:var(--weight-semibold)}.chat.unread small{color:var(--ink);font-weight:var(--weight-medium)}
+.chat .side{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:var(--text-xs);color:var(--muted)}
+.chat .cdot{width:10px;height:10px;border-radius:var(--radius-full);background:var(--navy)}
+.chf{display:flex;gap:6px;padding:0 8px 6px}
+.chf button{height:28px;padding:0 12px;border:0;border-radius:var(--radius-full);background:var(--soft);font:inherit;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--body);cursor:pointer}
+.chf button.on{background:var(--navy);color:#fff}
+.chq{display:flex;flex-wrap:wrap;gap:6px;padding:4px 8px 2px}
+.chq a{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:1px solid var(--line);border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--ink);text-decoration:none}
+.chq a:hover{border-color:var(--navy);color:var(--navy)}
+.chq b{min-width:18px;height:18px;padding:0 5px;border-radius:var(--radius-full);background:var(--soft);font-size:var(--text-2xs);line-height:18px;text-align:center}
+.ib.chatbtn{color:var(--navy)}
+.badge.chat-n{background:var(--navy)}
 .chips{display:flex;flex-wrap:wrap;gap:6px;padding:4px 8px 8px}
 .chip{height:36px;padding:0 14px;border:1px solid var(--line);border-radius:var(--radius-full);background:var(--bg);font:inherit;font-size:var(--text-xs-plus);color:var(--body);cursor:pointer}
 .chip:hover{border-color:var(--navy);color:var(--navy)}
@@ -147,6 +189,14 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
 @container (max-width:900px){.grp,.sep,.store{display:none}.only-narrow{display:flex}}
 @container (max-width:640px){.helpbtn{width:40px;padding:0;justify-content:center}.helpbtn span{display:none}.pchip{padding:0 10px;gap:4px}.pchip .pl{display:none}.pchip .pn{display:inline}.bar{padding:0 8px 0 12px;gap:6px}.id{display:none}.scope{display:none}.search{min-width:0;flex:1 1 80px}.pop{position:fixed;left:12px!important;right:12px!important;top:72px;width:auto!important}}
 @media (max-width:1023px){.ib.menu{display:inline-flex}.bar{border-radius:0}}
+.lsel{margin-left:auto;max-width:150px;height:28px;padding:0 6px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--bg);font:inherit;font-size:var(--text-xs);color:var(--body);cursor:pointer}
+.setup{display:flex;align-items:center;gap:10px;min-height:40px;padding:6px 12px 6px 20px;border-bottom:1px solid var(--border-subtle,#e2e8f0);background:var(--fill-warning-soft,#fef3c7);font-size:var(--text-sm);color:var(--text-heading,#0f172a)}
+.setup>svg{flex:none;color:var(--text-warning,#a14f06)}
+.setup .st{flex:1;min-width:0}
+.setup .sgo{flex:none;display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:var(--radius-lg);background:var(--primary,#003087);color:#fff;font-size:var(--text-xs-plus);font-weight:var(--weight-medium);text-decoration:none;white-space:nowrap}
+.setup .sx{flex:none;display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:var(--radius-full);background:none;color:var(--text-body,#475569);cursor:pointer}
+.setup .sx:hover{background:rgba(255,255,255,.6)}
+@container (max-width:640px){.setup{padding:6px 8px 6px 12px;flex-wrap:wrap}.setup .sx{width:36px;height:36px}}
 @media (prefers-reduced-motion:reduce){.pop{animation:none}.scanbox::before{animation:none;top:58px}.spin{animation:none}}`;
 
   const NOTES = [
@@ -169,6 +219,18 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       window.addEventListener(SESSION_EVENT, this._loc);
       window.addEventListener(EDITION_EVENT, this._loc);
       window.addEventListener(PROPOSAL_EVENT, this._loc);
+      window.addEventListener(PLAN_EVENT, this._loc);
+      window.addEventListener(NAV_PROFILE_EVENT, this._loc);
+      // the chat badge and list follow the inbox (throttled: typing in the Inbox fires it often)
+      this._inbox = () => { window.clearTimeout(this._inboxT); this._inboxT = window.setTimeout(() => this.render(), 150); };
+      window.addEventListener(LIVE_EVENT, this._inbox);
+      // the setup prompt: which chosen areas are not set up yet (read after the first paint)
+      this._setup = () => import('../lib/navSetup').then(({ pendingSetup }) => {
+        const next = pendingSetup(); const key = next.map((x) => x.id).join(',');
+        if (key !== (this._setupKey || '')) { this._setupList = next; this._setupKey = key; this.render(); }
+      }).catch(() => {});
+      ['gc:connections', 'gc:ledger', 'gc:pos', 'gc:route', 'focus'].forEach((ev) => window.addEventListener(ev, this._setup));
+      this._setup();
       this._key = (e) => {
         if (e.key === 'Escape' && this._open) { this.close(true); }
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); const i = this.root.querySelector('input'); if (i) i.focus(); }
@@ -176,7 +238,7 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       if (!this._navBound) { this._navBound = true; this.root.addEventListener('click', (e) => { const a = e.composedPath().find((el) => el.matches && el.matches('a[href^="/"]')); if (a && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) { e.preventDefault(); this._open = ''; navigate(a.getAttribute('href')); } }); }
       document.addEventListener('pointerdown', this._doc); document.addEventListener('keydown', this._key);
     }
-    disconnectedCallback() { document.removeEventListener('pointerdown', this._doc); document.removeEventListener('keydown', this._key); window.removeEventListener('gc:locale', this._loc); window.removeEventListener(EDITION_EVENT, this._loc); window.removeEventListener(PROPOSAL_EVENT, this._loc); window.removeEventListener('gc:settle', this._loc); window.removeEventListener(SESSION_EVENT, this._loc); }
+    disconnectedCallback() { document.removeEventListener('pointerdown', this._doc); document.removeEventListener('keydown', this._key); window.removeEventListener('gc:locale', this._loc); window.removeEventListener(EDITION_EVENT, this._loc); window.removeEventListener(PROPOSAL_EVENT, this._loc); window.removeEventListener('gc:settle', this._loc); window.removeEventListener(SESSION_EVENT, this._loc); window.removeEventListener(PLAN_EVENT, this._loc); window.removeEventListener(NAV_PROFILE_EVENT, this._loc); window.removeEventListener(LIVE_EVENT, this._inbox); if (this._setup) ['gc:connections', 'gc:ledger', 'gc:pos', 'gc:route', 'focus'].forEach((ev) => window.removeEventListener(ev, this._setup)); }
     /** Closes the open popover; from the keyboard, focus goes back to the button that opened it. */
     close(refocus) { const k = this._open; this._open = ''; this.render(); if (refocus && k) { const el = this.root.querySelector(k === 'search' ? 'input' : `[data-act="${k}"]`); if (el) el.focus(); } }
     attributeChangedCallback() { if (this.isConnected) this.render(); }
@@ -220,8 +282,37 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
       const pOn = proposalsOn().length;
       const pText = L('Proposal: {n} on').replace('{n}', pOn);
       const pChip = pOn ? `<a class="pchip" href="/dev/proposal" aria-label="${esc(pText)}" title="${L('Proposal switches')}">${ic('flask', 15)}<span class="pl">${esc(pText)}</span><span class="pn" aria-hidden="true">${pOn}</span></a>` : '';
-      const me = currentUser(), myRole = roleOf(me);
-      const mePop = `<div style="display:flex;align-items:center;gap:10px;padding:8px"><span class="av">${esc(me.initials)}<i></i></span><span><span class="mn" style="display:block">${esc(me.name)}</span><span class="mr">${esc(myRole.title)} · ${esc(me.email)}</span></span></div>
+      const me = currentUser(), myRole = roleOf(me), titles = roleTitles(me);
+      // Messenger: the latest chats (lib/inbox.js); picking one opens it as a chat window on this page (ChatDock.jsx)
+      const showChats = has('comms') && canSee(me, 'inbox');
+      const chatN = showChats ? unreadCount(getConvs()) : 0;
+      const chatPop = !showChats || o !== 'chats' ? '' : (() => {
+        const all = getConvs();
+        const list = recentConvs(this._chatF === 'unread' ? all.filter((c) => c.unread) : all, 10);
+        const now = Date.now();
+        const row = (c) => `<button class="it chat${c.unread ? ' unread' : ''}" data-chat="${esc(c.id)}"><span class="cav">${c.avatar ? `<img src="${esc(c.avatar)}" alt="" style="object-position:${esc(c.pos || '50% 30%')}">` : esc(initialsOf(c.name))}</span><span style="min-width:0"><b>${esc(c.name)}</b><small>${esc(channelName(c.ch))} · ${esc(lastLine(c))}</small></span><span class="side">${esc(agoText((c.messages[c.messages.length - 1] || { at: now }).at, now))}${c.unread ? `<i class="cdot" role="img" aria-label="${L('Unread')}"></i>` : ''}</span></button>`;
+        const n = (k) => { const v = liveCount(k); return v ? `<b>${v}</b>` : ''; };
+        return `<div class="ph">${L('Chats')} <a href="/merchant-inbox">${L('Open Inbox')}</a></div>
+        <div class="chf" role="group" aria-label="${L('Show')}"><button data-chatf="all" class="${this._chatF !== 'unread' ? 'on' : ''}" aria-pressed="${this._chatF !== 'unread'}">${L('All')}</button><button data-chatf="unread" class="${this._chatF === 'unread' ? 'on' : ''}" aria-pressed="${this._chatF === 'unread'}">${L('Unread')}${chatN ? ' · ' + chatN : ''}</button></div>
+        <div class="chl">${list.length ? list.map(row).join('') : `<p style="margin:12px 8px;font-size:var(--text-sm);color:var(--muted)">${L('No unread chats')}</p>`}</div>
+        <div class="hr"></div>
+        <div class="chq"><a href="/merchant-inbox?view=comments">${L('Comments')} ${n('comments')}</a><a href="/merchant-inbox?view=mentions">${L('Mentions')} ${n('mentions')}</a><a href="/support-tickets">${L('Support tickets')} <b>5</b></a></div>`;
+      })();
+      const plan = currentPlan();
+      // the person's menu (role(s), edition, plan) with the "Set up" checks still to do; the area of this page
+      const menu = navFor(me, { setup: this._setupList || [] });
+      const here = pageArea();
+      const hereSetup = (menu.flatMap((g) => g.items).find((it) => it.id === here && it.setup) || {}).setup;
+      const hidden = later();
+      const herePath = window.location.pathname.replace(/\/$/, '');
+      // on the page that fixes it, the note stays without the button
+      const onFix = hereSetup && hereSetup.href.split('?')[0] === herePath;
+      const setupBar = hereSetup && !hidden.includes(hereSetup.id)
+        ? `<div class="setup" role="status">${ic('alert', 16)}<span class="st">${esc(L(hereSetup.note))}</span>${onFix ? '' : `<a class="sgo" href="${esc(hereSetup.href)}">${esc(L(hereSetup.label))}</a>`}<button class="sx" data-act="setup-later" data-id="${esc(hereSetup.id)}" aria-label="${L('Hide for now')}" title="${L('Hide for now')}">${ic('x', 16)}</button></div>` : '';
+      // start page choices: every page the person can open, by area (lib/team.js › landingChoices)
+      const landing = landingOf(me.id);
+      const landingOpts = `<option value=""${landing ? '' : ' selected'}>${L('My dashboard')}</option>` + landingChoices(me, menu).map((a) => `<optgroup label="${esc(L(a.area))}">${a.items.map((x) => `<option value="${esc(x.href)}"${x.href === landing ? ' selected' : ''}>${esc(L(x.label))}</option>`).join('')}</optgroup>`).join('');
+      const mePop = `<div style="display:flex;align-items:center;gap:10px;padding:8px"><span class="av">${esc(me.initials)}<i></i></span><span><span class="mn" style="display:block">${esc(me.name)}</span><span class="mr" style="display:block;white-space:normal">${esc(titles.map((x) => L(x)).join(' + '))}</span><span class="mr">${esc(me.email)}</span></span></div>
         <div class="hr"></div>
         <a class="it" href="/my-dashboard"><span class="ico">${ic('user', 16)}</span><span><b>${L('My dashboard')}</b><small>${L('Your tasks, numbers and team for today')}</small></span></a>
         <a class="it" href="/tasks"><span class="ico">${ic('check', 16)}</span><span><b>${L('My tasks')}</b></span></a>
@@ -230,7 +321,8 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
         ${has('online') ? `<a class="it only-narrow" href="${routeOf('storefront/Offers.dc.html')}"><span class="ico">${ic('store', 16)}</span><span><b>${L('View store')}</b></span></a>` : ''}
         ${has('commerce') ? `<a class="it only-narrow" href="${routeOf('order-detail/OrderDetail.dc.html')}"><span class="ico">${ic('receipt', 16)}</span><span><b>${L('Invoices')}</b></span></a>` : ''}
         <a class="it only-narrow" href="${routeOf('settings-console/SetMedia.dc.html')}"><span class="ico">${ic('folder', 16)}</span><span><b>${L('Files')}</b></span></a>
-        <div class="it" style="cursor:default"><span class="ico">${ic('store', 16)}</span><span><b>GridShop</b><small>${L('Business plan · 3 branches')}</small></span><span class="t" style="color:#047857">${ic('check', 14, 2.5)}</span></div>
+        <label class="it" style="cursor:default;align-items:center"><span class="ico">${ic('flag', 16)}</span><b style="white-space:nowrap">${L('Start page')}</b><select class="lsel" data-act="landing" aria-label="${L('Start page')}">${landingOpts}</select></label>
+        <a class="it" href="/subscription"><span class="ico">${ic('store', 16)}</span><span><b>GridShop</b><small>${esc(L(plan.name + ' plan'))} · ${L('3 branches')}</small></span><span class="t" style="color:#047857">${ic('check', 14, 2.5)}</span></a>
         <div class="it" style="cursor:default;align-items:center"><span class="ico">${ic('kb', 16)}</span><b>${L('Language')}</b><span class="seg" role="group" aria-label="${L('Language')}"><button data-lang="en" class="${locale === 'en' ? 'on' : ''}" aria-pressed="${locale === 'en'}">EN</button><button data-lang="bn" lang="bn" class="${locale === 'bn' ? 'on' : ''}" aria-pressed="${locale === 'bn'}">বাংলা</button></span></div>
         <div class="hr"></div>
         <a class="it" href="/set-profile"><span class="ico">${ic('user', 16)}</span><span><b>${L('Profile type')}</b><small>${L('Switch to a team member’s profile')}</small></span></a>
@@ -255,15 +347,26 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
   </div>
   <span class="sep" aria-hidden="true"></span>
   ${has('online') ? `<a class="store" href="${routeOf('storefront/Offers.dc.html')}" aria-label="View store (opens the storefront)">${ic('store', 16)}<span>${L('View store')}</span>${ic('ext', 13)}</a>` : ''}
+  ${showChats ? `<span class="wrap"><button class="ib chatbtn" data-act="chats" ${exp('chats')} aria-label="${L('Chats')}${chatN ? ', ' + L('{n} unread').replace('{n}', chatN) : ''}">${ic('chat')}${chatN ? `<span class="badge chat-n">${chatN}</span>` : ''}<span class="tip">${L('Chats')}</span></button>${pop('chats', chatPop, 'right:-48px;width:360px')}</span>` : ''}
   <span class="wrap"><button class="ib" data-act="notes" ${exp('notes')} aria-label="${L('Notifications')}${unread ? ', ' + unread + ' unread' : ''}">${ic('bell')}${unread ? `<span class="badge">${unread}</span>` : ''}<span class="tip">${L('Notifications')}</span></button>${pop('notes', notePop, 'right:-8px;width:360px')}</span>
-  <span class="wrap" style="margin-left:auto"><button class="me" data-act="me" ${exp('me')} aria-label="${L('Account menu')}, ${esc(me.name)}"><span class="av">${esc(me.initials)}<i></i></span><span class="mnm"><span class="mn" style="display:block">${esc(me.name)}</span><span class="mr">${esc(L(myRole.title))}</span></span><span class="chev">${ic('chev', 16)}</span></button>${pop('me', mePop, 'right:0;width:300px')}</span>
-</div>`;
+  <span class="wrap" style="margin-left:auto"><button class="me" data-act="me" ${exp('me')} aria-label="${L('Account menu')}, ${esc(me.name)}"><span class="av">${esc(me.initials)}<i></i></span><span class="mnm"><span class="mn" style="display:block">${esc(me.name)}</span><span class="mr">${esc(L(titles[0] || myRole.title))}${titles.length > 1 ? ' +' + (titles.length - 1) : ''}</span></span><span class="chev">${ic('chev', 16)}</span></button>${pop('me', mePop, 'right:0;width:300px')}</span>
+</div>${setupBar}`;
       const on = (sel, ev, fn) => this.root.querySelectorAll(sel).forEach((el) => el.addEventListener(ev, fn));
       on('[data-act="nav"]', 'click', () => window.dispatchEvent(new CustomEvent('gc:nav-toggle')));
       on('[data-act="scan"]', 'click', () => this.toggle('scan'));
       on('[data-act="inv"]', 'click', () => this.toggle('inv'));
       on('[data-act="files"]', 'click', () => this.toggle('files'));
       on('[data-act="notes"]', 'click', () => this.toggle('notes'));
+      on('[data-act="chats"]', 'click', () => this.toggle('chats'));
+      on('[data-chatf]', 'click', (e) => { this._chatF = e.currentTarget.getAttribute('data-chatf'); this.render(); });
+      on('[data-chat]', 'click', (e) => {
+        const id = e.currentTarget.getAttribute('data-chat');
+        this._open = '';
+        // on the Inbox the chat opens there; anywhere else as a chat window (components/inbox/ChatDock.jsx)
+        if (window.location.pathname.replace(/\/$/, '') === '/merchant-inbox') navigate('/merchant-inbox?c=' + encodeURIComponent(id));
+        else window.dispatchEvent(new CustomEvent('gc:chat-open', { detail: { id } }));
+        this.render();
+      });
       on('[data-act="me"]', 'click', () => this.toggle('me'));
       on('[data-act="help"]', 'click', () => { this._open = ''; window.dispatchEvent(new CustomEvent('gc:help')); });
       on('[data-act="sfocus"]', 'focus', () => { if (this._open !== 'search') { this._open = 'search'; this.render(); const i = this.root.querySelector('input'); if (i) i.focus(); } });
@@ -274,7 +377,15 @@ button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid rgba
         const u = signInAs(e.currentTarget.getAttribute('data-switch'));
         this._open = '';
         toast(`Signed in as ${u.name} · ${roleOf(u).title}`, { tone: 'info' });
-        navigate('/my-dashboard');
+        navigate(homeOf(u));
+      });
+      on('[data-act="landing"]', 'change', (e) => {
+        setLanding(me.id, e.currentTarget.value);
+        toast(L('Start page saved'), { tone: 'success' });
+      });
+      on('[data-act="setup-later"]', 'click', (e) => {
+        try { window.sessionStorage.setItem(LATER_KEY, JSON.stringify([...later(), e.currentTarget.getAttribute('data-id')])); } catch { /* ignore */ }
+        this.render();
       });
       on('[data-act="signout"]', 'click', () => { this._open = ''; signOut(); navigate(routeOf('merchant-signin/MerchantSignIn.dc.html')); });
       on('[data-lang]', 'click', (e) => {

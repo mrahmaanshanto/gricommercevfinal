@@ -21,6 +21,7 @@ import { formatBDT, formatDate, formatTime } from '@/lib/format';
 import { STOCK_PLACES, getStockPlaces, placeName } from '@/lib/locations';
 import { usePlaceList } from '@/lib/usePlaces';
 import { CATALOG, productBy, stockAt, getMoves } from '@/lib/stock';
+import { packsOf, unitOf } from '@/lib/units';
 import { getHolds } from '@/lib/stockHolds';
 import { MANAGERS, EMPLOYEES } from '@/lib/posStore';
 import { getAdjustments, addAdjustment, approveAdjustment, rejectAdjustment, needsApproval, APPROVAL_LIMIT, ADJUST_REASONS } from '@/lib/stockAdjustments';
@@ -42,6 +43,8 @@ const CSS = PICKER_CSS + `
 .sa-dir button[aria-pressed="true"].is-remove{background:var(--fill-error-soft);color:var(--text-danger)}
 .sa-qty{display:flex;align-items:flex-end;gap:var(--space-3);flex-wrap:wrap}
 .sa-qty .gc-input{width:120px}
+.sa-qty .sa-pack{width:160px}
+.sa-base{margin:0 0 10px}
 .sa-up{color:var(--text-success)!important}.sa-down{color:var(--text-danger)!important}
 .sa-note{display:flex;gap:var(--space-2);align-items:flex-start;margin:0;font-size:var(--text-xs);line-height:1.5}
 .sa-note.is-warn{color:var(--text-warning)}
@@ -86,7 +89,10 @@ export default function StockAdjustments() {
 
   const set = (patch) => { setForm((f) => ({ ...f, ...patch })); setErrs({}); };
   const product = productBy(form.sku);
-  const qty = num(form.qty);
+  // the quantity can be typed in packs (Box of 12, Carton of 48): stock is changed in base units (units.js)
+  const packs = product ? packsOf(product) : [];
+  const pack = form.pack ? packs.find((k) => k.id === form.pack) || null : null;
+  const qty = num(form.qty) * (pack ? pack.qty : 1);
   const change = form.dir === 'add' ? qty : -qty;
   const now = ready && product ? stockAt(product.sku, form.place, holds, moves) : { onHand: 0, held: 0, damaged: 0, available: 0 };
   const after = now.onHand + change;
@@ -105,7 +111,7 @@ export default function StockAdjustments() {
     if (first) document.getElementById('sa-' + first)?.focus();
     return !first;
   };
-  const payload = () => ({ sku: product.sku, place: form.place, qty: change, reason: form.reason, note: form.note.trim(), by: form.by });
+  const payload = () => ({ sku: product.sku, place: form.place, qty: change, reason: form.reason, note: form.note.trim(), by: form.by, ...(pack ? { pack: { id: pack.id, name: pack.name, qty: pack.qty }, packs: num(form.qty) } : {}) });
   const done = (row) => {
     reload();
     setForm(blank(form.sku, form.place));
@@ -241,9 +247,19 @@ export default function StockAdjustments() {
               </div>
             </div>
             <div>
-              <label className="gc-label" htmlFor="sa-qty">Pieces *</label>
+              <label className="gc-label" htmlFor="sa-qty">{packs.length ? 'How many *' : 'Pieces *'}</label>
               <input id="sa-qty" className={'gc-input' + (errs.qty ? ' gc-input--error' : '')} type="number" min="1" inputMode="numeric" value={form.qty} onChange={(e) => set({ qty: e.target.value })} aria-invalid={errs.qty ? 'true' : undefined} aria-describedby={errs.qty ? 'sa-qty-err' : undefined} />
             </div>
+            {packs.length ? (
+              <div>
+                <label className="gc-label" htmlFor="sa-pack">In</label>
+                <select id="sa-pack" className="gc-input gc-select sa-pack" value={form.pack || ''} onChange={(e) => set({ pack: e.target.value })}>
+                  <option value="">{unitOf(product.unit).label}</option>
+                  {packs.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
+                </select>
+              </div>
+            ) : null}
+            {pack && qty ? <p className="gc-help sa-base">{'= ' + qty + ' ' + unitOf(product.unit).short}</p> : null}
           </div>
           {errs.qty ? <p id="sa-qty-err" className="gc-help gc-help--error" role="alert" style={{ marginTop: 'calc(var(--space-3) * -1)' }}>{errs.qty}</p> : null}
           <div>

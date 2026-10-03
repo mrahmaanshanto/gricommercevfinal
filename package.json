@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "convert": "node scripts/convert-design.mjs",
     "pattern": "node scripts/normalize-type.mjs && node scripts/normalize-shape.mjs && node scripts/normalize-structure.mjs",
-    "check:screens": "node scripts/check-screens.mjs"
+    "check:screens": "node scripts/check-screens.mjs",
+    "test:nav": "node scripts/test-nav.mjs"
   },
   "dependencies": {
     "lucide": "^0.469.0",

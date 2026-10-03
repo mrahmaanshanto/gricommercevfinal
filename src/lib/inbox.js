@@ -11,24 +11,29 @@
 // Demo times are relative: when the data is more than 6 hours old every time is moved forward by
 // the same amount, so "22 minutes ago" stays 22 minutes ago whenever the demo is opened.
 // Every change fires the `gc:inbox` window event so open screens can read the data again.
+//   gc.inbox.mentions  social mentions of the shop (stories, posts, comments elsewhere) — the Mentions view
+//   gc.inbox.locks     the send lock: who is writing a reply in which conversation (lockOf / holdLock / releaseLock)
+// A channel's reply window comes from the channel adapter table (channelCaps.js), not from a sentence kept here.
 
 import { phoneDigits } from './customers';
+import { windowText, replyState as capsReplyState } from './channelCaps';
 
-const K = { convs: 'gc.inbox.convs', tags: 'gc.inbox.tags', replies: 'gc.inbox.replies', comments: 'gc.inbox.comments', rules: 'gc.inbox.rules', calls: 'gc.calls.log', me: 'gc.calls.me', anchor: 'gc.inbox.anchor' };
+const K = { mentions: 'gc.inbox.mentions', locks: 'gc.inbox.locks', convs: 'gc.inbox.convs', tags: 'gc.inbox.tags', replies: 'gc.inbox.replies', comments: 'gc.inbox.comments', rules: 'gc.inbox.rules', calls: 'gc.calls.log', me: 'gc.calls.me', anchor: 'gc.inbox.anchor' };
 const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
 const DAY = 24 * HOUR;
 const isBrowser = typeof window !== 'undefined';
 
 // ---- channels, staff, tags ----------------------------------------------------------------------
+// the reply window sentence is read from the channel adapter table (channelCaps.js)
 export const CHANNELS = {
-  facebook: { name: 'Facebook', window: 'Messenger allows replies for 24 hours after their last message' },
-  instagram: { name: 'Instagram', window: 'Instagram allows replies for 7 days after their last message' },
-  whatsapp: { name: 'WhatsApp', window: 'Free replies for 24 hours; after that only approved templates' },
-  tiktok: { name: 'TikTok', window: 'TikTok allows replies for 48 hours after their last message' },
-  linkedin: { name: 'LinkedIn', window: 'LinkedIn messages have no reply window' },
-  telegram: { name: 'Telegram', window: 'Telegram messages have no reply window' },
-  x: { name: 'X', window: 'X allows replies to direct messages at any time' },
+  facebook: { name: 'Facebook', window: windowText('facebook') },
+  instagram: { name: 'Instagram', window: windowText('instagram') },
+  whatsapp: { name: 'WhatsApp', window: windowText('whatsapp') },
+  tiktok: { name: 'TikTok', window: windowText('tiktok') },
+  linkedin: { name: 'LinkedIn', window: windowText('linkedin') },
+  telegram: { name: 'Telegram', window: windowText('telegram') },
+  x: { name: 'X', window: windowText('x') },
 };
 /** Channels that only bring public comments, replies or reviews (no chats). */
 export const COMMENT_ONLY = {
@@ -72,6 +77,8 @@ function rebase() {
   if (Array.isArray(comments)) writeRaw(K.comments, comments.map((c) => ({ ...c, at: t(c.at), replies: (c.replies || []).map((r) => ({ ...r, at: t(r.at) })) })));
   const calls = readRaw(K.calls);
   if (Array.isArray(calls)) writeRaw(K.calls, calls.map((c) => ({ ...c, at: t(c.at), doneAt: t(c.doneAt) })));
+  const mentions = readRaw(K.mentions);
+  if (Array.isArray(mentions)) writeRaw(K.mentions, mentions.map((x) => ({ ...x, at: t(x.at) })));
   writeRaw(K.anchor, now);
 }
 let rebased = false;
@@ -89,7 +96,9 @@ const uid = (p) => p + '-' + Date.now().toString(36) + Math.random().toString(36
 
 // ---- conversations ------------------------------------------------------------------------------
 // messages: { id, at, from: 'customer' | 'agent' | 'note' | 'system', by (staff id), type, text, ... }
-//   type text · image { img } · voice { dur } · product { sku } · order { order } · payment { amount, link, method, paid }
+//   type text · image { img } · voice { dur, vk (a recording made in this browser session) } · product { sku } · order { order }
+//        · payment { amount, link, method, paid } · story { story: 'mention' | 'reply', img } · call { dur, dir: 'out' | 'in' | 'missed' }
+//   reactions { who: emoji } (Messenger-style; 'customer' or a staff id) · replyTo (the message id it answers)
 //   agent messages carry a delivery status: sent · delivered · read. System rows carry an icon.
 const IMG_PARCEL = '/assets/901f735d539a8b71fb8e8162bb755ec3.webp';
 function seedConvs(now) {
@@ -182,7 +191,31 @@ function seedConvs(now) {
   ];
 }
 
-export const getConvs = () => load(K.convs, seedConvs);
+export const getConvs = () => {
+  const list = load(K.convs, seedConvs);
+  // browsers that saved the chats before the Messenger features get the demo reactions, story mention and call once
+  if (isBrowser && !readRaw('gc.inbox.msgr') && Array.isArray(list)) { writeRaw('gc.inbox.msgr', 1); const up = withMessenger(list, Date.now()); writeRaw(K.convs, up); return up; }
+  return list;
+};
+/** Demo rows for the Messenger features: reactions, a reply, a story mention, a call and a big emoji. */
+function withMessenger(list, now) {
+  const at = (min) => now - min * MIN;
+  const add = (id, fn) => { const c = list.find((x) => x.id === id); if (c) fn(c); };
+  add('c-nusrat', (c) => {
+    const m = c.messages.find((x) => x.from === 'agent' && x.type === 'text');
+    if (m) m.reactions = { customer: '❤️' };
+    const last = c.messages.filter((x) => x.from === 'customer' && x.type === 'text').pop();
+    if (last && !c.messages.some((x) => x.type === 'story')) c.messages.splice(c.messages.indexOf(last), 0, { id: 'm-story1', at: last.at - 60000, from: 'customer', type: 'story', story: 'mention', img: '/assets/dec2496b57e91a856eaa9f8fd17d9124.webp', text: 'Got my sunscreen from @gridshop 😍' });
+  });
+  add('c-mostafiz', (c) => {
+    const q = c.messages.find((x) => x.from === 'customer');
+    if (q && !c.messages.some((x) => x.type === 'call')) c.messages.push({ id: 'm-call1', at: at(6), from: 'agent', by: 'rina', type: 'call', dir: 'out', dur: 83 }, { id: 'm-thx1', at: at(4), from: 'customer', type: 'text', text: '👍', replyTo: c.messages.find((x) => x.from === 'agent' && x.type === 'text') ? c.messages.find((x) => x.from === 'agent' && x.type === 'text').id : '' });
+  });
+  add('c-shirin', (c) => { const m = c.messages.find((x) => x.from === 'agent'); if (m) m.reactions = { customer: '😍' }; });
+  add('c-sadia', (c) => { if (!c.messages.some((x) => x.id === 'm-ment1')) c.messages.push({ id: 'm-ment1', at: at(240), from: 'note', by: 'mehedi', type: 'text', text: '@Rina can you call her? She asked twice about the Sylhet delivery.' }); });
+  add('c-farhana', (c) => { if (!c.messages.some((x) => x.id === 'm-ment2')) c.messages.push({ id: 'm-ment2', at: at(320), from: 'note', by: 'tasnim', type: 'text', text: 'Refund RF-0006 is waiting for approval. @Rina please approve it in Payments.' }); });
+  return list;
+}
 export const saveConvs = (list) => put(K.convs, list);
 /** Change one conversation: `patch` is an object or a function of the conversation. */
 export function patchConv(id, patch) {
@@ -191,6 +224,9 @@ export function patchConv(id, patch) {
 /** Add a message (or several) to a conversation, with an optional patch of the conversation. */
 export function addMessages(id, msgs, patch) {
   const list = [].concat(msgs).map((m) => ({ id: uid('m'), at: Date.now(), type: 'text', ...m }));
+  // the send lock: a reply from an agent while a teammate is writing it is refused (notes and system rows pass)
+  const reply = list.find((m) => m.from === 'agent');
+  if (reply && lockOf(id, reply.by || ME)) return getConvs();
   return patchConv(id, (c) => ({ ...(typeof patch === 'function' ? patch(c) : patch || {}), messages: [...(c.messages || []), ...list] }));
 }
 export const systemMsg = (icon, text) => ({ from: 'system', icon, text });
@@ -249,6 +285,8 @@ export function previewOf(m) {
   if (m.type === 'product') return 'Product card';
   if (m.type === 'order') return 'Order ' + m.order;
   if (m.type === 'payment') return 'Payment link · ৳' + Number(m.amount || 0).toLocaleString('en-IN');
+  if (m.type === 'story') return m.story === 'mention' ? 'Mentioned you in their story' : 'Shared a post';
+  if (m.type === 'call') return m.dir === 'missed' ? 'Missed call' : 'Voice call · ' + fmtDur(m.dur);
   return m.text || '';
 }
 
@@ -499,3 +537,138 @@ export const AGENT_STATUS = { available: ['Available', 'success'], 'on-call': ['
 /** Same person by phone number (either side may be written with dashes or +88). */
 export const samePhone = (a, b) => !!a && !!b && phoneDigits(a) === phoneDigits(b);
 export { phoneDigits };
+
+// ---- reply capability and the send lock -----------------------------------------------------------
+/** Can an agent reply in this conversation now (from the channel adapter)? { state, label, until } */
+export function replyStateOf(c, now = Date.now(), connected = true) {
+  const lastIn = [...(c.messages || [])].reverse().find((m) => m.from === 'customer');
+  return capsReplyState(c.ch, lastIn ? lastIn.at : 0, { now, connected });
+}
+// One agent writes a reply at a time. Typing in a conversation holds its lock for LOCK_MS after the last key; others
+// see "Name is replying" and can't send until it is free. Front end only: kept in this browser (other tabs see it
+// through the storage event); a server would hold the lock for every device.
+export const LOCK_MS = 20 * 1000;
+const readLocks = () => (isBrowser ? readRaw(K.locks) || {} : {});
+/** Who else is replying in this conversation now: { by, name, at } or null. */
+export function lockOf(convId, me = ME, now = Date.now()) {
+  const l = readLocks()[convId];
+  if (!l || l.by === me || now - l.at > (l.ttl || LOCK_MS)) return null;
+  return { ...l, name: staffName(l.by) };
+}
+/** Hold (or refresh) the lock while typing. Returns false when someone else holds it. */
+export function holdLock(convId, by = ME, now = Date.now()) {
+  if (!convId || lockOf(convId, by, now)) return false;
+  const all = readLocks();
+  const was = all[convId];
+  all[convId] = { by, at: now };
+  writeRaw(K.locks, all);
+  if (!was || was.by !== by) changed();
+  return true;
+}
+export function releaseLock(convId, by = ME) {
+  const all = readLocks();
+  if (!all[convId] || all[convId].by !== by) return;
+  delete all[convId];
+  writeRaw(K.locks, all);
+  changed();
+}
+/** Demo: a teammate is writing in one conversation when the Inbox opens (for two minutes). */
+export function demoTeammateTyping(convId = 'c-sadia', by = 'mehedi') {
+  const all = readLocks();
+  if (all[convId] && Date.now() - all[convId].at < (all[convId].ttl || LOCK_MS)) return;
+  all[convId] = { by, at: Date.now(), ttl: 2 * 60 * 1000 };
+  writeRaw(K.locks, all);
+}
+
+// ---- Messenger features ---------------------------------------------------------------------------
+// Reactions, replies, voice messages, calls, mentions and the unread count the top bar and the menu show.
+export const REACTIONS = ['❤️', '😆', '😮', '😢', '😠', '👍'];
+/** React to a message (the same emoji again takes it back). */
+export function reactTo(convId, msgId, emoji, by = ME) {
+  return patchConv(convId, (c) => ({ messages: c.messages.map((m) => {
+    if (m.id !== msgId) return m;
+    const r = { ...(m.reactions || {}) };
+    if (r[by] === emoji) delete r[by]; else r[by] = emoji;
+    return { ...m, reactions: r };
+  }) }));
+}
+/** The reactions on a message, grouped: [[emoji, count]] most used first. */
+export function reactionsOf(m) {
+  const n = {};
+  Object.values((m && m.reactions) || {}).forEach((e) => { n[e] = (n[e] || 0) + 1; });
+  return Object.entries(n).sort((a, b) => b[1] - a[1]);
+}
+/** A message of only one to three emoji: shown large, without a bubble (as Messenger does). */
+export function bigEmoji(text) {
+  const t = String(text || '').trim();
+  if (!t || t.length > 24 || /[\p{L}\p{N}]/u.test(t)) return false;
+  const n = [...t.matchAll(/\p{Extended_Pictographic}/gu)].length;
+  return n >= 1 && n <= 3;
+}
+/** Chats with unread messages that aren't closed (the top bar badge and the menu count, as Messenger counts them). */
+export const unreadCount = (convs = getConvs(), now = Date.now()) => convs.filter((c) => c.unread && statusOf(c, now) !== 'closed').length;
+/** Chats for the Messenger list: newest first. */
+export const recentConvs = (convs = getConvs(), limit = 8) => convs.slice().sort((a, b) => lastAt(b) - lastAt(a)).slice(0, limit);
+export const markRead = (convId) => patchConv(convId, { unread: 0 });
+/** "You: …" for the agent's own last message, as Messenger writes it. */
+export function lastLine(c) {
+  const m = lastVisible(c);
+  if (!m) return '';
+  const p = previewOf(m);
+  return m.from === 'agent' ? 'You: ' + p : p;
+}
+
+// voice messages recorded in this browser session: the audio stays in memory (it is not saved in localStorage);
+// the message keeps its length, so after a reload it still shows as a voice message
+const VOICE = new Map();
+export const keepVoice = (key, url) => { if (key && url) VOICE.set(key, url); };
+export const voiceUrl = (key) => (key ? VOICE.get(key) || '' : '');
+
+// team mentions: "@Mehedi" in an internal note tells Mehedi
+export const mentionNames = () => STAFF.map((p) => firstName(p.name));
+/** Staff ids mentioned in a text ("@Rina can you check?"). */
+export const mentionedIn = (text) => STAFF.filter((p) => new RegExp('@' + firstName(p.name) + '\\b', 'i').test(String(text || ''))).map((p) => p.id);
+/** Notes that mention a person, newest first: [{ id, kind: 'team', convId, name, ch, by, text, at }]. */
+export function teamMentions(who = ME, convs = getConvs()) {
+  const out = [];
+  convs.forEach((c) => (c.messages || []).forEach((m) => { if (m.from === 'note' && m.by !== who && mentionedIn(m.text).includes(who)) out.push({ id: 'tm-' + m.id, kind: 'team', convId: c.id, name: c.name, ch: c.ch, by: m.by, text: m.text, at: m.at }); }));
+  return out.sort((a, b) => b.at - a.at);
+}
+
+// social mentions: people tagging the shop in a story, a post or a comment somewhere else
+function seedMentions(now) {
+  const a = (min) => now - min * MIN;
+  const M = (id, ch, kind, who, min, text, more) => ({ id, ch, kind, who, at: a(min), text, img: '', avatar: '', handle: who.startsWith('@') ? who : '', reach: 0, sentiment: 'positive', status: 'new', convId: '', ...more });
+  return [
+    M('mn-1', 'instagram', 'story', '@nusrat.wears', 45, 'Got my sunscreen from @gridshop 😍', { img: '/assets/dec2496b57e91a856eaa9f8fd17d9124.webp', avatar: '/assets/9f66d32bb99031029a6fbcfd91e221f2.png', reach: 1240, convId: 'c-nusrat' }),
+    M('mn-2', 'instagram', 'story', '@glowwithlamia', 180, 'Morning routine ft. @gridshop toner ✨', { img: '/assets/cfbbbbd758347fbb3f71590345d24674.webp', reach: 3800 }),
+    M('mn-3', 'x', 'post', '@deal_hunter_bd', 360, '@gridshop my order is 3 days late. Anyone else? 😠', { sentiment: 'negative', reach: 640 }),
+    M('mn-4', 'facebook', 'post', 'Tania Akter', 300, 'Fastest delivery in Dhaka 🙌 thanks GridShop!', { img: '/assets/901f735d539a8b71fb8e8162bb755ec3.webp', reach: 2100, avatar: '' }),
+    M('mn-5', 'tiktok', 'post', '@tanvir.rides', 1440, 'Unboxing the earbuds from @gridshop — 30 hours battery for real', { img: '/assets/99e39eac40a8abf8968649c253b23f9e.webp', reach: 8400, convId: 'c-tanvir' }),
+    M('mn-6', 'facebook', 'comment', 'Sabbir Hossain', 2900, 'Try GridShop, they have cash on delivery all over Bangladesh.', { reach: 0, where: 'Dhaka Deals & Offers (group)', status: 'done' }),
+  ];
+}
+export const MENTION_KIND = { story: 'Story', post: 'Post', comment: 'Comment', team: 'Team' };
+export const getMentions = () => load(K.mentions, seedMentions);
+export const saveMentions = (list) => put(K.mentions, list);
+export const patchMention = (id, patch) => saveMentions(getMentions().map((x) => (x.id === id ? { ...x, ...patch } : x)));
+export const openMentions = (list = getMentions()) => list.filter((x) => x.status === 'new').length;
+/**
+ * Reply to a mention in a private chat: opens the person's conversation (or starts one) with the story or post as its
+ * first message. Returns the conversation id.
+ */
+export function chatFromMention(x, by = ME) {
+  const convs = getConvs();
+  const known = convs.find((c) => c.id === x.convId) || convs.find((c) => c.ch === x.ch && (c.handle === x.who || c.name === x.who));
+  const card = { id: uid('m'), at: x.at, from: 'customer', type: 'story', story: x.kind === 'story' ? 'mention' : 'post', img: x.img, text: x.text };
+  let id;
+  if (known) {
+    id = known.id;
+    if (!known.messages.some((m) => m.type === 'story' && m.text === x.text)) saveConvs(convs.map((c) => (c.id === id ? { ...c, status: 'open', messages: [...c.messages, card] } : c)));
+  } else {
+    id = uid('c');
+    saveConvs([{ id, ch: CHANNELS[x.ch] ? x.ch : 'instagram', name: x.who, handle: x.handle || '', phone: '', avatar: x.avatar || '', pos: '', status: 'open', assignee: by, tags: ['From a mention'], unread: 0, snoozeUntil: null, blocked: false, note: '', links: [], messages: [card] }, ...convs]);
+  }
+  patchMention(x.id, { convId: id, status: 'done' });
+  return id;
+}

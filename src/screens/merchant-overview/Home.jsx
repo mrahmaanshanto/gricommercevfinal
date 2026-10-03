@@ -4,6 +4,10 @@
 // last 7 days and the best sellers. Nothing else: orders, stock and money each live on their own page.
 // The day's figures come from reports/dailySummary (the same pack as the 8 PM summary), so they always agree.
 // The monthly target is kept in gc.home.layout (tap "This month" to change it).
+// Brief #10: the to-do pills are action items (lib/actionItems.js: owner, severity, age, one key per issue; snooze or
+// dismiss from a pill's ⋯, View all lists them); "As of" says when the figures were worked out (with a refresh);
+// Export saves the chosen day and place's figures as CSV; a new shop sees a setup checklist (HomeExtras › Readiness)
+// instead of empty charts; Insights (observations with their numbers) sit apart from the to-do.
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -11,7 +15,12 @@ import { Icon } from '@/runtime/dc';
 import { getLocale, toast } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { Sheet } from '@/components/ui';
+import { HomeWidgets, WIDGETS_CSS } from '@/components/dashboard/HomeWidgets';
 import { Spark, Menu, figIcon } from '@/components/ui/IndexKit';
+import { downloadCsv } from '@/lib/reports/period';
+import { trackItems, ACTIONS_EVENT, SEVERITY, ageOf, ageText } from '@/lib/actionItems';
+import { PILLS_CSS } from './ActionPills';
+import { AsOf, Readiness, InsightsCard, changeInsight, isNewShop, EXTRAS_CSS } from './HomeExtras';
 import { formatBDT, formatDate } from '@/lib/format';
 import { dailySummary } from '@/lib/reports/dailySummary';
 import { addDays, monthStart } from '@/lib/reports/period';
@@ -58,7 +67,7 @@ const CSS = `
 .hm{gap:var(--space-5)}
 .hm-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3)}
 .hm-pick{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
-.hm-figs{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--space-6)}
+.hm-figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));align-items:center;gap:var(--space-3);flex:1 1 100%;width:100%;padding:var(--space-3) var(--space-4);border-radius:var(--radius-xl);background:var(--surface-card);box-shadow:var(--shadow-card)}
 .hm-fig{display:flex;flex-direction:column;gap:2px;padding:0;border:0;background:none;font:inherit;text-align:left;color:inherit;text-decoration:none;cursor:pointer}
 .hm-fig__label{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-body);white-space:nowrap;text-decoration:underline dotted var(--border-strong);text-underline-offset:3px}
 .hm-fig__row{display:flex;align-items:center;gap:6px;font-family:var(--font-data);font-size:var(--text-sm-plus);font-weight:var(--weight-semibold);color:var(--text-heading);font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -75,12 +84,8 @@ const CSS = `
 .hm-ask input::placeholder{color:var(--text-muted)}
 .hm-ask button{display:grid;flex:none;place-items:center;width:32px;height:32px;border:0;border-radius:var(--radius-full);background:var(--primary);color:#fff;cursor:pointer}
 .hm-ask button:disabled{background:var(--surface-subtle);color:var(--text-muted);cursor:default}
-.hm-todo{display:flex;flex-wrap:wrap;justify-content:center;gap:var(--space-2);max-width:760px}
-.hm-todo a{display:inline-flex;align-items:center;gap:var(--space-2);height:32px;padding:0 5px 0 12px;border:1px solid var(--border-subtle);border-radius:var(--radius-full);background:var(--surface-card);box-shadow:var(--shadow-xs);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);text-decoration:none;white-space:nowrap;transition:var(--transition-colors)}
-.hm-todo a:hover{border-color:var(--primary);color:var(--primary)}
-.hm-todo b{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:var(--radius-full);background:var(--surface-subtle);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.hm-done{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-success)}
 .hm-cards{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:var(--space-4);align-items:start}
+.hm-side{display:flex;flex-direction:column;gap:var(--space-4);min-width:0}
 .hm-total{display:flex;align-items:baseline;gap:var(--space-2);margin:0;font-family:var(--font-data);font-size:var(--text-xl);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .hm-total small{font-family:var(--font-sans);font-size:var(--text-xs);font-weight:var(--weight-regular);color:var(--text-muted)}
 .hm-bars{display:flex;align-items:flex-end;gap:var(--space-3);height:132px;margin-top:var(--space-4)}
@@ -103,7 +108,8 @@ const CSS = `
 @media (prefers-reduced-motion:reduce){.hm-skel{animation:none}}
 @media (max-width:1023px){.hm-cards{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:640px){
-  .hm-figs{flex-wrap:nowrap;width:calc(100% + 28px);margin:0 -14px;padding:0 14px;overflow-x:auto;gap:var(--space-5);scrollbar-width:none}
+  .hm-figs{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:var(--space-5);scrollbar-width:none}
+  .hm-figs>*{flex:none}
   .hm-figs::-webkit-scrollbar{display:none}
   .hm-hero{padding:var(--space-5) 0 var(--space-2)}
   .hm-hello{font-size:var(--text-xl)}
@@ -176,23 +182,48 @@ function build({ dayOffset, place, ed = 'full' }) {
   }
   const month = safe(() => salesByChannel(monthStart(day), addDays(day, 1), all).all.revenue, 0);
 
-  // the day's to-do as short pills ("Verify orders 4"), most urgent first; each opens the page where it is done
+  // the day's to-do as action items ("Verify orders 4"; lib/actionItems.js): one key per issue, who owns it, how
+  // urgent it is and since when; each opens the page where it is done
   const toVerify = byStatus.onhold + byStatus.processing + byStatus.pending;
+  const oldest = (list, f = (x) => x.at) => { const ts = list.map(f).filter((t) => Number(t) > 0); return ts.length ? Math.min(...ts) : undefined; };
+  const verifyList = orders.filter((o) => ['onhold', 'processing', 'pending'].includes(o.statusKey));
   const todo = [
-    has('online') && toVerify > 0 && ['Verify orders', toVerify, '/merchant-orders?status=onhold'],
-    has('online') && byStatus.ready > 0 && ['Send to courier', byStatus.ready, '/merchant-orders?status=ready'],
-    has('money') && m.late.length > 0 && ['Check payouts', m.late.length, '/settlements'],
-    has('money') && m.supplierOverdue.length > 0 && ['Pay suppliers', m.supplierOverdue.length, '/dues?tab=owe'],
-    has('money') && m.toPayOverdue.length > 0 && ['Pay bills', m.toPayOverdue.length, '/liabilities'],
-    has('catalog') && adjustments.length > 0 && ['Approve stock adjustments', adjustments.length, '/stock-adjustments'],
-    has('catalog') && poApproval.length > 0 && ['Approve purchase orders', poApproval.length, '/purchase-orders'],
-    has('online') && returnsToReceive.length > 0 && ['Receive returns', returnsToReceive.length, '/courier-returns'],
-    has('catalog') && stock.lowCount > 0 && ['Restock', stock.lowCount, '/stock'],
-  ].filter(Boolean).map(([label, n, href]) => ({ label, n, href }));
+    has('online') && toVerify > 0 && { key: 'orders:verify', label: 'Verify orders', n: toVerify, href: '/merchant-orders?status=onhold', severity: 'high', area: 'area-orders', owner: ['orders', 'comms', 'online-sales'], since: oldest(verifyList) },
+    has('online') && byStatus.ready > 0 && { key: 'orders:to-courier', label: 'Send to courier', n: byStatus.ready, href: '/merchant-orders?status=ready', severity: 'high', area: 'area-orders', owner: ['orders', 'wh-manager', 'wh-supervisor'], since: oldest(orders.filter((o) => o.statusKey === 'ready')) },
+    has('money') && m.late.length > 0 && { key: 'finance:late-payouts', label: 'Check payouts', n: m.late.length, value: m.lateTotal, href: '/settlements', severity: 'critical', area: 'area-payments', owner: ['ceo'], since: oldest(m.late, (p) => p.due) },
+    has('money') && m.supplierOverdue.length > 0 && { key: 'finance:supplier-bills', label: 'Pay suppliers', n: m.supplierOverdue.length, href: '/dues?tab=owe', severity: 'high', area: 'area-finances', owner: ['ceo', 'wh-manager'], since: oldest(m.supplierOverdue, (b) => b.due) },
+    has('money') && m.toPayOverdue.length > 0 && { key: 'finance:bills', label: 'Pay bills', n: m.toPayOverdue.length, href: '/liabilities', severity: 'high', area: 'area-finances', owner: ['ceo', 'hr'], since: oldest(m.toPayOverdue, (l) => l.due) },
+    has('catalog') && adjustments.length > 0 && { key: 'stock:adjustments', label: 'Approve stock adjustments', n: adjustments.length, href: '/stock-adjustments', severity: 'normal', area: 'area-inventory', owner: ['wh-manager'], since: oldest(adjustments) },
+    has('catalog') && poApproval.length > 0 && { key: 'purchasing:po-approval', label: 'Approve purchase orders', n: poApproval.length, href: '/purchase-orders', severity: 'normal', area: 'area-purchasing', owner: ['ceo', 'wh-manager'], since: oldest(poApproval) },
+    has('online') && returnsToReceive.length > 0 && { key: 'orders:returns', label: 'Receive returns', n: returnsToReceive.length, href: '/courier-returns', severity: 'normal', area: 'area-orders', owner: ['orders', 'wh-manager', 'wh-supervisor'], since: oldest(returnsToReceive) },
+    has('catalog') && stock.lowCount > 0 && { key: 'stock:restock', label: 'Restock', n: stock.lowCount, href: '/stock', severity: 'low', area: 'area-inventory', owner: ['wh-manager', 'shop-manager'] },
+  ].filter(Boolean);
   // online orders placed on each of the last 7 days (the Orders figure's trend line)
   const ordersTrend = trend.map((t) => orders.filter((o) => (o.at || 0) >= t.from && (o.at || 0) < addDays(t.from, 1)).length);
 
-  return { chans: CH, now, day, d, prev, sales, byStatus, money: m, stock, trend, ordersTrend, month, todo };
+  // insights: observations with their numbers (not to-dos), company-wide; shown only when the change is clear
+  const DAY = 24 * 60 * 60 * 1000;
+  const cut = dayOffset === 0 ? Math.max(1, now - day) : DAY;   // today: up to this time of day; yesterday: the whole day
+  const salesIn = (from, to) => safe(() => salesByChannel(from, to, all).all, { revenue: 0, orders: 0 });
+  const weekAgo = addDays(day, -7);
+  const sameDay = { a: salesIn(day, day + cut).revenue, b: salesIn(weekAgo, weekAgo + cut).revenue };
+  const lastWeekday = new Date(weekAgo).toLocaleDateString('en-GB', { weekday: 'long' });
+  const wk = salesIn(addDays(day, -6), addDays(day, 1)), wkBefore = salesIn(addDays(day, -13), addDays(day, -6));
+  const avg = (x) => (x.orders ? x.revenue / x.orders : 0);
+  const share = (from, to) => { const c = safe(() => salesByChannel(from, to, all), null); return c && c.all.revenue ? Object.fromEntries(CH.map(([k]) => [k, c[k].revenue / c.all.revenue])) : null; };
+  const shNow = share(addDays(day, -6), addDays(day, 1)), shBefore = share(addDays(day, -13), addDays(day, -6));
+  let shift = null;
+  if (shNow && shBefore && CH.length > 1) {
+    CH.forEach(([k]) => { const dlt = Math.round((shNow[k] - shBefore[k]) * 100); if (!shift || Math.abs(dlt) > Math.abs(shift.dlt)) shift = { k, dlt }; });
+    if (shift && Math.abs(shift.dlt) < 5) shift = null;
+  }
+  const insights = [
+    changeInsight({ key: 'sales-sameday', what: 'Sales', now: sameDay.a, before: sameDay.b, vs: 'last ' + lastWeekday, evidence: `${money(sameDay.a)} vs ${money(sameDay.b)}${dayOffset === 0 ? ' by this time' : ''}`, href: '/daily-summary' }),
+    changeInsight({ key: 'avg-sale', what: 'Average sale', now: avg(wk), before: avg(wkBefore), vs: 'the week before', evidence: `${money(avg(wk))} vs ${money(avg(wkBefore))} · last 7 days`, href: '/reports-centre' }),
+    shift && { key: 'channel-share', text: `${shift.k} ${shift.dlt >= 0 ? 'rose' : 'fell'} to ${Math.round(shNow[shift.k] * 100)}% of sales this week`, evidence: `${Math.round(shBefore[shift.k] * 100)}% the week before`, href: '/sales-profit', dir: shift.dlt >= 0 ? 'up' : 'down' },
+  ].filter(Boolean);
+
+  return { chans: CH, now, asOf: now, day, d, prev, sales, byStatus, money: m, stock, trend, ordersTrend, month, todo, insights };
 }
 
 function greeting(hour) { return hour < 12 ? ['Good morning', 'শুভ সকাল'] : hour < 17 ? ['Good afternoon', 'শুভ অপরাহ্ন'] : ['Good evening', 'শুভ সন্ধ্যা']; }
@@ -222,16 +253,22 @@ export default function Home() {
     window.addEventListener(EDITION_EVENT, edChange);
     const again = () => setTick((n) => n + 1);
     const loc = () => setLoc(getLocale());
-    ['gc:ledger', 'gc:orders', 'storage', 'focus'].forEach((e) => window.addEventListener(e, again));
+    ['gc:ledger', 'gc:orders', 'storage', 'focus', ACTIONS_EVENT].forEach((e) => window.addEventListener(e, again));
     window.addEventListener('gc:locale', loc);
-    return () => { ['gc:ledger', 'gc:orders', 'storage', 'focus'].forEach((e) => window.removeEventListener(e, again)); window.removeEventListener('gc:locale', loc); window.removeEventListener(EDITION_EVENT, edChange); };
+    return () => { ['gc:ledger', 'gc:orders', 'storage', 'focus', ACTIONS_EVENT].forEach((e) => window.removeEventListener(e, again)); window.removeEventListener('gc:locale', loc); window.removeEventListener(EDITION_EVENT, edChange); };
   }, []);
 
   // worked out after the first paint, so the page shows its outline at once
   const [data, setData] = useState(null);
   useEffect(() => {
-    if (!ready) return undefined;
-    const id = window.setTimeout(() => setData(build({ dayOffset, place, ed })), 0);
+    if (!ready || ed === 'comms' || ed === 'online') return undefined;   // those editions have their own Home
+    const id = window.setTimeout(() => {
+      const next = build({ dayOffset, place, ed });
+      // the to-do as action items: today for all places updates the records; another day or one place only reads them
+      next.todo = trackItems('home', next.todo, { sync: dayOffset === 0 && !place, user: safe(() => currentUser(), null) });
+      next.fresh = isNewShop();
+      setData(next);
+    }, 0);
     return () => window.clearTimeout(id);
   }, [ready, dayOffset, place, tick, ed]);
   const places = useMemo(() => (ready ? safe(() => getPlaces({ active: true }).filter((p) => p.type === 'Branch' || p.type === 'Warehouse'), []) : []), [ready]);
@@ -252,17 +289,45 @@ export default function Home() {
 
   const dayName = dayOffset === 0 ? 'today' : 'yesterday';
   const change = data ? pct(data.sales.today, data.sales.prev) : null;
+  // the chosen day and place's figures as CSV (what Home shows, plus the 7 days, best sellers and the to-do)
+  const exportCsv = () => {
+    if (!data) return;
+    const x = data, dayIso = new Date(x.day).toISOString().slice(0, 10);
+    const rows = [
+      ['GridCommerce · Home', formatDate(x.day), place || 'All places', 'As of ' + formatDate(x.asOf) + ' ' + new Date(x.asOf).toLocaleTimeString('en-GB')],
+      [],
+      ['Figure', 'Value', 'Day before', 'Change %'],
+      ['Sales', Math.round(x.sales.today), Math.round(x.sales.prev), change == null ? '' : change],
+      ['Bills', x.sales.bills, '', ''],
+      ...(has('online') ? [['Online orders placed', x.d.orders.placed, '', '']] : []),
+      ...(has('money') ? [['Money in hand', Math.round(x.money.cashTotal), '', ''], ['Payouts due this week', Math.round(x.money.thisWeek), '', ''], ['COD with couriers', Math.round(x.money.cod), '', ''], ['Invoices due', Math.round(x.money.invoices), '', ''], ['Owed to suppliers', Math.round(x.money.supplier), '', ''], ['Bills to pay', Math.round(x.money.toPay), '', '']] : []),
+      ['This month', Math.round(x.month), 'Target ' + target, Math.round(Math.min(1, x.month / target) * 100) + '% of target'],
+      ...(has('catalog') ? [['Low stock items', x.stock.lowCount, '', '']] : []),
+      [],
+      ['Day', ...x.chans.map(([c]) => c), 'Total'],
+      ...x.trend.map((t) => [formatDate(t.from), ...t.parts.map((v) => Math.round(v)), Math.round(t.total)]),
+      [],
+      ['Best seller', 'Sold', 'Sales'],
+      ...x.d.top.slice(0, 5).map((p) => [p.name, p.qty, Math.round(p.revenue)]),
+      [],
+      ['To do', 'Count', 'Priority', 'Waiting'],
+      ...x.todo.map((t) => [t.label, t.n, (SEVERITY[t.severity] || SEVERITY.normal).label, t.item ? ageText(ageOf(t.item)) : '']),
+    ];
+    downloadCsv(`home-${dayIso}-${(place || 'all-places').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.csv`, rows);
+    toast('Home exported');
+  };
   const askAi = (e) => { e.preventDefault(); if (!ask.trim()) return; window.dispatchEvent(new CustomEvent('gc:gridai', { detail: { q: ask.trim() } })); setAsk(''); };
 
   return (
     <div className="dc-screen ds" data-screen="Home">
-      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: CSS + PILLS_CSS + EXTRAS_CSS + WIDGETS_CSS }} />
       <div className="gc-shell">
         <Sidebar sticky="" active="home" />
         <main className="gc-shell__main">
           <Topbar crumb="Home" page="Dashboard" />
           <div className="gc-shell__content">
-            <div className="ix-page ix-page--narrow hm">
+            <div className="ix-page hm">
+              <div className="ix-page hm-top-wrap">
               <span className="gc-pagehead__about" hidden>The day at a glance: the key figures, what needs you today, and sales over the last 7 days. Tap a figure or a task to open its page.</span>
               <StockSetupBanner />
               <div className="hm-top">
@@ -277,6 +342,8 @@ export default function Home() {
                     </select>
                   ) : null}
                   <Menu label="Create" icon="plus" cls="ix-btn" align="start" items={create} />
+                  <button type="button" className="ix-btn" onClick={exportCsv} disabled={!data}><Icon name="download" width="16" height="16" aria-hidden="true" />Export</button>
+                  {data ? <AsOf at={data.asOf} onRefresh={() => setTick((n) => n + 1)} /> : null}
                 </div>
                 {data ? (
                   <div className="hm-figs" aria-label={'Key figures, ' + dayName}>
@@ -291,60 +358,20 @@ export default function Home() {
               <section className="hm-hero" aria-label="Today">
                 <h1 className="hm-hello">
                   <span>{locale === 'bn' ? helloBn : hello}{first ? ', ' + first : ''}!</span>
-                  {data && data.todo.length ? `Here's what needs you ${dayName}.` : "You're all caught up."}
+                  {`Here's your shop ${dayName}.`}
                 </h1>
                 <form className="hm-ask" onSubmit={askAi} role="search">
                   <Icon name="sparkles" width="18" height="18" aria-hidden="true" />
                   <input value={ask} onChange={(e) => setAsk(e.target.value)} placeholder="Ask GridAI about sales, orders or stock…" aria-label="Ask GridAI" />
                   <button type="submit" disabled={!ask.trim()} aria-label="Ask"><Icon name="arrow-up" width="16" height="16" aria-hidden="true" /></button>
                 </form>
-                {data ? (
-                  data.todo.length ? (
-                    <nav className="hm-todo" aria-label="To do">
-                      {data.todo.map((t) => <Link key={t.label} href={t.href}>{t.label}<b>{t.n}</b></Link>)}
-                    </nav>
-                  ) : <span className="hm-done"><Icon name="circle-check" width="16" height="16" aria-hidden="true" />Nothing is waiting for you.</span>
-                ) : null}
               </section>
 
-              {!data ? (
-                <div className="hm-cards" aria-busy="true"><div className="hm-skel" /><div className="hm-skel" /></div>
-              ) : (
-                <div className="hm-cards">
-                  <section className="ix-card" aria-label="Sales, last 7 days">
-                    <header className="ix-card__head"><h2>Sales · last 7 days</h2><Link href="/reports-centre">Reports</Link></header>
-                    <div className="ix-card__body">
-                      <p className="hm-total">{short(data.trend.reduce((a, t) => a + t.total, 0))}<small>{place || 'All places'}</small></p>
-                      {(() => {
-                        const max = Math.max(1, ...data.trend.map((t) => t.total));
-                        return (
-                          <div className="hm-bars" role="img" aria-label={data.trend.map((t) => `${formatDate(t.from)} ${money(t.total)}`).join(', ')}>
-                            {data.trend.map((t) => (
-                              <div key={t.from} className={'hm-bar' + (t.today ? ' is-today' : '')} title={`${formatDate(t.from)} · ${money(t.total)}`}>
-                                <div className="hm-bar__stack" style={{ height: `${(t.total / max) * 100}%` }}>
-                                  {t.parts.map((v, i) => <span key={data.chans[i][0]} style={{ height: `${t.total ? (v / t.total) * 100 : 0}%`, background: data.chans[i][1] }} />)}
-                                </div>
-                                <span className="hm-bar__day">{new Date(t.from).toLocaleDateString('en-GB', { weekday: 'short' })}</span>
-                              </div>
-                            ))}
-                          </div>
-                        );
-                      })()}
-                      {data.chans.length > 1 ? <div className="hm-legend">{data.chans.map(([c, col]) => <span key={c}><i className="hm-dot" style={{ background: col }} />{c}</span>)}</div> : null}
-                    </div>
-                  </section>
-                  <section className="ix-card" aria-label={'Best sellers ' + dayName}>
-                    <header className="ix-card__head"><h2>Best sellers {dayName}</h2><Link href="/all-products">Products</Link></header>
-                    <div className="ix-card__body">
-                      {data.d.top.length ? (
-                        <div className="hm-list">
-                          {data.d.top.slice(0, 5).map((p) => <div key={p.sku || p.name} className="hm-row"><span><b>{p.name}</b><small>{p.qty} sold</small></span><span className="hm-num">{money(p.revenue)}</span></div>)}
-                        </div>
-                      ) : <p className="hm-empty">No sales {dayName} yet.</p>}
-                    </div>
-                  </section>
-                </div>
-              )}
+              <Readiness ed={ed} />
+
+              {data && !data.fresh && data.insights && data.insights.length ? <InsightsCard items={data.insights} scope={place ? 'All places' : ''} /> : null}
+              </div>
+              {!data ? <div className="hm-cards" aria-busy="true"><div className="hm-skel" /><div className="hm-skel" /></div> : data.fresh ? null : <HomeWidgets has={has} />}
             </div>
           </div>
         </main>

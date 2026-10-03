@@ -30,6 +30,9 @@ import { CATALOG, productBy, addMove, stockAt } from '@/lib/stock';
 import { addHolds, holdsFor, closeHold } from '@/lib/stockHolds';
 import { DAMAGED_PLACE, onlinePlace } from '@/lib/locations';
 import { postEntry, accountForMethod, accountBy } from '@/lib/ledger';
+import { requestRefund } from '@/lib/refunds';
+import { issueCredit } from '@/lib/storeCredit';
+import { returnSerial } from '@/lib/serials';
 
 const DAY = 86400000;
 const r2 = (n) => Math.round(n * 100) / 100;
@@ -337,7 +340,11 @@ export default function ReturnExchange() {
       if (e) posts.push(e);
     };
     if (dir === 'in') post(m, amt, 'sale');
-    else if (dir === 'out' && PAY_METHODS.includes(m)) post(m, -amt, 'refund');
+    // cash goes back over the counter now; a bKash / Nagad / card refund becomes a tracked refund (lib/refunds) that is
+    // sent, and posted, from Payments › Operations (over the refund limit it waits for approval first)
+    let refund = null;
+    if (dir === 'out' && m === 'Cash') post(m, -amt, 'refund');
+    else if (dir === 'out' && PAY_METHODS.includes(m)) refund = requestRefund({ ref: sel.ref, customer: custName, phone, amount: amt, method: m, reason: reasonLabel, source: kindWord });
     else if (dir === 'out' && m === 'Cut from due' && rest) post('Cash', -rest, 'refund');
     const row = addReturn({
       at: now, channel: sel.channel, ref: sel.ref, source: sel.kind, customer: custName, phone,
@@ -346,6 +353,11 @@ export default function ReturnExchange() {
       place: stockPlace, by: staff, approvedBy: approver || '',
       account: posts.length ? posts[0].account : '', ledger: posts.map((e) => e.id),
     });
+
+    // store credit lands in the customer's wallet (lib/storeCredit), so the POS and checkout can spend it
+    if (dir === 'out' && m === 'Store credit' && phone) issueCredit({ phone, amount: amt, source: 'return', ref: row.id, by: staff, channel: sel.channel === 'Wholesale' ? 'Wholesale' : sel.channel === 'Retail' ? 'Retail' : 'Online' });
+    // serial / IMEI numbers that came back go back on the register at the place the goods went
+    back.forEach((l) => (l.serials || []).slice(0, picks[l.id] || 0).forEach((sn) => returnSerial(sn, { ref: row.id, place: stockPlace })));
 
     // mark the quantities on the sale itself so they cannot come back twice, and take money off the due
     if (sel.kind === 'pos') {
@@ -408,7 +420,7 @@ export default function ReturnExchange() {
 
     const moneyText = (dir === 'in' ? `${money(amt)} collected by ${m}` : dir === 'even' ? 'Even swap, nothing paid'
       : m === 'Cut from due' ? `${money(cut)} taken off the due${rest ? ` · ${money(rest)} given back in cash` : ''}`
-        : m === 'Store credit' ? `${money(amt)} kept as store credit` : `${money(amt)} given back by ${m}`)
+        : m === 'Store credit' ? `${money(amt)} kept as store credit` : refund ? `Refund ${refund.id} of ${money(amt)} by ${m} ${refund.stage === 'requested' ? 'waits for approval' : 'is ready to send'}` : `${money(amt)} given back by ${m}`)
       + (posts.length ? ` · ${posts.map((e) => (accountBy(e.account) || {}).name).join(', ')} updated` : '');
     const stockText = (resell ? `Back on sale at ${sel.place}` : `Moved to ${DAMAGED_PLACE}, not for sale`)
       + (noRecord.length ? ` · no stock record for ${noRecord.join(', ')}` : '')

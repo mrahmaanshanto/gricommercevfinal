@@ -1,5 +1,6 @@
 // Reports · Marketing & support group. See ../catalogue.js for the definition contract.
-//   ad-spend-roas      ad spend against the online sales it brought, cost per delivered order
+//   ad-spend-roas      ad spend against the delivered sales credited to each campaign (attribution model), Delivered
+//                      ROAS and cost per delivered order (metric dictionary, ../metrics.js)
 //   discounts-coupons  money given off: item, bill, coupon, member and points discounts
 //   promo-results      flash sales: units, sales, discount cost and the lift in shop sales
 //   team-inbox         chats by agent and channel: first reply, closed, chats that became orders
@@ -9,8 +10,8 @@
 //   referrals-report   invite-a-friend: friends joined, bought, rewards earned and paid
 
 import * as salesBook from '../../salesBook';
-import { getOrders, isCounterSale } from '../../orders';
-import { getAdSpend, SOURCE_OF_PLATFORM } from '../../adSpend';
+import { getOrders } from '../../orders';
+import { getAdSpend } from '../../adSpend';
 import { getInvoices } from '../../invoices';
 import { POS_KEYS, load } from '../../posStore';
 import { getConvs, getCalls, getComments, staffName, channelName, POSTS, INTENTS } from '../../inbox';
@@ -18,6 +19,8 @@ import { getPosts, getAuthors, seoScore } from '../../blog';
 import { getReferralRecords, getMembers } from '../../loyalty';
 import { formatBDT } from '../../format';
 import { bucketsOf, sum, groupBy, addDays, startOfDay } from '../period';
+import { metricValue } from '../metrics';
+import { creditTable, modelLabel } from '../../attribution';
 
 const safe = (fn, fb) => { try { const v = fn(); return v == null ? fb : v; } catch { return fb; } };
 const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
@@ -30,95 +33,70 @@ const saleLines = () => safe(() => (typeof salesBook.getSaleLines === 'function'
 const channelTotals = (from, to) => safe(() => salesBook.salesByChannel(from, to), null);
 
 // ---- ad spend & ROAS ------------------------------------------------------------------------------
-const OPEN = ['onhold', 'processing', 'pending', 'approved', 'ready', 'shipped'];
+const PLATFORM_CHANNEL = { Facebook: 'meta_ads', Instagram: 'meta_ads', Google: 'google_ads', TikTok: 'tiktok_ads' };
 const adSpendRoas = {
   id: 'ad-spend-roas',
   group: 'marketing',
   title: 'Ad spend & ROAS',
-  description: 'What you paid for ads, the online sales and orders they brought, sales per ৳1 of ads and the cost of each delivered order.',
+  description: 'What you paid for ads, the delivered sales credited to each campaign, Delivered ROAS and the cost of each delivered order.',
   icon: 'megaphone',
-  keywords: 'ads facebook instagram google tiktok boost campaign roas return on ad spend cost per order marketing',
+  keywords: 'ads facebook instagram google tiktok boost campaign roas delivered return on ad spend cost per order marketing attribution',
   filters: [],
   defaultPeriod: 'lastmonth',
   compute({ from, to }) {
+    const ctx = { from, to };
     const ads = getAdSpend().filter((a) => inP(a.at, from, to));
     const spend = sum(ads, (a) => a.amount);
-    const lines = saleLines().filter((l) => l.channel === 'Online' && inP(l.at, from, to));
-    const orderById = new Map(safe(() => getOrders(), []).map((o) => [o.id, o]));
-    const delivered = (id) => { const o = orderById.get(id); return !o || !(o.statusKey === 'returned' || o.statusKey === 'cancelled' || OPEN.includes(o.statusKey)); };
-    // online orders in the period: { id, source, revenue }
-    let orders = [];
-    let onlineSales;
-    if (lines.length) {
-      const byId = new Map();
-      lines.forEach((l) => {
-        const id = l.saleId || l.id;
-        const o = byId.get(id) || byId.set(id, { id, source: l.source || 'Not recorded', revenue: 0 }).get(id);
-        o.revenue += Number(l.revenue) || 0;
-      });
-      orders = [...byId.values()];
-      onlineSales = sum(orders, (o) => o.revenue);
-    } else {
-      const ch = channelTotals(from, to);
-      onlineSales = ch ? ch.Online.revenue : 0;
-      const n = ch ? ch.Online.orders : 0;
-      // no order-level source yet: one lump, delivered unless the order list says otherwise
-      const back = safe(() => getOrders(), []).filter((o) => !isCounterSale(o) && inP(o.at, from, to) && (o.statusKey === 'returned' || o.statusKey === 'cancelled')).length;
-      orders = n ? [{ id: '', source: 'Not recorded', revenue: onlineSales, count: n, notDelivered: Math.min(back, n) }] : [];
-    }
-    const count = (list) => list.reduce((a, o) => a + (o.count || 1), 0);
-    const deliveredCount = orders.reduce((a, o) => a + (o.count ? o.count - (o.notDelivered || 0) : delivered(o.id) ? 1 : 0), 0);
-    // sales and orders by source, shared among that source's campaigns by spend
-    const bySource = new Map();
-    orders.forEach((o) => { const s = bySource.get(o.source) || bySource.set(o.source, { revenue: 0, orders: 0, delivered: 0 }).get(o.source); s.revenue += o.revenue; s.orders += o.count || 1; s.delivered += o.count ? o.count - (o.notDelivered || 0) : delivered(o.id) ? 1 : 0; });
-    const campaigns = [...groupBy(ads, (a) => a.platform + '|' + a.campaign)].map(([, list]) => ({ platform: list[0].platform, campaign: list[0].campaign, spend: sum(list, (a) => a.amount), payments: list.length }));
-    const srcSpend = {};
-    campaigns.forEach((c) => { const s = SOURCE_OF_PLATFORM[c.platform] || ''; if (s) srcSpend[s] = (srcSpend[s] || 0) + c.spend; });
+    const ch = channelTotals(from, to);
+    const onlineSales = ch ? ch.Online.revenue : 0;
+    const onlineOrders = ch ? ch.Online.orders : 0;
+    // credit for orders delivered in the period, under the shop's attribution model
+    const cred = safe(() => creditTable({ from, to, basis: 'delivered' }), { rows: [], total: { delivered: 0, deliveredSales: 0 } });
+    const paid = cred.rows.filter((r) => r.paid);
+    const paidDelivered = paid.reduce((a, r) => a + r.delivered, 0);
+    const campaigns = [...groupBy(ads, (a) => a.platform + '|' + a.campaign)].map(([, list]) => ({ platform: list[0].platform, campaign: list[0].campaign, spend: sum(list, (a) => a.amount) }));
+    const credited = (c) => {
+      const row = paid.find((r) => r.channel === PLATFORM_CHANNEL[c.platform]);
+      return (row && row.campaigns.find((x) => x.campaign === c.campaign)) || { delivered: 0, deliveredSales: 0 };
+    };
     const rows = campaigns.map((c) => {
-      const s = SOURCE_OF_PLATFORM[c.platform] || '';
-      const got = s && bySource.get(s);
-      const share = got && srcSpend[s] ? c.spend / srcSpend[s] : 0;
-      const sales = got ? r2(got.revenue * share) : 0;
-      const ord = got ? Math.round(got.orders * share * 10) / 10 : 0;
-      const del = got ? got.delivered * share : 0;
-      return { platform: c.platform, campaign: c.campaign, source: s || 'Not matched', spend: c.spend, orders: ord, sales, roas: got && c.spend ? sales / c.spend : null, cpo: del ? c.spend / del : null, _href: '/expenses-bills' };
+      const got = credited(c);
+      return { platform: c.platform, campaign: c.campaign, spend: c.spend, orders: Math.round(got.delivered * 10) / 10, sales: r2(got.deliveredSales), roas: c.spend ? r2(got.deliveredSales / c.spend) : null, cpo: got.delivered ? r2(c.spend / got.delivered) : null, _href: '/campaigns' };
     });
-    // sales from sources no ad was paid for this period
-    [...bySource].filter(([s]) => !srcSpend[s]).forEach(([s, v]) => rows.push({ platform: '—', campaign: s === 'Not recorded' ? 'Online orders · source not recorded' : `${s} · no paid ads`, source: s, spend: 0, orders: v.orders, sales: r2(v.revenue), roas: null, cpo: null }));
-    const fromAds = orders.filter((o) => srcSpend[o.source]);
+    // delivered sales credited to channels nobody paid for
+    cred.rows.filter((r) => !r.paid && r.delivered > 0).forEach((r) => rows.push({ platform: '—', campaign: r.name + ' · no paid ads', spend: 0, orders: Math.round(r.delivered * 10) / 10, sales: r2(r.deliveredSales), roas: null, cpo: null }));
     const { buckets, keyOf } = bucketsOf(from, to);
     const spendS = buckets.map(() => 0), salesS = buckets.map(() => 0);
     const at = (t) => buckets.findIndex((b) => b.key === keyOf(t));
     ads.forEach((a) => { const i = at(a.at); if (i >= 0) spendS[i] += a.amount; });
-    if (lines.length) lines.forEach((l) => { const i = at(l.at); if (i >= 0) salesS[i] += Number(l.revenue) || 0; });
-    else { const ch = channelTotals(from, to); if (ch) Object.entries(ch.Online.days).forEach(([k, v]) => { const i = buckets.findIndex((b) => b.key === keyOf(new Date(k + 'T12:00').getTime())); if (i >= 0) salesS[i] += v; }); }
+    if (ch) Object.entries(ch.Online.days).forEach(([k, v]) => { const i = buckets.findIndex((b) => b.key === keyOf(new Date(k + 'T12:00').getTime())); if (i >= 0) salesS[i] += v; });
     const top = campaigns.slice().sort((a, b) => b.spend - a.spend)[0];
+    const roas = metricValue('delivered_roas', ctx), cpo = metricValue('cost_per_delivered', ctx);
     return {
       kpis: [
-        { key: 'spend', label: 'Ad spend', value: spend, format: 'money', good: 'none', sub: ads.length ? `${ads.length} payment${ads.length === 1 ? '' : 's'} · ${campaigns.length} campaign${campaigns.length === 1 ? '' : 's'}` : 'No ad spend recorded' },
-        { key: 'sales', label: 'Online sales', value: r2(onlineSales), format: 'money', good: 'up', sub: `${count(orders)} online orders` },
-        { key: 'roas', label: 'ROAS (sales per ৳1 of ads)', value: spend ? r2(onlineSales / spend) : null, format: 'num', good: 'up', sub: spend ? `৳${r2(onlineSales / spend)} of online sales for each ৳1` : '' },
-        { key: 'cpo', label: 'Cost per delivered order', value: deliveredCount && spend ? r2(spend / deliveredCount) : null, format: 'money', good: 'down', sub: `${deliveredCount} delivered` },
-        { key: 'fromads', label: 'Orders from advertised sources', value: count(fromAds), format: 'int', good: 'up', sub: top ? `Most spend: ${top.campaign}` : '' },
+        { key: 'spend', metric: 'ad_spend', label: 'Ad spend', value: spend, format: 'money', good: 'none', sub: ads.length ? `${ads.length} payment${ads.length === 1 ? '' : 's'} · ${campaigns.length} campaign${campaigns.length === 1 ? '' : 's'}` : 'No ad spend recorded' },
+        { key: 'sales', metric: 'sales', label: 'Online sales', value: r2(onlineSales), format: 'money', good: 'up', sub: `${onlineOrders} online orders` },
+        { key: 'roas', metric: 'delivered_roas', label: 'Delivered ROAS', value: roas == null ? null : r2(roas), format: 'num', good: 'up', sub: modelLabel() },
+        { key: 'cpo', metric: 'cost_per_delivered', label: 'Cost per delivered order', value: cpo == null ? null : r2(cpo), format: 'money', good: 'down', sub: `${Math.round(paidDelivered)} delivered from ads` },
+        { key: 'fromads', label: 'Delivered orders from ads', value: Math.round(paidDelivered), format: 'int', good: 'up', sub: top ? `Most spend: ${top.campaign}` : '' },
       ],
       chart: { type: 'bar', labels: buckets.map((b) => b.label), series: [{ name: 'Ad spend', tone: 'warning', values: spendS }, { name: 'Online sales', tone: 'primary', values: salesS.map(r2) }], format: 'money0' },
       table: {
         columns: [
           { key: 'campaign', label: 'Campaign' },
           { key: 'platform', label: 'Platform' },
-          { key: 'source', label: 'Orders from' },
           { key: 'spend', label: 'Spend', format: 'money', total: 'sum' },
-          { key: 'orders', label: 'Orders', format: 'num', total: 'sum' },
-          { key: 'sales', label: 'Sales', format: 'money', total: 'sum' },
-          { key: 'roas', label: 'ROAS', format: 'num', total: spend ? r2(onlineSales / spend) : null },
+          { key: 'orders', label: 'Delivered orders', format: 'num', total: 'sum' },
+          { key: 'sales', label: 'Delivered sales', format: 'money', total: 'sum' },
+          { key: 'roas', label: 'Delivered ROAS', format: 'num', total: roas == null ? null : r2(roas) },
           { key: 'cpo', label: 'Per delivered order', format: 'money' },
         ],
         rows,
         sort: { key: 'spend', dir: 'desc' },
       },
       notes: [
-        'Facebook and Instagram ads are matched with orders that came from Facebook, Google ads with website orders; a source’s sales are shared between its campaigns by what each one cost.',
-        'ROAS is all online sales (before VAT) divided by ad spend. A delivered order is one not returned, cancelled or still on the way. Add ad spend with “Add ad spend” so it shows here and in Marketing expenses.',
+        `Credit: ${modelLabel()} (change it on Attribution & UTM). Delivered sales are goods value before VAT and delivery charges, counted on the day the courier delivered.`,
+        'Delivered ROAS = delivered sales credited to ads ÷ ad spend. Add ad spend with “Add ad spend” so it shows here and in Marketing expenses.',
       ],
     };
   },

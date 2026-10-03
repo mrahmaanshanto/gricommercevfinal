@@ -216,41 +216,33 @@ export function CommentsView({ now, onOpenConv, wide }) {
 function Comment({ c, ch, now, selected, onSelect, reply, replies, onReply, onReplyText, onPost, onDm, onLike, onHide, onUnhide, onDelete, onAssign, onSaved }) {
   const intent = INTENTS[c.intent];
   const hidden = c.status === 'hidden';
+  const t = now || Date.now();
+  // Facebook-style: the comment in a grey bubble with the name inside, a "time · Like · Reply" line under it, and the
+  // shop's replies nested below with a thread line
   return (
     <li className={'cm-item' + (hidden ? ' is-hidden' : '') + (selected ? ' is-sel' : '')}>
       <input type="checkbox" className="gc-check cm-check" checked={selected} onChange={onSelect} aria-label={`Select ${c.author}’s comment`} />
       <Avatar name={c.author} size={36} />
       <div className="cm-body">
-        <div className="cm-top">
+        <div className="cm-bub">
           <b className="cm-author">{c.author}</b>
-          {intent ? <span className={'gc-badge gc-badge--' + intent.tone}><Icon name={intent.icon} width="12" height="12" aria-hidden="true" />{intent.label}</span> : null}
-          <span className="cm-senti" title={SENTIMENTS[c.sentiment][0] + ' sentiment'}><span className="ib-dot" style={{ background: SENTIMENTS[c.sentiment][1] }} />{SENTIMENTS[c.sentiment][0]}</span>
-          {c.status === 'answered' ? <span className="gc-badge gc-badge--success"><Icon name="check" width="12" height="12" aria-hidden="true" />Answered</span> : null}
-          {hidden ? <span className="gc-badge gc-badge--slate"><Icon name="eye-off" width="12" height="12" aria-hidden="true" />{c.hiddenBy ? 'Hidden · ' + c.hiddenBy : 'Hidden'}</span> : null}
-          <span className="ib-sub cm-time">{ago(c.at, now || Date.now())}</span>
-          {c.assignee ? <StaffAvatar id={c.assignee} size={22} /> : null}
+          <p className="cm-text">{c.text}</p>
+          {c.liked ? <span className="cm-likes" aria-label="Liked by the shop"><Icon name="heart" width="12" height="12" aria-hidden="true" /></span> : null}
         </div>
-        <p className="cm-text">{c.text}</p>
-        {c.replies.length ? (
-          <ul className="cm-replies">
-            {c.replies.map((r, i) => (
-              <li key={i}><span className="cm-page"><Icon name={r.by === 'auto' ? 'bot' : 'store'} width="12" height="12" aria-hidden="true" /></span><span><b>{r.by === 'auto' ? 'Auto-reply' : 'Shop · ' + staffName(r.by).split(' ')[0]}</b> <span className="ib-sub cm-inline">{ago(r.at, now || Date.now())}</span><span className="cm-rtext">{r.text}</span></span></li>
-            ))}
-          </ul>
-        ) : null}
-        <div className="cm-acts">
+        <div className="cm-line">
+          <span className="cm-time">{ago(c.at, t)}</span>
           {hidden ? (
             <>
-              <button type="button" className="gc-btn gc-btn--xs gc-btn--flat" onClick={onUnhide}><Icon name="eye" width="14" height="14" aria-hidden="true" />Unhide</button>
-              <button type="button" className="gc-btn gc-btn--xs gc-btn--flat gc-btn--error" onClick={onDelete}><Icon name="trash-2" width="14" height="14" aria-hidden="true" />Delete</button>
+              <button type="button" className="cm-lbtn" onClick={onUnhide}>Unhide</button>
+              <button type="button" className="cm-lbtn cm-lbtn--danger" onClick={onDelete}>Delete</button>
             </>
           ) : (
             <>
-              <button type="button" className="gc-btn gc-btn--xs gc-btn--flat" aria-expanded={!!reply} onClick={onReply}><Icon name="corner-up-left" width="14" height="14" aria-hidden="true" />Reply</button>
-              <button type="button" className="gc-btn gc-btn--xs gc-btn--flat" onClick={onDm}><Icon name="send" width="14" height="14" aria-hidden="true" />{c.dm ? 'Open DM' : 'Reply privately'}</button>
-              <button type="button" className={'gc-btn gc-btn--xs gc-btn--flat' + (c.liked ? ' cm-liked' : '')} aria-pressed={c.liked} onClick={onLike}><Icon name="heart" width="14" height="14" aria-hidden="true" />{c.liked ? 'Liked' : 'Like'}</button>
-              <button type="button" className="gc-btn gc-btn--xs gc-btn--flat" onClick={onHide}><Icon name="eye-off" width="14" height="14" aria-hidden="true" />Hide</button>
-              <Menu label="More" button={({ toggle, open }) => <button type="button" className="gc-btn gc-btn--xs gc-btn--flat" aria-expanded={open} onClick={toggle} aria-label={`More actions for ${c.author}’s comment`}><Icon name="ellipsis" width="14" height="14" aria-hidden="true" /></button>}>
+              <button type="button" className={'cm-lbtn' + (c.liked ? ' is-on' : '')} aria-pressed={c.liked} onClick={onLike}>{c.liked ? 'Liked' : 'Like'}</button>
+              <button type="button" className="cm-lbtn" aria-expanded={!!reply} onClick={onReply}>Reply</button>
+              <button type="button" className="cm-lbtn" onClick={onDm}>{c.dm ? 'Open chat' : 'Reply privately'}</button>
+              <button type="button" className="cm-lbtn" onClick={onHide}>Hide</button>
+              <Menu label="More" button={({ toggle, open }) => <button type="button" className="cm-lbtn cm-lbtn--icon" aria-expanded={open} onClick={toggle} aria-label={`More actions for ${c.author}’s comment`}><Icon name="ellipsis" width="16" height="16" aria-hidden="true" /></button>}>
                 {(close) => (
                   <>
                     <p className="ib-menu__head">Assign to</p>
@@ -263,21 +255,41 @@ function Comment({ c, ch, now, selected, onSelect, reply, replies, onReply, onRe
               </Menu>
             </>
           )}
+          <span className="cm-tags">
+            {intent ? <span className={'gc-badge gc-badge--' + intent.tone}><Icon name={intent.icon} width="12" height="12" aria-hidden="true" />{intent.label}</span> : null}
+            {c.sentiment === 'negative' ? <span className="cm-senti" title="Negative sentiment"><span className="ib-dot" style={{ background: SENTIMENTS.negative[1] }} />Negative</span> : null}
+            {c.status === 'answered' ? <span className="gc-badge gc-badge--success"><Icon name="check" width="12" height="12" aria-hidden="true" />Answered</span> : null}
+            {hidden ? <span className="gc-badge gc-badge--slate"><Icon name="eye-off" width="12" height="12" aria-hidden="true" />{c.hiddenBy ? 'Hidden · ' + c.hiddenBy : 'Hidden'}</span> : null}
+            {c.assignee ? <StaffAvatar id={c.assignee} size={22} /> : null}
+          </span>
         </div>
+        {c.replies.length ? (
+          <ul className="cm-replies">
+            {c.replies.map((r, i) => (
+              <li key={i} className="cm-rep">
+                <span className="cm-page"><Icon name={r.by === 'auto' ? 'bot' : 'store'} width="14" height="14" aria-hidden="true" /></span>
+                <span className="cm-rep__col">
+                  <span className="cm-bub cm-bub--shop"><b className="cm-author">{r.by === 'auto' ? 'Auto-reply' : 'Shop · ' + staffName(r.by).split(' ')[0]}</b><span className="cm-text">{r.text}</span></span>
+                  <span className="cm-line"><span className="cm-time">{ago(r.at, t)}</span></span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
         {reply ? (
           <form className="cm-reply" onSubmit={(e) => { e.preventDefault(); if (reply.text.trim()) onPost(reply.text.trim()); }}>
-            <p className="ib-sub">Replying publicly on {channelName(ch)} as the shop — everyone can see this.</p>
-            <textarea className="gc-input" rows="2" data-autofocus autoFocus value={reply.text} onChange={(e) => onReplyText(e.target.value)} aria-label={`Public reply to ${c.author}`} placeholder="Answer the question, then invite them to DM for size and stock…" onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (reply.text.trim()) onPost(reply.text.trim()); } }} />
-            <div className="cm-reply__row">
+            <span className="cm-page cm-page--lg"><Icon name="store" width="16" height="16" aria-hidden="true" /></span>
+            <div className="cm-reply__col">
+              <div className="cm-reply__pill">
+                <textarea className="cm-reply__input" rows="1" data-autofocus autoFocus value={reply.text} onChange={(e) => onReplyText(e.target.value)} aria-label={`Public reply to ${c.author}`} placeholder={`Reply to ${c.author} as the shop…`} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (reply.text.trim()) onPost(reply.text.trim()); } }} />
+                <button type="submit" className="cm-reply__send" disabled={!reply.text.trim()} aria-label="Post reply"><Icon name="send" width="16" height="16" aria-hidden="true" /></button>
+              </div>
+              <p className="ib-sub cm-reply__note">Public on {channelName(ch)} · everyone can see this · <button type="button" className="cm-lbtn" onClick={onReply}>Cancel</button></p>
               <div className="ib-scroll-x cm-quick">
-                {QUICK.map(([l, t]) => <button key={l} type="button" className={'ib-chip th-chip' + (l === 'বাংলা' ? ' ib-bn' : '')} onClick={() => onReplyText(fillReply(t, { name: c.author }))}>{l}</button>)}
+                {QUICK.map(([l, tx]) => <button key={l} type="button" className={'ib-chip th-chip' + (l === 'বাংলা' ? ' ib-bn' : '')} onClick={() => onReplyText(fillReply(tx, { name: c.author }))}>{l}</button>)}
                 <Menu label="Saved replies" up align="left" wide button={({ toggle, open }) => <button type="button" className="ib-chip th-chip" aria-expanded={open} onClick={toggle}><Icon name="zap" width="14" height="14" aria-hidden="true" />Saved</button>}>
                   {(close) => replies.slice(0, 8).map((r) => <MenuItem key={r.id} onClick={() => { onSaved(r); close(); }} hint={'/' + r.short}><span className={r.lang === 'bn' ? 'ib-bn' : ''}>{r.title}</span></MenuItem>)}
                 </Menu>
-              </div>
-              <div className="cm-reply__btns">
-                <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={onReply}>Cancel</button>
-                <button type="submit" className="gc-btn gc-btn--sm gc-btn--solid" disabled={!reply.text.trim()}>Post reply</button>
               </div>
             </div>
           </form>
@@ -360,36 +372,47 @@ export const COMMENTS_CSS = `
 .cm-bar .ib-search{flex:1 1 200px}
 .cm-selall{display:inline-flex;align-items:center;gap:var(--space-2);height:44px;padding:0 var(--space-2);font-size:var(--text-sm);color:var(--text-heading)}
 .cm-selall b{font-weight:var(--weight-medium)}
-.cm-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--space-2)}
-.cm-item{display:flex;gap:var(--space-3);padding:var(--space-3) var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-card)}
-.cm-item.is-sel{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
-.cm-item.is-hidden{background:var(--surface-page)}
-.cm-item.is-hidden .cm-text{color:var(--text-muted)}
-.cm-check{flex:none;margin-top:8px}
-.cm-body{flex:1;min-width:0}
-.cm-top{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1-5) var(--space-2)}
-.cm-author{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.cm-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--space-1)}
+.cm-item{display:flex;gap:var(--space-2);padding:var(--space-2) var(--space-2);border-radius:var(--radius-xl);transition:background-color var(--duration-fast) ease;animation:cm-in 220ms cubic-bezier(.23,1,.32,1) both}
+.cm-item:hover{background:var(--surface-page)}
+.cm-item.is-sel{background:var(--fill-primary-soft)}
+.cm-item.is-hidden .cm-bub{opacity:.6}
+.cm-check{flex:none;margin-top:10px}
+.cm-body{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start}
+.cm-bub{position:relative;display:inline-flex;flex-direction:column;max-width:100%;padding:var(--space-2) var(--space-3);border-radius:var(--radius-2xl);background:var(--surface-quiet)}
+.cm-bub--shop{background:var(--fill-primary-soft)}
+.cm-author{font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.cm-text{margin:0;font-size:var(--text-sm);line-height:var(--text-sm-lh);color:var(--text-heading);overflow-wrap:anywhere}
+.cm-likes{position:absolute;right:-8px;bottom:-8px;display:grid;place-items:center;width:20px;height:20px;border-radius:var(--radius-full);background:var(--error);color:var(--text-inverse);box-shadow:0 0 0 2px var(--surface-card);animation:cm-pop 260ms cubic-bezier(.34,1.56,.64,1)}
+.cm-line{display:flex;flex-wrap:wrap;align-items:center;gap:2px var(--space-3);margin:4px 0 0 var(--space-3);font-size:var(--text-xs)}
+.cm-time{color:var(--text-muted)}
+.cm-lbtn{padding:0;border:0;background:none;font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-body);cursor:pointer}
+.cm-lbtn:hover{text-decoration:underline}
+.cm-lbtn.is-on{color:var(--text-danger)}
+.cm-lbtn--danger{color:var(--text-danger)}
+.cm-lbtn--icon{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:var(--radius-full)}
+.cm-lbtn--icon:hover{background:var(--surface-subtle);text-decoration:none}
+.cm-tags{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--space-1-5)}
 .cm-senti{display:inline-flex;align-items:center;gap:4px;font-size:var(--text-xs);color:var(--text-muted)}
-.cm-time{margin-left:auto}
-.cm-text{margin:var(--space-1) 0 0;font-size:var(--text-sm);line-height:var(--text-sm-lh);color:var(--text-heading);overflow-wrap:anywhere}
 .cm-replies{list-style:none;margin:var(--space-2) 0 0;padding:0 0 0 var(--space-3);border-left:2px solid var(--border-subtle);display:flex;flex-direction:column;gap:var(--space-2)}
-.cm-replies li{display:flex;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-body)}
-.cm-replies b{font-weight:var(--weight-medium);color:var(--text-heading)}
-.cm-page{display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:var(--radius-full);background:var(--fill-primary-soft);color:var(--primary)}
-.cm-inline{display:inline}
-.cm-rtext{display:block}
-.cm-acts{display:flex;flex-wrap:wrap;gap:2px;margin:var(--space-2) 0 0 calc(var(--space-2) * -1)}
-.cm-acts .gc-btn--xs{padding:0 var(--space-2);color:var(--text-body)}
-.cm-acts .gc-btn--xs:hover{color:var(--primary)}
-.cm-acts .gc-btn--error{color:var(--text-danger)}
-.cm-acts .cm-liked{color:var(--text-danger)}
-.cm-reply{display:flex;flex-direction:column;gap:var(--space-2);margin-top:var(--space-2);padding:var(--space-3);border-radius:var(--radius-lg);background:var(--surface-page)}
-.cm-reply .ib-sub{margin:0}
-.cm-reply .gc-input{background:var(--surface-card)}
-.cm-reply__row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
-.cm-quick{flex:1 1 220px;min-width:0}
+.cm-rep{display:flex;gap:var(--space-2);animation:cm-in 220ms cubic-bezier(.23,1,.32,1) both}
+.cm-rep__col{min-width:0;display:flex;flex-direction:column;align-items:flex-start}
+.cm-page{display:grid;place-items:center;flex:none;width:28px;height:28px;border-radius:var(--radius-full);background:var(--primary);color:var(--text-inverse)}
+.cm-page--lg{width:32px;height:32px}
+.cm-reply{display:flex;gap:var(--space-2);width:100%;margin-top:var(--space-2);animation:cm-in 180ms cubic-bezier(.23,1,.32,1)}
+.cm-reply__col{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--space-1-5)}
+.cm-reply__pill{display:flex;align-items:flex-end;gap:var(--space-1);padding:var(--space-1) var(--space-1) var(--space-1) var(--space-3);border-radius:var(--radius-2xl);background:var(--surface-quiet)}
+.cm-reply__pill:focus-within{box-shadow:0 0 0 2px var(--border-field-focus)}
+.cm-reply__input:focus,.cm-reply__input:focus-visible{box-shadow:none;outline:none}
+.cm-reply__input{flex:1;min-width:0;min-height:32px;max-height:120px;padding:6px 0;border:0;background:none;color:var(--text-heading);font:inherit;font-size:var(--text-sm);resize:none;outline:none}
+.cm-reply__send{display:grid;place-items:center;flex:none;width:32px;height:32px;border:0;border-radius:var(--radius-full);background:none;color:var(--primary);cursor:pointer}
+.cm-reply__send:disabled{color:var(--text-disabled);cursor:default}
+.cm-reply__note{margin:0 0 0 var(--space-3)}
+.cm-quick{min-width:0}
 .cm-quick .ib-menu{flex:none}
-.cm-reply__btns{display:flex;gap:var(--space-2);margin-left:auto}
+@keyframes cm-in{from{opacity:0;transform:translateY(4px)}}
+@keyframes cm-pop{from{opacity:0;transform:scale(.4)}}
+@media (prefers-reduced-motion:reduce){.cm-item,.cm-rep,.cm-reply,.cm-likes{animation:none}}
 .cm-ins{display:flex;flex-direction:column;gap:var(--space-5);padding:var(--space-5)}
 .cm-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2)}
 .cm-kpis div{display:flex;flex-direction:column;gap:2px;padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);background:var(--surface-page)}

@@ -2,6 +2,8 @@
 // Generated from design/templates/loyalty-promo/FlashSales.dc.html by scripts/convert-design.mjs.
 // FlashSales — flash sales as a Shopify-style list (components/ui/IndexKit.jsx): this month's figures, then one card
 // with the status views and a compact table (sale, dates, time left, pieces sold, sales). A row opens the sale.
+// The sales are a view of the one promotion engine (src/lib/promotions.js, activation 'flash'): the same sale prices
+// the POS register and the checkout apply. "Sold" is the promotional quota used (committed sales), not stock.
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
@@ -12,6 +14,7 @@ import { EmptyState as __EmptyState, StatusBadge as __StatusBadge } from '@/comp
 import { ShopHeader, MetricStrip, IndexTabs, LearnMore } from '@/components/ui/IndexKit';
 import { navigate } from '@/runtime/routes';
 import { clockNow } from '@/lib/settlements';
+import { listOffers, PROMO_EVENT } from '@/lib/promotions';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -26,26 +29,22 @@ function span(a, b, time) { return time ? dm(a) + ', ' + hm(a) + ' – ' + (dm(a
 function p2(n) { return (n < 10 ? '0' : '') + n; }
 function countdown(end) { var t = Math.max(0, Math.floor((end - clockNow()) / 1000)), d = Math.floor(t / 86400), h = Math.floor(t % 86400 / 3600), m = Math.floor(t % 3600 / 60), sec = t % 60; return (d ? d + 'd ' : '') + p2(h) + ':' + p2(m) + ':' + p2(sec); }
 function startsIn(start) { var t = Math.max(0, start - clockNow()), d = Math.floor(t / DAY), h = Math.floor(t % DAY / 36e5); return d >= 7 ? 'Starts in ' + d + ' days' : 'Starts in ' + (d ? d + 'd ' : '') + h + 'h'; }
+var LIFE_ST = { Active: 'live', Scheduled: 'soon', Paused: 'soon', Ended: 'ended', Exhausted: 'ended', Draft: 'soon' };
 function salesNow() {
-  var hr = new Date(clockNow()); hr.setMinutes(0, 0, 0);
-  var megaA = dayAt(-1, 18), megaB = dayAt(2, 23, 59), nightA = new Date(hr.getTime() - 2 * 36e5), nightB = new Date(nightA.getTime() + 6 * 36e5);
-  var skinA = dayAt(3, 10), skinB = dayAt(9, 23, 59), pujaA = dayAt(19, 0), pujaB = dayAt(24, 23, 59);
-  return [
-  { name: 'Weekend Mega Sale', sub: '12 products · up to 40% off', dates: span(megaA, megaB, true), left: countdown(megaB), sold: 184, stock: 300, sales: 142300, st: 'live', featured: true },
-  { name: 'Night Deals', sub: '6 products · 25% off', dates: span(nightA, nightB, true), left: countdown(nightB), sold: 38, stock: 120, sales: 44600, st: 'live', featured: false },
-  { name: 'Skin care week', sub: '8 products · 25% off', dates: span(skinA, skinB), left: startsIn(skinA), sold: 0, stock: 200, sales: 0, st: 'soon', featured: true },
-  { name: 'Puja Special', sub: '15 products · up to 30% off', dates: span(pujaA, pujaB), left: startsIn(pujaA), sold: 0, stock: 450, sales: 0, st: 'soon', featured: false }
-  ].concat(ENDED);
+  return listOffers('flash').map(function (o) {
+    var a = new Date(o.schedule.start), b = new Date(o.schedule.end || o.schedule.start), st = LIFE_ST[o.life] || 'ended';
+    var short = b - a < 2 * DAY;
+    return { id: o.id, name: o.name, sub: o.sub || o.summary, dates: span(a, b, short || st === 'live'), left: st === 'live' ? countdown(b.getTime()) : st === 'soon' ? (o.life === 'Paused' ? 'Paused' : startsIn(a.getTime())) : o.life === 'Exhausted' ? 'Sold out' : 'Ended',
+      sold: o.usage.used, stock: o.limits.total || Math.max(1, o.usage.used), sales: o.usage.sales, st: st, featured: !!o.featured };
+  }).sort(function (x, y) { return (x.st === 'ended') - (y.st === 'ended'); });
 }
-var ENDED = [
-  { name: 'Month-end Clearance', sub: '20 products · up to 50% off', dates: '28 Aug – 31 Aug', left: 'Ended', sold: 402, stock: 450, sales: 198400, st: 'ended', featured: false },
-  { name: 'Independence Day Deals', sub: '10 products · 16% off', dates: '15 Aug – 17 Aug', left: 'Ended', sold: 215, stock: 250, sales: 87100, st: 'ended', featured: false }
-];
 var TABS = [{ k: 'live', label: 'Running' }, { k: 'soon', label: 'Coming soon' }, { k: 'ended', label: 'Ended' }];
 var SN = { live: ['Running', 'success'], soon: ['Coming soon', 'info'], ended: ['Ended', 'neutral'] };
 class Component extends DCLogic {
+  componentDidMount() { var self = this; this.setState({ ready: true }); this.reread = function () { self.forceUpdate(); }; window.addEventListener(PROMO_EVENT, this.reread); this.tm = window.setInterval(this.reread, 1000); }
+  componentWillUnmount() { window.removeEventListener(PROMO_EVENT, this.reread); window.clearInterval(this.tm); }
   renderVals() {
-    var self = this, s = this.state || {}, tab = s.tab || 'live', F = salesNow();
+    var self = this, s = this.state || {}, tab = s.tab || 'live', F = s.ready ? salesNow() : [];
     var cnt = {}; TABS.forEach(function (t) { cnt[t.k] = F.filter(function (f) { return f.st === t.k; }).length; });
     var cards = F.filter(function (f) { return f.st === tab; }).map(function (f) { var p = Math.round(f.sold / f.stock * 100); return { name: f.name, sub: f.sub, dates: f.dates, left: f.left, live: f.st === 'live', sold: f.sold + ' of ' + f.stock, pct: p + '%', pctLabel: p + '%', sales: f.sales ? bdt(f.sales) : '—', status: SN[f.st][0], tone: SN[f.st][1], featured: f.featured,
       href: '/new-flash-sale', onRowClick: function (e) { if (e.target.closest('a,button')) return; navigate('/new-flash-sale'); } }; });

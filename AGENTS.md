@@ -114,6 +114,19 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `/channel-settings`. Google Business (`/google-business?tab=`: locations, reviews + AI reply drafts, business info and
   hours, posts, media, services) is under Marketing. The product page has a Sales channels card
   (`components/ProductChannels.jsx`); All products has a Channels filter, a mark per connected channel and bulk actions.
+- Inbox, Messenger style (Oct 2026): an **Inbox** area right under Home (Chats, Comments `?view=comments`, Mentions
+  `?view=mentions`, Support tickets, Calls, AI calls) with live counts (`lib/liveCounts.js`, menu items name theirs with
+  `live`; the sidebar and top bar re-read on `gc:inbox`). The top bar has a chat button (unread chats badge) with a
+  Messenger list; a chat picked there opens as a floating window (`components/inbox/ChatDock.jsx`, mounted in the root
+  layout, only on pages with the top bar, chat heads when minimised, full screen on phones; event `gc:chat-open`).
+  Messages are drawn by `Thread.jsx › MessageList` (grouped bubbles, time between groups, Seen avatar, hover/tap to react
+  ❤️😆😮😢😠👍 or reply, big emoji, story-mention and call bubbles, new messages slide in; `actions={false}` for read-only
+  lists such as the ticket conversation). `components/inbox/Messenger.jsx`: VoiceNote (real audio for recordings made in
+  this session, `inbox.keepVoice/voiceUrl`; speed 1×–2×), VoiceRecorder (MediaRecorder + live waveform, falls back to a
+  timed demo), CallScreen (ringing → timer → call bubble + call log row), ReactPicker, Mentioned (@Name in notes).
+  `lib/inbox.js` adds reactions (`reactTo`), `replyTo`, `bigEmoji`, `unreadCount` (chats with unread), social mentions
+  (`getMentions`, `chatFromMention`) and team mentions (`teamMentions`: notes with @FirstName). Comments are drawn
+  Facebook-style (bubble, "time · Like · Reply" line, nested replies).
 - Inbox channels follow Connections (`connectedInbox(use)`, `components/inbox/useLiveChannels.js`): chat chips show the
   connected chat channels, Comments only connected channels' posts, and a Reviews view shows Google reviews (the Google
   Business review list); the header's Channels button lists every inbox channel with Connect / Reconnect.
@@ -137,6 +150,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
     - `tab` is a shorter name for the page under its area.
   - Records (an order, a profile) and create flows keep their own address.
   - A new page goes into an area's `children`, and into a module in `MODULES`.
+  - Look (Oct 2026, from the platform console's ConsoleShell): 264px panel, compact 36px rows with 28px icon tiles (the
+    open / current area's tile is the navy gradient), a chevron that turns, pages indented under a guide line (current
+    page: light-blue pill + navy bar), the edition chip under the logo and the person's card at the bottom; the 76px rail
+    keeps the tiles. All of it is in `gc-sidebar.js`'s own CSS.
   - Page ids never change. Area ids are `area-*`. Old menu ids still used by a screen's `active` (including the old
     parents, such as `stock-more` or `hr-time`) map to a page through `NAV_ALIAS`. The sidebar highlight and role
     access both read it.
@@ -194,8 +211,25 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
     - `approveOrder` returns false when the order is no longer new.
     - `sendToCourier` returns the parcel already booked and refuses orders that aren't approved or packed.
   - **Order notes.** Order detail's Order note and Internal note save when the field is left.
+  - **Add product layout** (Oct 2026) follows Nayeem's reference page exactly (`docs/reference-add-product.md`): main
+    column Title/descriptions (rich text, `RichText.jsx`, HTML in `long`) → Media → Classification (main category +
+    subcategories `subcats`, template) → Specifications (per-product layout `specLayout`, shop template untouched) →
+    Pricing → Product model (format, selling mode `sell`, sellability `sellability`: catalogue-only isn't sellable) →
+    Variants (+ Variant editor drawer) → one-line cards with drawers (identifiers/units `invMode`, shipping, SEO,
+    relationships); side column Status · Publishing · Organization · Product data · Google listing readiness · Warranty ·
+    Activity. Shared parts in `AddProductParts.jsx`; new products start as Draft.
   - **Barcodes.** "Make one" makes an in-store EAN-13 (starts with 2, `barcodeType: 'internal'`). Google Merchant
     treats it as no GTIN (`channels.js`).
+- Courier statement (`/courier-statement`, Orders › Courier statement; `lib/courierStatement.js`): for a period (by
+  dispatch day) and one courier or all, each parcel's state (waiting pickup, in transit, out for delivery, delivery failed,
+  delivered, coming back, partly received, returned — from the order times, courier hooks and Courier returns receipts)
+  and the money (COD to collect / collected, charges, net, paid to you and payout due from Settlements, holding now from
+  the ledger). Courier-by-courier table, a section per courier with its parcels, CSV and print. Linked from Courier returns.
+- Home widgets (`components/dashboard/HomeWidgets.jsx`, under Home's figures and to-do): Sales summary (revenue / cost /
+  profit area chart, date range + category), Order summary (a ring per status), Live visitors (world map, `lib/worldMap.js`
+  generated once from Natural Earth; the number from `lib/traffic.js`), Top customers, Latest orders, Latest customers,
+  Top products, Stock alert (category + place). Home is one page in the menu; My dashboard opens from the person's card at
+  the bottom of the menu (`my-dash` is hidden under `home`; a role without the main Dashboard gets My dashboard instead).
 - POS: `/pos` (`src/screens/pos-register/Pos.jsx`) is the one register; `/pos-manage` (`PosManage.jsx`) is its
   back office (counters, employees and shifts, cash pickups, settings). Both read and write
   `src/lib/posStore.js` (browser storage). Register shortcuts are listed in `SHORTCUTS` in `Pos.jsx` (F1 on screen).
@@ -255,6 +289,39 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `src/styles/console-responsive.css`. `?quiet=1` stops the evening payout check from opening by itself (tests, screenshots).
 - Reference pages (UI kit, flows, site map, storyboards) are under `/dev/…`. They and the POS /
   settings screen switchers only show in a production build when `NEXT_PUBLIC_SHOW_STORYBOARD=true`.
+- New features from Nayeem's briefs (Oct 2026; built in a parallel run, rules in `docs/new-features-run.md`). The skipped
+  briefs (#3, #12, #15, #17–#20) are not built. Libs are front-end models; where a server is needed a code comment says so.
+  - Home / menu: `actionItems.js` (one to-do list: `trackItems(source, rows)`, snooze, dismiss; `ActionPills.jsx`),
+    `HomeExtras.jsx` (setup checklist, insights), `navProfile.js` (pins, start page), `navSetup.js` (menu by setup),
+    `plans.js` + `planLimits.js` (Starter / Growth / Business; RoleGuard shows Upgrade), `team.js` users may have `roles[]`.
+    `npm run test:nav` checks every menu (edition × plan × person × setup).
+  - Orders: `orderRules.js`, `paymentProof.js`, `orderEdit.js`, `quotes.js`, `orderJobs.js` (background bulk jobs);
+    `/order-work`, `/order-settings`. Create order checks the customer's restrictions.
+  - POS: `posSale.js` (commit, offline queue and conflicts), `serials.js` (IMEI / serial register; returns put them back),
+    `scaleBarcode.js`, `hardware.js`, `PosSheets.jsx`. The coupon box uses the promotion engine.
+  - Product templates (`lib/productTemplates.js`): 19 Grid templates + Custom, each a full grouped spec schema (Mobile:
+    11 groups, 43 fields) built from shared parts (General, Body, Warranty …). Fields carry flags (`key` feature, `filter`,
+    `compare`, `req`, `variant`); keys never change. Catalog setup › Product templates opens a template in a side panel
+    (`TemplatesCard.jsx`): turn Grid fields off (`setFieldHidden`), add the shop's own fields (`addTemplateField`), reset.
+    The product form shows key features (or what is filled in) and keeps the rest behind "View all product data".
+  - Products & stock: `productTemplates`, `identifiers` (`resolveScan`), `units`, `licenceKeys`, `bulkEdit` (`/bulk-edit`),
+    `productDrafts`, `productVersions`, `productRelations`, `productImport`, `stockActivity` (`/stock-activity`, every move),
+    `countSessions`, `serialTrace`, `custody`, `bundles`.
+  - Customers & recovery: `segments`, `customFields`, `consent` (per channel; `isAllowed`), `restrictions` (`checkOrder`:
+    blocked, no COD, prepaid above, order cap, credit hold, method), `crmAccess`, `crmPrivacy`, `bulkJobs`, `customerSignals`,
+    `customerRef` (one customer key), `recovery`, `recoveryPolicy`, `triggers`, `audiences`; `/customer-settings`, `/ad-audiences`.
+  - Loyalty & communications: `promotions.js` is the one promotion engine (`evaluate`, `applyCode`, `reserve` / `commit` /
+    `release` / `reverse`); the POS coupon box and the storefront Checkout use it. `storeCredit.js` (the member wallet as store
+    credit; returns kept as credit land here). `messaging.js` is the one send layer (consent, suppression, caps, quiet hours,
+    delivery log) with `messagePolicy`, `suppression`, `commsConsent`, `channelCaps`, `aiReply`, `automationRules`,
+    `callTasks`, `campaigns`; `/campaigns-messaging`.
+  - Payments & finance: `refunds.js` (requested → approved → sent → done / failed; Return & exchange makes one for bKash,
+    Nagad and card refunds), `approvals.js` + `approvalActions.js` (`/money-approvals`; no self-approval), `paymentRefs`
+    (a transaction ID is used once), `allocations`, `paymentLinks`, `manualPayments`, `terminalBatches`, `statementImport`
+    (`/statement-match`), `financeDuties`; `/payment-ops` (`screens/payments/`).
+  - Analytics & settings: `reports/metrics.js` (one definition per figure), `reports/analytics.js`, `attribution`, `events`,
+    `alerts`, `businessProfile` (`invoiceIdentity()`), `apiKeys`, `settingsStore` + `settingsHistory` + `settingsRegistry`
+    (`/settings-history`), `consents` (`/set-privacy`), `domains` (`/set-domains`).
 - Proposal switches (branch `explore/nayeem-merge`; `docs/handoff-nayeem-merge.md`): parts of Nayeem's proposal are tried
   behind switches in `src/lib/proposal.js` (`FLAGS` = the backlog; `isOn(key)`, `useProposal(key)` in `lib/useProposal.js`),
   off by default, so all off = today's build. `/dev/proposal` flips them (only `built: true` ones) and opens a page both

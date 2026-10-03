@@ -6,13 +6,14 @@
 import React from 'react';
 import __Link from 'next/link';
 import { PaymentLogo } from '@/components/PaymentLogo';
+import { evaluate, applyCode as tryCode } from '@/lib/promotions';
 import { DCLogic, Icon as __Icon, A as __A, list as __list, sx as __sx } from '@/runtime/dc';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
 function bdt(n) { n = Math.round(n); var s = String(Math.abs(n)), last = s.slice(-3), rest = s.slice(0, -3); if (rest) last = ',' + last; rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); return '৳' + rest + last; }
 function val(e) { return e && e.target ? e.target.value : e; }
-var ITEMS = [ { k: 'd', n: 'Denim Jeans · Blue', v: 'Size 32', p: 1290, was: 1890, i: 'D', bg: '#e0f2fe' }, { k: 'm', n: 'Men’s Polo Shirt · Navy', v: 'Size M', p: 990, was: 1450, i: 'M', bg: '#eef2f7' }, { k: 's', n: 'Sunscreen SPF 50 · 50 ml', v: 'Skin care', p: 890, was: 1250, i: 'S', bg: '#fff4e0' } ];
+var ITEMS = [ { k: 'd', cat: 'Clothing', n: 'Denim Jeans · Blue', v: 'Size 32', p: 1290, was: 1890, i: 'D', bg: '#e0f2fe' }, { k: 'm', cat: 'Clothing', n: 'Men’s Polo Shirt · Navy', v: 'Size M', p: 990, was: 1450, i: 'M', bg: '#eef2f7' }, { k: 's', sku: 'SK-SUN-50', cat: 'Skin care', n: 'Sunscreen SPF 50 · 50 ml', v: 'Skin care', p: 890, was: 1250, i: 'S', bg: '#fff4e0' } ];
 var ZONES = [ ['in', 'Inside Dhaka', '1–2 days · Pathao', 70], ['sub', 'Sub-Dhaka', 'Savar, Gazipur, Narayanganj · 2–3 days', 110], ['out', 'Outside Dhaka', '3–5 days · Steadfast', 150] ];
 var PAYS = [ ['cod', 'Cash on delivery', 'Pay the rider when it arrives', ''], ['bkash', 'bKash', 'Pay now from your bKash account', '10% off · up to ৳150'], ['nagad', 'Nagad', 'Pay now from your Nagad account', ''], ['rocket', 'Rocket', 'Pay now from your Rocket account', ''], ['card', 'Card', 'Visa, Mastercard or Amex · secured by SSLCOMMERZ', ''] ];
 // Provider marks shown on the payment options.
@@ -24,12 +25,14 @@ class Component extends DCLogic {
     var lines = ITEMS.filter(function (it) { return (qty[it.k] || 0) > 0; });
     var sub = lines.reduce(function (a, it) { return a + it.p * qty[it.k]; }, 0);
     var z = ZONES.filter(function (x) { return x[0] === zone; })[0];
-    var disc = [];
-    var coupon = s.coupon && sub >= 2000 ? 300 : 0; if (coupon) disc.push({ l: 'Coupon EID300', v: bdt(300) });
-    var bk = pay === 'bkash' ? Math.min(150, Math.round((sub - coupon) * 0.1)) : 0; if (bk) disc.push({ l: 'bKash offer 10%', v: bdt(bk) });
-    var fee = lines.length ? z[3] : 0, total = Math.max(0, sub - coupon - bk + fee);
+    // discounts come from the one promotion engine (lib/promotions): the coupon, payment offers and automatic offers
+    var fee = lines.length ? z[3] : 0;
+    var cart = { lines: lines.map(function (it) { return { sku: it.sku || 'WEB-' + it.k.toUpperCase(), name: it.n, cat: it.cat, price: it.p, qty: qty[it.k] }; }), delivery: fee, payment: pay, codes: s.coupon ? [s.coupon] : [] };
+    var promo = evaluate(cart, null, 'online');
+    var disc = promo.applied.map(function (a) { return { l: a.code ? 'Coupon ' + a.code : a.name, v: bdt(a.discount + a.delivery) }; });
+    var total = Math.max(0, promo.total);
     var phone = (s.phone || '').replace(/\D/g, ''), phoneBad = !!s.tried && !/^01[3-9]\d{8}$/.test(phone);
-    function setQ(k, d) { var n = Object.assign({}, qty); n[k] = Math.max(0, (n[k] || 0) + d); self.setState({ qty: n, coupon: n && s.coupon }); }
+    function setQ(k, d) { var n = Object.assign({}, qty); n[k] = Math.max(0, (n[k] || 0) + d); self.setState({ qty: n }); }
     var payL = PAYS.filter(function (p) { return p[0] === pay; })[0][1];
     var v = {
       notPlaced: !s.placed, placed: !!s.placed, itemCount: String(lines.reduce(function (a, it) { return a + qty[it.k]; }, 0)),
@@ -40,7 +43,7 @@ class Component extends DCLogic {
       pays: PAYS.map(function (x) { var on = x[0] === pay; return { l: x[1], s: x[2], tag: x[3], hasTag: !!x[3], logo: PAY_LOGO[x[0]] || null, logoFull: x[0] === 'card', on: on, cls: on ? 'ck-opt on' : 'ck-opt', pick: function () { self.setState({ pay: x[0] }); } }; }),
       lines: lines.map(function (it) { return { n: it.n, v: it.v, was: bdt(it.was), i: it.i, bg: it.bg, q: String(qty[it.k]), amt: bdt(it.p * qty[it.k]), inc: function () { setQ(it.k, 1); }, dec: function () { setQ(it.k, -1); } }; }),
       empty: lines.length === 0,
-      applyCode: function () { var c = (s.code || '').trim().toUpperCase(); if (c !== 'EID300') { self.setState({ codeMsg: c ? 'That code isn’t valid. Try EID300.' : 'Enter a coupon code.', codeOk: false, coupon: false }); return; } if (sub < 2000) { self.setState({ codeMsg: 'EID300 needs ' + bdt(2000 - sub) + ' more in your cart.', codeOk: false, coupon: false }); return; } self.setState({ coupon: true, codeMsg: 'EID300 applied — ' + bdt(300) + ' off.', codeOk: true }); },
+      applyCode: function () { var c = (s.code || '').trim().toUpperCase(); var r = tryCode(c, Object.assign({}, cart, { codes: [] }), null, 'online'); if (!r.ok) { self.setState({ codeMsg: r.reason, codeOk: false, coupon: '' }); return; } self.setState({ coupon: c, code: c, codeOk: true, codeMsg: c + ' applied · ' + bdt(r.offer.discount + r.offer.delivery) + ' off' }); },
       hasCodeMsg: !!s.codeMsg, codeMsg: s.codeMsg || '', codeC: s.codeOk ? '#047857' : '#b83210',
       sub: bdt(sub), discounts: disc, zoneL: z[1], fee: bdt(fee), total: bdt(total), payL: payL,
       placeL: pay === 'cod' ? 'Place order · ' + bdt(total) : 'Pay ' + bdt(total) + ' with ' + payL,
@@ -49,7 +52,7 @@ class Component extends DCLogic {
         if (miss.length) { self.setState({ tried: true, err: 'Please add ' + miss.join(', ') + '.' }); return; } self.setState({ placed: true, err: '' }); },
       orderNo: '#ORD-0929-015',
       doneNote: pay === 'cod' ? 'Keep ' + bdt(total) + ' ready for the rider. We’ll call ' + (s.phone || '') + ' to confirm before it ships.' : 'Payment received. We’ll message ' + (s.phone || '') + ' when it ships.',
-      again: function () { self.setState({ placed: false, tried: false, err: '', coupon: false, codeMsg: '', code: '' }); }
+      again: function () { self.setState({ placed: false, tried: false, err: '', coupon: '', codeMsg: '', code: '' }); }
     };
     return v;
   }

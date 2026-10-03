@@ -200,8 +200,8 @@ export const HELP = {
     related: ['/promo', '/flash-sales'],
   },
   '/merchant-inbox': {
-    en: E('Messages from Facebook, Instagram, WhatsApp and the website in one inbox.', ['Reply, use quick replies, and turn a chat into an order.'], ['Oldest waiting chats are at the top.'], ['Inbox', '2:30']),
-    bn: E('Facebook, Instagram, WhatsApp আর Website-এর Message এক Inbox-এ।', ['Reply দিন, Quick reply ব্যবহার করুন, Chat থেকে Order বানান।'], ['সবচেয়ে বেশি সময় অপেক্ষার Chat উপরে থাকে।'], ['Inbox', '2:30']),
+    en: E('Chats, comments and mentions from Facebook, Instagram, WhatsApp, TikTok and the website in one inbox, in a Messenger-style chat.', ['Reply, send a voice message (mic) or a 👍, and turn a chat into an order.', 'Hover a message to react or reply to it; tap the phone to call the customer.', 'Comments and Mentions are tabs here and items in the menu; the chat button in the top bar opens any chat from any page.'], ['In an internal note, type @ and a name to tell a teammate.', 'Oldest waiting chats are at the top.'], ['Inbox', '2:30']),
+    bn: E('Facebook, Instagram, WhatsApp, TikTok আর Website-এর Chat, Comment আর Mention এক Inbox-এ, Messenger-এর মতো Chat-এ।', ['Reply দিন, Voice message (mic) বা 👍 পাঠান, Chat থেকে Order বানান।', 'Message-এর উপর মাউস রাখলে React বা Reply করা যায়; ফোন চাপলে Customer-কে Call করা যায়।', 'Comment আর Mention এখানে Tab আর Menu-তেও আছে; Top bar-এর Chat বাটন থেকে যেকোনো পাতা থেকে Chat খোলা যায়।'], ['Internal note-এ @ আর নাম লিখলে Teammate জানতে পারে।', 'সবচেয়ে বেশি সময় অপেক্ষার Chat উপরে থাকে।'], ['Inbox', '2:30']),
     related: ['/merchant-calls', '/support-tickets'],
   },
   '/set-general': {
@@ -263,6 +263,77 @@ export const HELP = {
     en: E('Connect Meta, Google Merchant Center or Google Business in six short steps.', ['Choose the channel and sign in with Meta or Google.', 'Pick the business, catalog or locations.', 'Choose what to sync, check the summary and connect.'], ['GridCommerce never sees your password.', 'The first sync starts as soon as you connect.'], ['Connect a channel', '1:30']),
     bn: E('ছয়টি ছোট ধাপে Meta, Google Merchant Center বা Google Business যুক্ত করুন।', ['Channel বাছুন আর Meta বা Google দিয়ে Sign in করুন।', 'Business, Catalog বা Location বাছুন।', 'কী Sync হবে বাছুন, সারাংশ দেখে Connect করুন।'], ['GridCommerce কখনো আপনার Password দেখে না।', 'Connect করার সঙ্গে সঙ্গে প্রথম Sync শুরু হয়।'], ['Connect a channel', '1:30']),
     related: ['/channels'],
+  },
+  '/courier-statement': {
+    en: E('Every parcel handed to a courier, courier by courier: dispatched, in transit, delivered, coming back and returned, with the cash on delivery collected, charges and payouts.', ['Pick the period (by the day parcels were dispatched) and, if you like, one courier.', 'Read the courier-by-courier table, then open a courier to see each parcel.', 'Export the statement as CSV or print it.'], ['Delivered % counts delivered against everything that finished (delivered or returned).', 'Receive returned parcels on Courier returns; the statement follows.']),
+    bn: E('Courier-এ দেওয়া সব Parcel, Courier অনুযায়ী: পাঠানো, পথে, Delivered, ফেরত আসছে আর ফেরত এসেছে, সাথে COD আদায়, চার্জ আর Payout।', ['সময় বাছুন (Parcel পাঠানোর দিন ধরে), চাইলে একটি Courier।', 'Courier-ভিত্তিক টেবিল দেখুন, তারপর একটি Courier খুলে প্রতিটি Parcel দেখুন।', 'Statement CSV-তে Export বা Print করুন।'], ['Delivered % = যতগুলো শেষ হয়েছে (Delivered বা ফেরত) তার মধ্যে Delivered।', 'ফেরত আসা Parcel Courier returns-এ Receive করুন; Statement সেটা মেনে চলে।']),
+    related: ['/courier-returns', '/settlements', '/merchant-orders'],
+  },
+  // ---- new features from Nayeem's briefs (Oct 2026) ----
+  '/order-work': {
+    en: E('Orders that need someone: payments to check, edits, quotes and jobs running in the background.', ['Open Payment to review to match a customer’s payment proof.', 'Quotes become orders when the customer agrees.', 'Bulk bookings and labels run as jobs; check them here.'], ['A job that fails can be run again for the orders it missed.']),
+    bn: E('যেসব Order-এ কারো হাত লাগবে: Payment যাচাই, Edit, Quote আর পেছনে চলা কাজ।', ['Customer-এর Payment proof মেলাতে Payment to review খুলুন।', 'Customer রাজি হলে Quote থেকে Order হয়।', 'একসাথে Booking আর Label job হিসেবে চলে; এখানে দেখুন।'], ['কোনো job ব্যর্থ হলে বাকি Order-গুলোর জন্য আবার চালানো যায়।']),
+    related: ['/merchant-orders', '/order-settings'],
+  },
+  '/order-settings': {
+    en: E('How orders behave: verification, holds, payment proof, edits and numbering.', ['Choose when an order needs a verification call.', 'Set what counts as a risky order.', 'Save; new orders follow the new rules.'], ['Orders already placed keep the rules they were placed with.']),
+    bn: E('Order কীভাবে চলবে: যাচাই, Hold, Payment proof, Edit আর নম্বর।', ['কখন যাচাই কল লাগবে বাছুন।', 'ঝুঁকির Order কোনটা ঠিক করুন।', 'Save করুন; নতুন Order নতুন নিয়মে চলবে।'], ['আগের Order আগের নিয়মেই থাকে।']),
+    related: ['/merchant-orders', '/order-work', '/set-notifications'],
+  },
+  '/payment-ops': {
+    en: E('Money work in one place: refunds, payment links, manual payments and card terminal batches.', ['Send approved refunds and confirm them when the customer gets the money.', 'Make a payment link for a customer and share it.', 'Record a bank or bKash payment that came in by hand.'], ['A refund over the limit waits in Approvals first.', 'The same transaction ID can be used only once.']),
+    bn: E('টাকার কাজ এক জায়গায়: Refund, Payment link, হাতে নেওয়া Payment আর Card terminal batch।', ['Approve হওয়া Refund পাঠান, Customer টাকা পেলে Confirm করুন।', 'Customer-এর জন্য Payment link বানিয়ে শেয়ার করুন।', 'হাতে আসা Bank বা bKash Payment লিখে রাখুন।'], ['লিমিটের বেশি Refund আগে Approvals-এ অপেক্ষা করে।', 'একই Transaction ID একবারই ব্যবহার করা যায়।']),
+    related: ['/money-approvals', '/settlements', '/return-exchange'],
+  },
+  '/money-approvals': {
+    en: E('Money requests waiting for a yes: big refunds, expenses, write-offs and supplier payments.', ['Open a request to see the facts.', 'Approve or deny; a denial needs a reason.'], ['You can’t approve your own request.']),
+    bn: E('যেসব টাকার অনুরোধ অনুমোদনের অপেক্ষায়: বড় Refund, খরচ, Write-off আর Supplier payment।', ['অনুরোধ খুলে তথ্য দেখুন।', 'Approve বা Deny করুন; Deny করলে কারণ লিখতে হয়।'], ['নিজের অনুরোধ নিজে Approve করা যায় না।']),
+    related: ['/payment-ops', '/expenses-bills'],
+  },
+  '/statement-match': {
+    en: E('Match a bank or wallet statement against the books.', ['Import the statement file (CSV).', 'Lines that match are ticked for you; match the rest by hand.', 'Lines with no match become an expense, income or a note.'], ['Matching changes no money; it only proves the books are right.']),
+    bn: E('Bank বা Wallet statement হিসাবের সাথে মেলান।', ['Statement ফাইল (CSV) Import করুন।', 'যেগুলো মেলে সেগুলো নিজে থেকে টিক হয়; বাকিগুলো হাতে মেলান।', 'না মিললে খরচ, আয় বা নোট হিসেবে রাখুন।'], ['মেলালে টাকা বদলায় না; শুধু হিসাব ঠিক আছে প্রমাণ হয়।']),
+    related: ['/money', '/settlements'],
+  },
+  '/campaigns-messaging': {
+    en: E('Send an SMS, WhatsApp or email campaign to a group of customers.', ['Pick the audience and the channel.', 'Write the message or pick a template.', 'Send now or schedule it.'], ['Customers who opted out or are on the do-not-send list are skipped.', 'Quiet hours move sends to the morning.']),
+    bn: E('একদল Customer-কে SMS, WhatsApp বা Email Campaign পাঠান।', ['Audience আর Channel বাছুন।', 'Message লিখুন বা Template বাছুন।', 'এখনই পাঠান বা সময় ঠিক করুন।'], ['যারা Opt out করেছেন বা না-পাঠানোর তালিকায় আছেন তাদের বাদ দেওয়া হয়।', 'Quiet hours-এ পাঠানো সকালে চলে যায়।']),
+    related: ['/automations', '/merchant-inbox'],
+  },
+  '/customer-settings': {
+    en: E('How customer records work: custom fields, segments, consent, restrictions and who can see what.', ['Add the fields your team needs on a customer.', 'Build segments from rules; they update by themselves.', 'Set who can see phone numbers and export lists.'], ['Restrictions (no COD, prepaid only, blocked) stop orders at POS and Create order.']),
+    bn: E('Customer রেকর্ড কীভাবে চলবে: নিজস্ব Field, Segment, সম্মতি, নিষেধ আর কে কী দেখবে।', ['Customer-এ টিমের দরকারি Field যোগ করুন।', 'নিয়ম দিয়ে Segment বানান; নিজে থেকে আপডেট হয়।', 'কে Phone নম্বর দেখবে আর তালিকা Export করবে ঠিক করুন।'], ['নিষেধ (COD নয়, আগে Payment, Blocked) POS আর Create order-এ Order আটকায়।']),
+    related: ['/all-customers'],
+  },
+  '/ad-audiences': {
+    en: E('Customer lists sent to Facebook and Google ads, kept up to date.', ['Pick a segment to send as an audience.', 'Choose the ad account.', 'It syncs by itself; customers who opted out of ads are left out.'], []),
+    bn: E('Facebook আর Google বিজ্ঞাপনে পাঠানো Customer তালিকা, সবসময় হালনাগাদ।', ['Audience হিসেবে পাঠাতে একটি Segment বাছুন।', 'Ad account বাছুন।', 'নিজে থেকে Sync হয়; যারা বিজ্ঞাপনে Opt out করেছেন তারা বাদ।'], []),
+    related: ['/abandoned-carts', '/customer-settings'],
+  },
+  '/stock-activity': {
+    en: E('Every stock movement in one list: sales, receiving, transfers, adjustments, counts and returns.', ['Filter by product, place or kind of move.', 'Open a move to see who made it and why.'], ['Stock is never edited directly; every change is a move here.']),
+    bn: E('সব Stock নড়াচড়া এক তালিকায়: বিক্রি, Receive, Transfer, Adjustment, Count আর Return।', ['Product, জায়গা বা ধরন দিয়ে Filter করুন।', 'কে আর কেন করেছে দেখতে একটি Move খুলুন।'], ['Stock সরাসরি বদলানো যায় না; প্রতিটি পরিবর্তন এখানে একটি Move।']),
+    related: ['/stock', '/stock-adjustments'],
+  },
+  '/bulk-edit': {
+    en: E('Change many products at once: prices, stock settings, status and tags.', ['Pick the products and the fields to change.', 'Check the preview.', 'Apply; you can undo the whole change.'], []),
+    bn: E('একসাথে অনেক Product বদলান: দাম, Stock সেটিং, Status আর Tag।', ['Product আর বদলানোর Field বাছুন।', 'Preview দেখে নিন।', 'Apply করুন; পুরো পরিবর্তন Undo করা যায়।'], []),
+    related: ['/all-products'],
+  },
+  '/set-privacy': {
+    en: E('Privacy: cookie consent on the website, data requests and how long data is kept.', ['Choose what the cookie banner asks.', 'Handle a customer’s request to see or delete their data.'], []),
+    bn: E('Privacy: ওয়েবসাইটের Cookie সম্মতি, ডেটার অনুরোধ আর ডেটা কতদিন রাখা হয়।', ['Cookie banner কী জিজ্ঞেস করবে বাছুন।', 'Customer নিজের ডেটা দেখতে বা মুছতে চাইলে সেটি সামলান।'], []),
+    related: ['/settings-history'],
+  },
+  '/set-domains': {
+    en: E('Your website’s address: connect your own domain and check it works.', ['Add the domain.', 'Copy the DNS records to your domain provider.', 'Press Check; it goes live when the records are found.'], []),
+    bn: E('ওয়েবসাইটের ঠিকানা: নিজের Domain যুক্ত করে কাজ করছে কিনা দেখুন।', ['Domain যোগ করুন।', 'DNS রেকর্ড Domain provider-এ কপি করুন।', 'Check চাপুন; রেকর্ড পেলে চালু হয়।'], []),
+    related: ['/connections'],
+  },
+  '/settings-history': {
+    en: E('Every settings change: who changed what, when, and the value before.', ['Filter by section or person.', 'Open a change to see before and after.'], []),
+    bn: E('সব Settings পরিবর্তন: কে কী কবে বদলেছে আর আগের মান।', ['Section বা লোক দিয়ে Filter করুন।', 'আগে-পরে দেখতে একটি পরিবর্তন খুলুন।'], []),
+    related: ['/set-security'],
   },
 };
 

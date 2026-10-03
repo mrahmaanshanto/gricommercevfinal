@@ -10,6 +10,8 @@ import { defineGcTopbar } from './gc-topbar';
 import { routeOf } from '../runtime/routes';
 import '../runtime/dc';
 import { RoleGuard } from '../components/RoleGuard';
+import { currentUser, homeOf } from '../lib/team';
+import { landingOf } from '../lib/navProfile';
 
 if (typeof window !== 'undefined') {
   defineGcSidebar();
@@ -35,6 +37,16 @@ export function NavigationBridge() {
     const id = window.setTimeout(() => window.dispatchEvent(new CustomEvent('gc:route')), 0);
     return () => window.clearTimeout(id);
   }, [path]);
+  // right after sign-in (which opens Home), open the person's start page instead when they chose one
+  // (account menu › Start page, lib/navProfile.js); homeOf() checks they can still open it
+  useEffect(() => {
+    let prev = '';
+    try { prev = window.sessionStorage.getItem('gc.nav.prev') || ''; window.sessionStorage.setItem('gc.nav.prev', path); } catch { /* ignore */ }
+    if (path !== '/merchant-overview' || !/^\/(merchant-sign-in)?$/.test(prev)) return;
+    const u = currentUser();
+    const want = homeOf(u);
+    if (landingOf(u.id) && want === landingOf(u.id) && want.split('?')[0] !== path) router.replace(want);
+  }, [path, router]);
   useEffect(() => {
     const go = (e) => {
       const before = window.location.pathname + window.location.search;

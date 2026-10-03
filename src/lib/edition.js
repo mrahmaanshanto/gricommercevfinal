@@ -4,7 +4,8 @@
 //
 //   MODULES   module → the menu item ids it brings (src/shell/navigation.js) and the pages outside the menu it owns
 //   EDITIONS  edition → its modules, sales channels and name
-//   inEditionNav(id) · routeInEdition(path) · editionChannels() · hasModule(key) · currentEdition()
+//   inEditionNav(id) · routeInEdition(path) · editionChannels() · hasModule(key) · currentEdition() · moduleOfNav(id)
+// What the shop pays for is separate: lib/plans.js (an edition's module the plan lacks shows locked, "Upgrade").
 // The menu, the page guard (components/RoleGuard.jsx), Home, Reports, Settings, Help and the sign-in page read these.
 
 import { NAV, NAV_ALIAS } from '../shell/navigation';
@@ -13,13 +14,13 @@ import { routeOf } from '../runtime/routes';
 export const MODULES = {
   core: {
     label: 'Core', desc: 'Dashboard, team tasks and chat, customers and leads, settings',
-    nav: ['home', 'my-dash', 'tasks', 'team-chat', 'customers', 'leads', 'connections', 'settings', 'set-store', 'set-billing', 'set-help'],
-    routes: ['/connect', '/grid-ai', '/set-profile', '/customer-crm', '/customer-statement', '/sales-leads', '/set-general', '/set-preference', '/set-security', '/set-storage', '/set-media', '/set-chrome', '/set-rail', '/set-topbar', '/merchant-sign-in', '/mobile-sign-in', '/mobile-sign-up', '/merchant-onboarding'],
+    nav: ['home', 'my-dash', 'tasks', 'team-chat', 'customers', 'leads', 'cust-settings', 'connections', 'settings', 'set-store', 'set-billing', 'set-help'],
+    routes: ['/connect', '/grid-ai', '/set-profile', '/set-privacy', '/settings-history', '/customer-crm', '/customer-statement', '/sales-leads', '/set-general', '/set-preference', '/set-security', '/set-storage', '/set-media', '/set-chrome', '/set-rail', '/set-topbar', '/merchant-sign-in', '/mobile-sign-in', '/mobile-sign-up', '/merchant-onboarding'],
   },
   catalog: {
     label: 'Products, stock & purchases', desc: 'Products, stock, direct purchases, suppliers and their dues, damaged and expired stock, warranty',
-    nav: ['products', 'products-all', 'products-add', 'products-cats', 'products-setup', 'products-media', 'stock-list', 'po-buy', 'po-suppliers', 'stock-more', 'stock-expiry', 'stock-labels', 'stock-wpol', 'stock-wclaims'],
-    routes: ['/add-product-tabs', '/supplier-detail', '/supplier-return', '/buy-goods', '/stock-setup'],
+    nav: ['stock-activity', 'products', 'products-all', 'products-add', 'products-cats', 'products-setup', 'products-media', 'stock-list', 'po-buy', 'po-suppliers', 'stock-more', 'stock-expiry', 'stock-labels', 'stock-wpol', 'stock-wclaims'],
+    routes: ['/bulk-edit', '/add-product-tabs', '/supplier-detail', '/supplier-return', '/buy-goods', '/stock-setup'],
   },
   places: {
     label: 'Warehouses & branches', desc: 'Many stock places, racks and bins, transfers, adjustments, counts and stock holds',
@@ -33,7 +34,7 @@ export const MODULES = {
   },
   money: {
     label: 'Money', desc: 'Cash, bank and wallets, dues, payouts, income and expenses, bills to pay, VAT',
-    nav: ['acc-home', 'acc-money', 'acc-dues', 'acc-settle', 'acc-spend', 'acc-liab', 'acc-setup'],
+    nav: ['acc-home', 'acc-money', 'acc-dues', 'acc-settle', 'acc-spend', 'acc-liab', 'acc-setup', 'acc-payments', 'acc-approvals', 'acc-match'],
     routes: ['/account-reports', '/chart-of-accounts', '/journals', '/sales-profit', '/vat'],
   },
   reports: {
@@ -48,8 +49,8 @@ export const MODULES = {
   },
   commerce: {
     label: 'Orders & returns', desc: 'All orders, returns and exchanges, payment settings',
-    nav: ['orders', 'orders-all', 'sales-return', 'pay-setup'],
-    routes: ['/order-detail', '/return-history', '/set-payments', '/set-notifications'],
+    nav: ['orders', 'orders-all', 'sales-return', 'pay-setup', 'orders-work', 'orders-settings'],
+    routes: ['/order-detail', '/return-history', '/set-payments', '/set-notifications', '/order-settings', '/order-work'],
   },
   marketing: {
     label: 'Offers & loyalty', desc: 'Offers, coupons, loyalty points, wallets and referrals',
@@ -68,8 +69,8 @@ export const MODULES = {
   },
   online: {
     label: 'Online', desc: 'Online orders and couriers, the online store, blog, flash sales, cart recovery and ads tracking',
-    nav: ['orders-rto', 'promo-flash', 'promo-page', 'rec-carts', 'rec-auto', 'tracking', 'ta-track', 'ta-health', 'ta-setup', 'storefront', 'blog', 'blog-posts', 'blog-new', 'blog-cats', 'blog-authors'],
-    routes: ['/ad-accounts', '/new-order', '/new-flash-sale', '/customer-profile', '/analytics-hub', '/attribution', '/campaigns', '/products-traffic', '/reports-alerts', '/setup-clarity', '/setup-ga4', '/setup-google-ads', '/setup-gtm', '/setup-meta-pixel', '/setup-tik-tok', '/author-profile', '/set-delivery', '/set-seo', '/checkout', '/offer-detail', '/offers', '/order-link'],
+    nav: ['orders-rto', 'orders-courier', 'promo-flash', 'promo-page', 'rec-carts', 'rec-auto', 'rec-audiences', 'tracking', 'ta-track', 'ta-health', 'ta-setup', 'storefront', 'blog', 'blog-posts', 'blog-new', 'blog-cats', 'blog-authors'],
+    routes: ['/ad-accounts', '/new-order', '/new-flash-sale', '/customer-profile', '/analytics-hub', '/attribution', '/campaigns', '/products-traffic', '/reports-alerts', '/setup-clarity', '/setup-ga4', '/setup-google-ads', '/setup-gtm', '/setup-meta-pixel', '/setup-tik-tok', '/author-profile', '/set-delivery', '/set-seo', '/set-domains', '/checkout', '/offer-detail', '/offers', '/order-link'],
   },
   channels: {
     label: 'Sales channels', desc: 'Product sync to the Meta catalog, Google Merchant Center, WooCommerce and Shopify; Google Business Profile',
@@ -78,7 +79,7 @@ export const MODULES = {
   },
   comms: {
     label: 'Communication', desc: 'Inbox for Facebook, Instagram, WhatsApp and more, calls, AI calls, support tickets, social posts',
-    nav: ['inbox', 'calls', 'comm-ai', 'tickets', 'social', 'comm-cal', 'comm-new', 'set-wallet'],
+    nav: ['inbox', 'inbox-comments', 'inbox-mentions', 'calls', 'comm-ai', 'tickets', 'social', 'comm-cal', 'comm-new', 'set-wallet', 'msg-campaigns'],
     routes: ['/social-connections', '/auto-call-settings', '/team-report', '/set-ai', '/set-rules', '/set-usage'],
   },
   automation: {
@@ -174,6 +175,13 @@ export function moduleOfRoute(path) {
   for (const [k, m] of Object.entries(MODULES)) if (m.routes.includes(p)) return k;
   const it = ALL_ITEMS.find((x) => pathOf(x) === p);
   if (it) for (const [k, m] of Object.entries(MODULES)) if (m.nav.includes(it.id)) return k;
+  return null;
+}
+/** Which module a menu item belongs to (old ids follow NAV_ALIAS); null for areas and unknown ids. */
+export function moduleOfNav(id) {
+  for (const [k, m] of Object.entries(MODULES)) if (m.nav.includes(id)) return k;
+  const to = NAV_ALIAS[id];
+  if (to) for (const [k, m] of Object.entries(MODULES)) if (m.nav.includes(to)) return k;
   return null;
 }
 /** The editions that include a module, for "Available in …". */

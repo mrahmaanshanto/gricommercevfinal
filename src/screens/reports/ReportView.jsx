@@ -7,12 +7,15 @@
 //   choose and order the table's columns (kept per report on this device)
 //   Download PDF (an A4 report with the shop's letterhead, period, filters and sign-off) · Download CSV
 // Everything chosen lives in the address. Sending reports by email/WhatsApp is set up in Automation › Scheduled reports.
+// A key figure that is a dictionary metric (lib/reports/metrics.js) has "How is this calculated?" (formula, date basis,
+// scope, version) beside its label.
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Icon } from '@/runtime/dc';
 import { toast } from '@/runtime/ui';
 import { navigate } from '@/runtime/routes';
-import { EmptyState } from '@/components/ui';
+import { EmptyState, InfoTip } from '@/components/ui';
+import { metricOfKpi, explain } from '@/lib/reports/metrics';
 import { reportBy, GROUP_BY_ID, FILTERS, filterShown, reportInEdition } from '@/lib/reports/catalogue';
 import { PRESETS, periodOf, compareOf, rangeText, fmt, change, csvValue, downloadCsv, clockNow, dayKey, addDays } from '@/lib/reports/period';
 import { markViewed } from '@/lib/reports/prefs';
@@ -30,6 +33,9 @@ const CSS = CHART_CSS + TABLE_CSS + `
 /* key figures: the kit's strip with a third line (the change, or what the figure is made of) */
 .rv-kpi{flex-direction:column;align-items:stretch;justify-content:flex-start;gap:2px}
 .rv-kpi .ix-metric__value{overflow:hidden;text-overflow:ellipsis}
+.rv-label{display:inline-flex;align-items:center;gap:4px}
+@media (min-width:641px){.rv-kpis{overflow:visible}}
+@media print{.rv-label .gc-infotip,.rv-label button{display:none!important}}
 .rv-sub{display:block;overflow:hidden;font-size:var(--text-xs);color:var(--text-muted);text-overflow:ellipsis;white-space:nowrap}
 .rv-delta{display:inline-flex;align-items:center;gap:2px;font-family:var(--font-data);font-size:var(--text-xs);font-weight:var(--weight-medium)}
 .rv-delta.is-good{color:var(--text-success)}.rv-delta.is-bad{color:var(--text-danger)}.rv-delta.is-flat{color:var(--text-muted)}
@@ -273,7 +279,7 @@ export default function ReportView() {
             const good = d == null || k.good === 'none' || Math.abs(d) < 0.005 ? 'is-flat' : (d > 0) === (k.good !== 'down') ? 'is-good' : 'is-bad';
             return (
               <div key={k.key} className="ix-metric rv-kpi" title={k.sub || undefined}>
-                <span className="ix-metric__label">{k.label}</span>
+                <span className="ix-metric__label rv-label">{k.label}{metricOfKpi(def.id, k) ? <InfoTip text={explain(metricOfKpi(def.id, k))} label="How is this calculated?" /> : null}</span>
                 <span className="ix-metric__value">{fmt(k.value, k.format)}</span>
                 {d != null ? <span className={'rv-sub rv-delta ' + good}><Icon name={d > 0 ? 'arrow-up-right' : d < 0 ? 'arrow-down-right' : 'minus'} width="12" height="12" aria-hidden="true" />{fmt(Math.abs(d), 'pct')} <span className="rv-vs">vs {fmt(b, k.format)}</span></span> : k.sub ? <span className="rv-sub">{k.sub}</span> : null}
               </div>

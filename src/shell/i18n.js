@@ -81,6 +81,33 @@ const BN = {
   'Increments': 'ইনক্রিমেন্ট', 'Loans': 'ঋণ', 'Gratuity': 'গ্র্যাচুইটি', 'Positions': 'পদ', 'ID cards': 'আইডি কার্ড',
   'Devices': 'ডিভাইস', 'Setup': 'সেটআপ', 'Wallet': 'ওয়ালেট', 'Reminders': 'রিমাইন্ডার', 'Google Merchant': 'গুগল মার্চেন্ট',
   'Cash & bank': 'নগদ ও ব্যাংক',
+  // the person's menu (brief #21): pins, start page, plan and "Set up"
+  'Pinned': 'পিন করা', 'Pin to menu': 'মেনুতে পিন করুন', 'Unpin': 'পিন সরান', 'Set up': 'সেট আপ করুন', 'Upgrade': 'আপগ্রেড',
+  'You can pin up to {n} pages. Unpin one first.': 'সর্বোচ্চ {n}টি পেজ পিন করা যায়। আগে একটি সরান।',
+  'Start page': 'শুরুর পেজ', 'Start page saved': 'শুরুর পেজ সেভ হয়েছে', 'Hide for now': 'এখন লুকান',
+  'Starter plan': 'স্টার্টার প্ল্যান', 'Growth plan': 'গ্রোথ প্ল্যান', 'Business plan': 'বিজনেস প্ল্যান', '3 branches': '৩টি শাখা',
+  'Connect a courier': 'কুরিয়ার যুক্ত করুন', 'Online orders need a courier to deliver them.': 'অনলাইন অর্ডার ডেলিভারির জন্য একটি কুরিয়ার লাগবে।',
+  'Set up a counter': 'কাউন্টার সেট আপ করুন', 'Add a counter before you sell in the shop.': 'দোকানে বিক্রির আগে একটি কাউন্টার যোগ করুন।',
+  'Connect a payment': 'পেমেন্ট যুক্ত করুন', 'Connect bKash, Nagad or a card gateway to take payments.': 'পেমেন্ট নিতে বিকাশ, নগদ বা কার্ড গেটওয়ে যুক্ত করুন।',
+  // new pages (Oct 2026) and their short tab names
+  'Order work': 'অর্ডারের কাজ', 'Order settings': 'অর্ডার সেটিংস', 'Payment operations': 'পেমেন্টের কাজ',
+  'Approvals': 'অনুমোদন', 'Match statements': 'স্টেটমেন্ট মেলান', 'Campaigns': 'ক্যাম্পেইন', 'Store credit': 'স্টোর ক্রেডিট',
+  'Communications settings': 'যোগাযোগ সেটিংস', 'Stock activity': 'স্টকের খতিয়ান', 'Customer settings': 'গ্রাহক সেটিংস',
+  'Ad audiences': 'বিজ্ঞাপনের অডিয়েন্স', 'Operations': 'কাজকর্ম', 'Activity': 'খতিয়ান',
+  // account menu, Help and editions (gc-topbar.js, gc-sidebar.js, lib/edition.js)
+  'My tasks': 'আমার কাজ', 'Your tasks, numbers and team for today': 'আজকের কাজ, হিসাব আর টিম',
+  'Profile type': 'প্রোফাইলের ধরন', 'Switch to a team member’s profile': 'টিমের অন্য কারও প্রোফাইলে যান',
+  'Help': 'সাহায্য', 'Help for this page': 'এই পেজের সাহায্য',
+  'All modules': 'সব মডিউল', 'Retail + Wholesale': 'রিটেইল + হোলসেল', 'Online': 'অনলাইন',
+  'Retail + Wholesale + Online': 'রিটেইল + হোলসেল + অনলাইন', 'Communication & CRM': 'যোগাযোগ ও সিআরএম',
+  // Inbox area and the top-bar chat button (navigation.js area-inbox, gc-topbar.js)
+  'Chats': 'চ্যাট', 'Comments': 'কমেন্ট', 'Mentions': 'মেনশন', 'Tickets': 'টিকিট', 'Unread': 'না পড়া',
+  '{n} unread': '{n}টি না-পড়া', 'No unread chats': 'না পড়া কোনো চ্যাট নেই', 'Courier statement': 'কুরিয়ার স্টেটমেন্ট', 'Open Inbox': 'ইনবক্স খুলুন', 'Show': 'দেখান',
+  // roles (lib/team.js)
+  'CEO': 'সিইও', 'CTO': 'সিটিও', 'Social media & content': 'সোশ্যাল মিডিয়া ও কনটেন্ট', 'Order management': 'অর্ডার ব্যবস্থাপনা',
+  'Ads & tracking': 'বিজ্ঞাপন ও ট্র্যাকিং', 'Warehouse manager': 'গুদাম ম্যানেজার', 'Warehouse supervisor': 'গুদাম সুপারভাইজার',
+  'Shop manager': 'দোকান ম্যানেজার', 'Shop supervisor': 'দোকান সুপারভাইজার', 'Shop seller': 'দোকানের বিক্রেতা', 'HR': 'এইচআর',
+  'Online sales expert': 'অনলাইন সেলস এক্সপার্ট',
 };
 
 /** Translates a shell string for the active locale. */

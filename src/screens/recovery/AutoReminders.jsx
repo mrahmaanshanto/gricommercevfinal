@@ -1,20 +1,29 @@
 'use client';
 // Generated from design/templates/recovery/AutoReminders.dc.html by scripts/convert-design.mjs.
 // AutoReminders — the automatic cart reminders (docs/shopify-style.md, settings page): RecordHeader with Save, the
-// master switch, the 3 reminders, who gets them and staff calls, with the message preview and this month's cost on
+// master switch, the 3 reminders, who gets them and staff calls, with the message preview and this month's figures on
 // the side.
+// Brief #13: the settings are kept (lib/recovery.js) and the reminder run reads them. Each step starts from a trigger
+// in the catalogue (lib/triggers.js) and its offer is a coupon from Promotions (lib/recoveryPolicy.js → promotions.js;
+// a one-time code per customer). Quiet hours and message limits are the shop's one policy from Communications
+// (messagePolicy.js), shown here read-only. The payment is checked before any message.
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
+import __Link from 'next/link';
 import { DCLogic, Icon as __Icon } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
-import { InfoTip } from '@/components/ui';
+import { InfoTip, StatusBadge as __StatusBadge } from '@/components/ui';
 import { RecordHeader } from '@/components/ui/IndexKit';
 import { toast as uiToast } from '@/runtime/ui';
 import { FORM_CSS, Switch, Steps } from '@/screens/loyalty-promo/loyShared';
+import { getReminderSettings, saveReminderSettings, DEFAULT_REMINDERS, getOpportunities, recoveryReport } from '@/lib/recovery';
+import { listOffers, offerBy, policySummary } from '@/lib/recoveryPolicy';
+import { TRIGGERS, TRIGGER_FAMILIES, triggerBy } from '@/lib/triggers';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
+function bdt(n) { var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return '৳' + s; }
 function mkSw(self, key, def) { var s = self.state || {}; var on = s[key] == null ? def : s[key]; return { on: on, cls: on ? 'sw on' : 'sw', toggle: function () { var p = {}; p[key] = !on; self.setState(p); } }; }
 function stepN(self, key, def, step, min, max) { var s = self.state || {}; var v = s[key] == null ? def : s[key]; return { v: v, dec: function () { var p = {}; p[key] = Math.max(min, +(v - step).toFixed(2)); self.setState(p); }, inc: function () { var p = {}; p[key] = Math.min(max, +(v + step).toFixed(2)); self.setState(p); } }; }
 var CHN = { sms: ['SMS'], wa: ['WhatsApp'], email: ['Email'] };
@@ -22,43 +31,55 @@ function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
 // success feedback is the shared toast (src/runtime/ui.js)
 function toast(self, m, bad) { uiToast(m, bad ? { tone: 'error' } : undefined); }
 var WAITS = [{ k: 1, label: '1 hour' }, { k: 3, label: '3 hours' }, { k: 24, label: '24 hours' }, { k: 72, label: '3 days' }];
-var DEF = [
-  { title: 'Gentle reminder', wait: 1, ch: { wa: true, sms: true }, disc: false, pct: 5, cap: 200, text: 'Hi {name}, you left something in your cart at GridShop. Finish your order here: {link}' },
-  { title: 'Small coupon', wait: 24, ch: { wa: true, email: true }, disc: true, pct: 5, cap: 200, text: 'আপনার কার্টের পণ্যগুলো এখনও আছে! কোড {code} দিয়ে ৫% ছাড় পান, ৪৮ ঘণ্টার মধ্যে। {link}' },
-  { title: 'Last chance', wait: 72, ch: { sms: true, email: true }, disc: true, pct: 10, cap: 300, text: 'Last chance, {name}! Take 10% off your cart with {code}. Ends in 48 hours: {link}' }
-];
+var STEP_TRIGGERS = ['cart_abandoned', 'checkout_abandoned', 'back_in_stock'];
 class Component extends DCLogic {
+  componentDidMount() {
+    var r = getReminderSettings();
+    this.setState({ st: r.steps.map(function (d) { return assign({ on: true }, d); }), master: r.on, minCart: r.minCart, bigCart: r.bigCart, skipRepeat: r.skipRepeat, backStock: r.backStock, offers: listOffers(), policy: policySummary(), opps: getOpportunities(), rep: recoveryReport(30) });
+  }
   renderVals() {
     var self = this, s = this.state || {};
-    var st = s.st || DEF.map(function (d) { return assign({ on: true }, d); });
+    var st = s.st || DEFAULT_REMINDERS.steps.map(function (d) { return assign({ on: true }, d); });
+    var offers = s.offers || [], policy = s.policy || { quiet: '9 PM – 9 AM', perDay: 1, perWeek: 4 }, opps = s.opps || [];
     var upd = function (i, f) { var n = st.map(function (x, j) { return j === i ? f(assign({}, x)) : x; }); self.setState({ st: n }); };
     var pv = s.pv || 0, P = st[pv];
     var chOn = Object.keys(P.ch).filter(function (k) { return P.ch[k]; });
     var pch = s.pch && P.ch[s.pch] ? s.pch : (chOn[0] || 'sms');
     var master = mkSw(this, 'master', true);
-    var fill = function (t, d) { return t.replace(/\{name\}/g, 'Nusrat').replace(/\{link\}/g, 'gridshop.com.bd/c/8K2Q').replace(/\{code\}/g, d ? 'NUSRAT' + d.pct + 'X' : ''); };
+    var pOffer = P.offerId ? offerBy(P.offerId) : null;
+    var fill = function (t, o) { return t.replace(/\{name\}/g, 'Nusrat').replace(/\{link\}/g, 'gridshop.com.bd/c/8K2Q').replace(/\{code\}/g, o ? (o.code || 'CART') + '-7QX2' : ''); };
+    var sentBy = function (n) { var all = [], won = 0; opps.forEach(function (o) { var hit = o.contacts.filter(function (c) { return c.step === n; }); if (hit.length) { all.push(o); if (o.state === 'recovered') won += 1; } }); return { sent: all.length, won: won }; };
+    var open = opps.filter(function (o) { return ['waiting', 'contactable'].indexOf(o.state) >= 0; }).length;
     return assign({
-      master: master, masterSub: master.on ? 'On — 31 carts are in the reminder line right now' : 'Off — no reminders will go out',
+      master: master, masterSub: master.on ? 'On — ' + open + (open === 1 ? ' cart is' : ' carts are') + ' waiting for a reminder right now' : 'Off — no reminders will go out',
       steps: st.map(function (x, i) {
-        return { n: i + 1, title: x.title, sub: 'After ' + WAITS.filter(function (w) { return w.k === x.wait; })[0].label + (x.disc ? ' · ' + x.pct + '% off, up to ৳' + x.cap : ' · no discount'),
-          on: x.on, dim: !(x.on && master.on), current: pv === i,
+        var o = x.offerId ? offerBy(x.offerId) : null, run = sentBy(i + 1), trig = triggerBy(x.trigger || 'cart_abandoned');
+        return { n: i + 1, title: x.title, sub: 'After ' + WAITS.filter(function (w) { return w.k === x.wait; })[0].label + (o ? ' · ' + o.name : ' · no offer'),
+          stats: run.sent + ' sent · ' + run.won + ' ordered after', on: x.on, dim: !(x.on && master.on), current: pv === i,
           toggle: function () { upd(i, function (y) { y.on = !y.on; return y; }); }, preview: function () { self.setState({ pv: i }); },
           waits: WAITS.map(function (w) { var on = w.k === x.wait; return { label: w.label, on: on, pick: function () { upd(i, function (y) { y.wait = w.k; return y; }); } }; }),
           chans: ['sms', 'wa', 'email'].map(function (k) { var on = !!x.ch[k]; return { label: CHN[k][0], on: on, pick: function () { upd(i, function (y) { y.ch = assign({}, y.ch); y.ch[k] = !on; return y; }); } }; }),
-          dopts: [{ k: false, label: 'No discount' }, { k: true, label: 'Give a coupon' }].map(function (o) { var on = o.k === x.disc; return { label: o.label, on: on, pick: function () { upd(i, function (y) { y.disc = o.k; return y; }); } }; }),
-          hasDisc: x.disc, pct: x.pct + '%', cap: '৳' + x.cap,
-          pdn: function () { upd(i, function (y) { y.pct = Math.max(1, y.pct - 1); return y; }); }, pup: function () { upd(i, function (y) { y.pct = Math.min(50, y.pct + 1); return y; }); },
-          cdn: function () { upd(i, function (y) { y.cap = Math.max(50, y.cap - 50); return y; }); }, cup: function () { upd(i, function (y) { y.cap = y.cap + 50; return y; }); },
+          dopts: [{ k: false, label: 'No offer' }, { k: true, label: 'Add an offer' }].map(function (d) { var on = d.k === !!x.offerId; return { label: d.label, on: on, pick: function () { upd(i, function (y) { y.offerId = d.k ? (y.offerId || (offers[0] || {}).id || null) : null; return y; }); } }; }),
+          hasDisc: !!x.offerId, offerId: x.offerId || '', offers: offers, offerTerms: o ? o.terms + ' · ' + o.life : 'This offer is no longer in Promotions. Pick another.', offerBad: !o || !o.usable,
+          pickOffer: function (e) { var v = e.target.value; upd(i, function (y) { y.offerId = v; return y; }); },
+          trigger: x.trigger || 'cart_abandoned', trigOwner: trig ? trig.owner + ' · ' + trig.window : '', triggers: STEP_TRIGGERS.map(function (k) { return { k: k, label: triggerBy(k).label }; }),
+          pickTrigger: function (e) { var v = e.target.value; upd(i, function (y) { y.trigger = v; return y; }); },
           text: x.text, type: function (e) { var v = e.target.value; upd(i, function (y) { y.text = v; return y; }); } };
       }),
       pv: { n: pv + 1 },
       pvTabs: chOn.map(function (k) { var on = k === pch; return { label: CHN[k][0], on: on, pick: function () { self.setState({ pch: k }); } }; }),
       pvPhone: pch !== 'email', pvEmail: pch === 'email', pvWa: pch === 'wa',
       pvFrom: pch === 'wa' ? 'GridShop (WhatsApp)' : 'GridShop',
-      pvText: fill(P.text, P.disc ? P : null), pvSubject: P.disc ? 'Your cart + ' + P.pct + '% off inside' : 'You left something behind',
-      minCart: stepN(this, 'minCart', 500, 100, 0, 5000), cap: stepN(this, 'cap', 3, 1, 1, 10), bigCart: stepN(this, 'bigCart', 5000, 1000, 1000, 50000),
-      skipRepeat: mkSw(this, 'skipRepeat', true), skipBlocked: mkSw(this, 'skipBlocked', true), quiet: mkSw(this, 'quiet', true), backStock: mkSw(this, 'backStock', true),
-      save: function () { toast(self, 'Saved. New carts follow these reminders from now on.'); }
+      pvText: fill(P.text, pOffer), pvSubject: pOffer ? 'Your cart + an offer inside' : 'You left something behind',
+      minCart: stepN(this, 'minCart', 500, 100, 0, 5000), bigCart: stepN(this, 'bigCart', 5000, 1000, 1000, 50000),
+      skipRepeat: mkSw(this, 'skipRepeat', true), skipBlocked: mkSw(this, 'skipBlocked', true), backStock: mkSw(this, 'backStock', true),
+      policy: policy, rep: s.rep || null,
+      save: function () {
+        var cur = getReminderSettings();
+        saveReminderSettings(assign(assign({}, cur), { on: master.on, steps: st, minCart: (self.state || {}).minCart != null ? self.state.minCart : cur.minCart, bigCart: (self.state || {}).bigCart != null ? self.state.bigCart : cur.bigCart,
+          skipRepeat: mkSw(self, 'skipRepeat', true).on, backStock: mkSw(self, 'backStock', true).on }));
+        toast(self, 'Saved. New carts follow these reminders from now on.');
+      }
     });
   }
 }
@@ -89,6 +110,9 @@ const CSS = `
 .ar-note{display:flex;gap:var(--space-2);padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--fill-info-soft);font-size:var(--text-xs);line-height:1.5;color:var(--text-info)}
 .ar-note svg{flex:none;margin-top:1px}
 .ar-side .ix-card__body{display:flex;flex-direction:column;gap:var(--space-3)}
+.ar-trig{display:flex;flex-direction:column;gap:var(--space-2);margin:0;padding:0 var(--space-4) var(--space-4);list-style:none}
+.ar-trig b{display:block;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
+.ar-trig small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 `;
 
 // ---- markup ----
@@ -132,7 +156,7 @@ export default class AutoRemindersScreen extends Component {
                         {v.steps.map((st) => (
                           <article key={st.n} className={'ar-step' + (st.current ? ' is-current' : '') + (st.dim ? ' is-dim' : '')}>
                             <div className="ar-sh">
-                              <div><b>{st.n} · {st.title}</b><small>{st.sub}</small></div>
+                              <div><b>{st.n} · {st.title}</b><small>{st.sub} · {st.stats}</small></div>
                               <button type="button" className="ix-btn ix-btn--sm" aria-pressed={st.current} onClick={st.preview}><__Icon name="eye" width="16" height="16" aria-hidden="true" />Preview</button>
                               <Switch on={st.on} onToggle={st.toggle} label={`Reminder ${st.n}`} />
                             </div>
@@ -140,16 +164,23 @@ export default class AutoRemindersScreen extends Component {
                               <div className="ly-field"><span className="gc-label">Send after</span>{chips(st.waits, 'Send after')}</div>
                               <div className="ly-field"><span className="gc-label">Send by</span>{chips(st.chans, 'Send by', true)}</div>
                             </div>
-                            <div className="ly-row">
-                              <span className="gc-label" style={{ margin: 0 }}>Discount</span>
-                              <span className="gc-seg" role="group" aria-label="Discount">{st.dopts.map((o) => <button key={o.label} type="button" className={'gc-seg__btn' + (o.on ? ' gc-seg__btn--active' : '')} aria-pressed={o.on} onClick={o.pick}>{o.label}</button>)}</span>
-                              {st.hasDisc ? (<>
-                                <Steps label="discount percent" less="Less discount percent" more="More discount percent" display={st.pct} onDec={st.pdn} onInc={st.pup} />
-                                <span>off, up to</span>
-                                <Steps label="maximum discount" less="Less maximum discount" more="More maximum discount" display={st.cap} onDec={st.cdn} onInc={st.cup} />
-                                <span>taka · code ends in 48 hours</span>
-                              </>) : null}
+                            <div className="ly-field">
+                              <label className="gc-label" htmlFor={'ar-trig-' + st.n}>Starts from</label>
+                              <select id={'ar-trig-' + st.n} className="gc-input gc-select" value={st.trigger} onChange={st.pickTrigger}>{st.triggers.map((t) => <option key={t.k} value={t.k}>{t.label}</option>)}</select>
+                              <span className="ly-help">{st.trigOwner}</span>
                             </div>
+                            <div className="ly-row">
+                              <span className="gc-label" style={{ margin: 0 }}>Offer</span>
+                              <span className="gc-seg" role="group" aria-label="Discount">{st.dopts.map((o) => <button key={o.label} type="button" className={'gc-seg__btn' + (o.on ? ' gc-seg__btn--active' : '')} aria-pressed={o.on} onClick={o.pick}>{o.label}</button>)}</span>
+                            </div>
+                            {st.hasDisc ? (
+                              <div className="ly-field">
+                                <label className="gc-label" htmlFor={'ar-offer-' + st.n}>Offer from Promotions <InfoTip text="Each customer gets a one-time code for this offer. Its limits and budget are set in Promotions." /></label>
+                                <select id={'ar-offer-' + st.n} className="gc-input gc-select" value={st.offerId} onChange={st.pickOffer}>{st.offers.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}{st.offerId && !st.offers.some((o) => o.id === st.offerId) ? <option value={st.offerId}>{st.offerId}</option> : null}</select>
+                                <span className={st.offerBad ? 'gc-help gc-help--error' : 'ly-help'} style={{ margin: 0 }}>{st.offerTerms}{st.offerBad ? ' · it is not running, so the reminder goes without it' : ''}</span>
+                                <__Link href="/coupons" className="ly-help">Make a new offer in Promotions</__Link>
+                              </div>
+                            ) : null}
                             <div className="ly-field">
                               <label className="gc-label" htmlFor={'ar-msg-' + st.n}>Message <InfoTip text={"{name}, {link} and {code} are filled in for each customer. The link opens their cart, ready to order — no login."} /></label>
                               <textarea id={'ar-msg-' + st.n} className="gc-input ar-msg" rows="2" aria-label={`Message for reminder ${st.n}`} value={st.text} onChange={st.type} />
@@ -164,10 +195,11 @@ export default class AutoRemindersScreen extends Component {
                       <div className="ix-card__body">
                         <div>
                           {stepRow(v.minCart, 'Skip small carts under', 'Not worth a message', 'taka', 'Less minimum cart', 'More minimum cart')}
-                          {swRow(v.skipRepeat, 'Skip people who left 3 or more carts this month', 'They get a coupon too easily and learn to wait')}
+                          {swRow(v.skipRepeat, 'Leave out customers with 3 or more carts left this month', 'Keeps the same people from getting offers again and again')}
                           {swRow(v.skipBlocked, 'Skip blocked numbers', 'Numbers on your block list never get messages')}
-                          {stepRow(v.cap, 'Max messages per customer', 'Shared with all your marketing, so nobody is spammed', 'per week', 'Less messages per week', 'More messages per week')}
-                          {swRow(v.quiet, 'Send only between 9:00 AM and 9:00 PM', 'Messages found at night wait until morning')}
+                          <div className="ly-set"><div><b>Message limits <InfoTip text="One limit for all your marketing, set in Communications. Reminders count towards it." /></b><small>{v.policy.perDay ? v.policy.perDay + ' a day · ' : ''}{v.policy.perWeek ? v.policy.perWeek + ' a week' : 'No weekly limit'}</small></div><__Link href="/workflow-settings" className="ly-help">Change</__Link></div>
+                          <div className="ly-set"><div><b>Quiet hours</b><small>{v.policy.quiet} · messages found then wait until it ends</small></div><__Link href="/workflow-settings" className="ly-help">Change</__Link></div>
+                          <div className="ly-set"><div><b>Payment is checked first <InfoTip text="If the payment for a checkout has arrived, no reminder goes and the cart counts as recovered." /></b><small>Always on</small></div><__StatusBadge tone="success">On</__StatusBadge></div>
                         </div>
                       </div>
                     </section>
@@ -205,15 +237,20 @@ export default class AutoRemindersScreen extends Component {
                             </div>
                           </div>
                         ) : null}
-                        <div className="ar-note"><__Icon name="link" width="16" height="16" aria-hidden="true" /><span>The link opens the same cart with the coupon already added. It stops working after 7 days or once they order.</span></div>
+                        <div className="ar-note"><__Icon name="link" width="16" height="16" aria-hidden="true" /><span>The link opens this one cart with the code added, without signing in. Price and stock are checked again when it opens. It stops working after 7 days or once they order.</span></div>
                       </div>
                     </section>
                     <section className="ix-card" aria-labelledby="ar-cost">
                       <header className="ix-card__head"><h2 id="ar-cost">Cost this month</h2></header>
                       <div className="ix-card__body">
-                        <dl className="ix-sum"><dt>SMS (1,240)</dt><dd>৳434</dd><dt>WhatsApp (1,860)</dt><dd>৳1,302</dd><dt>Email (2,100)</dt><dd>Free</dd><dt className="is-total">Brought back</dt><dd className="is-total ly-in">৳1,42,600</dd></dl>
+                        <dl className="ix-sum"><dt>SMS (1,240)</dt><dd>৳434</dd><dt>WhatsApp (1,860)</dt><dd>৳1,302</dd><dt>Email (2,100)</dt><dd>Free</dd><dt className="is-total">Recovered orders · 30 days</dt><dd className="is-total ly-in">{v.rep ? v.rep.recovered + ' · ' + bdt(v.rep.recoveredValue) : '—'}</dd></dl>
+                        <p className="ly-help">Orders placed within 7 days of leaving a cart. Analytics decides which sales a reminder earned.</p>
                       </div>
                     </section>
+                    <details className="ix-card gc-disclose">
+                      <summary>Triggers · {TRIGGERS.length}</summary>
+                      <ul className="ar-trig">{TRIGGERS.map((t) => <li key={t.id}><b>{t.label}</b><small>{TRIGGER_FAMILIES[t.family]} · {t.owner} · {t.window} · once per {t.key.toLowerCase()}</small></li>)}</ul>
+                    </details>
                   </aside>
                 </div>
               </div>

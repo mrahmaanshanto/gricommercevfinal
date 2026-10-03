@@ -141,6 +141,7 @@ export default function CourierReturns() {
             <div className="ix-page">
               <ShopHeader icon="undo-2" title="Courier returns"
                 about="Parcels the courier brings back. Count what arrived, good or damaged. Good items go back on sale, damaged ones are set aside."
+                secondary={[{ label: 'Courier statement', icon: 'truck', href: '/courier-statement' }]}
                 more={[{ label: 'Returned orders', href: '/merchant-orders?status=returned' }, { label: 'Returns history', href: '/return-history' }]} />
 
               <MetricStrip label="Courier returns" items={[

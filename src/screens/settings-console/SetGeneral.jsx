@@ -1,6 +1,9 @@
 'use client';
 // Generated from design/templates/settings-console/SetGeneral.dc.html by scripts/convert-design.mjs.
-// SetGeneral
+// SetGeneral — store identity, formats, brand, legal business, customer contact and billing profile (Nayeem's brief #16:
+// "separate brand identity, legal business identity, customer contact and Grid billing identity"). lib/businessProfile.js
+// reads the saved values for invoices and receipts. Currency, country and timezone are risky: saving a change explains
+// what it does and asks for the shop name (SetChrome.jsx › SetGuards).
 // Edit freely: this file is now the source for the screen.
 
 import { SetTips as __SetTips } from './SetChrome';
@@ -11,6 +14,12 @@ import { SettingsSwitcher as __SettingsSwitcher } from '@/shell/Shell';
 import __SetChrome, { SettingsLogic as __SettingsLogic, SetIn as __In, SetErr as __Err, SetSeg as __Seg, SetSaveBar as __SaveBar } from '@/screens/settings-console/SetChrome';
 import __SetRail from '@/screens/settings-console/SetRail';
 import __SetTopbar from '@/screens/settings-console/SetTopbar';
+import { MERCHANT } from '@/lib/merchant';
+import { RISKY, BUSINESS_TYPES } from '@/lib/businessProfile';
+
+const HEX = (x) => (/^#[0-9a-f]{6}$/i.test(x) ? '' : 'Enter a colour code like #003087.');
+const BIN = (x) => (/^\d{9}-?\d{4}$/.test(x) ? '' : 'A BIN has 13 digits, like 004512897-0203.');
+const TIN = (x) => (/^\d{12}$/.test(x) ? '' : 'A TIN has 12 digits.');
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -20,9 +29,9 @@ class Component extends __SettingsLogic {
     store_name: {l: "Store name", d: "GridShop", req: true},
     copyright_line: {l: "Copyright line", d: "© 2026 GridShop. All rights reserved. Trade licence 1043/FEN-2021.", req: true, k: "area"},
     footer_about: {l: "Footer about", check: (x) => (x.length > 400 ? "Keep the footer text to 400 characters or fewer. It is " + x.length + " now." : ""), d: "GridShop is a multi-warehouse commerce platform for Bangladeshi retailers — one catalogue, one stock ledger and one register across every branch. Shop online or visit us in Feni, Gulshan and Chattogram.", k: "area"},
-    currency: {l: "Currency", d: "Bangladeshi Taka — ৳ (BDT)", req: true},
-    default_country: {l: "Default country", d: "Bangladesh", req: true},
-    timezone: {l: "Timezone", d: "(UTC+06:00) Asia/Dhaka", req: true},
+    currency: {l: "Currency", d: "Bangladeshi Taka — ৳ (BDT)", req: true, risky: RISKY.currency},
+    default_country: {l: "Default country", d: "Bangladesh", req: true, risky: RISKY.country},
+    timezone: {l: "Timezone", d: "(UTC+06:00) Asia/Dhaka", req: true, risky: RISKY.timezone},
     date_format: {l: "Date format", d: "Mon D, YYYY", req: true},
     time_format: {l: "Time format", d: "12-hour"},
     rows_per_page: {l: "Rows per page", d: "25", k: "int", req: true, check: (x) => (+x < 5 || +x > 200 ? "Choose between 5 and 200 rows per page." : "")},
@@ -34,6 +43,18 @@ class Component extends __SettingsLogic {
     support_line_hours_to: {l: "Support line hours (to)", d: "22:00", k: "time"},
     service_window: {l: "Service window", d: "10:00", k: "time"},
     service_window_to: {l: "Service window (to)", d: "20:00", k: "time"},
+    brand_color: {l: "Brand colour", d: "#003087", req: true, check: HEX},
+    brand_accent: {l: "Accent colour", d: "#009cde", check: HEX},
+    legal_name: {l: "Legal name", d: "GridShop Trading Ltd.", req: true},
+    business_type: {l: "Business type", d: "Private limited company", req: true},
+    trade_licence: {l: "Trade licence", d: MERCHANT.licence},
+    bin: {l: "BIN (VAT registration)", d: MERCHANT.bin, check: BIN},
+    tin: {l: "TIN", d: "", check: TIN},
+    registered_address: {l: "Registered address", d: MERCHANT.address, req: true},
+    billing_name: {l: "Billing name", d: "GridShop Trading Ltd.", req: true},
+    billing_address: {l: "Billing address", d: MERCHANT.address, req: true},
+    billing_tax_id: {l: "Tax ID on bills", d: MERCHANT.bin},
+    billing_email: {l: "Invoice email", d: MERCHANT.email, req: true, k: "email"},
     map_embed: {l: "Google Maps embed code", k: "area", d: "<iframe src=\"https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3684.62!2d91.3976!3d23.0159!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1\" width=\"100%\" height=\"360\" loading=\"lazy\"></iframe>", check: (x) => (/^<iframe[^>]+src="https:\/\/www\.google\.com\/maps\/embed[^"]*"[^>]*><\/iframe>$/.test(x) ? "" : "Paste the whole <iframe> code from Google Maps → Share → Embed a map.")},
   };
   renderVals() {
@@ -46,9 +67,34 @@ class Component extends __SettingsLogic {
   }
 }
 
+// one labelled field (same look as the fields above): label, optional help, the box, the error
+function Fld({ f, n, help, keep, opts, wide, children }) {
+  const d = f.def(n) || { l: n };
+  return (
+    <div className={'sg-fld' + (wide ? ' sg-fld--wide' : '')}>
+      <label htmlFor={f.id(n)} className="sg-lbl">{d.l}{d.req ? <span className="set-req" aria-hidden="true"> *</span> : null}</label>
+      {help ? <span id={f.id(n) + '-help'} className={'set-help sg-help' + (keep ? ' set-help--keep' : '')}>{help}</span> : null}
+      <span className="set-box sg-box">{children}<__In f={f} n={n} labelled desc={!!help} opts={opts} /></span>
+      <__Err f={f} n={n} />
+    </div>
+  );
+}
+
 // ---- styles (from the design's <helmet>) ----
 
 const CSS = `.dc-h434:hover{background:#f8fafc !important}
+.sg-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 20px;padding:16px}
+.sg-fld{display:flex;flex-direction:column;gap:6px;min-width:0}
+.sg-fld--wide{grid-column:1 / -1}
+.sg-lbl{font-size:var(--text-xs-plus);font-weight:var(--weight-medium);color:var(--text-heading)}
+.sg-help{font-size:var(--text-xs);line-height:17px;color:var(--text-muted)}
+.sg-box{display:flex;align-items:center;gap:8px;height:var(--control-height);border:1px solid var(--border-field);border-radius:var(--radius-lg);background:var(--surface-card);padding:0 11px;font-size:var(--text-sm);color:var(--text-heading)}
+.sg-swatch{flex:none;width:22px;height:22px;padding:0;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);background:none;cursor:pointer}
+.sg-swatch::-webkit-color-swatch-wrapper{padding:0}.sg-swatch::-webkit-color-swatch{border:0;border-radius:var(--radius-sm)}
+.sg-brand{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:0 16px 16px;font-size:var(--text-xs);color:var(--text-muted)}
+.sg-brand b{display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:var(--radius-lg);font-weight:var(--weight-medium);color:var(--text-on-primary,#fff)}
+.sg-note{margin:0;padding:0 16px 16px;font-size:var(--text-xs);color:var(--text-muted)}
+@container setcol (max-width:559px){.sg-grid{grid-template-columns:minmax(0,1fr)}}
 `;
 
 // ---- markup ----
@@ -217,6 +263,17 @@ export default class SetGeneralScreen extends Component {
                         </div>
                       </div>
                     </section>
+                    <section id="brand-colours" className="ix-card set-card" aria-label="Brand colours">
+                      <div className="set-head set-head--top">
+                        <span style={{ display: "block" }}><h2 className="set-title">Brand colours</h2></span>
+                        <span style={{ marginLeft: "auto", flex: "none", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>2 settings</span>
+                      </div>
+                      <div className="sg-grid">
+                        <Fld f={v.f} n="brand_color" help="Buttons, links and the invoice header."><input type="color" className="sg-swatch" aria-label="Pick the brand colour" value={/^#[0-9a-f]{6}$/i.test(v.f.get("brand_color", "")) ? v.f.get("brand_color", "") : "#003087"} onChange={v.f.on("brand_color")} /></Fld>
+                        <Fld f={v.f} n="brand_accent" help="Highlights and badges in the store."><input type="color" className="sg-swatch" aria-label="Pick the accent colour" value={/^#[0-9a-f]{6}$/i.test(v.f.get("brand_accent", "")) ? v.f.get("brand_accent", "") : "#009cde"} onChange={v.f.on("brand_accent")} /></Fld>
+                      </div>
+                      <div className="sg-brand" aria-hidden="true">Preview<b style={{ background: v.f.get("brand_color", "#003087") }}>{v.f.get("store_name", "GridShop")}</b><b style={{ background: v.f.get("brand_accent", "#009cde") }}>New</b></div>
+                    </section>
                     <section id="support" className="ix-card set-card">
                       <div className="set-head set-head--top">
                         <span style={{ display: "block" }}>
@@ -297,6 +354,33 @@ export default class SetGeneralScreen extends Component {
                             </span>
                           </span>
                         </div>
+                      </div>
+                    </section>
+                    <section id="legal" className="ix-card set-card">
+                      <div className="set-head set-head--top">
+                        <span style={{ display: "block" }}><h2 className="set-title">Legal business</h2></span>
+                        <span style={{ marginLeft: "auto", flex: "none", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>6 settings</span>
+                      </div>
+                      <div className="sg-grid">
+                        <Fld f={v.f} n="legal_name" help="As on the trade licence. Printed on invoices and receipts." />
+                        <Fld f={v.f} n="business_type" opts={BUSINESS_TYPES} />
+                        <Fld f={v.f} n="trade_licence" />
+                        <Fld f={v.f} n="bin" help="13 digits. Printed on VAT invoices (Mushak)." keep />
+                        <Fld f={v.f} n="tin" help="12 digits. Leave empty if you don’t have one." />
+                        <Fld f={v.f} n="registered_address" wide />
+                      </div>
+                      <p className="sg-note">Invoices already issued keep the details they were printed with.</p>
+                    </section>
+                    <section id="billing" className="ix-card set-card">
+                      <div className="set-head set-head--top">
+                        <span style={{ display: "block" }}><h2 className="set-title">Billing profile</h2></span>
+                        <__Link href="/subscription" style={{ marginLeft: "auto", flex: "none", fontSize: "var(--text-xs)", color: "var(--text-link)" }}>Subscription & billing</__Link>
+                      </div>
+                      <div className="sg-grid">
+                        <Fld f={v.f} n="billing_name" help="The name on your GridCommerce bills." />
+                        <Fld f={v.f} n="billing_email" help="Bills and payment receipts go here." />
+                        <Fld f={v.f} n="billing_tax_id" />
+                        <Fld f={v.f} n="billing_address" wide />
                       </div>
                     </section>
                   </main>

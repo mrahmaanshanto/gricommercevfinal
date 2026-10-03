@@ -15,6 +15,7 @@ import { RecordHeader, KV } from '@/components/ui/IndexKit';
 import { toast as __toast } from '@/runtime/ui';
 import { STOCK_PLACES, getStockPlaces, placeName } from '@/lib/locations';
 import { CATALOG, productBy, stockAt, getMoves } from '@/lib/stock';
+import { resolveScan } from '@/lib/identifiers';
 import { getHolds } from '@/lib/stockHolds';
 import { addTransfer } from '@/lib/transfers';
 
@@ -85,12 +86,15 @@ class Component extends DCLogic {
       lines: rows,
       scan: function (e) {
         var n = s.n || 0, q = e && e.target && e.target.value ? e.target.value.trim().toLowerCase() : '';
-        var i = SCAN[n % SCAN.length];
-        if (q) { var hit = productBy(q) || CATALOG.filter(function (x) { return (x.sku + ' ' + x.name + ' ' + x.variant).toLowerCase().indexOf(q) >= 0; })[0]; if (!hit) { flashMsg(self, 'No product matches “' + e.target.value.trim() + '”', true); return; } i = TP.findIndex(function (x) { return x.sku === hit.sku; }); e.target.value = ''; }
+        var i = SCAN[n % SCAN.length], add = 1, packName = '';
+        // a scan resolves to product + pack (identifiers.js): a carton barcode adds the whole carton in base units
+        var rs = q ? resolveScan(e.target.value.trim()) : null;
+        if (rs) { add = rs.qty || 1; packName = rs.pack ? ' (' + rs.pack.name + ')' : ''; }
+        if (q) { var hit = (rs && rs.row) || productBy(q) || CATALOG.filter(function (x) { return (x.sku + ' ' + x.name + ' ' + x.variant).toLowerCase().indexOf(q) >= 0; })[0]; if (!hit) { flashMsg(self, 'No product matches “' + e.target.value.trim() + '”', true); return; } i = TP.findIndex(function (x) { return x.sku === hit.sku; }); if (i < 0) { flashMsg(self, hit.name + ' can’t be moved from here', true); return; } e.target.value = ''; }
         var x = lines.slice(); var f = -1;
         x.forEach(function (l, k) { if (l.i === i) f = k; });
-        if (f >= 0) x[f] = { i: i, q: x[f].q + 1 }; else x.push({ i: i, q: 1 });
-        flashMsg(self, 'Beep — ' + TP[i].name + (f >= 0 ? ' +1' : ' added'), false, { lines: x, n: n + 1, flash: i });
+        if (f >= 0) x[f] = { i: i, q: x[f].q + add }; else x.push({ i: i, q: add });
+        flashMsg(self, 'Beep — ' + TP[i].name + (f >= 0 || add > 1 ? ' +' + add + packName : ' added'), false, { lines: x, n: n + 1, flash: i });
       },
       prods: lines.length, pcs: pcs, val: '৳' + Math.round(val).toLocaleString('en-IN'), tooMany: tooMany,
       notSent: !sent, sent: sent,

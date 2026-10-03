@@ -8,7 +8,8 @@
 //   Card         the ledger rows of those kinds: a view per type, the month, a search, the pager; a cost's
 //                sales channel (categories.js homeOf) is in the row's tooltip and on Spend by category
 //   Below        spend by category (bars, labelled with their channel); Dues and Bills to pay are in More
-//   Dialogs      Record expense (category list from categories.js; posts 'expense' or 'salary'),
+//   Dialogs      Record expense (category list from categories.js; posts 'expense' or 'salary'; over an approval
+//                limit by amount, category, account or branch it waits in Approvals instead, lib/approvals.js),
 //                Record income (posts 'income'; a supplier bonus can instead be taken as credit on
 //                their bills, supplierBills.js addCredit, with no money moving) and Owner withdraw /
 //                investment. ?add=expense|income|owner opens one.
@@ -28,7 +29,8 @@ import { getSuppliers, payableOf, addCredit } from '@/lib/supplierBills';
 import { getCategories, homeOf } from '@/lib/categories';
 import { getLiabilities, leftOf, liabStatus } from '@/lib/liabilities';
 import { clockNow, getPayouts, dayKey, fromKey } from '@/lib/settlements';
-import { AccPage, AccountSelect, money, signed, shortDate, accName, accBrand, useBooks } from './accShared';
+import { needsApproval, submit, limitText } from '@/lib/approvals';
+import { AccPage, AccountSelect, money, signed, shortDate, accName, accBrand, useBooks, useMe } from './accShared';
 
 // ---- what counts: money going out, and money in that is not a sale -------------------------------
 const GROUPS = [
@@ -206,7 +208,7 @@ export default function ExpensesBills() {
   return (
     <AccPage screen="ExpensesBills" active="acc-spend" page="Income & expenses" title="Income & expenses" css={CSS} icon="receipt" about={ABOUT}
       secondary={[{ label: 'Record income', onClick: () => setDialog('income') }]}
-      more={[{ label: 'Owner withdraw / investment', onClick: () => setDialog('owner') }, { label: 'Dues', href: '/dues' }, { label: 'Bills to pay', href: '/liabilities' }, { label: 'Expense categories', href: '/account-setup?tab=categories' }]}
+      more={[{ label: 'Approvals', href: '/money-approvals' }, { label: 'Owner withdraw / investment', onClick: () => setDialog('owner') }, { label: 'Dues', href: '/dues' }, { label: 'Bills to pay', href: '/liabilities' }, { label: 'Expense categories', href: '/account-setup?tab=categories' }]}
       primary={{ label: 'Record expense', onClick: () => setDialog('expense') }}>
 
       <MetricStrip label="This month" items={[
@@ -304,6 +306,7 @@ const cleanAmount = (v) => v.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
 
 // ---- record expense ------------------------------------------------------------------------------
 function ExpenseDialog({ onClose }) {
+  const me = useMe();
   const today = dayKey(clockNow());
   const categories = useMemo(() => getCategories('expense'), []);
   const [cat, setCat] = useState('');
@@ -324,16 +327,26 @@ function ExpenseDialog({ onClose }) {
     date: !date ? 'Pick the day it was paid.' : date > today ? 'The date can’t be in the future.' : '',
   };
   const show = (f) => (tried ? errors[f] : '');
+  const rule = amt > 0 && cat ? needsApproval({ kind: 'expense', amount: amt, cat, account }) : null;
 
   const save = (e) => {
     e.preventDefault();
     setTried(true);
     if (Object.values(errors).some(Boolean)) return;
-    const row = postEntry({
+    const entry = {
       account, amount: -amt, kind: isSalary ? 'salary' : 'expense', cat,
-      party: party.trim() || cat, note: note.trim(), by: 'Staff',
+      party: party.trim() || cat, note: note.trim(), by: (me && me.name) || 'Staff',
       ...(date !== today ? { at: fromKey(date) + 12 * 3600e3 } : {}),
-    });
+    };
+    if (rule) {
+      // over a limit: nothing is posted until someone else with the Approver duty approves it
+      const req = submit({ kind: 'expense', title: `${cat}${note.trim() ? ' · ' + note.trim() : ''}`, amount: amt, payload: entry, rule, user: me,
+        facts: [['Category', cat], ['Paid from', accName(account)], ['Paid to', entry.party], ['Paid on', shortDate(fromKey(date))]] });
+      toast(`${money(amt)} for ${cat.toLowerCase()} waits for approval (${req.id})`);
+      onClose();
+      return;
+    }
+    const row = postEntry(entry);
     if (!row) { toast('That account could not be found', { tone: 'error' }); return; }
     toast(`${money(amt)} for ${cat.toLowerCase()} recorded from ${accName(account)}`);
     onClose();
@@ -341,7 +354,7 @@ function ExpenseDialog({ onClose }) {
 
   return (
     <Dialog open title="Record expense" onClose={onClose} width={560}
-      footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={onClose}>Cancel</button><button type="submit" form="eb-exp-form" className="gc-btn gc-btn--solid">Save expense</button></>}>
+      footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={onClose}>Cancel</button><button type="submit" form="eb-exp-form" className="gc-btn gc-btn--solid">{rule ? 'Ask for approval' : 'Save expense'}</button></>}>
       <form id="eb-exp-form" className="ac-form" onSubmit={save} noValidate>
         <div className="ac-two">
           <div>
@@ -366,6 +379,7 @@ function ExpenseDialog({ onClose }) {
           </div>
           <AccountSelect id="eb-account" label="Paid from" value={account} onChange={setAccount} describedBy={amt > balance ? 'eb-low' : undefined} />
         </div>
+        {rule ? <div className="ac-note ac-note--warn" role="status"><Icon name="hourglass" width="16" height="16" aria-hidden="true" /><span><b>{limitText(rule)}.</b> It waits in Approvals and is recorded when someone else approves it.</span></div> : null}
         {amt > balance ? (
           <div id="eb-low" className="ac-note ac-note--warn" role="status"><Icon name="triangle-alert" width="16" height="16" aria-hidden="true" /><span><b>{accName(account)} has {money(balance)}.</b> Paying {money(amt)} from it takes it below zero. Check the account, or save anyway if the money did go out.</span></div>
         ) : null}

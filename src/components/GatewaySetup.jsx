@@ -8,7 +8,10 @@
 //                 the month), or manual withdraw; which account it settles into; days they don't settle;
 //                 the fee
 //   4 Keys        the API keys the gateway needs, sandbox or live
-//   5 Review      what will be made: a holding account for held money, or the direct account
+//   5 Review      what will be made: a holding account for held money, or the direct account. When an existing
+//                 partner's fee, payout rule, account or days off change, the new settings apply from a date you
+//                 pick (today by default); earlier payments keep the settings of their day (settlements.js
+//                 history), listed under "Earlier settings".
 // Front end only: keys are kept in this browser (lib/settlements getKeys / saveGateway).
 
 import React, { useMemo, useState } from 'react';
@@ -17,7 +20,9 @@ import { toast } from '@/runtime/ui';
 import { Dialog } from '@/components/ui';
 import { BrandLogo } from '@/components/BrandLogo';
 import { accountBy } from '@/lib/ledger';
-import { saveGateway, getKeys, partnerBy, getAllPartners, holdingOf, WEEKDAYS, DEFAULT_WEEKEND, COURIER_RATES, ruleText } from '@/lib/settlements';
+import { saveGateway, getKeys, partnerBy, getAllPartners, holdingOf, WEEKDAYS, DEFAULT_WEEKEND, COURIER_RATES, ruleText, feeText, historyOf, dayKey, clockNow, fromKey } from '@/lib/settlements';
+import { formatDate } from '@/lib/format';
+import { currentUser } from '@/lib/team';
 import { ACC_CSS, AccountSelect, useBooks } from '@/screens/accounts/accShared';
 
 // what each gateway needs to connect (secret = hidden while typing)
@@ -91,6 +96,8 @@ export function GatewaySetup({ partner, provider, onClose }) {
   const [later, setLater] = useState(false);
   const [show, setShow] = useState({});
   const [err, setErr] = useState('');
+  const [from, setFrom] = useState(() => dayKey(clockNow()));   // the day changed settings apply from
+  const history = useMemo(() => (editing ? historyOf(partner.id) : []), [editing, partner]);
   const pr = f ? PROVIDERS.find((x) => x.id === f.provider) : null;
   const set = (patch) => { setF((x) => ({ ...x, ...patch })); setErr(''); };
   const courier = f && f.kind === 'Courier';
@@ -140,8 +147,9 @@ export function GatewaySetup({ partner, provider, onClose }) {
     return { ...base, ...fees, rule: rule(), to: f.to, weekend: f.weekend };
   };
   const save = () => {
-    const { partner: p, made } = saveGateway(result(), later ? null : keys);
-    toast(editing ? `${p.short} saved · ${ruleText(p)}` : `${p.short} is set up${made.length ? ` · account “${made[0].name}” made` : ''}`);
+    const { partner: p, made } = saveGateway(result(), later ? null : keys, { from, by: currentUser().name });
+    const today = dayKey(clockNow());
+    toast(editing ? `${p.short} saved · ${ruleText(p)}${from !== today ? ` · from ${formatDate(fromKey(from))}` : ''}` : `${p.short} is set up${made.length ? ` · account “${made[0].name}” made` : ''}`);
     onClose(true);
   };
 
@@ -267,6 +275,31 @@ export function GatewaySetup({ partner, provider, onClose }) {
               <dt>Charges</dt><dd>{courier ? `COD ${f.cod}% (${f.codDhaka}% inside Dhaka) + delivery ${Object.values(f.rates).map((x) => '৳' + x).join(' / ')}` : `${f.fee}% per payment`}</dd>
               <dt>Keys</dt><dd>{later ? 'Added later' : `${keys.mode} · ${pr.keys.length} saved`}</dd>
             </dl>
+            {editing ? (
+              <div className="ac-two">
+                <div>
+                  <label className="gc-label" htmlFor="gs-from">Changes apply from</label>
+                  <input id="gs-from" type="date" className="gc-input" value={from} onChange={(e) => setFrom(e.target.value || dayKey(clockNow()))} aria-describedby="gs-from-help" />
+                  <p id="gs-from-help" className="gc-help" style={{ margin: '4px 0 0' }}>Payments before this day keep the old fee and payout rule.</p>
+                </div>
+              </div>
+            ) : null}
+            {history.length ? (
+              <details className="ac-details">
+                <summary><Icon name="chevron-right" width="14" height="14" aria-hidden="true" /> Earlier settings ({history.length})</summary>
+                <table className="ac-mini">
+                  <thead><tr><th scope="col">From</th><th scope="col">Until</th><th scope="col">Fee</th><th scope="col">Pays out</th><th scope="col">Into</th></tr></thead>
+                  <tbody>{history.slice().reverse().map((v, i) => { const x = { ...partner, ...v }; return (
+                    <tr key={i} title={[v.note, v.by].filter(Boolean).join(' · ') || undefined}>
+                      <td>{v.from ? formatDate(fromKey(v.from)) : 'Start'}</td>
+                      <td>{v.until ? formatDate(fromKey(v.until)) : 'Now'}</td>
+                      <td>{feeText(x)}</td>
+                      <td>{ruleText(x)}</td>
+                      <td>{(accountBy(x.mode === 'direct' ? x.account : x.to) || {}).name || '—'}</td>
+                    </tr>); })}</tbody>
+                </table>
+              </details>
+            ) : null}
             <p className="gs-q">What we will set up in Accounts</p>
             <ul className="gs-build">
               {direct ? <li>{f.newAcc ? <>A new {f.accType === 'Mobile' ? 'mobile wallet' : 'bank'} account “{f.accName}”. </> : null}Payments through {f.short || f.name} go straight into {f.newAcc ? 'it' : (accountBy(f.account) || {}).name}.</li> : <>

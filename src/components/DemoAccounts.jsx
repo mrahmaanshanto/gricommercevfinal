@@ -1,11 +1,12 @@
 'use client';
 // DemoAccounts — Settings › Profile type: switch to any of the 13 staff profiles (owner / CEO, HR, warehouse, shop …;
-// no password in the demo) and land on that person's dashboard with their own menu (src/lib/team.js).
+// no password in the demo) and land on that person's start page with their own menu (src/lib/team.js). A person
+// with two roles shows both; their menu is the union of the two.
 
 import React from 'react';
 import { Icon } from '@/runtime/dc';
 import { navigate } from '@/runtime/routes';
-import { USERS, ROLES, signInAs, currentUser, hasWorkInEdition } from '@/lib/team';
+import { USERS, ROLES, signInAs, currentUser, hasWorkInEdition, roleTitles, homeOf, userBy } from '@/lib/team';
 
 const CSS = `
 .da{margin-top:28px;padding-top:20px;border-top:1px solid #e2e8f0}
@@ -28,7 +29,7 @@ export function DemoAccounts({ title = 'Profile type', sub = 'Switch to a team m
   // picked on the full site never changes the server HTML)
   const [list, setList] = React.useState(USERS);
   React.useEffect(() => { setMe(currentUser().id); setList(USERS.filter(hasWorkInEdition)); }, []);
-  const go = (id) => { signInAs(id); navigate('/my-dashboard'); };
+  const go = (id) => { signInAs(id); navigate(homeOf(userBy(id))); };
   return (
     <section className={'da' + (plain ? ' da--plain' : '')} aria-labelledby="da-title">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
@@ -38,7 +39,7 @@ export function DemoAccounts({ title = 'Profile type', sub = 'Switch to a team m
         {list.map((u) => (
           <button key={u.id} type="button" className="da__btn" aria-current={me === u.id} onClick={() => go(u.id)}>
             <span className="da__ic"><Icon name={ROLES[u.role].icon} width="16" height="16" aria-hidden="true" /></span>
-            <span style={{ minWidth: 0 }}><b>{ROLES[u.role].title}</b><small>{u.name}</small></span>
+            <span style={{ minWidth: 0 }}><b>{roleTitles(u).join(' + ')}</b><small>{u.name}</small></span>
           </button>
         ))}
       </div>

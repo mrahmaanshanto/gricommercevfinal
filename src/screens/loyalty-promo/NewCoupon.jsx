@@ -2,6 +2,11 @@
 // Generated from design/templates/loyalty-promo/NewCoupon.dc.html by scripts/convert-design.mjs.
 // NewCoupon — make a new discount code (docs/shopify-style.md, form page): RecordHeader with Save, the fields in
 // short cards (discount, code, who, payment, where, when, offer post) and what the customer will see on the side.
+// Offer Builder (Nayeem's brief #9): one form for every offer the promotion engine knows (src/lib/promotions.js) —
+// a code customers type or an automatic offer (no code); taka / % off, free delivery, Buy X get Y, quantity
+// discounts and free gifts; who, products, payment, where and when; which other offers it may combine with (instead
+// of one "join other offers" switch); "Test this offer" runs the engine on a sample cart. Save stores the offer in the
+// engine, so the POS register, Create order and the checkout apply it at once. ?type=auto opens an automatic offer.
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
@@ -11,6 +16,9 @@ import { InfoTip } from '@/components/ui';
 import { RecordHeader } from '@/components/ui/IndexKit';
 import { toast as __toast } from '@/runtime/ui';
 import { FORM_CSS, Steps, Switch } from './loyShared';
+import { saveOffer, evaluate, overlaps, getOffers as getOffersNow, CLASSES as PROMO_CLASSES } from '@/lib/promotions';
+import { CATALOG } from '@/lib/stock';
+import { navigate } from '@/runtime/routes';
 
 // ---- form helpers: required marker, field error text, invalid attributes, focus the first error ----
 function __Req() { return <span aria-hidden="true" style={{ color: 'var(--text-danger)' }}> *</span>; }
@@ -47,17 +55,33 @@ var PMODES = [
   { k: 'cod', label: 'Only cash on delivery', sub: 'Online payments don’t get it' }
 ];
 var DEFSPLIT = { card: 12, bkash: 8, nagad: 8, rocket: 5, wallet: 10, cod: 0 };
-var KINDS = [{ k: 'tk', label: 'Taka off' }, { k: 'pct', label: '% off' }, { k: 'ship', label: 'Free delivery' }];
+var KINDS = [{ k: 'tk', label: 'Taka off' }, { k: 'pct', label: '% off' }, { k: 'ship', label: 'Free delivery' }, { k: 'bxgy', label: 'Buy X get Y' }, { k: 'tiered', label: 'Quantity discount' }, { k: 'gift', label: 'Free gift' }];
+var ACTS = [{ k: 'code', label: 'Customer types a code' }, { k: 'auto', label: 'Automatic, no code' }];
+var COMBINE = ['product', 'order', 'delivery', 'flash', 'points'];
+var CATS = CATALOG.reduce(function (a, p) { if (a.indexOf(p.cat) < 0) a.push(p.cat); return a; }, []);
+var PRODUCTS = CATALOG.map(function (p) { return { sku: p.sku, name: p.name, price: p.price, cat: p.cat }; });
+var PAY_TEST = [['cod', 'Cash on delivery'], ['bkash', 'bKash'], ['nagad', 'Nagad'], ['card', 'Card'], ['cash', 'Cash at the counter']];
+var dayMs = function (iso, end) { if (!iso) return null; var p = iso.split('-'); return new Date(+p[0], +p[1] - 1, +p[2], end ? 23 : 0, end ? 59 : 0).getTime(); };
 var WHOS = [{ k: 'all', label: 'Everyone' }, { k: 'first', label: 'First order only' }, { k: 'gold', label: 'Gold and Platinum members' }, { k: 'one', label: 'One customer (by phone)' }];
 var PRODS = [{ k: 'all', label: 'All products' }, { k: 'cat', label: 'One category' }, { k: 'some', label: 'Some products' }];
 var WHERES = [{ k: 'both', label: 'Website and POS counter' }, { k: 'web', label: 'Website only' }, { k: 'pos', label: 'POS counter only' }];
 var WORDS = ['HAPPY', 'SAVE', 'DEAL', 'SHUBHO', 'BONUS'];
+function assign2(o) { var r = {}; for (var k in o) r[k] = o[k]; return r; }
+// the other offers in the engine (for "Test this offer": how this one combines with them)
+function otherOffers() { try { return getOffersNow(); } catch (e) { return []; } }
 class Component extends DCLogic {
+  componentDidMount() { this.setState(new URLSearchParams(window.location.search).get('type') === 'auto' ? { act: 'auto', mounted: true } : { mounted: true }); }
   renderVals() {
     var self = this, s = this.state || {};
     var idea = s.idea || 'eid', I = IDEAS.filter(function (x) { return x.k === idea; })[0] || IDEAS[2];
     var kind = s.kind || I.kind;
     var errs = s.errs || {};
+    var act = s.act || 'code';
+    var bx = s.bx || { buySku: 'SK-SUN-50', buyQty: 2, getSku: 'SK-TON-150', getQty: 1, getPct: 50 };
+    var brackets = s.brackets || [{ min: 3, pct: 5 }, { min: 6, pct: 10 }];
+    var giftSku = s.giftSku || 'HM-BTL-750', cat = s.cat || CATS[0], skus = s.skus || ['EL-PHN-128'];
+    var combine = s.combine || ['product', 'delivery', 'points'];
+    var test = s.test || { sku: 'SK-SUN-50', qty: 2, sku2: 'SK-TON-150', qty2: 1, pay: 'cod', ch: 'online' };
     var amtStep = kind === 'pct' ? 5 : 50, amtMax = kind === 'pct' ? 90 : 10000;
     var amtV = s.amt == null ? (I.amt || (kind === 'pct' ? 10 : 100)) : s.amt;
     // The amount can be typed (and so can be empty); the steppers keep their old step and limits.
@@ -71,8 +95,11 @@ class Component extends DCLogic {
     var bill = Math.max(2500, minb.v), off, big, rule;
     if (kind === 'tk') { off = amt.v; big = '৳' + amt.v.toLocaleString('en-IN') + ' OFF'; }
     else if (kind === 'pct') { off = Math.min(cap.v, Math.round(bill * amt.v / 100)); big = amt.v + '% OFF'; }
+    else if (kind === 'bxgy') { off = 0; big = 'BUY ' + bx.buyQty + ' GET ' + bx.getQty + (bx.getPct >= 100 ? ' FREE' : ' ' + bx.getPct + '% OFF'); }
+    else if (kind === 'tiered') { off = 0; big = 'UP TO ' + Math.max.apply(null, brackets.map(function (b) { return b.pct; })) + '% OFF'; }
+    else if (kind === 'gift') { off = 0; big = 'FREE GIFT'; }
     else { off = 80; big = 'FREE DELIVERY'; }
-    rule = (minb.v ? 'On bills of ' + bdt(minb.v) + ' or more' : 'On any bill') + (kind === 'pct' ? ' · up to ' + bdt(cap.v) : '');
+    rule = kind === 'tiered' ? brackets.map(function (b) { return b.min + '+ pieces ' + b.pct + '% off'; }).join(' · ') : (minb.v ? 'On bills of ' + bdt(minb.v) + ' or more' : 'On any bill') + (kind === 'pct' ? ' · up to ' + bdt(cap.v) : '');
     var pickIdea = function (x) { return function () { self.setState({ errs: {}, idea: x.k, kind: null, amt: null, cap: null, minb: null, code: null, who: x.who, pmode: x.pmode || 'any', pm: x.methods || null, split: x.split || null, splitOn: null, exPm: x.k === 'split' ? 'card' : 'bkash' }); }; };
     var pmode = s.pmode || I.pmode || 'any';
     var pm = s.pm || I.methods || { bkash: true, nagad: true, card: true };
@@ -96,10 +123,33 @@ class Component extends DCLogic {
       if (kind === 'ship') return { badge: 'Free delivery', bBg: '#e7f8f1', bFg: '#047857', op: 1 };
       return { badge: pmode === 'split' && kind === 'pct' ? r.a + '% off' : '−' + bdt(r.v), bBg: '#e7f8f1', bFg: '#047857', op: 1 };
     };
+    // the offer as the promotion engine stores it (also what "Test this offer" runs)
+    var whoK = s.who || I.who, prodK = s.prod || 'all', whereK = s.where || 'both';
+    var draft = function () {
+      var type = { tk: 'amount', pct: 'percent', ship: 'free-delivery', bxgy: 'bxgy', tiered: 'tiered', gift: 'gift' }[kind];
+      var reward = kind === 'tk' ? { value: +amtV || 0 } : kind === 'pct' ? { value: +amtV || 0, cap: cap.v } : kind === 'bxgy' ? { buy: { skus: [bx.buySku], qty: bx.buyQty }, get: { skus: [bx.getSku], qty: bx.getQty, pct: bx.getPct } }
+        : kind === 'tiered' ? { brackets: brackets.filter(function (b) { return b.min > 0 && b.pct > 0; }) } : kind === 'gift' ? { gift: { sku: giftSku, name: (PRODUCTS.find(function (p) { return p.sku === giftSku; }) || {}).name, qty: 1, value: (PRODUCTS.find(function (p) { return p.sku === giftSku; }) || {}).price || 0 } } : {};
+      var products = prodK === 'cat' ? { mode: 'cats', cats: [cat] } : prodK === 'some' ? { mode: 'skus', skus: skus } : { mode: 'all' };
+      var payment = pmode === 'online' ? { mode: 'online', methods: Object.keys(pm).filter(function (k) { return pm[k]; }) } : pmode === 'split' ? { mode: 'split', split: (function () { var o = {}; PM.forEach(function (m) { if (splitOn[m.k]) o[m.k] = split[m.k]; }); return o; })() } : pmode === 'cod' ? { mode: 'cod' } : { mode: 'any' };
+      var cls = kind === 'ship' ? 'delivery' : (kind === 'bxgy' || kind === 'tiered' || kind === 'gift' || prodK !== 'all') ? 'product' : 'order';
+      return {
+        name: act === 'auto' ? String(s.oname || '').trim() : code + ' — ' + (kind === 'ship' ? 'free delivery' : big.toLowerCase()), code: act === 'code' ? code : '', activation: act === 'code' ? 'code' : (pmode === 'online' || pmode === 'split' ? 'payment' : 'auto'),
+        type: type, reward: reward, channels: whereK === 'web' ? ['online'] : whereK === 'pos' ? ['pos'] : ['online', 'pos'],
+        conditions: { minSpend: minb.v, products: products, customer: whoK === 'gold' ? 'tiers' : whoK, tiers: whoK === 'gold' ? ['gold', 'plat'] : [], customerKey: whoK === 'one' ? 'P:' + String(s.onePhone || '').replace(/\D/g, '').replace(/^88/, '') : '', payment: payment, minQty: kind === 'gift' && prodK === 'some' ? 1 : 0 },
+        schedule: { start: dayMs(dStart), end: dayMs(dEnd, true), days: null, hours: null },
+        limits: { total: lim.v, perCustomer: (s.once == null ? true : s.once) ? 1 : 0, perOrder: kind === 'bxgy' ? 2 : 0 },
+        stacking: { class: cls, with: combine.filter(function (c) { return c !== cls || cls === 'product'; }), priority: 10 },
+      };
+    };
+    var testCart = { lines: [{ sku: test.sku, qty: test.qty, price: (PRODUCTS.find(function (p) { return p.sku === test.sku; }) || {}).price || 0 }, { sku: test.sku2, qty: test.qty2, price: (PRODUCTS.find(function (p) { return p.sku === test.sku2; }) || {}).price || 0 }].filter(function (l) { return l.qty > 0; }), delivery: test.ch === 'online' ? 80 : 0, payment: test.pay, codes: act === 'code' ? [code] : [] };
+    var testDraft = Object.assign(draft(), { id: 'PR-TEST', status: 'active', schedule: { start: null, end: null } });
+    var alone = !s.mounted ? null : evaluate(testCart, null, test.ch, { offers: [testDraft] });
+    var withAll = !s.mounted ? null : evaluate(testCart, null, test.ch, { offers: [testDraft].concat(otherOffers().filter(function (o) { return !(act === 'code' && o.code === code); })) });
+    var clash = !s.mounted ? [] : overlaps(Object.assign(draft(), { id: 'PR-TEST' }));
     var payRule = pmode === 'online' ? ' · pay by ' + ONLINE.filter(function (m) { return pm[m.k]; }).map(function (m) { return m.label; }).join(', ') : pmode === 'cod' ? ' · cash on delivery only' : pmode === 'split' ? ' · discount depends on payment' : '';
     return {
       ideas: IDEAS.map(function (x) { var on = x.k === idea; return { code: x.code, title: x.title, sub: x.sub, on: on, border: on ? '#003087' : '#e2e8f0', bg: on ? '#f2f6fc' : '#ffffff', pick: pickIdea(x) }; }),
-      kinds: KINDS.map(function (x) { var on = x.k === kind; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { self.setState({ kind: x.k, amt: x.k === 'pct' ? 10 : 200, errs: __without(errs, 'amt') }); } }; }), hasAmt: kind !== 'ship', isPct: kind === 'pct', unit: kind === 'pct' ? '% off' : 'taka off',
+      kinds: KINDS.map(function (x) { var on = x.k === kind; return { label: x.label, on: on, cls: on ? 'chip on' : 'chip', pick: function () { self.setState({ kind: x.k, amt: x.k === 'pct' ? 10 : 200, errs: __without(errs, 'amt') }); } }; }), hasAmt: kind === 'tk' || kind === 'pct', isPct: kind === 'pct', unit: kind === 'pct' ? '% off' : 'taka off',
       amt: amt, cap: cap, minb: minb, lim: lim, code: code,
       errs: errs,
       typeAmt: function (e) { var d = e.target.value.replace(/[^0-9]/g, ''); self.setState({ amt: d === '' ? '' : Math.min(amtMax, +d), errs: __without(errs, 'amt') }); },
@@ -109,7 +159,21 @@ class Component extends DCLogic {
       typeCode: function (e) { self.setState({ code: e.target.value.replace(/\s/g, ''), errs: __without(errs, 'code') }); },
       autoCode: function () { var n = (s.n || 0) + 1; self.setState({ n: n, errs: __without(errs, 'code'), code: WORDS[n % WORDS.length] + (kind === 'pct' ? amt.v : kind === 'tk' ? amt.v : '') }); },
       whos: mkChips(this, WHOS, s.who || I.who, 'who'), prods: mkChips(this, PRODS, s.prod || 'all', 'prod'), wheres: mkChips(this, WHERES, s.where || 'both', 'where'),
-      once: mkSw(this, 'once', true), stack: mkSw(this, 'stack', false),
+      once: mkSw(this, 'once', true),
+      acts: ACTS.map(function (x) { return { label: x.label, on: x.k === act, pick: function () { self.setState({ act: x.k, errs: {} }); } }; }), isAuto: act === 'auto',
+      oname: s.oname || '', typeOname: function (e) { self.setState({ oname: e.target.value, errs: __without(errs, 'oname') }); },
+      isBxgy: kind === 'bxgy', isTiered: kind === 'tiered', isGift: kind === 'gift', products: PRODUCTS, cats: CATS,
+      bx: bx, setBx: function (k, val) { var o = assign2(bx); o[k] = val; self.setState({ bx: o }); },
+      brackets: brackets, setBracket: function (i, k, val) { var b = brackets.map(function (x) { return assign2(x); }); b[i][k] = Math.max(0, +val || 0); self.setState({ brackets: b }); },
+      giftSku: giftSku, setGift: function (e) { self.setState({ giftSku: e.target.value }); },
+      isCat: prodK === 'cat', isSome: prodK === 'some', cat: cat, setCat: function (e) { self.setState({ cat: e.target.value }); },
+      skus: skus, setSku: function (e) { self.setState({ skus: [e.target.value] }); },
+      isOne: whoK === 'one', onePhone: s.onePhone || '', typeOne: function (e) { self.setState({ onePhone: e.target.value, errs: __without(errs, 'one') }); },
+      combine: COMBINE.map(function (c) { var on = combine.indexOf(c) >= 0; return { label: PROMO_CLASSES[c], on: on, check: true, pick: function () { self.setState({ combine: on ? combine.filter(function (x) { return x !== c; }) : combine.concat([c]) }); } }; }),
+      clash: clash.map(function (o) { return o.name; }),
+      test: test, setTest: function (k, val) { var o = assign2(test); o[k] = val; self.setState({ test: o }); },
+      testMine: alone ? (alone.applied.length ? alone.applied[0] : null) : null, testWhy: alone && !alone.applied.length ? ((alone.skipped[0] || {}).reason || (alone.hints[0] || {}).text || 'Not eligible') : '',
+      testAll: withAll ? withAll.applied : [], testSkipped: withAll ? withAll.skipped.filter(function (x) { return x.id === 'PR-TEST'; }) : [], testTotal: withAll ? withAll.total : 0, testSub: withAll ? withAll.subtotal + withAll.delivery : 0, testGifts: withAll ? withAll.gifts : [],
       bigGets: pmode === 'split' && kind !== 'ship' ? 'UP TO ' + (kind === 'pct' ? Math.max.apply(null, PM.map(function (m) { return splitOn[m.k] ? split[m.k] : 0; })) + '%' : '৳' + Math.max.apply(null, PM.map(function (m) { return splitOn[m.k] ? split[m.k] : 0; }))) + ' OFF' : big, smallRule: rule + payRule,
       pmodes: PMODES.map(function (o) { var on = o.k === pmode; return { label: o.label, sub: o.sub, on: on, border: on ? '#003087' : '#e2e8f0', bg: on ? '#f2f6fc' : '#ffffff', ring: on ? '#003087' : '#94a3b8', dot: on ? '#003087' : 'transparent', pick: function () { self.setState({ pmode: o.k, exPm: o.k === 'cod' ? 'cod' : (o.k === 'online' ? 'bkash' : exPm) }); } }; }),
       isOnline: pmode === 'online', isSplit: pmode === 'split', isCod: pmode === 'cod',
@@ -147,15 +211,20 @@ class Component extends DCLogic {
         var er = {}, first = null, add = function (k, id, m) { er[k] = m; if (!first) first = id; };
         var onPageOn = s.onPage == null ? true : s.onPage;
         var title = s.postTitle != null ? s.postTitle : 'x';
-        if (kind !== 'ship' && !(+amtV > 0)) add('amt', 'cp-amt', 'Enter how much the customer gets off.');
-        if (!code) add('code', 'cp-code', 'Enter the code customers will type.');
-        else if (!/^[A-Z0-9]{3,20}$/.test(code)) add('code', 'cp-code', 'Use 3 to 20 letters or numbers, with no spaces or symbols.');
+        if ((kind === 'tk' || kind === 'pct') && !(+amtV > 0)) add('amt', 'cp-amt', 'Enter how much the customer gets off.');
+        if (act === 'code' && !code) add('code', 'cp-code', 'Enter the code customers will type.');
+        else if (act === 'code' && !/^[A-Z0-9]{3,20}$/.test(code)) add('code', 'cp-code', 'Use 3 to 20 letters or numbers, with no spaces or symbols.');
+        if (act === 'auto' && !String(s.oname || '').trim()) add('oname', 'cp-oname', 'Name the offer.');
+        if ((s.who || I.who) === 'one' && !/^01[3-9]\d{8}$/.test(String(s.onePhone || '').replace(/\D/g, '').replace(/^88/, ''))) add('one', 'cp-one', 'Enter the customer’s mobile number.');
         if (!dStart) add('start', 'cp-start', 'Choose the day the code starts.');
         if (dStart && dEnd && dEnd < dStart) add('end', 'cp-end', 'The end date must be on or after the start date.');
         if (onPageOn && !title.trim()) add('title', 'cp-title', 'Enter a title for the offer post.');
         if (first) { self.setState({ errs: er }); __focusSoon(first); return; }
         self.setState({ errs: {} });
-        __toast(code + ' is on. Customers can use it from today.');
+        var out = saveOffer(draft());
+        if (out.error) { self.setState({ errs: { code: out.error } }); __focusSoon('cp-code'); return; }
+        __toast(act === 'code' ? code + ' is on. Customers can use it from today.' : out.offer.name + ' is on. It applies by itself.');
+        navigate(act === 'code' ? '/coupons' : '/promo');
       }
     };
   }
@@ -208,6 +277,9 @@ const CSS = `
 .nc-ticket>div:last-child b{font-family:var(--font-data);font-size:var(--text-sm);font-weight:var(--weight-semibold);text-align:center;word-break:break-all}
 .nc-side .ix-card__body{display:flex;flex-direction:column;gap:var(--space-3)}
 .nc-card .ix-card__body{display:flex;flex-direction:column;gap:var(--space-3)}
+.nc-side .ix-card__body .ly-row .gc-select{min-width:0}
+.nc-test{margin:0;font-size:var(--text-sm)}
+.nc-test b{font-weight:var(--weight-medium)}
 @media (max-width:640px){.nc-opts,.nc-imgs{grid-template-columns:minmax(0,1fr)}.nc-coderow{flex-direction:column}.nc-coderow .gc-input{max-width:none}}
 `;
 
@@ -237,10 +309,35 @@ export default class NewCouponScreen extends Component {
                 <RecordHeader back="/coupons" backLabel="Coupons" title="Make a new code" primary={{ label: 'Save and turn on', onClick: v.submit }} />
                 <form noValidate onSubmit={v.submit} aria-label="New discount code" className="ix-record">
                   <div className="ix-main">
+                    <section className="ix-card nc-card" aria-labelledby="nc-s0">
+                      <header className="ix-card__head"><h2 id="nc-s0">How does it start?</h2></header>
+                      <div className="ix-card__body">
+                        {chips(v.acts, 'How does it start?')}
+                        {v.isAuto ? (
+                          <div className="ly-field">
+                            <label className="gc-label" htmlFor="cp-oname">Offer name<__Req /></label>
+                            <input id="cp-oname" className="gc-input" value={v.oname} onChange={v.typeOname} placeholder="e.g. Buy 2 sunscreens, get a toner 50% off" {...__inv(v.errs?.oname, "cp-oname-err")} />
+                            <__Err id="cp-oname-err" msg={v.errs?.oname} />
+                          </div>
+                        ) : null}
+                      </div>
+                    </section>
+
                     <section className="ix-card nc-card" aria-labelledby="nc-s1">
                       <header className="ix-card__head"><h2 id="nc-s1">What does the customer get?</h2></header>
                       <div className="ix-card__body">
                         {chips(v.kinds, 'Discount type')}
+                        {v.isBxgy ? (<>
+                          <div className="ly-row"><span>Buy</span><Steps label="pieces to buy" display={v.bx.buyQty} onDec={() => v.setBx('buyQty', Math.max(1, v.bx.buyQty - 1))} onInc={() => v.setBx('buyQty', v.bx.buyQty + 1)} /><select className="gc-input gc-select ly-grow" aria-label="Product to buy" value={v.bx.buySku} onChange={(e) => v.setBx('buySku', e.target.value)}>{v.products.map((p) => <option key={p.sku} value={p.sku}>{p.name}</option>)}</select></div>
+                          <div className="ly-row"><span>Get</span><Steps label="pieces they get" display={v.bx.getQty} onDec={() => v.setBx('getQty', Math.max(1, v.bx.getQty - 1))} onInc={() => v.setBx('getQty', v.bx.getQty + 1)} /><select className="gc-input gc-select ly-grow" aria-label="Product they get" value={v.bx.getSku} onChange={(e) => v.setBx('getSku', e.target.value)}>{v.products.map((p) => <option key={p.sku} value={p.sku}>{p.name}</option>)}</select></div>
+                          <div className="ly-row"><span>at</span><Steps label="discount on what they get" display={v.bx.getPct >= 100 ? 'Free' : v.bx.getPct + '%'} onDec={() => v.setBx('getPct', Math.max(10, v.bx.getPct - 10))} onInc={() => v.setBx('getPct', Math.min(100, v.bx.getPct + 10))} /><span>off</span></div>
+                        </>) : null}
+                        {v.isTiered ? v.brackets.map((b, i) => (
+                          <div key={i} className="ly-row"><span>{i ? 'And from' : 'From'}</span><Steps label={`pieces for step ${i + 1}`} display={b.min} onDec={() => v.setBracket(i, 'min', Math.max(1, b.min - 1))} onInc={() => v.setBracket(i, 'min', b.min + 1)} /><span>pieces,</span><Steps label={`discount for step ${i + 1}`} display={b.pct + '%'} onDec={() => v.setBracket(i, 'pct', Math.max(1, b.pct - 1))} onInc={() => v.setBracket(i, 'pct', Math.min(90, b.pct + 1))} /><span>off</span></div>
+                        )) : null}
+                        {v.isGift ? (
+                          <div className="ly-field"><label className="gc-label" htmlFor="cp-gift">Free gift <InfoTip text="Added at ৳0 when the offer applies, if it is in stock. Pick which products earn it under Who can use it." /></label><select id="cp-gift" className="gc-input gc-select" value={v.giftSku} onChange={v.setGift}>{v.products.map((p) => <option key={p.sku} value={p.sku}>{p.name}</option>)}</select></div>
+                        ) : null}
                         {v.hasAmt ? (
                           <div className="ly-field">
                             <label className="gc-label" htmlFor="cp-amt">Discount<__Req /></label>
@@ -261,7 +358,7 @@ export default class NewCouponScreen extends Component {
                       </div>
                     </section>
 
-                    <section className="ix-card nc-card" aria-labelledby="nc-s2">
+                    {v.isAuto ? null : <section className="ix-card nc-card" aria-labelledby="nc-s2">
                       <header className="ix-card__head"><h2 id="nc-s2">Name the code <InfoTip text="Customers type this. Keep it short and easy to say." /></h2></header>
                       <div className="ix-card__body">
                         <div className="ly-field">
@@ -273,13 +370,18 @@ export default class NewCouponScreen extends Component {
                           <__Err id="cp-code-err" msg={v.errs?.code} />
                         </div>
                       </div>
-                    </section>
+                    </section>}
 
                     <section className="ix-card nc-card" aria-labelledby="nc-s3">
                       <header className="ix-card__head"><h2 id="nc-s3">Who can use it?</h2></header>
                       <div className="ix-card__body">
                         <div className="ly-field"><span className="gc-label">Customers</span>{chips(v.whos, 'Customers')}</div>
+                        {v.isOne ? (
+                          <div className="ly-field"><label className="gc-label" htmlFor="cp-one">Customer’s mobile number<__Req /></label><input id="cp-one" className="gc-input" inputMode="tel" value={v.onePhone} onChange={v.typeOne} placeholder="01XXXXXXXXX" {...__inv(v.errs?.one, "cp-one-err")} /><__Err id="cp-one-err" msg={v.errs?.one} /></div>
+                        ) : null}
                         <div className="ly-field"><span className="gc-label">Products</span>{chips(v.prods, 'Products')}</div>
+                        {v.isCat ? <div className="ly-field"><label className="gc-label" htmlFor="cp-cat">Category</label><select id="cp-cat" className="gc-input gc-select" value={v.cat} onChange={v.setCat}>{v.cats.map((c) => <option key={c}>{c}</option>)}</select></div> : null}
+                        {v.isSome ? <div className="ly-field"><label className="gc-label" htmlFor="cp-sku">Product</label><select id="cp-sku" className="gc-input gc-select" value={v.skus[0]} onChange={v.setSku}>{v.products.map((p) => <option key={p.sku} value={p.sku}>{p.name}</option>)}</select></div> : null}
                         <div className="ly-row">
                           <span>Only when the bill is at least</span>
                           <Steps label="minimum bill" less="Less minimum bill" more="More minimum bill" display={v.minb?.v} onDec={v.minb?.dec} onInc={v.minb?.inc} />
@@ -353,9 +455,13 @@ export default class NewCouponScreen extends Component {
                           <span>times in total</span>
                         </div>
                         <div>
-                          {swRow(v.once, 'One time per customer', 'Checked by phone number')}
-                          {swRow(v.stack, 'Can join with other offers', 'For example with a flash sale price or points')}
+                          {swRow(v.once, 'One time per customer', 'Counted per customer, not per phone number')}
                         </div>
+                        <div className="ly-field">
+                          <span className="gc-label">Can combine with <InfoTip text="When two offers fit one cart, they apply together only if both allow it. Otherwise the bigger one wins." /></span>
+                          {chips(v.combine, 'Can combine with')}
+                        </div>
+                        {v.clash.length ? <div className="nc-note nc-note--warn"><__Icon name="info" width="16" height="16" aria-hidden="true" /><span>Overlaps with {v.clash.slice(0, 3).join(', ')}{v.clash.length > 3 ? ' and more' : ''}. The bigger offer wins where they can’t combine.</span></div> : null}
                       </div>
                     </section>
 
@@ -417,9 +523,23 @@ export default class NewCouponScreen extends Component {
                       <div className="ix-card__body">
                         <div className="nc-ticket">
                           <div><b>{v.bigGets}</b><span>{v.smallRule}</span><span>{v.endTxt}</span></div>
-                          <div><span>USE CODE</span><b>{v.code}</b></div>
+                          {v.isAuto ? <div><span>NO CODE</span><b>AUTO</b></div> : <div><span>USE CODE</span><b>{v.code}</b></div>}
                         </div>
                         <button type="submit" className="ix-btn ix-btn--primary">Save and turn on</button>
+                      </div>
+                    </section>
+                    <section className="ix-card" aria-labelledby="nc-test">
+                      <header className="ix-card__head"><h2 id="nc-test">Test this offer</h2></header>
+                      <div className="ix-card__body">
+                        <div className="ly-row"><select className="gc-input gc-select ly-grow" aria-label="Product 1" value={v.test.sku} onChange={(e) => v.setTest('sku', e.target.value)}>{v.products.map((p) => <option key={p.sku} value={p.sku}>{p.name}</option>)}</select><Steps label="quantity of product 1" display={v.test.qty} onDec={() => v.setTest('qty', Math.max(0, v.test.qty - 1))} onInc={() => v.setTest('qty', v.test.qty + 1)} /></div>
+                        <div className="ly-row"><select className="gc-input gc-select ly-grow" aria-label="Product 2" value={v.test.sku2} onChange={(e) => v.setTest('sku2', e.target.value)}>{v.products.map((p) => <option key={p.sku} value={p.sku}>{p.name}</option>)}</select><Steps label="quantity of product 2" display={v.test.qty2} onDec={() => v.setTest('qty2', Math.max(0, v.test.qty2 - 1))} onInc={() => v.setTest('qty2', v.test.qty2 + 1)} /></div>
+                        <div className="ly-two">
+                          <select className="gc-input gc-select" aria-label="Payment" value={v.test.pay} onChange={(e) => v.setTest('pay', e.target.value)}>{PAY_TEST.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+                          <select className="gc-input gc-select" aria-label="Where" value={v.test.ch} onChange={(e) => v.setTest('ch', e.target.value)}><option value="online">Website</option><option value="pos">POS counter</option></select>
+                        </div>
+                        {v.testMine ? <p className="nc-test ly-in"><b>Applies:</b> {v.testMine.discount ? '− ' + bdt(v.testMine.discount) : v.testMine.delivery ? 'free delivery' : v.testMine.gifts.length ? 'free ' + v.testMine.gifts[0].name : v.testMine.label}</p> : <p className="nc-test ly-out"><b>Doesn’t apply:</b> {v.testWhy}</p>}
+                        {v.testSkipped.length ? <p className="nc-test ly-out">With the other offers: {v.testSkipped[0].reason}</p> : null}
+                        {v.testAll.length ? <p className="ly-help">All offers on this cart: {v.testAll.map((a) => a.code || a.name).join(', ')} · pays {bdt(v.testTotal)} of {bdt(v.testSub)}</p> : null}
                       </div>
                     </section>
                   </aside>

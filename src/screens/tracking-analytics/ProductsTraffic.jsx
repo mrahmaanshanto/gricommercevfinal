@@ -1,8 +1,12 @@
 'use client';
 // Generated from design/templates/tracking-analytics/ProductsTraffic.dc.html by scripts/convert-design.mjs.
-// Products & traffic — profit after ads per product and where the visitors come from, laid out like a Shopify report:
-// the title row (back to Reports), five key figures, then one card with the views (profit after ads, traffic and
-// funnel, organic social, Google search).
+// Products & traffic — contribution after ads per product and where the visitors come from, laid out like a Shopify
+// report: the title row (back to Reports), five key figures, then one card with the views (contribution after ads,
+// traffic and funnel, organic social, Google search).
+// From the shared books (lib/reports/analytics.js › productFacts, metrics.js, traffic.js): each product's delivered net
+// sales, cost of goods, courier and fees, and ad spend shared out by its part of the delivered sales credited to ads
+// (spend no delivered order was credited to stays unallocated); visitors and conversion. Product views, carts, checkout
+// steps, landing pages, site search, social and Search Console stay the store analytics' demo import.
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
@@ -12,6 +16,11 @@ import { toast as __toast } from '@/runtime/ui';
 import { RecordHeader, MetricStrip, IndexTabs } from '@/components/ui/IndexKit';
 import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
 import { TA_CSS, TA_PHONE_CSS } from './taPhone';
+import { productFacts } from '@/lib/reports/analytics';
+import { metricValue, explain } from '@/lib/reports/metrics';
+import { visitsOn } from '@/lib/traffic';
+import { onlineOrders, touchesOf } from '@/lib/attribution';
+import { InfoTip as __InfoTip } from '@/components/ui';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -26,33 +35,58 @@ function curve(pts) { if (!pts.length) return ''; var d = 'M' + pts[0][0].toFixe
 function pts(vals, w, h, max, min, padT, padB) { padT = padT || 2; padB = padB || 2; min = min == null ? 0 : min; max = max || Math.max.apply(null, vals) || 1; var n = vals.length; return vals.map(function (v, i) { return [n === 1 ? w / 2 : i * w / (n - 1), padT + (h - padT - padB) * (1 - (v - min) / (max - min || 1))]; }); }
 function sparkP(vals, w, h) { w = w || 160; h = h || 30; var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals); var p = pts(vals, w, h, mx + (mx - mn) * .1, mn - (mx - mn) * .15, 3, 2); var l = curve(p); return { line: l, area: l + ' L' + w + ' ' + h + ' L0 ' + h + ' Z' }; }
 function series(n, base, amp, seed, trend) { var out = []; for (var i = 0; i < n; i++) { var s = Math.sin((i + seed) * 1.7) * .5 + Math.sin((i * 3 + seed) * .9) * .3 + Math.cos(i * .45 + seed) * .2; out.push(Math.max(0, base * (1 + (trend || 0) * (i / n - .5)) + amp * s)); } return out; }
-function delta(p, good) { var up = p >= 0; var ok = good === 'down' ? !up : up; return { up: up, ok: ok, dir: (up ? 'Up ' : 'Down ') + Math.abs(p) + '%' + (ok ? ', good' : ', worse'), d: (up ? '▲ ' : '▼ ') + Math.abs(p) + '%', db: ok ? 'var(--fill-success-soft)' : 'var(--fill-error-soft)', df: ok ? 'var(--text-success)' : 'var(--text-danger)' }; }
 function deltaL(p, good) { var up = p >= 0; var ok = good === 'down' ? !up : up; return { d: (up ? '▲ ' : '▼ ') + Math.abs(p) + '%', db: ok ? '#e7f8f1' : '#ffece6', df: ok ? '#047857' : '#be123c' }; }
-function tile(l, v, s, c, vals, dp, good) { var dl = delta(dp, good); return { l: l, v: v, s: s, c: c, vals: vals.map(function (x) { return Math.round(x * 100) / 100; }), d: dl.d, up: dl.up, ok: dl.ok, dir: dl.dir, db: dl.db, df: dl.df }; }
-// name, initial, ad spend, delivered, revenue, cogs, delivery+returns
-var PR = [['Eid gift box · skincare', 'E', 38400, 236, 231000, 118000, 21700], ['Sunscreen SPF50 50ml', 'S', 23200, 198, 138600, 59400, 16400], ['Galaxy A55 5G · 8/256', 'G', 31800, 42, 1848000, 1722000, 5200], ['Cotton kurti · new drop', 'K', 23500, 119, 116200, 52300, 12900], ['Vitamin C Serum 30ml', 'V', 12600, 74, 70300, 31800, 6100], ['Redmi Note 13', 'R', 16000, 21, 399000, 374000, 3600], ['Bluetooth speaker', 'P', 9100, 38, 57000, 38800, 4400], ['Mango Pickle 400g', 'M', 5400, 61, 21350, 11590, 5200]];
 var TT = [['#fff4e0', '#a14f06'], ['#e0f3fb', '#075985'], ['#e0e7ff', '#3730a3'], ['#fce7f3', '#9d174d']];
+var DAY = 864e5;
+var SRC_OF = { Facebook: 'Facebook & Instagram', Instagram: 'Facebook & Instagram', Google: 'Google', Direct: 'Direct', TikTok: 'TikTok' };
+var SRC_TOUCH = { facebook: 'Facebook & Instagram', instagram: 'Facebook & Instagram', google: 'Google', tiktok: 'TikTok', direct: 'Direct', whatsapp: 'Direct', email: 'Direct', sms: 'Direct' };
+/** The last 30 days from the books: products, visitors by source, orders by the source of their last touch. */
+function readBooks() {
+  var now = Date.now(), end = new Date(); end.setHours(0, 0, 0, 0); var to = end.getTime() + DAY, from = to - 30 * DAY;
+  var ctx = { from: from, to: to };
+  var vis = {}, total = 0;
+  for (var d = from; d < to; d += DAY) visitsOn(d, now).sources.forEach(function (x) { var k = SRC_OF[x.name] || x.name; vis[k] = (vis[k] || 0) + x.visitors; total += x.visitors; });
+  var ord = {};
+  onlineOrders().filter(function (o) { return o.at >= from && o.at < to && o.status !== 'Cancelled'; }).forEach(function (o) { var t = touchesOf(o); var last = t[t.length - 1]; var k = last ? SRC_TOUCH[last.source] || 'Direct' : 'Direct'; ord[k] = (ord[k] || 0) + 1; });
+  return { products: productFacts(ctx), visitors: total, conv: metricValue('conversion_rate', ctx), placed: metricValue('online_orders', ctx) || 0, delivered: metricValue('delivered_orders', ctx) || 0, vis: vis, ord: ord };
+}
 class Component extends DCLogic {
+  componentDidMount() { try { this.setState({ books: readBooks() }); } catch (e) { /* the page keeps its empty state */ } }
   componentWillUnmount() { clearTimeout(this.t); }
   renderVals() {
     var self = this, s = this.state || {};
     var tab = s.tab || this.props.tab || 'prod';
-    var FUN = [['Sessions', 62400], ['Viewed a product', 28100], ['Added to cart', 5480], ['Started checkout', 2710], ['Placed order', 1420], ['Delivered', 1012]];
-    var fp = (function () { var W = 720, Hh = 220, sw = W / 6, top = [], bot = []; FUN.forEach(function (f, k) { var h = Math.max(14, Math.sqrt(f[1] / 62400) * Hh); var y0 = (Hh - h) / 2; top.push([k * sw, y0], [(k + 1) * sw, y0]); bot.push([k * sw, y0 + h], [(k + 1) * sw, y0 + h]); }); var d = 'M' + top.map(function (p) { return p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' L'); d += ' L' + bot.reverse().map(function (p) { return p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' L') + ' Z'; return d; })();
+    var B = s.books || { products: { rows: [], spend: 0, unallocated: 0 }, visitors: 0, conv: null, placed: 0, delivered: 0, vis: {}, ord: {} };
+    var sess = B.visitors || 1;
+    // the middle steps of the funnel come from the store analytics (sampled); sessions, orders and deliveries from the books
+    var FUN = [['Sessions', B.visitors], ['Viewed a product', Math.round(B.visitors * .45)], ['Added to cart', Math.round(B.visitors * .088)], ['Started checkout', Math.round(B.visitors * .043)], ['Placed order', B.placed], ['Delivered', B.delivered]];
+    var fp = (function () { var W = 720, Hh = 220, sw = W / 6, top = [], bot = []; FUN.forEach(function (f, k) { var h = Math.max(14, Math.sqrt(f[1] / sess) * Hh); var y0 = (Hh - h) / 2; top.push([k * sw, y0], [(k + 1) * sw, y0]); bot.push([k * sw, y0 + h], [(k + 1) * sw, y0 + h]); }); var d = 'M' + top.map(function (p) { return p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' L'); d += ' L' + bot.reverse().map(function (p) { return p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' L') + ' Z'; return d; })();
     var gc = series(30, 330, 60, 3, .25), gi = series(30, 13700, 2600, 7, .35);
     var gp = pts(gc, 900, 180, 480, 0, 20, 10), ip = pts(gi, 900, 180, 21000, 0, 20, 10), gl = curve(gp);
+    var prods = B.products.rows.slice(0, 8);
+    var contribTotal = B.products.rows.reduce(function (a, p) { return a + p.contribution; }, 0);
+    var best = B.products.rows[0];
+    var srcRows = Object.keys(B.vis).map(function (k) { return [k, B.vis[k], B.ord[k] || 0]; }).sort(function (a, b) { return b[1] - a[1]; });
+    var maxV = srcRows.length ? srcRows[0][1] : 1;
     var v = {
-      headline: '৳2,38,060 profit after ads from 8 products',
-      tiles: [tile('Sessions', '62,400', 'last 30 days', '#60a5fa', series(14, 2080, 260, 1, .2), 11), tile('Store conversion', '2.28%', 'placed ÷ sessions', '#34d399', series(14, 2.2, .2, 3, .2), 4), tile('Best product', 'Galaxy A55', '৳89,000 profit', '#fbbf24', series(14, 1700, 300, 4, .6), 38), tile('No-result searches', '628', '3 terms', '#fb7185', series(14, 20, 5, 6, .2), 9, 'down'), tile('New followers', '8,330', 'Facebook, Instagram, TikTok', '#a78bfa', series(14, 270, 50, 8, .3), 16)],
-      tabs: pTabs(self, [{ k: 'prod', label: 'Profit after ads' }, { k: 'traf', label: 'Traffic & funnel' }, { k: 'soc', label: 'Organic social' }, { k: 'seo', label: 'Google search' }], tab, 'tab'),
+      headline: bdt(contribTotal) + ' contribution after ads from ' + B.products.rows.length + ' products' + (B.products.unallocated ? ' · ' + bdt(B.products.unallocated) + ' ad spend not allocated' : ''),
+      how: explain('contribution_after_ads') + ' Ad spend is shared out by each product’s part of the delivered sales credited to ads.',
+      tiles: [
+        { l: 'Visitors', v: B.visitors.toLocaleString('en-IN'), s: 'last 30 days' },
+        { l: 'Store conversion', v: B.conv == null ? '—' : (Math.round(B.conv * 10000) / 100) + '%', s: 'placed ÷ visitors' },
+        { l: 'Best product', v: best ? best.name.split(' · ')[0] : '—', s: best ? bdt(best.contribution) + ' contribution' : '' },
+        { l: 'No-result searches', v: '628', s: '3 terms' },
+        { l: 'New followers', v: '8,330', s: 'Facebook, Instagram, TikTok' },
+      ],
+      tabs: pTabs(self, [{ k: 'prod', label: 'Contribution after ads' }, { k: 'traf', label: 'Traffic & funnel' }, { k: 'soc', label: 'Organic social' }, { k: 'seo', label: 'Google search' }], tab, 'tab'),
       is_prod: tab === 'prod', is_traf: tab === 'traf', is_soc: tab === 'soc', is_seo: tab === 'seo',
-      leg: [['Product cost', '#cbd5e1'], ['Delivery & returns', '#94a3b8'], ['Ads', '#f59e0b'], ['Profit', '#10b981']].map(function (x) { return { l: x[0], c: x[1] }; }),
-      prods: PR.map(function (p, i) { return [p, i, p[4] - p[5] - p[6] - p[2]]; }).sort(function (a, b) { return b[2] - a[2]; }).map(function (x) { var p = x[0], pr = x[2], t = TT[x[1] % 4], R = p[4]; var vd = pr > 40000 ? ['Scale up', '#e7f8f1', '#047857'] : pr > 0 ? ['Keep', '#e0f2fe', '#075985'] : ['Losing money', '#ffece6', '#be123c'];
-        var seg = [['Product cost', p[5], '#cbd5e1'], ['Delivery & returns', p[6], '#94a3b8'], ['Ads', p[2], '#f59e0b'], ['Profit', Math.max(0, pr), '#10b981']].map(function (q) { return { l: q[0], v: bdt(q[1]), c: q[2], w: (q[1] / R * 100) + '%' }; });
-        return { n: p[0], i: p[1], tb: t[0], tf: t[1], d: p[3], ad: bdt(p[2]), rev: bdt(R), p: bdt(pr), m: Math.round(pr / R * 100) + '%', pc: pr > 0 ? '#047857' : '#be123c', vt: vd[0], vb: vd[1], vf: vd[2], seg: seg }; }),
+      leg: [['Cost of goods', '#cbd5e1'], ['Courier & fees', '#94a3b8'], ['Ads', '#f59e0b'], ['Contribution', '#10b981']].map(function (x) { return { l: x[0], c: x[1] }; }),
+      prods: prods.map(function (p, i) { var pr = p.contribution, t = TT[i % 4], R = p.sales || 1; var vd = pr > 10000 ? ['Scale up', '#e7f8f1', '#047857'] : pr > 0 ? ['Keep', '#e0f2fe', '#075985'] : ['Losing money', '#ffece6', '#be123c'];
+        var seg = [['Cost of goods', p.cogs, '#cbd5e1'], ['Courier & fees', p.variable, '#94a3b8'], ['Ads', p.ads, '#f59e0b'], ['Contribution', Math.max(0, pr), '#10b981']].map(function (q) { return { l: q[0], v: bdt(q[1]), c: q[2], w: Math.max(0, q[1] / R * 100) + '%' }; });
+        return { n: p.name, i: p.name.charAt(0), tb: t[0], tf: t[1], d: p.units, ad: bdt(p.ads), rev: bdt(p.sales), p: bdt(pr), m: Math.round(pr / R * 100) + '%', pc: pr > 0 ? '#047857' : '#be123c', vt: vd[0], vb: vd[1], vf: vd[2], seg: seg, comp: p.completeness }; }),
       funPath: fp,
-      fun: FUN.map(function (f, i2) { var dr = i2 ? 1 - f[1] / FUN[i2 - 1][1] : 0; return { l: f[0], n: f[1].toLocaleString('en-IN'), drop: i2 ? '−' + Math.round(dr * 100) + '% from previous' : '100%', dc: dr > .6 ? '#be123c' : '#64748b' }; }),
-      srcs: [['Facebook / Instagram ads', 24800, 692], ['TikTok ads', 11200, 148], ['Google Shopping + Search', 9300, 298], ['Google organic', 8600, 171], ['Direct', 5100, 82], ['Messenger / WhatsApp links', 3400, 29]].map(function (r) { var c = r[2] / r[1] * 100; return { s: r[0], v: r[1].toLocaleString('en-IN'), w: r[1] / 24800 * 100 + '%', c: pct(c), cc: c >= 2.5 ? '#047857' : c >= 1.5 ? '#334155' : '#be123c' }; }),
+      fun: FUN.map(function (f, i2) { var dr = i2 && FUN[i2 - 1][1] ? 1 - f[1] / FUN[i2 - 1][1] : 0; return { l: f[0], n: f[1].toLocaleString('en-IN'), drop: i2 ? '−' + Math.round(dr * 100) + '% from previous' : '100%', dc: dr > .6 ? '#be123c' : '#64748b' }; }),
+      srcs: srcRows.map(function (r) { var c = r[1] ? r[2] / r[1] * 100 : 0; return { s: r[0], v: r[1].toLocaleString('en-IN'), w: r[1] / maxV * 100 + '%', c: pct(c), cc: c >= 2.5 ? '#047857' : c >= 1.5 ? '#334155' : '#be123c' }; }),
       lps: [['/offers/eid-gift-box', '8,420', 38, '241'], ['/', '7,960', 44, '122'], ['/p/sunscreen-spf50-50ml', '5,110', 31, '176'], ['/c/phones', '3,880', 52, '58'], ['/lp/kurti-new-drop', '3,240', 41, '97']].map(function (l) { return { p: l[0], s: l[1], b: l[2] + '%', bc: l[2] > 45 ? '#f43f5e' : '#94a3b8', o: l[3] }; }),
       srch: [['sunscreen', 1240, '32 results'], ['kurti', 402, '46 results'], ['a55', 610, '3 results'], ['niacinamide', 288, 'No results'], ['cosrx snail', 196, 'No results'], ['power bank', 144, 'No results']].map(function (q) { var z = q[2] === 'No results'; return { t: q[0], n: q[1], r: q[2], c: z ? '#be123c' : '#047857', bg: z ? '#fff5f5' : '#fff', bd: z ? '#fecdd3' : '#e7ebf2' }; }),
       socs: [['meta', 'Facebook Page', '48,210', 'followers', '+4.6%', [['1.2 M', 'Reach'], ['6.8%', 'Engagement'], ['3,410', 'Website taps'], ['214 / day', 'Profile visits']], 1], ['meta', 'Instagram', '21,630', 'followers', '+6.8%', [['640 K', 'Reach'], ['4.1%', 'Engagement'], ['38', 'Reels'], ['18–24 · 46%', 'Top age']], 4], ['tiktok', 'TikTok', '33,900', 'followers', '+16.5%', [['2.4 M', 'Video views'], ['11 s', 'Average watch'], ['62%', 'From For You'], ['1,120', 'Profile clicks']], 7]].map(function (x) { var sp = sparkP(series(30, 100, 8, x[6], .6)); return { lg: x[1] === 'Instagram' ? '' : LOGO[x[0]], hasLg: x[1] !== 'Instagram', noLg: x[1] === 'Instagram', c: x[1] === 'Instagram' ? '#c026d3' : PC[x[0]], acc: x[1], f: x[2], fl: x[3], g: x[4], line: sp.line, area: sp.area, m: x[5].map(function (y) { return { v: y[0], l: y[1] }; }) }; }),
@@ -89,10 +123,10 @@ export default class ProductsTrafficScreen extends Component {
             <__Topbar crumb={"Tracking & analytics"} page={"Products & traffic"} placeholder="Search campaign, event or product" />
             <div className="gc-shell__content">
               <div className="ix-page ta">
-              <RecordHeader back="/reports-centre?group=marketing" title="Products & traffic" meta={v.headline + ' · last 30 days'}
-                about="Profit after ads for each product, the shopping funnel and where visitors come from (Google Analytics 4), top landing pages and site search, organic social posts, and Google Search clicks and queries."
+              <RecordHeader back="/reports-centre?group=marketing" title="Products & traffic" meta={v.headline + ' · last 30 days · delivered'}
+                about="Contribution after ads for each product (delivered net sales less cost of goods, courier and fees, and its share of ad spend; costs estimated until bills are matched), the shopping funnel and where visitors come from, top landing pages and site search, organic social posts, and Google Search clicks and queries."
                 more={[{ label: 'Analytics hub', href: '/analytics-hub' }, { label: 'Campaigns & creatives', href: '/campaigns' }]} />
-              <MetricStrip label="Key figures" items={__list(v.tiles).map((t) => ({ label: t.l, value: t.v, spark: t.vals, sub: <span className="dl" title={t.s} style={{ background: t.db, color: t.df }}>{t.d}</span> }))} />
+              <MetricStrip label="Key figures" items={__list(v.tiles).map((t) => ({ label: t.l, value: t.v, sub: t.s }))} />
               <section className="tc" style={{ overflow: "hidden" }}>
                 <div className="ix-bar"><IndexTabs label="Products and traffic views" tabs={__list(v.tabs).map((tb) => ({ key: tb.label, label: tb.label, count: tb.hasCount ? tb.count : null, on: tb.on, onClick: tb.pick }))} /></div>
                 {v.is_prod ? (<>
@@ -110,7 +144,7 @@ export default class ProductsTrafficScreen extends Component {
                           <th>Where revenue goes</th>
                           <th className="r">Revenue</th>
                           <th className="r">Ad spend</th>
-                          <th className="r">Profit after ads</th>
+                          <th className="r"><span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>Contribution after ads<__InfoTip text={v.how} label="How is this calculated?" /></span></th>
                           <th>Verdict</th>
                         </tr>
                       </thead>
@@ -122,7 +156,7 @@ export default class ProductsTrafficScreen extends Component {
                                   <span className="thumb" style={__sx(`background: ${pr?.tb ?? ""}; color: ${pr?.tf ?? ""}; border: 0;`)}>{pr?.i}</span>
                                   <div>
                                     <div style={{ fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{pr?.n}</div>
-                                    <div className="tn" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{pr?.d} delivered</div>
+                                    <div className="tn" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{pr?.d} delivered · {pr?.comp}</div>
                                   </div>
                                 </div>
                               </td>

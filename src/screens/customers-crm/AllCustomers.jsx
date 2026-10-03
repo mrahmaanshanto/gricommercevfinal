@@ -4,13 +4,24 @@
 // card with the views as tabs (the rest under More views), search and filter pills, bulk actions and a compact table
 // (customer, status, location, orders, amount spent, due). Extra columns are picked in Columns; edits, merges and the
 // customer book are kept in this browser.
+// The one customer list (brief #7): persons and companies (lib/crm.js), each with a stable customer ID. Search finds
+// any phone, email, customer ID or outside ID; filters keep status apart from restrictions and add type, consent and
+// segment (lib/segments.js, with a builder). Bulk tag / segment / consent / export run as background jobs
+// (lib/bulkJobs.js); a bulk message first shows how many can get it.
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
-import { addCustomer, getCustomers, tierOf, PRICE_TIERS, updateCustomer, mergeCustomers, phoneDigits } from '@/lib/customers';
-import { getInvoices } from '@/lib/invoices';
-import { getDemoEdits, saveDemoEdit, getMerges, addMerge, getNotDupes, addNotDupe, removeFromBook } from '@/lib/customerEdits';
+import { addCustomer, PRICE_TIERS, updateCustomer, mergeCustomers, phoneDigits, customerMatches, addCompany, resolveCustomer, DEMO_LIST, CUSTOMER_STATUSES } from '@/lib/customers';
+import { getCrmRows } from '@/lib/crm';
+import { saveDemoEdit, addMerge, getNotDupes, addNotDupe, removeFromBook } from '@/lib/customerEdits';
+import { getSegments, SEGMENT_TEMPLATES, segmentMembers, getSegment } from '@/lib/segments';
+import { CONSENT_CHANNELS, CONSENT_STATES, CONSENT_SOURCES, getConsent } from '@/lib/consent';
+import { RESTRICTION_TYPES } from '@/lib/restrictions';
+import { startJob, consentSummary } from '@/lib/bulkJobs';
+import { applyRetention } from '@/lib/crmPrivacy';
+import { currentUser } from '@/lib/team';
 import CustomerEditDialog from './CustomerEditDialog';
+import { SegmentBuilder, JobsCard, CRM_PARTS_CSS } from './crmParts';
 import __Link from 'next/link';
 import { DCLogic, Icon as __Icon } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
@@ -22,57 +33,35 @@ import { navigate } from '@/runtime/routes';
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
 function bdt(n) { var neg = n < 0; var s = String(Math.round(Math.abs(n))); var last = s.slice(-3); var rest = s.slice(0, -3); if (rest) { rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ','); s = rest + ',' + last; } else { s = last; } return (neg ? '−' : '') + '৳' + s; }
-var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function fmtDate(d) { return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
 function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
-// Demo list rows (not in the customer book). `id` keys their edits and merges in this browser;
-// `due` is what they still owe on credit or cash-on-delivery orders.
-var C = [
-  { id: 'c01', name: 'Nusrat Jahan', phone: '01552-3X1-907', email: 'nusrat.jahan@example.com', city: 'Dhaka', address: 'House 14, Road 2, Block C, Mirpur 10, Dhaka 1216', types: ['Online'], signup: '2 Mar 2026', orders: 14, spent: 58200, due: 0, last: '12 Sep 2026', pts: 1845, level: 'Gold', status: 'Active', src: 'Facebook ad', f: ['repeat', 'big', 'cart'] },
-  { id: 'c02', name: 'Rafiq Uddin', phone: '01911-7X3-608', email: 'rafiq.u@example.com', city: 'Chattogram', address: 'Agrabad C/A, Chattogram', types: ['Online'], signup: '19 Sep 2026', orders: 1, spent: 124500, due: 0, last: '19 Sep 2026', pts: 0, level: 'Member', status: 'Active', src: 'Google', f: ['signToday', 'orderToday', 'big', 'week'] },
-  { id: 'c03', name: 'Farzana Akter', phone: '01711-2X4-518', email: 'farzana.a@example.com', city: 'Dhaka', address: 'Flat 6A, Road 11, Banani, Dhaka', types: ['Online', 'Retail'], signup: '11 Jan 2025', orders: 31, spent: 186400, due: 0, last: '19 Sep 2026', pts: 4820, level: 'Platinum', status: 'Active', src: 'Invite a friend', f: ['orderToday', 'repeat', 'big'] },
-  { id: 'c04', name: 'Sadia Islam', phone: '01624-9X2-310', email: 'sadia.i@example.com', city: 'Sylhet', address: 'Zindabazar, Sylhet', types: ['Online'], signup: '19 Sep 2026', orders: 0, spent: 0, due: 0, last: '—', pts: 50, level: 'Member', status: 'Active', src: 'Facebook ad', f: ['signToday', 'noOrder', 'week'] },
-  { id: 'c05', name: 'Tanvir Ahmed', phone: '01914-6X2-045', email: 'tanvir.a@example.com', city: 'Khulna', address: 'KDA Avenue, Khulna', types: ['Online'], signup: '8 May 2026', orders: 8, spent: 24300, due: 1850, last: '15 Sep 2026', pts: 640, level: 'Silver', status: 'COD blocked', src: 'Instagram', f: ['repeat', 'codBlock', 'pts'] },
-  { id: 'c06', name: 'Mahmudul Islam', phone: '01733-8X0-614', email: 'mahmud.i@example.com', city: 'Dhaka', address: 'Mohakhali DOHS, Dhaka', types: ['Online'], signup: '14 Sep 2026', orders: 2, spent: 4650, due: 0, last: '19 Sep 2026', pts: 92, level: 'Member', status: 'Active', src: 'TikTok', f: ['orderToday', 'week', 'cart'] },
-  { id: 'c07', name: 'Sabrina Chowdhury', phone: '01511-5X3-770', email: 'sabrina.c@example.com', city: 'Rajshahi', address: 'Shaheb Bazar, Rajshahi', types: ['Retail'], signup: '2 Feb 2026', orders: 3, spent: 2980, due: 0, last: '28 Aug 2026', pts: 58, level: 'Member', status: 'Active', src: 'Shop counter (POS)', f: ['pts', 'bday'] },
-  { id: 'c08', name: 'Rakibul Hasan', phone: '01819-0X7-332', email: 'rakib.h@example.com', city: 'Dhaka', address: 'Shyamoli Ring Road, Dhaka', types: ['Online', 'Retail'], signup: '20 Jul 2025', orders: 19, spent: 72850, due: 0, last: '16 Sep 2026', pts: 2310, level: 'Gold', status: 'Active', src: 'Facebook ad', f: ['repeat', 'big', 'bday'] },
-  { id: 'c09', name: 'Guest · 01822-1X5-947', phone: '01822-1X5-947', email: '—', city: 'Dhaka', address: '', types: ['Online'], signup: '18 Sep 2026', orders: 0, spent: 0, due: 0, last: '—', pts: 0, level: 'Member', status: 'Active', src: 'Google', f: ['noOrder', 'cart', 'week'] },
-  { id: 'c10', name: 'Kamrul Hossain', phone: '01777-3X8-129', email: 'kamrul.h@example.com', city: 'Outside Dhaka', address: 'Sadar Road, Cumilla', types: ['Online'], signup: '3 Apr 2026', orders: 6, spent: 9100, due: 2400, last: '1 Aug 2026', pts: 0, level: 'Member', status: 'Suspended', src: 'Facebook ad', f: ['suspended'] },
-  // the same people entered twice: once at the shop counter, once online
-  { id: 'c11', name: 'Rakib Hasan', phone: '01819-0X7-332', email: '—', city: 'Dhaka', address: 'Shyamoli, Dhaka', types: ['Retail'], signup: '4 Sep 2026', orders: 2, spent: 3150, due: 650, last: '11 Sep 2026', pts: 0, level: 'Member', status: 'Active', src: 'Shop counter (POS)', f: ['repeat'] },
-  { id: 'c12', name: 'Tanvir Ahmad', phone: '01914-6X2-540', email: 'tanvir.ahmad@example.com', city: 'Khulna', address: 'KDA Avenue, Khulna', types: ['Online'], signup: '17 Sep 2026', orders: 1, spent: 1290, due: 0, last: '17 Sep 2026', pts: 26, level: 'Member', status: 'Active', src: 'Instagram', f: ['week'] }
-];
 var VIEWS = [
-  { k: 'all', label: 'All customers', n: 2452 }, { k: 'wholesale', label: 'Wholesale customers', n: 0 }, { k: 'signToday', label: 'Signed up today', n: 14 }, { k: 'orderToday', label: 'Ordered today', n: 38 }, { k: 'week', label: 'New this week', n: 61 },
+  { k: 'all', label: 'All customers', n: 2452 }, { k: 'wholesale', label: 'Wholesale customers', n: 0 }, { k: 'company', label: 'Companies', n: 0 }, { k: 'signToday', label: 'Signed up today', n: 14 }, { k: 'orderToday', label: 'Ordered today', n: 38 }, { k: 'week', label: 'New this week', n: 61 },
   { k: 'noOrder', label: 'Signed up, no order yet', n: 212 }, { k: 'repeat', label: 'Repeat buyers', n: 486 }, { k: 'big', label: 'Big spenders', n: 124 }, { k: 'cart', label: 'Left a cart', n: 31 },
-  { k: 'pts', label: 'Points expiring', n: 64 }, { k: 'bday', label: 'Birthday this month', n: 97 }, { k: 'codBlock', label: 'COD blocked', n: 3 }, { k: 'suspended', label: 'Suspended', n: 6 },
-  { k: 'dupes', label: 'Possible duplicates', n: 0 }
+  { k: 'pts', label: 'Points expiring', n: 64 }, { k: 'bday', label: 'Birthday this month', n: 97 }, { k: 'codBlock', label: 'COD blocked', n: 3 }, { k: 'restricted', label: 'Restrictions', n: 0 }, { k: 'suspended', label: 'Suspended', n: 6 },
+  { k: 'cleanup', label: 'Needs cleanup', n: 0 }, { k: 'dupes', label: 'Possible duplicates', n: 0 }
 ];
 // Columns of the list, in order. The main ones always show (Shopify's Customers list: customer, status, location,
 // orders, amount spent, and what they still owe); the extra ones are picked in Columns.
 var COLS = [
-  { k: 'status', l: 'Status' }, { k: 'city', l: 'Location' }, { k: 'email', l: 'Email', extra: true }, { k: 'signup', l: 'Signed up', extra: true },
+  { k: 'status', l: 'Status' }, { k: 'city', l: 'Location' }, { k: 'id', l: 'Customer ID', extra: true }, { k: 'kind', l: 'Type', extra: true }, { k: 'email', l: 'Email', extra: true }, { k: 'signup', l: 'Signed up', extra: true },
   { k: 'last', l: 'Last order', extra: true }, { k: 'level', l: 'Level', extra: true }, { k: 'pts', l: 'Points', al: 'right', extra: true }, { k: 'src', l: 'Came from', extra: true },
+  { k: 'restr', l: 'Restrictions', extra: true }, { k: 'tags', l: 'Tags', extra: true },
   { k: 'orders', l: 'Orders', al: 'right' }, { k: 'spent', l: 'Amount spent', al: 'right' }, { k: 'due', l: 'Due', al: 'right' }
 ];
-var STONE = { 'Active': 'success', 'Suspended': 'error', 'COD blocked': 'warning' };
+var STONE = { 'Active': 'success', 'Suspended': 'error', 'Closed': 'neutral' };
 var LTONE = { Member: 'neutral', Silver: 'neutral', Gold: 'warning', Platinum: 'primary' };
 // Views shown as tabs, in priority order; the rest are in "More views" (the one picked from there shows as a tab).
-var PRIMARY = ['all', 'wholesale', 'signToday', 'orderToday', 'week', 'repeat', 'big'];
+var PRIMARY = ['all', 'wholesale', 'company', 'signToday', 'orderToday', 'week', 'repeat', 'big'];
 var CITIES = ['Dhaka', 'Chattogram', 'Sylhet', 'Khulna', 'Rajshahi', 'Outside Dhaka'];
-var NO_PILLS = { fCity: '', fStatus: '', fLevel: '', fSrc: '' };
+var NO_PILLS = { fCity: '', fStatus: '', fLevel: '', fSrc: '', fRestr: '', fKind: '', fConsent: '', fSeg: '' };
+var PILL_KEYS = Object.keys(NO_PILLS);
 var TODAY = '19 Sep 2026'; // "today" in the demo data
-var EMPTY_FORM = { name: '', phone: '', area: '', types: ['Online'], tier: 'A', credit: '' };
+var EMPTY_FORM = { kind: 'person', name: '', phone: '', area: '', types: ['Online'], tier: 'A', credit: '', email: '', bin: '', terms: 'Net 30' };
 var CUST_TYPES = ['Online', 'Retail', 'Wholesale'];   // how the customer buys; one, two or all three
+var TAG_CHOICES = ['VIP', 'Wholesale', 'Influencer', 'Staff', 'Follow up', 'Eid buyer'];
 function compact(x) { return String(x || '').replace(/[\s\-().]/g, '').toLowerCase(); }
 /** Bangladeshi mobile as 11 digits (01XXXXXXXXX), or '' when it is not one. Accepts +88 / 88 prefixes. */
 function bdMobile(x) { var d = compact(x); if (d.indexOf('+88') === 0) d = d.slice(3); else if (d.indexOf('88') === 0 && d.length === 13) d = d.slice(2); return /^01[3-9]\d{8}$/.test(d) ? d : ''; }
-function fmtPhone(d) { return d.slice(0, 5) + '-' + d.slice(5, 8) + '-' + d.slice(8); }
-function matches(c, q) {
-  var t = q.trim().toLowerCase(); if (!t) return true;
-  if (c.name.toLowerCase().indexOf(t) >= 0 || String(c.email || '').toLowerCase().indexOf(t) >= 0) return true;
-  var p = compact(t); return !!p && compact(c.phone).indexOf(p) >= 0;
-}
 // ---- possible duplicates: the same mobile number, or names that differ by a letter or two ----
 function normName(n) { return String(n || '').toLowerCase().replace(/[^a-zঀ-৿ ]/g, '').replace(/\s+/g, ' ').trim(); }
 function editDistance(a, b) {
@@ -86,7 +75,7 @@ function editDistance(a, b) {
   return prev[b.length];
 }
 function findPairs(rows, notDupes) {
-  var out = [], live = rows.filter(function (r) { return !r.hidden && r.name.indexOf('Guest') !== 0; });
+  var out = [], live = rows.filter(function (r) { return r.name.indexOf('Guest') !== 0 && r.kind !== 'company'; });
   for (var i = 0; i < live.length; i++) for (var j = i + 1; j < live.length; j++) {
     var a = live[i], b = live[j], da = phoneDigits(a.phone), db = phoneDigits(b.phone);
     var samePhone = da.length >= 9 && da === db;
@@ -99,71 +88,40 @@ function findPairs(rows, notDupes) {
   }
   return out;
 }
-function statsOfPhone(inv, digits) {
-  var own = inv.filter(function (r) { return r.customer.phone === digits; });
-  return { own: own, orders: own.length, spent: Math.round(own.reduce(function (a, r) { return a + r.totals.total; }, 0)), due: Math.round(own.reduce(function (a, r) { return a + Math.max(0, r.due); }, 0)) };
-}
 function typesText(types) { return (types || []).length ? types.join(', ') : '—'; }
-/** Wholesale buyers open the wholesale profile; everyone else the customer profile. */
-function hrefOf(c) { return c.wholesale ? '/wholesale-customer?phone=' + (c.digits || phoneDigits(c.phone)) + (c.book ? '' : '&demo=' + c.id) : '/customer-crm'; }
+/** Wholesale buyers open the wholesale profile; everyone else (and companies) the customer profile. */
+function hrefOf(c) { return c.wholesale && c.kind !== 'company' && c.origin !== 'party' ? '/wholesale-customer?phone=' + (c.bookPhone || phoneDigits(c.phone)) + (c.book ? '' : '&demo=' + c.demoId) : '/customer-crm?id=' + encodeURIComponent(c.id); }
 /** One side of a duplicate pair, as shown in the list and the merge dialog. */
 function sideOf(c) {
   return { name: c.name, phone: c.phone, initial: c.name.charAt(0).toUpperCase(), href: hrefOf(c), orders: c.orders.toLocaleString('en-IN'), spent: c.spent ? bdt(c.spent) : '—', due: c.due ? bdt(c.due) : '—', hasDue: !!c.due,
-    types: typesText(c.types), src: c.src, signup: c.signup, last: c.last };
+    types: typesText(c.types), src: c.src, signup: c.signup, last: c.last, id: c.id };
 }
-
+/** Status shown in the list: the account status, or the first restriction of an active account. */
+function statusCell(c) {
+  if (c.status === 'Active' && (c.restrictionShort || []).length) return { v: c.restrictionShort[0], tone: 'warning' };
+  return { v: c.status, tone: STONE[c.status] || 'neutral' };
+}
 
 class Component extends DCLogic {
   componentDidMount() {
-    try { var k = new URLSearchParams(window.location.search).get('view'); if (k && VIEWS.some(function (x) { return x.k === k; })) this.setState({ view: k }); } catch (e) { /* no URL access */ }
+    try {
+      var qs = new URLSearchParams(window.location.search), k = qs.get('view'), seg = qs.get('segment');
+      if (k && VIEWS.some(function (x) { return x.k === k; })) this.setState({ view: k });
+      if (seg && getSegment(seg)) this.setState({ pills: assign(assign({}, NO_PILLS), { fSeg: seg }), find: true });
+    } catch (e) { /* no URL access */ }
+    applyRetention();
     this.load();
   }
-  /** Rows from the customer book (orders, spend and due from their invoices) and the demo list with the
-   *  edits and merges made in this browser. Merged-away rows stay in the list with `hidden` set. */
+  /** Rows from lib/crm.js: the customer book (orders, spend and due from their invoices), the demo list and the
+   *  companies, with the edits and merges made in this browser. */
   load = (justAdded) => {
-    var inv = getInvoices(), edits = getDemoEdits(), merges = getMerges(), notDupes = getNotDupes();
-    var book = getCustomers().map(function (c) {
-      var st = statsOfPhone(inv, c.phone), tier = tierOf(c);
-      var last = st.own[0] ? fmtDate(new Date(st.own[0].at)) : '—';
-      var f = (tier ? ['wholesale'] : []).concat(st.orders > 1 ? ['repeat'] : st.orders ? [] : ['noOrder']).concat(c.signup === TODAY ? ['signToday', 'week'] : []);
-      return { key: 'b:' + c.phone, book: true, name: c.name, phone: fmtPhone(c.phone), digits: c.phone, address: c.address || '', types: c.types || [], tier: c.tier, creditLimit: c.creditLimit || 0,
-        email: '—', city: (c.address || '').split(',').slice(-2).join(',').trim() || '—', signup: c.signup || '—', orders: st.orders, spent: st.spent, due: st.due, last: last, pts: 0, level: 'Member', status: 'Active',
-        src: c.src || (tier ? tier.label.split(' · ')[0] : typesText(c.types)), f: f, wholesale: !!tier, isNew: c.phone === justAdded };
-    });
-    var demo = C.map(function (c) {
-      var e = edits[c.id] || {}, types = e.types || c.types, whole = types.indexOf('Wholesale') >= 0;
-      var phone = e.phone || c.phone;
-      return assign(assign({}, c), { key: 'd:' + c.id, book: false, name: e.name || c.name, phone: phone, digits: phoneDigits(phone), address: e.address != null ? e.address : c.address, types: types, tier: e.tier, creditLimit: e.creditLimit || 0,
-        baseF: c.f, f: c.f.filter(function (x) { return x !== 'wholesale'; }).concat(whole ? ['wholesale'] : []), wholesale: whole,
-        src: whole && c.types.indexOf('Wholesale') < 0 ? (PRICE_TIERS[e.tier] || PRICE_TIERS.A).label.split(' · ')[0] + ' · was ' + c.src : c.src });
-    });
-    var rows = book.concat(demo), byKey = {};
-    rows.forEach(function (r) { byKey[r.key] = r; });
-    // merged rows: a merged-away demo row is hidden here (the book hides its own); the kept row carries its orders, spend and due
-    var dropped = {};
-    merges.forEach(function (m) { dropped[m.drop] = m; });
-    var baseOf = function (m) {
-      if (m.drop.indexOf('b:') === 0) return statsOfPhone(inv, m.drop.slice(2));
-      var d = C.filter(function (c) { return 'd:' + c.id === m.drop; })[0];
-      return d ? { orders: d.orders, spent: d.spent, due: d.due } : { orders: 0, spent: 0, due: 0 };
-    };
-    var carried = function (key, seen) {
-      var sum = { orders: 0, spent: 0, due: 0, names: [] };
-      merges.forEach(function (m) {
-        if (m.keep !== key || seen[m.drop]) return;
-        seen[m.drop] = true;
-        var b = baseOf(m), deeper = carried(m.drop, seen);
-        sum.orders += b.orders + deeper.orders; sum.spent += b.spent + deeper.spent; sum.due += b.due + deeper.due; sum.names = sum.names.concat([m.dropName], deeper.names);
-      });
-      return sum;
-    };
-    rows.forEach(function (r) {
-      if (dropped[r.key]) r.hidden = true;
-      var x = carried(r.key, {});
-      if (x.names.length) { r.orders += x.orders; r.spent += x.spent; r.due += x.due; r.mergedFrom = x.names; }
-    });
-    this.setState({ rows: rows, pairs: findPairs(rows, notDupes) });
+    var rows = getCrmRows({ justAdded: justAdded }), notDupes = getNotDupes();
+    var here = {}; rows.forEach(function (r) { here[r.key] = true; });
+    // demo rows merged away still count against the demo totals of their views
+    var gone = DEMO_LIST.filter(function (d) { return !here['d:' + d.id]; });
+    this.setState({ rows: rows, gone: gone, pairs: findPairs(rows, notDupes), segs: getSegments() });
   };
+  reload = () => { this.load(); };
 
   // ---- edit a customer ----
   openEdit = (r) => {
@@ -172,13 +130,14 @@ class Component extends DCLogic {
   closeEdit = () => { this.setState({ editRow: null }); };
   editPhoneTaken = (d) => {
     var s = this.state || {}, me = s.editRow;
-    return (s.rows || []).some(function (r) { return !r.hidden && (!me || r.key !== me.key) && phoneDigits(r.phone) === d; });
+    return (s.rows || []).some(function (r) { return (!me || r.key !== me.key) && phoneDigits(r.phone) === d; });
   };
   saveEdit = (vals) => {
     var r = (this.state || {}).editRow; if (!r) return;
     var wasWhole = r.wholesale, isWhole = vals.types.indexOf('Wholesale') >= 0;
-    if (r.book) updateCustomer(r.digits, { name: vals.name, address: vals.address, types: vals.types, tier: vals.tier, creditLimit: vals.creditLimit });
-    else saveDemoEdit(r.id, { name: vals.name, phone: vals.phone, address: vals.address, types: vals.types, tier: vals.tier, creditLimit: vals.creditLimit, due: r.due });
+    if (r.book) updateCustomer(r.bookPhone, { name: vals.name, address: vals.address, types: vals.types, tier: vals.tier, creditLimit: vals.creditLimit });
+    else if (r.origin === 'demo') saveDemoEdit(r.demoId, { name: vals.name, phone: vals.phone, address: vals.address, types: vals.types, tier: vals.tier, creditLimit: vals.creditLimit, due: r.due });
+    else uiToast('Open the company to change it.', { tone: 'info' });
     this.setState({ editRow: null });
     this.load();
     uiToast(vals.name + ' was updated.' + (isWhole && !wasWhole ? ' They now show under Wholesale customers.' : !isWhole && wasWhole ? ' They no longer buy wholesale.' : ''));
@@ -190,9 +149,11 @@ class Component extends DCLogic {
   confirmMerge = () => {
     var s = this.state || {}, p = s.mergePair; if (!p) return;
     var keep = p.a.key === s.keepKey ? p.a : p.b, drop = keep === p.a ? p.b : p.a;
-    if (drop.book) mergeCustomers(keep.digits || phoneDigits(keep.phone), drop.digits);
-    addMerge({ keep: keep.key, drop: drop.key, dropName: drop.name, dropPhone: drop.phone });
-    this.setState({ mergePair: null });
+    if (drop.kind === 'company' || keep.kind === 'company') { uiToast('Companies are not merged here. Move the contacts on the company instead.', { tone: 'info' }); return; }
+    if (drop.companyId && keep.companyId && drop.companyId !== keep.companyId) { uiToast('These two work for different companies. Unlink one first.', { tone: 'error' }); return; }
+    if (drop.book) mergeCustomers(keep.bookPhone || phoneDigits(keep.phone), drop.bookPhone);
+    addMerge({ keep: keep.key, drop: drop.key, dropName: drop.name, dropPhone: drop.phone, dropId: drop.id, keepId: keep.id });
+    this.setState({ mergePair: null, sel: {} });
     this.load();
     var same = drop.name === keep.name;
     uiToast(drop.name + (same ? ' (' + drop.phone + ')' : '') + ' was merged into ' + keep.name + (same ? ' (' + keep.phone + ')' : '') + '. Their orders and spend now show on one customer.');
@@ -212,15 +173,21 @@ class Component extends DCLogic {
     this.setState({ view: k, sel: {} });
     try { var u = new URL(window.location.href); if (k === 'all') u.searchParams.delete('view'); else u.searchParams.set('view', k); window.history.replaceState(window.history.state, '', u.pathname + u.search + u.hash); } catch (e) { /* no URL access */ }
   };
+  pickSegment = (id) => {
+    var s = this.state || {};
+    this.setState({ pills: assign(assign({}, NO_PILLS, s.pills || {}), { fSeg: id }), find: true, sel: {} });
+    if ((s.view || 'all') === 'dupes') this.setView('all');
+  };
 
-  // ---- add customer ----
-  openAdd = () => { this.setState({ addOpen: true, form: EMPTY_FORM, errs: {} }); };
+  // ---- add customer (person or company) ----
+  openAdd = (kind) => { this.setState({ addOpen: true, form: assign(assign({}, EMPTY_FORM), { kind: kind === 'company' ? 'company' : 'person' }), errs: {}, dupe: null }); };
   closeAdd = () => { this.setState({ addOpen: false }); };
   typeField = (e) => {
     var s = this.state || {}, f = assign({}, s.form || EMPTY_FORM), er = assign({}, s.errs || {});
     f[e.target.name] = e.target.value; delete er[e.target.name];
-    this.setState({ form: f, errs: er });
+    this.setState({ form: f, errs: er, dupe: e.target.name === 'phone' ? null : s.dupe });
   };
+  setKind = (k) => { var s = this.state || {}; this.setState({ form: assign(assign({}, s.form || EMPTY_FORM), { kind: k, types: k === 'company' ? ['Wholesale'] : ['Online'] }), errs: {}, dupe: null }); };
   toggleType = (type) => {
     var s = this.state || {}, f = assign({}, s.form || EMPTY_FORM), er = assign({}, s.errs || {});
     var cur = f.types || [];
@@ -230,19 +197,32 @@ class Component extends DCLogic {
   };
   submitAdd = (e) => {
     if (e && e.preventDefault) e.preventDefault();
-    var s = this.state || {}, f = s.form || EMPTY_FORM, er = {};
-    var name = f.name.trim().replace(/\s+/g, ' '), area = f.area.trim(), d = bdMobile(f.phone);
-    if (!name) er.name = 'Enter the customer’s name.';
+    var s = this.state || {}, f = s.form || EMPTY_FORM, er = {}, self = this;
+    var name = f.name.trim().replace(/\s+/g, ' '), area = f.area.trim(), d = bdMobile(f.phone), company = f.kind === 'company';
+    if (!name) er.name = company ? 'Enter the company name.' : 'Enter the customer’s name.';
     else if (name.length < 2) er.name = 'The name needs at least 2 characters.';
-    if (!f.phone.trim()) er.phone = 'Enter a mobile number.';
-    else if (!d) er.phone = 'Enter an 11-digit Bangladeshi mobile number, like 01712345678.';
-    else if ((s.rows || []).some(function (c) { return !c.hidden && phoneDigits(c.phone) === d; })) er.phone = 'A customer with this mobile number already exists.';
+    var dupe = null;
+    if (!company || f.phone.trim()) {
+      if (!f.phone.trim()) er.phone = 'Enter a mobile number.';
+      else if (!d) er.phone = 'Enter an 11-digit Bangladeshi mobile number, like 01712345678.';
+      else { dupe = resolveCustomer(d); if (dupe) er.phone = 'A customer with this mobile number already exists.'; }
+    }
+    if (f.email && f.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim())) er.email = 'Enter an email like name@example.com.';
+    else if (f.email && f.email.trim() && !dupe) { dupe = resolveCustomer(f.email.trim()); if (dupe) er.email = 'A customer with this email already exists.'; }
     var types = f.types || [], whole = types.indexOf('Wholesale') >= 0;
     if (!types.length) er.types = 'Choose at least one: Online, Retail or Wholesale.';
     var credit = String(f.credit || '').trim() === '' ? 0 : Number(f.credit);
     if (whole && (!isFinite(credit) || credit < 0)) er.credit = 'Enter 0 or more. 0 means no limit.';
-    var first = er.name ? 'name' : er.phone ? 'phone' : er.types ? 'type-Online' : er.credit ? 'credit' : '';
-    if (first) { this.setState({ errs: er }, function () { var el = document.getElementById('ac-add-' + first); if (el) el.focus(); }); return; }
+    var first = er.name ? 'name' : er.phone ? 'phone' : er.email ? 'email' : er.types ? 'type-Online' : er.credit ? 'credit' : '';
+    if (first) { this.setState({ errs: er, dupe: dupe }, function () { var el = document.getElementById('ac-add-' + first); if (el) el.focus(); }); return; }
+    if (company) {
+      var co = addCompany({ name: name, phone: d, email: (f.email || '').trim(), address: area, bin: (f.bin || '').trim(), tier: f.tier || 'A', creditLimit: Math.round(credit), terms: f.terms, types: types, owner: (currentUser() || {}).name || '' });
+      this.setState({ addOpen: false, q: '', sel: {} });
+      this.load();
+      uiToast(name + ' was added as a company. Add its locations and contact people here.');
+      navigate('/customer-crm?id=' + encodeURIComponent(co.id) + '&tab=details');
+      return;
+    }
     // kept in the customer book, so New sale finds the customer and loads the wholesale prices
     addCustomer({ name: name, phone: d, address: area, types: types, tier: whole ? (f.tier || 'A') : undefined, creditLimit: whole ? Math.round(credit) : 0, signup: TODAY,
       src: types.join(' · ') + (whole ? ' (' + PRICE_TIERS[f.tier || 'A'].label.split(' · ')[0] + ')' : '') + ' · added by staff' });
@@ -250,8 +230,15 @@ class Component extends DCLogic {
     this.setState({ addOpen: false, q: '', sel: {} });
     this.load(d);
     if (!keep) this.setView('all');
-    var self = this;
     uiToast(name + ' was added to your customers.', { undo: function () { removeFromBook(d); self.load(); } });
+  };
+
+  // ---- bulk ----
+  bulk = (kind, ids, params) => {
+    var me = (currentUser() || {}).name || 'Staff';
+    var j = startJob(kind, ids, params, me);
+    this.setState({ dlg: null, sel: {} });
+    uiToast(j.label + ': started for ' + ids.length + (ids.length === 1 ? ' customer.' : ' customers.') + ' It runs in the background.');
   };
 
   renderVals() {
@@ -259,32 +246,41 @@ class Component extends DCLogic {
     var view = s.view || 'all', pick = s.pick || {}, sel = s.sel || {};
     var q = s.q || '', qShown = q.trim(), form = s.form || EMPTY_FORM, errs = s.errs || {};
     var pills = assign(assign({}, NO_PILLS), s.pills || {});
-    var pillCount = (pills.fCity ? 1 : 0) + (pills.fStatus ? 1 : 0) + (pills.fLevel ? 1 : 0) + (pills.fSrc ? 1 : 0);
-    var ALL = (s.rows || []).filter(function (c) { return !c.hidden; });
+    var pillCount = PILL_KEYS.filter(function (k) { return !!pills[k]; }).length;
+    var ALL = s.rows || [];
     var pairs = s.pairs || [];
     var isDupes = view === 'dupes';
     var cols = COLS.filter(function (c) { return !c.extra || pick[c.k]; });
     var inView = isDupes ? [] : ALL.filter(function (c) { return view === 'all' || c.f.indexOf(view) >= 0; });
+    var segIds = null;
+    if (pills.fSeg) { segIds = {}; segmentMembers(pills.fSeg, ALL).forEach(function (c) { segIds[c.id] = true; }); }
     var pillOk = function (c) {
+      var cons = pills.fConsent ? pills.fConsent.split(':') : null;
       return (!pills.fCity || (pills.fCity === 'Dhaka' ? /Dhaka/.test(c.city) && c.city !== 'Outside Dhaka' : c.city.indexOf(pills.fCity) >= 0))
-        && (!pills.fStatus || c.status === pills.fStatus) && (!pills.fLevel || c.level === pills.fLevel) && (!pills.fSrc || String(c.src).indexOf(pills.fSrc) >= 0);
+        && (!pills.fStatus || c.status === pills.fStatus) && (!pills.fLevel || c.level === pills.fLevel) && (!pills.fSrc || String(c.src).indexOf(pills.fSrc) >= 0)
+        && (!pills.fRestr || (pills.fRestr === 'any' ? c.restrictions.length > 0 : pills.fRestr === 'none' ? !c.restrictions.length : c.restrictions.some(function (r) { return r.type === pills.fRestr; })))
+        && (!pills.fKind || c.kind === pills.fKind)
+        && (!cons || getConsent(c)[cons[0]].state === cons[1])
+        && (!segIds || !!segIds[c.id]);
     };
-    var list = inView.filter(function (c) { return matches(c, q) && pillOk(c); });
-    var pairList = pairs.filter(function (p) { return matches(p.a, q) || matches(p.b, q); });
+    var list = inView.filter(function (c) { return customerMatches(c, q, ALL) && pillOk(c); });
+    var pairList = pairs.filter(function (p) { return customerMatches(p.a, q, ALL) || customerMatches(p.b, q, ALL); });
     var V = VIEWS.filter(function (v) { return v.k === view; })[0];
-    // Demo totals per view, adjusted for the customer book, edits (e.g. made wholesale) and merges.
+    // Demo totals per view, adjusted for the customer book, companies, edits (e.g. made wholesale) and merges.
     var countOf = function (v) {
       if (v.k === 'dupes') return pairs.length;
       var n = v.n;
-      (s.rows || []).forEach(function (r) {
-        var now = !r.hidden && (v.k === 'all' || r.f.indexOf(v.k) >= 0);
-        if (r.book) { if (now) n++; } else { var base = v.k === 'all' || r.baseF.indexOf(v.k) >= 0; n += (now ? 1 : 0) - (base ? 1 : 0); }
+      ALL.forEach(function (r) {
+        var now = v.k === 'all' || r.f.indexOf(v.k) >= 0;
+        if (r.origin !== 'demo') { if (now) n++; } else { var base = v.k === 'all' || (r.baseF || []).indexOf(v.k) >= 0; n += (now ? 1 : 0) - (base ? 1 : 0); }
       });
+      (s.gone || []).forEach(function (d) { if (v.k === 'all' || d.f.indexOf(v.k) >= 0) n--; });
       return Math.max(0, n);
     };
     var total = countOf(V);
     var selRows = list.filter(function (c) { return sel[c.key]; });
     var selN = selRows.length;
+    var selIds = selRows.map(function (c) { return c.id; });
     var filtered = !!qShown || pillCount > 0;
     var outN = filtered ? (isDupes ? pairList.length : list.length) : total;
     var cell = function (c, k) {
@@ -292,9 +288,13 @@ class Component extends DCLogic {
       if (k === 'spent') return { v: v ? bdt(v) : '—', cls: 'ix-num' };
       if (k === 'due') return { v: v ? bdt(v) : '—', cls: 'ix-num' + (v ? ' ix-bad' : ' ix-muted') };
       if (k === 'orders' || k === 'pts') return { v: typeof v === 'number' ? v.toLocaleString('en-IN') : v, cls: 'ix-num' };
-      if (k === 'status') return { badge: STONE[v] || 'neutral', v: v };
+      if (k === 'status') { var st = statusCell(c); return { badge: st.tone, v: st.v }; }
       if (k === 'level') return { badge: LTONE[v] || 'neutral', v: v };
-      if (k === 'email' || k === 'city' || k === 'src') return { v: v, cls: 'ix-muted', trunc: true };
+      if (k === 'id') return { v: v, cls: 'ix-muted ly-fig' };
+      if (k === 'kind') return { v: v === 'company' ? 'Company' : 'Person', cls: 'ix-muted' };
+      if (k === 'restr') return { v: (c.restrictionShort || []).join(', ') || '—', cls: 'ix-muted', trunc: true };
+      if (k === 'tags') return { v: (c.tags || []).join(', ') || '—', cls: 'ix-muted', trunc: true };
+      if (k === 'email' || k === 'city' || k === 'src') return { v: v || '—', cls: 'ix-muted', trunc: true };
       if (k === 'signup' || k === 'last') return { v: v, cls: 'ix-muted' };
       return { v: v, cls: '' };
     };
@@ -304,17 +304,33 @@ class Component extends DCLogic {
     var moreViews = VIEWS.filter(function (v) { return tabKeys.indexOf(v.k) < 0; }).map(function (v) { return { label: v.label + ' · ' + countOf(v).toLocaleString('en-IN'), onClick: function () { self.setView(v.k); } }; });
     var setPill = function (k) { return function (e) { var o = assign({}, pills); o[k] = e.target.value; self.setState({ pills: o, sel: {} }); }; };
     var clearAll = function () { self.setState({ q: '', pills: NO_PILLS, fApplied: false, sel: {} }); };
+    var segs = s.segs || [];
+    var segChoices = segs.map(function (x) { return [x.id, x.name]; }).concat(SEGMENT_TEMPLATES.map(function (t) { return [t.id, t.name + ' · ready-made']; }));
+    var segMenu = segs.map(function (x) { return { label: x.name, onClick: function () { self.pickSegment(x.id); } }; })
+      .concat(SEGMENT_TEMPLATES.map(function (t) { return { label: t.name + ' · ready-made', onClick: function () { self.pickSegment(t.id); } }; }))
+      .concat([{ label: 'New segment…', onClick: function () { self.setState({ segOpen: true, segEdit: null }); } }, { label: 'Manage segments', href: '/customer-settings#segments' }]);
+    var curSeg = pills.fSeg ? getSegment(pills.fSeg) : null;
+    var dlg = s.dlg || null;
+    var cs = dlg === 'msg' ? consentSummary(selIds) : null;
+    var msgCh = s.msgCh || 'sms';
+    var me = (currentUser() || {}).name || 'Staff';
     return {
-      tabs: tabs, moreViews: moreViews,
+      tabs: tabs, moreViews: moreViews, segMenu: segMenu,
       q: q, typeQ: self.typeQ, hasQ: !!qShown,
       find: !!(s.find || qShown || pillCount), openFind: function () { self.setState({ find: true }); },
       closeFind: function () { self.setState({ find: false, q: '', pills: NO_PILLS, fApplied: false, sel: {} }); },
-      pills: pills, setCity: setPill('fCity'), setStatus: setPill('fStatus'), setLevel: setPill('fLevel'), setSrc: setPill('fSrc'), cities: CITIES,
+      pills: pills, setCity: setPill('fCity'), setStatus: setPill('fStatus'), setLevel: setPill('fLevel'), setSrc: setPill('fSrc'), setRestr: setPill('fRestr'), setKind: setPill('fKind'), setConsent: setPill('fConsent'), setSeg: setPill('fSeg'), cities: CITIES,
+      segChoices: segChoices, curSeg: curSeg && !curSeg.owner ? curSeg : null, editSeg: function () { self.setState({ segOpen: true, segEdit: curSeg }); },
+      segOpen: !!s.segOpen, segEdit: s.segEdit || null, closeSeg: function () { self.setState({ segOpen: false }); },
+      savedSeg: function (seg) { self.setState({ segOpen: false, segs: getSegments() }); self.pickSegment(seg.id); uiToast('Segment “' + seg.name + '” saved.'); },
+      allRows: ALL, me: me,
       hasFilters: filtered || !!s.fApplied, clearAll: clearAll,
       emptyTitle: qShown ? 'No customers match “' + qShown + '”' : isDupes ? 'No possible duplicates' : 'No customers in this view',
       emptyAction: filtered ? 'Clear search' : 'Show all customers', emptyDo: filtered ? clearAll : self.showAll,
-      addOpen: !!s.addOpen, openAdd: self.openAdd, closeAdd: self.closeAdd, submitAdd: self.submitAdd, typeField: self.typeField, form: form, toggleType: self.toggleType, errTypes: (s.errs || {}).types,
-      errName: errs.name || '', errPhone: errs.phone || '', errCredit: errs.credit || '',
+      addOpen: !!s.addOpen, openAdd: function () { self.openAdd('person'); }, openAddCompany: function () { self.openAdd('company'); }, closeAdd: self.closeAdd, submitAdd: self.submitAdd, typeField: self.typeField, form: form, toggleType: self.toggleType, errTypes: (s.errs || {}).types,
+      isCompanyForm: form.kind === 'company', setFormKind: self.setKind,
+      errName: errs.name || '', errPhone: errs.phone || '', errEmail: errs.email || '', errCredit: errs.credit || '',
+      dupe: s.dupe ? { name: s.dupe.name, href: '/customer-crm?id=' + encodeURIComponent(s.dupe.id) } : null,
       // Columns: the extra facts a merchant may want in the list
       colsOpen: !!s.colsOpen, openCols: function () { self.setState({ colsOpen: true }); }, closeCols: function () { self.setState({ colsOpen: false }); },
       extraOn: COLS.some(function (c) { return c.extra && pick[c.k]; }),
@@ -324,11 +340,12 @@ class Component extends DCLogic {
       // More filters (dialog)
       fOpen: !!s.fOpen, openF: function () { self.setState({ fOpen: true }); }, closeF: function () { self.setState({ fOpen: false }); }, hasF: !!s.fApplied,
       clearF: function () { self.setState({ fApplied: false, fOpen: false }); }, applyF: function () { self.setState({ fApplied: true, fOpen: false }); uiToast('Filters applied.'); },
-      saveView: function () { self.setState({ fOpen: false, fApplied: true }); uiToast('Saved as a view. It now shows with the other views.'); },
+      saveView: function () { self.setState({ fOpen: false, segOpen: true, segEdit: null }); },
       print: function () { uiToast('Opening a print-ready list of ' + outN.toLocaleString('en-IN') + ' customers with the columns you see.'); },
-      csv: function () { uiToast('Downloading ' + (selN || outN).toLocaleString('en-IN') + ' customers as CSV — ' + (cols.length + 2) + ' columns.'); },
+      csv: function () { var ids = (selN ? selRows : list).map(function (c) { return c.id; }); if (!ids.length) { uiToast('No customers to export.', { tone: 'info' }); return; } self.bulk('export', ids, {}); },
       heads: cols.map(function (c) { return { k: c.k, l: c.l, al: c.al || 'left' }; }),
-      rows: list.map(function (c) { var on = !!sel[c.key], href = hrefOf(c); return { key: c.key, href: href, wholesale: !!c.wholesale, name: c.name, city: c.city, orders: c.orders, spent: c.spent ? bdt(c.spent) : '—', due: c.due ? bdt(c.due) : '', status: c.status, statusTone: STONE[c.status] || 'neutral', sel: on, isNew: !!c.isNew, merged: c.mergedFrom ? 'Merged with ' + c.mergedFrom.join(', ') : '',
+      rows: list.map(function (c) { var on = !!sel[c.key], href = hrefOf(c), st = statusCell(c); return { key: c.key, href: href, wholesale: !!c.wholesale && c.kind !== 'company', company: c.kind === 'company', name: c.name, city: c.city, orders: c.orders, spent: c.spent ? bdt(c.spent) : '—', due: c.due ? bdt(c.due) : '', status: st.v, statusTone: st.tone, sel: on, isNew: !!c.isNew, merged: c.mergedFrom ? 'Merged with ' + c.mergedFrom.join(', ') : '',
+        sub: c.kind === 'company' ? (c.locationsCount || 0) + (c.locationsCount === 1 ? ' location · ' : ' locations · ') + (c.contactsCount || 0) + (c.contactsCount === 1 ? ' contact' : ' contacts') : c.companyName ? c.role + ' · ' + c.companyName : '',
         cells: cols.map(function (k) { return assign({ k: k.k }, cell(c, k.k)); }),
         onRowClick: function (e) { if (e.target.closest('a,button,input,label,select')) return; navigate(href); },
         toggle: function () { var o = assign({}, sel); o[c.key] = !on; self.setState({ sel: o }); } }; }),
@@ -343,7 +360,27 @@ class Component extends DCLogic {
       mergeSides: s.mergePair ? [s.mergePair.a, s.mergePair.b].map(function (c) { var on = c.key === s.keepKey; return assign(sideOf(c), { key: c.key, on: on, pick: function () { self.setState({ keepKey: c.key }); } }); }) : [],
       mergeKeepName: s.mergePair ? (s.mergePair.a.key === s.keepKey ? s.mergePair.a : s.mergePair.b).name : '', mergeDropName: s.mergePair ? (s.mergePair.a.key === s.keepKey ? s.mergePair.b : s.mergePair.a).name : '',
       hasSel: selN > 0, selCount: selN,
-      bulkSms: function () { uiToast('SMS composer opened for ' + selN + ' customers.'); }, bulkCoupon: function () { uiToast('A one-time coupon was assigned to ' + selN + ' customers.'); }, bulkTag: function () { uiToast('Tag added to ' + selN + ' customers.'); },
+      bulkSms: function () { self.setState({ dlg: 'msg', msgCh: 'sms' }); },
+      bulkCoupon: function () { uiToast('A one-time coupon was assigned to ' + selN + ' customers.'); },
+      bulkTag: function () { self.setState({ dlg: 'tag', tagMode: 'tag', tagVal: '' }); },
+      bulkUntag: function () { self.setState({ dlg: 'tag', tagMode: 'untag', tagVal: '' }); },
+      bulkSeg: function () { self.setState({ dlg: 'seg', segPick: (segs[0] || {}).id || '' }); },
+      bulkConsent: function () { self.setState({ dlg: 'consent', cCh: 'sms', cSt: 'out', cSrc: 'Staff' }); },
+      canMerge2: selN === 2, mergeSel: function () { self.openMerge({ id: [selRows[0].key, selRows[1].key].sort().join('|'), a: selRows[0], b: selRows[1], why: 'Chosen by you' }); },
+      // bulk dialogs
+      dlg: dlg, closeDlg: function () { self.setState({ dlg: null }); },
+      msgChans: CONSENT_CHANNELS.filter(function (c) { return c.k !== 'call'; }).map(function (c) { return { k: c.k, label: c.label, n: cs ? cs[c.k] : 0, on: c.k === msgCh, pick: function () { self.setState({ msgCh: c.k }); } }; }),
+      msgTotal: cs ? cs.total : 0, msgOk: cs ? cs[msgCh] : 0, msgChLabel: (CONSENT_CHANNELS.filter(function (c) { return c.k === msgCh; })[0] || {}).label,
+      sendMsg: function () { var n = cs ? cs[msgCh] : 0; self.setState({ dlg: null, sel: {} }); uiToast(n ? n + ' customers handed to Communications for ' + (CONSENT_CHANNELS.filter(function (c) { return c.k === msgCh; })[0] || {}).label + '. ' + (cs.total - n) + ' left out: no consent.' : 'No one selected can get this message.', n ? undefined : { tone: 'info' }); },
+      tagMode: s.tagMode || 'tag', tagVal: s.tagVal || '', typeTag: function (e) { self.setState({ tagVal: e.target.value }); },
+      tagChips: TAG_CHOICES.map(function (t) { return { t: t, on: t === s.tagVal, pick: function () { self.setState({ tagVal: t }); } }; }),
+      runTag: function () { var t = String(s.tagVal || '').trim(); if (!t) { uiToast('Choose or type a tag.', { tone: 'info' }); return; } self.bulk(s.tagMode === 'untag' ? 'untag' : 'tag', selIds, { tag: t }); },
+      segs: segs, segPick: s.segPick || '', setSegPick: function (e) { self.setState({ segPick: e.target.value }); },
+      runSeg: function () { if (!s.segPick) { uiToast('Save a segment first.', { tone: 'info' }); return; } self.bulk('segment', selIds, { segmentId: s.segPick }); },
+      cCh: s.cCh || 'sms', cSt: s.cSt || 'out', cSrc: s.cSrc || 'Staff',
+      setCCh: function (e) { self.setState({ cCh: e.target.value }); }, setCSt: function (e) { self.setState({ cSt: e.target.value }); }, setCSrc: function (e) { self.setState({ cSrc: e.target.value }); },
+      runConsent: function () { self.bulk('consent', selIds, { channel: s.cCh || 'sms', state: s.cSt || 'out', source: s.cSrc || 'Staff' }); },
+      reload: self.reload,
       empty: isDupes ? !pairList.length : !list.length,
       countLabel: isDupes ? 'Showing ' + pairList.length + ' possible ' + (pairList.length === 1 ? 'duplicate pair' : 'duplicate pairs')
         : filtered ? 'Showing ' + list.length + (qShown ? ' matching “' + qShown + '”' : ' customers') : 'Showing ' + list.length + ' of ' + total.toLocaleString('en-IN') + ' customers',
@@ -358,6 +395,7 @@ const CSS = `
 .ac-cust{display:inline-flex;align-items:center;gap:6px;max-width:260px}
 .ac-cust>a{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .ac-trunc{display:block;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+.ac-sub{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .ix-table tr.is-new td{animation:acNew 900ms ease-out}
 @keyframes acNew{from{background:var(--fill-success-soft)}to{background:transparent}}
 .ac-pitem-new{animation:acNew 900ms ease-out}
@@ -407,16 +445,17 @@ const FILTERS_MORE = [
   ['Number of orders', ['Any', '0 orders', '1 order', '2–4 orders', '5+ orders']],
   ['Paid with', ['Any', 'Cash on delivery', 'bKash', 'Nagad', 'Card', 'Wallet']],
   ['Has', ['Anything', 'Abandoned cart', 'Unused coupon', 'Points expiring', 'Open support ticket', 'Items in wishlist']],
-  ['Tag', ['Any', 'VIP', 'Wholesale', 'Influencer', 'Staff', 'Fraud watch']],
+  ['Tag', ['Any', 'VIP', 'Wholesale', 'Influencer', 'Staff', 'Follow up']],
   ['Birthday', ['Any', 'This week', 'This month']],
 ];
+const ERR = (id, text) => (<p id={id} className="gc-help gc-help--error ac-err"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" style={{ flex: "none", marginTop: "1px" }} /><span>{text}</span></p>);
 
 export default class AllCustomersScreen extends Component {
   render() {
     const v = this.renderVals() || {};
     return (
       <div className="dc-screen ds" data-screen="AllCustomers">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
+        <style dangerouslySetInnerHTML={{ __html: CSS + CRM_PARTS_CSS }} />
         <div className="gc-shell">
           <__Sidebar sticky="" active="customers" />
           <main className="gc-shell__main">
@@ -424,30 +463,36 @@ export default class AllCustomersScreen extends Component {
             <div className="gc-shell__content">
               <div className="ix-page">
                 <ShopHeader icon="users" title="Customers"
-                  about="Every person who signed up or bought from you. Pick a ready view, or filter on anything."
+                  about="Every person and company who signed up or bought from you. Pick a ready view or a segment, or filter on anything. Search finds any phone, email, customer ID or outside ID."
                   secondary={[{ label: 'Export', onClick: v.csv }]}
-                  more={[{ label: 'Print', onClick: v.print }, { label: 'Members', href: '/members' }, { label: 'Abandoned carts', href: '/abandoned-carts' }]}
+                  more={[{ label: 'Add company', onClick: v.openAddCompany }, { label: 'New segment', onClick: () => this.setState({ segOpen: true, segEdit: null }) }, { label: 'Print', onClick: v.print }, { label: 'Customer settings', href: '/customer-settings' }, { label: 'Members', href: '/members' }, { label: 'Abandoned carts', href: '/abandoned-carts' }]}
                   primary={{ label: 'Add customer', onClick: v.openAdd }} />
+
+                <JobsCard onChanged={v.reload} />
 
                 <section className="ix-card" aria-label="Customers">
                   {v.hasSel ? (
                     <div className="ix-bulk" role="toolbar" aria-label="Selected customers">
                       <input type="checkbox" checked={v.allSel} onChange={v.toggleAll} aria-label="Select all" style={{ width: 16, height: 16, margin: '0 6px', accentColor: 'var(--primary)' }} />
                       <span className="ix-bulk__n">{v.selCount} selected</span>
-                      <button type="button" className="ix-btn ix-btn--sm" onClick={v.bulkSms}><__Icon name="message-circle" width="16" height="16" aria-hidden="true" />Send SMS</button>
+                      <button type="button" className="ix-btn ix-btn--sm" onClick={v.bulkSms} aria-haspopup="dialog"><__Icon name="message-circle" width="16" height="16" aria-hidden="true" />Send SMS</button>
                       <button type="button" className="ix-btn ix-btn--sm" onClick={v.bulkCoupon}><__Icon name="ticket-percent" width="16" height="16" aria-hidden="true" />Assign coupon</button>
-                      <button type="button" className="ix-btn ix-btn--sm" onClick={v.bulkTag}><__Icon name="tag" width="16" height="16" aria-hidden="true" />Add tag</button>
-                      <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" align="start" items={[{ label: 'Edit customer', onClick: v.editSel }, { label: 'Export', onClick: v.csv }, { label: 'Clear selection', onClick: v.clearSel }]} />
+                      <button type="button" className="ix-btn ix-btn--sm" onClick={v.bulkTag} aria-haspopup="dialog"><__Icon name="tag" width="16" height="16" aria-hidden="true" />Add tag</button>
+                      <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" align="start" items={[
+                        { label: 'Add to segment', onClick: v.bulkSeg }, { label: 'Change consent', onClick: v.bulkConsent }, { label: 'Remove tag', onClick: v.bulkUntag },
+                        v.canMerge2 ? { label: 'Merge these 2', onClick: v.mergeSel } : null,
+                        { label: 'Edit customer', onClick: v.editSel }, { label: 'Export', onClick: v.csv }, { label: 'Clear selection', onClick: v.clearSel }].filter(Boolean)} />
                     </div>
                   ) : (
                     <div className="ix-bar">
                       {v.find ? (<>
-                        <SearchField value={v.q} onChange={v.typeQ} placeholder="Search by name or phone" onDone={v.closeFind} autoFocus />
+                        <SearchField value={v.q} onChange={v.typeQ} placeholder="Search by name, phone, email or ID" onDone={v.closeFind} autoFocus />
                         <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={v.closeFind}>Cancel</button>
                       </>) : (<>
                         <IndexTabs tabs={v.tabs} label="Customer views" />
                         <span className="ix-tools">
                           <span className="ac-views"><Menu label="More views" icon="list" cls="ix-btn ix-btn--sm" items={v.moreViews} /></span>
+                          <span className="ac-views"><Menu label="Segments" icon="layers" cls="ix-btn ix-btn--sm" items={v.segMenu} /></span>
                           <button type="button" className="ix-btn ix-btn--sm ix-btn--icon" aria-label="Search and filter" onClick={v.openFind}><__Icon name="search" width="16" height="16" aria-hidden="true" /></button>
                           <button type="button" className="ix-btn ix-btn--sm ix-btn--icon ac-colbtn" aria-label="Columns" title="Columns" aria-haspopup="dialog" onClick={v.openCols}><__Icon name="columns-3" width="16" height="16" aria-hidden="true" /></button>
                         </span>
@@ -456,19 +501,34 @@ export default class AllCustomersScreen extends Component {
                   )}
                   {v.find && !v.hasSel ? (
                     <div className="ix-filters" role="group" aria-label="Filters">
+                      <select aria-label="Segment" className={'ix-filter' + (v.pills.fSeg ? ' is-set' : '')} value={v.pills.fSeg} onChange={v.setSeg}>
+                        <option value="">Segment</option>{v.segChoices.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                      </select>
                       <select aria-label="City or area" className={'ix-filter' + (v.pills.fCity ? ' is-set' : '')} value={v.pills.fCity} onChange={v.setCity}>
                         <option value="">Location</option>{v.cities.map((c) => <option key={c}>{c}</option>)}
                       </select>
                       <select aria-label="Account status" className={'ix-filter' + (v.pills.fStatus ? ' is-set' : '')} value={v.pills.fStatus} onChange={v.setStatus}>
-                        <option value="">Status</option><option>Active</option><option>Suspended</option><option>COD blocked</option>
+                        <option value="">Status</option>{CUSTOMER_STATUSES.map((x) => <option key={x}>{x}</option>)}
+                      </select>
+                      <select aria-label="Restriction" className={'ix-filter' + (v.pills.fRestr ? ' is-set' : '')} value={v.pills.fRestr} onChange={v.setRestr}>
+                        <option value="">Restriction</option><option value="any">Any restriction</option><option value="none">No restriction</option>
+                        {Object.keys(RESTRICTION_TYPES).map((k) => <option key={k} value={k}>{RESTRICTION_TYPES[k].short}</option>)}
+                      </select>
+                      <select aria-label="Customer type" className={'ix-filter' + (v.pills.fKind ? ' is-set' : '')} value={v.pills.fKind} onChange={v.setKind}>
+                        <option value="">Type</option><option value="person">Person</option><option value="company">Company</option>
+                      </select>
+                      <select aria-label="Consent" className={'ix-filter' + (v.pills.fConsent ? ' is-set' : '')} value={v.pills.fConsent} onChange={v.setConsent}>
+                        <option value="">Consent</option>
+                        {CONSENT_CHANNELS.map((c) => Object.keys(CONSENT_STATES).map((st) => <option key={c.k + st} value={c.k + ':' + st}>{c.label}: {CONSENT_STATES[st]}</option>))}
                       </select>
                       <select aria-label="Member level" className={'ix-filter' + (v.pills.fLevel ? ' is-set' : '')} value={v.pills.fLevel} onChange={v.setLevel}>
                         <option value="">Level</option><option>Member</option><option>Silver</option><option>Gold</option><option>Platinum</option>
                       </select>
                       <select aria-label="Came from" className={'ix-filter' + (v.pills.fSrc ? ' is-set' : '')} value={v.pills.fSrc} onChange={v.setSrc}>
-                        <option value="">Came from</option><option>Facebook ad</option><option>Instagram</option><option>Google</option><option>TikTok</option><option>Invite a friend</option><option>Shop counter (POS)</option>
+                        <option value="">Came from</option><option>Facebook ad</option><option>Instagram</option><option>Google</option><option>TikTok</option><option>Invite a friend</option><option>Shop counter (POS)</option><option>Sales team</option>
                       </select>
                       <button type="button" className={'ix-filter' + (v.hasF ? ' is-set' : '')} onClick={v.openF} aria-haspopup="dialog" style={{ backgroundImage: 'none', paddingRight: 10 }}>More filters</button>
+                      {v.curSeg ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={v.editSeg} aria-haspopup="dialog">Edit segment</button> : null}
                       {v.hasFilters ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={v.clearAll}>Clear all</button> : null}
                     </div>
                   ) : null}
@@ -484,7 +544,7 @@ export default class AllCustomersScreen extends Component {
                             {[p.a, p.b].map((c, i) => (
                               <__Link key={i} href={c.href} className="ac-pair__side">
                                 <span className="ac-pair__name">{c.name}</span>
-                                <span className="ac-pair__sub ac-mono">{c.phone}</span>
+                                <span className="ac-pair__sub ac-mono">{c.phone} · {c.id}</span>
                                 <span className="ac-pair__sub">{c.orders} orders · {c.spent} spent · {c.types}</span>
                               </__Link>
                             ))}
@@ -502,11 +562,11 @@ export default class AllCustomersScreen extends Component {
                         <li key={r.key}>
                           <__Link href={r.href} className={'ix-pitem' + (r.isNew ? ' ac-pitem-new' : '')}>
                             <span className="ix-pitem__top"><b>{r.name}</b><span>{r.spent}</span></span>
-                            <span className="ix-pitem__mid">{r.city} · {r.orders === 1 ? '1 order' : r.orders + ' orders'}</span>
-                            {r.status !== 'Active' || r.due || r.wholesale ? (
+                            <span className="ix-pitem__mid">{r.sub ? r.sub + ' · ' : ''}{r.city} · {r.orders === 1 ? '1 order' : r.orders + ' orders'}</span>
+                            {r.status !== 'Active' || r.due || r.wholesale || r.company ? (
                               <span className="ix-pitem__tags">
                                 {r.status !== 'Active' ? <__StatusBadge tone={r.statusTone}>{r.status}</__StatusBadge> : null}
-                                {r.due ? <__StatusBadge tone="error" icon="circle-alert">{r.due} due</__StatusBadge> : r.wholesale ? <__StatusBadge tone="primary" icon="store">Wholesale</__StatusBadge> : null}
+                                {r.due ? <__StatusBadge tone="error" icon="circle-alert">{r.due} due</__StatusBadge> : r.company ? <__StatusBadge tone="info" icon="building-2">Company</__StatusBadge> : r.wholesale ? <__StatusBadge tone="primary" icon="store">Wholesale</__StatusBadge> : null}
                               </span>
                             ) : null}
                           </__Link>
@@ -530,8 +590,9 @@ export default class AllCustomersScreen extends Component {
                               <td>
                                 <span className="ac-cust" title={r.merged ? r.name + ' · ' + r.merged : undefined}>
                                   <__Link href={r.href} className="ix-strong">{r.name}</__Link>
-                                  {r.wholesale ? <__StatusBadge tone="primary" icon="store">Wholesale</__StatusBadge> : null}
+                                  {r.company ? <__StatusBadge tone="info" icon="building-2">Company</__StatusBadge> : r.wholesale ? <__StatusBadge tone="primary" icon="store">Wholesale</__StatusBadge> : null}
                                 </span>
+                                {r.sub ? <span className="ac-sub">{r.sub}</span> : null}
                               </td>
                               {r.cells.map((cl) => (
                                 <td key={cl.k} className={cl.cls || ''}>{cl.badge ? <__StatusBadge tone={cl.badge}>{cl.v}</__StatusBadge> : cl.trunc ? <span className="ac-trunc" title={cl.v}>{cl.v}</span> : cl.v}</td>
@@ -546,25 +607,41 @@ export default class AllCustomersScreen extends Component {
                 </section>
                 <LearnMore topic="customers" />
               </div>
-          <__Dialog open={v.addOpen} title="Add customer" onClose={v.closeAdd} width={480} footer={<>
+          <__Dialog open={v.addOpen} title={v.isCompanyForm ? 'Add company' : 'Add customer'} onClose={v.closeAdd} width={480} footer={<>
             <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.closeAdd}>Cancel</button>
-            <button type="submit" form="ac-add-form" className="gc-btn gc-btn--sm gc-btn--solid">Save customer</button>
+            <button type="submit" form="ac-add-form" className="gc-btn gc-btn--sm gc-btn--solid">{v.isCompanyForm ? 'Save company' : 'Save customer'}</button>
           </>}>
             <form id="ac-add-form" className="ac-form" noValidate onSubmit={v.submitAdd}>
-              <div className="ac-field">
-                <label className="gc-label" htmlFor="ac-add-name">Full name <span aria-hidden="true" style={{ color: "var(--text-danger)" }}>*</span></label>
-                <input id="ac-add-name" name="name" data-autofocus="" className={v.errName ? "gc-input gc-input--error" : "gc-input"} value={v.form?.name} onChange={v.typeField} required aria-required="true" aria-invalid={v.errName ? "true" : "false"} aria-describedby={v.errName ? "ac-add-name-err" : undefined} autoComplete="off" maxLength={80} />
-                {v.errName ? (<p id="ac-add-name-err" className="gc-help gc-help--error ac-err"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" style={{ flex: "none", marginTop: "1px" }} /><span>{v.errName}</span></p>) : null}
+              <div className="ix-chips" role="group" aria-label="Customer type">
+                <button type="button" className="ix-chip" aria-pressed={!v.isCompanyForm} onClick={() => v.setFormKind('person')}><__Icon name="user" width="14" height="14" aria-hidden="true" />Person</button>
+                <button type="button" className="ix-chip" aria-pressed={v.isCompanyForm} onClick={() => v.setFormKind('company')}><__Icon name="building-2" width="14" height="14" aria-hidden="true" />Company</button>
               </div>
               <div className="ac-field">
-                <label className="gc-label" htmlFor="ac-add-phone">Mobile number <span aria-hidden="true" style={{ color: "var(--text-danger)" }}>*</span></label>
-                <input id="ac-add-phone" name="phone" type="tel" inputMode="tel" className={v.errPhone ? "gc-input gc-input--error mono" : "gc-input mono"} value={v.form?.phone} onChange={v.typeField} placeholder="01XXXXXXXXX" required aria-required="true" aria-invalid={v.errPhone ? "true" : "false"} aria-describedby={v.errPhone ? "ac-add-phone-err" : "ac-add-phone-help"} autoComplete="off" maxLength={20} />
-                {v.errPhone ? (<p id="ac-add-phone-err" className="gc-help gc-help--error ac-err"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" style={{ flex: "none", marginTop: "1px" }} /><span>{v.errPhone}</span></p>) : (<p id="ac-add-phone-help" className="gc-help">11 digits, starting with 01.</p>)}
+                <label className="gc-label" htmlFor="ac-add-name">{v.isCompanyForm ? 'Company name' : 'Full name'} <span aria-hidden="true" style={{ color: "var(--text-danger)" }}>*</span></label>
+                <input id="ac-add-name" name="name" data-autofocus="" className={v.errName ? "gc-input gc-input--error" : "gc-input"} value={v.form?.name} onChange={v.typeField} required aria-required="true" aria-invalid={v.errName ? "true" : "false"} aria-describedby={v.errName ? "ac-add-name-err" : undefined} autoComplete="off" maxLength={80} />
+                {v.errName ? ERR('ac-add-name-err', v.errName) : null}
+              </div>
+              <div className="ac-field">
+                <label className="gc-label" htmlFor="ac-add-phone">Mobile number {v.isCompanyForm ? <span style={{ color: "var(--text-muted)", fontWeight: "var(--weight-regular)" }}>(optional)</span> : <span aria-hidden="true" style={{ color: "var(--text-danger)" }}>*</span>}</label>
+                <input id="ac-add-phone" name="phone" type="tel" inputMode="tel" className={v.errPhone ? "gc-input gc-input--error mono" : "gc-input mono"} value={v.form?.phone} onChange={v.typeField} placeholder="01XXXXXXXXX" required={!v.isCompanyForm} aria-required={v.isCompanyForm ? 'false' : 'true'} aria-invalid={v.errPhone ? "true" : "false"} aria-describedby={v.errPhone ? "ac-add-phone-err" : "ac-add-phone-help"} autoComplete="off" maxLength={20} />
+                {v.errPhone ? ERR('ac-add-phone-err', v.errPhone) : (<p id="ac-add-phone-help" className="gc-help">11 digits, starting with 01.</p>)}
+                {v.dupe ? <p className="gc-help" style={{ margin: 0 }}><__Link href={v.dupe.href}>Open {v.dupe.name}</__Link></p> : null}
+              </div>
+              <div className="ac-field">
+                <label className="gc-label" htmlFor="ac-add-email">Email <span style={{ color: "var(--text-muted)", fontWeight: "var(--weight-regular)" }}>(optional)</span></label>
+                <input id="ac-add-email" name="email" type="email" className={v.errEmail ? "gc-input gc-input--error" : "gc-input"} value={v.form?.email} onChange={v.typeField} aria-invalid={v.errEmail ? "true" : "false"} autoComplete="off" maxLength={80} />
+                {v.errEmail ? ERR('ac-add-email-err', v.errEmail) : null}
               </div>
               <div className="ac-field">
                 <label className="gc-label" htmlFor="ac-add-area">Address <span style={{ color: "var(--text-muted)", fontWeight: "var(--weight-regular)" }}>(optional)</span></label>
                 <textarea id="ac-add-area" name="area" rows="2" className="gc-input" value={v.form?.area} onChange={v.typeField} placeholder="House, road, area and city" autoComplete="off" maxLength={160} />
               </div>
+              {v.isCompanyForm ? (
+                <div className="ly-two">
+                  <div className="ac-field"><label className="gc-label" htmlFor="ac-add-bin">BIN / trade licence</label><input id="ac-add-bin" name="bin" className="gc-input" value={v.form?.bin} onChange={v.typeField} maxLength={30} /></div>
+                  <div className="ac-field"><label className="gc-label" htmlFor="ac-add-terms">Payment terms</label><select id="ac-add-terms" name="terms" className="gc-input gc-select" value={v.form?.terms} onChange={v.typeField}><option>Pay on order</option><option>Net 15</option><option>Net 30</option><option>Net 45</option></select></div>
+                </div>
+              ) : null}
               <fieldset className="ac-field ac-mgset" aria-describedby={v.errTypes ? "ac-add-type-err" : "ac-add-type-help"}>
                 <legend className="gc-label">Customer type <span aria-hidden="true" style={{ color: "var(--text-danger)" }}>*</span></legend>
                 <div className="ac-types">
@@ -574,7 +651,7 @@ export default class AllCustomersScreen extends Component {
                     </label>); })}
                   <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" aria-pressed={(v.form?.types || []).length === 3} onClick={() => v.toggleType('all')}>All three</button>
                 </div>
-                {v.errTypes ? (<p id="ac-add-type-err" className="gc-help gc-help--error ac-err"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" style={{ flex: "none", marginTop: "1px" }} /><span>{v.errTypes}</span></p>) : (<p id="ac-add-type-help" className="gc-help">Pick every way this customer buys from you.</p>)}
+                {v.errTypes ? ERR('ac-add-type-err', v.errTypes) : (<p id="ac-add-type-help" className="gc-help">Pick every way this customer buys from you.</p>)}
               </fieldset>
               {(v.form?.types || []).indexOf('Wholesale') >= 0 ? (<>
                 <div className="ac-field">
@@ -587,7 +664,7 @@ export default class AllCustomersScreen extends Component {
                 <div className="ac-field">
                   <label className="gc-label" htmlFor="ac-add-credit">Credit limit</label>
                   <div className="ac-money"><span aria-hidden="true">৳</span><input id="ac-add-credit" name="credit" type="number" min="0" step="1000" inputMode="numeric" className={v.errCredit ? "gc-input gc-input--error" : "gc-input"} value={v.form?.credit || ''} onChange={v.typeField} placeholder="0" aria-invalid={v.errCredit ? "true" : "false"} aria-describedby={v.errCredit ? "ac-add-credit-err" : "ac-add-credit-help"} /></div>
-                  {v.errCredit ? (<p id="ac-add-credit-err" className="gc-help gc-help--error ac-err"><__Icon name="circle-alert" width="14" height="14" aria-hidden="true" style={{ flex: "none", marginTop: "1px" }} /><span>{v.errCredit}</span></p>) : (<p id="ac-add-credit-help" className="gc-help">The most this customer can owe you. 0 means no limit.</p>)}
+                  {v.errCredit ? ERR('ac-add-credit-err', v.errCredit) : (<p id="ac-add-credit-help" className="gc-help">The most this customer can owe you. 0 means no limit.</p>)}
                 </div>
               </>) : null}
             </form>
@@ -606,7 +683,7 @@ export default class AllCustomersScreen extends Component {
                       <input type="radio" name="ac-keep" className="gc-check" checked={c.on} onChange={c.pick} />
                       <span style={{ minWidth: "0" }}>
                         <span className="ac-pair__name">{c.name}</span>
-                        <span className="mono ac-pair__sub">{c.phone}</span>
+                        <span className="mono ac-pair__sub">{c.phone} · {c.id}</span>
                       </span>
                     </span>
                     <dl className="ac-mg__facts">
@@ -620,7 +697,7 @@ export default class AllCustomersScreen extends Component {
                   </label>
                 ))}
               </div>
-              <p className="gc-help" style={{ margin: "0" }}>{v.mergeDropName} is hidden from your lists. Their orders, spend and due are added to {v.mergeKeepName}.</p>
+              <p className="gc-help" style={{ margin: "0" }}>{v.mergeDropName} is hidden from your lists. Their orders, spend and due are added to {v.mergeKeepName}. Their customer ID still finds {v.mergeKeepName}.</p>
             </fieldset>
           </__Dialog>
               <__Dialog open={v.colsOpen} title="Columns" onClose={v.closeCols} width={440} footer={<>
@@ -635,7 +712,7 @@ export default class AllCustomersScreen extends Component {
               </__Dialog>
               <__Dialog open={v.fOpen} title="More filters" onClose={v.closeF} width={560} footer={<>
                 <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={v.clearF}>Clear</button>
-                <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.saveView}>Save as a view</button>
+                <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.saveView}>Save as a segment</button>
                 <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.applyF}>Show customers</button>
               </>}>
                 <div className="ac-fgrid">
@@ -645,6 +722,47 @@ export default class AllCustomersScreen extends Component {
                       <select id={'ac-f-' + label} className="gc-input gc-select" aria-label={label}>{opts.map((o) => <option key={o}>{o}</option>)}</select>
                     </div>
                   ))}
+                </div>
+              </__Dialog>
+              <SegmentBuilder open={v.segOpen} segment={v.segEdit} rows={v.allRows} by={v.me} onClose={v.closeSeg} onSaved={v.savedSeg} />
+              <__Dialog open={v.dlg === 'msg'} title="Send a message" onClose={v.closeDlg} width={480} footer={<>
+                <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.closeDlg}>Cancel</button>
+                <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.sendMsg} disabled={!v.msgOk}>Continue in Communications</button>
+              </>}>
+                <div className="ac-form">
+                  <div className="ix-chips" role="group" aria-label="Channel">{v.msgChans.map((c) => <button key={c.k} type="button" className="ix-chip" aria-pressed={c.on} onClick={c.pick}>{c.label} · {c.n}</button>)}</div>
+                  <p className="crm-preview" role="status"><b className="ly-fig">{v.msgOk}</b><span>of {v.msgTotal} can get {v.msgChLabel}</span><small>Only customers who said yes to {v.msgChLabel} get it. The rest are left out.</small></p>
+                </div>
+              </__Dialog>
+              <__Dialog open={v.dlg === 'tag'} title={v.tagMode === 'untag' ? 'Remove a tag' : 'Add a tag'} onClose={v.closeDlg} width={440} footer={<>
+                <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.closeDlg}>Cancel</button>
+                <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.runTag}>{v.tagMode === 'untag' ? 'Remove from ' : 'Add to '}{v.selCount}</button>
+              </>}>
+                <div className="ac-form">
+                  <div className="ix-chips" role="group" aria-label="Tags">{v.tagChips.map((c) => <button key={c.t} type="button" className="ix-chip" aria-pressed={c.on} onClick={c.pick}>{c.t}</button>)}</div>
+                  <div className="ac-field"><label className="gc-label" htmlFor="ac-tag">Tag</label><input id="ac-tag" className="gc-input" value={v.tagVal} onChange={v.typeTag} maxLength={30} placeholder="e.g. Eid buyer" /></div>
+                </div>
+              </__Dialog>
+              <__Dialog open={v.dlg === 'seg'} title="Add to a segment" onClose={v.closeDlg} width={440} footer={<>
+                <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.closeDlg}>Cancel</button>
+                <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.runSeg}>Add {v.selCount}</button>
+              </>}>
+                <div className="ac-field"><label className="gc-label" htmlFor="ac-seg">Segment</label>
+                  <select id="ac-seg" className="gc-input gc-select" value={v.segPick} onChange={v.setSegPick}>{v.segs.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
+                  <p className="gc-help">They stay in it even if they stop matching its rules.</p>
+                </div>
+              </__Dialog>
+              <__Dialog open={v.dlg === 'consent'} title="Change consent" onClose={v.closeDlg} width={480} footer={<>
+                <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.closeDlg}>Cancel</button>
+                <button type="button" className="gc-btn gc-btn--sm gc-btn--solid" onClick={v.runConsent}>Change for {v.selCount}</button>
+              </>}>
+                <div className="ac-form">
+                  <div className="ly-two">
+                    <div className="ac-field"><label className="gc-label" htmlFor="ac-c-ch">Channel</label><select id="ac-c-ch" className="gc-input gc-select" value={v.cCh} onChange={v.setCCh}>{CONSENT_CHANNELS.map((c) => <option key={c.k} value={c.k}>{c.label}</option>)}</select></div>
+                    <div className="ac-field"><label className="gc-label" htmlFor="ac-c-st">Set to</label><select id="ac-c-st" className="gc-input gc-select" value={v.cSt} onChange={v.setCSt}>{Object.keys(CONSENT_STATES).map((k) => <option key={k} value={k}>{CONSENT_STATES[k]}</option>)}</select></div>
+                  </div>
+                  <div className="ac-field"><label className="gc-label" htmlFor="ac-c-src">Where it came from</label><select id="ac-c-src" className="gc-input gc-select" value={v.cSrc} onChange={v.setCSrc}>{CONSENT_SOURCES.map((x) => <option key={x}>{x}</option>)}</select>
+                    <p className="gc-help">Only record a yes the customer gave you. Each change is kept with its source and time.</p></div>
                 </div>
               </__Dialog>
             </div>

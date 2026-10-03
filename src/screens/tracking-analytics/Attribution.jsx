@@ -1,8 +1,10 @@
 'use client';
 // Generated from design/templates/tracking-analytics/Attribution.dc.html by scripts/convert-design.mjs.
-// Attribution & UTM — who really brought each delivered order, laid out like a Shopify report: the title row (back to
-// Reports), the credit window, five key figures, then first against last touch, "how did you hear", creator codes and
-// the UTM link builder. The example order's path is folded under its own heading.
+// Attribution & UTM — how sales receive marketing credit, laid out like a Shopify report: the title row (back to
+// Reports), the attribution model and window (lib/attribution.js: first click, last click, last non-direct, linear,
+// position-based, each with a version; the raw touches of every order are kept and the model is applied on read), key
+// figures from the orders' journeys, first click against the chosen model, "how did you hear", creator codes and the UTM
+// link builder. A real delivered order's journey (raw UTM values and the cleaned source) is folded under its own heading.
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
@@ -13,6 +15,8 @@ import { InfoTip as __InfoTip } from '@/components/ui';
 import { RecordHeader, MetricStrip } from '@/components/ui/IndexKit';
 import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
 import { TA_CSS, TA_PHONE_CSS } from './taPhone';
+import { MODELS, WINDOWS, modelBy, getSetting, setSetting, creditTable, touchesOf, creditOf, onlineOrders, channelBy, modelLabel } from '@/lib/attribution';
+import { logChanges, whoNow } from '@/lib/settingsHistory';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -26,21 +30,67 @@ function curve(pts) { if (!pts.length) return ''; var d = 'M' + pts[0][0].toFixe
 function pts(vals, w, h, max, min, padT, padB) { padT = padT || 2; padB = padB || 2; min = min == null ? 0 : min; max = max || Math.max.apply(null, vals) || 1; var n = vals.length; return vals.map(function (v, i) { return [n === 1 ? w / 2 : i * w / (n - 1), padT + (h - padT - padB) * (1 - (v - min) / (max - min || 1))]; }); }
 function sparkP(vals, w, h) { w = w || 160; h = h || 30; var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals); var p = pts(vals, w, h, mx + (mx - mn) * .1, mn - (mx - mn) * .15, 3, 2); var l = curve(p); return { line: l, area: l + ' L' + w + ' ' + h + ' L0 ' + h + ' Z' }; }
 function series(n, base, amp, seed, trend) { var out = []; for (var i = 0; i < n; i++) { var s = Math.sin((i + seed) * 1.7) * .5 + Math.sin((i * 3 + seed) * .9) * .3 + Math.cos(i * .45 + seed) * .2; out.push(Math.max(0, base * (1 + (trend || 0) * (i / n - .5)) + amp * s)); } return out; }
-function delta(p, good) { var up = p >= 0; var ok = good === 'down' ? !up : up; return { up: up, ok: ok, dir: (up ? 'Up ' : 'Down ') + Math.abs(p) + '%' + (ok ? ', good' : ', worse'), d: (up ? '▲ ' : '▼ ') + Math.abs(p) + '%', db: ok ? 'var(--fill-success-soft)' : 'var(--fill-error-soft)', df: ok ? 'var(--text-success)' : 'var(--text-danger)' }; }
-function tile(l, v, s, c, vals, dp, good) { var dl = delta(dp, good); return { l: l, v: v, s: s, c: c, vals: vals.map(function (x) { return Math.round(x * 100) / 100; }), d: dl.d, up: dl.up, ok: dl.ok, dir: dl.dir, db: dl.db, df: dl.df }; }
-var CH = { last: [['Meta ads', 612, 598000], ['Google ads', 238, 248000], ['TikTok ads', 64, 62000], ['Google organic', 171, 168000], ['Creator codes', 58, 61000], ['Direct / WhatsApp', 111, 104000]], first: [['Meta ads', 540, 530000], ['Google ads', 152, 160000], ['TikTok ads', 196, 181000], ['Google organic', 188, 184000], ['Creator codes', 72, 76000], ['Direct / WhatsApp', 106, 100000]] };
+var DAY = 864e5;
+var CH_LOGO = { meta_ads: 'meta', social: 'meta', google_ads: 'google', google_search: 'google', tiktok_ads: 'tiktok' };
+function median(a) { if (!a.length) return 0; var b = a.slice().sort(function (x, y) { return x - y; }); var m = Math.floor(b.length / 2); return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2; }
+var dshort = function (t) { var d = new Date(t); return d.getDate() + ' ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]; };
+/** Everything the page shows from the orders' journeys (last 30 days, delivered basis). */
+function readData(set) {
+  var now = Date.now(), from = now - 30 * DAY;
+  var first = creditTable({ from: from, to: now, model: 'first_click', windowDays: set.windowDays, basis: 'delivered' });
+  var chosen = creditTable({ from: from, to: now, model: set.model, windowDays: set.windowDays, basis: 'delivered' });
+  var del = onlineOrders().filter(function (o) { return o.times && o.times.delivered && o.times.delivered >= from && o.times.delivered < now; });
+  var touches = del.map(function (o) { return touchesOf(o); });
+  var known = touches.filter(function (t) { return t.some(function (x) { return x.channel !== 'direct'; }); }).length;
+  var counts = touches.map(function (t) { return t.length; });
+  var days = del.map(function (o, i) { return touches[i].length ? (o.at - touches[i][0].at) / DAY : 0; });
+  // an example: a recent delivered order with the longest journey
+  var ex = null;
+  del.slice(0, 80).forEach(function (o, i) { if (!ex || touches[i].length > touchesOf(ex).length) ex = o; });
+  return { now: now, first: first, chosen: chosen, delivered: del.length, known: known, medTouches: median(counts), medDays: median(days), ex: ex };
+}
 class Component extends DCLogic {
+  componentDidMount() { this.setState({ set: getSetting() }, () => this.setState({ data: readData(this.state.set) })); }
   componentWillUnmount() { clearTimeout(this.t); }
+  pickModel(patch) {
+    var before = this.state.set || getSetting();
+    var next = setSetting(patch, whoNow());
+    logChanges({ formId: 'attribution', changes: [{ field: 'model', label: 'Attribution model', from: modelLabel(before), to: modelLabel(next) }] });
+    this.setState({ set: next, data: readData(next) });
+    toast(this, 'Reports now use ' + modelLabel(next));
+  }
   renderVals() {
     var self = this, s = this.state || {};
-    var L = CH.last, F = CH.first, tl = 0, tf = 0; L.forEach(function (r) { tl += r[1]; }); F.forEach(function (r) { tf += r[1]; });
+    var set = s.set || getSetting(), d = s.data;
     var page = s.page || '/offers/eid-gift-box', src = s.src || 'facebook', med = s.med || 'paid', camp = s.camp != null ? s.camp : 'Eid Gift Box 2026';
     var slug = String(camp).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     var AVC = [['#fce7f3', '#9d174d'], ['#e0e7ff', '#3730a3'], ['#fff4e0', '#a14f06'], ['#e7f8f1', '#047857']];
+    var m = modelBy(set.model);
+    var F = d ? d.first.rows : [], L = d ? d.chosen.rows : [];
+    var tf = F.reduce(function (a, r) { return a + r.delivered; }, 0) || 1, tl = L.reduce(function (a, r) { return a + r.delivered; }, 0) || 1;
+    var ex = d && d.ex, exTouches = ex ? touchesOf(ex) : [], exCredit = ex ? creditOf(ex, set) : [];
+    var path = ex ? exTouches.map(function (t, i) {
+      var c = channelBy(t.channel), lk = CH_LOGO[t.channel] || '';
+      var share = exCredit.filter(function (x) { return x.channel === t.channel; }).reduce(function (a, x) { return a + x.share; }, 0);
+      return { lg: lk ? LOGO[lk] : '', hasLg: !!lk, noLg: !lk, i: c.name.charAt(0), t: c.name, s: (t.campaign ? '“' + t.campaign + '” · ' : '') + dshort(t.at) + ' · utm_source=' + t.raw.utm_source, tag: i === 0 ? 'FIRST TOUCH' : i === exTouches.length - 1 ? 'LAST TOUCH' : '', hasTag: i === 0 || i === exTouches.length - 1, b: '#fff', f: 'var(--text-heading)', tb: 'var(--fill-info-soft)', tc: 'var(--text-info)', credit: share ? Math.round(share * 100) + '% credit' : '' };
+    }).concat([
+      { hasLg: false, noLg: true, i: '৳', t: 'Order placed', s: bdt(ex.subtotal) + ' · ' + (ex.method || 'COD') + ' · ' + dshort(ex.at), tag: '', hasTag: false, b: 'var(--fill-warning-soft)', f: 'var(--text-warning)' },
+      { hasLg: false, noLg: true, i: '✓', t: 'Delivered', s: (ex.courier || 'Courier') + ' · ' + dshort(ex.times.delivered), tag: 'COUNTED HERE', hasTag: true, b: 'var(--primary)', f: '#fff', tb: 'var(--primary)', tc: '#fff' },
+    ]) : [];
     var v = {
-      tiles: [tile('Orders with full path', '94%', 'of delivered orders', '#60a5fa', series(14, 92, 2, 1, .1), 3), tile('Touches before buying', '2.7', 'median', '#a78bfa', series(14, 2.6, .2, 3), 4), tile('Days to decide', '3.4', 'first visit → order', '#fbbf24', series(14, 3.5, .4, 5, -.2), -6, 'down'), tile('Creator code revenue', '৳1,11,800', '76 orders', '#f472b6', series(14, 3700, 800, 7, .4), 22), tile('Survey answered', '64%', 'at checkout', '#34d399', series(14, 60, 4, 9, .2), 5)],
-      path: [['t', 'TikTok ad', '“30 days of SPF” · 12 Sep', 'FIRST TOUCH', '#fff', '#9d174d', '#fce7f3', '#9d174d'], ['ig', 'Instagram post', 'Organic Reel · 14 Sep', '', '#fae8ff', '#86198f', '', ''], ['G', 'Google search', '“gridshop sunscreen” · 16 Sep', 'LAST TOUCH', '#fff', '#047857', '#dcfce7', '#047857'], ['৳', 'Order placed', '৳1,290 · COD · 16 Sep', '', '#fff4e0', '#a14f06', '', ''], ['✓', 'Delivered', 'Pathao · 18 Sep', 'COUNTED HERE', '#0b1733', '#fff', '#0b1733', '#fff']].map(function (p) { var lk = p[0] === 't' ? 'tiktok' : p[0] === 'G' ? 'google' : ''; return { lg: lk ? LOGO[lk] : '', hasLg: !!lk, noLg: !lk, i: p[0], t: p[1], s: p[2], tag: p[3], hasTag: !!p[3], b: p[4], f: p[5], tb: p[6], tc: p[7] }; }),
-      chans: L.map(function (r, k) { var lp = r[1] / tl * 100, fp = F[k][1] / tf * 100, d = Math.round(fp - lp); var dl = d >= 0 ? { d: '+' + d + ' pts', db: '#f3e8ff', df: '#6d28d9' } : { d: d + ' pts', db: '#e0f2fe', df: '#1d4ed8' }; return { n: r[0], l: Math.round(lp) + '%', lw: lp / 60 * 100 + '%', f: Math.round(fp) + '%', fw: fp / 60 * 100 + '%', d: dl.d, db: dl.db, df: dl.df }; }),
+      tiles: d ? [
+        { l: 'Orders with a known path', v: d.delivered ? Math.round(d.known / d.delivered * 100) + '%' : '—', s: 'of ' + d.delivered + ' delivered, 30 days' },
+        { l: 'Touches before buying', v: String(d.medTouches || '—'), s: 'median' },
+        { l: 'Days to decide', v: (Math.round(d.medDays * 10) / 10).toFixed(1), s: 'first touch → order' },
+        { l: 'Credited to ads', v: Math.round(L.filter(function (r) { return r.paid; }).reduce(function (a, r) { return a + r.delivered; }, 0) / tl * 100) + '%', s: m.name },
+        { l: 'Survey answered', v: '64%', s: 'at checkout' },
+      ] : [],
+      model: set.model, windowDays: set.windowDays, modelRule: m.rule, modelLabel: modelLabel(set),
+      models: MODELS.map(function (x) { return { id: x.id, l: x.name + ' · v' + x.version }; }), windows: WINDOWS,
+      setModel: function (e) { self.pickModel({ model: e.target.value }); }, setWindow: function (e) { self.pickModel({ windowDays: Number(e.target.value) }); },
+      exTitle: ex ? 'One order, start to finish · ' + ex.id + ' · ' + bdt(ex.subtotal) + ' · ' + (ex.method || 'COD') : 'One order, start to finish',
+      path: path,
+      chans: L.map(function (r, k) { var fr = F[k] || { delivered: 0 }; var lp = r.delivered / tl * 100, fp = fr.delivered / tf * 100, dd = Math.round(fp - lp); var dl = dd >= 0 ? { d: '+' + dd + ' pts', db: '#f3e8ff', df: '#6d28d9' } : { d: dd + ' pts', db: '#e0f2fe', df: '#1d4ed8' }; return { n: r.name, l: Math.round(lp) + '%', lw: Math.min(100, lp / 60 * 100) + '%', f: Math.round(fp) + '%', fw: Math.min(100, fp / 60 * 100) + '%', d: dl.d, db: dl.db, df: dl.df, o: (Math.round(r.delivered * 10) / 10) + ' orders · ' + bdt(r.deliveredSales) }; }).filter(function (c, i) { return L[i].delivered > 0 || (F[i] && F[i].delivered > 0); }),
       hear: [['Facebook or Instagram', 41, '#2563eb'], ['Friend or family', 22, '#7c3aed'], ['TikTok', 14, '#db2777'], ['Google', 11, '#059669'], ['Creator', 8, '#f59e0b'], ['Walked past', 4, '#94a3b8']].map(function (h) { return { l: h[0], w: h[1] + '%', h: (h[1] / 41 * 88) + '%', c: h[2], n: Math.round(h[1] * 6.48) }; }),
       askHear: mkSw(this, 'askHear', true),
       infl: [['Nadia’s Skin Diary', 'NADIA10', 38, 41200, 4120], ['TechBangla Reviews', 'TBR500', 11, 49400, 5500], ['Dhaka Style Files', 'DSF15', 23, 19800, 3000], ['Mitul Cooks', 'MITUL5', 4, 1400, 1000]].map(function (i2, k) { var x = i2[3] / i2[4]; var sp = sparkP(series(14, i2[2], i2[2] * .3, k * 2 + 1, x > 4 ? .5 : -.4)); var a2 = AVC[k]; var nm = i2[0].split(' '); return { n: i2[0], ini: (nm[0].charAt(0) + nm[1].charAt(0)).toUpperCase(), ab: a2[0], af: a2[1], c: i2[1], o: i2[2], r: bdt(i2[3]), p: bdt(i2[4]), x: x2(x), xb: x >= 4 ? '#e7f8f1' : x >= 2 ? '#fff4e0' : '#ffece6', xf: x >= 4 ? '#047857' : x >= 2 ? '#a14f06' : '#be123c', line: sp.line, area: sp.area, cc: x >= 4 ? '#059669' : x >= 2 ? '#d97706' : '#e11d48' }; }),
@@ -93,21 +143,23 @@ export default class AttributionScreen extends Component {
             <__Topbar crumb={"Tracking & analytics"} page={"Attribution & UTM"} placeholder="Search campaign, event or product" />
             <div className="gc-shell__content">
               <div className="ix-page ta">
-              <RecordHeader back="/reports-centre?group=marketing" title="Attribution & UTM" meta="Who really brought the sale"
-                about="Which ads, posts, creators and links brought each delivered order: first touch against last touch, what buyers say when asked how they heard about the shop, creator codes, and a builder for tagged links (UTM)."
+              <RecordHeader back="/reports-centre?group=marketing" title="Attribution & UTM" meta={'How sales receive marketing credit · ' + v.modelLabel}
+                about="How delivered orders receive marketing credit under the model you choose (first click, last click, last non-direct, linear or position-based), first click against that model, what buyers say when asked how they heard about the shop, creator codes, and a builder for tagged links (UTM). Every order keeps its raw touches; the model is applied when reports are read, and every attributed figure says which model and version it used."
                 more={[{ label: 'Campaigns & creatives', href: '/campaigns' }, { label: 'Analytics hub', href: '/analytics-hub' }]} />
               <div className="ta-tools">
-                <select className="ix-pick" aria-label="Credit window">
-                  <option>7 days after click</option>
-                  <option>1 day after click</option>
-                  <option>28 days after click</option>
+                <select className="ix-pick" aria-label="Attribution model" value={v.model} onChange={v.setModel}>
+                  {__list(v.models).map((m) => <option key={m.id} value={m.id}>{m.l}</option>)}
                 </select>
+                <select className="ix-pick" aria-label="Credit window" value={v.windowDays} onChange={v.setWindow}>
+                  {__list(v.windows).map((w) => <option key={w} value={w}>{w === 1 ? '1 day after click' : w + ' days after click'}</option>)}
+                </select>
+                <__InfoTip text={v.modelRule + ' Reports, Analytics hub and Campaigns use this model.'} label="How the model gives credit" />
               </div>
-              <MetricStrip label="Key figures" items={__list(v.tiles).map((t) => ({ label: t.l, value: t.v, spark: t.vals, sub: <span className="dl" title={t.s} style={{ background: t.db, color: t.df }}>{t.d}</span> }))} />
+              <MetricStrip label="Key figures" items={__list(v.tiles).map((t) => ({ label: t.l, value: t.v, sub: t.s }))} />
               <details className="gc-disclose ix-card ta-more">
-                <summary>One order, start to finish · GC-24817 · ৳1,290 · COD</summary>
+                <summary>{v.exTitle}</summary>
                 <div className="ta-more__body">
-                <div className="gc-cols-5 at-path" style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: "14px" }}>
+                <div className="gc-cols-5 at-path" style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(" + Math.max(2, __list(v.path).length) + ", minmax(0, 1fr))", gap: "14px" }}>
                   <div className="at-line" style={{ position: "absolute", left: "10%", right: "10%", top: "27px", height: "2px", background: "linear-gradient(90deg, #db2777, #c026d3, #059669, #f59e0b, #0b1733)" }} />
                   {__list(v.path).map((ph, $index) => (<React.Fragment key={$index}>
                       <div className="at-step" style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "8px" }}>
@@ -122,6 +174,7 @@ export default class AttributionScreen extends Component {
                         {ph?.hasTag ? (<>
                           <span className="dl" style={__sx(`background: ${ph?.tb ?? ""}; color: ${ph?.tc ?? ""}; letter-spacing: var(--tracking-label);`)}>{ph?.tag}</span>
                         </>) : null}
+                        {ph?.credit ? <span style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-info)" }}>{ph.credit}</span> : null}
                       </div>
                     </React.Fragment>))}
                 </div>
@@ -131,13 +184,13 @@ export default class AttributionScreen extends Component {
                 <section className="tc" style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                     <div style={{ flexGrow: "1", minWidth: "0" }}>
-                      <h2 className="ta-h2">First touch vs last touch <__InfoTip text="Share of delivered orders. TikTok introduces far more buyers than it gets credit for." /></h2>
+                      <h2 className="ta-h2">First click vs {v.modelLabel.split(' · ')[0]} <__InfoTip text="Share of orders delivered in the last 30 days. Channels that introduce buyers often get less credit when the last touch counts." /></h2>
                     </div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                     {__list(v.chans).map((ch, $index) => (<React.Fragment key={$index}>
                         <div className="at-chrow" style={{ display: "grid", gridTemplateColumns: "140px minmax(0, 1fr) 70px", gap: "14px", alignItems: "center" }}>
-                          <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "#0f172a" }}>{ch?.n}</span>
+                          <span style={{ fontSize: "var(--text-xs-plus)", fontWeight: "var(--weight-medium)", color: "var(--text-heading)" }} title={ch?.o}>{ch?.n}<span style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "var(--weight-regular)", color: "var(--text-muted)" }}>{ch?.o}</span></span>
                           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                               <div style={{ flexGrow: "1", height: "9px", borderRadius: "var(--radius-full)", background: "#f1f4f9", overflow: "hidden" }}>
@@ -157,8 +210,8 @@ export default class AttributionScreen extends Component {
                       </React.Fragment>))}
                   </div>
                   <div className="at-legend" style={{ display: "flex", gap: "16px", fontSize: "var(--text-xs)", color: "#475569" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><span style={{ width: "12px", height: "8px", borderRadius: "var(--radius-sm)", background: "#a78bfa" }} />First touch — who introduced them</span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><span style={{ width: "12px", height: "8px", borderRadius: "var(--radius-sm)", background: "#2563eb" }} />Last touch — who closed the sale</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><span style={{ width: "12px", height: "8px", borderRadius: "var(--radius-sm)", background: "#a78bfa" }} />First click — who introduced them</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><span style={{ width: "12px", height: "8px", borderRadius: "var(--radius-sm)", background: "#2563eb" }} />{v.modelLabel.split(' · ')[0]} — credit used in reports</span>
                   </div>
                 </section>
                 <section className="tc" style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "0" }}>

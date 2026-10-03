@@ -83,6 +83,7 @@ function freezeLines(lines, discount, vat, vatRate) {
 // The same order sent twice (a double press, a slow network resending) is one order: same customer phone,
 // same items and same total within DUP_MS returns the first order (marked duplicate) instead of a second one.
 const DUP_MS = 20 * 1000;
+const MADE_FROM = 300000;   // orders made in this browser are #300001, #300002 …
 const keyOf = (phone, lines, total) => [String(phone || '').replace(/\D/g, ''), Math.round(Number(total) || 0), ...lines.map((l) => `${l.sku || l.name}x${l.qty}@${l.price}`).sort()].join('|');
 
 /** Adds an order row (the shape the orders list uses) and returns it. The lines are kept so the
@@ -103,7 +104,8 @@ export function addOrder({ lines, customer, phone, zone, total, status = 'New', 
   if (status === 'Approved' || status === 'Delivered') times.approved = t;
   if (STATUS_TIME[status]) times[STATUS_TIME[status]] = t;
   const row = {
-    id: '#' + (136813 + list.length),
+    // own number range: the live online orders (liveOrders.js) number on from #136813 day after day
+    id: '#' + (Math.max(MADE_FROM, ...list.map((o) => Number(String(o.id).replace(/\D/g, '')) || 0).filter((n) => n > MADE_FROM)) + 1),
     at: t, placed: stamp(now), channel, customer, address, shipping, times,
     source: source || (counter ? '' : channel === 'Order link' ? 'Order link' : 'Phone'),
     method: method || (counter ? '' : METHOD_OF_PAYMENT[payment] || ''),
@@ -122,14 +124,15 @@ export function addOrder({ lines, customer, phone, zone, total, status = 'New', 
   return row;
 }
 
-/** Change an order made in this browser, for example when its invoice is paid. A new status stamps its time. */
-export function updateOrder(id, patch) {
+/** Change an order made in this browser, for example when its invoice is paid. A new status stamps its time
+ *  (stamp: false keeps the time it has). */
+export function updateOrder(id, patch, { stamp = true } = {}) {
   const now = Date.now();
   write(ORDERS, read(ORDERS, []).map((o) => {
     if (o.id !== id) return o;
     const next = { ...o, ...patch };
     const k = STATUS_TIME[patch.status];
-    if (k && patch.status !== o.status) next.times = { ...(o.times || { placed: o.at || null }), ...(patch.times || {}), [k]: now };
+    if (stamp && k && patch.status !== o.status) next.times = { ...(o.times || { placed: o.at || null }), ...(patch.times || {}), [k]: now };
     return next;
   }));
 }

@@ -13,6 +13,7 @@ import SetChrome from '@/screens/settings-console/SetChrome';
 import SetRail from '@/screens/settings-console/SetRail';
 import SetTopbar from '@/screens/settings-console/SetTopbar';
 import { EVENTS, VARIABLES, getNotifySettings, saveNotifySettings, defaultTemplate, fill, smsParts } from '@/lib/notifications';
+import { logChanges } from '@/lib/settingsHistory';
 
 const GROUPS = [...new Set(EVENTS.map((e) => e.group))];
 const SAMPLE = Object.fromEntries(VARIABLES.map(([k, , ex]) => [k, ex]));
@@ -69,7 +70,13 @@ export default function SetNotifications() {
 
   const setEv = (key, patch) => setS((x) => ({ ...x, events: { ...x.events, [key]: { ...x.events[key], ...patch } } }));
   const setTop = (k) => (e) => setS((x) => ({ ...x, [k]: e.target.value }));
-  const save = () => { saveNotifySettings(s); setSaved(s); toast('Notifications saved'); };
+  const save = () => {
+    saveNotifySettings(s); setSaved(s); toast('Notifications saved');
+    // settings history (Agent H): one row per changed event or setting, old → new
+    const keys = [...new Set([...Object.keys(saved.events || {}), ...Object.keys(s.events || {})])].filter((k) => JSON.stringify((saved.events || {})[k]) !== JSON.stringify((s.events || {})[k]));
+    const tops = Object.keys(s).filter((k) => k !== 'events' && JSON.stringify(saved[k]) !== JSON.stringify(s[k]));
+    logChanges({ formId: 'notifications', changes: [...keys.map((k) => ({ field: 'event:' + k, label: ((EVENTS.find && EVENTS.find((e) => e.key === k)) || {}).label || k, from: 'Before', to: 'Changed' })), ...tops.map((k) => ({ field: k, label: k, from: saved[k], to: s[k] }))] });
+  };
   const discard = () => setS(saved);
 
   const openEdit = (key) => { setEdit(key); setDraft({ ...s.events[key] }); setField('smsText'); };

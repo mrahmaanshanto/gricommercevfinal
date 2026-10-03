@@ -8,11 +8,13 @@
 // ledger and payouts, stock and traffic. It refreshes each minute.
 // Colours: the --viz-N series tokens, one colour per order source (Facebook is always slot 1, the website slot 2 …).
 // HOME_CSS, Fig and Hero are shared with CommsHome (the Connect edition's Home).
+// Brief #10, as on Home.jsx: the to-do pills are action items (lib/actionItems.js; snooze / dismiss, View all), "As of"
+// with a refresh, Export (today's figures as CSV), the first-run checklist and an Insights card apart from the to-do.
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/runtime/dc';
-import { getLocale } from '@/runtime/ui';
+import { getLocale, toast } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { Spark, Menu, figIcon } from '@/components/ui/IndexKit';
 import { CHART_CSS, ColumnChart, Legend } from '@/components/charts/DashCharts';
@@ -33,6 +35,11 @@ import { placeStock } from '@/lib/stock';
 import { visitsOn } from '@/lib/traffic';
 import { currentUser } from '@/lib/team';
 import { hasModule } from '@/lib/edition';
+import { downloadCsv } from '@/lib/reports/period';
+import { trackItems, ACTIONS_EVENT, SEVERITY, ageOf, ageText } from '@/lib/actionItems';
+import { formatDate } from '@/lib/format';
+import { PILLS_CSS } from './ActionPills';
+import { AsOf, Readiness, InsightsCard, changeInsight, isNewShop, EXTRAS_CSS } from './HomeExtras';
 
 const DAY = 24 * 60 * 60 * 1000;
 // one colour per order source, the same on every chart
@@ -80,13 +87,9 @@ export const HOME_CSS = `
 .hk-ask input::placeholder{color:var(--text-muted)}
 .hk-ask button{display:grid;flex:none;place-items:center;width:32px;height:32px;border:0;border-radius:var(--radius-full);background:var(--primary);color:#fff;cursor:pointer}
 .hk-ask button:disabled{background:var(--surface-subtle);color:var(--text-muted);cursor:default}
-.hk-todo{display:flex;flex-wrap:wrap;justify-content:center;gap:var(--space-2);max-width:760px}
-.hk-todo a{display:inline-flex;align-items:center;gap:var(--space-2);height:32px;padding:0 5px 0 12px;border:1px solid var(--border-subtle);border-radius:var(--radius-full);background:var(--surface-card);box-shadow:var(--shadow-xs);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);text-decoration:none;white-space:nowrap;transition:var(--transition-colors)}
-.hk-todo a:hover{border-color:var(--primary);color:var(--primary)}
-.hk-todo b{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:var(--radius-full);background:var(--surface-subtle);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-heading)}
-.hk-done{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-success)}
 .hk-cards{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:var(--space-4);align-items:start}
 .hk-cards--even{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.hk-side{display:flex;flex-direction:column;gap:var(--space-4);min-width:0}
 .hk-total{display:flex;align-items:baseline;gap:var(--space-2);margin:0 0 var(--space-3);font-family:var(--font-data);font-size:var(--text-xl);font-weight:var(--weight-semibold);color:var(--text-heading)}
 .hk-total small{font-family:var(--font-sans);font-size:var(--text-xs);font-weight:var(--weight-regular);color:var(--text-muted)}
 .hk-list{display:flex;flex-direction:column}
@@ -116,28 +119,23 @@ export function Fig({ label, value, sub, spark, href, onClick }) {
   return href ? <Link href={href} className="hk-fig">{body}</Link> : <button type="button" className="hk-fig" onClick={onClick}>{body}</button>;
 }
 
-/** The greeting (the page's h1), "Ask GridAI" and the day's to-do as pills. todo: { label, n, href }[] (null while loading). */
-export function Hero({ greeting, todo, placeholder = 'Ask GridAI about sales, orders or stock…' }) {
+/** The greeting (the page's h1) and "Ask GridAI". The day's to-do still syncs to the action items (`todo` sets the line
+ *  under the greeting); the pills are not shown on Home.
+ *  todo: trackItems() rows { key, label, n, href, severity, item } (null while loading); source: the action-item source. */
+export function Hero({ greeting, todo, source, placeholder = 'Ask GridAI about sales, orders or stock…' }) {
   const [ask, setAsk] = useState('');
   const submit = (e) => { e.preventDefault(); if (!ask.trim()) return; window.dispatchEvent(new CustomEvent('gc:gridai', { detail: { q: ask.trim() } })); setAsk(''); };
   return (
     <section className="hk-hero" aria-label="Today">
       <h1 className="hk-hello">
         <span>{greeting}!</span>
-        {todo && todo.length ? "Here's what needs you today." : "You're all caught up."}
+        {"Here's your shop today."}
       </h1>
       <form className="hk-ask" onSubmit={submit} role="search">
         <Icon name="sparkles" width="18" height="18" aria-hidden="true" />
         <input value={ask} onChange={(e) => setAsk(e.target.value)} placeholder={placeholder} aria-label="Ask GridAI" />
         <button type="submit" disabled={!ask.trim()} aria-label="Ask"><Icon name="arrow-up" width="16" height="16" aria-hidden="true" /></button>
       </form>
-      {todo ? (
-        todo.length ? (
-          <nav className="hk-todo" aria-label="To do">
-            {todo.map((t) => <Link key={t.label} href={t.href}>{t.label}<b>{t.n}</b></Link>)}
-          </nav>
-        ) : <span className="hk-done"><Icon name="circle-check" width="16" height="16" aria-hidden="true" />Nothing is waiting for you.</span>
-      ) : null}
     </section>
   );
 }
@@ -207,25 +205,40 @@ function build() {
   let low = 0;
   safe(() => getPlaces({ active: true }), []).filter((p) => !p.noSale && !p.opening).forEach((pl) => { low += safe(() => placeStock(pl.name).rows, []).filter((r) => r.low).length; });
 
-  // the day's to-do as short pills, most urgent first (the same rules and words as the full Home)
-  const pending = orders.filter((o) => ['onhold', 'processing', 'pending'].includes(o.statusKey)).length;
-  const ready = orders.filter((o) => o.statusKey === 'ready').length;
-  const bills = safe(() => getBills(), []).filter((b) => billLeft(b) > 0 && billStatus(b) === 'Overdue').length;
-  const liabs = safe(() => getLiabilities(), []).filter((l) => leftOf(l) > 0 && liabStatus(l, now) === 'Overdue').length;
-  const adjustments = safe(() => getAdjustments(), []).filter((a) => a.status === 'waiting').length;
-  const toReceive = safe(() => courierReturns(orders).filter((o) => rtoState(o).left > 0), []).length;
+  // as action items (lib/actionItems.js), with the same keys as the full Home so one issue is one item
+  const oldest = (list, f = (x) => x.at) => { const ts = list.map(f).filter((t) => Number(t) > 0); return ts.length ? Math.min(...ts) : undefined; };
+  const pendingList = orders.filter((o) => ['onhold', 'processing', 'pending'].includes(o.statusKey));
+  const readyList = orders.filter((o) => o.statusKey === 'ready');
+  const billList = safe(() => getBills(), []).filter((b) => billLeft(b) > 0 && billStatus(b) === 'Overdue');
+  const liabList = safe(() => getLiabilities(), []).filter((l) => leftOf(l) > 0 && liabStatus(l, now) === 'Overdue');
+  const adjList = safe(() => getAdjustments(), []).filter((a) => a.status === 'waiting');
+  const recList = safe(() => courierReturns(orders).filter((o) => rtoState(o).left > 0), []);
   const todo = [
-    pending > 0 && ['Verify orders', pending, '/merchant-orders?status=onhold'],
-    ready > 0 && ['Send to courier', ready, '/merchant-orders?status=ready'],
-    late.length > 0 && ['Check payouts', late.length, '/settlements'],
-    toReceive > 0 && ['Receive returns', toReceive, '/courier-returns'],
-    bills > 0 && ['Pay suppliers', bills, '/dues?tab=owe'],
-    liabs > 0 && ['Pay bills', liabs, '/liabilities'],
-    low > 0 && ['Restock', low, '/stock'],
-    adjustments > 0 && ['Approve stock adjustments', adjustments, '/stock-adjustments'],
-  ].filter(Boolean).map(([label, n, href]) => ({ label, n, href }));
+    pendingList.length > 0 && { key: 'orders:verify', label: 'Verify orders', n: pendingList.length, href: '/merchant-orders?status=onhold', severity: 'high', area: 'area-orders', owner: ['orders', 'comms', 'online-sales'], since: oldest(pendingList) },
+    readyList.length > 0 && { key: 'orders:to-courier', label: 'Send to courier', n: readyList.length, href: '/merchant-orders?status=ready', severity: 'high', area: 'area-orders', owner: ['orders', 'wh-manager', 'wh-supervisor'], since: oldest(readyList) },
+    late.length > 0 && { key: 'finance:late-payouts', label: 'Check payouts', n: late.length, href: '/settlements', severity: 'critical', area: 'area-payments', owner: ['ceo'], since: oldest(late, (p) => p.due) },
+    recList.length > 0 && { key: 'orders:returns', label: 'Receive returns', n: recList.length, href: '/courier-returns', severity: 'normal', area: 'area-orders', owner: ['orders', 'wh-manager', 'wh-supervisor'], since: oldest(recList) },
+    billList.length > 0 && { key: 'finance:supplier-bills', label: 'Pay suppliers', n: billList.length, href: '/dues?tab=owe', severity: 'high', area: 'area-finances', owner: ['ceo', 'wh-manager'], since: oldest(billList, (b) => b.due) },
+    liabList.length > 0 && { key: 'finance:bills', label: 'Pay bills', n: liabList.length, href: '/liabilities', severity: 'high', area: 'area-finances', owner: ['ceo', 'hr'], since: oldest(liabList, (l) => l.due) },
+    low > 0 && { key: 'stock:restock', label: 'Restock', n: low, href: '/stock', severity: 'low', area: 'area-inventory', owner: ['wh-manager', 'shop-manager'] },
+    adjList.length > 0 && { key: 'stock:adjustments', label: 'Approve stock adjustments', n: adjList.length, href: '/stock-adjustments', severity: 'normal', area: 'area-inventory', owner: ['wh-manager'], since: oldest(adjList) },
+  ].filter(Boolean);
 
-  return { now, figs, cash, revenue, latest, latestToday: todayOrders.length > 0, todo };
+  // insights: today so far against the same weekday last week by this time, and the last 7 days against the 7 before
+  const weekAgo = addDays(today, -7);
+  const wNow = span(weekAgo, now - 7 * DAY);
+  const vWeek = visitsOn(weekAgo, now - 7 * DAY);
+  const lastWeekday = new Date(weekAgo).toLocaleDateString('en-GB', { weekday: 'long' });
+  const sum7 = (list) => list.reduce((a, d) => ({ revenue: a.revenue + d.revenue, orders: a.orders + d.orders }), { revenue: 0, orders: 0 });
+  const w1 = sum7(days.slice(-8, -1)), w0 = sum7(days.slice(-15, -8));
+  const aov = (x) => (x.orders ? x.revenue / x.orders : 0);
+  const insights = [
+    changeInsight({ key: 'online-sales-sameday', what: 'Sales', now: tNow.revenue, before: wNow.revenue, vs: 'last ' + lastWeekday, evidence: `${money(tNow.revenue)} vs ${money(wNow.revenue)} by this time`, href: '/daily-summary' }),
+    changeInsight({ key: 'online-conversion', what: 'Conversion', now: conv(tNow.orders, vNow.total), before: conv(wNow.orders, vWeek.total), vs: 'last ' + lastWeekday, evidence: `${conv(tNow.orders, vNow.total).toFixed(1)}% vs ${conv(wNow.orders, vWeek.total).toFixed(1)}% by this time`, href: '/analytics-hub' }),
+    changeInsight({ key: 'online-aov', what: 'Average order', now: aov(w1), before: aov(w0), vs: 'the week before', evidence: `${money(aov(w1))} vs ${money(aov(w0))} · last 7 days`, href: '/reports-centre' }),
+  ].filter(Boolean);
+
+  return { now, figs, cash, revenue, latest, latestToday: todayOrders.length > 0, todo, insights };
 }
 
 export default function OnlineHome() {
@@ -238,13 +251,22 @@ export default function OnlineHome() {
     setLoc(getLocale()); setUser(safe(() => currentUser(), null));
     const again = () => setTick((n) => n + 1);
     const loc = () => setLoc(getLocale());
-    ['gc:ledger', 'gc:orders', 'storage', 'focus'].forEach((e) => window.addEventListener(e, again));
+    ['gc:ledger', 'gc:orders', 'storage', 'focus', ACTIONS_EVENT].forEach((e) => window.addEventListener(e, again));
     window.addEventListener('gc:locale', loc);
     const timer = window.setInterval(again, 60 * 1000);   // orders move on with the clock
-    return () => { ['gc:ledger', 'gc:orders', 'storage', 'focus'].forEach((e) => window.removeEventListener(e, again)); window.removeEventListener('gc:locale', loc); window.clearInterval(timer); };
+    return () => { ['gc:ledger', 'gc:orders', 'storage', 'focus', ACTIONS_EVENT].forEach((e) => window.removeEventListener(e, again)); window.removeEventListener('gc:locale', loc); window.clearInterval(timer); };
   }, []);
   // worked out after the first paint, so the page shows its outline at once
-  useEffect(() => { const id = window.setTimeout(() => { closeMonths(); setData(build()); }, 0); return () => window.clearTimeout(id); }, [tickN]);
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      closeMonths();
+      const next = build();
+      next.todo = trackItems('home-online', next.todo, { user: safe(() => currentUser(), null) });
+      next.fresh = isNewShop();
+      setData(next);
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [tickN]);
 
   const d = data;
   const [hello, helloBn] = d ? greeting(new Date(d.now).getHours()) : ['Hello', 'হ্যালো'];
@@ -255,10 +277,35 @@ export default function OnlineHome() {
     hasModule('catalog') && { label: 'Add product', icon: 'package-plus', href: '/add-product' },
     hasModule('money') && { label: 'Add expense', icon: 'wallet', href: '/expenses-bills' },
   ].filter(Boolean) : [];
+  // today's figures as CSV: the key figures, the 30 days by source, the latest orders and the to-do
+  const exportCsv = () => {
+    if (!d) return;
+    const rows = [
+      ['GridCommerce Online · Home', formatDate(d.now), 'Online store', 'As of ' + formatDate(d.now) + ' ' + new Date(d.now).toLocaleTimeString('en-GB')],
+      [],
+      ['Figure', 'Value', 'Change % vs yesterday by this time'],
+      ['Sales', Math.round(d.figs.revenue), d.figs.change == null ? '' : d.figs.change],
+      ['Orders', d.figs.orders, ''],
+      ['Visitors', d.figs.visitors, ''],
+      ['Conversion %', Math.round(d.figs.conv * 10) / 10, ''],
+      ['Money in hand', Math.round(d.cash), ''],
+      [],
+      ['Day', ...ORDER_SOURCES, '7-day average'],
+      ...d.revenue.points.map((x) => [x.label, ...x.values.map((v) => Math.round(v)), x.line]),
+      [],
+      ['Order', 'Customer', 'Time', 'Amount'],
+      ...d.latest.map((o) => [o.id, o.customer, formatTime(o.at), Math.round(o.amount)]),
+      [],
+      ['To do', 'Count', 'Priority', 'Waiting'],
+      ...d.todo.map((t) => [t.label, t.n, (SEVERITY[t.severity] || SEVERITY.normal).label, t.item ? ageText(ageOf(t.item)) : '']),
+    ];
+    downloadCsv(`home-${new Date(d.now).toISOString().slice(0, 10)}-online.csv`, rows);
+    toast('Home exported');
+  };
 
   return (
     <div className="dc-screen ds" data-screen="Home">
-      <style dangerouslySetInnerHTML={{ __html: CHART_CSS + HOME_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: CHART_CSS + HOME_CSS + PILLS_CSS + EXTRAS_CSS }} />
       <div className="gc-shell">
         <Sidebar sticky="" active="home" />
         <main className="gc-shell__main">
@@ -271,6 +318,8 @@ export default function OnlineHome() {
                 <div className="hk-pick">
                   <span className="hk-today"><Icon name="calendar" width="16" height="16" aria-hidden="true" />Today</span>
                   {create.length ? <Menu label="Create" icon="plus" cls="ix-btn" align="start" items={create} /> : null}
+                  <button type="button" className="ix-btn" onClick={exportCsv} disabled={!d}><Icon name="download" width="16" height="16" aria-hidden="true" />Export</button>
+                  {d ? <AsOf at={d.now} onRefresh={() => setTick((n) => n + 1)} /> : null}
                 </div>
                 {d ? (
                   <div className="hk-figs" aria-label="Key figures, today">
@@ -283,11 +332,13 @@ export default function OnlineHome() {
                 ) : null}
               </div>
 
-              <Hero greeting={(locale === 'bn' ? helloBn : hello) + (first ? ', ' + first : '')} todo={d ? d.todo : null} />
+              <Hero greeting={(locale === 'bn' ? helloBn : hello) + (first ? ', ' + first : '')} todo={d ? d.todo : null} source="home-online" />
+
+              <Readiness ed="online" />
 
               {!d ? (
                 <div className="hk-cards" aria-busy="true"><div className="hk-skel" /><div className="hk-skel" /></div>
-              ) : (
+              ) : d.fresh ? null : (
                 <div className="hk-cards">
                   <section className="ix-card" aria-label="Sales, last 30 days">
                     <header className="ix-card__head"><h2>Sales · last 30 days</h2><Link href="/reports-centre">Reports</Link></header>
@@ -298,6 +349,7 @@ export default function OnlineHome() {
                       <Legend items={[...d.revenue.bySource.map((s) => ({ name: s.name, color: s.color, value: short(s.value) })), { name: '7-day average', color: 'var(--text-heading)', kind: 'line' }]} />
                     </div>
                   </section>
+                  <div className="hk-side">
                   <section className="ix-card" aria-label="Latest orders">
                     <header className="ix-card__head"><h2>{d.latestToday ? 'Latest orders' : "Yesterday's orders"}</h2><Link href="/merchant-orders">View all</Link></header>
                     <div className="ix-card__body">
@@ -311,6 +363,8 @@ export default function OnlineHome() {
                       ) : <p className="hk-empty">No orders yet today.</p>}
                     </div>
                   </section>
+                  <InsightsCard items={d.insights} />
+                  </div>
                 </div>
               )}
             </div>

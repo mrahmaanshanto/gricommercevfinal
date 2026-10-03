@@ -20,6 +20,13 @@ import { STOCK_PLACES, getStockPlaces, getPlaces, placeByName, namesOf } from '@
 import { getRackData, binsFor, SEED as RACK_SEED } from '@/lib/racks';
 import { isOnePlace } from '@/lib/stockSetup';
 import { StockSetupBanner } from '@/components/StockSetupBanner';
+import { isUntracked, isVirtualRow, STOCK_EVENT } from '@/lib/stock';
+import { withVendor, CUSTODY_EVENT } from '@/lib/custody';
+import { canAssemble, assembleKit, disassembleKit } from '@/lib/bundles';
+import { fmtQty, packsOf } from '@/lib/units';
+import { resolveScan } from '@/lib/identifiers';
+import { toast as __toast } from '@/runtime/ui';
+import { currentUser } from '@/lib/team';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -42,10 +49,16 @@ function getQuery(key) { if (typeof window === 'undefined') return ''; return ne
 var WHS = STOCK_PLACES;
 function whKey(w) { return w.toLowerCase().replace(/[^a-z0-9]+/g, '-'); }
 var HIST = [['29 Sep', 'Sold', -2, 'POS · Dhanmondi'], ['27 Sep', 'Sold', -5, 'Online orders'], ['24 Sep', 'Received', 24, 'PO-1042 · Dhaka Gadget Hub'], ['20 Sep', 'Stock count', -1, 'Counted by Suman'], ['14 Sep', 'Moved', -6, 'To Dhanmondi branch']];
-var KIND = { adjust: 'Adjusted', count: 'Stock count', transfer: 'Transfer', receive: 'Received', sale: 'Sold', delivery: 'Delivered', return: 'Returned', writeoff: 'Written off' };
+var KIND = { adjust: 'Adjusted', count: 'Stock count', transfer: 'Transfer', receive: 'Received', sale: 'Sold', delivery: 'Delivered', return: 'Returned', writeoff: 'Written off', 'write-off': 'Written off', opening: 'Opening stock', 'custody out': 'Sent to vendor', 'custody back': 'Back from vendor', assemble: 'Assembled', disassemble: 'Taken apart', rto: 'Courier return', exchange: 'Given in exchange' };
 var FL = [{ k: 'all', label: 'All' }, { k: 'low', label: 'Low stock' }, { k: 'out', label: 'Out of stock' }, { k: 'exp', label: 'Expiring soon' }];
 class Component extends DCLogic {
+  componentWillUnmount() { if (this.re) { window.removeEventListener(STOCK_EVENT, this.re); window.removeEventListener(CUSTODY_EVENT, this.re); } }
+  // stock moves and custody change the numbers: read them again
+  reload() { this.setState({ holds: getHolds(), moves: getMoves(), transfers: getTransfers(), catalog: getCatalog() }); }
   componentDidMount() {
+    var self = this;
+    this.re = function () { self.reload(); };
+    window.addEventListener(STOCK_EVENT, this.re); window.addEventListener(CUSTODY_EVENT, this.re);
     var p = { holds: getHolds(), moves: getMoves(), transfers: getTransfers(), catalog: getCatalog(), whs: getStockPlaces(), plist: getPlaces(), racks: getRackData(), one: isOnePlace() }, f = getQuery('filter'), w = getQuery('warehouse'), q = getQuery('q'), sku = getQuery('sku');
     if (FL.some(function (x) { return x.k === f; })) p.f = f;
     if (p.whs.some(function (x) { return whKey(x) === w; })) p.wh = w;
@@ -64,7 +77,9 @@ class Component extends DCLogic {
     var baseAt = function (p, x) { return (st.whs ? namesOf(x) : [x]).reduce(function (a, n) { return a + ((p.on || {})[n] || 0); }, 0); };
     // before the browser data is read, show the catalogue's own numbers (same on the server and in the browser)
     var holds = st.holds || [], moves = st.moves || [], transfers = st.transfers || null;
-    var all = (st.catalog || CATALOG).map(function (p) {
+    // a scanned code (pack barcode, other barcode, PLU, serial …) finds its product (identifiers.js)
+    var scan = q && st.catalog ? resolveScan(st.q.trim()) : null;
+    var all = (st.catalog || CATALOG).filter(function (p) { return !isUntracked(p); }).map(function (p) {
       var n = stockAt(p.sku, place, holds, moves, transfers), i = info(p);
       var places = whl.filter(function (x) { return baseAt(p, x) > 0; }).length;
       // bins from Racks & bins: at the chosen place, or every place
@@ -75,19 +90,21 @@ class Component extends DCLogic {
     // the products at the chosen place (every product for All places); the views and the figures count these
     var here = all.filter(function (r) { return !place || baseAt(r.p, place) || r.n.onHand || r.n.transit; });
     var rows = here.filter(function (r) {
-      if (q && [r.p.name, r.p.sku, r.p.barcode, r.p.variant].concat(r.bins.map(function (b) { return b.code; })).join(' ').toLowerCase().indexOf(q) < 0) return false;
+      if (q && !(scan && scan.sku === r.p.sku) && [r.p.name, r.p.sku, r.p.barcode, r.p.variant].concat(r.bins.map(function (b) { return b.code; })).join(' ').toLowerCase().indexOf(q) < 0) return false;
       if (f === 'low') return isLow(r); if (f === 'out') return isOut(r); if (f === 'exp') return r.i.exp; return true;
     }).map(function (r) {
       var p = r.p, n = r.n, out = isOut(r), low = isLow(r);
       return { sku: p.sku, name: p.name, variant: p.variant || '', initial: p.name.charAt(0),
         onHand: n.onHand, held: n.held, damaged: n.damaged, available: n.available, transit: n.transit,
         tone: out ? 'ix-bad' : low ? 'ix-warn' : '',
-        flag: out ? ['Out of stock', 'error'] : low ? ['Low stock', 'warning'] : r.i.exp ? ['Expiring soon', 'warning'] : null,
+        flag: p.format === 'licence' ? ['Licence keys', 'info'] : p.bundle && p.bundle.type !== 'kit' ? ['From parts', 'info'] : out ? ['Out of stock', 'error'] : low ? ['Low stock', 'warning'] : r.i.exp ? ['Expiring soon', 'warning'] : null,
         open: function () { self.setState({ hist: p.sku }); },
         onRowClick: function (e) { if (e.target.closest && e.target.closest('a,button,input,select,label')) return; self.setState({ hist: p.sku }); } };
     });
-    var value = here.reduce(function (a, r) { return a + r.n.onHand * r.i.cost; }, 0);
-    var inStock = here.filter(function (r) { return r.n.onHand > 0; }).length;
+    var real = here.filter(function (r) { return !isVirtualRow(r.p); });
+    var value = real.reduce(function (a, r) { return a + r.n.onHand * r.i.cost; }, 0);
+    var inStock = real.filter(function (r) { return r.n.onHand > 0; }).length;
+    var vendorAll = st.catalog ? real.reduce(function (a, r) { return a + withVendor(r.p.sku, place); }, 0) : 0;
     var lowN = here.filter(isLow).length, outN = here.filter(isOut).length, expN = here.filter(function (r) { return r.i.exp; }).length;
     var counts = { all: here.length, low: lowN, out: outN, exp: expN };
     // the stock panel of one product (row click): its numbers here, cost, bins and history
@@ -103,10 +120,24 @@ class Component extends DCLogic {
       rack: !hr.bins.length ? 'Not in a bin' : place ? hr.bins.map(function (b) { return b.code + ' · ' + b.qty; }).join(', ') : 'In ' + hr.bins.length + (hr.bins.length === 1 ? ' bin · ' : ' bins · ') + hr.bins.reduce(function (a, b) { return a + b.qty; }, 0) + ' pcs',
       adjustHref: '/stock-adjustments' + link, transferHref: '/new-transfer' + (place ? '?from=' + encodeURIComponent(place) : ''),
       productHref: hr.p.productId ? '/add-product?id=' + encodeURIComponent(hr.p.productId) : '',
+      vendor: st.catalog ? withVendor(hr.p.sku, place) : 0, packs: packsOf(hr.p).length ? fmtQty(hr.p, hr.n.onHand) : '',
+      kind: hr.p.format === 'licence' ? 'Licence keys: stock is the free keys' : hr.p.bundle && hr.p.bundle.type !== 'kit' ? 'Combo: sells as many as its parts allow' : '',
+      kit: !!(hr.p.bundle && hr.p.bundle.type === 'kit'), kitPlace: place || whl[0], kitCan: hr.p.bundle && hr.p.bundle.type === 'kit' && st.catalog ? canAssemble(hr.p.sku, place || whl[0]) : 0,
+      activityHref: '/stock-activity?q=' + encodeURIComponent(hr.p.sku),
       history: liveRows.concat(HIST.map(function (h) { return { d: h[0], what: h[1], qty: (h[2] > 0 ? '+' : '−') + Math.abs(h[2]), up: h[2] > 0, note: h[3] }; }))
     } : null;
     var closeFind = function () { self.setState({ find: false, q: '' }); setQuery('q', ''); };
-    return { rows: rows, empty: rows.length === 0, one: !!st.one, place: place,
+    // kits: assemble from parts, or take apart (bundles.js)
+    var kitRun = function (apart) {
+      if (!hr) return;
+      var at = place || whl[0], n = Math.max(1, Math.round(Number(st.kitN) || 1));
+      var r = (apart ? disassembleKit : assembleKit)(hr.p.sku, at, n, currentUser().name);
+      if (!r.ok) { __toast(r.error, { tone: 'error' }); return; }
+      self.reload();
+      __toast((apart ? n + ' taken apart at ' : n + ' assembled at ') + at);
+    };
+    return { rows: rows, empty: rows.length === 0, one: !!st.one, place: place, kVendor: vendorAll,
+      kitN: st.kitN || '1', typeKitN: function (e) { self.setState({ kitN: e.target.value.replace(/\D/g, '') }); }, assemble: function () { kitRun(false); }, takeApart: function () { kitRun(true); },
       kValue: bdt(value), kInStock: String(inStock), kPlaces: place ? 'at ' + place : 'in ' + whl.length + ' places',
       kHeld: String(here.reduce(function (a, r) { return a + r.n.held; }, 0)), kTransit: String(here.reduce(function (a, r) { return a + r.n.transit; }, 0)),
       kBuy: lowN + outN, showLow: function () { self.setState({ f: 'low' }); setQuery('filter', 'low'); },
@@ -148,6 +179,7 @@ const CSS = `
 .st-hist small{display:block;font-size:var(--text-xs);color:var(--text-muted)}
 .st-hist b{font-family:var(--font-data);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums}
 .st-up{color:var(--text-success)}.st-down{color:var(--text-danger)}
+.st-kitn{width:72px;height:28px}
 `;
 
 // ---- markup ----
@@ -157,8 +189,8 @@ export default class StockScreen extends Component {
     const v = this.renderVals() || {};
     const s = v.sheet;
     const more = v.one
-      ? [{ label: 'Damaged & expired', href: '/expiry-disposal' }]
-      : [{ label: 'Stock holds', href: '/stock-holds' }, { label: 'Transfers', href: '/transfers' }, { label: 'Damaged & expired', href: '/expiry-disposal' }, { label: 'Racks & bins', href: '/racks' }];
+      ? [{ label: 'Stock activity', href: '/stock-activity' }, { label: 'Damaged & expired', href: '/expiry-disposal' }]
+      : [{ label: 'Stock activity', href: '/stock-activity' }, { label: 'Stock holds', href: '/stock-holds' }, { label: 'Transfers', href: '/transfers' }, { label: 'Damaged & expired', href: '/expiry-disposal' }, { label: 'Racks & bins', href: '/racks' }];
     return (
       <div className="dc-screen ds" data-screen="Stock">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
@@ -184,6 +216,7 @@ export default class StockScreen extends Component {
                     { label: 'Products in stock', value: v.kInStock },
                     { label: 'Held for orders', value: v.kHeld, href: v.one ? undefined : '/stock-holds' },
                     { label: 'In transit', value: v.kTransit, href: v.one ? undefined : '/transfers' },
+                    v.kVendor ? { label: 'With vendors', value: String(v.kVendor), href: '/stock-activity' } : null,
                   ]} />
 
                 {v.kBuy ? (
@@ -275,6 +308,9 @@ export default class StockScreen extends Component {
               ['Held for orders', s.held],
               ['Available', <b key="a">{s.available}</b>],
               ['In transit', s.transit],
+              s.vendor ? ['With vendor', s.vendor] : null,
+              s.packs ? ['In packs', s.packs] : null,
+              s.kind ? ['Kind', s.kind] : null,
               ['Buy again at', s.reorder],
               ['Cost', s.cost + ' each'],
               ['Stock value', s.value],
@@ -286,7 +322,17 @@ export default class StockScreen extends Component {
               {v.one ? null : <__Link href={s.transferHref} className="ix-btn ix-btn--sm"><__Icon name="arrow-left-right" width="16" height="16" aria-hidden="true" />Move</__Link>}
               <__Link href="/barcode-labels" className="ix-btn ix-btn--sm"><__Icon name="printer" width="16" height="16" aria-hidden="true" />Print label</__Link>
               {s.productHref ? <__Link href={s.productHref} className="ix-btn ix-btn--sm"><__Icon name="package" width="16" height="16" aria-hidden="true" />Open product</__Link> : null}
+              <__Link href={s.activityHref} className="ix-btn ix-btn--sm"><__Icon name="history" width="16" height="16" aria-hidden="true" />Stock activity</__Link>
             </div>
+            {s.kit ? (<>
+              <h3 className="ix-section-title">Assemble kits</h3>
+              <p className="st-sub">{`Parts at ${s.kitPlace} make ${s.kitCan} more.`}</p>
+              <div className="st-acts">
+                <input className="gc-input st-kitn" inputMode="numeric" aria-label="How many kits" value={v.kitN} onChange={v.typeKitN} />
+                <button type="button" className="ix-btn ix-btn--sm" onClick={v.assemble} disabled={!s.kitCan}>Assemble</button>
+                <button type="button" className="ix-btn ix-btn--sm" onClick={v.takeApart}>Take apart</button>
+              </div>
+            </>) : null}
             <h3 className="ix-section-title">Stock history</h3>
             <ul className="st-hist">
               {s.history.map((h, i) => (

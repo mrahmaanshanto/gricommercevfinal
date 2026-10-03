@@ -10,8 +10,12 @@
 //                     Money), and the money partners are holding (read-only, handled in Payouts)
 //   Holidays          public holidays payouts skip (add, remove, restore the defaults)
 //   Evening check     when the app asks whether today's payouts arrived, and browser notifications
+//   Approvals         approval limits (by amount, category, account or branch) and each person's finance duties
+//                     (setupParts.jsx › ApprovalsPanel)
 //   Advanced          chart of accounts, journals, VAT, and resetting the demo money data
-// ?tab=partners|categories|accounts|holidays|check|advanced opens a tab.
+// A bank, wallet or cash account opens its properties (currency, branch, roles, matching, archive / restore:
+// setupParts.jsx › AccountSheet). ?tab=partners|categories|accounts|holidays|check|approvals|advanced opens a tab;
+// ?account=<id> opens that account.
 // Front end only: settings are kept in this browser (settlements.js getConfig/saveConfig, ledger.js addAccount,
 // categories.js for the categories).
 
@@ -24,12 +28,13 @@ import { Dialog, EmptyState, InfoTip, StatusBadge } from '@/components/ui';
 import { IndexTabs } from '@/components/ui/IndexKit';
 import { BrandLogo } from '@/components/BrandLogo';
 import { GatewaySetup } from '@/components/GatewaySetup';
-import { OWN_ACCOUNTS, HOLDING_ACCOUNTS, balanceOf, getEntries, addAccount } from '@/lib/ledger';
+import { OWN_ACCOUNTS, HOLDING_ACCOUNTS, balanceOf, getEntries, addAccount, isArchived, accountProps } from '@/lib/ledger';
 import { PARTNERS, DEFAULT_CONFIG, getConfig, saveConfig, getAllPartners, ruleText, feeText, weekendText, holidaysOf, HOLIDAYS_2026, COURIER_RATES, heldBy, clockNow, dayKey, fromKey } from '@/lib/settlements';
 import { getCategories, addCategory, editCategory, archiveCategory, COST_HOMES, DEFAULT_EXPENSE, DEFAULT_INCOME } from '@/lib/categories';
 import { AccPage, useBooks, money, shortDate, accName } from './accShared';
+import { AccountSheet, ApprovalsPanel, SETUP_PARTS_CSS } from './setupParts';
 
-const TABS = [['partners', 'Payment partners'], ['categories', 'Categories'], ['accounts', 'Banks & wallets'], ['holidays', 'Holidays'], ['check', 'Evening check'], ['advanced', 'Advanced']];
+const TABS = [['partners', 'Payment partners'], ['categories', 'Categories'], ['accounts', 'Banks & wallets'], ['holidays', 'Holidays'], ['check', 'Evening check'], ['approvals', 'Approvals'], ['advanced', 'Advanced']];
 const ZONES = Object.keys(COURIER_RATES);
 const HOURS = [17, 18, 19, 20, 21, 22, 23];
 const hourText = (h) => `${h > 12 ? h - 12 : h} PM`;
@@ -38,7 +43,7 @@ const graceText = (g) => (g ? `late after ${g} working day${g === 1 ? '' : 's'}`
 const GROUPS = [['Cash', 'Cash'], ['Bank', 'Banks'], ['Mobile', 'Mobile wallets']];
 const BRAND_OPTIONS = [['', 'No logo'], ['bracbank', 'BRAC Bank'], ['citybank', 'City Bank'], ['dbbl', 'Dutch-Bangla Bank'], ['bkash', 'bKash'], ['nagad', 'Nagad'], ['rocket', 'Rocket'], ['cash', 'Cash'], ['safe', 'Safe']];
 const BRAND_FOR_TYPE = { Bank: 'bracbank', Mobile: 'bkash', Cash: 'cash' };
-const MONEY_KEYS = ['gc.ledger', 'gc.settle.items', 'gc.settle.payouts', 'gc.settle.config', 'gc.ledger.accounts'];
+const MONEY_KEYS = ['gc.ledger', 'gc.settle.items', 'gc.settle.payouts', 'gc.settle.config', 'gc.ledger.accounts', 'gc.ledger.props', 'gc.fin.approvals', 'gc.fin.limits', 'gc.fin.duties', 'gc.fin.stmt', 'gc.fin.allocations', 'gc.fin.writeoffs', 'gc.refunds', 'gc.pay.links', 'gc.pay.manual', 'gc.pay.refs', 'gc.pay.locks', 'gc.pay.batches', 'gc.pay.terminals'];
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : NaN; };
 const clean = (v) => String(v).replace(/[^\d.]/g, '');
 const logoOf = (a) => a.brand || a.name;
@@ -96,10 +101,13 @@ export default function AccountSetup() {
   const [hol, setHol] = useState({ date: '', name: '' });
   const [perm, setPerm] = useState('');
   const [catForm, setCatForm] = useState(null);   // add / rename a category: { mode, kind, id, name, home, help, archived }
+  const [sheet, setSheet] = useState('');         // an account whose properties are open
 
   useEffect(() => {
     const want = new URLSearchParams(window.location.search).get('tab');
     if (TABS.some((x) => x[0] === want)) setTab(want);
+    const accId = new URLSearchParams(window.location.search).get('account');
+    if (accId) { setTab('accounts'); setSheet(accId); }
     setPerm(typeof Notification === 'undefined' ? 'unsupported' : Notification.permission);
   }, []);
   const pickTab = (id) => {
@@ -118,7 +126,7 @@ export default function AccountSetup() {
     return {
       cfg, now, today, holidays,
       partners: getAllPartners(cfg),
-      own: own.map((a) => ({ ...a, balance: balanceOf(a.id, entries) })),
+      own: own.map((a) => ({ ...a, balance: balanceOf(a.id, entries), archived: isArchived(a.id), branch: accountProps(a.id).branch })),
       holding: tick ? HOLDING_ACCOUNTS().map((a) => ({ ...a, held: heldBy(a.partner) })) : [],
     };
   }, [tick]);
@@ -241,7 +249,7 @@ export default function AccountSetup() {
   const ownGroups = GROUPS.map(([type, label]) => ({ type, label, list: data.own.filter((a) => a.type === type) })).filter((g) => g.list.length);
 
   return (
-    <AccPage screen="AccountSetup" active="acc-setup" page="Setup" title="Accounts setup" css={CSS} back="/accounts-home" backLabel="Money overview" narrow about={ABOUT}>
+    <AccPage screen="AccountSetup" active="acc-setup" page="Setup" title="Accounts setup" css={CSS + SETUP_PARTS_CSS} back="/accounts-home" backLabel="Money overview" narrow about={ABOUT}>
       <section className="ix-card" aria-label="Accounts setup">
         <div className="ix-bar"><IndexTabs tabs={tabs} label="Accounts setup" /></div>
 
@@ -306,10 +314,10 @@ export default function AccountSetup() {
                     <li className="ac-plh">{g.label}<small>{money(g.list.reduce((s, a) => s + a.balance, 0))}</small></li>
                     {g.list.map((a) => (
                       <li key={a.id}>
-                        <Link href={`/money?account=${encodeURIComponent(a.id)}`} className="ix-pitem">
+                        <button type="button" className="ix-pitem" onClick={() => setSheet(a.id)}>
                           <span className="ix-pitem__top"><b>{accName(a.id)}</b><span className={'as-fig' + (a.balance < 0 ? ' as-out' : '')}>{a.balance < 0 ? '−' : ''}{money(a.balance)}</span></span>
-                          <span className="ix-pitem__mid">Opening {money(a.opening)}{a.custom ? ' · Added by you' : ''}</span>
-                        </Link>
+                          <span className="ix-pitem__mid">Opening {money(a.opening)}{a.custom ? ' · Added by you' : ''}{a.archived ? ' · Archived' : ''}</span>
+                        </button>
                       </li>
                     ))}
                   </React.Fragment>
@@ -318,13 +326,15 @@ export default function AccountSetup() {
               <div className="ix-table-wrap">
                 <table className="ix-table gc-table--keep">
                   <caption className="sr-only">Your banks and wallets</caption>
-                  <thead><tr><th scope="col">Account</th><th scope="col" className="ix-num">Opening balance</th><th scope="col" className="ix-num">Balance now</th></tr></thead>
+                  <thead><tr><th scope="col">Account</th><th scope="col">Branch</th><th scope="col">Status</th><th scope="col" className="ix-num">Opening balance</th><th scope="col" className="ix-num">Balance now</th></tr></thead>
                   {ownGroups.map((g) => (
                     <tbody key={g.type}>
-                      <tr className="ac-grp"><th scope="rowgroup" colSpan={2}>{g.label}<small>{g.list.length}</small></th><td className="ix-num as-fig">{money(g.list.reduce((s, a) => s + a.balance, 0))}</td></tr>
+                      <tr className="ac-grp"><th scope="rowgroup" colSpan={4}>{g.label}<small>{g.list.length}</small></th><td className="ix-num as-fig">{money(g.list.reduce((s, a) => s + a.balance, 0))}</td></tr>
                       {g.list.map((a) => (
-                        <tr key={a.id} onClick={(e) => { if (!e.target.closest('a')) navigate(`/money?account=${encodeURIComponent(a.id)}`); }}>
+                        <tr key={a.id} onClick={(e) => { if (!e.target.closest('a')) setSheet(a.id); }}>
                           <td><span className="as-name"><BrandLogo brand={logoOf(a)} size={24} decorative /><Link href={`/money?account=${encodeURIComponent(a.id)}`} className="ix-strong" aria-label={`Open ${accName(a.id)} in Money`}>{accName(a.id)}</Link><span className="ix-muted">{a.custom ? 'Added by you' : g.type === 'Mobile' ? 'Mobile wallet' : g.type}</span></span></td>
+                          <td className="ix-muted">{a.branch || 'Whole shop'}</td>
+                          <td>{a.archived ? <StatusBadge tone="neutral" icon="archive">Archived</StatusBadge> : <StatusBadge tone="success">Active</StatusBadge>}</td>
                           <td className="ix-num as-fig ix-muted">{money(a.opening)}</td>
                           <td className={'ix-num as-fig ix-strong' + (a.balance < 0 ? ' as-out' : '')}>{a.balance < 0 ? '−' : ''}{money(a.balance)}</td>
                         </tr>
@@ -426,6 +436,8 @@ export default function AccountSetup() {
             </div>
           </>) : null}
 
+          {tab === 'approvals' ? <ApprovalsPanel tick={tick} /> : null}
+
           {tab === 'advanced' ? (<>
             <header className="ix-card__head"><h2>For your accountant <InfoTip text="The books behind the simple pages. You don’t need these to run the shop." /></h2></header>
             <ul className="as-links" style={{ marginTop: 'var(--space-3)' }}>
@@ -446,6 +458,7 @@ export default function AccountSetup() {
       </section>
 
       {wizard ? <GatewaySetup partner={wizard.partner} onClose={() => setWizard(null)} /> : null}
+      {sheet ? <AccountSheet key={sheet} id={sheet} onClose={() => { setSheet(''); try { const u = new URL(window.location.href); if (u.searchParams.has('account')) { u.searchParams.delete('account'); window.history.replaceState(window.history.state, '', u.pathname + u.search); } } catch { /* ignore */ } }} /> : null}
 
       {/* add a bank, wallet or cash account */}
       <Dialog open={!!acc} title="Add account" onClose={() => setAcc(null)} width={520}

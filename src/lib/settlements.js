@@ -55,13 +55,68 @@ const ssr = () => typeof window === 'undefined';
 /** The time the checks use. A test offset in gc.clock.offset (ms) moves it forward to try the evening check. */
 export const clockNow = () => { try { return Date.now() + (Number(window.localStorage.getItem('gc.clock.offset')) || 0); } catch { return Date.now(); } };
 
-export const DEFAULT_CONFIG = { promptHour: 20, grace: 1, partners: {}, custom: [], removed: [], setup: {}, holidaysAdded: [], holidaysRemoved: [], snoozed: {} };
-export const getConfig = () => ({ ...DEFAULT_CONFIG, ...(ssr() ? {} : read(K_CONFIG, {})) });
+// ---- settings that change over time (brief #5) -----------------------------------------------------
+// A partner's fee, payout rule, payout account and days off are versions with a start date: cfg.history =
+// { partnerId: [{ from: 'YYYY-MM-DD' ('' = from the start), fee, cod, codDhaka, rates, rule, to, weekend, mode,
+// account, at, by }] }. A version ends the day before the next one starts. Each payment is charged and paid
+// out by the version that applied on the day it was taken, so changing a fee today never changes a past
+// payout. A partner with no history uses its settings as they are. Demo: SSLCOMMERZ's new agreement.
+export const SETTING_FIELDS = ['fee', 'cod', 'codDhaka', 'rates', 'rule', 'to', 'weekend', 'mode', 'account'];
+export const HISTORY_SEED = {
+  sslcommerz: [
+    { from: '', fee: 2.75, rule: { type: 'auto', days: 3 }, to: 'citybank', at: new Date(2026, 0, 10).getTime(), by: 'Mehedi Rahman', note: 'First agreement' },
+    { from: '2026-09-15', fee: 2.5, rule: { type: 'auto', days: 2 }, to: 'brac', at: new Date(2026, 8, 14, 16).getTime(), by: 'Mehedi Rahman', note: 'New agreement' },
+  ],
+  'bkash-pgw': [
+    { from: '', fee: 1.85, rule: { type: 'auto', days: 1 }, to: 'brac', at: new Date(2026, 0, 10).getTime(), by: 'Mehedi Rahman' },
+    { from: '2026-08-01', fee: 1.5, rule: { type: 'auto', days: 1 }, to: 'brac', at: new Date(2026, 6, 28, 12).getTime(), by: 'Mehedi Rahman', note: 'Lower rate from bKash' },
+  ],
+};
+export const DEFAULT_CONFIG = { promptHour: 20, grace: 1, partners: {}, custom: [], removed: [], setup: {}, holidaysAdded: [], holidaysRemoved: [], snoozed: {}, history: HISTORY_SEED };
+export const getConfig = () => {
+  const stored = ssr() ? {} : read(K_CONFIG, {});
+  const cfg = { ...DEFAULT_CONFIG, ...stored };
+  // the demo history is left out for a partner this browser had already changed before history was kept
+  if (!stored.history) cfg.history = Object.fromEntries(Object.entries(HISTORY_SEED).filter(([id]) => !(stored.partners || {})[id]));
+  return cfg;
+};
 export const saveConfig = (cfg) => { write(K_CONFIG, cfg); try { window.dispatchEvent(new CustomEvent('gc:ledger')); } catch { /* ignore */ } };
-/** A partner with the merchant's own changes (fee, COD %, payout rule, account, weekend). */
-export function partnerBy(id, cfg = getConfig()) {
+const keyOfTime = (t) => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+/** A partner's setting versions, oldest first, each with its end day (`to`: 'YYYY-MM-DD' or null = still on). */
+export function historyOf(id, cfg = getConfig()) {
+  const list = ((cfg.history || {})[id] || []).slice().sort((a, b) => String(a.from).localeCompare(String(b.from)));
+  return list.map((v, i) => {
+    const next = list[i + 1];
+    let until = null;
+    if (next && next.from) { const d = new Date(fromKeyLocal(next.from)); d.setDate(d.getDate() - 1); until = keyOfTime(d.getTime()); }
+    return { ...v, until };
+  });
+}
+const fromKeyLocal = (k) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d).getTime(); };
+/** The setting version that applied on the day of `t` (null when the partner has no history). */
+export function versionAt(id, t, cfg = getConfig()) {
+  const list = (cfg.history || {})[id];
+  if (!list || !list.length) return null;
+  const k = keyOfTime(t);
+  let hit = null;
+  list.slice().sort((a, b) => String(a.from).localeCompare(String(b.from))).forEach((v) => { if (!v.from || v.from <= k) hit = v; });
+  return hit;
+}
+const pickSettings = (v) => Object.fromEntries(SETTING_FIELDS.filter((f) => v && v[f] !== undefined).map((f) => [f, v[f]]));
+/** A partner as it was set up on the day of `t` (fee, rule, payout account …). */
+export function partnerAt(id, t, cfg = getConfig()) {
   const p = PARTNERS.find((x) => x.id === id) || (cfg.custom || []).find((x) => x.id === id);
-  return p ? { weekend: DEFAULT_WEEKEND, mode: 'settle', ...p, ...(cfg.partners[id] || {}) } : null;
+  if (!p) return null;
+  return { weekend: DEFAULT_WEEKEND, mode: 'settle', ...p, ...(cfg.partners[id] || {}), ...pickSettings(versionAt(id, t, cfg)) };
+}
+/** A partner with the merchant's own changes (fee, COD %, payout rule, account, weekend), as they apply today. */
+export function partnerBy(id, cfg = getConfig()) {
+  return partnerAt(id, ssr() ? Date.now() : clockNow(), cfg);
+}
+/** `p` with the settings that applied on the day of `t` (same object when nothing changed over time). */
+function asOf(p, t, cfg) {
+  if (!p || !(cfg.history || {})[p.id]) return p;
+  return { ...p, ...pickSettings(versionAt(p.id, t, cfg)) };
 }
 /** Every gateway, card machine and courier set up, including ones that pay straight into an account. */
 export const getAllPartners = (cfg = getConfig()) => [...PARTNERS, ...(cfg.custom || [])].filter((p) => !(cfg.removed || []).includes(p.id)).map((p) => partnerBy(p.id, cfg));
@@ -87,8 +142,9 @@ export const getKeys = (id) => (ssr() ? {} : (read(K_KEYS, {})[id] || {}));
  * Direct: the money is credited straight to `account` (made first when newAccount is given).
  * Settle: a holding account '<name> (to be paid out)' is made if it has none.
  */
-export function saveGateway(input, keys) {
+export function saveGateway(input, keys, opts = {}) {
   const cfg = getConfig();
+  const before = input.id ? partnerBy(input.id, cfg) : null;
   const builtIn = PARTNERS.some((x) => x.id === input.id);
   const id = input.id || String(input.short || input.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now().toString(36).slice(-4);
   const p = { ...input, id };
@@ -101,6 +157,17 @@ export function saveGateway(input, keys) {
   if (builtIn) next.partners = { ...cfg.partners, [id]: rules };
   else next.custom = [...(cfg.custom || []).filter((x) => x.id !== id), { weekend: DEFAULT_WEEKEND, ...p }];
   if (keys) write(K_KEYS, { ...read(K_KEYS, {}), [id]: keys });
+  // settings that changed become a new version from `opts.from` (default today); the old ones stay for the past
+  if (before) {
+    const after = { ...before, ...rules };
+    const moved = SETTING_FIELDS.filter((f) => JSON.stringify(before[f]) !== JSON.stringify(after[f]));
+    if (moved.length) {
+      const from = opts.from || keyOfTime(clockNow());
+      const list = ((cfg.history || {})[id] || []).filter((v) => v.from !== from);
+      const base = list.length ? [] : [{ from: '', ...pickSettings(before), at: Date.now(), by: opts.by || 'Staff', note: 'Before the change' }];
+      next.history = { ...(cfg.history || {}), [id]: [...base, ...list, { from, ...pickSettings(after), at: Date.now(), by: opts.by || 'Staff', note: opts.note || '' }] };
+    }
+  }
   saveConfig(next);
   return { partner: partnerBy(id, next), made };
 }
@@ -148,7 +215,8 @@ export function closedReason(t, weekend = DEFAULT_WEEKEND, cfg = getConfig()) {
 
 // ---- money per item -----------------------------------------------------------------------------
 /** Fee the partner keeps on one item, and the delivery charge for couriers. */
-export function costsOf(item, p = partnerBy(item.partner)) {
+export function costsOf(item, p0 = partnerBy(item.partner), cfg = null) {
+  const p = p0 && p0.id ? asOf(p0, item.at, cfg || getConfig()) : p0;
   if (!p) return { fee: 0, charge: 0, net: item.gross };
   const pct = p.kind === 'Courier' ? (item.dhaka ? p.codDhaka : p.cod) : p.fee;
   const fee = r2(item.gross * (pct || 0) / 100);
@@ -156,7 +224,8 @@ export function costsOf(item, p = partnerBy(item.partner)) {
   return { fee, charge, net: r2(item.gross - fee - charge) };
 }
 /** When an item should be paid out (null for partners you withdraw from yourself). */
-export function expectedDayOf(item, p = partnerBy(item.partner), cfg = getConfig()) {
+export function expectedDayOf(item, p0 = partnerBy(item.partner), cfg = getConfig()) {
+  const p = asOf(p0, item.at, cfg);
   const rule = p.rule || {};
   if (rule.type === 'withdraw') return null;
   if (rule.type === 'monthly') {
@@ -187,13 +256,13 @@ export function getPayouts(now = clockNow(), cfg = getConfig()) {
   const out = [];
   const pack = (id, partner, date, list, rec) => {
     const p = partnerBy(partner, cfg);
-    const sums = list.reduce((a, i) => { const c = costsOf(i, p); a.gross += i.gross; a.fee += c.fee; a.charge += c.charge; a.net += c.net; return a; }, { gross: 0, fee: 0, charge: 0, net: 0 });
+    const sums = list.reduce((a, i) => { const c = costsOf(i, p, cfg); a.gross += i.gross; a.fee += c.fee; a.charge += c.charge; a.net += c.net; return a; }, { gross: 0, fee: 0, charge: 0, net: 0 });
     const due = rec && rec.newDate ? fromKey(rec.newDate) : date;
     const status = rec ? rec.status : 'expected';
     const open = status === 'expected' || status === 'delayed';
     const late = open && startOfDay(now) > addWorkingDays(due, cfg.grace || 0, p.weekend, cfg) && startOfDay(now) > due;
     const days = [...new Set(list.map((i) => dayKey(i.at)))].sort();
-    return { id, partner, p, date, due, items: list, gross: r2(sums.gross), fee: r2(sums.fee), charge: r2(sums.charge), net: r2(sums.net), status, received: rec ? rec.received : null, reason: rec ? rec.reason : '', account: (rec && rec.account) || p.to, at: rec ? rec.at : null, late, days };
+    return { id, partner, p, date, due, items: list, gross: r2(sums.gross), fee: r2(sums.fee), charge: r2(sums.charge), net: r2(sums.net), status, received: rec ? rec.received : null, reason: rec ? rec.reason : '', account: (rec && rec.account) || (asOf(p, date == null ? Date.now() : date, cfg) || p).to, at: rec ? rec.at : null, late, days };
   };
   records.filter((r) => r.status === 'received' || r.status === 'review').forEach((r) => out.push(pack(r.id, r.partner, fromKey(r.date), r.items.map((x) => byId[x]).filter(Boolean), r)));
   // open items → expected payouts

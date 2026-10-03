@@ -7,6 +7,9 @@
 // next step's card, items, payment, tracking, stock, notifications, activity; on the right the facts — notes,
 // customer (contact and shipping address), verification, order and invoice, tags, visit details. Return and Print
 // invoice are in the title row; Print POS receipt, Add a comment, Block customer and Cancel order under More actions.
+// Brief #4 additions: a "Completed" step worked out by the shop's rule (orderRules.js), the shop's own sub-status,
+// payment proofs with Review payment (paymentProof.js), and Edit order with its effects shown first (orderEdit.js;
+// a change asked for review shows above the cards).
 // Front end only: the order comes from src/lib/orders.js; the steps are src/lib/orderFlow.js.
 // Text stays short and plain (Shopify style).
 
@@ -39,10 +42,18 @@ import { clockNow } from '@/lib/settlements';
 import { printNode } from '@/lib/printNode';
 import { QrCode } from '@/components/QrCode';
 import { MERCHANT } from '@/lib/merchant';
+import { proofsOf, proofToReview, methodLabel } from '@/lib/paymentProof';
+import { canEdit, whyNoEdit, editRequestOf, versionOf } from '@/lib/orderEdit';
+import { customStatusOf, customStatusesFor, setCustomStatus, completionOf } from '@/lib/orderRules';
+import { AddProofDialog, ReviewProofDialog } from '@/screens/merchant-orders/ProofDialogs';
+import OrderEditDialog from '@/screens/merchant-orders/OrderEditDialog';
 
 const DEFAULT_ID = '#136779';   // what opens when a link carries no order number
 const CANCEL_REASONS = ['Customer cancelled', 'No answer', 'Fake order', 'Out of stock', 'Duplicate order', 'Other'];
 const PAYMENTS = { Paid: ['success', 'check'], Unpaid: ['error', 'circle-alert'], Partial: ['warning', 'circle-dashed'], COD: ['neutral', 'banknote'] };
+const PROOF_STATE = { review: ['To review', 'warning'], accepted: ['Accepted', 'success'], rejected: ['Rejected', 'error'] };
+// the order's steps, with Completed (worked out by the shop's rule) after Delivered
+const STEPS = [...ORDER_STEPS, 'completed'];
 const HOLD_STATUS = { held: ['On hold', 'warning'], released: ['Released', 'success'], delivered: ['Delivered', 'slate'], damaged: ['Damaged', 'error'] };
 const SEND_STATUS = { Delivered: 'success', Failed: 'error', Skipped: 'slate', Off: 'slate', Sent: 'info' };
 const digitsOf = (t) => String(t || '').replace(/\D/g, '');
@@ -219,6 +230,8 @@ export default function OrderDetail() {
   const fileRef = React.useRef(null);
   const [photoAt, setPhotoAt] = useState(null);       // the line whose photo is being picked
   const [viewPhoto, setViewPhoto] = useState(null);   // the line whose photo is open
+  const [proofDlg, setProofDlg] = useState(null);     // 'add', or the proof being reviewed
+  const [editDlg, setEditDlg] = useState(null);       // 'edit' | 'request' (review a change asked for)
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
@@ -295,6 +308,14 @@ export default function OrderDetail() {
     ...logOf(o.id),
     { at: o.at, icon: counter ? 'store' : 'shopping-bag', title: counter ? 'Sold at the counter' : 'Order placed', meta: o.channel },
   ];
+  const proofs = counter ? [] : proofsOf(o);
+  const toReview = counter ? null : proofToReview(o);
+  const editReq = counter ? null : editRequestOf(o);
+  const custom = customStatusOf(o);
+  const customChoices = counter ? [] : customStatusesFor(o.statusKey);
+  const completion = completionOf(o);
+  const version = versionOf(o);
+  const lastEdit = (o.edits || [])[(o.edits || []).length - 1] || null;
   const advNum = Math.round(Number(adv.amount) || 0);
   const advOk = advNum > 0 && advNum < o.amount - paid;
 
@@ -306,8 +327,9 @@ export default function OrderDetail() {
     ready: ['ready', 'shipped', 'delivered'].includes(o.statusKey) || (o.statusKey === 'returned'),
     shipped: ['shipped', 'delivered'].includes(o.statusKey) || (o.statusKey === 'returned'),
     delivered: o.statusKey === 'delivered',
+    completed: completion.done,
   };
-  const nextStep = offPath ? null : ORDER_STEPS.find((k) => !reached[k]) || null;
+  const nextStep = offPath ? null : STEPS.find((k) => !reached[k]) || null;
   const t = o.times || {};
   const when = (x) => (x ? formatTime(x) + ', ' + formatDate(x) : '');
   const stepNote = {
@@ -317,6 +339,7 @@ export default function OrderDetail() {
     ready: t.ready ? when(t.ready) : '',
     shipped: t.shipped ? o.courier : '',
     delivered: t.delivered ? when(t.delivered) : '',
+    completed: completion.done ? formatDate(completion.at) : o.statusKey === 'delivered' ? completion.text : '',
   };
 
   // ---- actions -------------------------------------------------------------------------------
@@ -427,6 +450,8 @@ export default function OrderDetail() {
     setComment(null); refresh();
     toast('Comment added');
   };
+  const openEdit = () => { const why = whyNoEdit(o); if (why) { toast(why, { tone: 'info' }); return; } setEditDlg('edit'); };
+  const setSub = (e) => { setCustomStatus(o, e.target.value); refresh(); toast(e.target.value ? 'Sub-status set' : 'Sub-status cleared'); };
   const addTag = () => { const x = tagText.trim(); if (x && !tags.includes(x)) setTags([...tags, x]); setTagText(''); };
 
   // ---- photos on order items ---------------------------------------------------------------------------
@@ -468,8 +493,9 @@ export default function OrderDetail() {
     <div className="od-two"><div><label className="gc-label" htmlFor="od-courier">Courier</label><select id="od-courier" className="gc-input gc-select" value={prep.courier} onChange={(e) => setPrep(blank ? { courier: e.target.value, slipPrinted: false, slipAttached: false } : { courier: e.target.value })}>{blank ? <option value="">Choose courier</option> : null}{COURIERS.map((x) => <option key={x} value={x}>{x} · {formatBDT(courierCharge(x, o.zone))}</option>)}</select></div></div>
   );
 
+  const stepLabel = (k) => STEP_LABEL[k] || 'Completed';
   // the first card: where the order is (the steps) and what to do next. { title, sub, link, body }
-  let step = { title: 'Order status', sub: o.statusKey === 'cancelled' ? 'Cancelled' : o.statusKey === 'returned' ? 'Returned' : nextStep ? 'Next: ' + STEP_LABEL[nextStep] : 'Complete' };
+  let step = { title: 'Order status', sub: o.statusKey === 'cancelled' ? 'Cancelled' : o.statusKey === 'returned' ? 'Returned' : nextStep ? 'Next: ' + stepLabel(nextStep) : 'Completed' };
   if (counter) { /* a counter sale only shows its steps */ }
   else if (isNew) step = {
     title: v && v.state === 'confirmed' ? 'Approve order' : 'Verify order',
@@ -483,7 +509,7 @@ export default function OrderDetail() {
       </div>
       <hr className="od-hr" />
       <div className="od-acts">
-        <button type="button" className="gc-btn gc-btn--solid" onClick={() => setDlg('approve')}><Icon name="check" width="16" height="16" aria-hidden="true" /> Approve</button>
+        <button type="button" className={'gc-btn ' + (toReview ? 'gc-btn--neutral' : 'gc-btn--solid')} onClick={() => setDlg('approve')}><Icon name="check" width="16" height="16" aria-hidden="true" /> Approve</button>
         {o.payment !== 'Paid' ? <button type="button" className="gc-btn gc-btn--neutral" onClick={() => setDlg('advance')}><Icon name="hand-coins" width="16" height="16" aria-hidden="true" /> Take advance + approve</button> : null}
       </div>
     </>),
@@ -523,9 +549,11 @@ export default function OrderDetail() {
     ),
   };
   else if (o.statusKey === 'delivered') step = {
-    title: 'Delivered', sub: when(t.delivered),
-    body: o.codCollected ? <p className="od-line"><Icon name="hand-coins" width="16" height="16" aria-hidden="true" /><b>{formatBDT(o.codCollected)}</b><span>COD with {o.courier} · settlement pending</span><Link href="/settlements" className="od-linkbtn">Settlements</Link></p>
-      : <p className="od-line"><Icon name="circle-check" width="16" height="16" aria-hidden="true" style={{ color: 'var(--text-success)' }} /><span>Complete</span></p>,
+    title: completion.done ? 'Completed' : 'Delivered', sub: when(t.delivered),
+    body: (<>
+      {o.codCollected ? <p className="od-line"><Icon name="hand-coins" width="16" height="16" aria-hidden="true" /><b>{formatBDT(o.codCollected)}</b><span>COD with {o.courier} · settlement pending</span><Link href="/settlements" className="od-linkbtn">Settlements</Link></p> : null}
+      <p className="od-line"><Icon name={completion.done ? 'badge-check' : 'hourglass'} width="16" height="16" aria-hidden="true" style={{ color: completion.done ? 'var(--text-success)' : 'var(--text-muted)' }} /><span>{completion.text}</span>{!completion.done && completion.wait === 'return window' ? <Link href="/order-settings" className="od-linkbtn">Return window</Link> : null}</p>
+    </>),
   };
   else if (rto) step = {
     title: 'Returned', sub: o.rtoReason || 'Brought back by the courier',
@@ -535,6 +563,15 @@ export default function OrderDetail() {
     </>),
   };
   else if (o.statusKey === 'cancelled') step = { title: 'Cancelled', sub: o.cancelReason || when(t.cancelled) || 'This order was cancelled' };
+  // a payment proof waiting comes first: reviewing it may move the order on (paid in full → Processing)
+  if (toReview) step = {
+    ...step, title: 'Review payment', sub: `${methodLabel(toReview.method)} · ${formatBDT(toReview.amount)}`,
+    body: (<>
+      <p className="od-line"><Icon name="receipt" width="16" height="16" aria-hidden="true" /><b>Payment to review</b><span className="od-sub">{toReview.txn} · {toReview.from === 'Customer' ? 'from customer' : toReview.by} · {formatTime(toReview.at)}, {formatDate(toReview.at)}</span></p>
+      <div className="od-acts"><button type="button" className="gc-btn gc-btn--solid" onClick={() => setProofDlg(toReview)}><Icon name="badge-check" width="16" height="16" aria-hidden="true" /> Review payment</button></div>
+      {step.body ? <><hr className="od-hr" />{step.body}</> : null}
+    </>),
+  };
 
   const canCancel = !counter && CAN_CANCEL.includes(o.statusKey);
   const heldAt = [...new Set(open.map((h) => h.place))].join(', ');
@@ -545,13 +582,16 @@ export default function OrderDetail() {
         <div className="ix-page">
           <RecordHeader back={back} backLabel="Back to all orders" title={o.id} meta={`${o.placed} · ${o.channel}`}
             badges={<>
-              <StatusBadge tone={status.tone} icon={status.icon}>{status.label}</StatusBadge>
+              {completion.done ? <StatusBadge tone="success" icon="badge-check">Completed</StatusBadge> : <StatusBadge tone={status.tone} icon={status.icon}>{status.label}</StatusBadge>}
+              {custom ? <StatusBadge tone={custom.tone} icon="tag">{custom.label}</StatusBadge> : null}
               <StatusBadge tone={pay[0]} icon={pay[1]}>{o.payment === 'Partial' ? 'Partly paid' : o.payment}</StatusBadge>
               {dups.length ? <StatusBadge tone="warning" icon="copy">Possible duplicate</StatusBadge> : blocked ? <StatusBadge tone="error" icon="ban">Customer blocked</StatusBadge> : null}
             </>}
             secondary={[{ label: 'Return', href: '/return-exchange?ref=' + encodeURIComponent(returnRef) }, { label: 'Print invoice', onClick: () => toast('Invoice for order ' + o.id + ' sent to the printer', { tone: 'info' }) }]}
             more={[
               { label: 'Print POS receipt', onClick: () => toast('POS receipt for order ' + o.id + ' sent to the printer', { tone: 'info' }) },
+              !counter ? { label: 'Edit order', onClick: () => openEdit() } : null,
+              !counter && o.statusKey !== 'cancelled' ? { label: 'Add payment proof', onClick: () => setProofDlg('add') } : null,
               { label: 'Add a comment', onClick: () => setComment('') },
               { label: blocked ? 'Unblock customer' : 'Block customer', onClick: toggleBlock },
               canCancel ? { label: 'Cancel order', onClick: () => setDlg('cancel'), tone: 'danger' } : null,
@@ -574,19 +614,29 @@ export default function OrderDetail() {
             </div>
           ) : null}
 
+          {editReq ? (
+            <div className="gc-alert gc-alert--soft gc-alert--info od-dup" role="status">
+              <div className="od-dup__row">
+                <Icon name="git-pull-request" width="16" height="16" aria-hidden="true" />
+                <p><b>Edit to review</b> · {editReq.by}{editReq.from === 'Customer' ? ' (customer)' : ''}{editReq.note ? ': ' + editReq.note : ''}</p>
+                <button type="button" className="ix-btn ix-btn--sm ix-btn--primary" onClick={() => setEditDlg('request')}>Review edit</button>
+              </div>
+            </div>
+          ) : null}
+
           <div className="ix-record">
             <div className="ix-main">
               <section className="ix-card od-card" aria-labelledby="od-next">
                 <header className="ix-card__head"><div><h2 id="od-next">{step.title}</h2>{step.sub ? <p className="od-head-sub">{step.sub}</p> : null}</div>{step.link || null}</header>
                 <div className="ix-card__body od-body">
-                  <ol className="od-steps" aria-label="Order progress" style={{ '--steps': ORDER_STEPS.length }}>
-                    {ORDER_STEPS.map((key) => {
+                  <ol className="od-steps" aria-label="Order progress" style={{ '--steps': STEPS.length }}>
+                    {STEPS.map((key) => {
                       const state = reached[key] ? 'done' : key === nextStep ? 'current' : 'todo';
-                      const icon = { new: 'shopping-bag', verified: 'phone', approved: 'circle-check', ready: 'package', shipped: 'truck', delivered: 'package-check' }[key];
+                      const icon = { new: 'shopping-bag', verified: 'phone', approved: 'circle-check', ready: 'package', shipped: 'truck', delivered: 'package-check', completed: 'badge-check' }[key];
                       return (
                         <li key={key} className={'od-step od-step--' + state} aria-current={state === 'current' ? 'step' : undefined}>
                           <span className="od-step__dot"><Icon name={state === 'done' ? 'check' : icon} width="14" height="14" aria-hidden="true" /></span>
-                          <p className="od-step__label">{key === 'new' ? (isNew ? status.label : STEP_LABEL.new) : STEP_LABEL[key]}<span className="sr-only"> ({state === 'done' ? 'done' : state === 'current' ? 'next' : 'not yet'})</span></p>
+                          <p className="od-step__label">{key === 'new' ? (isNew ? status.label : STEP_LABEL.new) : stepLabel(key)}<span className="sr-only"> ({state === 'done' ? 'done' : state === 'current' ? 'next' : 'not yet'})</span></p>
                           <p className="od-step__note">{stepNote[key] || (state === 'current' ? 'Next' : '')}</p>
                         </li>
                       );
@@ -598,8 +648,8 @@ export default function OrderDetail() {
 
               <section className="ix-card od-card" aria-labelledby="od-items">
                 <header className="ix-card__head">
-                  <h2 id="od-items">Items</h2>
-                  <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={() => toast('Changing the items of a placed order is not in this demo. Cancel it and create a new order instead.', { tone: 'info' })}><Icon name="pencil" width="16" height="16" aria-hidden="true" />Update items</button>
+                  <div><h2 id="od-items">Items</h2>{lastEdit ? <p className="od-head-sub">Version {version} · edited {formatDate(lastEdit.at)}</p> : null}</div>
+                  {!counter ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={openEdit}><Icon name="pencil" width="16" height="16" aria-hidden="true" />Edit order</button> : null}
                 </header>
                 <div className="gc-table-wrap">
                   <table className="gc-table gc-table--compact">
@@ -610,7 +660,7 @@ export default function OrderDetail() {
               </section>
 
               <section className="ix-card od-card" aria-labelledby="od-pay">
-                <header className="ix-card__head"><h2 id="od-pay">Payment</h2></header>
+                <header className="ix-card__head"><h2 id="od-pay">Payment</h2>{!counter && o.statusKey !== 'cancelled' && (due == null || due > 0) ? <button type="button" className="od-linkbtn" onClick={() => setProofDlg('add')}>Add payment proof</button> : null}</header>
                 <div className="ix-card__body">
                   <dl className="od-sum">
                     <dt>Products ({o.units} {o.units === 1 ? 'item' : 'items'})</dt><dd>{formatBDT(o.subtotal)}</dd>
@@ -620,7 +670,23 @@ export default function OrderDetail() {
                     <dt>Paid by customer</dt><dd>{o.paid == null ? 'Partly paid' : formatBDT(o.paid)}</dd>
                     {due ? <><dt className="is-due">Due</dt><dd className="is-due">{formatBDT(due)}</dd></> : null}
                     {!counter && cod > 0 && !['delivered', 'cancelled', 'returned'].includes(o.statusKey) ? <><dt>COD to collect</dt><dd>{formatBDT(cod)}</dd></> : null}
+                    {o.refundDue > 0 ? <><dt className="is-due">Refund owed</dt><dd className="is-due">{formatBDT(o.refundDue)}</dd></> : null}
                   </dl>
+                  {proofs.length ? (
+                    <div className="od-msgs od-section">
+                      <h3>Payment proofs</h3>
+                      {proofs.map((p) => (
+                        <div key={p.id} className="od-msg">
+                          <span className="od-msg__ic" aria-hidden="true"><Icon name="receipt" width="14" height="14" /></span>
+                          <span className="od-msg__main"><b>{methodLabel(p.method)} · {formatBDT(p.amount)}</b><span className="od-id">{p.txn}</span><span>{p.from === 'Customer' ? 'From customer' : p.by} · {formatTime(p.at)}, {formatDate(p.at)}{p.reason ? ' · ' + p.reason : ''}</span></span>
+                          <span className="od-msg__end">
+                            <span className={'gc-badge gc-badge--' + PROOF_STATE[p.state][1]}>{PROOF_STATE[p.state][0]}</span>
+                            {p.state === 'review' && o.statusKey !== 'cancelled' ? <button type="button" className="ix-btn ix-btn--sm" onClick={() => setProofDlg(p)}>Review</button> : null}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               </section>
 
@@ -765,10 +831,26 @@ export default function OrderDetail() {
                     ['Channel', o.channel],
                     ['Courier', <span key="c">{o.courier}{o.consignment !== '—' ? <span className="od-sub od-id">{o.consignment}</span> : null}</span>],
                     ['Stock', open.length ? `Held at ${heldAt}` : 'Not held'],
+                    !counter ? ['Version', lastEdit ? `${version} · ${(o.edits || []).length} ${(o.edits || []).length === 1 ? 'edit' : 'edits'}` : '1'] : null,
+                    o.statusKey === 'delivered' ? ['Completed', completion.done ? formatDate(completion.at) : completion.text] : null,
                   ]} />
                   {rto ? <Link href={'/courier-returns?id=' + encodeURIComponent(o.id)} className="ix-btn ix-btn--sm"><Icon name="package-open" width="16" height="16" aria-hidden="true" />Courier return · {rto.left ? `${rto.left} pcs still with courier` : 'all back'}</Link> : null}
                 </div>
               </section>
+
+              {!counter ? (
+                <section className="ix-card" aria-labelledby="od-sub">
+                  <header className="ix-card__head"><h2 id="od-sub">Sub-status</h2><Link href="/order-settings">Settings</Link></header>
+                  <div className="ix-card__body">
+                    {customChoices.length ? (
+                      <select className="gc-input gc-select" aria-label="Sub-status" value={custom ? custom.id : ''} onChange={setSub}>
+                        <option value="">None</option>
+                        {customChoices.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+                      </select>
+                    ) : <p className="od-sub" style={{ margin: 0 }}>None for {status.label}.</p>}
+                  </div>
+                </section>
+              ) : null}
 
               <section className="ix-card" aria-labelledby="od-tags">
                 <header className="ix-card__head"><h2 id="od-tags">Tags</h2></header>
@@ -872,6 +954,10 @@ export default function OrderDetail() {
           <div style={{ fontSize: 'var(--text-xs)' }}>{o.units} {o.units === 1 ? 'item' : 'items'} · From {MERCHANT.name}, {MERCHANT.phone}</div>
         </div>
       </div>
+
+      <AddProofDialog open={proofDlg === 'add'} order={o} onClose={() => setProofDlg(null)} onDone={() => { setProofDlg(null); refresh(); }} />
+      <ReviewProofDialog open={!!proofDlg && proofDlg !== 'add'} order={o} proof={proofDlg && proofDlg !== 'add' ? proofDlg : null} onClose={() => setProofDlg(null)} onDone={() => { setProofDlg(null); refresh(); }} />
+      <OrderEditDialog open={!!editDlg && canEdit(o)} order={o} request={editDlg === 'request' ? editReq : null} onClose={() => setEditDlg(null)} onDone={() => { setEditDlg(null); refresh(); }} />
 
       <Dialog open={comment != null} title="Add a comment" onClose={() => setComment(null)} width={440}>
         <form onSubmit={saveComment} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>

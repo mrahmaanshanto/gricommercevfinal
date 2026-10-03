@@ -2,8 +2,9 @@
 // PosManage — the back office of the POS register, in four tabs:
 //   Counters        register a counter at a branch or warehouse and choose who may work it
 //   Shifts          who is on a counter now, what each employee sold, and every closed shift
-//   Cash pickups    cash taken out of (or put into) any counter's drawer
-//   Settings        the rules the register follows
+//   Cash pickups    cash taken out of (or put into) any counter's drawer, and drawer opens without a sale
+//   Settings        the rules the register follows (incl. the drawer difference limit and held-sale minutes)
+// A counter open on another device shows who has it; a manager can end that shift here (PIN).
 // Front end only: it reads and writes the same browser storage as the register (src/lib/posStore.js).
 
 import React, { useEffect, useState } from 'react';
@@ -14,11 +15,12 @@ import { toast, confirmDialog } from '@/runtime/ui';
 import { Sidebar, Topbar } from '@/shell/Shell';
 import { Dialog, PageHeader, EmptyState } from '@/components/ui';
 import { formatBDT, formatDate, formatTime } from '@/lib/format';
-import { POS_KEYS, load, getCounters, saveCounters, getShifts, getCash, saveCash, getSettings, saveSettings, shiftReport, nextId, LOCATIONS, EMPLOYEES, MANAGERS, CASH_PLACES, CASH_LABEL, DEFAULT_SETTINGS, postCashMove, getPosLocations } from '@/lib/posStore';
+import { POS_KEYS, load, getCounters, saveCounters, getShifts, getCash, saveCash, getSettings, saveSettings, shiftReport, nextId, LOCATIONS, EMPLOYEES, MANAGERS, CASH_PLACES, CASH_LABEL, DEFAULT_SETTINGS, postCashMove, getPosLocations, getOpenShifts, releaseCounter, deviceId, drawerOf, getDrawerOpens } from '@/lib/posStore';
+import { ManagerPin } from '@/components/ManagerPin';
 
 const TABS = [['counters', 'Counters', 'store'], ['shifts', 'Employees and shifts', 'users'], ['cash', 'Cash pickups', 'hand-coins'], ['settings', 'Settings', 'settings']];
 const PRINTERS = ['Epson TM-T82 · USB', 'Epson TM-T82 · LAN', 'Xprinter XP-80 · USB', 'No printer'];
-const BLANK = { id: '', name: '', location: LOCATIONS[0].name, stock: LOCATIONS[0].name, printer: PRINTERS[0], float: '2000', staff: [], active: true };
+const BLANK = { id: '', name: '', location: LOCATIONS[0].name, stock: LOCATIONS[0].name, printer: PRINTERS[0], drawer: '', float: '2000', staff: [], active: true };
 const money = (n) => formatBDT(n, { decimals: Number.isInteger(n) ? 0 : 2 });
 const num = (v) => Math.max(0, Number(v) || 0);
 const diffBadge = (d) => (d === 0 ? ['success', 'Matches'] : d > 0 ? ['info', 'Over ' + money(d)] : ['error', 'Short ' + money(-d)]);
@@ -90,11 +92,16 @@ export default function PosManage() {
   const [pickup, setPickup] = useState(null);   // { counter, amount, by, to, note }
   const [report, setReport] = useState(null);   // closed shift shown in the report dialog
   const [who, setWho] = useState('');           // employee filter on the shift history
+  const [elsewhere, setElsewhere] = useState([]); // shifts open on other devices
+  const [opens, setOpens] = useState([]);       // drawer opened without a sale
+  const [endOther, setEndOther] = useState(null); // a shift on another device a manager is ending
 
   useEffect(() => {
     setCounters(getCounters()); setShifts(getShifts()); setCash(getCash());
     const set = getSettings(); setCfg(set); setSaved(set);
     setOpen(load(POS_KEYS.shift, null)); setSales(load(POS_KEYS.sales, []));
+    const me = deviceId();
+    setElsewhere(getOpenShifts().filter((o) => o.device !== me)); setOpens(getDrawerOpens());
     const read = () => { const want = new URLSearchParams(window.location.search).get('tab'); setTabState(TABS.some((x) => x[0] === want) ? want : 'counters'); };
     read();
     window.addEventListener('gc:route', read); window.addEventListener('popstate', read);
@@ -116,13 +123,14 @@ export default function PosManage() {
     if (!name) { setErr('Enter a name for the counter.'); return; }
     if (counters.some((c) => c.name.toLowerCase() === name.toLowerCase() && c.id !== form.id)) { setErr('Another counter already has this name.'); return; }
     if (!form.staff.length) { setErr('Choose at least one employee who can work this counter.'); return; }
-    const row = { ...form, name, float: num(form.float), id: form.id || nextId('REG', counters) };
+    const id = form.id || nextId('REG', counters);
+    const row = { ...form, name, float: num(form.float), id, drawer: (form.drawer || '').trim().toUpperCase() || drawerOf({ id }) };
     const next = form.id ? counters.map((c) => (c.id === form.id ? row : c)) : [...counters, row];
     setCounters(next); saveCounters(next); setForm(null); setErr('');
     toast(form.id ? `${row.name} updated` : `${row.id} · ${row.name} registered at ${row.location}`);
   };
   const toggleActive = async (c) => {
-    if (open && open.counter === c.name) { toast(`${c.name} has an open shift. End the shift first.`, { tone: 'error' }); return; }
+    if ((open && open.counter === c.name) || elsewhere.some((o) => o.counterId === c.id)) { toast(`${c.name} has an open shift. End the shift first.`, { tone: 'error' }); return; }
     if (c.active && !(await confirmDialog({ title: `Turn off ${c.name}?`, body: 'It will not be offered when a register is opened. Its past shifts stay in the history.', confirmLabel: 'Turn off' }))) return;
     const next = counters.map((x) => (x.id === c.id ? { ...x, active: !x.active } : x));
     setCounters(next); saveCounters(next);
@@ -198,16 +206,18 @@ export default function PosManage() {
                       <tbody>
                         {counters.map((c) => {
                           const isOpen = open && open.counter === c.name;
+                          const other = elsewhere.find((o) => o.counterId === c.id);
                           return (
                             <tr key={c.id}>
-                              <td><span className="pm-strong">{c.name}</span><span className="pm-sub"><span className="pm-id">{c.id}</span> · {c.printer}</span></td>
+                              <td><span className="pm-strong">{c.name}</span><span className="pm-sub"><span className="pm-id">{c.id}</span> · {c.printer} · drawer {drawerOf(c)}</span></td>
                               <td>{c.location}<span className="pm-sub">Sells from {c.stock}</span></td>
                               <td>{c.staff.slice(0, 2).join(', ')}{c.staff.length > 2 ? ` +${c.staff.length - 2}` : ''}<span className="pm-sub">{c.staff.length} can open it</span></td>
-                              <td>{!c.active ? <span className="gc-badge gc-badge--slate">Off</span> : isOpen ? <><span className="gc-badge gc-badge--success">Open</span><span className="pm-sub">{open.cashier} since {formatTime(open.openedAt)}</span></> : <span className="gc-badge gc-badge--warning">Closed</span>}</td>
+                              <td>{!c.active ? <span className="gc-badge gc-badge--slate">Off</span> : isOpen ? <><span className="gc-badge gc-badge--success">Open</span><span className="pm-sub">{open.cashier} since {formatTime(open.openedAt)}</span></> : other ? <><span className="gc-badge gc-badge--success">Open</span><span className="pm-sub">{other.cashier} on {other.deviceName}</span></> : <span className="gc-badge gc-badge--warning">Closed</span>}</td>
                               <td className="pm-num">{isOpen ? money(live.expected) : '—'}</td>
                               <td><div className="pm-actions">
                                 {isOpen ? <button type="button" className="gc-btn gc-btn--sm gc-btn--soft" onClick={() => startPickup(c.name)}>Pick up cash</button> : null}
-                                <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => { setErr(''); setForm({ ...c, float: String(c.float) }); }} aria-label={`Edit ${c.name}`}>Edit</button>
+                                {other ? <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => setEndOther(other)} aria-label={`End the shift on ${other.deviceName}`}>End shift</button> : null}
+                                <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={() => { setErr(''); setForm({ ...c, drawer: c.drawer || '', float: String(c.float) }); }} aria-label={`Edit ${c.name}`}>Edit</button>
                                 <button type="button" className="gc-btn gc-btn--sm gc-btn--flat" onClick={() => toggleActive(c)} aria-label={`Turn ${c.active ? 'off' : 'on'} ${c.name}`}>{c.active ? 'Turn off' : 'Turn on'}</button>
                               </div></td>
                             </tr>
@@ -312,8 +322,8 @@ export default function PosManage() {
                               <td className="pm-id">{m.id}</td>
                               <td>{formatDate(m.at)}<span className="pm-sub">{formatTime(m.at)}</span></td>
                               <td>{m.counter}</td>
-                              <td><span className={'gc-badge gc-badge--' + (m.type === 'pickup' ? 'primary' : m.type === 'in' ? 'success' : 'warning')}>{CASH_LABEL[m.type]}</span></td>
-                              <td className="pm-num pm-strong">{m.type === 'in' ? '+' : '−'}{money(m.amount)}</td>
+                              <td><span className={'gc-badge gc-badge--' + (m.type === 'pickup' ? 'primary' : m.type === 'in' || m.type === 'float' ? 'success' : 'warning')}>{CASH_LABEL[m.type] || m.type}</span></td>
+                              <td className="pm-num pm-strong">{m.type === 'in' || m.type === 'float' || (m.type === 'opendiff' && m.diff > 0) ? '+' : '−'}{money(m.amount)}</td>
                               <td>{m.by}</td>
                               <td>{m.to || '—'}</td>
                               <td>{m.cashier}</td>
@@ -323,6 +333,28 @@ export default function PosManage() {
                         </tbody>
                       </table>
                     </div>
+                  </section>
+                  <section className="gc-card pm-card">
+                    <div className="pm-head"><div><h2>Drawer opened without a sale</h2></div></div>
+                    {opens.length === 0 ? <EmptyState icon="inbox" title="No drawer opens" body="Opens without a sale appear here." /> : (
+                      <div className="gc-table-wrap">
+                        <table className="gc-table gc-table--compact gc-table--hoverable">
+                          <thead><tr><th scope="col">No.</th><th scope="col">When</th><th scope="col">Counter</th><th scope="col">Cashier</th><th scope="col">Reason</th><th scope="col">Approved by</th></tr></thead>
+                          <tbody>
+                            {opens.map((m) => (
+                              <tr key={m.id}>
+                                <td className="pm-id">{m.id}</td>
+                                <td>{formatDate(m.at)}<span className="pm-sub">{formatTime(m.at)}</span></td>
+                                <td>{m.counter}</td>
+                                <td>{m.cashier}</td>
+                                <td>{m.reason}{m.note ? <span className="pm-sub">{m.note}</span> : null}</td>
+                                <td>{m.approvedBy || <span className="pm-sub">Own permission</span>}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </section>
                 </>
               ) : null}
@@ -336,8 +368,10 @@ export default function PosManage() {
                       <span className="pm-cap">Cash</span>
                       <div><label className="gc-label" htmlFor="pm-float">Opening cash suggested for a new counter (৳)</label><input id="pm-float" className="gc-input" type="number" min="0" inputMode="numeric" value={cfg.float} onChange={(e) => setCfg({ ...cfg, float: num(e.target.value) })} /></div>
                       <div><label className="gc-label" htmlFor="pm-limit">Ask for a cash pickup when the drawer holds more than (৳)</label><input id="pm-limit" className="gc-input" type="number" min="0" inputMode="numeric" value={cfg.pickupLimit} onChange={(e) => setCfg({ ...cfg, pickupLimit: num(e.target.value) })} /><p className="gc-help">The register shows a reminder above this amount.</p></div>
+                      <div><label className="gc-label" htmlFor="pm-variance">Drawer short or over by more than (৳)</label><input id="pm-variance" className="gc-input" type="number" min="0" inputMode="numeric" value={cfg.varianceLimit} onChange={(e) => setCfg({ ...cfg, varianceLimit: num(e.target.value) })} /><p className="gc-help">Needs a manager’s PIN when a shift opens or closes. The difference posts to Accounts as a shortage or overage.</p></div>
                       <span className="pm-cap">Selling</span>
                       <div><label className="gc-label" htmlFor="pm-disc">Largest cashier discount (%)</label><input id="pm-disc" className="gc-input" type="number" min="0" max="100" inputMode="numeric" value={cfg.maxDiscount} onChange={(e) => setCfg({ ...cfg, maxDiscount: Math.min(100, num(e.target.value)) })} /></div>
+                      <div><label className="gc-label" htmlFor="pm-hold">Held sale keeps its stock for (minutes)</label><input id="pm-hold" className="gc-input" type="number" min="0" inputMode="numeric" value={cfg.holdMinutes} onChange={(e) => setCfg({ ...cfg, holdMinutes: num(e.target.value) })} /><p className="gc-help">Then the stock goes back on sale. 0 keeps it until the sale is resumed.</p></div>
                       <p className="gc-help" style={{ margin: 0 }}>VAT is not set here. The register charges each product the rate of its category from <Link href="/vat" className="gc-card__link">Accounts › VAT</Link>.</p>
                     </div>
                     <div className="pm-form">
@@ -373,6 +407,7 @@ export default function PosManage() {
               <div><label className="gc-label" htmlFor="pm-printer">Receipt printer</label><select id="pm-printer" className="gc-input gc-select" value={form.printer} onChange={(e) => setForm({ ...form, printer: e.target.value })}>{PRINTERS.map((x) => <option key={x}>{x}</option>)}</select></div>
               <div><label className="gc-label" htmlFor="pm-cfloat">Opening cash (৳)</label><input id="pm-cfloat" className="gc-input" type="number" min="0" inputMode="numeric" value={form.float} onChange={(e) => setForm({ ...form, float: e.target.value })} /></div>
             </div>
+            <div><label className="gc-label" htmlFor="pm-drawer">Cash drawer</label><input id="pm-drawer" className="gc-input" placeholder={form.id ? drawerOf({ id: form.id }) : 'For example: CD-05'} value={form.drawer || ''} onChange={(e) => setForm({ ...form, drawer: e.target.value })} /><p className="gc-help">Counters that share a drawer can't be open at the same time.</p></div>
             <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
               <legend className="gc-label">Employees who can open this counter *</legend>
               <div className="pm-checks">
@@ -404,6 +439,9 @@ export default function PosManage() {
         ) : null}
       </Dialog>
 
+      {/* a manager ends a shift left open on another device */}
+      <ManagerPin open={!!endOther} action="End shift on another device" by={endOther ? endOther.cashier : ''} reason={endOther ? `End ${endOther.cashier}'s shift on ${endOther.counter} (${endOther.deviceName}). Its sales stay on that device.` : ''} onClose={() => setEndOther(null)} onApprove={(m) => { releaseCounter(endOther.counterId); setElsewhere(getOpenShifts().filter((o) => o.device !== deviceId())); toast(`${endOther.counter} closed by ${m}`); setEndOther(null); }} />
+
       {/* closed shift report */}
       <Dialog open={!!report} title={report ? `Shift ${report.id} · ${report.cashier}` : 'Shift'} onClose={() => setReport(null)} width={520}
         footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => toast('Shift report sent to the printer')}><Icon name="printer" width="18" height="18" aria-hidden="true" /> Print</button><button type="button" className="gc-btn gc-btn--solid" onClick={() => setReport(null)}>Done</button></>}>
@@ -418,9 +456,16 @@ export default function PosManage() {
               <li><span>Refunds and exchanges</span><span>−{money(report.refunds)}</span></li>
               {Object.entries(report.byMethod).map(([m, v]) => <li key={m}><span>Taken by {m}</span><span>{money(v)}</span></li>)}
             </ul>
+            {report.byAccount && report.byAccount.length > 1 ? <>
+              <span className="pm-cap">By account · expected / counted</span>
+              <ul className="pm-rows">
+                {report.byAccount.map((a) => <li key={a.account + a.terminal}><span>{a.label || a.account}</span><span>{money(a.expected)} / {money(a.counted)}{a.diff ? ` (${a.diff > 0 ? '+' : '−'}${money(Math.abs(a.diff))})` : ''}</span></li>)}
+              </ul>
+            </> : null}
             <span className="pm-cap">Cash drawer</span>
             <ul className="pm-rows">
-              <li><span>Opening cash</span><span>{money(report.float)}</span></li>
+              <li><span>Opening cash{report.floatFrom ? ` · from ${report.floatFrom === 'Last shift' ? 'last shift' : 'the safe'}` : ''}</span><span>{money(report.float)}</span></li>
+              {report.openDiff ? <li><span>Opening difference{report.openReason ? ` · ${report.openReason}` : ''}{report.openBy ? ` · ${report.openBy}` : ''}</span><span>{report.openDiff > 0 ? '+' : '−'}{money(Math.abs(report.openDiff))}</span></li> : null}
               <li><span>Cash refunded</span><span>−{money(report.cashRefunds)}</span></li>
               <li><span>Cash pickups</span><span>−{money(report.pickups)}</span></li>
               {report.paidOut ? <li><span>Paid out</span><span>−{money(report.paidOut)}</span></li> : null}
@@ -429,6 +474,7 @@ export default function PosManage() {
               <li><span>Counted</span><span>{money(report.counted)}</span></li>
             </ul>
             <div className="pm-total"><span>Difference</span><b>{report.diff === 0 ? 'Matches' : (report.diff > 0 ? '+' : '−') + money(Math.abs(report.diff))}</b></div>
+            {report.approvedBy ? <p className="gc-help" style={{ margin: 0 }}>Approved by {report.approvedBy}{report.unsynced ? ` · closed with ${report.unsynced} sale${report.unsynced > 1 ? 's' : ''} not synced` : ''}</p> : null}
             {report.note ? <p className="gc-help" style={{ margin: 0 }}>Note: {report.note}</p> : null}
           </div>
         ) : null}

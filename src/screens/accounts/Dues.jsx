@@ -5,7 +5,9 @@
 //                 being paid; → Customer wallets)
 //   You will get  ageing from the invoice date (terms are not stored), then customers with money due on
 //                 their invoices (wholesale customers, and retail sales left on credit). A row opens its
-//                 invoices, "Remind" (copies a polite reminder to paste into SMS or WhatsApp) and the statement.
+//                 invoices, "Record payment" (one payment across several invoices, duesParts.jsx), "Write off" on
+//                 a small balance (waits for approval), "Remind" (copies a polite reminder to paste into SMS or
+//                 WhatsApp) and the statement.
 //   You owe       ageing of supplier bills by due date, open bills by supplier (a row opens Pay on
 //                 Suppliers) and liabilities not fully paid (a row opens Pay on Bills to pay).
 // ?tab=get|owe picks the tab. Front end only: reads src/lib/invoices.js, supplierBills.js,
@@ -25,7 +27,9 @@ import { getBills, billLeft, getSuppliers, findSupplier, dayStart, daysFrom } fr
 import { getLiabilities, leftOf, liabStatus, LIAB_TYPES, LIAB_TONE } from '@/lib/liabilities';
 import { getPartners, heldBy, clockNow } from '@/lib/settlements';
 import { getMembers, pointsLiability, walletLiability } from '@/lib/loyalty';
+import { WRITE_OFF_MAX, getWriteOffs } from '@/lib/allocations';
 import { AccPage, useBooks, money } from './accShared';
+import { AllocateDialog, WriteOffDialog } from './duesParts';
 
 const TABS = [['get', 'You will get'], ['owe', 'You owe']];
 const r2 = (n) => Math.round(n * 100) / 100;
@@ -77,6 +81,8 @@ export default function Dues() {
   const tick = useBooks();
   const [tab, setTab] = useState('get');
   const [openRow, setOpenRow] = useState('');
+  const [alloc, setAlloc] = useState(null);     // a customer group to record a payment for
+  const [writeOff, setWriteOff] = useState(null); // an invoice to write off
 
   useEffect(() => {
     const want = new URLSearchParams(window.location.search).get('tab');
@@ -148,12 +154,13 @@ export default function Dues() {
     const loyWallet = walletLiability(loyMembers);
     const forCustomers = { points: loyPts.value, wallets: loyWallet.total, total: r2(loyPts.value + loyWallet.total), count: loyWallet.customers.length };
 
+    const woWaiting = new Set(getWriteOffs().filter((w) => w.status === 'waiting').map((w) => w.invoiceId));
     const get = r2(customerDue + held);
     const owe = r2(supplierLeft + liabLeft);
     const overdueGet = r2(lateInvoices.reduce((a, i) => a + i.due, 0));
     const overdueOwe = r2(lateBills.reduce((a, b) => a + billLeft(b), 0) + lateLiabs.reduce((a, l) => a + leftOf(l), 0));
     return {
-      now, today, customers, getAges, customerDue, partners, held, supplierRows, oweAges, supplierLeft, liabs, liabLeft, forCustomers,
+      now, today, customers, getAges, woWaiting, customerDue, partners, held, supplierRows, oweAges, supplierLeft, liabs, liabLeft, forCustomers,
       get, owe, net: r2(get - owe),
       overdue: { get: overdueGet, owe: overdueOwe, getCount: lateInvoices.length, oweCount: lateBills.length + lateLiabs.length },
     };
@@ -198,20 +205,25 @@ export default function Dues() {
     <div className="du-detail">
       <div className="du-chips">{GET_AGES.filter(([k]) => g.ages[k] > 0).map(([k, label, tone]) => <StatusBadge key={k} tone={tone}>{label} · {money(g.ages[k])}</StatusBadge>)}</div>
       <table className="ac-mini">
-        <thead><tr><th scope="col">Invoice</th><th scope="col">Date</th><th scope="col" className="ac-num">Total</th><th scope="col" className="ac-num">Paid</th><th scope="col" className="ac-num">Due</th></tr></thead>
+        <thead><tr><th scope="col">Invoice</th><th scope="col">Date</th><th scope="col" className="ac-num">Total</th><th scope="col" className="ac-num">Paid</th><th scope="col" className="ac-num">Due</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
         <tbody>
-          {g.invoices.map((inv) => (
-            <tr key={inv.id}>
-              <td><Link href={`/sales-invoice?id=${encodeURIComponent(inv.id)}`} className="ac-fig">{inv.id}</Link></td>
-              <td>{formatDate(inv.at)}</td>
-              <td className="ac-num ac-fig">{money(inv.totals.total)}</td>
-              <td className="ac-num ac-fig">{money(r2(inv.totals.total - inv.due))}</td>
-              <td className="ac-num ac-fig ac-strong">{money(inv.due)}</td>
-            </tr>
-          ))}
+          {g.invoices.map((inv) => {
+            const waiting = data && data.woWaiting.has(inv.id);
+            return (
+              <tr key={inv.id}>
+                <td><Link href={`/sales-invoice?id=${encodeURIComponent(inv.id)}`} className="ac-fig">{inv.id}</Link></td>
+                <td>{formatDate(inv.at)}</td>
+                <td className="ac-num ac-fig">{money(inv.totals.total)}</td>
+                <td className="ac-num ac-fig">{money(r2(inv.totals.total - inv.due))}</td>
+                <td className="ac-num ac-fig ac-strong">{money(inv.due)}</td>
+                <td className="ac-num">{waiting ? <StatusBadge tone="warning" icon="hourglass">Write-off waiting</StatusBadge> : inv.due <= WRITE_OFF_MAX ? <button type="button" className="gc-btn gc-btn--xs gc-btn--neutral" onClick={() => setWriteOff(inv)} aria-label={`Write off ${inv.id}`}>Write off</button> : null}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
       <div className="du-acts">
+        <button type="button" className="ix-btn ix-btn--sm ix-btn--primary" onClick={() => setAlloc(g)} aria-label={`Record a payment from ${g.name}`}><Icon name="hand-coins" width="16" height="16" aria-hidden="true" />Record payment</button>
         <button type="button" className="ix-btn ix-btn--sm" onClick={() => remind(g)} aria-label={`Copy a reminder for ${g.name}`}><Icon name="message-square-text" width="16" height="16" aria-hidden="true" />Remind</button>
         {g.digits ? <Link href={`/customer-statement?phone=${g.digits}`} className="ix-btn ix-btn--sm" aria-label={`Statement of ${g.name}`}>Statement</Link> : null}
         <span className="ix-muted du-fig">{g.phone || 'No phone'}</span>
@@ -355,6 +367,8 @@ export default function Dues() {
         </div>
       </section>
       <LearnMore topic="dues" />
+      {alloc ? <AllocateDialog g={alloc} onClose={() => setAlloc(null)} /> : null}
+      {writeOff ? <WriteOffDialog inv={writeOff} onClose={() => setWriteOff(null)} /> : null}
     </AccPage>
   );
 }

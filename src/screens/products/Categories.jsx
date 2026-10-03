@@ -10,6 +10,7 @@ import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
 import { Dialog as __Dialog, EmptyState as __EmptyState, Sheet as __Sheet, StatusBadge as __StatusBadge, InfoTip as __InfoTip } from '@/components/ui';
 import { ShopHeader, SearchField, LearnMore } from '@/components/ui/IndexKit';
 import { toast as __toast } from '@/runtime/ui';
+import { TEMPLATES, tplBy, categoryDefaults, setCategoryTemplate, templateOfCategory, businessTemplate } from '@/lib/productTemplates';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -38,6 +39,8 @@ function nameError(name, siblings) {
 }
 function focusId(id) { setTimeout(function () { var el = document.getElementById(id); if (el) el.focus(); }, 0); }
 class Component extends DCLogic {
+  // saved category templates are read after mount (localStorage), so the first render matches the server
+  componentDidMount() { this.setState({ tplTick: 1 }); }
   renderVals() {
     var self = this, s = this.state || {}, open = s.open || { skin: true, clo: true, ele: true, men: false };
     var names = s.names || {}, all = T.concat(s.extra || []), by = {};
@@ -65,6 +68,11 @@ class Component extends DCLogic {
       noRowsTitle: 'No category matches “' + (s.cq || '').trim() + '”',
       allLbl: Object.keys(open).some(function (k) { return open[k]; }) ? 'Close all' : 'Open all',
       toggleAll: function () { var any = Object.keys(open).some(function (k) { return open[k]; }); var o = {}; all.forEach(function (t) { if (kidsOf(t.id).length) o[t.id] = !any; }); self.setState({ open: o }); },
+      // the category's product template (productTemplates.js): products in it get it unless they pick their own
+      tplOwn: s.tplTick ? (categoryDefaults()[path.concat(nm(sel)).join(' › ')] || {}).template || '' : '',
+      tplFrom: path.length ? tplBy(templateOfCategory(path[0])).name : tplBy(businessTemplate()).name,
+      setTpl: function (e) { var pth = path.concat(nm(sel)).join(' › '); setCategoryTemplate(pth, e.target.value); self.setState({ tplTick: Date.now() }); toast(self, e.target.value ? 'New products in ' + nm(sel) + ' use ' + tplBy(e.target.value).name + '.' : nm(sel) + ' uses the template above it.'); },
+      templates: TEMPLATES,
       sel: { id: sel.id, name: nm(sel), initial: nm(sel).charAt(0), n: sel.n, path: path.length ? path.join(' › ') + ' ›' : 'Top level', parent: path.length ? path[path.length - 1] : 'Top level', tax: R.tax || 'Standard VAT 15%', wp: R.wp || 'No warranty', sg: R.sg || 'No size guide', track: R.track || 'No tracking', unit: R.unit || 'Piece', comm: R.comm || '10%', slug: '/collections/' + nm(sel).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') },
       name: name, nameErr: s.nameErr || '', typeName: function (e) { self.setState({ name: e.target.value, nameErr: '' }); },
       desc: s.desc != null ? s.desc : '', typeDesc: function (e) { self.setState({ desc: e.target.value }); },
@@ -272,6 +280,13 @@ export default class CategoriesScreen extends Component {
 
             <h3 className="ct-sec">Defaults for new products</h3>
             <div className="ct-grid">
+              <div className="ct-field">
+                <div className="ct-lbl"><label className="gc-label" htmlFor="cat-tpl">Product template</label><__InfoTip text="Decides which details its products show. A product can pick its own." /></div>
+                <select id="cat-tpl" className="gc-input gc-select" value={v.tplOwn} onChange={v.setTpl} data-nodirty="">
+                  <option value="">{'Same as above · ' + v.tplFrom}</option>
+                  {__list(v.templates).map((t) => (<option key={t.id} value={t.id}>{t.name}</option>))}
+                </select>
+              </div>
               <label className="ct-field">
                 <span className="gc-label">VAT / tax</span>
                 <select className="gc-input gc-select" aria-label="Tax">

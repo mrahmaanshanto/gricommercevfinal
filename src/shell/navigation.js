@@ -12,7 +12,15 @@ export const NAV = [
   { label: 'Commerce', items: [
     { id: 'area-home', icon: 'house', label: 'Home', children: [
       { id: 'home', icon: 'layout-dashboard', label: 'Dashboard', to: 'merchant-overview/MerchantOverview.dc.html' },
-      { id: 'my-dash', icon: 'user-round', label: 'My dashboard', to: 'team/MyDashboard.dc.html' },
+      { id: 'my-dash', icon: 'user-round', label: 'My dashboard', to: 'team/MyDashboard.dc.html', hidden: true, under: 'home' },   // opened from the person's card at the bottom of the menu
+    ] },
+    { id: 'area-inbox', icon: 'message-circle', label: 'Inbox', live: 'inbox', children: [
+      { id: 'inbox', icon: 'message-circle', label: 'Chats', live: 'chats', to: 'merchant-inbox/MerchantInbox.dc.html' },
+      { id: 'inbox-comments', icon: 'messages-square', label: 'Comments', live: 'comments', to: 'merchant-inbox/MerchantInbox.dc.html', q: 'view=comments' },
+      { id: 'inbox-mentions', icon: 'at-sign', label: 'Mentions', live: 'mentions', to: 'merchant-inbox/MerchantInbox.dc.html', q: 'view=mentions' },
+      { id: 'tickets', icon: 'life-buoy', label: 'Support tickets', tab: 'Tickets', count: 5, to: 'support-tickets/SupportTickets.dc.html' },
+      { id: 'calls', icon: 'phone', label: 'Calls', to: 'merchant-calls/MerchantCalls.dc.html' },
+      { id: 'comm-ai', icon: 'phone-call', label: 'AI calls', count: 1, to: 'ai-call/AiCalls.dc.html' },
     ] },
     { id: 'area-orders', icon: 'shopping-cart', label: 'Orders', children: [
       { id: 'orders-all', icon: 'inbox', label: 'All orders', to: 'merchant-orders/MerchantOrders.dc.html' },
@@ -20,6 +28,9 @@ export const NAV = [
       { id: 'sales-invoices', icon: 'file-text', label: 'Invoices', to: 'sales/SalesInvoices.dc.html' },
       { id: 'sales-return', icon: 'undo-2', label: 'Returns & exchanges', to: 'sales/ReturnExchange.dc.html' },
       { id: 'orders-rto', icon: 'package-x', label: 'Courier returns', to: 'merchant-orders/CourierReturns.dc.html' },
+      { id: 'orders-courier', icon: 'truck', label: 'Courier statement', to: 'merchant-orders/CourierStatement.dc.html' },
+      { id: 'orders-work', icon: 'list-checks', label: 'Order work', to: 'merchant-orders/OrderWork.dc.html' },
+      { id: 'orders-settings', icon: 'sliders-horizontal', label: 'Order settings', to: 'merchant-orders/OrderSettings.dc.html' },
       { id: 'stock-wclaims', icon: 'wrench', label: 'Warranty claims', count: 5, to: 'purchase-stock/WarrantyClaims.dc.html' },
     ] },
     { id: 'area-products', icon: 'package', label: 'Products', children: [
@@ -33,6 +44,7 @@ export const NAV = [
     ] },
     { id: 'area-inventory', icon: 'boxes', label: 'Inventory', children: [
       { id: 'stock-list', icon: 'boxes', label: 'Stock', to: 'purchase-stock/Stock.dc.html' },
+      { id: 'stock-activity', icon: 'history', label: 'Stock activity', tab: 'Activity', to: 'purchase-stock/StockActivity.dc.html' },
       { id: 'stock-adjust', icon: 'sliders-horizontal', label: 'Stock adjustments', tab: 'Adjustments', to: 'purchase-stock/StockAdjustments.dc.html' },
       { id: 'stock-count', icon: 'clipboard-check', label: 'Stock count', tab: 'Counts', to: 'purchase-stock/StockCount.dc.html' },
       { id: 'stock-holds', icon: 'lock', label: 'Stock holds', tab: 'Holds', to: 'purchase-stock/StockHolds.dc.html' },
@@ -51,23 +63,22 @@ export const NAV = [
       { id: 'po-requests', icon: 'clipboard-list', label: 'Purchase requests', count: 4, to: 'purchase-stock/Requests.dc.html' },
     ] },
     { id: 'area-payments', icon: 'credit-card', label: 'Payments', children: [
+      { id: 'acc-payments', icon: 'credit-card', label: 'Payment operations', tab: 'Operations', to: 'payments/PaymentOps.dc.html' },
       { id: 'acc-settle', icon: 'hourglass', label: 'Payouts', to: 'accounts/Settlements.dc.html' },
       { id: 'pay-setup', icon: 'sliders-horizontal', label: 'Payment setup', to: 'settings-console/SetPayments.dc.html' },
     ] },
     { id: 'area-customers', icon: 'users', label: 'Customers', children: [
       { id: 'customers', icon: 'users', label: 'All customers', to: 'customers-crm/AllCustomers.dc.html' },
       { id: 'leads', icon: 'target', label: 'Leads & follow-ups', to: 'team/SalesLeads.dc.html' },
+      { id: 'cust-settings', icon: 'sliders-horizontal', label: 'Customer settings', tab: 'Settings', to: 'customers-crm/CustomerSettings.dc.html' },
     ] },
     { id: 'area-comms', icon: 'messages-square', label: 'Communications', children: [
-      { id: 'inbox', icon: 'messages-square', label: 'Inbox', count: 12, to: 'merchant-inbox/MerchantInbox.dc.html' },
-      { id: 'calls', icon: 'phone', label: 'Calls', to: 'merchant-calls/MerchantCalls.dc.html' },
-      { id: 'comm-ai', icon: 'phone-call', label: 'AI calls', count: 1, to: 'ai-call/AiCalls.dc.html' },
-      { id: 'tickets', icon: 'life-buoy', label: 'Support tickets', count: 5, to: 'support-tickets/SupportTickets.dc.html' },
       { id: 'comm-cal', icon: 'calendar-days', label: 'Social posts', to: 'communication/Calendar.dc.html' },
       { id: 'comm-new', icon: 'square-pen', label: 'Create post', to: 'communication/Composer.dc.html', hidden: true, under: 'comm-cal' },
+      { id: 'msg-campaigns', icon: 'send', label: 'Campaigns', to: 'communication/CampaignsMessaging.dc.html' },
       { id: 'auto-rules', icon: 'zap', label: 'Automations', to: 'automation/Automations.dc.html' },
       { id: 'auto-builder', icon: 'workflow', label: 'Workflow builder', to: 'automation/WorkflowBuilder.dc.html' },
-      { id: 'auto-settings', icon: 'settings-2', label: 'Workflow settings', to: 'automation/WorkflowSettings.dc.html' },
+      { id: 'auto-settings', icon: 'settings-2', label: 'Communications settings', tab: 'Settings', to: 'automation/WorkflowSettings.dc.html' },
     ] },
     { id: 'area-finances', icon: 'wallet', label: 'Finances', children: [
       { id: 'acc-home', icon: 'layout-dashboard', label: 'Overview', to: 'accounts/AccountsHome.dc.html' },
@@ -75,6 +86,8 @@ export const NAV = [
       { id: 'acc-spend', icon: 'receipt', label: 'Income & expenses', to: 'accounts/ExpensesBills.dc.html' },
       { id: 'acc-dues', icon: 'scale', label: 'Dues', to: 'accounts/Dues.dc.html' },
       { id: 'acc-liab', icon: 'file-clock', label: 'Bills to pay', to: 'accounts/Liabilities.dc.html' },
+      { id: 'acc-approvals', icon: 'badge-check', label: 'Approvals', to: 'accounts/MoneyApprovals.dc.html' },
+      { id: 'acc-match', icon: 'file-check-2', label: 'Match statements', to: 'accounts/StatementMatch.dc.html' },
       { id: 'acc-setup', icon: 'sliders-horizontal', label: 'Money setup', to: 'accounts/AccountSetup.dc.html' },
     ] },
     // every report in one place (src/lib/reports/catalogue.js); report groups are chips on the page
@@ -93,10 +106,11 @@ export const NAV = [
       { id: 'loy-home', icon: 'gift', label: 'Loyalty & rewards', tab: 'Loyalty', to: 'loyalty-promo/Loyalty.dc.html' },
       { id: 'loy-members', icon: 'crown', label: 'Members', to: 'loyalty-promo/Members.dc.html' },
       { id: 'loy-products', icon: 'star', label: 'Product points', to: 'loyalty-promo/ProductPoints.dc.html' },
-      { id: 'loy-wallet', icon: 'wallet', label: 'Customer wallet', tab: 'Wallet', count: 5, to: 'loyalty-promo/Wallet.dc.html' },
+      { id: 'loy-wallet', icon: 'wallet', label: 'Store credit', to: 'loyalty-promo/Wallet.dc.html' },
       { id: 'loy-referrals', icon: 'share-2', label: 'Invite a friend', to: 'loyalty-promo/Referrals.dc.html' },
       { id: 'rec-carts', icon: 'shopping-bag', label: 'Abandoned carts', count: 31, to: 'recovery/AbandonedCarts.dc.html' },
       { id: 'rec-auto', icon: 'refresh-cw', label: 'Auto reminders', tab: 'Reminders', to: 'recovery/AutoReminders.dc.html' },
+      { id: 'rec-audiences', icon: 'users-round', label: 'Ad audiences', to: 'recovery/AdAudiences.dc.html' },
       { id: 'ch-gbp', icon: 'map-pin', label: 'Google Business', to: 'channels/GoogleBusiness.dc.html' },
     ] },
     { id: 'area-store', icon: 'store', label: 'Online Store', children: [

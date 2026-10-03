@@ -6,6 +6,7 @@
 //   card      views by account type (with their balance), search, filters (account, kind, dates, moves
 //             between own accounts), the movements with a running balance for one account, the pager
 //   Add money · Take money out · Move money between accounts (for the chosen account, if any)
+// Money moved or taken out over an approval limit (lib/approvals.js) is not posted: it waits in Approvals.
 // ?account=<id> · ?type=Cash|Bank|Mobile · ?do=in|out|transfer (&from=<id>) opens that form
 // Front end only: balances are opening + every entry in lib/ledger.
 
@@ -16,7 +17,8 @@ import { Dialog, EmptyState } from '@/components/ui';
 import { MetricStrip, IndexTabs, SearchField, Pager, LearnMore } from '@/components/ui/IndexKit';
 import { OWN_ACCOUNTS, HOLDING_ACCOUNTS, accountBy, getEntries, balanceOf, postEntry, transferBetween, KIND_LABEL } from '@/lib/ledger';
 import { clockNow, dayKey, startOfDay } from '@/lib/settlements';
-import { AccPage, AccountSelect, useBooks, money, signed, shortDate, accName } from './accShared';
+import { needsApproval, submit, limitText } from '@/lib/approvals';
+import { AccPage, AccountSelect, useBooks, useMe, money, signed, shortDate, accName } from './accShared';
 
 const TYPES = [['Cash', 'Cash'], ['Bank', 'Banks'], ['Mobile', 'Mobile wallets']];
 const PAGE = 50;
@@ -34,12 +36,20 @@ const CSS = `
 @media (max-width:1279px){.mn-what .ac-trunc{max-width:300px}}
 `;
 
+/** The approval limit a money move or money out passes (lib/approvals.js), or null. */
+function approvalOf(form, amt) {
+  if (!(amt > 0)) return null;
+  if (form.mode === 'transfer') return needsApproval({ kind: 'move', amount: amt, account: form.account, to: form.to });
+  if (form.reason === 'expense') return needsApproval({ kind: 'expense', amount: amt, cat: 'Bank charges', account: form.account });
+  return needsApproval({ kind: 'move', amount: amt, account: form.account });
+}
 const timeOf = (t) => new Date(t).toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' });
 const whatOf = (e) => e.cat || KIND_LABEL[e.kind] || e.kind;
 const subOf = (e) => [e.party, e.ref && !String(e.ref).includes(':') ? e.ref : '', e.note].filter(Boolean).join(' · ');
 
 export default function Money() {
   const tick = useBooks();
+  const me = useMe();
   const [account, setAccount] = useState('');
   const [type, setType] = useState('');
   const [kind, setKind] = useState('');
@@ -97,9 +107,22 @@ export default function Money() {
     const amt = Math.round((Number(form.amount) || 0) * 100) / 100;
     if (!(amt > 0)) { setForm({ ...form, tried: true }); return; }
     const at = form.date === dayKey(clockNow()) ? undefined : new Date(form.date + 'T12:00:00').getTime();
-    const meta = { note: form.note.trim(), by: 'Staff', ...(at ? { at } : {}) };
+    const meta = { note: form.note.trim(), by: (me && me.name) || 'Staff', ...(at ? { at } : {}) };
+    if (form.mode === 'transfer' && form.account === form.to) { toast('Pick two different accounts', { tone: 'error' }); return; }
+    // over an approval limit: it waits in Approvals and is posted when someone else approves it
+    const rule = form.mode === 'in' ? null : approvalOf(form, amt);
+    if (rule) {
+      const label = form.mode === 'transfer' ? `${accName(form.account)} to ${accName(form.to)}` : (OUT_REASONS.find((r) => r[0] === form.reason) || [])[1];
+      const payload = form.mode === 'transfer'
+        ? { transfer: true, from: form.account, to: form.to, amount: amt, party: accName(form.to), note: meta.note || `${accName(form.account)} → ${accName(form.to)}`, ...(at ? { at } : {}) }
+        : { ...meta, account: form.account, amount: -amt, kind: form.reason, party: form.reason === 'owner withdraw' ? 'Owner' : label, ...(form.reason === 'expense' ? { cat: 'Bank charges' } : {}) };
+      const req = submit({ kind: form.reason === 'expense' && form.mode === 'out' ? 'expense' : 'move', title: label + (meta.note ? ' · ' + meta.note : ''), amount: amt, payload, rule, user: me,
+        facts: form.mode === 'transfer' ? [['From', accName(form.account)], ['To', accName(form.to)], ['Date', shortDate(new Date(form.date + 'T12:00:00').getTime())]] : [['From', accName(form.account)], ['What', label], ['Date', shortDate(new Date(form.date + 'T12:00:00').getTime())]] });
+      toast(`${money(amt)} waits for approval (${req.id}) · ${limitText(rule)}`);
+      setForm(null);
+      return;
+    }
     if (form.mode === 'transfer') {
-      if (form.account === form.to) { toast('Pick two different accounts', { tone: 'error' }); return; }
       transferBetween(form.account, form.to, amt, { ...meta, party: accName(form.to), note: meta.note || `${accName(form.account)} → ${accName(form.to)}` });
       toast(`${money(amt)} moved from ${accName(form.account)} to ${accName(form.to)}`);
     } else {
@@ -141,6 +164,7 @@ export default function Money() {
   const clearFilters = () => { setKind(''); setQ(''); setFrom(''); setTo(''); setMoves(false); if (account) pick('', viewType); };
   const closeFind = () => { clearFilters(); setFind(false); };
   const outOver = form && form.mode !== 'in' && Number(form.amount) > (d.bal[form.account] || 0);
+  const waitRule = form && form.mode !== 'in' ? approvalOf(form, Number(form.amount) || 0) : null;
 
   const typeTotal = (t) => d.own.filter((a) => !t || a.type === t).reduce((s, a) => s + (d.bal[a.id] || 0), 0);
   const tabs = [['', 'All accounts'], ...TYPES].map(([t, label]) => ({ key: t || 'all', id: 'mn-tab-' + (t || 'all'), label, count: money(typeTotal(t)), on: viewType === t, onClick: () => pick('', t) }));
@@ -225,7 +249,7 @@ export default function Money() {
 
       {form ? (
         <Dialog open title={form.mode === 'transfer' ? 'Move money' : form.mode === 'in' ? 'Add money' : 'Take money out'} onClose={() => setForm(null)} width={540}
-          footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setForm(null)}>Cancel</button><button type="submit" form="mo-form" className="gc-btn gc-btn--solid">{form.mode === 'transfer' ? 'Move' : 'Save'}{Number(form.amount) > 0 ? ' ' + money(Number(form.amount)) : ''}</button></>}>
+          footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => setForm(null)}>Cancel</button><button type="submit" form="mo-form" className="gc-btn gc-btn--solid">{waitRule ? 'Ask for approval' : form.mode === 'transfer' ? 'Move' : 'Save'}{Number(form.amount) > 0 ? ' ' + money(Number(form.amount)) : ''}</button></>}>
           <form id="mo-form" className="ac-form" onSubmit={save} noValidate>
             {form.mode === 'transfer' ? (
               <div className="ac-two">
@@ -248,6 +272,7 @@ export default function Money() {
               </div>
               <div><label className="gc-label" htmlFor="mo-date">Date</label><input id="mo-date" type="date" className="gc-input" max={dayKey(clockNow())} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
             </div>
+            {waitRule ? <div className="ac-note ac-note--warn" role="status"><Icon name="hourglass" width="16" height="16" aria-hidden="true" /><span><b>{limitText(waitRule)}.</b> It waits in Approvals and moves when someone else approves it.</span></div> : null}
             <div><label className="gc-label" htmlFor="mo-note">Note</label><input id="mo-note" className="gc-input" placeholder={form.mode === 'transfer' ? 'e.g. Cash deposit, slip 4471' : 'Optional'} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} /></div>
           </form>
         </Dialog>

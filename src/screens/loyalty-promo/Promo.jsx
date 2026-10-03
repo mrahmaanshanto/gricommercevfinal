@@ -3,6 +3,8 @@
 // Promo — Offers: the overview of every coupon and flash sale (docs/shopify-style.md, overview page): this month's
 // figures, the offers running and coming soon (pause or start again), the month at a glance, and the top banner
 // (folded; it is a setting).
+// "Running and coming soon" lists every offer in the one promotion engine (src/lib/promotions.js): coupons, flash
+// sales, automatic discounts, Buy X get Y, quantity discounts, free gifts and payment offers. Pause stops it everywhere.
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
@@ -11,6 +13,8 @@ import { DCLogic, Icon as __Icon } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
 import { StatusBadge as __StatusBadge } from '@/components/ui';
 import { ShopHeader, MetricStrip } from '@/components/ui/IndexKit';
+import { listOffers, setOfferStatus, PROMO_EVENT } from '@/lib/promotions';
+import { clockNow } from '@/lib/settlements';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -24,30 +28,41 @@ var B = [
   { name: 'Skin care week', k: 'flash', from: 22, to: 28, st: 'soon' },
   { name: 'PUJA10 — 10% off', k: 'coupon', from: 25, to: 29, st: 'soon' }
 ];
-var L = [
-  { id: 1, name: 'Weekend Mega Sale', sub: '12 products, up to 40% off', type: 'Flash sale', left: '2 days 06:14:22', used: '184 sold', sales: 142300, st: 'live' },
-  { id: 2, name: 'EID300', sub: '৳300 off on ৳2,000+', type: 'Coupon', left: '2 days', used: '318', sales: 96400, st: 'live' },
-  { id: 3, name: 'FIRST20', sub: '20% off first order, max ৳400', type: 'Coupon', left: '12 days', used: '140', sales: 73700, st: 'live' },
-  { id: 4, name: 'Skin care week', sub: '8 products, 25% off', type: 'Flash sale', left: 'Starts 22 Sep', used: '—', sales: 0, st: 'soon' },
-  { id: 5, name: 'PUJA10', sub: '10% off, up to ৳250', type: 'Coupon', left: 'Starts 25 Sep', used: '—', sales: 0, st: 'soon' }
-];
+var DAYMS = 864e5;
+var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function leftOf(o, now) {
+  var sch = o.schedule || {};
+  if (o.life === 'Scheduled') { var d = new Date(sch.start); return 'Starts ' + d.getDate() + ' ' + MON[d.getMonth()]; }
+  if (!sch.end) return 'No end date';
+  var n = Math.ceil((sch.end - now) / DAYMS);
+  return n <= 1 ? 'Ends today' : n + ' days';
+}
+/** Offers running, paused or starting soon, from the promotion engine, in this screen's row shape. */
+function liveOffers(now) {
+  return listOffers('all', now).filter(function (o) { return o.life === 'Active' || o.life === 'Scheduled' || (o.life === 'Paused' && o.activation !== 'code'); }).map(function (o) {
+    return { id: o.id, name: o.code || o.name, sub: o.code ? o.summary : (o.sub || o.summary), type: o.kind, left: leftOf(o, now), used: o.usage.used ? (o.activation === 'flash' ? o.usage.used + ' sold' : String(o.usage.used)) : '—', sales: o.usage.sales, st: o.life === 'Scheduled' ? 'soon' : 'live', paused: o.status === 'paused' };
+  });
+}
 var COL = { live: 'var(--success)', soon: 'var(--info)', ended: 'var(--slate-300)' };
 var ST_LABEL = { live: 'Running', soon: 'Coming soon', ended: 'Ended' };
 var FG = { coupon: 'var(--primary)', flash: 'var(--text-warning)', msg: 'var(--text-success)' };
 var ICON = { coupon: 'ticket-percent', flash: 'zap', msg: 'send' };
 var COLORS = [{ k: 'var(--primary)', label: 'Navy' }, { k: 'var(--error)', label: 'Red' }, { k: 'var(--success)', label: 'Green' }, { k: 'var(--navy-900)', label: 'Black' }];
 class Component extends DCLogic {
+  componentDidMount() { var self = this; this.reread = function () { self.setState({ L: liveOffers(clockNow()), paused: {} }); }; this.reread(); window.addEventListener(PROMO_EVENT, this.reread); }
+  componentWillUnmount() { window.removeEventListener(PROMO_EVENT, this.reread); }
   renderVals() {
-    var self = this, s = this.state || {}, paused = s.paused || {};
+    var self = this, s = this.state || {}, paused = s.paused || {}, L = s.L || [];
     var stripSw = mkSw(this, 'strip', true), clr = s.clr || 'var(--error)';
     return {
       bars: B.map(function (b) { return { name: b.name, dates: b.from === b.to ? b.from + ' Sep' : b.from + '–' + b.to + ' Sep', stLabel: ST_LABEL[b.st], fg: FG[b.k], icon: ICON[b.k], col: (b.from + 1) + ' / ' + (b.to + 2), bg: COL[b.st], label: b.from === b.to ? '' : (b.from + '–' + b.to + ' Sep') }; }),
+      runningN: L.filter(function (r) { return r.st === 'live' && !r.paused; }).length, soonN: L.filter(function (r) { return r.st === 'soon'; }).length,
       live: L.map(function (r) {
-        var p = !!paused[r.id], soon = r.st === 'soon';
+        var p = paused[r.id] == null ? !!r.paused : !!paused[r.id], soon = r.st === 'soon';
         return { name: r.name, sub: r.sub, type: r.type, left: p ? 'Paused' : r.left, used: r.used, sales: r.sales ? bdt(r.sales) : '—',
           status: p ? 'Paused' : soon ? 'Coming soon' : 'Running', tone: p ? 'warning' : soon ? 'info' : 'success',
           running: !p, stopped: p, btn: p ? 'Start again' : 'Pause',
-          toggle: function () { var q = assign({}, paused); q[r.id] = !p; self.setState({ paused: q }); } };
+          toggle: function () { var q = assign({}, paused); q[r.id] = !p; self.setState({ paused: q }); setOfferStatus(r.id, p ? 'active' : 'paused', 'Paused from Offers'); } };
       }),
       stripSw: stripSw, stripOn: stripSw.on, stripBg: clr,
       stripText: s.text != null ? s.text : 'উইকেন্ড মেগা সেল — ৪০% পর্যন্ত ছাড়! কোড: EID300',
@@ -126,7 +141,7 @@ export default class PromoScreen extends Component {
                   { label: 'Sales from offers', value: '৳3,12,400', sub: 'this month' },
                   { label: 'Discount given', value: '৳28,950', sub: '9.3% of offer sales' },
                   { label: 'Codes used', value: '642', sub: 'by 511 customers', href: '/coupons' },
-                  { label: 'Running now', value: '4', sub: '+2 soon' },
+                  { label: 'Running now', value: String(v.runningN), sub: '+' + v.soonN + ' soon' },
                 ]} />
 
                 <section className="ix-card" aria-labelledby="pr-live">

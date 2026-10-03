@@ -15,6 +15,7 @@ import SetChrome from '@/screens/settings-console/SetChrome';
 import SetRail from '@/screens/settings-console/SetRail';
 import SetTopbar from '@/screens/settings-console/SetTopbar';
 import { getStockSetup, saveStockSetup, BUYING } from '@/lib/stockSetup';
+import { logChanges } from '@/lib/settingsHistory';
 import { currentEdition, hasModule } from '@/lib/edition';
 import { getPlaces, onlinePlace, placeById, savePlace } from '@/lib/locations';
 import { mergePlan, mergeInto } from '@/lib/stockMerge';
@@ -72,7 +73,12 @@ export default function SetStockSetup() {
       const r = savePlace({ ...home, name: homeName.trim() });
       if (!r.ok) { toast(Object.values(r.errors)[0], { tone: 'error' }); return; }
     }
+    const before = getStockSetup();
     saveStockSetup({ homeId: s.homeId, buying: s.buying, supplierChanges: s.supplierChanges, wholesale: s.wholesale });
+    // settings history (lib/settingsHistory.js): what changed, old → new
+    const LBL = { homeId: 'Online orders ship from', buying: 'Buying', supplierChanges: 'Supplier changes', wholesale: 'Wholesale' };
+    const val = (k, x) => (k === 'homeId' ? ((placeById(x) || {}).name || x) : x);
+    logChanges({ formId: 'stocksetup', changes: Object.keys(LBL).filter((k) => JSON.stringify(before[k]) !== JSON.stringify(s[k])).map((k) => ({ field: k, label: LBL[k], from: val(k, before[k]), to: val(k, s[k]) })) });
     load();
     toast('Stock setup saved');
   };

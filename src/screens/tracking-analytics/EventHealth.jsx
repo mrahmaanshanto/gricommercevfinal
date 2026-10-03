@@ -2,7 +2,8 @@
 // Generated from design/templates/tracking-analytics/EventHealth.dc.html by scripts/convert-design.mjs.
 // Event health — whether the order events reach the ad platforms once and complete, laid out the Shopify way: the title
 // row, four key figures, the views (health, consent and privacy, what was sent where), then the issues to fix and the
-// cards of the chosen view.
+// cards of the chosen view. The Health view starts with the shop's own event intake (EventIntakeCard, lib/events.js):
+// one event shape, duplicates dropped by event ID, counts of received / de-duplicated / rejected.
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
@@ -13,6 +14,8 @@ import { ShopHeader, MetricStrip, IndexTabs } from '@/components/ui/IndexKit';
 import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
 import { TA_CSS, TA_PHONE_CSS } from './taPhone';
 import { clockNow } from '@/lib/settlements';
+import __EventIntakeCard from './EventIntakeCard';
+import { eventHealth, syncDemoEvents } from '@/lib/events';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -30,13 +33,12 @@ var PC = { meta: '#2563eb', google: '#059669', tiktok: '#db2777' };
 function curve(pts) { if (!pts.length) return ''; var d = 'M' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1); for (var i = 0; i < pts.length - 1; i++) { var p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2; var c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6, c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6; d += ' C' + c1x.toFixed(1) + ' ' + c1y.toFixed(1) + ' ' + c2x.toFixed(1) + ' ' + c2y.toFixed(1) + ' ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1); } return d; }
 function pts(vals, w, h, max, min, padT, padB) { padT = padT || 2; padB = padB || 2; min = min == null ? 0 : min; max = max || Math.max.apply(null, vals) || 1; var n = vals.length; return vals.map(function (v, i) { return [n === 1 ? w / 2 : i * w / (n - 1), padT + (h - padT - padB) * (1 - (v - min) / (max - min || 1))]; }); }
 function series(n, base, amp, seed, trend) { var out = []; for (var i = 0; i < n; i++) { var s = Math.sin((i + seed) * 1.7) * .5 + Math.sin((i * 3 + seed) * .9) * .3 + Math.cos(i * .45 + seed) * .2; out.push(Math.max(0, base * (1 + (trend || 0) * (i / n - .5)) + amp * s)); } return out; }
-function delta(p, good) { var up = p >= 0; var ok = good === 'down' ? !up : up; return { up: up, ok: ok, dir: (up ? 'Up ' : 'Down ') + Math.abs(p) + '%' + (ok ? ', good' : ', worse'), d: (up ? '▲ ' : '▼ ') + Math.abs(p) + '%', db: ok ? 'var(--fill-success-soft)' : 'var(--fill-error-soft)', df: ok ? 'var(--text-success)' : 'var(--text-danger)' }; }
-function tile(l, v, s, c, vals, dp, good) { var dl = delta(dp, good); return { l: l, v: v, s: s, c: c, vals: vals.map(function (x) { return Math.round(x * 100) / 100; }), d: dl.d, up: dl.up, ok: dl.ok, dir: dl.dir, db: dl.db, df: dl.df }; }
 function lseg(self, opts, cur, key) { return opts.map(function (o) { return { l: o[1], on: o[0] === cur, pick: function () { var p = {}; p[key] = o[0]; self.setState(p); } }; }); }
 var FEED = [['10:42:18', 'Purchase', 'meta', 1, 1, 'ev_GC-24817_pur', 'dedup'], ['10:42:18', 'Purchase', 'google', 1, 1, 'GC-24817', 'ok'], ['10:41:55', 'Order delivered', 'meta', 0, 1, 'ev_GC-24790_del', 'ok'], ['10:41:55', 'Order delivered', 'tiktok', 0, 1, 'ev_GC-24790_del', 'ok'], ['10:41:30', 'Add to cart', 'tiktok', 1, 1, 'ev_c8f2_atc', 'dedup'], ['10:41:12', 'Checkout started', 'meta', 1, 0, 'ev_c8e1_ic', 'browser'], ['10:40:47', 'View content', 'google', 1, 1, 'ev_c8d0_vc', 'ok'], ['10:40:20', 'Order returned', 'meta', 0, 1, 'ev_GC-24611_ret', 'ok'], ['10:39:58', 'Contact', 'meta', 1, 1, 'ev_c8b7_wa', 'dedup'], ['10:39:31', 'Purchase', 'tiktok', 1, 1, 'ev_GC-24816_pur', 'missing']];
 var FS = { ok: ['Received', 'var(--fill-success-soft)', 'var(--text-success)'], dedup: ['Counted once', 'var(--fill-info-soft)', 'var(--text-info)'], browser: ['Browser only', 'var(--fill-warning-soft)', 'var(--text-warning)'], missing: ['Missing phone', 'var(--fill-error-soft)', 'var(--text-danger)'] };
 var MODES = { opt: ['Ask first', 'Nothing is tracked until the shopper says yes. Safest; fewer events.'], notice: ['Notice only', 'A small note; tracking starts right away. Most shops in Bangladesh use this.'], off: ['No banner', 'Only use this if you do not run ads.'] };
 class Component extends DCLogic {
+  componentDidMount() { try { syncDemoEvents(); var now = Date.now(); this.setState({ ev: eventHealth({ from: now - 7 * 864e5, to: now + 1 }), evToday: eventHealth({ from: new Date(new Date(now).setHours(0, 0, 0, 0)).getTime(), to: now + 1 }) }); } catch (e) { /* ignore */ } }
   componentWillUnmount() { clearTimeout(this.t); }
   renderVals() {
     var self = this, s = this.state || {};
@@ -48,7 +50,12 @@ class Component extends DCLogic {
     var nOpen = A.filter(function (a) { return !fixed[a[0]]; }).length;
     var v = {
       headline: nOpen ? nOpen + ' issues need a look · 95% of events counted once' : 'All events healthy · 97% counted once',
-      tiles: [tile('Events today', '7,990', 'all platforms', '#60a5fa', series(14, 7600, 500, 2, .2), 6), tile('Average match', '8.2 / 10', 'Meta 9.1 · Google 8.4 · TikTok 7.2', '#34d399', series(14, 7.9, .3, 4, .3), 4), tile('Counted once', fixed.dup ? '97%' : '95%', 'deduplication', '#a78bfa', series(14, 93, 1.5, 6, .2), 2), tile('Open issues', String(nOpen), 'alerts to fix', '#fb7185', series(14, 3, 1, 8), nOpen ? 50 : -100, 'down')],
+      tiles: [
+        { l: 'Events today', v: s.evToday ? s.evToday.received.toLocaleString('en-IN') : '—', s: s.evToday ? s.evToday.accepted.toLocaleString('en-IN') + ' accepted' : '', vals: s.ev ? s.ev.days.map(function (d) { return d.received; }) : undefined },
+        { l: 'Average match', v: '8.2 / 10', s: 'Meta 9.1 · Google 8.4 · TikTok 7.2' },
+        { l: 'Duplicates dropped', v: s.ev ? Math.round(s.ev.dedupRate * 100) + '%' : '—', s: s.ev ? s.ev.deduped.toLocaleString('en-IN') + ' in 7 days' : '' },
+        { l: 'Open issues', v: String(nOpen), s: 'alerts to fix' },
+      ],
       srvLine: sl, srvArea: sl + ' L900 160 L0 160 Z', brwLine: curve(pts(brw, 900, 160, mxv, 0, 15, 2)),
       tabs: pTabs(self, [{ k: 'health', label: 'Health' }, { k: 'priv', label: 'Consent & privacy' }, { k: 'log', label: 'What was sent where' }], tab, 'tab', { health: A.filter(function (a) { return !fixed[a[0]]; }).length }),
       is_health: tab === 'health', is_priv: tab === 'priv', is_log: tab === 'log',
@@ -102,11 +109,12 @@ export default class EventHealthScreen extends Component {
                 about="Whether every order event reaches Meta, Google and TikTok once and with enough detail: issues to fix, match quality, browser against server events, live events, cookie consent and privacy, and a log of what was sent where."
                 secondary={[{ label: 'Pixels & events', href: '/pixels-events' }]}
                 more={[{ label: 'Setup guides', href: '/setup-guide' }]} />
-              <MetricStrip label="Key figures" items={__list(v.tiles).map((t) => ({ label: t.l, value: t.v, spark: t.vals, sub: <span className="dl" title={t.s} style={{ background: t.db, color: t.df }}>{t.d}</span> }))} />
+              <MetricStrip label="Key figures" items={__list(v.tiles).map((t) => ({ label: t.l, value: t.v, spark: t.vals, sub: t.s }))} />
               <section className="ix-card" aria-label="Views">
                 <div className="ix-bar"><IndexTabs label="Event health views" tabs={__list(v.tabs).map((tb) => ({ key: tb.label, label: tb.label, count: tb.hasCount ? tb.count : null, on: tb.on, onClick: tb.pick }))} /></div>
               </section>
               {v.is_health ? (<>
+                <__EventIntakeCard />
                 <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                   <div className="gc-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px" }}>
                     {__list(v.alerts).map((al, $index) => (<React.Fragment key={$index}>

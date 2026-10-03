@@ -3,7 +3,8 @@
 //   On / Paused views, then one row per schedule (report · how often · next run · send to · format · on/off).
 //   A row opens the schedule (Edit); its ⋯ menu has "Send a test now", which shows the message that would go out
 //   with the report's key figures for the last full period (yesterday, last week or last month), Edit and Delete.
-// Front end only: schedules live in this browser (src/lib/reports/prefs.js); sending needs the server.
+// Front end only: schedules live in this browser (src/lib/reports/prefs.js). "Send a test now" goes through the one send
+// layer (lib/messaging.js › sendReport), so it shows in the delivery log like every other message.
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -18,6 +19,7 @@ import { getPrefs, saveSchedule, deleteSchedule, nextRun } from '@/lib/reports/p
 import { periodOf, rangeText, fmt, clockNow, dayKey } from '@/lib/reports/period';
 import { dailySummary } from '@/lib/reports/dailySummary';
 import { MERCHANT } from '@/lib/merchant';
+import { sendReport } from '@/lib/messaging';
 
 const DAILY = { id: 'daily-summary', title: 'Daily summary', href: '/daily-summary', icon: 'sun' };
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -70,7 +72,7 @@ export function buildMessage(s, now = clockNow()) {
   const body = s.to === 'email'
     ? `${lines.join('\n')}\n\nThe full report is attached as ${s.format === 'csv' ? 'a CSV spreadsheet' : s.format === 'text' ? 'text' : 'a PDF'}.\nOpen it online: ${link}`
     : `*${head}*\n${when}\n\n${lines.map((x) => '• ' + x).join('\n')}\n\nFull report: ${link}`;
-  return { r, head, when, body, subject: `${head} · ${when}` };
+  return { r, head, when, body, link, subject: `${head} · ${when}` };
 }
 
 export default function ScheduledReports() {
@@ -94,7 +96,17 @@ export default function ScheduledReports() {
     deleteSchedule(s.id);
     toast('Schedule deleted');
   };
-  const sendTest = (s) => { setTest(s); toast('Test prepared · sending needs the shop’s server, so here is the message it would send', { tone: 'info' }); };
+  const [sent, setSent] = useState(null);      // the test's delivery result
+  const sendTest = (s) => {
+    setTest(s);
+    try {
+      const m = buildMessage(s);
+      const res = sendReport({ reportId: m.r.id, name: m.r.title, period: m.when, link: m.link ? 'https://' + m.link : '', recipients: [{ to: s.address, channel: s.to === 'email' ? 'email' : 'whatsapp' }] });
+      const row = res.rows && res.rows[0];
+      setSent(row ? { status: row.status, reason: row.reason || '' } : null);
+      toast(res.sent ? 'Test sent' : 'Test not sent' + (row && row.reason ? ': ' + row.reason : ''), res.sent ? undefined : { tone: 'error' });
+    } catch { setSent(null); toast('Test prepared', { tone: 'info' }); }
+  };
   const hasDaily = (list || []).some((s) => s.reportId === DAILY.id);
 
   const all = list || [];
@@ -184,7 +196,7 @@ export default function ScheduledReports() {
               <dt>Figures for</dt><dd>{preview.when}</dd>
             </dl>
             <pre className={'sr-msg' + (test.to === 'email' ? ' is-email' : '')}>{preview.body}</pre>
-            <p className="gc-help" style={{ margin: 0 }}>Not sent: sending starts once the shop’s server is connected.</p>
+            <p className="gc-help" style={{ margin: 0 }}>{sent ? `${sent.status}${sent.reason ? ': ' + sent.reason : ''}. It’s in the delivery log.` : 'Not sent.'}</p>
           </>
         ) : null}
       </Dialog>

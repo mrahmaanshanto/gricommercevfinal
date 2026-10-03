@@ -1,7 +1,8 @@
 'use client';
-// Members — every loyalty member with points, their ৳ value, wallet money and buying.
+// Members — every loyalty member with points, their ৳ value, store credit and buying. A member is a CRM customer
+// with a loyalty account (loyalty.js › getMembers carries customerId); Add member also adds them to the customer book.
 //   Top      points customers hold (and their ৳ value), points expiring within a month, new members,
-//            money in wallets.
+//            store credit held.
 //   List     level tabs, search by name or phone and a filter (IndexKit); a row opens the member.
 //   Add      a member by mobile number; Download saves the list as a CSV file.
 // Front end only: src/lib/loyalty.js (POS points included).
@@ -18,7 +19,7 @@ import { getMembers, pointsLiability, walletLiability, getLoyaltySettings, addMe
 import { clockNow } from '@/lib/settlements';
 import { LoyPage, TierBadge, useLoyalty, money, pts, plural } from './loyShared';
 
-const FILTERS = [['any', 'Any'], ['exp', 'Points expiring soon'], ['idle', 'Not bought in 30 days'], ['wallet', 'Has wallet money']];
+const FILTERS = [['any', 'Any'], ['exp', 'Points expiring soon'], ['idle', 'Not bought in 30 days'], ['wallet', 'Has store credit']];
 const PAGE = 20;
 
 export default function Members() {
@@ -53,7 +54,7 @@ export default function Members() {
   const expiring = members.reduce((a, m) => a + m.expiring, 0);
 
   const download = () => {
-    const head = ['Name', 'Phone', 'Level', 'Points', 'Points value (BDT)', 'Wallet (BDT)', 'Total bought (BDT)', 'Earned', 'Used', 'Last buy'];
+    const head = ['Name', 'Phone', 'Level', 'Points', 'Points value (BDT)', 'Store credit (BDT)', 'Total bought (BDT)', 'Earned', 'Used', 'Last buy'];
     const lines = [head, ...shown.map((m) => [m.name, m.phone, m.tierObj.name, m.points, m.value, m.wallet, m.bought, m.earned, m.used, m.last ? formatDate(m.last) : ''])]
       .map((r) => r.map((x) => `"${String(x).replace(/"/g, '""')}"`).join(','));
     const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
@@ -69,15 +70,15 @@ export default function Members() {
 
   return (
     <LoyPage screen="Members" active="loy-members" title="Members" icon="users"
-      about="Every customer who buys becomes a member. Find a customer by name or phone to see or change their points and wallet."
+      about="Every customer who buys becomes a member. Find a customer by name or phone to see or change their points and store credit."
       secondary={[{ label: 'Download list', onClick: download, disabled: !data }]}
-      more={[{ label: 'Loyalty rules', href: '/loyalty' }, { label: 'Customer wallet', href: '/wallet' }]}
+      more={[{ label: 'Loyalty rules', href: '/loyalty' }, { label: 'Store credit', href: '/wallet' }]}
       primary={{ label: 'Add member', onClick: () => setAdding(true) }}>
       <MetricStrip items={[
         { label: 'Points customers hold', value: data ? pts(data.liab.points) : '—', sub: data ? `worth ${money(data.liab.value)}` : '' },
         { label: 'Expiring in 30 days', value: data ? (data.s.expireOn ? pts(expiring) : 'Off') : '—', sub: data && data.s.expireOn ? plural(members.filter((m) => m.expiring > 0).length, 'customer') : '', on: filter === 'exp', onClick: data && data.s.expireOn ? () => { setFilter(filter === 'exp' ? 'any' : 'exp'); setPage(0); } : undefined },
         { label: 'New members', value: data ? pts(data.joined) : '—', sub: 'this month' },
-        { label: 'Money in wallets', value: data ? money(data.wallets.wallets) : '—', sub: data ? plural(members.filter((m) => m.wallet > 0).length, 'customer') : '', href: '/wallet' },
+        { label: 'Store credit', value: data ? money(data.wallets.wallets) : '—', sub: data ? plural(members.filter((m) => m.wallet > 0).length, 'customer') : '', href: '/wallet' },
       ]} />
 
       <section className="ix-card" aria-label="Members">
@@ -106,7 +107,7 @@ export default function Members() {
               <li key={m.phone}>
                 <Link href={`/member-detail?phone=${m.phone}`} className="ix-pitem">
                   <span className="ix-pitem__top"><b>{m.name}</b><span>{pts(m.points)} points</span></span>
-                  <span className="ix-pitem__mid">{m.tierObj.name} · {m.wallet ? 'wallet ' + money(m.wallet) : 'bought ' + money(m.bought)}</span>
+                  <span className="ix-pitem__mid">{m.tierObj.name} · {m.wallet ? 'credit ' + money(m.wallet) : 'bought ' + money(m.bought)}</span>
                 </Link>
               </li>
             ))}
@@ -114,7 +115,7 @@ export default function Members() {
           <div className="ix-table-wrap">
             <table className="ix-table gc-table--keep">
               <caption className="sr-only">Members, {shown.length} shown</caption>
-              <thead><tr><th scope="col">Customer</th><th scope="col">Level</th><th scope="col" className="ix-num">Points now</th><th scope="col" className="ix-num">Wallet</th><th scope="col" className="ix-num">Total bought</th><th scope="col">Last buy</th></tr></thead>
+              <thead><tr><th scope="col">Customer</th><th scope="col">Level</th><th scope="col" className="ix-num">Points now</th><th scope="col" className="ix-num">Store credit</th><th scope="col" className="ix-num">Total bought</th><th scope="col">Last buy</th></tr></thead>
               <tbody>
                 {rows.map((m) => (
                   <tr key={m.phone} onClick={open(m)}>

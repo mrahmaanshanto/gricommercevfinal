@@ -2,6 +2,8 @@
 // Any decrease, or any change over APPROVAL_LIMIT pieces, needs a manager: approved on the spot with
 // the manager's PIN, or saved as "Waiting for approval". Only an approved adjustment changes the stock
 // (it records a stock move of kind 'adjust').
+// qty is always in base units; an adjustment entered in packs keeps the pack ({ id, name, qty }) for display. The stock
+// move carries the adjustment id as its operation key, so approving twice never changes the stock twice.
 // Front end only: kept in this browser; starts from demo rows.
 
 import { addMove, productBy } from './stock';
@@ -25,7 +27,7 @@ const SEED = [
 const read = () => { try { return JSON.parse(window.localStorage.getItem(KEY)) || SEED; } catch { return SEED; } };
 const write = (list) => { try { window.localStorage.setItem(KEY, JSON.stringify(list)); } catch { /* ignore */ } };
 const nextId = (list) => 'ADJ-' + String(list.reduce((m, x) => Math.max(m, Number(x.id.split('-')[1]) || 0), 0) + 1).padStart(4, '0');
-const move = (a, approver) => addMove({ sku: a.sku, place: a.place, qty: a.qty, kind: 'adjust', reason: a.reason + (a.note ? ' · ' + a.note : ''), by: approver ? `${a.by} · approved by ${approver}` : a.by, ref: a.id });
+const move = (a, approver) => addMove({ sku: a.sku, place: a.place, qty: a.qty, kind: 'adjust', reason: a.reason + (a.note ? ' · ' + a.note : ''), by: approver ? `${a.by} · approved by ${approver}` : a.by, ref: a.id, op: a.id, ...(a.pack ? { packInfo: a.pack } : {}) });
 
 /** Every adjustment, newest first. Empty on the server. */
 export const getAdjustments = () => (typeof window === 'undefined' ? [] : read());

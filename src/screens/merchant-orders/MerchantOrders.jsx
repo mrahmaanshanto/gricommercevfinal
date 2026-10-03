@@ -4,6 +4,9 @@
 // figures, then one card with the status views, search and filters, bulk actions and a compact table. The list shows
 // what you act on (order, date, customer, channel, total, payment, status, items); courier, phone and the rest are
 // on the order page.
+// Brief #4 additions: the views Payment to review (paymentProof.js) and Completed (orderRules.js › completionOf), the
+// shop's own sub-statuses as a badge and a filter (orderRules.js), and bulk Send to courier / Print labels running in
+// the background with a progress strip and per-order results (orderJobs.js, OrderJobs.jsx).
 // Edit freely: this file is now the source for the screen.
 
 import React from 'react';
@@ -19,15 +22,24 @@ import { ORDER_STATUSES, ORDER_TOTAL, orderStatus } from '@/lib/orderStatus';
 import { getStockPlaces, onlinePlace } from '@/lib/locations';
 import { holdsFor } from '@/lib/stockHolds';
 import { demoOrders, getOrders, duplicatesOf, orderHref, invoiceHref, availability, approveOrder, cancelOrder, heldText, CAN_APPROVE, CAN_CANCEL, DEFAULT_HOLD_PLACE } from '@/lib/orders';
-import { sendToCourier, syncCourier } from '@/lib/orderFlow';
+import { syncCourier } from '@/lib/orderFlow';
 import { holdsStock } from '@/lib/edition';
 import { orderStates } from '@/lib/orderStates';
+import { getOrderRules, customStatusOf, completionOf } from '@/lib/orderRules';
+import { proofToReview } from '@/lib/paymentProof';
+import { startJob } from '@/lib/orderJobs';
+import { OrderJobs } from '@/screens/merchant-orders/OrderJobs';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
 const PAGE_SIZE = 20;
 // The tabs are the shared status list, so labels, order and counts match the sidebar.
-const TABS = [{ key: 'all', label: 'All', count: ORDER_TOTAL }, ...ORDER_STATUSES];
+// Two more views are worked out, not saved statuses: a payment proof waiting, and Completed by the shop's rule.
+const VIEWS = [{ key: 'review', label: 'Payment to review' }, { key: 'completed', label: 'Completed' }];
+const TABS = [{ key: 'all', label: 'All', count: ORDER_TOTAL }, ...ORDER_STATUSES, ...VIEWS];
+const isView = (k) => VIEWS.some((v) => v.key === k);
+/** The worked-out facts the list filters on: proof to review, completed, sub-status (read in the browser only). */
+const annotate = (list) => { const rules = getOrderRules(); return list.map((o) => ({ ...o, toReview: !!proofToReview(o), done: completionOf(o, { rules }).done, sub2: customStatusOf(o, rules) })); };
 const PAYMENTS = {
   Paid: { tone: 'success', icon: 'check' },
   Unpaid: { tone: 'error', icon: 'circle-alert' },
@@ -42,7 +54,7 @@ const digits = (t) => String(t).replace(/[^0-9]/g, '');
 const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many || one + 's');
 
 class Component extends DCLogic {
-  state = { all: DEMO_ORDERS, status: 'all', q: '', courier: '', payment: '', zone: '', page: 1, sel: {}, find: false, filtersOpen: false, extra: NO_EXTRA, draft: NO_EXTRA, approve: null };
+  state = { all: DEMO_ORDERS, status: 'all', q: '', courier: '', payment: '', zone: '', sub: '', page: 1, sel: {}, find: false, filtersOpen: false, extra: NO_EXTRA, draft: NO_EXTRA, approve: null };
   componentDidMount() {
     this.paint();
     this.readUrl();
@@ -53,7 +65,7 @@ class Component extends DCLogic {
     window.addEventListener('popstate', this._onPop);
     this._watch = setInterval(() => { if (window.location.search !== this._search) this.readUrl(); }, 400);
   }
-  reload() { syncCourier(); this.setState({ all: getOrders() }); }
+  reload() { syncCourier(); this.setState({ all: annotate(getOrders()), rules: getOrderRules() }); }
   /** Selected orders split into the ones the action applies to and the ones it skips. */
   pick(allowed) {
     const chosen = this.filtered().filter(o => this.state.sel[o.id]);
@@ -92,17 +104,22 @@ class Component extends DCLogic {
     this.reload();
     toast(plural(valid.length, 'order') + ' cancelled');
   }
-  /** Send every selected Ready for courier order; the courier's API may refuse some. */
+  /** Book every selected order with its courier in the background (orderJobs.js): orders that aren't Ready for
+   *  courier show as failed with the reason; the courier's API may refuse some, each with Retry. */
   bulkSend() {
     const { valid, skipped } = this.pick(['ready']);
     if (!valid.length) { toast('Only Ready for courier orders can be sent. ' + this.skippedText(skipped, 'sent'), { tone: 'error' }); return; }
-    const res = valid.map(o => ({ o, r: sendToCourier(o) }));
-    const ok = res.filter(x => x.r.ok), bad = res.filter(x => !x.r.ok);
+    startJob('courier', [...valid, ...skipped]);
     this.setState({ sel: {} });
-    this.reload();
-    if (ok.length) toast(plural(ok.length, 'order') + ' sent to courier');
-    if (bad.length) toast(bad.map(x => x.o.id + ': ' + x.r.error).join(' '), { tone: 'error' });
-    if (skipped.length) toast(this.skippedText(skipped, 'sent'), { tone: 'info' });
+    toast('Booking ' + plural(valid.length, 'order') + ' in the background', { tone: 'info' });
+  }
+  /** Make the labels of the selected orders in the background; they print together when ready. */
+  bulkPrint() {
+    const chosen = this.filtered().filter(o => this.state.sel[o.id]);
+    if (!chosen.length) return;
+    startJob('print', chosen);
+    this.setState({ sel: {} });
+    toast('Preparing ' + plural(chosen.length, 'label') + ' in the background', { tone: 'info' });
   }
   componentWillUnmount() {
     window.removeEventListener('popstate', this._onPop);
@@ -118,8 +135,8 @@ class Component extends DCLogic {
     this._search = window.location.search;
     const status = p.get('status');
     this.setState({
-      status: orderStatus(status) ? status : 'all',
-      q: p.get('q') || '', courier: p.get('courier') || '', payment: p.get('payment') || '', zone: p.get('zone') || '',
+      status: orderStatus(status) || isView(status) ? status : 'all',
+      q: p.get('q') || '', courier: p.get('courier') || '', payment: p.get('payment') || '', zone: p.get('zone') || '', sub: p.get('sub') || '',
       page: Math.max(1, parseInt(p.get('page'), 10) || 1),
       // ?channel=pos is the sidebar's "POS / Retail orders" view
       extra: { ...this.state.extra, channel: ['pos', 'online', 'wholesale'].includes(p.get('channel')) ? p.get('channel') : '' }
@@ -133,6 +150,7 @@ class Component extends DCLogic {
     if (st.courier) p.set('courier', st.courier);
     if (st.payment) p.set('payment', st.payment);
     if (st.zone) p.set('zone', st.zone);
+    if (st.sub) p.set('sub', st.sub);
     if (st.extra && st.extra.channel) p.set('channel', st.extra.channel);
     if (page > 1) p.set('page', String(page));
     const qs = p.toString();
@@ -149,13 +167,14 @@ class Component extends DCLogic {
     });
   }
   filtered() {
-    const { status, q, courier, payment, zone, extra } = this.state;
+    const { status, q, courier, payment, zone, sub, extra } = this.state;
     const needle = q.trim().toLowerCase();
     const needleDigits = digits(needle);
     const min = Number(extra.minTotal) || 0;
     // orders made on the Create order page or sent in through an order link come first
     return this.state.all.filter(o => {
-      if (status !== 'all' && o.statusKey !== status) return false;
+      if (status === 'review' ? !o.toReview : status === 'completed' ? !o.done : status !== 'all' && o.statusKey !== status) return false;
+      if (sub && !(o.sub2 && o.sub2.id === sub)) return false;
       if (courier && o.courier !== courier) return false;
       if (payment && o.payment !== payment) return false;
       if (zone && o.zone !== zone) return false;
@@ -174,9 +193,9 @@ class Component extends DCLogic {
   exportCsv(rows) {
     if (!rows.length) { toast('Nothing to export: no orders match these filters', { tone: 'info' }); return; }
     // the order's separate states (orderStates.js) go out with it, so a sheet can filter by what is waiting
-    const head = ['Order', 'Placed', 'Channel', 'Customer', 'Phone', 'Zone', 'Items', 'Courier', 'Tracking', 'Status', 'Payment', 'Total (BDT)', 'Confirmation', 'Payment state', 'Fulfilment', 'Delivery', 'Due (BDT)', 'Next step'];
+    const head = ['Order', 'Placed', 'Channel', 'Customer', 'Phone', 'Zone', 'Items', 'Courier', 'Tracking', 'Status', 'Payment', 'Total (BDT)', 'Confirmation', 'Payment state', 'Fulfilment', 'Delivery', 'Due (BDT)', 'Next step', 'Sub-status', 'Completed'];
     const cell = (c) => '"' + String(c).replace(/"/g, '""') + '"';
-    const lines = [head, ...rows.map(o => { const st = orderStates(o, { held: holdsFor(o.id).length > 0 }) || {}; return [o.id, o.placed, o.channel, o.customer, o.phone, o.zone, o.itemTitle + ' (' + o.itemMeta + ')', o.courier, o.consignment, o.status, o.payment, o.amount, st.confirmation, st.payment, st.fulfilment, st.delivery, st.due, (st.next || {}).label]; })];
+    const lines = [head, ...rows.map(o => { const st = orderStates(o, { held: holdsFor(o.id).length > 0 }) || {}; return [o.id, o.placed, o.channel, o.customer, o.phone, o.zone, o.itemTitle + ' (' + o.itemMeta + ')', o.courier, o.consignment, o.status, o.payment, o.amount, st.confirmation, st.payment, st.fulfilment, st.delivery, st.due, (st.next || {}).label, st.custom, st.completed ? 'Yes' : 'No']; })];
     const blob = new Blob(['﻿' + lines.map(l => l.map(cell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -196,14 +215,16 @@ class Component extends DCLogic {
     const selCount = found.filter(o => sel[o.id]).length;
     const pageAllChecked = rows.length > 0 && rows.every(o => sel[o.id]);
     const from = encodeURIComponent(this.listUrl(st, page));
-    const tabLabel = st.status === 'all' ? 'All orders' : orderStatus(st.status).label + ' orders';
+    const tabLabel = st.status === 'all' ? 'All orders' : isView(st.status) ? VIEWS.find(x => x.key === st.status).label : orderStatus(st.status).label + ' orders';
     // tab and card counts come from the orders themselves (channel view applied, search and filters not)
     const inView = st.all.filter(o => st.extra.channel === 'online' ? !/^(POS|Wholesale)/.test(o.channel) : st.extra.channel === 'pos' ? o.channel.startsWith('POS') : st.extra.channel === 'wholesale' ? o.channel.startsWith('Wholesale') : true);
     const counts = { all: inView.length };
     ORDER_STATUSES.forEach(x => { counts[x.key] = inView.filter(o => o.statusKey === x.key).length; });
+    counts.review = inView.filter(o => o.toReview).length;
+    counts.completed = inView.filter(o => o.done).length;
     const dayFrom = new Date(); dayFrom.setHours(0, 0, 0, 0);
     const extraCount = (st.extra.channel ? 1 : 0) + (st.extra.assigned ? 1 : 0) + (Number(st.extra.minTotal) > 0 ? 1 : 0);
-    const hasFilters = !!(st.q || st.courier || st.payment || st.zone || extraCount);
+    const hasFilters = !!(st.q || st.courier || st.payment || st.zone || st.sub || extraCount);
     const setDraft = (k) => (e) => { const value = e.target.value; this.setState(s => ({ draft: { ...s.draft, [k]: value } })); };
     // bulk approve: one hold place for every selected Pending order, with free stock per product there
     let approveVals = null;
@@ -230,9 +251,9 @@ class Component extends DCLogic {
       newOrderHref: st.extra.channel === 'pos' || st.extra.channel === 'wholesale' ? '/pos' : '/new-order',
       sparkOrders: Array.from({ length: 7 }, (_, i) => { const a = dayFrom.getTime() - (6 - i) * 864e5; return inView.filter(o => (o.at || 0) >= a && (o.at || 0) < a + 864e5).length; }),
       sparkValue: Array.from({ length: 7 }, (_, i) => { const a = dayFrom.getTime() - (6 - i) * 864e5; return inView.filter(o => (o.at || 0) >= a && (o.at || 0) < a + 864e5).reduce((n, o) => n + (o.amount || 0), 0); }),
-      find: !!(st.find || st.q || st.courier || st.payment || st.zone || extraCount),
+      find: !!(st.find || st.q || st.courier || st.payment || st.zone || st.sub || extraCount),
       openFind: () => this.setState({ find: true }),
-      closeFind: () => { this.setState({ find: false, extra: NO_EXTRA, draft: NO_EXTRA }); this.view({ q: '', courier: '', payment: '', zone: '' }); },
+      closeFind: () => { this.setState({ find: false, extra: NO_EXTRA, draft: NO_EXTRA }); this.view({ q: '', courier: '', payment: '', zone: '', sub: '' }); },
       kpiToday: inView.filter(o => (o.at || 0) >= dayFrom.getTime()).length,
       kpiTodayValue: formatBDT(inView.filter(o => (o.at || 0) >= dayFrom.getTime()).reduce((a, o) => a + (o.amount || 0), 0)),
       kpiCod: formatBDT(inView.filter(o => o.payment === 'COD' && ['approved', 'ready', 'shipped'].includes(o.statusKey)).reduce((a, o) => a + (o.amount || 0), 0)),
@@ -240,7 +261,10 @@ class Component extends DCLogic {
       kpiReturnRate: (counts.delivered + counts.returned) ? Math.round((counts.returned / (counts.delivered + counts.returned)) * 100) + '%' : '—',
       kpiCourier: counts.ready + counts.shipped,
       total: counts.all,
-      q: st.q, courier: st.courier, payment: st.payment, zone: st.zone,
+      q: st.q, courier: st.courier, payment: st.payment, zone: st.zone, sub: st.sub,
+      subs: (st.rules || { custom: [] }).custom.map(c => ({ ...c, base: (orderStatus(c.base) || {}).label || c.base })),
+      onSub: (e) => this.view({ sub: e.target.value }),
+      reload: () => this.reload(),
       onSearch: (e) => this.view({ q: e.target.value }),
       onCourier: (e) => this.view({ courier: e.target.value }),
       onPayment: (e) => this.view({ payment: e.target.value }),
@@ -257,8 +281,8 @@ class Component extends DCLogic {
       empty: found.length === 0,
       emptyTitle: st.q.trim() ? 'No orders match “' + st.q.trim() + '”' : 'No demo orders match these filters',
       emptyBody: 'The demo carries ' + st.all.length + ' orders. ' + (hasFilters ? 'Clear the search and filters to see the ones in this tab.' : 'Pick another status tab.'),
-      hasFilters, filterCount: (st.courier ? 1 : 0) + (st.payment ? 1 : 0) + (st.zone ? 1 : 0) + extraCount,
-      clearFilters: () => { this.setState({ extra: NO_EXTRA, draft: NO_EXTRA }); this.view({ q: '', courier: '', payment: '', zone: '' }); },
+      hasFilters, filterCount: (st.courier ? 1 : 0) + (st.payment ? 1 : 0) + (st.zone ? 1 : 0) + (st.sub ? 1 : 0) + extraCount,
+      clearFilters: () => { this.setState({ extra: NO_EXTRA, draft: NO_EXTRA }); this.view({ q: '', courier: '', payment: '', zone: '', sub: '' }); },
       caption: tabLabel + ', page ' + page + ' of ' + pages + ', ' + found.length + ' demo orders',
       countLabel: found.length === 0 ? 'No orders to show'
         : 'Showing ' + (first + 1) + '–' + (first + rows.length) + ' of ' + found.length + (found.length === 1 ? ' demo order' : ' demo orders'),
@@ -273,7 +297,7 @@ class Component extends DCLogic {
       },
       clearSelection: () => this.setState({ sel: {} }),
       sendToCourier: () => this.bulkSend(),
-      printLabels: () => toast('Printing ' + selCount + (selCount === 1 ? ' label' : ' labels'), { tone: 'info' }),
+      printLabels: () => this.bulkPrint(),
       bulkApprove: () => this.startApprove(),
       bulkCancel: () => this.bulkCancel(),
       approve: approveVals,
@@ -290,7 +314,7 @@ class Component extends DCLogic {
         dups: duplicatesOf(o, st.all).map(d => d.id),
         onRowClick: (e) => { if (e.target.closest('a,button,input,label,select,.mo-sel')) return; navigate(orderHref(o.id, from)); },
         onMore: () => toast('Open ' + o.id + ' to verify, approve or ship it', { tone: 'info' }),
-        statusInfo: orderStatus(o.statusKey),
+        statusInfo: o.done ? { label: 'Completed', tone: 'success' } : orderStatus(o.statusKey),
         pay: PAYMENTS[o.payment] || PAYMENTS.COD,
         tracked: o.consignment !== '—',
         checked: !!sel[o.id],
@@ -313,6 +337,7 @@ const CSS = `
 .mo-short{color:var(--text-danger);font-weight:var(--weight-medium)}
 .mo-today{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading);white-space:nowrap}
 .mo-today svg{color:var(--text-muted)}
+.mo-badges{display:inline-flex;flex-wrap:wrap;gap:4px}
 `;
 
 // ---- markup ----
@@ -339,7 +364,7 @@ export default class MerchantOrdersScreen extends Component {
                 <ShopHeader icon="inbox" title={v.pageTitle}
                   about="Every order in one list: online, counter and wholesale. Open an order to verify, approve, pack and send it."
                   secondary={[{ label: 'Export', onClick: v.exportCsv }]}
-                  more={[{ label: 'Courier returns', href: '/courier-returns' }, { label: 'Wholesale orders', href: '/wholesale-orders' }, { label: 'Order notifications', href: '/set-notifications' }]}
+                  more={[{ label: 'Order work', href: '/order-work' }, { label: 'Quotes', href: '/order-work?q=quotes' }, { label: 'Courier returns', href: '/courier-returns' }, { label: 'Wholesale orders', href: '/wholesale-orders' }, { label: 'Order settings', href: '/order-settings' }, { label: 'Order notifications', href: '/set-notifications' }]}
                   primary={{ label: 'Create order', href: v.newOrderHref }} />
 
                 <MetricStrip label="Today's orders"
@@ -351,6 +376,8 @@ export default class MerchantOrdersScreen extends Component {
                     { label: 'With courier', value: String(v.kpiCourier), href: '/merchant-orders?status=shipped' },
                     { label: 'Return rate', value: v.kpiReturnRate },
                   ]} />
+
+                <OrderJobs onChange={v.reload} />
 
                 <section className="ix-card" aria-label={v.tabLabel}>
                   {v.hasSelection ? (
@@ -384,6 +411,9 @@ export default class MerchantOrdersScreen extends Component {
                       <select aria-label="Delivery zone" className={'ix-filter' + (v.zone ? ' is-set' : '')} value={v.zone} onChange={v.onZone}>
                         <option value="">Delivery zone</option><option>Inside Dhaka</option><option>Sub-Dhaka</option><option>Outside Dhaka</option>
                       </select>
+                      {v.subs.length ? <select aria-label="Sub-status" className={'ix-filter' + (v.sub ? ' is-set' : '')} value={v.sub} onChange={v.onSub}>
+                        <option value="">Sub-status</option>{v.subs.map((c) => <option key={c.id} value={c.id}>{c.label} · {c.base}</option>)}
+                      </select> : null}
                       <button type="button" className={'ix-filter' + (v.extraCount ? ' is-set' : '')} onClick={v.openFilters} aria-haspopup="dialog" style={{ backgroundImage: 'none', paddingRight: 10 }}>{v.extraCount ? 'More filters · ' + v.extraCount : 'More filters'}</button>
                       {v.hasFilters ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={v.clearFilters}>Clear all</button> : null}
                     </div>
@@ -401,6 +431,7 @@ export default class MerchantOrdersScreen extends Component {
                             <span className="ix-pitem__mid">{o.customer} · {o.placed}</span>
                             <span className="ix-pitem__tags">
                               <__StatusBadge tone={o.statusInfo ? o.statusInfo.tone : 'neutral'}>{o.statusInfo ? o.statusInfo.label : o.status}</__StatusBadge>
+                              {o.sub2 ? <__StatusBadge tone={o.sub2.tone} icon="tag">{o.sub2.label}</__StatusBadge> : null}
                               <__StatusBadge tone={o.pay.tone} icon={o.pay.icon}>{o.payment === 'Partial' ? 'Partly paid' : o.payment}</__StatusBadge>
                             </span>
                           </__Link>
@@ -436,7 +467,7 @@ export default class MerchantOrdersScreen extends Component {
                               <td className="ix-muted">{o.channel}</td>
                               <td className="ix-num">{o.total}</td>
                               <td><__StatusBadge tone={o.pay.tone} icon={o.pay.icon}>{o.payment === 'Partial' ? 'Partly paid' : o.payment}</__StatusBadge></td>
-                              <td><__StatusBadge tone={o.statusInfo ? o.statusInfo.tone : 'neutral'}>{o.statusInfo ? o.statusInfo.label : o.status}</__StatusBadge></td>
+                              <td><span className="mo-badges"><__StatusBadge tone={o.statusInfo ? o.statusInfo.tone : 'neutral'}>{o.statusInfo ? o.statusInfo.label : o.status}</__StatusBadge>{o.sub2 ? <__StatusBadge tone={o.sub2.tone} icon="tag">{o.sub2.label}</__StatusBadge> : o.toReview ? <__StatusBadge tone="warning" icon="receipt">Payment to review</__StatusBadge> : null}</span></td>
                               <td className="ix-muted">{items(o)}</td>
                             </tr>
                           ))}

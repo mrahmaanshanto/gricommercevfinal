@@ -137,14 +137,14 @@ const salesSummary = {
     });
     back.forEach((x) => { const i = idx[keyOf(x.at)]; if (i != null) rows[i].returns += num(x.amount); });
     const table = rows.map(({ _ids, ...r }) => ({
-      ...r, orders: _ids.size, gross: r2(r.gross), disc: r2(r.disc), revenue: r2(r.revenue), returns: r2(r.returns), vat: r2(r.vat), net: r2(r.revenue - r.returns), aov: _ids.size ? r.revenue / _ids.size : 0,
+      ...r, orders: _ids.size, gross: r2(r.gross), disc: r2(r.disc), revenue: r2(r.revenue), returns: r2(r.returns), vat: r2(r.vat), net: r2(r.revenue - r.returns), aov: _ids.size ? (r.revenue - r.returns) / _ids.size : 0,
     })).filter((r) => r.orders || r.returns);
     const unitLabel = unit === 'day' ? 'Day' : unit === 'week' ? 'Week from' : 'Month from';
     return {
       kpis: [
         { key: 'net', label: 'Net sales', value: net, format: 'money', good: 'up', sub: `Sales ${fmt(revenue, 'money0')} − returns ${fmt(returns, 'money0')} · VAT ${fmt(vat, 'money0')} on top` },
         { key: 'orders', label: 'Orders', value: orders, format: 'int', good: 'up', sub: `${fmt(units, 'int')} pieces sold` },
-        { key: 'aov', label: 'Average order', value: orders ? revenue / orders : 0, format: 'money', good: 'up' },
+        { key: 'aov', label: 'Average order', value: orders ? net / orders : 0, format: 'money', good: 'up', sub: 'Net sales ÷ orders' },
         { key: 'disc', label: 'Discounts given', value: disc, format: 'money', good: 'down', sub: `${pctText(disc, g)} of ${fmt(g, 'money0')} at full price` },
         { key: 'returns', label: 'Returns', value: returns, format: 'money', good: 'down', sub: `${pctText(returns, revenue)} of sales` },
       ],
@@ -160,7 +160,7 @@ const salesSummary = {
           { key: 'returns', label: 'Returns', format: 'money', total: 'sum' },
           { key: 'net', label: 'Net sales', format: 'money', total: 'sum' },
           { key: 'vat', label: 'VAT', format: 'money', total: 'sum' },
-          { key: 'aov', label: 'Average order', format: 'money', total: orders ? r2(revenue / orders) : 0 },
+          { key: 'aov', label: 'Average order', format: 'money', total: orders ? r2(net / orders) : 0 },
         ],
         rows: table,
         sort: { key: 'start', dir: 'asc' },

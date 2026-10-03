@@ -11,6 +11,7 @@ import __SetChrome, { SettingsLogic as __SettingsLogic, SetIn as __In, SetErr as
 import { toast, confirmDialog } from '@/runtime/ui';
 import __SetRail from '@/screens/settings-console/SetRail';
 import __SetTopbar from '@/screens/settings-console/SetTopbar';
+import __ApiKeysCard from '@/screens/settings-console/ApiKeysCard';
 
 // ---- logic (from the design's <script type="text/x-dc">) ----
 
@@ -123,6 +124,7 @@ export default class SetSecurityScreen extends Component {
                         <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>Last backup 7 Sep 2026, 03:00</span>
                       </span>
                     </header>
+                    <__ApiKeysCard />
                     <section id="s0" className="ix-card set-card">
                       <div className="set-head">
                         <span style={{ display: "block" }}>

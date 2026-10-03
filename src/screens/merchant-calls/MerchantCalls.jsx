@@ -8,6 +8,9 @@
 // Front end only: calls are kept in this browser (src/lib/inbox.js); names come from the customer
 // book and the inbox, orders from src/lib/orders.js by phone number.
 // URL: ?dial=01XXXXXXXXX&name=… puts the number in the dialer (the Inbox "Call" buttons use it).
+// Call tasks (src/lib/callTasks.js): other areas (Recovery, Accounts, Orders) ask for a call; the Call tasks tab is their
+// queue. A task is checked again before it is shown (a cart that became an order is skipped); calling it and saving the
+// outcome closes it ("No answer" / "Callback needed" keep it for another try). ?tab=tasks opens the queue.
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -26,14 +29,20 @@ import {
 } from '@/lib/inbox';
 import { useInbox, useNow, useMedia, Avatar, StaffAvatar, SlaChip, Menu as InboxMenu, MenuItem, Sheet, PARTS_CSS } from '@/components/inbox/parts';
 import { Dialer, fmtPhone, DIALER_CSS } from '@/components/inbox/Dialer';
+import { getCallTasks, startCallTask, completeCallTask, skipCallTask, revalidate, CALL_SOURCES, CALL_TASK_EVENT } from '@/lib/callTasks';
 
 const LOG_TABS = [['all', 'All'], ['in', 'Incoming'], ['out', 'Outgoing'], ['missed', 'Missed'], ['voicemail', 'Voicemail']];
 const PERIODS = [['today', 'Today'], ['yesterday', 'Yesterday'], ['7d', 'Last 7 days'], ['all', 'All time']];
 const DAY = 24 * 3600 * 1000;
-const CALL_LISTS = [
-  { id: 'abandoned', icon: 'shopping-cart', title: 'Abandoned checkouts', meta: '6 customers · ৳38,200 at risk', phone: '01822771190', name: 'Tanvir Hasan' },
-  { id: 'delivery', icon: 'truck', title: 'Delivery confirmation', meta: '3 customers · courier retry today', phone: '01711902244', name: 'Mostafizur Rahman' },
-];
+const tk = (n) => '৳' + Math.round(n || 0).toLocaleString('en-IN');
+// a task is pointless once its reason is gone: the cart became an order, the order was delivered
+function taskDone(task, orders) {
+  const c = task.check || {};
+  const mine = orders.filter((o) => samePhone(o.phone, task.customer.phone));
+  if (c.kind === 'cart-ordered') { const o = mine.find((x) => x.at > task.at); return o ? `The cart became order ${o.id}` : ''; }
+  if (c.kind === 'order-delivered') { const o = mine.find((x) => x.id === c.ref); return o && o.statusKey === 'delivered' ? `Order ${o.id} was delivered` : ''; }
+  return '';
+}
 const agoText = (at, now) => { const a = ago(at, now); return /\d[mh]$/.test(a) ? a + ' ago' : a === 'now' ? 'just now' : a.toLowerCase() === 'yesterday' ? 'yesterday' : 'on ' + a; };
 const secs = (from) => Math.max(0, Math.round((Date.now() - from) / 1000));
 const followText = (v) => (!v ? '' : /^\d{4}-\d{2}-\d{2}$/.test(v) ? formatDate(v + 'T10:00:00') : v);
@@ -63,7 +72,17 @@ export default function MerchantCalls() {
   const [outcome, setOutcome] = useState(null);
   const [playing, setPlaying] = useState(null);   // { id, pos }
   const [open, setOpen] = useState([]);           // transcripts shown in full
+  const [tasks, setTasks] = useState(null);        // outbound call tasks (callTasks.js)
 
+  useEffect(() => {
+    const os = getOrders();
+    revalidate((task) => taskDone(task, os));
+    const readTasks = () => setTasks(getCallTasks());
+    readTasks();
+    window.addEventListener(CALL_TASK_EVENT, readTasks);
+    if (new URLSearchParams(window.location.search).get('tab') === 'tasks') setTab('tasks');
+    return () => window.removeEventListener(CALL_TASK_EVENT, readTasks);
+  }, []);
   useEffect(() => {
     setOrders(getOrders());
     setCustomers(getCustomers());
@@ -116,11 +135,12 @@ export default function MerchantCalls() {
 
   // ---- calling ---------------------------------------------------------------------------------------
   const busy = !!live;
-  const startCall = (phone, name, from = '') => {
+  const startCall = (phone, name, from = '', task = null) => {
     if (live) { toast('Finish the call you are on first', { tone: 'error' }); return; }
     const id = Date.now();
     setDialSheet(false);
-    setLive({ id, phone, name: name || (personOf(phone) || {}).name || '', dir: 'out', line, state: 'ringing', start: Date.now(), liveAt: 0, wait: 0, from, muted: false, hold: false, pad: false, tones: '', note: '' });
+    if (task) startCallTask(task.id, staffName(ME));
+    setLive({ id, phone, name: name || (personOf(phone) || {}).name || '', dir: 'out', line, state: 'ringing', start: Date.now(), liveAt: 0, wait: 0, from, task: task ? task.id : '', reason: task ? (task.source === 'Accounts' ? 'Payment' : task.source === 'Orders' ? 'Delivery' : 'Other') : '', note: task ? task.reason : '', muted: false, hold: false, pad: false, tones: '' });
     window.setTimeout(() => setLive((l) => (l && l.id === id && l.state === 'ringing' ? { ...l, state: 'live', liveAt: Date.now() } : l)), 2200);
   };
   const answer = (w) => {
@@ -161,6 +181,8 @@ export default function MerchantCalls() {
       callback: !skip && o.result === 'Callback needed' ? 'due' : '',
     });
     if (o.from) patchCall(o.from, { callback: 'done', doneAt: Date.now() });
+    // a call task closes with the outcome; no answer or a callback keeps it for another try
+    if (o.task) completeCallTask(o.task, { outcome: skip ? 'No answer' : o.result === 'Callback needed' ? 'Call back later' : o.result, note: (o.note || '').trim(), by: staffName(ME) });
     setOutcome(null);
     toast(skip ? 'Call saved without an outcome' : `Call saved · ${o.result}${o.followUp ? ' · follow up ' + followText(o.followUp) : ''}`);
   };
@@ -203,7 +225,10 @@ export default function MerchantCalls() {
   const outcomeBadge = (c) => (c.result ? <span className={'gc-badge gc-badge--' + (RESULT_TONE[c.result] || 'slate')}>{c.result}</span>
     : isDue(c) ? <span className="gc-badge gc-badge--warning">Callback due</span>
       : c.callback === 'done' ? <span className="gc-badge gc-badge--success">Called back</span> : <span className="ix-muted">No outcome</span>);
-  const tabs = [['log', 'Call log', log.length], ['callbacks', 'Callbacks', due.length], ['recordings', 'Recordings', recs.length]];
+  const openTasks = (tasks || []).filter((x) => x.status === 'open');
+  const readyTasks = openTasks.filter((x) => !(x.snoozeUntil > t));
+  const taskGroups = Object.values(openTasks.reduce((a, x) => { const k = x.source + '|' + x.reason; a[k] = a[k] || { key: k, source: x.source, reason: x.reason, n: 0, amount: 0 }; a[k].n += 1; a[k].amount += x.amount || 0; return a; }, {}));
+  const tabs = [['log', 'Call log', log.length], ['callbacks', 'Callbacks', due.length], ['tasks', 'Call tasks', readyTasks.length], ['recordings', 'Recordings', recs.length]];
   const logFilters = (dir !== 'all' ? 1 : 0) + (agent ? 1 : 0) + (period !== '7d' ? 1 : 0);
   const showFind = find || !!q || logFilters > 0;
   const clearLog = () => { setDir('all'); setQ(''); setAgent(''); setPeriod('7d'); };
@@ -357,16 +382,58 @@ export default function MerchantCalls() {
                             })}
                           </ul>
                         ) : <EmptyState icon="phone-call" title="No callbacks waiting" />}
-                        <h3 className="ix-section-title cl-sub">Call lists</h3>
-                        <ul className="cl-cbs">
-                          {CALL_LISTS.map((l) => (
-                            <li key={l.id} className="cl-cb">
-                              <Icon name={l.icon} width="16" height="16" aria-hidden="true" className="cl-list__icon" />
-                              <span className="cl-cb__text"><b>{l.title}</b><span className="ib-sub">{l.meta}</span></span>
-                              <span className="cl-cb__acts"><button type="button" className="ix-btn ix-btn--sm" onClick={() => { startCall(l.phone, l.name); toast(`${l.title}: calling 1 of ${l.meta.split(' ')[0]}`, { tone: 'info' }); }}>Start calling</button></span>
-                            </li>
-                          ))}
-                        </ul>
+                        {taskGroups.length ? (<>
+                          <h3 className="ix-section-title cl-sub">Call lists</h3>
+                          <ul className="cl-cbs">
+                            {taskGroups.map((l) => (
+                              <li key={l.key} className="cl-cb">
+                                <Icon name={CALL_SOURCES[l.source] || 'phone'} width="16" height="16" aria-hidden="true" className="cl-list__icon" />
+                                <span className="cl-cb__text"><b>{l.reason}</b><span className="ib-sub">{l.n} {l.n === 1 ? 'customer' : 'customers'}{l.amount ? ' · ' + tk(l.amount) : ''} · from {l.source}</span></span>
+                                <span className="cl-cb__acts"><button type="button" className="ix-btn ix-btn--sm" onClick={() => setTab('tasks')}>Open</button></span>
+                              </li>
+                            ))}
+                          </ul>
+                        </>) : null}
+                      </div>
+                    ) : null}
+
+                    {tab === 'tasks' ? (
+                      <div className="cl-pad">
+                        {!tasks ? <p className="cl-loading">Loading call tasks…</p> : openTasks.length ? (
+                          <ul className="cl-cbs" aria-label="Call tasks">
+                            {openTasks.map((x) => {
+                              const later = x.snoozeUntil > t;
+                              const late = !later && x.due < t;
+                              return (
+                                <li key={x.id} className="cl-cb">
+                                  <Icon name={CALL_SOURCES[x.source] || 'phone'} width="16" height="16" aria-hidden="true" className="cl-list__icon" />
+                                  <span className="cl-cb__text">
+                                    <span className="cl-cb__top"><b>{x.customer.name}</b><span className="ib-sub ib-data">{fmtPhone(x.customer.phone)}</span>{x.priority === 'high' ? <span className="gc-badge gc-badge--error">High</span> : null}{later ? <span className="gc-badge gc-badge--info">Try again {whenText(x.snoozeUntil, t)}</span> : late ? <span className="gc-badge gc-badge--warning">Overdue</span> : null}</span>
+                                    <span className="ib-sub">{x.reason}{x.amount ? ' · ' + tk(x.amount) : ''} · from {x.source}{x.attempts ? ` · ${x.attempts} ${x.attempts === 1 ? 'try' : 'tries'}` : ''}</span>
+                                    {x.note || x.lastOutcome ? <span className="ib-sub">{[x.lastOutcome, x.note].filter(Boolean).join(' · ')}</span> : null}
+                                  </span>
+                                  <span className="cl-cb__acts">
+                                    <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" items={[
+                                      { label: 'Open their chats', href: `/merchant-inbox?phone=${x.customer.phone}` },
+                                      { label: 'Skip this task', onClick: () => { skipCallTask(x.id, `Skipped by ${staffName(ME)}`); toast('Task skipped', { undo: () => completeCallTask(x.id, { outcome: 'Call back later', retryInHours: 0 }) }); } },
+                                    ]} />
+                                    <button type="button" className="ix-btn ix-btn--sm ix-btn--primary" onClick={() => startCall(x.customer.phone, x.customer.name, '', x)}><Icon name="phone" width="16" height="16" aria-hidden="true" />Call</button>
+                                  </span>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        ) : <EmptyState icon="list-checks" title="No call tasks" body="Tasks from Recovery, Accounts and Orders show here." />}
+                        {(tasks || []).some((x) => x.status !== 'open') ? (<>
+                          <h3 className="ix-section-title cl-sub">Done</h3>
+                          <ul className="cl-cbs" aria-label="Done call tasks">
+                            {(tasks || []).filter((x) => x.status !== 'open').slice(0, 5).map((x) => (
+                              <li key={x.id} className="cl-cb">
+                                <span className="cl-cb__text"><span className="cl-cb__top"><b>{x.customer.name}</b>{x.status === 'done' ? <span className="gc-badge gc-badge--success">{x.outcome}</span> : <span className="gc-badge gc-badge--slate">Skipped</span>}</span><span className="ib-sub">{x.reason} · {x.status === 'done' ? (x.by || '') : x.skipReason}</span></span>
+                              </li>
+                            ))}
+                          </ul>
+                        </>) : null}
                       </div>
                     ) : null}
 

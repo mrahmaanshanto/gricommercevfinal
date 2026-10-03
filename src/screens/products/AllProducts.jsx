@@ -12,7 +12,10 @@ import { ShopHeader, IndexTabs, SearchField, LearnMore, Menu } from '@/component
 import { toast as __toast } from '@/runtime/ui';
 import { useRouter } from 'next/navigation';
 import { formatBDT } from '@/lib/format';
-import { allProducts, getSavedProducts, DEMO_PRODUCTS, sellLabel } from '@/lib/products';
+import { allProducts, getSavedProducts, DEMO_PRODUCTS, sellLabel, duplicateProduct } from '@/lib/products';
+import ImportProducts from './ImportProducts';
+import { freeKeys } from '@/lib/licenceKeys';
+import { stockAt } from '@/lib/stock';
 import { getStockSetup } from '@/lib/stockSetup';
 import { hasModule } from '@/lib/edition';
 import { CHANNELS_EVENT, channelMap, getChannels, setPublished, retryMany, STATUS, ISSUES, channelBy, PRODUCT_CHS } from '@/lib/channels';
@@ -158,7 +161,7 @@ class Component extends DCLogic {
       clearEmpty: function () { if (q) self.setState({ q: '' }); else if (filtered) self.setState({ fCat: '', fBrand: '', fTag: '', fSell: '', fCh: '' }); else self.setTab('all'); },
       rows: list.map(function (p) { var on = !!sel[p.id], href = editHref(p);
         return { id: p.id, name: p.name, sku: p.sku || 'No SKU', skuColor: p.sku ? 'var(--text-muted)' : 'var(--text-warning)', vars: p.vars, initial: p.name.charAt(0), tbg: p.tbg, sel: on, bg: on ? '#f2f6fc' : 'transparent', st: ST[p.st][0], stCls: ST[p.st][1],
-          inv: p.inv === 0 ? 'Out of stock' : p.inv + ' in stock', invSub: p.loc ? 'at ' + p.loc + (p.loc > 1 ? ' places' : ' place') : 'not tracked', invColor: p.inv === 0 ? '#b83210' : p.low ? '#a14f06' : '#0f172a',
+          inv: p.format === 'digital' || p.format === 'service' ? 'Not tracked' : p.format === 'licence' ? freeKeys(p.sku) + ' keys free' : p.bundle && p.bundle.type !== 'kit' ? (s.saved ? stockAt(p.sku, '').available : 0) + ' from parts' : p.inv === 0 ? 'Out of stock' : p.inv + ' in stock', invSub: p.loc ? 'at ' + p.loc + (p.loc > 1 ? ' places' : ' place') : 'not tracked', invColor: p.inv === 0 ? '#b83210' : p.low ? '#a14f06' : '#0f172a',
           cat: p.cat || 'No category', catColor: p.cat ? '#334155' : 'var(--text-warning)', brand: p.brand || '—',
           sell: sellLabel(p.sell), sellCls: SELL_CLS[p.sell] || SELL_CLS.retail, price: priceText(p), ws: wsText(p), wsColor: p.sell !== 'retail' && (p.wholesale == null || p.wholesale === '') ? 'var(--text-warning)' : 'var(--text-muted)',
           flags: p.flags.filter(function (f) { return FL[f]; }).map(function (f) { return { l: f, bg: FL[f][0], fg: FL[f][1], t: FL[f][2] }; }),
@@ -178,7 +181,23 @@ class Component extends DCLogic {
       aiCols: AIC.map(function (c) { var on = !!aic[c]; return { label: c, on: on, cls: on ? 'chip on' : 'chip', pick: function () { var o = assign({}, aic); o[c] = !on; self.setState({ aic: o }); } }; }),
       aiTotal: n * AIC.filter(function (c) { return aic[c]; }).length,
       runAi: function () { self.setState({ aiOpen: false }); toast(self, 'AI is writing ' + n * AIC.filter(function (c) { return aic[c]; }).length + ' fields. They will wait in “Review AI text” before going live.'); },
-      importCsv: function () { toast(self, 'Upload a CSV — download the template first to see the columns.'); },
+      // Import: upload a CSV, match the columns, check every row (dry run), import the good ones (ImportProducts.jsx)
+      importCsv: function () { self.setState({ impOpen: true }); },
+      closeImport: function () { self.setState({ impOpen: false }); },
+      imported: function () { self.setState({ saved: getSavedProducts() }); },
+      // the spreadsheet bulk editor (/bulk-edit) with the selected products, or every product in the list
+      bulkEdit: function () { var ids = list.filter(function (p) { return sel[p.id]; }).map(function (p) { return p.id; }); var href = '/bulk-edit' + (ids.length ? '?ids=' + encodeURIComponent(ids.join(',')) : ''); if (self.props.router) self.props.router.push(href); else window.location.href = href; },
+      // copy one product as a new draft and open it
+      duplicate: function () {
+        var one = list.filter(function (p) { return sel[p.id]; });
+        if (one.length !== 1) { toast(self, 'Select one product to duplicate.', true); return; }
+        var rec = duplicateProduct(one[0].id);
+        if (!rec) return;
+        self.setState({ saved: getSavedProducts(), sel: {} });
+        toast(self, 'Copied as a draft: ' + rec.name);
+        var href = '/add-product?id=' + encodeURIComponent(rec.id);
+        if (self.props.router) self.props.router.push(href); else window.location.href = href;
+      },
       exportCsv: function () {
         if (!list.length) { toast(self, 'Nothing to export. Change the filters first.', true); return; }
         var rows = [['Name', 'SKU', 'Barcode', 'Status', 'Stock', 'Category', 'Brand', 'Sell to', 'Retail price', 'Wholesale price', 'Wholesale MOQ', 'Variants']].concat(list.map(function (p) {
@@ -231,7 +250,7 @@ class AllProductsView extends Component {
               <div className="ix-page">
                 <ShopHeader icon="package" title="Products" about="Every product you sell, with price, stock and photos. Open a product to change it."
                   secondary={[{ label: 'Export', onClick: v.exportCsv }, { label: 'Import', onClick: v.importCsv }]}
-                  more={[{ label: 'Categories', href: '/categories' }, { label: 'Catalog setup', href: '/catalog-setup' }, { label: 'Barcode labels', href: '/barcode-labels' }]}
+                  more={[{ label: 'Bulk edit', onClick: v.bulkEdit }, { label: 'Categories', href: '/categories' }, { label: 'Catalog setup', href: '/catalog-setup' }, { label: 'Barcode labels', href: '/barcode-labels' }]}
                   primary={{ label: 'Add product', href: '/add-product' }} />
                 {v.hasMsg ? <div className="gc-alert gc-alert--soft" role="status">{v.msg}</div> : null}
 
@@ -240,11 +259,12 @@ class AllProductsView extends Component {
                     <div className="ix-bulk" role="toolbar" aria-label="Selected products">
                       <input type="checkbox" checked={v.allSel} onChange={v.toggleAll} aria-label="Select every product" style={{ width: 16, height: 16, margin: '0 6px', accentColor: 'var(--primary)' }} />
                       <span className="ix-bulk__n">{v.selCount} selected</span>
+                      <button type="button" className="ix-btn ix-btn--sm" onClick={v.bulkEdit}><__Icon name="table" width="16" height="16" aria-hidden="true" />Bulk edit</button>
                       <button type="button" className="ix-btn ix-btn--sm" onClick={v.bulkCat}><__Icon name="folder" width="16" height="16" aria-hidden="true" />Change category</button>
                       <button type="button" className="ix-btn ix-btn--sm" onClick={v.bulkLbl}><__Icon name="scan-barcode" width="16" height="16" aria-hidden="true" />Print labels</button>
                       <button type="button" className="ix-btn ix-btn--sm" onClick={v.openAi}><__Icon name="sparkles" width="16" height="16" aria-hidden="true" />Fill with AI</button>
                       {v.chOn && v.chActs.length ? <Menu label="Channels" icon="radio-tower" cls="ix-btn ix-btn--sm" align="start" items={v.chActs.map((a) => ({ label: a.l, onClick: a.run }))} /> : null}
-                      <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" align="start" items={[{ label: 'Archive', onClick: v.bulkArchive }, { label: 'Delete', onClick: v.bulkDelete, tone: 'danger' }]} />
+                      <Menu label="" icon="ellipsis" cls="ix-btn ix-btn--sm ix-btn--icon" align="start" items={[v.selCount === 1 ? { label: 'Duplicate', onClick: v.duplicate } : null, { label: 'Archive', onClick: v.bulkArchive }, { label: 'Delete', onClick: v.bulkDelete, tone: 'danger' }].filter(Boolean)} />
                     </div>
                   ) : (
                     <div className="ix-bar">
@@ -350,6 +370,8 @@ class AllProductsView extends Component {
             </div>
           </main>
         </div>
+
+        <ImportProducts open={!!s.impOpen} onClose={v.closeImport} onDone={v.imported} />
 
         <__Dialog open={!!v.aiOpen} title={'Fill with AI for ' + v.selCount + ' products'} onClose={v.closeAi} width={520} footer={<>
           <button type="button" className="gc-btn gc-btn--sm gc-btn--neutral" onClick={v.closeAi}>Cancel</button>

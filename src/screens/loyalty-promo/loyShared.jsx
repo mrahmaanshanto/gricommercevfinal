@@ -14,6 +14,8 @@ import { Dialog } from '@/components/ui';
 import { ShopHeader, RecordHeader } from '@/components/ui/IndexKit';
 import { balanceOf } from '@/lib/ledger';
 import { ACC_CSS, AccountSelect, money, accName } from '@/screens/accounts/accShared';
+import { ManagerPin } from '@/components/ManagerPin';
+import { issueCredit, adjustCredit } from '@/lib/storeCredit';
 import {
   TIER_TONE, CHANNELS, getMembers, findMember, topUpWallet, refundWallet, rewardWallet, adjustPoints, approveRequest, accountForRequest, getLoyaltySettings,
 } from '@/lib/loyalty';
@@ -135,7 +137,7 @@ function MemberPick({ value, onChange, members, id }) {
       <input className="gc-input" placeholder="Search name or phone" aria-label="Search customer" value={q} onChange={(e) => setQ(e.target.value)} style={{ marginBottom: 'var(--space-2)' }} />
       <select id={id} className="gc-input gc-select" value={value} onChange={(e) => onChange(e.target.value)}>
         <option value="">Choose a customer</option>
-        {list.map((m) => <option key={m.phone} value={m.phone}>{m.name} · {m.phone} · wallet {money(m.wallet)}</option>)}
+        {list.map((m) => <option key={m.phone} value={m.phone}>{m.name} · {m.phone} · credit {money(m.wallet)}</option>)}
       </select>
     </div>
   );
@@ -225,6 +227,82 @@ export function WalletDialog({ mode, phone: startPhone = '', request = null, onC
               : <>{accName(account)} goes up by {money(a)}. It is not a sale: you hold it for the customer until they spend it or take it back.</>
         }</span></div>
       </form>
+    </Dialog>
+  );
+}
+
+// ---- store credit (the wallet is store credit now: lib/storeCredit.js) ------------------------------
+const CREDIT_WHY = [['goodwill', 'Sorry gift'], ['return', 'Return'], ['refund', 'Refund'], ['promotion', 'Offer'], ['loyalty', 'Loyalty reward']];
+/**
+ * Give store credit (mode 'give': a return, refund, sorry gift, offer or reward; no money moves) or correct a balance
+ * (mode 'adjust': + or −, with a reason and a manager's PIN). Store credit is never topped up or paid out in cash.
+ */
+export function CreditDialog({ mode = 'give', phone: startPhone = '', onClose }) {
+  const members = useMemo(() => getMembers(), []);
+  const [phone, setPhone] = useState(startPhone);
+  const [amount, setAmount] = useState('');
+  const [why, setWhy] = useState('goodwill');
+  const [sign, setSign] = useState(1);
+  const [reason, setReason] = useState('');
+  const [note, setNote] = useState('');
+  const [channel, setChannel] = useState('Online');
+  const [pin, setPin] = useState(false);
+  const m = phone ? findMember(phone, members) : null;
+  const a = num(amount);
+  const over = mode === 'adjust' && sign < 0 && m && a > m.wallet + 0.001;
+  const check = () => {
+    if (!m) { toast('Choose the customer', { tone: 'error' }); return false; }
+    if (!(a > 0)) { toast('Enter the amount', { tone: 'error' }); return false; }
+    if (mode === 'adjust' && !reason.trim()) { toast('Give a reason', { tone: 'error' }); return false; }
+    return !over;
+  };
+  const save = (e) => {
+    e.preventDefault();
+    if (!check()) return;
+    if (mode === 'adjust') { setPin(true); return; }
+    const done = issueCredit({ phone: m.phone, amount: a, source: why, note: note.trim(), channel });
+    if (done.error) { toast(done.error, { tone: 'error' }); return; }
+    toast(`${money(a)} store credit added for ${m.name}`);
+    onClose(true);
+  };
+  const approved = (manager) => {
+    setPin(false);
+    const done = adjustCredit({ phone: m.phone, amount: sign * a, reason: reason.trim(), approvedBy: manager || 'Manager' });
+    if (done.error) { toast(done.error, { tone: 'error' }); return; }
+    toast(`Balance corrected · ${sign > 0 ? '+' : '−'}${money(a)} for ${m.name}`);
+    onClose(true);
+  };
+  return (
+    <Dialog open title={mode === 'adjust' ? 'Correct a balance' : 'Give store credit'} onClose={() => onClose(false)} width={540}
+      footer={<><button type="button" className="gc-btn gc-btn--neutral" onClick={() => onClose(false)}>Cancel</button><button type="submit" form="ly-credit-form" className="gc-btn gc-btn--solid" disabled={!!over}>{mode === 'adjust' ? 'Correct' : 'Give credit'}{a > 0 ? ' · ' + money(a) : ''}</button></>}>
+      <form id="ly-credit-form" className="ac-form" onSubmit={save} noValidate>
+        {startPhone && m ? <div className="ly-who"><span className="ly-ava" aria-hidden="true">{m.name.charAt(0)}</span><span><b>{m.name}</b><small>{m.phone} · store credit {money(m.wallet)}</small></span></div>
+          : <MemberPick id="ly-c-member" value={phone} onChange={setPhone} members={members} />}
+        {mode === 'adjust' ? (
+          <div className="ac-seg" role="group" aria-label="Add or take">
+            <button type="button" aria-pressed={sign > 0} onClick={() => setSign(1)}>Add</button>
+            <button type="button" aria-pressed={sign < 0} onClick={() => setSign(-1)}>Take</button>
+          </div>
+        ) : null}
+        <div className="ac-two">
+          <div>
+            <label className="gc-label" htmlFor="ly-c-amount">Amount (৳)</label>
+            <input id="ly-c-amount" className="gc-input ac-fig" inputMode="decimal" value={amount} data-autofocus aria-invalid={over ? 'true' : undefined} aria-describedby="ly-c-help" onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ''))} />
+            <p id="ly-c-help" className={'gc-help' + (over ? ' gc-help--error' : '')} style={{ margin: 'var(--space-1) 0 0' }}>{m ? (over ? `Only ${money(m.wallet)} to take` : `Store credit now ${money(m.wallet)}`) : ' '}</p>
+          </div>
+          {mode === 'give' && (why === 'goodwill' || why === 'promotion' || why === 'loyalty') ? (
+            <div><label className="gc-label" htmlFor="ly-c-channel">Cost of</label><select id="ly-c-channel" className="gc-input gc-select" value={channel} onChange={(e) => setChannel(e.target.value)}>{CHANNELS.map((c) => <option key={c}>{c}</option>)}</select></div>
+          ) : <div><label className="gc-label" htmlFor="ly-c-note">Note</label><input id="ly-c-note" className="gc-input" placeholder="Optional" value={note} onChange={(e) => setNote(e.target.value)} /></div>}
+        </div>
+        {mode === 'give' ? (
+          <fieldset style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
+            <legend className="gc-label">Why?</legend>
+            <div className="ix-chips">{CREDIT_WHY.map(([k, l]) => <button key={k} type="button" className="ix-chip" aria-pressed={why === k} onClick={() => setWhy(k)}>{l}</button>)}</div>
+          </fieldset>
+        ) : <div><label className="gc-label" htmlFor="ly-c-reason">Reason</label><input id="ly-c-reason" className="gc-input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Credit added twice by mistake" /></div>}
+        <div className="ac-note ac-note--info"><Icon name="book-open" width="16" height="16" aria-hidden="true" /><span>{mode === 'adjust' ? 'A manager approves every correction. The old rows stay as they were.' : 'Store credit is spent on a later order, online or at the counter. It can’t be paid out in cash.'}</span></div>
+      </form>
+      <ManagerPin open={pin} reason={m ? `Correct ${m.name}’s store credit by ${sign > 0 ? '+' : '−'}${money(a)}: ${reason}` : ''} action="Store credit correction" refId={m ? m.phone : ''} amount={a} onApprove={approved} onClose={() => setPin(false)} />
     </Dialog>
   );
 }
