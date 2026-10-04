@@ -139,8 +139,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   the platform console uses `src/styles/console-responsive.css` (its header comment lists the table/form/chart hooks).
 - Menu: business areas, as in Shopify's admin (`docs/reference-ux.md`, `docs/shopify-style.md`).
   - `src/shell/navigation.js` lists the areas in two groups:
-    - Commerce: Home · Orders · Products · Inventory · Purchasing · Payments · Customers · Communications · Finances ·
+    - Commerce: Home · Inbox · Orders · Products · Inventory · Payments · Customers · Communications · Finances ·
       Analytics · Marketing · Online Store · Sales channels · POS.
+    - Inventory keeps the old menu's stock pages and order (build 7c766c0), its "More stock tools" listed openly.
+      Pages with the same `sub` fold into one row under the area (its `subs`: Warehouses & branches).
     - Team & settings: Staff & HR · Team · Settings.
   - An area's pages are its `children`:
     - the sidebar shows the areas, and the open area lists its pages under it;
@@ -246,7 +248,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `ledgerSeed.js`). Gateways (bKash/Nagad online, SSLCOMMERZ, EPS), the card machine and couriers hold money in
   `Holding` accounts; posting into one also queues it for that partner's payout. `src/lib/settlements.js` has the
   partner rules (fee, payout days, weekend + BD holidays), expected payouts, confirm / delay / withdraw and the
-  evening check (`components/EveningCheck.jsx`, 8 PM). Accounts is six pages (`/accounts-home`, `/money`,
+  evening check (`components/EveningCheck.jsx`, 8 PM; it does not open by itself for now — `AUTO_OPEN` — only from the bell). Accounts is six pages (`/accounts-home`, `/money`,
   `/settlements`, `/expenses-bills`, `/account-reports`, `/account-setup`) sharing `screens/accounts/accShared.jsx`
   (in the menu: the Finances area, and Payments for `/settlements` with Payment setup `/set-payments`);
   old Accounts addresses redirect in `next.config.mjs`. Gateways and couriers are set up with
@@ -266,7 +268,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   are shared in `screens/staff-profile/staffForm.jsx`; HR pages: `/pay-changes`, `/positions`, `/gratuity`,
   `/salary-statements`, `/id-cards`, `/attendance-devices`. QR codes: `lib/qr.js` + `components/QrCode.jsx`; print one
   element (letters, ID cards) with `lib/printNode.js`; loyalty
-  (members, points, wallets, referrals; POS checkout reads it) `lib/loyalty.js`; blog posts, categories, authors
+  (members, points, wallets, referrals; POS checkout reads it) `lib/loyalty.js`; brands (name, optional description and
+  image; Products › Brands `/brands`, the product form's Brand list) `lib/brands.js`; smart offers (triggers, rewards, send rules, send
+  log; Marketing › Smart offers `/smart-offers`) `lib/smartOffers.js`; blog posts, categories, authors
   `lib/blog.js`; inbox chats, comments and calls `lib/inbox.js`.
 - Reports: the Analytics area (with Daily summary, Scheduled reports and Ads tracking) and one page, `/reports-centre`. Every report is a definition in
   `src/lib/reports/defs/<group>.js` (contract at the top of `src/lib/reports/catalogue.js`) rendered by

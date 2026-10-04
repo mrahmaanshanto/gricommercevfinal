@@ -98,6 +98,10 @@ export function allActivity({ serial } = {}) {
     const t = traceSerial(serial);
     if (t) t.events.forEach((e, i) => { if (!out.some((r) => r.ref === e.ref && r.serial && low(r.serial) === low(t.unit.code))) out.push(row({ id: 'SN-' + i, at: e.at, kind: e.kind, sku: t.unit.sku, name: t.unit.name, place: e.place, qty: /sale|custody out|write/.test(e.kind) ? -1 : e.kind === 'hold' || e.kind === 'count' ? 0 : 1, ref: e.ref, by: e.by, serial: t.unit.code, reason: [e.who, e.note].filter(Boolean).join(' · '), effect: e.kind === 'hold' ? 'available' : e.kind === 'count' ? 'none' : 'onhand' })); });
   }
+  // one id per row: moves saved before 3 Oct 2026 took their id from the clock alone, so two moves posted in the
+  // same millisecond (a transfer's lines) share one; the repeats get a suffix
+  const seen = new Map();
+  out.forEach((r) => { const n = seen.get(r.id) || 0; seen.set(r.id, n + 1); if (n) r.id = r.id + '~' + n; });
   return out.sort((a, b) => b.at - a.at);
 }
 

@@ -13,7 +13,7 @@ import { DCLogic, Icon as __Icon } from '@/runtime/dc';
 import { Sidebar as __Sidebar, Topbar as __Topbar } from '@/shell/Shell';
 import { EmptyState as __EmptyState, StatusBadge as __StatusBadge, Sheet as __Sheet } from '@/components/ui';
 import { ShopHeader, MetricStrip, IndexTabs, SearchField, LearnMore, KV } from '@/components/ui/IndexKit';
-import { CATALOG, getCatalog, stockAt, getMoves, unitValue } from '@/lib/stock';
+import { getCatalog, stockAt, getMoves, unitValue } from '@/lib/stock';
 import { getHolds } from '@/lib/stockHolds';
 import { getTransfers } from '@/lib/transfers';
 import { STOCK_PLACES, getStockPlaces, getPlaces, placeByName, namesOf } from '@/lib/locations';
@@ -75,11 +75,13 @@ class Component extends DCLogic {
     var placeId = place ? (placeByName(place, plist) || {}).id : '';
     // base count at a place under every name it has had (a renamed place keeps its stock)
     var baseAt = function (p, x) { return (st.whs ? namesOf(x) : [x]).reduce(function (a, n) { return a + ((p.on || {})[n] || 0); }, 0); };
-    // before the browser data is read, show the catalogue's own numbers (same on the server and in the browser)
+    // stock numbers wait for the browser data (componentDidMount): stockAt also reads the stock setup, saved products
+    // and places from the browser, so a figure worked out on the first render would differ from the server's
+    var ready = !!st.catalog;
     var holds = st.holds || [], moves = st.moves || [], transfers = st.transfers || null;
     // a scanned code (pack barcode, other barcode, PLU, serial …) finds its product (identifiers.js)
     var scan = q && st.catalog ? resolveScan(st.q.trim()) : null;
-    var all = (st.catalog || CATALOG).filter(function (p) { return !isUntracked(p); }).map(function (p) {
+    var all = !ready ? [] : st.catalog.filter(function (p) { return !isUntracked(p); }).map(function (p) {
       var n = stockAt(p.sku, place, holds, moves, transfers), i = info(p);
       var places = whl.filter(function (x) { return baseAt(p, x) > 0; }).length;
       // bins from Racks & bins: at the chosen place, or every place
@@ -136,10 +138,10 @@ class Component extends DCLogic {
       self.reload();
       __toast((apart ? n + ' taken apart at ' : n + ' assembled at ') + at);
     };
-    return { rows: rows, empty: rows.length === 0, one: !!st.one, place: place, kVendor: vendorAll,
+    return { rows: rows, empty: ready && rows.length === 0, loading: !ready, one: !!st.one, place: place, kVendor: vendorAll,
       kitN: st.kitN || '1', typeKitN: function (e) { self.setState({ kitN: e.target.value.replace(/\D/g, '') }); }, assemble: function () { kitRun(false); }, takeApart: function () { kitRun(true); },
-      kValue: bdt(value), kInStock: String(inStock), kPlaces: place ? 'at ' + place : 'in ' + whl.length + ' places',
-      kHeld: String(here.reduce(function (a, r) { return a + r.n.held; }, 0)), kTransit: String(here.reduce(function (a, r) { return a + r.n.transit; }, 0)),
+      kValue: ready ? bdt(value) : '—', kInStock: ready ? String(inStock) : '—', kPlaces: place ? 'at ' + place : 'in ' + whl.length + ' places',
+      kHeld: ready ? String(here.reduce(function (a, r) { return a + r.n.held; }, 0)) : '—', kTransit: ready ? String(here.reduce(function (a, r) { return a + r.n.transit; }, 0)) : '—',
       kBuy: lowN + outN, showLow: function () { self.setState({ f: 'low' }); setQuery('filter', 'low'); },
       wh: wh, whOpts: [{ k: 'all', l: 'All places' }].concat(whl.map(function (x) { return { k: whKey(x), l: x }; })),
       onWh: function (e) { var k = e.target.value; self.setState({ wh: k }); setQuery('warehouse', k === 'all' ? '' : k); },
@@ -149,7 +151,7 @@ class Component extends DCLogic {
       clearAll: function () { self.setState({ f: 'all', wh: 'all', q: '', find: false }); setQuery('filter', ''); setQuery('warehouse', ''); setQuery('q', ''); },
       sheet: sheet, closeHist: function () { self.setState({ hist: null }); },
       countLabel: rows.length === 1 ? '1 product' : rows.length + ' products',
-      tabs: FL.map(function (x) { return { key: x.k, id: 'st-tab-' + x.k, label: x.label, count: counts[x.k], on: x.k === f, onClick: function () { self.setState({ f: x.k }); setQuery('filter', x.k === 'all' ? '' : x.k); } }; }) };
+      tabs: FL.map(function (x) { return { key: x.k, id: 'st-tab-' + x.k, label: x.label, count: ready ? counts[x.k] : null, on: x.k === f, onClick: function () { self.setState({ f: x.k }); setQuery('filter', x.k === 'all' ? '' : x.k); } }; }) };
   }
 }
 
@@ -243,7 +245,7 @@ export default class StockScreen extends Component {
                   {v.empty ? (
                     <div className="ix-empty"><__EmptyState icon="package-search" title={v.emptyTitle} actionLabel="Clear filters" onAction={v.clearAll} /></div>
                   ) : (<>
-                    <ul className="ix-plist" aria-label="Stock list">
+                    <ul className="ix-plist" aria-label="Stock list" aria-busy={v.loading || undefined}>
                       {v.rows.map((r) => (
                         <li key={r.sku}>
                           <button type="button" className="ix-pitem" onClick={r.open}>

@@ -21,7 +21,7 @@ const BN = {
   'Buy goods': 'মাল কিনুন', 'Purchase orders': 'ক্রয় অর্ডার', 'Receive goods': 'মাল গ্রহণ', 'Requests': 'অনুরোধ',
   'Suppliers & payables': 'সরবরাহকারী ও দেনা', 'Stock list': 'স্টক তালিকা', 'Stock count': 'স্টক গণনা', 'Transfers': 'স্থানান্তর',
   'Damaged & expired': 'নষ্ট ও মেয়াদোত্তীর্ণ', 'Warranty policies': 'ওয়ারেন্টি নীতি', 'Warranty claims': 'ওয়ারেন্টি দাবি',
-  'Warehouses': 'গুদাম', 'Branches': 'শাখা', 'Racks & bins': 'র‍্যাক ও বিন', 'Barcode labels': 'বারকোড লেবেল',
+  'Warehouses': 'গুদাম', 'Branches': 'শাখা', 'Racks & bins': 'র‍্যাক ও বিন', 'Barcode labels': 'বারকোড লেবেল', 'Brands': 'ব্র্যান্ড', 'Smart offers': 'স্মার্ট অফার',
   // tracking
   'Analytics hub': 'অ্যানালিটিক্স হাব', 'Campaigns & creatives': 'ক্যাম্পেইন ও ক্রিয়েটিভ', 'Products & traffic': 'পণ্য ও ট্রাফিক',
   'Attribution & UTM': 'অ্যাট্রিবিউশন ও ইউটিএম', 'Reports & alerts': 'রিপোর্ট ও সতর্কতা', 'Pixels & events': 'পিক্সেল ও ইভেন্ট',
@@ -60,7 +60,7 @@ const BN = {
   // proposal switches (src/lib/proposal.js)
   'Proposal: {n} on': 'প্রস্তাব: {n}টি চালু', 'Proposal switches': 'প্রস্তাবের সুইচ',
   // business areas and their page tabs (navigation.js, Oct 2026)
-  'Commerce': 'কমার্স', 'Team & settings': 'টিম ও সেটিংস', 'Purchasing': 'ক্রয়', 'Payments': 'পেমেন্ট',
+  'Commerce': 'কমার্স', 'Team & settings': 'টিম ও সেটিংস', 'Warehouses & branches': 'গুদাম ও শাখা', 'Purchasing': 'ক্রয়', 'Payments': 'পেমেন্ট',
   'Communications': 'যোগাযোগ', 'Finances': 'টাকা-পয়সা', 'Analytics': 'অ্যানালিটিক্স', 'Marketing': 'মার্কেটিং',
   'Online Store': 'অনলাইন স্টোর', 'POS': 'পিওএস', 'Team': 'টিম', 'Dashboard': 'ড্যাশবোর্ড',
   'My dashboard': 'আমার ড্যাশবোর্ড', 'Tasks': 'কাজ', 'Team chat': 'টিম চ্যাট', 'Wholesale orders': 'হোলসেল অর্ডার',

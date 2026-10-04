@@ -99,6 +99,10 @@ export function defineGcSidebar() {
 .gc-sub .gc-navitem--active::before{content:"";position:absolute;left:-20px;top:7px;bottom:7px;width:3px;border-radius:3px;background:var(--primary,#003087)}
 .gc-sub .gc-navitem--active,.gc-sub .gc-navitem--active:hover{font-weight:var(--weight-medium)}
 .gc-navitem--open,.gc-navitem--open:hover{color:var(--text-heading,#1e293b)}
+/* a fold-out group inside an area's pages (navigation.js › subs, e.g. "More stock tools") */
+.gc-sub__in--grp{margin:1px 0 3px;padding-left:14px}
+.gc-sub__in--grp::before{left:3px}
+.gc-sub__in--grp .gc-navitem--active::before{left:-11px}
 .gc-navitem--open .gc-navitem__chev{transform:rotate(90deg)}
 :host([theme="dark"]) .gc-navitem--open{color:#f1f5f9}
 :host([theme="dark"]) .gc-sub .gc-navitem{color:#cbd5e1}
@@ -166,6 +170,7 @@ nav{display:block}
   // Every page draws its own menu, so where the menu was scrolled to and which groups were folded are
   // kept for the whole visit (this tab): moving to another page leaves the menu where it was.
   const SCROLL_KEY = 'gc.sidebar.scroll';
+  const GRP_KEY = 'gc.sidebar.grp';   // the fold-out group opened by hand: { id, at: the page it was opened on }
   const CLOSED_KEY = 'gc.sidebar.closed';
   const session = {
     get(k, fb) { try { const v = JSON.parse(window.sessionStorage.getItem(k)); return v == null ? fb : v; } catch { return fb; } },
@@ -296,9 +301,16 @@ nav{display:block}
     onClick(e) {
       const path = e.composedPath();
       const hit = (sel) => path.find((el) => el.matches && el.matches(sel));
-      const drill = hit('[data-drill]'), back = hit('[data-back]'), group = hit('[data-group]'), toggle = hit('[data-toggle]'), shade = hit('.gc-backdrop'), pin = hit('[data-pin]');
-      const link = !drill && !back && !group && !toggle && !pin ? hit('a[href^="/"]') : null;
+      const drill = hit('[data-drill]'), back = hit('[data-back]'), group = hit('[data-group]'), toggle = hit('[data-toggle]'), shade = hit('.gc-backdrop'), pin = hit('[data-pin]'), grp = hit('[data-grp]');
+      const link = !drill && !back && !group && !toggle && !pin && !grp ? hit('a[href^="/"]') : null;
       if (shade) { this.open = false; this.render(); return; }
+      if (grp) {
+        e.preventDefault();
+        const id = grp.dataset.grp;
+        session.set(GRP_KEY, { id: this.openGrp === id ? '' : id, at: this.activeId() });
+        this.render();
+        return;
+      }
       if (pin) {
         e.preventDefault();
         const res = togglePin(currentUser().id, pin.dataset.pin);   // redraws through NAV_PROFILE_EVENT
@@ -404,7 +416,26 @@ nav{display:block}
         if (x.locked) return `<a class="gc-navitem gc-navitem--locked" href="${esc(upgradeHref(x.locked))}" aria-label="${esc(label + ', ' + L('Upgrade'))}"><span class="gc-navitem__label">${esc(label)}</span><span class="gc-navitem__lock" aria-hidden="true">${glyph('lock', 14)}</span></a>`;
         return this.pinRow(x, on, `<span class="gc-navitem__label">${esc(label)}</span>${countOf(x) != null ? `<span class="gc-navitem__count${x.live ? ' gc-navitem__count--live' : ''}">${countOf(x)}</span>` : ''}`, L);
       };
-      return `<div class="gc-sub${anim}"><div class="gc-sub__in">${p.children.filter((x) => !x.hidden).map(item).join('')}</div></div>`;
+      const list = p.children.filter((x) => !x.hidden);
+      // pages that share a `sub` fold into one row (p.subs), one group open at a time: the one opened by hand on this
+      // page, else the one holding this page
+      const grpOf = (x) => (x.sub && p.subs && p.subs[x.sub] ? x.sub : null);
+      const hand = session.get(GRP_KEY, null);
+      const holder = (list.find((x) => x.id === lit && grpOf(x)) || {}).sub || '';
+      const openId = hand && hand.at === active ? hand.id : holder;
+      this.openGrp = openId;
+      const done = new Set();
+      const rows = list.map((x) => {
+        const g = grpOf(x);
+        if (!g) return item(x);
+        if (done.has(g)) return '';
+        done.add(g);
+        const open = openId === g;
+        const label = L(p.subs[g].label);
+        return `<button type="button" class="gc-navitem${open ? ' gc-navitem--open' : ''}" data-grp="${esc(g)}" aria-expanded="${open}"><span class="gc-navitem__label">${esc(label)}</span><span class="gc-navitem__chev" aria-hidden="true">${glyph('chevron-right', 14)}</span></button>`
+          + (open ? `<div class="gc-sub__in gc-sub__in--grp">${list.filter((y) => grpOf(y) === g).map(item).join('')}</div>` : '');
+      }).join('');
+      return `<div class="gc-sub${anim}"><div class="gc-sub__in">${rows}</div></div>`;
     }
 
     render() {

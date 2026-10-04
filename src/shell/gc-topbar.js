@@ -16,9 +16,9 @@ import { onKeys as proposalsOn, PROPOSAL_EVENT } from '../lib/proposal';
 
 // The crumb follows the menu: the page's menu group (or its parent item), found from the side menu's active id
 // or the address. Screens still pass their old crumb; it is only used when the page is not in the menu.
-const OLD_CRUMB = { 'Stocks & Inventory': 'Inventory', Stock: 'Inventory', Purchase: 'Purchasing', Accounts: 'Finances', General: 'Home', Promo: 'Marketing', Communication: 'Communications', Management: 'Settings',
+const OLD_CRUMB = { 'Stocks & Inventory': 'Inventory', Stock: 'Inventory', Purchase: 'Inventory', Purchasing: 'Inventory', Accounts: 'Finances', General: 'Home', Promo: 'Marketing', Communication: 'Communications', Management: 'Settings',
   // the menu's old group names (areas since Oct 2026, navigation.js)
-  'Products & stock': 'Products', Money: 'Finances', Sales: 'Orders', 'Customer support': 'Communications', 'Online store & settings': 'Settings', Automation: 'Communications', Reports: 'Analytics', Recovery: 'Marketing' };
+  'Products & stock': 'Inventory', Money: 'Finances', Sales: 'Orders', 'Customer support': 'Communications', 'Online store & settings': 'Settings', Automation: 'Communications', Reports: 'Analytics', Recovery: 'Marketing' };
 function menuCrumb(fallback) {
   if (typeof document === 'undefined') return fallback;
   const sb = document.querySelector('gc-sidebar');

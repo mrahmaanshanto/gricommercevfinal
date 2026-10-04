@@ -16,9 +16,8 @@ import { toast as __toast } from '@/runtime/ui';
 
 function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
 function toast(self, m) { __toast(m); }
-var SECS = [['fields', 'Custom fields', 14], ['attrs', 'Attributes and values', 5], ['brands', 'Brands', 38], ['units', 'Units', 6], ['tax', 'Tax rates', 3], ['size', 'Size charts', 4], ['warranty', 'Warranty policies', 4]];
+var SECS = [['fields', 'Custom fields', 14], ['brands', 'Brands', 38], ['units', 'Units', 6], ['tax', 'Tax rates', 3], ['size', 'Size charts', 4], ['warranty', 'Warranty policies', 4]];
 var CF = [['RAM', 'Dropdown', '4 GB, 6 GB, 8 GB, 12 GB', 'Phones, Laptops', 'Yes', 'Yes', 'No'], ['Network', 'Dropdown', '4G, 5G', 'Phones', 'Yes', 'Yes', 'No'], ['PTA approved', 'Yes / no', '—', 'Phones', 'Yes', 'Yes', 'No'], ['Display size', 'Number · inch', '—', 'Electronics', 'No', 'Yes', 'Yes'], ['Skin type', 'Checkboxes', 'Dry, Oily, Combination, Sensitive, All', 'Skin care', 'Yes', 'Yes', 'Yes'], ['Key ingredients', 'Text', '—', 'Skin care', 'No', 'Yes', 'Yes'], ['Expiry date', 'Date', '—', 'Skin care, Grocery', 'Yes', 'Yes', 'No'], ['Material', 'Text', '—', 'Clothing', 'Yes', 'Yes', 'Yes'], ['Country of origin', 'Dropdown', 'Bangladesh, China, South Korea, Vietnam…', 'All categories', 'No', 'Yes', 'Yes']];
-var ATTR = [['Colour', [['Black', '#111827'], ['White', '#ffffff'], ['Navy', '#1e3a8a'], ['Red', '#dc2626'], ['Silver', '#cbd5e1']], 'used by 186 products'], ['Size', [['S'], ['M'], ['L'], ['XL'], ['XXL']], 'used by 118 products'], ['Storage', [['128 GB'], ['256 GB'], ['512 GB']], 'used by 24 products'], ['Volume', [['50 ml'], ['100 ml'], ['150 ml'], ['300 ml']], 'used by 42 products'], ['Shoe size', [['39'], ['40'], ['41'], ['42'], ['43']], 'used by 30 products']];
 var CH = { shirt: ['Men’s shirts and polos', 'Clothing › Men', ['Size', 'Chest', 'Length', 'Shoulder', 'Sleeve'], [['S', 38, 27, 17, 8], ['M', 40, 28, 18, 8.5], ['L', 42, 29, 19, 9], ['XL', 44, 30, 20, 9.5]]], kurti: ['Women’s kurti', 'Clothing › Women', ['Size', 'Bust', 'Length', 'Waist', 'Hip'], [['S', 34, 42, 30, 38], ['M', 36, 43, 32, 40], ['L', 38, 44, 34, 42], ['XL', 40, 45, 36, 44]]], jeans: ['Jeans', 'Clothing › Men › Jeans', ['Size', 'Waist', 'Hip', 'Length', 'Thigh'], [['30', 30, 38, 40, 22], ['32', 32, 40, 41, 23], ['34', 34, 42, 41, 24], ['36', 36, 44, 42, 25]]], shoe: ['Shoes (BD / EU / UK)', 'Shoes', ['BD', 'EU', 'UK', 'Foot length', 'Width'], [['39', 39, 6, 24.5, 'Regular'], ['40', 40, 6.5, 25.1, 'Regular'], ['41', 41, 7.5, 25.8, 'Regular'], ['42', 42, 8, 26.4, 'Wide']]] };
 class Component extends DCLogic {
   renderVals() {
@@ -29,7 +28,6 @@ class Component extends DCLogic {
       secs: SECS.map(function (x) { var on = x[0] === sec; return { l: x[1], c: x[2], on: on, pick: function () { self.setState({ sec: x[0] }); } }; }),
       cf: CF.map(function (r) { return { l: r[0], t: r[1], o: r[2], c: r[3], req: r[4], show: r[5], ai: r[6] }; }),
       cfOpen: !!s.cfOpen, openCf: function () { self.setState({ cfOpen: true }); }, closeCf: function () { self.setState({ cfOpen: false }); }, saveCf: function () { self.setState({ cfOpen: false }); toast(self, 'Field added. Every Electronics product now asks for it.'); },
-      attrs: ATTR.map(function (a) { return { l: a[0], used: a[2], v: a[1].map(function (x) { return { t: x[0], c: x[1] || '', sw: !!x[1] }; }) }; }),
       brands: [['Samsung', 18, '#1428a0'], ['Beauty of Joseon', 22, '#a16207'], ['GridShop', 96, '#003087'], ['Xiaomi', 9, '#ea580c'], ['ASUS', 7, '#0f172a'], ['Nature Republic', 14, '#047857'], ['Chashi', 11, '#65a30d'], ['SoundMax', 6, '#6d28d9']].map(function (b) { return { l: b[0], n: b[1], bg: b[2], i: b[0].charAt(0) }; }),
       units: [['Piece', 'pc', 'No', 312], ['Kilogram', 'kg', 'Yes', 48], ['Gram', 'g', 'Yes', 16], ['Litre', 'L', 'Yes', 21], ['Pack', 'pack', 'No', 12], ['Dozen', 'dz', 'No', 3]].map(function (u) { return { l: u[0], s: u[1], d: u[2], n: u[3] }; }),
       taxes: [['Standard VAT', '15%', 'Yes', 'Skin care, Clothing, Electronics', 298], ['Reduced VAT', '7.5%', 'Yes', '—', 25], ['No VAT', '0%', '—', 'Grocery', 89]].map(function (t) { return { l: t[0], r: t[1], inc: t[2], c: t[3], n: t[4] }; }),
@@ -50,14 +48,6 @@ const CSS = `
 .cs-tools{gap:var(--space-2)}
 .cs-pill{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--radius-full);background:var(--surface-subtle);font-size:var(--text-xs);color:var(--text-body);white-space:nowrap}
 .cs-mono{font-family:var(--font-data)}
-.cs-rows{display:flex;flex-direction:column}
-.cs-attr{display:flex;align-items:center;gap:var(--space-3);min-height:44px;padding:8px 12px;border-top:1px solid var(--border-subtle)}
-.cs-attr:first-child{border-top:0}
-.cs-attr>b{width:110px;flex:none;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-heading)}
-.cs-attr>div{display:flex;flex:1;flex-wrap:wrap;align-items:center;gap:6px;min-width:0}
-.cs-attr>small{flex:none;font-size:var(--text-xs);color:var(--text-muted)}
-.cs-val{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--radius-full);background:var(--surface-subtle);font-size:var(--text-xs-plus)}
-.cs-sw{width:12px;height:12px;border:1px solid var(--border-strong);border-radius:var(--radius-full)}
 .cs-brand{display:flex;align-items:center;gap:10px}
 .cs-brand>span:first-child{display:grid;flex:none;place-items:center;width:28px;height:28px;border-radius:var(--radius-md);color:#fff;font-size:var(--text-xs);font-weight:var(--weight-semibold)}
 .cs-size{display:grid;grid-template-columns:220px minmax(0,1fr);gap:var(--space-4);padding:var(--space-4)}
@@ -82,23 +72,22 @@ const CSS = `
   .cs-size{grid-template-columns:minmax(0,1fr);padding:var(--space-3)}
   .cs-charts{flex-direction:row;overflow-x:auto;scrollbar-width:none}
   .cs-charts>button{flex:none}
-  .cs-attr{flex-wrap:wrap}
-  .cs-attr>div{order:3;flex:1 1 100%}
 }
 `;
 
 // ---- markup ----
 
 // Shopify-style settings page (components/ui/IndexKit.jsx): one card whose tabs are the catalog's lists — custom
-// fields, attributes, brands, units, tax rates, size charts, warranty policies — with the list's Add button beside
-// them. A new custom field is made in a dialog.
-const SEC = [['fields', 'Add field'], ['attrs', 'Add attribute'], ['brands', 'Add brand'], ['units', 'Add unit'], ['tax', 'Add tax rate'], ['size', 'New size chart']];
-const NOTE = { attrs: 'Used to make variants — pick them when you add colours or sizes to a product.', brands: 'Shown on product pages and used in filters.', units: 'How a product is counted and sold.', tax: 'VAT added to prices. Each category has a default; a product can change it.', size: 'Show customers the right size. Fewer returns.', warranty: 'Made in Settings. Pick one on any product.' };
+// fields, brands, units, tax rates, size charts, warranty policies — with the list's Add button beside them. A new
+// custom field is made in a dialog. Attributes are not set up here: they are made on each product (Add product ›
+// Attributes, as WooCommerce does).
+const SEC = [['fields', 'Add field'], ['brands', 'Add brand'], ['units', 'Add unit'], ['tax', 'Add tax rate'], ['size', 'New size chart']];
+const NOTE = { brands: 'Shown on product pages and used in filters.', units: 'How a product is counted and sold.', tax: 'VAT added to prices. Each category has a default; a product can change it.', size: 'Show customers the right size. Fewer returns.', warranty: 'Made in Settings. Pick one on any product.' };
 
 export default class CatalogSetupScreen extends Component {
   render() {
     const v = this.renderVals() || {};
-    const keys = ['fields', 'attrs', 'brands', 'units', 'tax', 'size', 'warranty'];
+    const keys = ['fields', 'brands', 'units', 'tax', 'size', 'warranty'];
     const cur = keys.find((k) => v['is_' + k]) || 'fields';
     const add = SEC.find((x) => x[0] === cur);
     const tabs = __list(v.secs).map((n, i) => ({ key: keys[i], id: 'cs-tab-' + keys[i], label: n.l, count: n.c, on: n.on, onClick: n.pick }));
@@ -112,7 +101,7 @@ export default class CatalogSetupScreen extends Component {
             <div className="gc-shell__content">
               <div className="ix-page ix-page--narrow">
                 <ShopHeader icon="settings-2" title="Catalog setup"
-                  about="Custom fields, attributes, brands, units, tax rates, size charts and warranty policies that every product uses."
+                  about="Custom fields, brands, units, tax rates, size charts and warranty policies that every product uses. Attributes such as colour and size are added on each product."
                   more={[{ label: 'Categories', href: '/categories' }, { label: 'Warranty policies', href: '/warranty-policies' }, { label: 'All products', href: '/all-products' }]} />
 
                 <TemplatesCard />
@@ -153,22 +142,6 @@ export default class CatalogSetupScreen extends Component {
                     </div>
                   ) : null}
 
-                  {v.is_attrs ? (
-                    <div className="cs-rows" role="tabpanel" aria-labelledby="cs-tab-attrs">
-                      {__list(v.attrs).map((a, i) => (
-                        <div key={i} className="cs-attr">
-                          <b>{a.l}</b>
-                          <div>
-                            {__list(a.v).map((x, j) => (
-                              <span key={j} className="cs-val">{x.sw ? <span className="cs-sw" style={{ background: x.c }} /> : null}{x.t}</span>
-                            ))}
-                            <button type="button" className="ix-btn ix-btn--sm ix-btn--plain">+ value</button>
-                          </div>
-                          <small>{a.used}</small>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
 
                   {v.is_brands ? (
                     <div className="ix-table-wrap ix-table-wrap--show" role="tabpanel" aria-labelledby="cs-tab-brands">

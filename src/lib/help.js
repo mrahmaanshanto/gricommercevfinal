@@ -77,11 +77,21 @@ export const HELP = {
   '/all-products': {
     en: E('Every product you sell, with price, stock and photos.', ['Add product for a new item.', 'Search by name, SKU or barcode; open a product to edit it.', 'Fix the "missing information" list so products sell better online.'], ['Stock numbers come from your warehouses and branches.'], ['Products', '2:30']),
     bn: E('যা যা বিক্রি করেন — দাম, Stock আর ছবি সহ।', ['নতুন পণ্যের জন্য Add product।', 'নাম, SKU বা Barcode দিয়ে Search করুন; Product খুলে Edit করুন।', 'Online-এ ভালো বিক্রির জন্য তথ্য কম থাকা Product ঠিক করুন।'], ['Stock-এর হিসাব Warehouse আর Branch থেকে আসে।'], ['Product', '2:30']),
-    related: ['/add-product', '/stock', '/categories'],
+    related: ['/add-product', '/stock', '/categories', '/brands'],
+  },
+  '/smart-offers': {
+    en: E('Offers that go out by themselves when a customer does something, or that you send to a group. Each customer gets their own one-time code.', ['Press New smart offer.', 'Choose when it goes out (a customer buys, stops buying, looks without buying …) and what they get.', 'Pick how to send it, check the message has {code}, and turn it on.'], ['Send rules keep anyone from getting too many offers: one every few days, only in the daytime.', 'Send now sends a turned-on offer at once; messages are paid from your GridCommerce credits.'], ['Smart offers', '2:30']),
+    bn: E('Customer কিছু করলে নিজে থেকে যায় এমন Offer, বা যা আপনি কোনো Group-কে পাঠান। প্রত্যেক Customer নিজের এককালীন Code পান।', ['New smart offer চাপুন।', 'কখন যাবে (কেনা, কেনা বন্ধ, দেখে না কেনা …) আর কী পাবে বাছুন।', 'কীভাবে পাঠাবেন বাছুন, Message-এ {code} আছে দেখে চালু করুন।'], ['Send rules-এ কেউ বেশি Offer পায় না: কয়েক দিনে একবার, শুধু দিনের বেলা।', 'Send now চালু Offer এখনই পাঠায়; Message-এর খরচ GridCommerce credits থেকে যায়।'], ['Smart offer', '2:30']),
+    related: ['/coupons', '/abandoned-carts', '/auto-reminders'],
+  },
+  '/brands': {
+    en: E('The brands you sell: a name, and if you like a short description and an image (the logo).', ['Press Add brand and type the name.', 'Add a description or upload the logo if you want — both are optional.', 'Open a brand to change it or delete it.'], ['Pick the brand on a product in Add product.', 'Deleting a brand does not change products: they keep the name.'], ['Brands', '1:30']),
+    bn: E('যে Brand-গুলো বিক্রি করেন: নাম, চাইলে ছোট বিবরণ আর ছবি (Logo)।', ['Add brand চাপুন, নাম লিখুন।', 'চাইলে বিবরণ দিন বা Logo Upload করুন — দুটোই ঐচ্ছিক।', 'Brand খুলে বদলান বা মুছুন।'], ['Add product-এ Product-এর Brand বাছুন।', 'Brand মুছলে Product বদলায় না: নাম থেকে যায়।'], ['Brand', '1:30']),
+    related: ['/all-products', '/add-product', '/categories'],
   },
   '/add-product': {
-    en: E('Add a new product: name, price, stock, photos and where it sells.', ['Fill name, price and opening stock first — the rest is optional.', 'Add photos and a short description for online sales.', 'Press Save product.'], ['Variants (size, colour) each get their own stock.'], ['Add a product', '3:20']),
-    bn: E('নতুন Product যোগ করুন: নাম, দাম, Stock, ছবি আর কোথায় বিক্রি হবে।', ['আগে নাম, দাম আর শুরুর Stock দিন — বাকিগুলো দরকার হলে।', 'Online বিক্রির জন্য ছবি আর ছোট বিবরণ দিন।', 'Save product চাপুন।'], ['Size বা Colour-এর প্রতিটির আলাদা Stock থাকে।'], ['Product যোগ করা', '3:20']),
+    en: E('Add a new product: name, price, stock, photos and where it sells.', ['Fill name, price and opening stock first — the rest is optional.', 'Add photos and a short description for online sales.', 'Press Save product.'], ['Add attributes (Colour, Size …) on the product. Tick “Used for variations” and each combination gets its own price and stock.'], ['Add a product', '3:20']),
+    bn: E('নতুন Product যোগ করুন: নাম, দাম, Stock, ছবি আর কোথায় বিক্রি হবে।', ['আগে নাম, দাম আর শুরুর Stock দিন — বাকিগুলো দরকার হলে।', 'Online বিক্রির জন্য ছবি আর ছোট বিবরণ দিন।', 'Save product চাপুন।'], ['Product-এই Attribute (Colour, Size …) যোগ করুন। “Variation-এর জন্য” টিক দিলে প্রতিটির আলাদা দাম আর Stock থাকে।'], ['Product যোগ করা', '3:20']),
     related: ['/all-products', '/categories'],
   },
   '/stock': {

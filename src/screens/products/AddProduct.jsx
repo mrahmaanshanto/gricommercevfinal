@@ -37,6 +37,7 @@ import { hasModule } from '@/lib/edition';
 import { getChannels } from '@/lib/channels';
 import { lastPurchaseCost, inventoryCost } from '@/lib/productCostFacts';
 import { readImage } from '@/screens/channels/chShared';
+import { brandNames, DEMO_BRANDS } from '@/lib/brands';
 import RichText, { RTE_CSS, plainText, toHtml } from './RichText';
 import { Err, Switch, Seg, AiBtn, AiCheck, OrderBtns, Drawer, MultiCheck, specModel, layoutOf, swap, PARTS_CSS } from './AddProductParts';
 
@@ -111,10 +112,20 @@ function inStoreCode() {
 }
 var codeOf = function (x) { return String(x).replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase(); };
 var combos = function (list) { return list.reduce(function (acc, o) { var out = []; acc.forEach(function (a) { o.values.forEach(function (val) { out.push(a.concat(val)); }); }); return out; }, [[]]); };
+// a new variation's row: no price of its own yet (the product's is used), SKU made from the product's
+var newVariation = function (c, sku) { var k = String(sku || '').trim(); return { name: c.join(' / '), swatch: '', image: '', price: null, mrp: null, stock: 0, sku: k ? k + '-' + c.map(codeOf).join('-') : '', barcode: '', wholesale: '', moq: '', published: true }; };
+// every combination of the attributes used for variations (2 colours × 2 sizes = 4), keeping the rows already made
+var fillVariations = function (opts, variants, sku) {
+  var vo = (opts || []).filter(function (o) { return o.variation !== false; });
+  if (!vo.length) return (opts || []).length ? [] : variants;
+  var by = {}; variants.forEach(function (x) { if (!by[x.name]) by[x.name] = x; });
+  return combos(vo).map(function (c) { return by[c.join(' / ')] || newVariation(c, sku); });
+};
 // Opening stock (Inventory drawer): posted as stock moves when the product is saved
 var OPEN_PLACES = ['Central Warehouse', 'Dhanmondi branch'];
 // The product's values as form state (edit mode).
 function prefillFrom(p) {
+  var opts0 = (p.opts || []).map(function (o) { return { name: o.name, values: (o.values || []).slice(), visible: o.visible !== false, variation: o.variation !== false }; });
   var money = function (n) { return n == null || n === '' ? '' : bdt(n); };
   var str = function (n) { return n == null || n === '' ? '' : String(n); };
   var bt = classifyBarcode(p.barcode, p.barcodeType);
@@ -125,8 +136,8 @@ function prefillFrom(p) {
     editId: p.id, orig: p, basePrice: p.price, title: p.name, short: p.short || '', long: p.long || '', seoT: p.seoT || '', seoD: p.seoD || '', tags: p.tags || [],
     price: money(p.price), cost: money(p.cost), mrp: money(p.mrp), wholesale: str(p.wholesale), moq: str(p.moq), sell: p.sell || 'retail',
     sku: p.sku || '', gtin: bt === 'gtin' ? p.barcode : '', internalBc: bt === 'internal' ? p.barcode : (intId ? intId.value : ''),
-    oversell: !!p.oversell, cat: leaf, brand: p.brand || '', status: p.st || 'active', opts: (p.opts || []).map(function (o) { return { name: o.name, values: (o.values || []).slice() }; }),
-    variants: (p.variants || []).map(function (x) { return assign(assign({}, x), { wholesale: str(x.wholesale), moq: str(x.moq) }); }),
+    oversell: !!p.oversell, cat: leaf, brand: p.brand || '', status: p.st || 'active', opts: opts0,
+    variants: fillVariations(opts0, (p.variants || []).map(function (x) { return assign(assign({}, x), { wholesale: str(x.wholesale), moq: str(x.moq) }); }), p.sku),
     // brief #1: units & packs, identifiers, template + specification values, format, selling modes, bundle, relations
     unit: p.unit || 'pc', packs: packsOf({ sku: p.sku, packs: p.packs }).map(function (k) { return assign({}, k); }), ids: ids0.filter(function (x) { return !x.internal; }),
     template: p.template || '', data: assign({}, p.data || {}), format: p.format || 'physical', digital: p.digital || null,
@@ -154,7 +165,8 @@ var FAQ_AI = [['Is this the official version?', 'Yes. Every phone is official an
 var CATS = [['Skin care', 0], ['Sunscreen', 1], ['Toner', 1], ['Gel', 1], ['Clothing', 0], ['Men', 1], ['Women', 1], ['Electronics', 0], ['Phones', 1], ['Laptops', 1], ['Audio', 1], ['Grocery', 0], ['Rice', 1], ['Fresh', 1], ['Home', 0], ['Books', 0], ['Software', 0], ['Digital', 0], ['Gifts', 0]];
 var PARENT = { Sunscreen: 'Skin care', Toner: 'Skin care', Gel: 'Skin care', Men: 'Clothing', Women: 'Clothing', Phones: 'Electronics', Laptops: 'Electronics', Audio: 'Electronics', Rice: 'Grocery', Fresh: 'Grocery' };
 var MAIN_CATS = CATS.filter(function (c) { return !c[1]; }).map(function (c) { return c[0]; });
-var BRANDS = ['Samsung', 'Apple', 'Xiaomi', 'ASUS', 'SoundMax', 'Beauty of Joseon', 'Nature Republic', 'GridShop', 'Chashi', 'Walton'];
+// the brand list is Products › Brands (lib/brands.js): the demo brands until the browser's list is read after mount
+var BRANDS = DEMO_BRANDS.map(function (b) { return b.name; });
 var COLLECTIONS = ['New arrivals', 'Best sellers', 'Eid picks', 'Smartphones', 'Gift ideas', 'Clearance'];
 // Google product category, mapped from our category (Product data › Google product data: "Auto mapping")
 var GOOGLE_CAT = { Electronics: 'Electronics', Phones: 'Electronics > Communications > Telephony > Mobile Phones', Laptops: 'Electronics > Computers > Laptops', Audio: 'Electronics > Audio',
@@ -197,7 +209,7 @@ class Component extends DCLogic {
   // /add-product adds a new product; /add-product?sku=… (or ?id=…) opens that product for editing.
   componentDidMount() {
     // wholesale price, MOQ and selling mode only where the shop sells wholesale (stockSetup.js)
-    this.setState({ wsOn: getStockSetup().wholesale });
+    this.setState({ wsOn: getStockSetup().wholesale, brandList: brandNames() });
     var self = this, qs = new URLSearchParams(window.location.search), saved = getSavedProducts();
     var key = { id: qs.get('id') || '', sku: qs.get('sku') || '' };
     var p = key.id || key.sku ? findProduct(key, saved) : null;
@@ -476,25 +488,32 @@ class Component extends DCLogic {
       }
     });
 
-    // ---- variants: options and their values make the combinations; each keeps its own price, codes and publishing ----
+    // ---- attributes (WooCommerce style): each has a name and values, "Visible on the product page" and "Used for
+    // variations". The attributes used for variations make the combinations; each keeps its own price, codes and publishing.
+    // mapParts gets a variant's values by attribute index (undefined for attributes not used for variations).
+    var varIdx = function (list) { return list.map(function (o, i) { return o.variation === false ? -1 : i; }).filter(function (i) { return i >= 0; }); };
     var applyOpts = function (next, mapParts) {
-      var by = {};
+      var by = {}, curIdx = varIdx(opts), nextIdx = varIdx(next);
       variants.forEach(function (x) {
-        var parts = opts.length ? String(x.name).split(' / ') : [];
-        var np = mapParts(parts);
+        var full = opts.map(function () { return undefined; });
+        if (curIdx.length) String(x.name).split(' / ').forEach(function (pp, k) { full[curIdx[k]] = pp; });
+        var np = mapParts(full);
         if (!np) return;
-        var n = np.join(' / ');
+        var parts = nextIdx.map(function (i) { return np[i]; });
+        if (parts.some(function (pp) { return pp == null; })) return;   // an attribute just ticked for variations: no old match
+        var n = parts.join(' / ');
         if (!by[n]) by[n] = assign(assign({}, x), { name: n });
       });
-      var list = next.length ? combos(next).map(function (c) {
+      var vo = nextIdx.map(function (i) { return next[i]; });
+      var list = vo.length ? combos(vo).map(function (c) {
         var n = c.join(' / ');
-        return by[n] || { name: n, swatch: '', price: null, mrp: null, stock: 0, sku: String(sku).trim() ? String(sku).trim() + '-' + c.map(codeOf).join('-') : '', barcode: '', wholesale: '', moq: '', published: true };
+        return by[n] || newVariation(c, sku);
       }) : [];
       var p = { opts: next, variants: list };
       if (errs.opts) { var o = assign({}, errs); delete o.opts; p.errors = o; }
       self.setState(p);
     };
-    var setOpt = function (i, patch) { return opts.map(function (o, j) { return j === i ? assign({ name: o.name, values: o.values.slice() }, patch) : o; }); };
+    var setOpt = function (i, patch) { return opts.map(function (o, j) { return j === i ? assign(assign(assign({}, o), { values: o.values.slice() }), patch) : o; }); };
     var setVar = function (i, k, val) {
       var list = variants.map(function (x, j) { if (j !== i) return x; var o = assign({}, x); o[k] = val; return o; });
       var p = { variants: list }, ek = (k === 'wholesale' ? 'vw' : 'vm') + i;
@@ -502,15 +521,19 @@ class Component extends DCLogic {
       self.setState(p);
     };
     var varFields = tplFields.filter(function (fd) { return fd.variant; });
+    var mediaSrc = {}; media.forEach(function (m, i) { mediaSrc[m.id || 'm' + i] = m.kind === 'video' ? '' : m.src || ''; });
     assign(v, {
-      hasOpts: opts.length > 0, hasVariants: variants.length > 0, optCount: opts.length, varCount: variants.length,
+      hasOpts: opts.length > 0, hasVariants: variants.length > 0, optCount: opts.length, varCount: variants.length, varOptCount: varIdx(opts).length,
       addOption: function () {
         var n = opts.length + 1;
-        applyOpts(opts.concat({ name: 'Option ' + n, values: ['Value 1'] }), function (parts) { return parts.concat('Value 1'); });
+        applyOpts(opts.concat({ name: 'Attribute ' + n, values: ['Value 1'], visible: true, variation: true }), function (parts) { return parts.concat('Value 1'); });
       },
       optRows: opts.map(function (o, i) {
         return { key: 'o' + i, id: 'pf-opt-' + i, name: o.name, first: i === 0, last: i === opts.length - 1,
           rename: function (e) { self.setState({ opts: setOpt(i, { name: e.target.value }) }); },
+          visible: o.visible !== false, variation: o.variation !== false,
+          toggleVisible: function () { self.setState({ opts: setOpt(i, { visible: o.visible === false }) }); },
+          toggleVariation: function () { applyOpts(setOpt(i, { variation: o.variation === false }), function (parts) { return parts; }); },
           up: function () { applyOpts(swap(opts, i, i - 1), function (parts) { return swap(parts, i, i - 1); }); },
           down: function () { applyOpts(swap(opts, i, i + 1), function (parts) { return swap(parts, i, i + 1); }); },
           remove: function () { applyOpts(opts.filter(function (x, j) { return j !== i; }), function (parts) { return parts.filter(function (x, j) { return j !== i; }); }); },
@@ -533,6 +556,14 @@ class Component extends DCLogic {
           avail: avail >= UNTRACKED ? '—' : String(avail),
           published: x.published !== false, togglePub: function () { setVar(i, 'published', x.published === false); },
           mediaId: x.media || '', setMedia: function (e) { setVar(i, 'media', e.target.value); },
+          // its own image (uploaded here), else the product photo picked for it, else none
+          image: x.image || '', thumb: x.image || (x.media && mediaSrc[x.media]) || '', fileId: 'pf-vimg-' + i,
+          pickImage: function (e) {
+            var file = e.target.files && e.target.files[0]; e.target.value = '';
+            if (!file) return;
+            readImage(file, 600).then(function (url) { setVar(i, 'image', url); toast(self, 'Image changed for ' + x.name + '.'); }, function (er) { toast(self, er.message, true); });
+          },
+          clearImage: function () { setVar(i, 'image', ''); },
           ws: x.wholesale == null ? '' : x.wholesale, moq: x.moq == null ? '' : x.moq, wsId: 'pf-vw' + i, moqId: 'pf-vm' + i,
           wsErr: errs['vw' + i] || '', moqErr: errs['vm' + i] || '',
           typeWs: function (e) { setVar(i, 'wholesale', e.target.value); }, typeMoq: function (e) { setVar(i, 'moq', e.target.value); },
@@ -543,7 +574,28 @@ class Component extends DCLogic {
       }),
       mediaChoices: media.map(function (m, i) { return { id: m.id || 'm' + i, label: (i === 0 ? 'Primary media' : 'Media ' + (i + 1)) + (m.name ? ' · ' + m.name : '') }; }),
       wsPh: moneyNum(wholesale) ? String(moneyNum(wholesale)) : '', moqPh: wholeNum(moq) ? String(wholeNum(moq)) : '',
-      unpublishedVars: variants.filter(function (x) { return x.published === false; }).length
+      unpublishedVars: variants.filter(function (x) { return x.published === false; }).length,
+      // bulk actions on every variation (as WooCommerce's Variations tab): set price / MRP, publish / unpublish all
+      bulkKind: s.bulkKind || '', bulkVal: s.bulkVal || '', bulkNeedsVal: s.bulkKind === 'price' || s.bulkKind === 'mrp',
+      setBulkKind: function (e) { self.setState({ bulkKind: e.target.value, bulkVal: '' }); },
+      typeBulkVal: function (e) { self.setState({ bulkVal: e.target.value.replace(/[^\d.]/g, '') }); },
+      applyBulk: function () {
+        var k = s.bulkKind, n = variants.length, val = String(s.bulkVal || '').trim();
+        if (!k) { toast(self, 'Choose what to change first.', true); return; }
+        if ((k === 'price' || k === 'mrp') && !val) { toast(self, 'Enter the amount first.', true); return; }
+        var list = variants.map(function (x) {
+          var o = assign({}, x);
+          if (k === 'price') o.price = +val - shift;
+          else if (k === 'mrp') o.mrp = +val;
+          else if (k === 'pub') o.published = true;
+          else if (k === 'unpub') o.published = false;
+          else if (k === 'noimg') o.image = '';
+          return o;
+        });
+        self.setState({ variants: list, bulkKind: '', bulkVal: '' });
+        var what = { price: 'Price set to ৳' + val + ' for', mrp: 'MRP set to ৳' + val + ' for', pub: 'Published', unpub: 'Unpublished', noimg: 'Images removed from' }[k];
+        toast(self, what + ' ' + (n === 1 ? '1 variation.' : 'all ' + n + ' variations.'));
+      }
     });
 
     // ---- inventory, identifiers & units (drawer) ----
@@ -665,7 +717,7 @@ class Component extends DCLogic {
     assign(v, {
       status: status, setStatus: function (e) { self.setState({ status: e.target.value }); },
       isDeleted: status === 'deleted' || !!(orig && orig.st === 'deleted'),
-      brand: brand, brands: BRANDS, typeBrand: function (e) { self.setState({ brand: e.target.value }); },
+      brand: brand, brands: (this.state && this.state.brandList) || BRANDS, typeBrand: function (e) { self.setState({ brand: e.target.value }); },
       collections: collections.map(function (c) { return { name: c, remove: function () { self.setState({ collections: collections.filter(function (x) { return x !== c; }) }); } }; }),
       colOpen: s.colText != null, colText: s.colText || '', colSuggest: COLLECTIONS.filter(function (c) { return collections.indexOf(c) < 0; }),
       openCol: function () { self.setState({ colText: '' }); }, typeCol: function (e) { self.setState({ colText: e.target.value }); },
@@ -747,10 +799,10 @@ class Component extends DCLogic {
         var me = moqError(moq, !draft); if (me) e.moq = me;
         variants.forEach(function (x, i) { var a = wholesaleError(x.wholesale, false), b = moqError(x.moq, false); if (a) e['vw' + i] = a; if (b) e['vm' + i] = b; });
       }
-      // options: named, and each value once
+      // attributes: named, and each value once
       opts.forEach(function (o) {
         if (e.opts) return;
-        if (!String(o.name || '').trim()) { e.opts = 'Name every option, for example Colour.'; return; }
+        if (!String(o.name || '').trim()) { e.opts = 'Name every attribute, for example Colour.'; return; }
         var seen0 = {};
         o.values.forEach(function (x) { var k = String(x || '').trim().toLowerCase(); if (e.opts) return; if (!k) e.opts = o.name + ': name every value.'; else if (seen0[k]) e.opts = o.name + ': ' + x + ' is there twice.'; seen0[k] = 1; });
       });
@@ -1031,6 +1083,26 @@ const CSS = `
 .ap-opt{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
 .ap-opt__head{display:flex;align-items:center;gap:var(--space-2)}
 .ap-vals{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.ap-attr-ticks{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-5);padding-top:var(--space-2);border-top:1px solid var(--border-subtle)}
+.ap-attr-ticks label{display:inline-flex;align-items:center;gap:8px;min-height:36px;font-size:var(--text-sm);color:var(--text-body);cursor:pointer}
+.ap-attr-h{margin:var(--space-2) 0 0;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-heading)}
+.ap-attr-none{margin:0;font-size:var(--text-sm);color:var(--text-muted)}
+.ap-bulk{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
+.ap-bulk .gc-select{width:auto;min-width:220px;flex:0 1 260px}
+.ap-bulk .ap-num{width:140px;flex:none}
+@media (max-width:640px){.ap-bulk .gc-select{flex:1 1 100%}.ap-bulk .ap-num{flex:1 1 0;width:auto}}
+.ap-vimg-td{width:52px}
+.ap-vimg{display:grid;place-items:center;flex:none;width:36px;height:36px;overflow:hidden;border:1px dashed var(--border-strong);border-radius:var(--radius-md);background:var(--surface-subtle);color:var(--text-muted);cursor:pointer;transition:var(--transition-colors)}
+.ap-vimg:hover{border-color:var(--primary);color:var(--primary)}
+.ap-vimg.has{border-style:solid;border-color:var(--border-subtle);background:var(--surface-card)}
+.ap-vimg img{display:block;width:100%;height:100%;object-fit:cover}
+.ap-vimg-td:focus-within .ap-vimg{outline:3px solid var(--focus-ring);outline-offset:2px}
+.ap-vimg--lg{width:56px;height:56px;cursor:default}
+.ap-vimg--lg:hover{border-color:var(--border-strong);color:var(--text-muted)}
+.ap-vimg--lg.has:hover{border-color:var(--border-subtle)}
+.ap-vimg-field{grid-column:1 / -1}
+.ap-vimg-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
+.ap-vimg-field:focus-within label.ix-btn{outline:3px solid var(--focus-ring);outline-offset:2px}
 .ap-val{display:inline-flex;align-items:center;border:1px solid var(--border-field);border-radius:var(--radius-md);background:var(--surface-card);overflow:hidden}
 .ap-val input{width:112px;height:28px;padding:0 8px;border:0;background:none;font:inherit;font-size:var(--text-sm);color:var(--text-heading);outline:none}
 .ap-val button{display:grid;place-items:center;width:28px;height:28px;border:0;border-left:1px solid var(--border-subtle);background:none;color:var(--text-body);cursor:pointer}
@@ -1500,13 +1572,13 @@ export default class AddProductScreen extends Component {
                       </div>
                     </section>
 
-                    {/* ---- 7. variants: options, combinations, full editor ---- */}
+                    {/* ---- 7. attributes and variations (WooCommerce style): attributes are made here, per product ---- */}
                     <section className="ix-card" aria-labelledby="ap-h-var">
                       <div className="ix-card__head ap-head">
-                        <div><h2 id="ap-h-var">Variants</h2><p className="ix-card__sub">Create any number of option dimensions. Variants remain editable after publication; stock shown here is read-only from Inventory.</p></div>
+                        <div><h2 id="ap-h-var">Attributes</h2></div>
                         <span className="ap-acts">
-                          <button type="button" id="pf-opts" className="ix-btn" onClick={v.addOption}><__Icon name="plus" width="16" height="16" aria-hidden="true" />Add option</button>
-                          <button type="button" className="ix-btn" onClick={v.open('variants')}>Full editor</button>
+                          <button type="button" id="pf-opts" className="ix-btn" onClick={v.addOption}><__Icon name="plus" width="16" height="16" aria-hidden="true" />Add attribute</button>
+                          {v.hasVariants ? <button type="button" className="ix-btn" onClick={v.open('variants')}>Edit variations</button> : null}
                         </span>
                       </div>
                       <div className="ix-card__body ap-body">
@@ -1515,30 +1587,57 @@ export default class AddProductScreen extends Component {
                           {__list(v.optRows).map((o) => (
                             <div key={o.key} className="ap-opt">
                               <div className="ap-opt__head">
-                                <input id={o.id} className="ap-sgrp__name" value={o.name} onChange={o.rename} aria-label="Option name" />
-                                <OrderBtns what="option" onUp={o.up} onDown={o.down} upOff={o.first} downOff={o.last} onRemove={o.remove} />
+                                <input id={o.id} className="ap-sgrp__name" value={o.name} onChange={o.rename} aria-label="Attribute name" placeholder="Name, for example Colour" />
+                                <OrderBtns what="attribute" onUp={o.up} onDown={o.down} upOff={o.first} downOff={o.last} onRemove={o.remove} />
                               </div>
                               <div className="ap-vals">
                                 {__list(o.values).map((x) => (
                                   <span key={x.key} className="ap-val">
-                                    <input value={x.value} onChange={x.rename} aria-label="Option value" />
+                                    <input value={x.value} onChange={x.rename} aria-label={'Value of ' + (o.name || 'attribute')} />
                                     <button type="button" aria-label="Remove value" onClick={x.remove} disabled={x.only}><__Icon name="x" width="12" height="12" aria-hidden="true" /></button>
                                   </span>
                                 ))}
                                 <button type="button" className="ix-btn ix-btn--sm" onClick={o.addValue}><__Icon name="plus" width="14" height="14" aria-hidden="true" />Add value</button>
                               </div>
+                              <div className="ap-attr-ticks">
+                                <label><input type="checkbox" className="gc-check" checked={o.visible} onChange={o.toggleVisible} />Visible on the product page</label>
+                                <label><input type="checkbox" className="gc-check" checked={o.variation} onChange={o.toggleVariation} />Used for variations</label>
+                              </div>
                             </div>
                           ))}
-                          <div className="ap-vstrip"><b>{v.varCount === 1 ? '1 variant combination' : v.varCount + ' variant combinations'}</b><span>Every combination can have independent price, identifier, media and publishing.</span></div>
+                          <h3 className="ap-attr-h">Variations</h3>
+                          {v.hasVariants
+                            ? <div className="ap-vstrip"><b>{v.varCount === 1 ? '1 variation' : v.varCount + ' variations'}</b><span>Each can have its own price, SKU, GTIN, image and publishing.</span></div>
+                            : <p className="ap-attr-none">No variations. Tick “Used for variations” on an attribute to make them.</p>}
+                          {v.varCount > 1 ? (
+                            <div className="ap-bulk" role="group" aria-label="Change all variations">
+                              <select className="gc-input gc-select" value={v.bulkKind} onChange={v.setBulkKind} aria-label="Bulk action">
+                                <option value="">Change all variations…</option>
+                                <option value="price">Set price</option>
+                                <option value="mrp">Set MRP</option>
+                                <option value="pub">Publish all</option>
+                                <option value="unpub">Unpublish all</option>
+                                <option value="noimg">Remove all images</option>
+                              </select>
+                              {v.bulkNeedsVal ? <input className="gc-input ap-num" inputMode="decimal" value={v.bulkVal} onChange={v.typeBulkVal} placeholder="৳ Amount" aria-label="Amount" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); v.applyBulk(); } }} /> : null}
+                              <button type="button" className="ix-btn" onClick={v.applyBulk} disabled={!v.bulkKind}>Apply</button>
+                            </div>
+                          ) : null}
                           {v.hasVariants ? (
                             <div className="ix-table-wrap ix-table-wrap--show">
                               <table className="ix-table ix-table--static ap-vt gc-table--keep">
                                 <thead>
-                                  <tr><th scope="col">Variant</th><th scope="col">Price</th><th scope="col">MRP</th><th scope="col">SKU</th><th scope="col">GTIN</th><th scope="col">Available</th><th scope="col">Publish</th></tr>
+                                  <tr><th scope="col"><span className="sr-only">Image</span></th><th scope="col">Variation</th><th scope="col">Price</th><th scope="col">MRP</th><th scope="col">SKU</th><th scope="col">GTIN</th><th scope="col">Available</th><th scope="col">Publish</th></tr>
                                 </thead>
                                 <tbody>
                                   {__list(v.varRows).map((r) => (
                                     <tr key={r.key}>
+                                      <td className="ap-vimg-td">
+                                        <label className={'ap-vimg' + (r.thumb ? ' has' : '')} htmlFor={r.fileId} title={r.thumb ? 'Change image' : 'Add image'}>
+                                          {r.thumb ? <img src={r.thumb} alt="" /> : <__Icon name="image-plus" width="16" height="16" aria-hidden="true" />}
+                                        </label>
+                                        <input id={r.fileId} type="file" accept="image/*" className="sr-only" onChange={r.pickImage} aria-label={(r.thumb ? 'Change image for ' : 'Add image for ') + r.name} />
+                                      </td>
                                       <td><span className="ap-vname">{r.swatch ? <span className="ap-swatch" style={{ background: r.swatch }} /> : null}{r.name}</span></td>
                                       <td><input className="gc-input ap-num" inputMode="decimal" value={r.price} placeholder={r.pricePh} onChange={r.typePrice} aria-label={'Price for ' + r.name} /></td>
                                       <td><input className="gc-input ap-num" inputMode="decimal" value={r.mrp} placeholder={r.mrpPh} onChange={r.typeMrp} aria-label={'MRP for ' + r.name} /></td>
@@ -1554,9 +1653,9 @@ export default class AddProductScreen extends Component {
                           ) : null}
                         </>) : (
                           <div className="ap-empty">
-                            <b>This product has no variants.</b>
-                            <span>Add options such as Colour, Size, Storage, Material, Pack or Region.</span>
-                            <button type="button" className="ix-btn ix-btn--primary" onClick={v.addOption}>Add first option</button>
+                            <b>No attributes yet.</b>
+                            <span>Add Colour, Size, Material or anything else. Tick “Used for variations” to sell each value separately.</span>
+                            <button type="button" className="ix-btn ix-btn--primary" onClick={v.addOption}>Add attribute</button>
                           </div>
                         )}
                       </div>
@@ -2015,7 +2114,7 @@ export default class AddProductScreen extends Component {
           </div>
         </Drawer>
 
-        <Drawer open={sh === 'variants'} wide title="Variant editor" sub={v.optCount + (v.optCount === 1 ? ' option dimension · ' : ' option dimensions · ') + v.varCount + (v.varCount === 1 ? ' generated variant' : ' generated variants') + ' · price, identifiers, media and publishing per variant.'} onCancel={v.cancelSheet} onSave={v.closeSheet}>
+        <Drawer open={sh === 'variants'} wide title="Variations" sub={v.varOptCount + (v.varOptCount === 1 ? ' attribute used for variations · ' : ' attributes used for variations · ') + v.varCount + (v.varCount === 1 ? ' variation' : ' variations') + ' · price, identifiers, media and publishing per variation.'} onCancel={v.cancelSheet} onSave={v.closeSheet}>
           {v.hasVariants ? __list(v.varRows).map((r) => (
             <div key={r.key} className="ap-vcard">
               <div className="ap-vcard__head">
@@ -2041,12 +2140,21 @@ export default class AddProductScreen extends Component {
                     <Err id={`${r.moqId}-err`} text={r.moqErr} />
                   </div>
                 </>) : null}
-                <label className="ap-field"><span className="gc-label">Media</span>
-                  <select className="gc-input gc-select" value={r.mediaId} onChange={r.setMedia}>
-                    <option value="">Same as the product</option>
-                    {__list(v.mediaChoices).map((m) => (<option key={m.id} value={m.id}>{m.label}</option>))}
-                  </select>
-                </label>
+                <div className="ap-field ap-vimg-field">
+                  <span className="gc-label">Image</span>
+                  <div className="ap-vimg-row">
+                    <span className={'ap-vimg ap-vimg--lg' + (r.thumb ? ' has' : '')} aria-hidden="true">{r.thumb ? <img src={r.thumb} alt="" /> : <__Icon name="image" width="20" height="20" />}</span>
+                    <label className="ix-btn ix-btn--sm" htmlFor={r.fileId + '-d'}>{r.image ? 'Change' : 'Upload image'}</label>
+                    <input id={r.fileId + '-d'} type="file" accept="image/*" className="sr-only" onChange={r.pickImage} aria-label={'Image for ' + r.name} />
+                    {r.image ? <button type="button" className="ix-btn ix-btn--sm ix-btn--plain" onClick={r.clearImage}>Remove</button> : null}
+                  </div>
+                  {!r.image && v.mediaChoices.length ? (
+                    <select className="gc-input gc-select" value={r.mediaId} onChange={r.setMedia} aria-label={'Product photo for ' + r.name}>
+                      <option value="">Or use a product photo…</option>
+                      {__list(v.mediaChoices).map((m) => (<option key={m.id} value={m.id}>{m.label}</option>))}
+                    </select>
+                  ) : null}
+                </div>
                 <div className="ap-field"><span className="gc-label">Available from Inventory</span><div className="gc-input ap-readonly ap-num">{r.avail}</div></div>
               </div>
               {r.data.length ? (

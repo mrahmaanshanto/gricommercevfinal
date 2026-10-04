@@ -2235,6 +2235,28 @@ export const SCREENS = [
     "interactive": true
   },
   {
+    "name": "Brands",
+    "route": "/brands",
+    "folder": "products",
+    "title": "Brands",
+    "description": "Products — Brands.",
+    "canvasPage": "03 · Products",
+    "width": 1440,
+    "height": 1000,
+    "interactive": true
+  },
+  {
+    "name": "SmartOffers",
+    "route": "/smart-offers",
+    "folder": "recovery",
+    "title": "Smart offers",
+    "description": "Marketing — Smart offers.",
+    "canvasPage": "Recovery",
+    "width": 1440,
+    "height": 1400,
+    "interactive": true
+  },
+  {
     "name": "CustomerCatalogue",
     "route": "/customer-catalogue",
     "folder": "products",

@@ -19,7 +19,7 @@ export const MODULES = {
   },
   catalog: {
     label: 'Products, stock & purchases', desc: 'Products, stock, direct purchases, suppliers and their dues, damaged and expired stock, warranty',
-    nav: ['stock-activity', 'products', 'products-all', 'products-add', 'products-cats', 'products-setup', 'products-media', 'stock-list', 'po-buy', 'po-suppliers', 'stock-more', 'stock-expiry', 'stock-labels', 'stock-wpol', 'stock-wclaims'],
+    nav: ['stock-activity', 'products', 'products-all', 'products-add', 'products-cats', 'products-brands', 'products-setup', 'products-media', 'stock-list', 'po-buy', 'po-suppliers', 'stock-more', 'stock-expiry', 'stock-labels', 'stock-wpol', 'stock-wclaims'],
     routes: ['/bulk-edit', '/add-product-tabs', '/supplier-detail', '/supplier-return', '/buy-goods', '/stock-setup'],
   },
   places: {
@@ -69,7 +69,7 @@ export const MODULES = {
   },
   online: {
     label: 'Online', desc: 'Online orders and couriers, the online store, blog, flash sales, cart recovery and ads tracking',
-    nav: ['orders-rto', 'orders-courier', 'promo-flash', 'promo-page', 'rec-carts', 'rec-auto', 'rec-audiences', 'tracking', 'ta-track', 'ta-health', 'ta-setup', 'storefront', 'blog', 'blog-posts', 'blog-new', 'blog-cats', 'blog-authors'],
+    nav: ['orders-rto', 'orders-courier', 'promo-flash', 'promo-page', 'rec-carts', 'rec-auto', 'rec-offers', 'rec-audiences', 'tracking', 'ta-track', 'ta-health', 'ta-setup', 'storefront', 'blog', 'blog-posts', 'blog-new', 'blog-cats', 'blog-authors'],
     routes: ['/ad-accounts', '/new-order', '/new-flash-sale', '/customer-profile', '/analytics-hub', '/attribution', '/campaigns', '/products-traffic', '/reports-alerts', '/setup-clarity', '/setup-ga4', '/setup-google-ads', '/setup-gtm', '/setup-meta-pixel', '/setup-tik-tok', '/author-profile', '/set-delivery', '/set-seo', '/set-domains', '/checkout', '/offer-detail', '/offers', '/order-link'],
   },
   channels: {

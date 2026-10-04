@@ -19,6 +19,9 @@ import { BrandLogo } from '@/components/BrandLogo';
 import { duePrompts, confirmPayout, delayPayout, snoozeWallet, clockNow, dayKey, fromKey, addWorkingDays, startOfDay } from '@/lib/settlements';
 import { ACC_CSS, PayoutDialog, WithdrawDialog, money, dayLabel, dayWords, shortDate, daysText, accName } from '@/screens/accounts/accShared';
 
+// Switched off for now (Oct 2026): the check does not open by itself. The top bar bell (?check=1) still opens it.
+const AUTO_OPEN = false;
+
 const HIDDEN = /^\/(pos|dev|merchant-sign|sign|onboarding|storefront|platform)/;
 const LATER_KEY = 'gc.check.later';     // snoozed until (ms), this tab only
 const SEEN_KEY = 'gc.check.seen';       // the set of questions already shown, this tab only
@@ -69,6 +72,7 @@ export function EveningCheck() {
       try { new Notification('Did your payouts arrive?', { body: p.pays.slice(0, 3).map((x) => `${x.p.short} ${money(x.net)}`).join(' · ') || 'Open GridCommerce to check.', tag: 'gc-evening-check' }); } catch { /* ignore */ }
     }
     if (force) { setPrompts(p); setDone({}); setOpen(true); return; }
+    if (!AUTO_OPEN) return;
     if (HIDDEN.test(path) || !document.querySelector('gc-topbar')) return;
     if (/[?&]quiet=1/.test(window.location.search)) return;   // screenshots and tests: don't pop up by itself
     if (Number(ss.get(LATER_KEY) || 0) > now) return;

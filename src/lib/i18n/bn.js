@@ -456,7 +456,7 @@ export const BN = {
   'Customer wallet': 'Customer wallet', 'Customer wallets': 'Customer wallet', 'Abandoned carts': 'ফেলে রাখা Cart', 'Members': 'সদস্য',
   'Inbox': 'Inbox', 'Calls': 'Call', 'Support tickets': 'Support ticket', 'Tickets': 'Ticket', 'New ticket': 'নতুন Ticket', 'AI calls': 'AI call',
   'Online store': 'Online store', 'Blog': 'Blog', 'Posts': 'Post', 'New post': 'নতুন Post', 'Store settings': 'Store settings',
-  'Customer support': 'Customer support', 'Online store & settings': 'Online store ও Settings', 'Products & stock': 'Product ও Stock', 'General': 'সাধারণ',
+  'Customer support': 'Customer support', 'Online store & settings': 'Online store ও Settings', 'Products & stock': 'Product ও Stock', 'Warehouses & branches': 'গুদাম ও শাখা', 'General': 'সাধারণ',
 
   // ---- filters & lists ----
   'Filter orders': 'Order filter', 'Filter products': 'Product filter', 'Filter tasks': 'কাজ filter', 'Filter leads': 'Lead filter',
@@ -2175,12 +2175,42 @@ export const BN = {
   'Statement period': 'Statement-এর সময়কাল', 'Courier totals': 'Courier-এর মোট', 'Courier statement by courier': 'Courier অনুযায়ী Courier statement',
   'No parcels in this period': 'এই সময়ে কোনো Parcel নেই', 'Pick another period or courier.': 'অন্য সময়কাল বা Courier বাছুন।',
   'courier statements': 'Courier statement', 'parcels ·': 'টি Parcel ·', 'days on average': 'দিন গড়ে', 'Week of': 'সপ্তাহ শুরু:',
+  // Brands (/brands, lib/brands.js)
+  'Add brand': 'Brand যোগ করুন', 'Edit brand': 'Brand বদলান', 'Brand name': 'Brand-এর নাম', 'Brand description': 'Brand-এর বিবরণ',
+  'Brand image': 'Brand-এর ছবি', 'Upload image': 'ছবি Upload করুন', 'Search brands': 'Brand খুঁজুন', 'No brands yet': 'এখনো কোনো Brand নেই',
+  'For example Samsung': 'যেমন Samsung', 'A line or two about the brand': 'Brand নিয়ে এক-দুই লাইন', 'Loading…': 'লোড হচ্ছে…',
+  'JPG, PNG or WebP. A square logo looks best.': 'JPG, PNG বা WebP। চৌকো Logo সবচেয়ে ভালো দেখায়।', 'Enter a brand name.': 'Brand-এর নাম দিন।',
+  'It will no longer be in the brand list.': 'এটি আর Brand তালিকায় থাকবে না।', 'Learn more about brands': 'Brand নিয়ে আরও জানুন',
+  'Choose an image (JPG, PNG or WebP).': 'একটি ছবি বাছুন (JPG, PNG বা WebP)।', 'The image is too large (10 MB max).': 'ছবিটি খুব বড় (সর্বোচ্চ 10 MB)।',
+  // product attributes, WooCommerce style (Add product › Attributes)
+  'Add attribute': 'Attribute যোগ করুন', 'Visible on the product page': 'Product page-এ দেখাবে', 'Used for variations': 'Variation-এর জন্য',
+  'Variations': 'Variation', 'Variation': 'Variation', 'Edit variations': 'Variation বদলান', '1 variation': '১টি Variation', 'No attributes yet.': 'এখনো কোনো Attribute নেই।',
+  'Name, for example Colour': 'নাম, যেমন Colour', 'Name every attribute, for example Colour.': 'প্রতিটি Attribute-এর নাম দিন, যেমন Colour।',
+  'Add Colour, Size, Material or anything else. Tick “Used for variations” to sell each value separately.': 'Colour, Size, Material বা যেকোনো কিছু যোগ করুন। প্রতিটি Value আলাদা বিক্রি করতে “Variation-এর জন্য” টিক দিন।',
+  'No variations. Tick “Used for variations” on an attribute to make them.': 'কোনো Variation নেই। বানাতে কোনো Attribute-এ “Variation-এর জন্য” টিক দিন।',
+  'Each can have its own price, SKU, GTIN and publishing.': 'প্রতিটির আলাদা দাম, SKU, GTIN আর Publish থাকতে পারে।',
+  'Change all variations…': 'সব Variation বদলান…', 'Set price': 'দাম দিন', 'Set MRP': 'MRP দিন', 'Publish all': 'সব Publish করুন', 'Unpublish all': 'সব Unpublish করুন',
+  'Remove all images': 'সব ছবি সরান', '৳ Amount': '৳ পরিমাণ', 'Or use a product photo…': 'অথবা Product-এর ছবি নিন…',
+  'Each can have its own price, SKU, GTIN, image and publishing.': 'প্রতিটির আলাদা দাম, SKU, GTIN, ছবি আর Publish থাকতে পারে।', 'Choose what to change first.': 'আগে কী বদলাবেন বাছুন।', 'Enter the amount first.': 'আগে পরিমাণ লিখুন।',
+  // Smart offers (/smart-offers, lib/smartOffers.js)
+  'Smart offers': 'Smart অফার', 'New smart offer': 'নতুন Smart অফার', 'Send rules': 'পাঠানোর নিয়ম', 'Offers sent': 'পাঠানো Offer',
+  'Sales from offers': 'Offer থেকে বিক্রি', 'Discount cost': 'ছাড়ের খরচ', 'Send log': 'পাঠানোর Log', 'They get': 'যা পাবে', 'Only you see this name.': 'এই নাম শুধু আপনি দেখবেন।', 'When does it go out?': 'কখন যাবে?', 'When a customer does something': 'Customer কিছু করলে',
+  'I send it to a group': 'আমি কোনো Group-কে পাঠাব', 'Send it when a customer…': 'পাঠান যখন Customer…', 'Wait before sending': 'পাঠানোর আগে অপেক্ষা', 'Customer group': 'Customer group',
+  'What do they get?': 'কী পাবে?', 'Code works for (days)': 'Code কত দিন চলবে', 'Offer is on': 'Offer চালু', 'Add offer': 'Offer যোগ করুন',
+  'One offer every': 'প্রতি Offer-এর মাঝে', 'Send only': 'শুধু পাঠান', 'No smart offers yet': 'এখনো কোনো Smart অফার নেই', 'Nothing sent yet': 'এখনো কিছু পাঠানো হয়নি',
+  'Give the offer a name.': 'Offer-এর নাম দিন।', 'Write the message.': 'Message লিখুন।', 'Choose at least one way to send it.': 'অন্তত একটি মাধ্যম বাছুন।',
+  'Their favourite': 'তাদের পছন্দের', 'Send rules saved.': 'পাঠানোর নিয়ম Save হয়েছে।', 'Learn more about smart offers': 'Smart অফার নিয়ে আরও জানুন',
 };
 
 // Sentences with a number in them: [pattern, (match) => Bangla]
 const n = (x) => x;
 const w = (s) => BN[s] || s; // a known word inside a pattern
 export const BN_PATTERNS = [
+  [/^(\d[\d,]*) offers?$/, (m) => `${m[1]}টি Offer`],
+  [/^(\d[\d,]*) variations$/, (m) => `${m[1]}টি Variation`],
+  [/^(\d[\d,]*) brands?$/, (m) => `${m[1]}টি Brand`],
+  [/^(\d[\d,]*) left$/, (m) => `${m[1]} বাকি`],
+  [/^(\d[\d,]*) products?$/, (m) => `${m[1]}টি Product`],
   // ---- Home widgets and the courier statement ----
   [/^(\d[\d,]*) orders? · (৳[\d.]+[kL]?)$/, (m) => `${m[1]}টি Order · ${m[2]}`],
   [/^Week of (.+)$/, (m) => `${m[1]}-এর সপ্তাহ`],

@@ -4,7 +4,7 @@
 //
 // A product: { id, name, sku, barcode, cat ('Parent › Child' or ''), brand, st (active|draft|archived|deleted),
 //   price (retail, ৳), cost, mrp, wholesale (৳ or null), moq (pieces or null), sell (retail|wholesale|both),
-//   inv, loc, opts [{ name, values }], variants [{ name, swatch, price, stock, sku, barcode, wholesale, moq }],
+//   inv, loc, opts [{ name, values, visible (on the product page), variation (makes variants); both default true }], variants [{ name, swatch, price, stock, sku, barcode, wholesale, moq }],
 //   flags, tbg, low, missing, short, long, seoT, seoD, tags, savedAt }
 // Added for Nayeem's Product brief #1 (each optional; stock.js copies them onto the catalogue rows):
 //   unit       base unit ('pc', 'kg', 'l' … units.js); packs [{ id, name, qty, barcode }] (qty in base units)
@@ -33,8 +33,10 @@ const code = (s) => String(s).replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCa
 
 /** Every option combination as a variant row, with stock spread over them. */
 function makeVariants(p) {
-  if (!p.opts || !p.opts.length) return [];
-  const list = combos(p.opts);
+  // only the attributes used for variations make variants (the others are shown on the product page)
+  const vo = (p.opts || []).filter((o) => o.variation !== false);
+  if (!vo.length) return [];
+  const list = combos(vo);
   const per = Math.floor((p.inv || 0) / list.length);
   let extra = (p.inv || 0) - per * list.length;
   return list.map((vals, i) => {
